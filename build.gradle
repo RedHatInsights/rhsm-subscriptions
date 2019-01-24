@@ -1,0 +1,37 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.0.5.RELEASE")
+    }
+}
+apply plugin: 'org.springframework.boot'
+apply plugin: 'java'
+apply plugin: 'idea'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+bootJar {
+    baseName = 'rhsm-conduit'
+    version = '1.0.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.google.guava:guava:23.0'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+    compile 'org.jboss.resteasy:resteasy-jaxrs:3.5.1.Final'
+    compile 'org.jboss.resteasy:resteasy-validator-provider-11:3.5.1.Final'
+    compile 'org.jboss.resteasy:resteasy-spring-boot-starter:2.0.1.Final'
+    compile 'javax.validation:validation-api:2.0.1.Final'
+    compile 'org.hibernate.validator:hibernate-validator:6.0.14.Final'
+
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.3.2'
+    testCompile 'org.mockito:mockito-core:jar:2.23.4'
+    testCompile 'org.mockito:mockito-junit-jupiter:jar:2.23.4'
+}
