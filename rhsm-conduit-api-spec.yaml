@@ -1,0 +1,187 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-conduit-api"
+  description: "REST interface for the rhsm-conduit service."
+  version: 1.0.0
+
+servers:
+  - url: https://localhost/
+
+paths:
+  /inventory/{orgId}:
+    description: "All inventory operations related to a specific organization."
+    parameters:
+      - $ref: '#/components/parameters/rhIdentityHeader'
+
+    # TODO Address the following once we start building out the application
+    #  * We probably don't need the ConsumerInventory or OrgInventory objects
+    #    as this GET request could simply return what the IT service returns.
+    #  * Likely temporary and just for testing.
+    get:
+      summary: "Fetch the inventory data for an organization without pushing to the inventory."
+      operationId: getInventoryForOrg
+      tags:
+        - inventory
+      parameters:
+        - $ref: '#/components/parameters/orgId'
+      responses:
+        '200':
+          description: 'The request for inventory data was successful.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgInventory"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: "Fetch the inventory data for an organization and push into the unified inventory store."
+      operationId: updateInventoryForOrg
+      tags:
+        - inventory
+      parameters:
+        - $ref: '#/components/parameters/orgId'
+      responses:
+        # Could be 202 Accepted if we go async.
+        '200':
+          description: "The request to update the inventory was successful."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /status:
+    get:
+      description: "Get the status of the service"
+      operationId: getStatus
+      tags:
+        - status
+      responses:
+        '200':
+          description: "The request to get the status of the server was successful."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    rhIdentityHeader:
+      name: x-rh-identity
+      in: header
+      required: true
+      schema:
+        type: string
+        format: byte
+      description: "Base64-encoded JSON identity header provided by 3Scale.
+        Contains an account number of the user issuing the request. Format of the
+        JSON: {'identity': {'account_number': '12345678'}}"
+    orgId:
+      description: "The orgId is the candlepin owner key."
+      name: orgId
+      in: path
+      required: true
+      description: The ID of the target organization
+      schema:
+        type: string
+
+  responses:
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    ConsumerInventory:
+      # The properties list here will depend on what is returned
+      # from the IT endpoint.
+      required:
+        - consumerUuid
+        - ownerAccountKey
+      properties:
+        id:
+          type: integer
+          format: int64
+        ownerAccountKey:
+          type: string
+        hypervisorHostName:
+          type: string
+        guestHypervisor:
+          type: string
+        guestId:
+          type: string
+        installedProducts:
+          type: object
+          additionalProperties:
+            type: string
+        lastCheckin:
+          # TODO Should this be a datetime type instead of a long?
+          type: integer
+          format: int64
+        consumerType:
+          type: string
+        systemPurposeFacts:
+          type: object
+          additionalProperties:
+            type: string
+        consumerFacts:
+          type: object
+          additionalProperties:
+            type: string
+
+    OrgInventory:
+      properties:
+        consumerInventories:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsumerInventory"
+
+    Status:
+      required:
+        - version
+      properties:
+        version:
+          type: string
+
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
