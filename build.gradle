@@ -1,11 +1,19 @@
 plugins {
     id "java"
-    id "org.springframework.boot" version "2.0.8.RELEASE"
     id "idea"
+    id "org.springframework.boot" version "2.0.8.RELEASE"
+    id "nebula.lint" version "10.1.2"
 }
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
+
+allprojects {
+    group = "org.candlepin"
+    apply plugin: 'nebula.lint'
+    gradleLint.rules = ['all-dependency']
+    gradleLint.excludedRules = ['transitive-duplicate-dependency-class']
+}
 
 bootJar {
     version = '1.0.0'
@@ -16,13 +24,20 @@ repositories {
 }
 
 dependencies {
-    compile 'com.google.guava:guava:23.0'
-    compile 'ch.qos.logback:logback-classic:1.2.3'
-    compile 'org.jboss.resteasy:resteasy-jaxrs:3.6.2.Final'
-    compile 'org.jboss.resteasy:resteasy-validator-provider-11:3.6.2.Final'
-    compile 'org.jboss.resteasy:resteasy-spring-boot-starter:2.0.1.Final'
-    compile 'javax.validation:validation-api:2.0.1.Final'
-    compile 'org.hibernate.validator:hibernate-validator:6.0.14.Final'
+    compile 'org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final'
+    compile 'org.springframework:spring-beans:5.0.8.RELEASE'
+    compile 'org.springframework.boot:spring-boot:2.0.4.RELEASE'
+    compile 'org.springframework.boot:spring-boot-autoconfigure:2.0.4.RELEASE'
+    compile 'org.springframework:spring-context:5.0.8.RELEASE'
+    compile 'org.slf4j:slf4j-api:1.7.25'
+
+    // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
+    // implementations of APIs we are using.
+    runtime 'ch.qos.logback:logback-classic:1.2.3'
+    runtime 'org.jboss.resteasy:resteasy-spring-boot-starter:2.0.1.Final'
+    runtime 'org.jboss.resteasy:resteasy-jaxrs:3.6.2.Final'
+    runtime 'org.jboss.resteasy:resteasy-validator-provider-11:3.6.2.Final'
+    runtime 'org.hibernate.validator:hibernate-validator:6.0.14.Final'
 
     testCompile 'org.junit.jupiter:junit-jupiter-api:5.3.2'
     testCompile 'org.mockito:mockito-core:2.23.4'
