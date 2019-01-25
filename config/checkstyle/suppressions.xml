@@ -12,6 +12,8 @@
     <suppress files="[\\/]src[\\/]main[\\/].*" id="JavadocTypeTest" />
     <suppress files="[\\/]src[\\/]main[\\/].*" id="JavadocMethodTest" />
     <suppress files="[\\/]src[\\/]main[\\/].*" id="JavadocVariableTest" />
+    <!-- suppress all checks in the build directory -->
+    <suppress files="[\\/]build[\\/].*" checks="[a-zA-Z0-9]*" />
 </suppressions>
 
 <!-- vim: set expandtab sts=2 sw=2 ai: -->
