@@ -14,33 +14,25 @@
  */
 package org.candlepin.insights.resource;
 
+import org.candlepin.insights.api.model.Status;
+import org.candlepin.insights.api.resources.StatusApi;
 import org.candlepin.insights.controller.StatusMessageController;
-import org.candlepin.insights.model.StatusMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
-/** Resource to report on application status. */
-@Path("/status")
 @Component
-public class StatusResource {
+public class StatusResource implements StatusApi {
     private static final Logger log = LoggerFactory.getLogger(StatusResource.class);
 
     @Autowired
     private StatusMessageController statusMessageController;
 
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    public StatusMessage echoStatus() {
+    @Override
+    public Status getStatus() {
         log.info("Someone made a request");
         return statusMessageController.createStatus();
     }

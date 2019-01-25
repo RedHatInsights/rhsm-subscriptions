@@ -14,14 +14,18 @@
  */
 package org.candlepin.insights.controller;
 
-import org.candlepin.insights.model.StatusMessage;
+import org.candlepin.insights.api.model.Status;
 
 import org.springframework.stereotype.Component;
 
 /** Controller use to generate status messages for the StatusResource to use. */
 @Component
 public class StatusMessageController {
-    public StatusMessage createStatus() {
-        return new StatusMessage();
+
+    public Status createStatus() {
+        Status status = new Status();
+        status.setVersion("1.0.0");
+        return status;
     }
+
 }
