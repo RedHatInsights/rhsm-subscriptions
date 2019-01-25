@@ -18,6 +18,7 @@ import org.candlepin.insights.model.StatusMessage;
 
 import org.springframework.stereotype.Component;
 
+/** Controller use to generate status messages for the StatusResource to use. */
 @Component
 public class StatusMessageController {
     public StatusMessage createStatus() {

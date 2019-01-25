@@ -28,6 +28,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+/** Resource to report on application status. */
 @Path("/status")
 @Component
 public class StatusResource {
