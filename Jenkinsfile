@@ -23,7 +23,7 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'build/reports/gradleLint/*.html'
-            junit 'build/reports/**/*.xml'
+            junit 'build/test-results/**/*.xml'
         }
     }
 }

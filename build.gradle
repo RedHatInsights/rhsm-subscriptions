@@ -10,6 +10,7 @@ targetCompatibility = '1.8'
 
 allprojects {
     group = "org.candlepin"
+    apply plugin: 'java'
     apply plugin: 'nebula.lint'
     gradleLint.rules = ['all-dependency']
     gradleLint.excludedRules = ['transitive-duplicate-dependency-class']
@@ -42,4 +43,10 @@ dependencies {
     testCompile 'org.junit.jupiter:junit-jupiter-api:5.3.2'
     testCompile 'org.mockito:mockito-core:2.23.4'
     testCompile 'org.mockito:mockito-junit-jupiter:2.23.4'
+
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
+}
+
+test {
+    useJUnitPlatform()
 }
