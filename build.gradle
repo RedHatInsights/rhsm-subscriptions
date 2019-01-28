@@ -66,9 +66,8 @@ sourceSets {
 openApiGenerate {
   generatorName = "jaxrs-spec"
   inputSpec = "$rootDir/rhsm-conduit-api-spec.yaml"
+  configFile = "$rootDir/rhsm-conduit-api-config.json"
   outputDir = "$buildDir/generated"
-  apiPackage = "org.candlepin.insights.api.resources"
-  modelPackage = "org.candlepin.insights.api.model"
   configOptions = [
     interfaceOnly: true,
     generatePom: false
