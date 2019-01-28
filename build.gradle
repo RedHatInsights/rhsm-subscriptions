@@ -1,13 +1,17 @@
 plugins {
-    id "java"
     id "checkstyle"
     id "org.springframework.boot" version "2.0.8.RELEASE"
     id "nebula.lint" version "10.1.2"
-    id 'org.openapi.generator' // Custom using pluginManagement in settings.gradle
 }
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+allprojects {
+    apply plugin: 'java'
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    repositories {
+        mavenCentral()
+    }
+}
 
 gradleLint.rules = ['all-dependency']
 gradleLint.excludedRules = ['transitive-duplicate-dependency-class']
@@ -20,20 +24,14 @@ bootJar {
     version = '1.0.0'
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.8'
-    compile 'javax.validation:validation-api:2.0.1.Final'
+    compile project('api')
     compile 'org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final'
     compile 'org.springframework:spring-beans:5.0.8.RELEASE'
     compile 'org.springframework.boot:spring-boot:2.0.4.RELEASE'
     compile 'org.springframework.boot:spring-boot-autoconfigure:2.0.4.RELEASE'
     compile 'org.springframework:spring-context:5.0.8.RELEASE'
     compile 'org.slf4j:slf4j-api:1.7.25'
-    compile 'io.swagger:swagger-annotations:1.5.21'
 
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.
@@ -54,34 +52,3 @@ dependencies {
 test {
     useJUnitPlatform()
 }
-
-sourceSets {
-    main {
-        java {
-            srcDir "${buildDir}/generated/src/gen/java"
-        }
-    }
-}
-
-openApiGenerate {
-  generatorName = "jaxrs-spec"
-  inputSpec = "$rootDir/rhsm-conduit-api-spec.yaml"
-  configFile = "$rootDir/rhsm-conduit-api-config.json"
-  outputDir = "$buildDir/generated"
-  configOptions = [
-    interfaceOnly: true,
-    generatePom: false
-  ]
-}
-
-openApiValidate {
-  inputSpec = "$rootDir/rhsm-conduit-api-spec.yaml"
-}
-
-task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
-  generatorName = "html"
-  inputSpec = "$rootDir/rhsm-conduit-api-spec.yaml"
-  outputDir = "$buildDir/docs"
-}
-
-compileJava.dependsOn tasks.openApiGenerate

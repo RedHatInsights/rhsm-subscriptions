@@ -1,0 +1,41 @@
+plugins {
+    id 'org.openapi.generator' // Custom using pluginManagement in settings.gradle
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "${buildDir}/generated/src/gen/java"
+        }
+    }
+}
+
+openApiGenerate {
+  generatorName = "jaxrs-spec"
+  inputSpec = "$projectDir/rhsm-conduit-api-spec.yaml"
+  configFile = "$projectDir/rhsm-conduit-api-config.json"
+  outputDir = "$buildDir/generated"
+  configOptions = [
+    interfaceOnly: true,
+    generatePom: false
+  ]
+}
+
+openApiValidate {
+  inputSpec = "$rootDir/rhsm-conduit-api-spec.yaml"
+}
+
+task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+  generatorName = "html"
+  inputSpec = "$rootDir/rhsm-conduit-api-spec.yaml"
+  outputDir = "$buildDir/docs"
+}
+
+dependencies {
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.8'
+    compile 'javax.validation:validation-api:2.0.1.Final'
+    compile 'org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final'
+    compile 'io.swagger:swagger-annotations:1.5.21'
+}
+
+compileJava.dependsOn tasks.openApiGenerate
