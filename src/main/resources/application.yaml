@@ -13,17 +13,3 @@ management:
   endpoint:
     shutdown:
       enabled: true
-
-# Used to set context-param values since Spring Boot does not have a web.xml.
-# The Spring Boot documentation does not really explicitly show that this style
-# of setting context-params is an option.  The more common method seems to be
-# the creation of a @Configuration class with a ServletContextInitializer @Bean
-# (See https://stackoverflow.com/a/26648258/6124862).  However, using this approach
-# requires adding the javax.servlet-api jar to our class path since the Bean receives
-# a ServletContext object.  Nebula Lint does not like that since the javax.servlet-api
-# jar contains classes duplicated in tomcat-embedded-core.  And no matter how you
-# slice it (add one, add the other, add both), the linter complains.  So we will use
-# this simple approach for now and move to the @Bean approach if necessary.
-server.servlet.context-parameters:
-  resteasy.async.job.service:
-    enabled: true
