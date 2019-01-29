@@ -1,7 +1,6 @@
 plugins {
     id "checkstyle"
     id "org.springframework.boot" version "2.0.8.RELEASE"
-    id "nebula.lint" version "10.1.2"
 }
 
 allprojects {
@@ -12,9 +11,6 @@ allprojects {
         mavenCentral()
     }
 }
-
-gradleLint.rules = ['all-dependency']
-gradleLint.excludedRules = ['transitive-duplicate-dependency-class']
 
 checkstyle {
     toolVersion '8.16'
