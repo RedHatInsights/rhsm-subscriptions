@@ -1,0 +1,52 @@
+plugins {
+    id 'org.openapi.generator' // Custom using pluginManagement in settings.gradle
+}
+
+ext {
+    swagger_annotations_version = "1.5.21"
+    jackson_version = "2.8.11"
+    jackson_databind_version = "2.8.11.2"
+    resteasy_version = "3.1.3.Final"
+
+    api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ["${buildDir}/generated/src/main/java"]
+    }
+}
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = api_spec_path
+    configFile = "${projectDir}/insights-inventory-client-config.json"
+    outputDir = "${buildDir}/generated"
+    configOptions = [
+        generatePom: false,
+        library: "resteasy",
+        java8: true,
+        dateLibrary: "java8"
+    ]
+}
+
+openApiValidate {
+  inputSpec = api_spec_path
+}
+
+task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+  generatorName = "html"
+  inputSpec = api_spec_path
+  outputDir = "$buildDir/docs"
+}
+
+dependencies {
+    compile "io.swagger:swagger-annotations:$swagger_annotations_version"
+    compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
+    compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
+    compile "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
+    compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
+}
+
+compileJava.dependsOn tasks.openApiGenerate
