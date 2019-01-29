@@ -4,9 +4,7 @@ plugins {
 
 sourceSets {
     main {
-        java {
-            srcDir "${buildDir}/generated/src/gen/java"
-        }
+        java.srcDirs = ["${buildDir}/generated/src/gen/java"]
     }
 }
 
