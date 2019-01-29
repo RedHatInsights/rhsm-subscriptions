@@ -9,7 +9,6 @@ Run using
 First, log in to an openshift instance.
 
 ```
-oc create -f openshift/secret_gitlab.sat.engineering.redhat.com.yaml  # allow openshift to deploy from gitlab
 oc create -f openshift/template_rhsm-conduit.yaml  # add a template for deploying rhsm-conduit
 oc new-app --template=rhsm-conduit  # deploy an instance of rhsm-conduit using the template
 ```
