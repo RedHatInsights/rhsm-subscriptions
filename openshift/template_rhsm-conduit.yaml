@@ -106,7 +106,7 @@ parameters:
 - description: Git repo
   displayName: Git repo URL
   name: SOURCE_REPOSITORY_URL
-  value: https://gitlab.sat.engineering.redhat.com/candlepin-internal/rhsm-conduit.git
+  value: https://github.com/RedHatInsights/rhsm-conduit.git
   required: false
 - description: Git branch/tag reference
   displayName: Git reference
