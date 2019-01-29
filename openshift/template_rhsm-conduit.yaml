@@ -57,8 +57,6 @@ objects:
       git:
         ref: ${SOURCE_REPOSITORY_REF}
         uri: ${SOURCE_REPOSITORY_URL}
-      sourceSecret:
-        name: gitlab.sat.engineering.redhat.com
       type: Git
     strategy:
       sourceStrategy:
