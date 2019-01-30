@@ -72,22 +72,15 @@ objects:
     - github:
         secret: ${GITHUB_WEBHOOK_SECRET}
       type: GitHub
+    resources:
+      limits:
+        memory: "1Gi"
 - apiVersion: v1
   kind: ImageStream
   metadata:
     labels:
       app: ${APPLICATION_NAME}
     name: ${APPLICATION_NAME}
-- apiVersion: v1
-  kind: Route
-  metadata:
-    labels:
-      app: ${APPLICATION_NAME}
-    name: ${APPLICATION_NAME}
-  spec:
-    host: ${HOSTNAME_HTTP}
-    to:
-      name: ${APPLICATION_NAME}
 - apiVersion: v1
   kind: Service
   metadata:
@@ -115,11 +108,6 @@ parameters:
   displayName: Application Name
   name: APPLICATION_NAME
   value: rhsm-conduit
-  required: false
-- description: 'Custom hostname for http service route.  Leave blank for default hostname, e.g.: <application-name>-<project>.<default-domain-suffix>'
-  displayName: Custom http Route Hostname
-  name: HOSTNAME_HTTP
-  value: ''
   required: false
 - description: GitHub trigger secret
   displayName: Github Webhook Secret
