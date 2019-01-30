@@ -46,7 +46,6 @@ public class ApplicationConfiguration {
     @Bean
     public ServletContextInitializer initializer() {
         return new ServletContextInitializer() {
-
             @Override
             public void onStartup(ServletContext servletContext) throws ServletException {
                 servletContext.setInitParameter("resteasy.async.job.service.enabled", "true");

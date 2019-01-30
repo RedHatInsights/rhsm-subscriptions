@@ -16,15 +16,19 @@ package org.candlepin.insights.controller;
 
 import org.candlepin.insights.api.model.Status;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /** Controller use to generate status messages for the StatusResource to use. */
 @Component
 public class StatusMessageController {
+    // Fetches values from the PropertySource defined in ApplicationConfiguration
+    @Value("${application.version}")
+    private String version;
 
     public Status createStatus() {
         Status status = new Status();
-        status.setVersion("1.0.0");
+        status.setVersion(version);
         return status;
     }
 

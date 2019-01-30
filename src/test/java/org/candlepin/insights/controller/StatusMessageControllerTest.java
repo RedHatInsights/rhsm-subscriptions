@@ -15,17 +15,25 @@
 
 package org.candlepin.insights.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.api.model.Status;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 public class StatusMessageControllerTest {
+
+    @Autowired
+    private StatusMessageController controller;
+
     @Test
-    public void testStatusProvidesTimestampAndText() {
-        StatusMessageController controller = new StatusMessageController();
+    public void testStatusProvidesTimestampAndText() throws Exception {
         Status status = controller.createStatus();
-        assertEquals("1.0.0", status.getVersion());
+        assertEquals("TEST", status.getVersion());
     }
 }

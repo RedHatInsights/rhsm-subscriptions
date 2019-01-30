@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
 /** Resource to report on application status. */
 @Component
 public class StatusResource implements StatusApi {
