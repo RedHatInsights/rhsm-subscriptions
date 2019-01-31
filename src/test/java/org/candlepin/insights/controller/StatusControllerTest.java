@@ -12,24 +12,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
+
 package org.candlepin.insights.controller;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.api.model.Status;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
-/** Controller use to generate status messages for the StatusResource to use. */
-@Component
-public class StatusMessageController {
-    // Fetches values from the PropertySource defined in ApplicationConfiguration
-    @Value("${application.version}")
-    private String version;
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
+public class StatusControllerTest {
 
-    public Status createStatus() {
-        Status status = new Status();
-        status.setVersion(version);
-        return status;
+    @Autowired
+    private StatusController controller;
+
+    @Test
+    public void testStatusProvidesTimestampAndText() throws Exception {
+        Status status = controller.createStatus();
+        assertEquals("TEST", status.getVersion());
     }
-
 }

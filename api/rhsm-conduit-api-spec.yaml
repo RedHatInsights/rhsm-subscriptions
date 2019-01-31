@@ -72,7 +72,7 @@ paths:
 
   /status:
     get:
-      description: "Get the status of the service"
+      description: "Get the status of the service. Can be used as a simple liveness probe."
       operationId: getStatus
       tags:
         - status
@@ -85,6 +85,21 @@ paths:
                 $ref: "#/components/schemas/Status"
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /status/ready:
+    get:
+      description: "Get the readiness of the service. I.e. is the service able to handle requests."
+      operationId: getReadiness
+      tags:
+        - status
+      responses:
+        '200':
+          description: "The request to get the readiness status of the server was successful."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
 components:
   responses:
@@ -108,6 +123,12 @@ components:
             $ref: "#/components/schemas/Error"
     ResourceNotFound:
       description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServiceUnavailable:
+      description: "The server is currently unavailable."
       content:
         application/json:
           schema:
@@ -163,6 +184,13 @@ components:
         - version
       properties:
         version:
+          type: string
+
+    Readiness:
+      required:
+        - availability
+      properties:
+        availability:
           type: string
 
     Error:

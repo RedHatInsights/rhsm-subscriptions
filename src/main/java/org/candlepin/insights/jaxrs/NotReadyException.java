@@ -12,22 +12,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights;
+package org.candlepin.insights.jaxrs;
 
-import org.springframework.stereotype.Component;
-
-import java.util.Set;
-
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
-
-/** Bootstrapper for RESTEasy. */
-@Component
-@ApplicationPath("/rhsm-conduit")
-public class JaxrsApplication extends Application {
-
-    @Override
-    public Set<Class<?>> getClasses() {
-        return super.getClasses();
+/**
+ * Exception thrown when the application is not ready (i.e. under heavy load).
+ */
+public class NotReadyException extends RuntimeException {
+    public NotReadyException(String s) {
+        super(s);
     }
 }
