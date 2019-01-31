@@ -14,16 +14,28 @@
  */
 package org.candlepin.insights;
 
+import org.candlepin.insights.inventory.client.ApiClientFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 /** Class to hold configuration beans */
 @Configuration
+@PropertySource(
+    value = {"classpath:/project.properties", "file:/etc/rhsm-conduit.conf"},
+    ignoreResourceNotFound = true
+)
 public class ApplicationConfiguration {
+    @Autowired
+    Environment env;
+
     /**
      * Used to set context-param values since Spring Boot does not have a web.xml.  Technically
      * context-params can be set in application.properties (or application.yaml) with the prefix
@@ -41,5 +53,10 @@ public class ApplicationConfiguration {
                 servletContext.setInitParameter("resteasy.async.job.service.base.path", "/jobs");
             }
         };
+    }
+
+    @Bean
+    public ApiClientFactory hostInventoryClientFactory() {
+        return new ApiClientFactory(env.getProperty("hostInventoryServiceUrl"));
     }
 }
