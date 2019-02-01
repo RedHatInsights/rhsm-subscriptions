@@ -3,6 +3,11 @@ pipeline {
         label 'rhsm'
     }
     stages {
+	stage('Clean') {
+            steps {
+                sh './gradlew --no-daemon clean'
+            }
+	}
         stage('Build') {
             steps {
                 sh './gradlew --no-daemon assemble'
