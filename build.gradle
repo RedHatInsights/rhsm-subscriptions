@@ -40,6 +40,8 @@ dependencies {
     runtime 'org.hibernate.validator:hibernate-validator:6.0.14.Final'
 
     testCompile 'org.junit.jupiter:junit-jupiter-api:5.3.2'
+    testCompile 'org.springframework.boot:spring-boot-test:2.1.2.RELEASE'
+    testCompile 'org.springframework:spring-test:5.1.4.RELEASE'
     testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.3.2'
 
 
