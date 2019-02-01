@@ -5,17 +5,17 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh './gradlew assemble -PgradleLint.alwaysRun=false'
+                sh './gradlew --no-daemon assemble -PgradleLint.alwaysRun=false'
             }
         }
         stage('Unit tests') {
             steps {
-                sh './gradlew test -PgradleLint.alwaysRun=false'
+                sh './gradlew --no-daemon test -PgradleLint.alwaysRun=false'
             }
         }
         stage('Checkstyle') {
             steps {
-                sh './gradlew generateGradleLintReport'
+                sh './gradlew --no-daemon generateGradleLintReport'
             }
         }
     }
