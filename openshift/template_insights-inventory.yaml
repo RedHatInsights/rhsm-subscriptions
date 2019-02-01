@@ -135,17 +135,6 @@ objects:
     selector:
       deploymentconfig: ${APPLICATION_NAME}
 
-- apiVersion: v1
-  kind: Route
-  metadata:
-    labels:
-      app: ${APPLICATION_NAME}
-    name: ${APPLICATION_NAME}
-  spec:
-    host: ${HOSTNAME_HTTP}
-    to:
-      name: ${APPLICATION_NAME}
-
 parameters:
   - description: Git repo
     displayName: Git repo URL
@@ -162,11 +151,6 @@ parameters:
     name: APPLICATION_NAME
     value: dev-insights-inventory
     required: true
-  - description: 'Custom hostname for http service route.  Leave blank for default hostname, e.g.: <application-name>-<project>.<default-domain-suffix>'
-    displayName: Custom http Route Hostname
-    name: HOSTNAME_HTTP
-    value: ''
-    required: false
   - description: The inventory service's database hostname
     displayName: Database Host Name
     name: INVENTORY_DB_HOSTNAME
