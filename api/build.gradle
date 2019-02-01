@@ -8,6 +8,9 @@ sourceSets {
     }
 }
 
+// This project should only contain generated code.  No point in running checkstyle
+checkstyle.sourceSets = []
+
 openApiGenerate {
   generatorName = "jaxrs-spec"
   inputSpec = "$projectDir/rhsm-conduit-api-spec.yaml"

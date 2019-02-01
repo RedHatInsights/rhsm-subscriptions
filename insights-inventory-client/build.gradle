@@ -17,6 +17,9 @@ sourceSets {
     }
 }
 
+// This project should only contain generated code.  No point in running checkstyle
+checkstyle.sourceSets = []
+
 openApiGenerate {
     generatorName = "java"
     inputSpec = api_spec_path
