@@ -12,20 +12,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.controller;
+package org.candlepin.insights.jaxrs;
 
-import org.candlepin.insights.api.model.Status;
-
-import org.springframework.stereotype.Component;
-
-/** Controller use to generate status messages for the StatusResource to use. */
-@Component
-public class StatusMessageController {
-
-    public Status createStatus() {
-        Status status = new Status();
-        status.setVersion("1.0.0");
-        return status;
+/**
+ * Exception thrown when the application is not ready (i.e. under heavy load).
+ */
+public class NotReadyException extends RuntimeException {
+    public NotReadyException(String s) {
+        super(s);
     }
-
 }

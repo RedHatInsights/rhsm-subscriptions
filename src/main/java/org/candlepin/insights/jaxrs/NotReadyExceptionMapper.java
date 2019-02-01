@@ -12,22 +12,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights;
+package org.candlepin.insights.jaxrs;
 
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
-import javax.ws.rs.ApplicationPath;
-import javax.ws.rs.core.Application;
-
-/** Bootstrapper for RESTEasy. */
+/**
+ * Maps a NotReadyException to a 503 (Service Unavailable) response
+ */
 @Component
-@ApplicationPath("/rhsm-conduit")
-public class JaxrsApplication extends Application {
-
+@Provider
+public class NotReadyExceptionMapper implements ExceptionMapper<NotReadyException> {
     @Override
-    public Set<Class<?>> getClasses() {
-        return super.getClasses();
+    public Response toResponse(NotReadyException exception) {
+        return Response
+            .status(Status.SERVICE_UNAVAILABLE)
+            .entity(exception.getMessage())
+            .type(MediaType.TEXT_PLAIN)
+            .build();
     }
 }
