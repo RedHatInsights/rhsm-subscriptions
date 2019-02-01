@@ -5,24 +5,18 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh './gradlew --no-daemon assemble -PgradleLint.alwaysRun=false'
+                sh './gradlew --no-daemon assemble'
             }
         }
         stage('Unit tests') {
             steps {
-                sh './gradlew --no-daemon test -PgradleLint.alwaysRun=false'
-            }
-        }
-        stage('Checkstyle') {
-            steps {
-                sh './gradlew --no-daemon generateGradleLintReport'
+                sh './gradlew --no-daemon test'
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'build/reports/gradleLint/*.html'
             junit 'build/test-results/**/*.xml'
         }
     }
