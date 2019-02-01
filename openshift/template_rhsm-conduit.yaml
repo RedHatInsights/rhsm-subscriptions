@@ -29,6 +29,14 @@ objects:
           ports:
           - containerPort: 8080
             protocol: TCP
+          volumeMounts:
+          - name: config
+            mountPath: /etc/rhsm-conduit.conf
+            subPath: rhsm-conduit.conf
+        volumes:
+        - name: config
+          configMap:
+            name: rhsm-conduit-config
         restartPolicy: Always
         terminationGracePeriodSeconds: 75
     triggers:

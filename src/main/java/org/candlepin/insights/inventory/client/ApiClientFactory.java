@@ -18,6 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
+/**
+ * Factory that produces inventory service clients configured with service URL.
+ */
 public class ApiClientFactory implements FactoryBean<ApiClient> {
     private static Logger log = LoggerFactory.getLogger(ApiClientFactory.class);
 

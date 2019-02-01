@@ -4,9 +4,18 @@ Run using
 ./gradlew build && java -jar build/libs/rhsm-conduit-1.0.0.jar
 ```
 
+## OpenShift Project Set Up
+
+Choose a project to deploy to, and set up a `rhsm-conduit-config` ConfigMap for that project.
+There is an example config files in `openshift/example_config/rhsm-conduit.conf`, that can be applied via:
+
+```
+oc create configmap rhsm-conduit-config --from-file openshift/example_config
+```
+
 ## Deploying to Openshift
 
-First, log in to an openshift instance.
+First, log in to an openshift instance. Make sure the project has been set up (see previous section).
 
 ```
 oc create -f openshift/template_rhsm-conduit.yaml  # add a template for deploying rhsm-conduit
