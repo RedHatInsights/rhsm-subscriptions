@@ -6,7 +6,7 @@ ext {
     swagger_annotations_version = "1.5.21"
     jackson_version = "2.8.11"
     jackson_databind_version = "2.8.11.2"
-    resteasy_version = "3.1.3.Final"
+    resteasy_version = "3.6.2.Final"
 
     api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
 }
