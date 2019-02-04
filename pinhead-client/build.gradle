@@ -3,13 +3,13 @@ plugins {
 }
 
 ext {
-    api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
+    api_spec_path = "${projectDir}/pinhead-client-spec.yaml"
 }
 
 openApiGenerate {
     generatorName = "java"
     inputSpec = api_spec_path
-    configFile = "${projectDir}/insights-inventory-client-config.json"
+    configFile = "${projectDir}/pinhead-client-config.json"
     outputDir = "${buildDir}/generated"
     configOptions = [
         generatePom: false,
@@ -28,5 +28,7 @@ task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.Genera
   inputSpec = api_spec_path
   outputDir = "$buildDir/docs"
 }
+
+sourceSets.main.java.srcDirs += "${projectDir}/src/main/java"
 
 compileJava.dependsOn tasks.openApiGenerate
