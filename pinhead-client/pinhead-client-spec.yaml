@@ -75,47 +75,120 @@ components:
           format: int32
         message:
           type: string
-    ConsumerInventory:
+
+    Consumer:
       # The properties list here will depend on what is returned
       # from the IT endpoint.
       required:
         - consumerUuid
-        - ownerAccountKey
+        - uuid
+        - orgId
+        - lastCheckin
+        - type
+        - installedProducts
+        - sysPurposeRole
+        - sysPurposeUsage
+        - sysPurposeAddons
+        - facts
       properties:
-        id:
-          type: integer
-          format: int64
-        ownerAccountKey:
+        consumerUuid:
           type: string
-        hypervisorHostName:
+        name:
           type: string
-        guestHypervisor:
+        hypervisorUuid:
+          type: string
+        hypdervisorName:
           type: string
         guestId:
           type: string
-        installedProducts:
-          type: object
-          additionalProperties:
-            type: string
+        orgId:
+          type: integer
+          format: int64
         lastCheckin:
           # TODO Should this be a datetime type instead of a long?
           type: integer
           format: int64
         consumerType:
           type: string
-        systemPurposeFacts:
-          type: object
-          additionalProperties:
+        installedProducts:
+          type: array
+          items:
+            $ref: "#/components/schema/InstalledProducts"
+        sysPurposeRole:
+          type: string
+        sysPurposeUsage:
+          type: string
+        sysPurposeAddons:
+          type: array
+          items:
             type: string
-        consumerFacts:
+        # TODO: Do we want to lock down the exact facts we're using
+        facts:
           type: object
           additionalProperties:
             type: string
 
+    InstalledProducts:
+      required:
+        - productId
+        - productName
+        - productVersion
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        productVersion:
+          type: integer
+          format: int64
+
+    Debug:
+      required:
+        - code
+        - message
+        - requestUUID
+        - pagination
+      properties:
+        code:
+          type: integer
+          format: int64
+        message:
+          type: string
+        requestUUID:
+          type: string
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Pagination:
+      required:
+        - firstId
+        - lastId
+        - nextOffset
+        - totalCount
+        - displayedCount
+      properties:
+        firstId:
+          type: string
+        lastId:
+          type: string
+        nextOffset:
+          type: string
+        currentOffset:
+          type: string
+        totalCount:
+          type: integer
+          format: int64
+        displayCount:
+          type: integer
+          format: int64
+
     OrgInventory:
       properties:
-        consumerInventories:
+        debug:
+          $ref: "#/components/schemas/Debug"
+        consumers:
           type: array
           items:
-            $ref: "#/components/schemas/ConsumerInventory"
+            $ref: "#/components/schemas/Consumer"
 
