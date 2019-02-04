@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhsm-insights-inventory
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    generation: 1
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: ${APPLICATION_NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        pre:
+          execNewPod:
+            command:
+              - python
+              - manage.py
+              - db
+              - upgrade
+            containerName: ${APPLICATION_NAME}
+            volumes:
+              - prometheus-vol
+          failurePolicy: Abort
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APPLICATION_NAME}
+          deploymentconfig: ${APPLICATION_NAME}
+      spec:
+        containers:
+          - image: ${APPLICATION_NAME}
+            imagePullPolicy: Always
+            name: ${APPLICATION_NAME}
+            ports:
+              - containerPort: 8080
+                protocol: TCP
+            volumeMounts:
+              - name: prometheus-vol
+                mountPath: /tmp/inventory/prometheus
+        volumes:
+          - name: prometheus-vol
+            emptyDir: {}
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 75
+    triggers:
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+            - ${APPLICATION_NAME}
+          from:
+            kind: ImageStreamTag
+            name: ${APPLICATION_NAME}:latest
+        type: ImageChange
+      - type: ConfigChange
+
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${APPLICATION_NAME}:latest
+    source:
+      git:
+        ref: ${SOURCE_REPOSITORY_REF}
+        uri: ${SOURCE_REPOSITORY_URL}
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+          - name: INVENTORY_DB_HOST
+            value: ${INVENTORY_DB_HOSTNAME}
+          - name: INVENTORY_DB_USER
+            value: ${INVENTORY_DB_USER}
+          - name: INVENTORY_DB_PASS
+            value: ${INVENTORY_DB_PASS}
+          - name: INVENTORY_DB_NAME
+            value: ${INVENTORY_DB_NAME}
+          - name: APP_NAME
+            value: ${INVENTORY_APP_NAME}
+          - name: PATH_PREFIX
+            value: ${INVENTORY_PATH_PREFIX}
+          - name: prometheus_multiproc_dir
+            value: /tmp/inventory/prometheus
+          - name: INVENTORY_LOGGING_CONFIG_FILE
+            value: logconfig.ini
+          - name: APP_FILE
+            value: run.py
+          - name: ENABLE_PIPENV
+            value: "1"
+          - name: FLASK_DEBUG
+            value: "1"
+          - name: NOAUTH
+            value: "1"
+        from:
+          kind: DockerImage
+          name: docker.io/centos/python-36-centos7
+      type: Source
+    triggers:
+      - type: ConfigChange
+    resources:
+      limits:
+        memory: "1Gi"
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
+  spec:
+    ports:
+      - name: 8080-tcp
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+    selector:
+      deploymentconfig: ${APPLICATION_NAME}
+
+parameters:
+  - description: Git repo
+    displayName: Git repo URL
+    name: SOURCE_REPOSITORY_URL
+    value: https://github.com/RedHatInsights/insights-host-inventory.git
+    required: true
+  - description: Git branch/tag reference
+    displayName: Git reference
+    name: SOURCE_REPOSITORY_REF
+    value: master
+    required: true
+  - description: The name for the application.
+    displayName: Application Name
+    name: APPLICATION_NAME
+    value: dev-insights-inventory
+    required: true
+  - description: The inventory service's database hostname
+    displayName: Database Host Name
+    name: INVENTORY_DB_HOSTNAME
+    value: ""
+    required: true
+  - description: The inventory service's database name
+    displayName: Inventory Database Name
+    name: INVENTORY_DB_NAME
+    value: inventory
+    required: false
+  - description: The inventory service's database user
+    displayName: Inventory Database User
+    name: INVENTORY_DB_USER
+    value: insights
+    required: false
+  - description: The inventory service's database password
+    displayName: Inventory Database Password
+    name: INVENTORY_DB_PASS
+    value: insights
+    required: false
+  - description: 'The inventory service path prefix. Used to build the API url (/<INVENTORY_PATH_PREFIX>/<INVENTORY_APP_NAME>/api/v1/)'
+    displayName: Inventory Path Prefix
+    name: INVENTORY_PATH_PREFIX
+    value: /r/insights/platform
+    required: false
+  - description: 'The inventory service app name. Used to build the API url (/<INVENTORY_PATH_PREFIX>/<INVENTORY_APP_NAME>/api/v1/)'
+    displayName: Inventory App Name
+    name: INVENTORY_APP_NAME
+    value: inventory
+    required: false
