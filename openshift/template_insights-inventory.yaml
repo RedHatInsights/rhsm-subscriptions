@@ -29,6 +29,8 @@ objects:
               - db
               - upgrade
             containerName: ${APPLICATION_NAME}
+            volumes:
+              - prometheus-vol
           failurePolicy: Abort
         timeoutSeconds: 600
         updatePeriodSeconds: 1
@@ -46,6 +48,12 @@ objects:
             ports:
               - containerPort: 8080
                 protocol: TCP
+            volumeMounts:
+              - name: prometheus-vol
+                mountPath: /tmp/inventory/prometheus
+        volumes:
+          - name: prometheus-vol
+            emptyDir: {}
         restartPolicy: Always
         terminationGracePeriodSeconds: 75
     triggers:
@@ -92,7 +100,7 @@ objects:
           - name: PATH_PREFIX
             value: ${INVENTORY_PATH_PREFIX}
           - name: prometheus_multiproc_dir
-            value: /tmp
+            value: /tmp/inventory/prometheus
           - name: INVENTORY_LOGGING_CONFIG_FILE
             value: logconfig.ini
           - name: APP_FILE
