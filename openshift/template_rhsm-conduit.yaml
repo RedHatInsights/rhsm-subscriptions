@@ -26,6 +26,9 @@ objects:
         - image: ${APPLICATION_NAME}
           imagePullPolicy: Always
           name: ${APPLICATION_NAME}
+          env:
+          - name: JAVA_OPTIONS
+            value: -Dlogging.config=/etc/logback.xml
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -53,6 +56,9 @@ objects:
           - name: config
             mountPath: /etc/rhsm-conduit.conf
             subPath: rhsm-conduit.conf
+          - name: config
+            mountPath: /etc/logback.xml
+            subPath: logback.xml
         volumes:
         - name: config
           configMap:
