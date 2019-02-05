@@ -12,13 +12,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.jaxrs;
+package org.candlepin.insights.exception.inventory;
+
+import org.candlepin.insights.exception.ErrorCode;
+import org.candlepin.insights.exception.ExternalServiceException;
 
 /**
- * Exception thrown when the application is not ready (i.e. under heavy load).
+ * Thrown when there was an issue making a request to the inventory service.
  */
-public class NotReadyException extends RuntimeException {
-    public NotReadyException(String s) {
-        super(s);
+public class InventoryServiceRequestException extends ExternalServiceException {
+
+    public InventoryServiceRequestException(String message, Throwable e) {
+        super(ErrorCode.INVENTORY_SERVICE_REQUEST_ERROR, message, e);
     }
+
 }

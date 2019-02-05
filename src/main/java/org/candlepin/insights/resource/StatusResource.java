@@ -18,7 +18,7 @@ import org.candlepin.insights.api.model.Readiness;
 import org.candlepin.insights.api.model.Status;
 import org.candlepin.insights.api.resources.StatusApi;
 import org.candlepin.insights.controller.StatusController;
-import org.candlepin.insights.jaxrs.NotReadyException;
+import org.candlepin.insights.exception.NotReadyException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
