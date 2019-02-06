@@ -19,3 +19,4 @@ pluginManagement {
 rootProject.name = 'rhsm-conduit'
 include 'api'
 include 'insights-inventory-client'
+include 'pinhead-client'

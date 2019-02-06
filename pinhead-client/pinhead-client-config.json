@@ -1,0 +1,8 @@
+{
+  "modelPackage": "org.candlepin.insights.pinhead.client.model",
+  "apiPackage": "org.candlepin.insights.pinhead.client.resources",
+  "invokerPackage": "org.candlepin.insights.pinhead.client",
+  "groupId": "org.candlepin",
+  "artifactId": "pinhead-client",
+  "java8": true
+}

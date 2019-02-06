@@ -1,0 +1,184 @@
+openapi: "3.0.2"
+info:
+  title: "pinhead-client-api"
+  description: "REST interface for the pinhead client used by rhsm-conduit"
+  version: 1.0.0
+
+servers:
+  - url: https://localhost/
+
+paths:
+  /owners/{orgId}/consumer_feed:
+    description: "Consumer operations based on an owner."
+    parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The orgId is the candlepin owner key."
+    get:
+      description: "List consumers on an owner."
+      operationId: getConsumersForOrg
+      tags:
+        - pinhead
+      responses:
+        '200':
+          description: "The request for consumer data was successful."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgInventory"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '404':
+          $ref: "#/components/responses/ResourceNotFound"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+components:
+  responses:
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+
+    Consumer:
+      # The properties list here will depend on what is returned
+      # from the IT endpoint.
+      required:
+        - consumerUuid
+        - uuid
+        - orgId
+        - lastCheckin
+        - type
+        - installedProducts
+        - sysPurposeRole
+        - sysPurposeUsage
+        - sysPurposeAddons
+        - facts
+      properties:
+        consumerUuid:
+          type: string
+        name:
+          type: string
+        hypervisorUuid:
+          type: string
+        hypdervisorName:
+          type: string
+        guestId:
+          type: string
+        orgId:
+          type: integer
+          format: int64
+        lastCheckin:
+          # TODO Should this be a datetime type instead of a long?
+          type: integer
+          format: int64
+        consumerType:
+          type: string
+        installedProducts:
+          type: array
+          items:
+            $ref: "#/components/schema/InstalledProducts"
+        sysPurposeRole:
+          type: string
+        sysPurposeUsage:
+          type: string
+        sysPurposeAddons:
+          type: array
+          items:
+            type: string
+        facts:
+          type: object
+          additionalProperties:
+            type: string
+
+    InstalledProducts:
+      required:
+        - productId
+        - productName
+        - productVersion
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        productVersion:
+          type: integer
+          format: int64
+
+    Debug:
+      required:
+        - code
+        - message
+        - requestUUID
+        - pagination
+      properties:
+        code:
+          type: integer
+          format: int64
+        message:
+          type: string
+        requestUUID:
+          type: string
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Pagination:
+      required:
+        - firstId
+        - lastId
+        - nextOffset
+        - totalCount
+        - displayedCount
+      properties:
+        firstId:
+          type: string
+        lastId:
+          type: string
+        nextOffset:
+          type: string
+        currentOffset:
+          type: string
+        totalCount:
+          type: integer
+          format: int64
+        displayCount:
+          type: integer
+          format: int64
+
+    OrgInventory:
+      properties:
+        debug:
+          $ref: "#/components/schemas/Debug"
+        consumers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Consumer"
+
