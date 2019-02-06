@@ -10,6 +10,9 @@ management:
         include:
           - health
           - shutdown
+          - prometheus
   endpoint:
     shutdown:
+      enabled: true
+    prometheus:
       enabled: true
