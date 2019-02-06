@@ -11,15 +11,6 @@ paths:
   /owners/{orgId}/consumer_feed:
     description: "Consumer operations based on an owner."
     parameters:
-      - name: x-rh-identity
-        in: header
-        required: true
-        schema:
-          type: string
-          format: byte
-        description: "Base64-encoded JSON identity header provided by 3Scale.
-              Contains an account number of the user issuing the request. Format of the
-              JSON: {'identity': {'account_number': '12345678'}}"
       - name: orgId
         in: path
         required: true
@@ -122,7 +113,6 @@ components:
           type: array
           items:
             type: string
-        # TODO: Do we want to lock down the exact facts we're using
         facts:
           type: object
           additionalProperties:
