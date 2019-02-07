@@ -64,6 +64,7 @@ dependencies {
     compile "org.springframework.boot:spring-boot:$spring_boot_version"
     compile "org.springframework:spring-beans:$spring_version"
     compile "org.springframework:spring-context:$spring_version"
+    compile "org.springframework:spring-webmvc:$spring_version"
     compile "org.slf4j:slf4j-api:$slf4j_version"
     compile "net.logstash.logback:logstash-logback-encoder:5.3"
     compile "io.micrometer:micrometer-registry-prometheus:1.1.2"
