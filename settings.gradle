@@ -1,22 +1,2 @@
-/*
-This pluginManagement section is entirely because org.openapi.generator
-has not registered themselves properly in the gradlePluginPortal
- */
-pluginManagement {
-    resolutionStrategy {
-        eachPlugin {
-            if (requested.id.id == 'org.openapi.generator') {
-                useModule('org.openapitools:openapi-generator-gradle-plugin:4.0.0-beta')
-            }
-        }
-    }
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-    }
-}
-
 rootProject.name = 'rhsm-conduit'
-include 'api'
-include 'insights-inventory-client'
-include 'pinhead-client'
+include ':api', ':insights-inventory-client', ':pinhead-client'

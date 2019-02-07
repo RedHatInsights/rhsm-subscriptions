@@ -1,54 +1,69 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.openapitools:openapi-generator-gradle-plugin:4.0.0-beta"
+    }
+}
+
 plugins {
     id "checkstyle"
     id "org.springframework.boot" version "2.0.8.RELEASE"
 }
 
+ext {
+    swagger_annotations_version = "1.5.21"
+    jackson_version = "2.8.11"
+    jackson_databind_version = "2.8.11.2"
+    resteasy_version = "3.6.2.Final"
+    spring_version = "5.1.4.RELEASE"
+    spring_boot_version = "2.1.2.RELEASE"
+    junit_version = "5.3.2"
+    slf4j_version = "1.7.25"
+}
+
 allprojects {
-    apply plugin: 'java'
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
+    apply plugin: "java"
+    sourceCompatibility = "1.8"
+    targetCompatibility = "1.8"
     repositories {
         mavenCentral()
     }
 
-    ext {
-        swagger_annotations_version = "1.5.21"
-        jackson_version = "2.8.11"
-        jackson_databind_version = "2.8.11.2"
-        resteasy_version = "3.6.2.Final"
-        spring_version = '5.1.4.RELEASE'
-        spring_boot_version = '2.1.2.RELEASE'
-        junit_version = '5.3.2'
+    test {
+        useJUnitPlatform()
     }
+
+    checkstyle {
+        toolVersion "8.16"
+    }
+
+    group = "org.candlepin"
 }
 
-checkstyle {
-    toolVersion '8.16'
-}
-
-version = '1.0.0'
+version = "1.0.0"
 
 bootJar {
+    mainClassName = "org.candlepin.insights.BootApplication"
 }
 
 processResources {
     expand(project.properties)
 }
-ext {
-
-}
 
 dependencies {
-    compile project('api')
-    compile project('insights-inventory-client')
-    compile project('pinhead-client')
+    compile project(":api")
+    compile project(":insights-inventory-client")
+    compile project(":pinhead-client")
     compile "javax.servlet:javax.servlet-api:3.1.0"
     compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
     compile "org.springframework.boot:spring-boot-autoconfigure:$spring_boot_version"
     compile "org.springframework.boot:spring-boot:$spring_boot_version"
     compile "org.springframework:spring-beans:$spring_version"
     compile "org.springframework:spring-context:$spring_version"
-    compile "org.slf4j:slf4j-api:1.7.25"
+    compile "org.slf4j:slf4j-api:$slf4j_version"
     compile "net.logstash.logback:logstash-logback-encoder:5.3"
 
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
@@ -64,29 +79,146 @@ dependencies {
     testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
     testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
 
-//    testCompile 'org.mockito:mockito-core:2.23.4'
-//    testCompile 'org.mockito:mockito-junit-jupiter:2.23.4'
+//    testCompile "org.mockito:mockito-core:2.23.4"
+//    testCompile "org.mockito:mockito-junit-jupiter:2.23.4"
 }
+project(":api") {
+    // TODO For some reason I can't factor out this projects tasks and just use a subprojects call
+    // to define openApiValidate, generateApiDocs, etc. the same everywhere.
+    apply plugin: "org.openapi.generator"
 
-test {
-    useJUnitPlatform()
-}
+    // This project should only contain generated code.  No point in running checkstyle
+    checkstyle.sourceSets = []
 
-configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.name == 'pinhead-client'}) {
+    ext {
+        api_spec_path = "${projectDir}/rhsm-conduit-api-spec.yaml"
+        config_file = "${projectDir}/rhsm-conduit-api-config.json"
+    }
+
+    openApiGenerate {
+      generatorName = "jaxrs-spec"
+      inputSpec = api_spec_path
+      configFile = config_file
+      outputDir = "$buildDir/generated"
+      configOptions = [
+          interfaceOnly: true,
+          generatePom: false
+      ]
+    }
+
+    openApiValidate {
+        inputSpec = api_spec_path
+    }
+
+    task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "html"
+        inputSpec = api_spec_path
+        outputDir = "$buildDir/docs"
+    }
+
     dependencies {
-        compile "io.swagger:swagger-annotations:$swagger_annotations_version"
+        compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.8'
+        compile 'javax.validation:validation-api:2.0.1.Final'
+        compile 'org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final'
+        compile 'io.swagger:swagger-annotations:1.5.21'
+    }
+
+    sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
+    compileJava.dependsOn tasks.openApiGenerate
+}
+
+project(":insights-inventory-client") {
+    apply plugin: "org.openapi.generator"
+
+    // This project should only contain generated code.  No point in running checkstyle
+    checkstyle.sourceSets = []
+
+    ext {
+        api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
+        config_file = "${projectDir}/insights-inventory-client-config.json"
+    }
+
+    dependencies {
         compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
         compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
-        compile "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
         compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
         compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
     }
 
-    sourceSets {
-        main {
-            java.srcDirs = ["${buildDir}/generated/src/main/java"]
-        }
+    openApiGenerate {
+        generatorName = "java"
+        configOptions = [
+            generatePom: false,
+            library: "resteasy",
+            java8: true,
+            dateLibrary: "java8"
+        ]
     }
 
+    // This project should only contain generated code.  No point in running checkstyle
     checkstyle.sourceSets = []
+}
+
+project(":pinhead-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/pinhead-client-spec.yaml"
+        config_file = "${projectDir}/pinhead-client-config.json"
+    }
+
+    dependencies {
+        compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
+        compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
+        compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
+        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
+
+        compile "org.springframework:spring-context:$spring_version"
+        compile "org.slf4j:slf4j-api:$slf4j_version"
+
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.21.0"
+        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
+        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+        testRuntime "ch.qos.logback:logback-classic:1.2.3"
+    }
+
+    openApiGenerate {
+        generatorName = "java"
+        configOptions = [
+            generatePom: false,
+            library: "resteasy",
+            java8: true,
+            dateLibrary: "java8"
+        ]
+    }
+
+    sourceSets.main.java.srcDirs += "${projectDir}/src/main/java"
+}
+
+configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.name == 'pinhead-client'}) {
+    apply plugin: "org.openapi.generator"
+
+    openApiValidate {
+        inputSpec = api_spec_path
+    }
+
+    task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "html"
+        inputSpec = api_spec_path
+        outputDir = "$buildDir/docs"
+    }
+
+    openApiGenerate {
+        inputSpec = api_spec_path
+        configFile = config_file
+        outputDir = "${buildDir}/generated"
+    }
+
+    dependencies {
+        compile "io.swagger:swagger-annotations:$swagger_annotations_version"
+        compile "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
+    }
+
+    sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/main/java"]
+    compileJava.dependsOn tasks.openApiGenerate
 }
