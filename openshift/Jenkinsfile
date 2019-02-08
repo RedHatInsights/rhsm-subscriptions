@@ -1,0 +1,37 @@
+pipeline {
+    agent {
+        label 'rhsm'
+    }
+    tools {
+        oc 'oc-v3.11.0'
+    }
+    stages {
+        stage('Deploy to rhsm-ci') {
+            steps {
+                script {
+                    openshift.withCluster('insights-dev') {
+                        def branch = 'master'
+                        def resources = ''
+                        try {
+                            def GITHUB_WEBHOOK_SECRET = openshift.raw("get bc rhsm-conduit -o jsonpath='{.spec.triggers[*].github.secret}'").out.trim()
+                            def GENERIC_WEBHOOK_SECRET = openshift.raw("get bc rhsm-conduit -o jsonpath='{.spec.triggers[*].generic.secret}'").out.trim()
+                            resources = openshift.process(readFile(file:'openshift/template_rhsm-conduit.yaml'),
+                                '-p', "GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}",
+                                '-p', "GENERIC_WEBHOOK_SECRET=${GENERIC_WEBHOOK_SECRET}",
+                                '-p', "SOURCE_REPOSITORY_REF=${branch}"
+                            )
+                            echo "Updating existing deployment"
+                        }
+                        catch (Exception e) {  // doesn't exist in the environment yet? try a new deployment
+                            echo "Attempting a new deployment"
+                            resources = openshift.process(readFile(file:'openshift/template_rhsm-conduit.yaml'),
+                                '-p', "SOURCE_REPOSITORY_REF=${branch}"
+                            )
+                        }
+                        openshift.apply(resources)
+                    }
+                }
+            }
+        }
+    }
+}
