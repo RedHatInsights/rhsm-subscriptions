@@ -83,8 +83,6 @@ dependencies {
 //    testCompile "org.mockito:mockito-junit-jupiter:2.23.4"
 }
 project(":api") {
-    // TODO For some reason I can't factor out this projects tasks and just use a subprojects call
-    // to define openApiValidate, generateApiDocs, etc. the same everywhere.
     apply plugin: "org.openapi.generator"
 
     // This project should only contain generated code.  No point in running checkstyle
@@ -154,9 +152,6 @@ project(":insights-inventory-client") {
             dateLibrary: "java8"
         ]
     }
-
-    // This project should only contain generated code.  No point in running checkstyle
-    checkstyle.sourceSets = []
 }
 
 project(":pinhead-client") {
@@ -191,8 +186,6 @@ project(":pinhead-client") {
             dateLibrary: "java8"
         ]
     }
-
-    sourceSets.main.java.srcDirs += "${projectDir}/src/main/java"
 }
 
 configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.name == 'pinhead-client'}) {
@@ -219,6 +212,6 @@ configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.nam
         compile "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
     }
 
-    sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/main/java"]
+    sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
     compileJava.dependsOn tasks.openApiGenerate
 }
