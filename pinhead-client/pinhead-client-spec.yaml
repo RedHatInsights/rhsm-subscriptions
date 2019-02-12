@@ -68,29 +68,21 @@ components:
           type: string
 
     Consumer:
-      # The properties list here will depend on what is returned
-      # from the IT endpoint.
       required:
-        - consumerUuid
         - uuid
+        - name
         - orgId
         - lastCheckin
-        - type
+        - consumerType
         - installedProducts
         - sysPurposeRole
         - sysPurposeUsage
         - sysPurposeAddons
         - facts
       properties:
-        consumerUuid:
+        uuid:
           type: string
         name:
-          type: string
-        hypervisorUuid:
-          type: string
-        hypdervisorName:
-          type: string
-        guestId:
           type: string
         orgId:
           type: integer
@@ -117,6 +109,12 @@ components:
           type: object
           additionalProperties:
             type: string
+        hypervisorUuid:
+          type: string
+        hypdervisorName:
+          type: string
+        guestId:
+          type: string
 
     InstalledProducts:
       required:
@@ -133,19 +131,16 @@ components:
           type: integer
           format: int64
 
-    Debug:
+    Status:
       required:
         - code
         - message
-        - requestUUID
         - pagination
       properties:
         code:
           type: integer
           format: int64
         message:
-          type: string
-        requestUUID:
           type: string
         pagination:
           $ref: "#/components/schemas/Pagination"
@@ -175,8 +170,8 @@ components:
 
     OrgInventory:
       properties:
-        debug:
-          $ref: "#/components/schemas/Debug"
+        status:
+          $ref: "#/components/schemas/Status"
         consumers:
           type: array
           items:
