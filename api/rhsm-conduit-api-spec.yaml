@@ -193,13 +193,26 @@ components:
         availability:
           type: string
 
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+
     Error:
       required:
+        - status
         - code
-        - message
+        - title
       properties:
+        status:
+          type: string
         code:
-          type: integer
-          format: int32
-        message:
+          type: string
+        title:
+          type: string
+        detail:
           type: string

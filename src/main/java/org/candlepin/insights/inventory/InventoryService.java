@@ -14,7 +14,11 @@
  */
 package org.candlepin.insights.inventory.client;
 
-import org.candlepin.insights.exceptions.RhsmConduitException;
+import org.candlepin.insights.exception.ErrorCode;
+import org.candlepin.insights.exception.ExternalServiceException;
+import org.candlepin.insights.exception.RhsmConduitException;
+import org.candlepin.insights.exception.inventory.InventoryServiceException;
+import org.candlepin.insights.exception.inventory.InventoryServiceUnavailableException;
 import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.insights.inventory.client.model.Host;
 import org.candlepin.insights.inventory.client.model.HostOut;
@@ -30,6 +34,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.ws.rs.ProcessingException;
+
 
 /**
  * A wrapper for the insights inventory client.
@@ -53,18 +60,23 @@ public class InventoryService {
             return hostsInventoryApi.apiHostAddHost(forgeAuthHeader(orgId),
                 createHost(orgId, displayName, hostName, rhsmUuid));
         }
+        // The resteasy client will throw a ProcessingException when it can not connect to
+        // the target server.
+        catch (ProcessingException pe) {
+            throw new InventoryServiceUnavailableException(
+                "An error occurred connecting to the inventory service", pe);
+        }
+        // Catch any errors that occur when a request is made via the API. eg, BadRequestException
+        catch (ApiException apie) {
+            throw new ExternalServiceException(ErrorCode.INVENTORY_SERVICE_REQUEST_ERROR,
+                "An error occurred while sending a host update to the inventory service.", apie);
+        }
+        // A general catch all block so that any exception from the inventory API is rethrown
+        // with a general InventoryServiceException. That any WebApplicationExceptions or other
+        // RuntimeExceptions thrown by the client remain in the context of the InventoryService.
         catch (Exception e) {
-            // FIXME This should all get removed once the exception mappers are in place.
-            log.error("An exception occurred during request.", e);
-            int code = 500;
-            String message = e.getMessage();
-            if (e instanceof ApiException) {
-                ApiException apie = (ApiException) e;
-                code = apie.getCode();
-                message = apie.getResponseBody();
-            }
-            log.error("Could not update host. Reason: {}", message);
-            throw new RhsmConduitException(code, message);
+            throw new InventoryServiceException(
+                "An error occurred while sending a host update to the inventory service.", e);
         }
     }
 

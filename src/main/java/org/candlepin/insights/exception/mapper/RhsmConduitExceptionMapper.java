@@ -12,28 +12,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.jaxrs;
+package org.candlepin.insights.exception.mapper;
+
+import org.candlepin.insights.api.model.Error;
+import org.candlepin.insights.exception.RhsmConduitException;
 
 import org.springframework.stereotype.Component;
 
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 /**
- * Maps a NotReadyException to a 503 (Service Unavailable) response
+ * An exception mapper used to map all RhsmConduitExceptions to an error repsonse.
  */
 @Component
 @Provider
-public class NotReadyExceptionMapper implements ExceptionMapper<NotReadyException> {
+public class RhsmConduitExceptionMapper extends BaseExceptionMapper<RhsmConduitException> {
+
     @Override
-    public Response toResponse(NotReadyException exception) {
-        return Response
-            .status(Status.SERVICE_UNAVAILABLE)
-            .entity(exception.getMessage())
-            .type(MediaType.TEXT_PLAIN)
-            .build();
+    protected Error buildError(RhsmConduitException exception) {
+        return exception.error();
     }
+
 }

@@ -12,29 +12,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.exceptions;
+package org.candlepin.insights.exception.inventory;
 
-import org.candlepin.insights.api.model.Error;
+import org.candlepin.insights.exception.ErrorCode;
+import org.candlepin.insights.exception.ExternalServiceException;
 
 /**
- * Application's base exception class. Provides a means to create an
- * Error object that should be typically return as part of an error
- * response.
+ * A general exception thrown when an uncaught error is encountered from the
+ * inventory service.
  */
-public class RhsmConduitException extends RuntimeException {
+public class InventoryServiceException extends ExternalServiceException {
 
-    private int code;
-
-    public RhsmConduitException(int code, String message) {
-        super(message);
-        this.code = code;
+    public InventoryServiceException(String message, Throwable e) {
+        super(ErrorCode.INVENTORY_SERVICE_ERROR, message, e);
     }
 
-    public int code() {
-        return this.code;
-    }
-
-    public Error error() {
-        return new Error().code(this.code).message(this.getMessage());
-    }
 }
