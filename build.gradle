@@ -59,12 +59,15 @@ dependencies {
     compile project(":pinhead-client")
     compile "javax.servlet:javax.servlet-api:3.1.0"
     compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
+    compile "org.springframework.boot:spring-boot-actuator-autoconfigure:$spring_boot_version"
     compile "org.springframework.boot:spring-boot-autoconfigure:$spring_boot_version"
     compile "org.springframework.boot:spring-boot:$spring_boot_version"
     compile "org.springframework:spring-beans:$spring_version"
     compile "org.springframework:spring-context:$spring_version"
+    compile "org.springframework:spring-webmvc:$spring_version"
     compile "org.slf4j:slf4j-api:$slf4j_version"
     compile "net.logstash.logback:logstash-logback-encoder:5.3"
+    compile "io.micrometer:micrometer-registry-prometheus:1.1.2"
 
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.
