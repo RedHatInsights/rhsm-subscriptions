@@ -66,7 +66,7 @@ public class X509ApiClientFactoryTest {
         x509Config.setTruststorePassword(STORE_PASSWORD);
 
         X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-        ApiClient client = factory.buildClient();
+        ApiClient client = factory.getObject();
 
         client.setBasePath(server.baseUrl());
         assertEquals("Hello World", invokeHello(client));
@@ -83,7 +83,7 @@ public class X509ApiClientFactoryTest {
         x509Config.setTruststorePassword(STORE_PASSWORD);
 
         X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-        ApiClient client = factory.buildClient();
+        ApiClient client = factory.getObject();
 
         client.setBasePath(server.baseUrl());
         Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));

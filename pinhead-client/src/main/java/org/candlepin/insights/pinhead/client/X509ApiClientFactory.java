@@ -17,6 +17,7 @@ package org.candlepin.insights.pinhead.client;
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.springframework.beans.factory.FactoryBean;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -34,17 +35,23 @@ import javax.ws.rs.client.ClientBuilder;
 /**
  * Extends the generated ApiClient class to allow for X509 Client Certificate authentication
  */
-public class X509ApiClientFactory {
+public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
     private final X509ApiClientFactoryConfiguration x509Config;
 
     public X509ApiClientFactory(X509ApiClientFactoryConfiguration x509Config) {
         this.x509Config = x509Config;
     }
 
-    public ApiClient buildClient() throws GeneralSecurityException {
+    @Override
+    public ApiClient getObject() throws Exception {
         ApiClient client = Configuration.getDefaultApiClient();
         client.setHttpClient(buildHttpClient(x509Config, client));
         return client;
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return ApiClient.class;
     }
 
     private Client buildHttpClient(X509ApiClientFactoryConfiguration x509Config, ApiClient client)
