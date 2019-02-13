@@ -85,7 +85,6 @@ dependencies {
 //    testCompile "org.mockito:mockito-core:2.23.4"
 //    testCompile "org.mockito:mockito-junit-jupiter:2.23.4"
 }
-
 project(":api") {
     apply plugin: "org.openapi.generator"
 
@@ -125,54 +124,16 @@ project(":api") {
         compile 'io.swagger:swagger-annotations:1.5.21'
     }
 
-    sourceSets {
-        generated {
-            java.srcDir "${buildDir}/generated/src/gen/java"
-        }
-
-        main {
-            compileClasspath += generated.output
-            runtimeClasspath += generated.output
-        }
-
-        test {
-            compileClasspath += generated.output
-            runtimeClasspath += generated.output
-        }
-    }
-
-    compileGeneratedJava.classpath = configurations.compile
-    compileGeneratedJava.dependsOn tasks.openApiGenerate
-    compileJava.dependsOn compileGeneratedJava
-    compileJava.source sourceSets.generated.java, sourceSets.main.java
+    sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
+    compileJava.dependsOn tasks.openApiGenerate
 }
 
 project(":insights-inventory-client") {
     apply plugin: "org.openapi.generator"
 
-    // This project should only contain generated code.  No point in running checkstyle
-    checkstyle.sourceSets = []
-
     ext {
         api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
         config_file = "${projectDir}/insights-inventory-client-config.json"
-    }
-
-    dependencies {
-        compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
-        compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
-        compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
-        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
-    }
-
-    openApiGenerate {
-        generatorName = "java"
-        configOptions = [
-            generatePom: false,
-            library: "resteasy",
-            java8: true,
-            dateLibrary: "java8"
-        ]
     }
 }
 
@@ -185,32 +146,13 @@ project(":pinhead-client") {
     }
 
     dependencies {
-        compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
-        compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
-        compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
-        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
-
-        compile "org.springframework:spring-context:$spring_version"
-        compile "org.slf4j:slf4j-api:$slf4j_version"
-
         testCompile "com.github.tomakehurst:wiremock-jre8:2.21.0"
-        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
-        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
-        testRuntime "ch.qos.logback:logback-classic:1.2.3"
-    }
-
-    openApiGenerate {
-        generatorName = "java"
-        configOptions = [
-            generatePom: false,
-            library: "resteasy",
-            java8: true,
-            dateLibrary: "java8"
-        ]
     }
 }
 
 configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.name == 'pinhead-client'}) {
+    apply plugin: "org.openapi.generator"
+
     openApiValidate {
         inputSpec = api_spec_path
     }
@@ -225,31 +167,34 @@ configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.nam
         inputSpec = api_spec_path
         configFile = config_file
         outputDir = "${buildDir}/generated"
+        generatorName = "java"
+        configOptions = [
+            generatePom: false,
+            library: "resteasy",
+            java8: true,
+            dateLibrary: "java8"
+        ]
     }
 
     dependencies {
-        compile "io.swagger:swagger-annotations:$swagger_annotations_version"
+        compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
+        compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
+
+        compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
+        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
         compile "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
+
+        compile "org.springframework:spring-context:$spring_version"
+        compile "org.slf4j:slf4j-api:$slf4j_version"
+        compile "io.swagger:swagger-annotations:$swagger_annotations_version"
+
+        testCompile "org.springframework:spring-test:$spring_version"
+        testCompile "org.springframework.boot:spring-boot-test:$spring_boot_version"
+        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
+        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+        testRuntime "ch.qos.logback:logback-classic:1.2.3"
     }
 
-    sourceSets {
-        generated {
-            java.srcDir "${buildDir}/generated/src/main/java"
-        }
-
-        main {
-            compileClasspath += generated.output
-            runtimeClasspath += generated.output
-        }
-
-        test {
-            compileClasspath += generated.output
-            runtimeClasspath += generated.output
-        }
-    }
-
-    compileGeneratedJava.classpath = configurations.compile
-    compileGeneratedJava.dependsOn tasks.openApiGenerate
-    compileJava.dependsOn compileGeneratedJava
-    compileJava.source sourceSets.generated.java, sourceSets.main.java
+    sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
+    compileJava.dependsOn tasks.openApiGenerate
 }
