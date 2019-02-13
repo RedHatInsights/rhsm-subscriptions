@@ -50,7 +50,9 @@ bootJar {
 }
 
 processResources {
-    expand(project.properties)
+    filesMatching("**/application.yaml") {
+        expand(project.properties)
+    }
 }
 
 dependencies {

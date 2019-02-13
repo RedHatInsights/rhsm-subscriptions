@@ -28,7 +28,7 @@ objects:
           name: ${APPLICATION_NAME}
           env:
           - name: JAVA_OPTIONS
-            value: -Dlogging.config=/etc/logback.xml
+            value: -Dlogging.config=/config/logback.xml -Dspring.config.additional-location=file:/config/rhsm-conduit.properties
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -54,11 +54,8 @@ objects:
             protocol: TCP
           volumeMounts:
           - name: config
-            mountPath: /etc/rhsm-conduit.conf
-            subPath: rhsm-conduit.conf
-          - name: config
-            mountPath: /etc/logback.xml
-            subPath: logback.xml
+            mountPath: /config
+          workingDir: /
         volumes:
         - name: config
           configMap:

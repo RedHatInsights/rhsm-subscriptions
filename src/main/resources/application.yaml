@@ -1,3 +1,8 @@
+# These are core, default properties that we don't want the user to change.  Take care to use
+# spring.config.additional-location instead of spring.config.location so that this file will continue
+# getting loaded.
+# See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
+
 resteasy:
   jaxrs:
     app:
@@ -16,3 +21,8 @@ management:
       enabled: true
     prometheus:
       enabled: true
+rhsm-conduit:
+  # If this value doesn't get populated by Gradle filtering, the app won't start due to Spring's expression
+  # language (SPEL) and Gradle's expand method both using the same expansion token.
+  # See https://docs.spring.io/spring-boot/docs/current/reference/html/howto-properties-and-configuration.html#howto-automatic-expansion-gradle
+  version: ${version}
