@@ -17,6 +17,7 @@ package org.candlepin.insights;
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceConfiguration;
 import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
+import org.candlepin.insights.jackson.ObjectMapperContextResolver;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 
 import org.slf4j.Logger;
@@ -109,4 +110,10 @@ public class ApplicationConfiguration {
     public MethodValidationPostProcessor methodValidationPostProcessor() {
         return new MethodValidationPostProcessor();
     }
+
+    @Bean
+    public ObjectMapperContextResolver objectMapperContextResolver() {
+        return new ObjectMapperContextResolver(applicationProperties);
+    }
+
 }
