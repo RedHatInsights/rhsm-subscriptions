@@ -108,31 +108,31 @@ components:
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     BadRequest:
       description: "The server could could not process the current request."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     Forbidden:
       description: "The request was valid, but the request was refused by the server."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     ResourceNotFound:
       description: "The requested resource was not found."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     ServiceUnavailable:
       description: "The server is currently unavailable."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
 
   schemas:
     ConsumerInventory:
