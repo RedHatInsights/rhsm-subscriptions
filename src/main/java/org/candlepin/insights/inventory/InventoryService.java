@@ -12,13 +12,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.inventory.client;
+package org.candlepin.insights.inventory;
 
-import org.candlepin.insights.exception.ErrorCode;
-import org.candlepin.insights.exception.ExternalServiceException;
 import org.candlepin.insights.exception.RhsmConduitException;
 import org.candlepin.insights.exception.inventory.InventoryServiceException;
-import org.candlepin.insights.exception.inventory.InventoryServiceUnavailableException;
 import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.insights.inventory.client.model.Host;
 import org.candlepin.insights.inventory.client.model.HostOut;
@@ -33,9 +30,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
-import javax.ws.rs.ProcessingException;
 
 
 /**
@@ -46,34 +40,19 @@ public class InventoryService {
 
     private static Logger log = LoggerFactory.getLogger(InventoryService.class);
 
-    private HostsApi hostsInventoryApi;
+    private final HostsApi hostsInventoryApi;
 
     @Autowired
-    public InventoryService(ApiClient inventoryApiClient) throws Exception {
-        hostsInventoryApi = new HostsApi(inventoryApiClient);
+    public InventoryService(HostsApi hostsInventoryApi) {
+        this.hostsInventoryApi = hostsInventoryApi;
     }
 
     // TODO Update the parameters once we know what will be coming from the RHSM service.
-    public HostOut sendHostUpdate(String orgId, String displayName, String hostName, UUID rhsmUuid)
+    public HostOut sendHostUpdate(String orgId, ConduitFacts facts)
         throws RhsmConduitException {
         try {
-            return hostsInventoryApi.apiHostAddHost(forgeAuthHeader(orgId),
-                createHost(orgId, displayName, hostName, rhsmUuid));
+            return hostsInventoryApi.apiHostAddHost(forgeAuthHeader(orgId), createHost(orgId, facts));
         }
-        // The resteasy client will throw a ProcessingException when it can not connect to
-        // the target server.
-        catch (ProcessingException pe) {
-            throw new InventoryServiceUnavailableException(
-                "An error occurred connecting to the inventory service", pe);
-        }
-        // Catch any errors that occur when a request is made via the API. eg, BadRequestException
-        catch (ApiException apie) {
-            throw new ExternalServiceException(ErrorCode.INVENTORY_SERVICE_REQUEST_ERROR,
-                "An error occurred while sending a host update to the inventory service.", apie);
-        }
-        // A general catch all block so that any exception from the inventory API is rethrown
-        // with a general InventoryServiceException. That any WebApplicationExceptions or other
-        // RuntimeExceptions thrown by the client remain in the context of the InventoryService.
         catch (Exception e) {
             throw new InventoryServiceException(
                 "An error occurred while sending a host update to the inventory service.", e);
@@ -85,14 +64,34 @@ public class InventoryService {
     }
 
     /**
-     * TODO Remove once we are pulling data from the pinhead API.
+     * Given a set of facts, report them as a host to the inventory service.
      *
      * @return the new host.
      */
-    private Host createHost(String orgId, String displayName, String fqdn, UUID submanUUID) {
-        Map<String, String> rhsmFactMap = new HashMap<>();
+    private Host createHost(String orgId, ConduitFacts conduitFacts) {
+        Map<String, Object> rhsmFactMap = new HashMap<>();
         rhsmFactMap.put("orgId", orgId);
-        rhsmFactMap.put("is_virt", Boolean.FALSE.toString());
+        if (conduitFacts.getCpuSockets() != null) {
+            rhsmFactMap.put("CPU_SOCKETS", conduitFacts.getCpuSockets());
+        }
+        if (conduitFacts.getCpuCores() != null) {
+            rhsmFactMap.put("CPU_CORES", conduitFacts.getCpuCores());
+        }
+        if (conduitFacts.getMemory() != null) {
+            rhsmFactMap.put("MEMORY", conduitFacts.getMemory());
+        }
+        if (conduitFacts.getArchitecture() != null) {
+            rhsmFactMap.put("ARCHITECTURE", conduitFacts.getArchitecture());
+        }
+        if (conduitFacts.getVirtual() != null) {
+            rhsmFactMap.put("IS_VIRTUAL", conduitFacts.getVirtual());
+        }
+        if (conduitFacts.getVmHost() != null) {
+            rhsmFactMap.put("VM_HOST", conduitFacts.getVmHost());
+        }
+        if (conduitFacts.getRhProd() != null) {
+            rhsmFactMap.put("RH_PROD", conduitFacts.getRhProd());
+        }
 
         FactSet rhsmFacts = new FactSet()
             .namespace("rhsm")
@@ -110,9 +109,11 @@ public class InventoryService {
         // TODO Properly set the account when we determine how
         //      auth will work going forward.
         host.setAccount("0000001");
-        host.setFqdn(fqdn);
-        host.setDisplayName(displayName);
-        host.setSubscriptionManagerId(submanUUID);
+        host.setFqdn(conduitFacts.getFqdn());
+        host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
+        host.setBiosUuid(conduitFacts.getBiosUuid());
+        host.setIpAddresses(conduitFacts.getIpAddresses());
+        host.setMacAddresses(conduitFacts.getMacAddresses());
         host.facts(facts);
         return host;
     }

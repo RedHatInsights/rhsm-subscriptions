@@ -14,9 +14,13 @@
  */
 package org.candlepin.insights.pinhead.client;
 
-import org.jboss.logging.Logger;
+import org.candlepin.insights.pinhead.client.resources.PinheadApi;
+
+
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 import java.io.IOException;
@@ -29,46 +33,65 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 
 /**
- * Extends the generated ApiClient class to allow for X509 Client Certificate authentication
+ * Builds a PinheadApi, which may be a stub, or a normal client, with or without cert auth depending on
+ * config.
  */
-public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
-    private final X509ApiClientFactoryConfiguration x509Config;
+public class PinheadApiFactory implements FactoryBean<PinheadApi>  {
+    private static Logger log = LoggerFactory.getLogger(PinheadApiFactory.class);
+    private final PinheadApiConfiguration config;
 
-    public X509ApiClientFactory(X509ApiClientFactoryConfiguration x509Config) {
-        this.x509Config = x509Config;
+    public PinheadApiFactory(PinheadApiConfiguration config) {
+        this.config = config;
     }
 
     @Override
-    public ApiClient getObject() throws Exception {
-        ApiClient client = Configuration.getDefaultApiClient();
-        client.setHttpClient(buildHttpClient(x509Config, client));
-        return client;
+    public PinheadApi getObject() throws Exception {
+        if (config.isUseStub()) {
+            log.info("Using stub pinhead client");
+            return new StubPinheadApi();
+        }
+        ApiClient client;
+        if (config.usesClientAuth()) {
+            log.info("Pinhead client configured with client-cert auth");
+            client = buildHttpsClient();
+        }
+        else {
+            log.info("Pinhead client configured without client-cert auth");
+            client = new ApiClient();
+        }
+        if (config.getUrl() != null) {
+            log.info("Pinhead URL: {}", config.getUrl());
+            client.setBasePath(config.getUrl());
+        }
+        else {
+            log.warn("Pinhead URL not set...");
+        }
+        return new PinheadApi(client);
     }
 
     @Override
     public Class<?> getObjectType() {
-        return ApiClient.class;
+        return PinheadApi.class;
     }
 
-    private Client buildHttpClient(X509ApiClientFactoryConfiguration x509Config, ApiClient client)
-        throws GeneralSecurityException {
+    private ApiClient buildHttpsClient() throws GeneralSecurityException {
+        ApiClient client = Configuration.getDefaultApiClient();
         ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
         clientConfig.register(client.getJSON());
         if (client.isDebugging()) {
-            clientConfig.register(Logger.class);
+            clientConfig.register(org.jboss.logging.Logger.class);
         }
 
         ClientBuilder builder = ClientBuilder.newBuilder().withConfig(clientConfig);
-        builder.hostnameVerifier(x509Config.getHostnameVerifier());
+        builder.hostnameVerifier(config.getHostnameVerifier());
 
         try {
             KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
             truststore.load(
-                x509Config.getTruststoreStream(), x509Config.getTruststorePassword().toCharArray()
+                config.getTruststoreStream(), config.getTruststorePassword().toCharArray()
             );
             TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(
                 TrustManagerFactory.getDefaultAlgorithm()
@@ -76,11 +99,11 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
             trustFactory.init(truststore);
 
             KeyManager[] keyManagers = null;
-            if (x509Config.usesClientAuth()) {
+            if (config.usesClientAuth()) {
                 KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
                 KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-                keystore.load(x509Config.getKeystoreStream(), x509Config.getKeystorePassword().toCharArray());
-                keyFactory.init(keystore, x509Config.getKeystorePassword().toCharArray());
+                keystore.load(config.getKeystoreStream(), config.getKeystorePassword().toCharArray());
+                keyFactory.init(keystore, config.getKeystorePassword().toCharArray());
                 keyManagers = keyFactory.getKeyManagers();
             }
 
@@ -92,6 +115,7 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
             throw new GeneralSecurityException("Failed to init SSLContext", e);
         }
 
-        return builder.build();
+        client.setHttpClient(builder.build());
+        return client;
     }
 }

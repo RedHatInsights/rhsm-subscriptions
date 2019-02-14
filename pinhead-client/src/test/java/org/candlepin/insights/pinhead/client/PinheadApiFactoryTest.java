@@ -34,7 +34,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.GenericType;
 
-public class X509ApiClientFactoryTest {
+public class PinheadApiFactoryTest {
     public static final String STORE_PASSWORD = "password";
 
     private WireMockServer server;
@@ -53,20 +53,35 @@ public class X509ApiClientFactoryTest {
     }
 
     @Test
+    public void testStubClientConfiguration() throws Exception {
+        PinheadApiConfiguration config = new PinheadApiConfiguration();
+        config.setUseStub(true);
+        PinheadApiFactory factory = new PinheadApiFactory(config);
+        assertEquals(StubPinheadApi.class, factory.getObject().getClass());
+    }
+
+    @Test
+    public void testNoAuthClientConfiguration() throws Exception {
+        PinheadApiConfiguration config = new PinheadApiConfiguration();
+        PinheadApiFactory factory = new PinheadApiFactory(config);
+        assertEquals(null, factory.getObject().getApiClient().getHttpClient().getSslContext());
+    }
+
+    @Test
     public void testTlsClientAuth() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
         server.stubFor(stubHelloWorld());
 
-        X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+        PinheadApiConfiguration x509Config = new PinheadApiConfiguration();
         x509Config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
         x509Config.setKeystorePassword(STORE_PASSWORD);
 
         x509Config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
         x509Config.setTruststorePassword(STORE_PASSWORD);
 
-        X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-        ApiClient client = factory.getObject();
+        PinheadApiFactory factory = new PinheadApiFactory(x509Config);
+        ApiClient client = factory.getObject().getApiClient();
 
         client.setBasePath(server.baseUrl());
         assertEquals("Hello World", invokeHello(client));
@@ -78,12 +93,12 @@ public class X509ApiClientFactoryTest {
         server.start();
         server.stubFor(stubHelloWorld());
 
-        X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+        PinheadApiConfiguration x509Config = new PinheadApiConfiguration();
         x509Config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
         x509Config.setTruststorePassword(STORE_PASSWORD);
 
-        X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-        ApiClient client = factory.getObject();
+        PinheadApiFactory factory = new PinheadApiFactory(x509Config);
+        ApiClient client = factory.getObject().getApiClient();
 
         client.setBasePath(server.baseUrl());
         Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));

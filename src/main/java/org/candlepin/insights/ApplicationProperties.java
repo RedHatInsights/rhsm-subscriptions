@@ -14,7 +14,8 @@
  */
 package org.candlepin.insights;
 
-import org.candlepin.insights.inventory.client.InventoryService;
+import org.candlepin.insights.inventory.client.InventoryServiceConfiguration;
+import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "rhsm-conduit")
 public class ApplicationProperties {
     private String version;
-    private final InventoryService inventoryService = new InventoryService();
+    private final InventoryServiceConfiguration inventoryService = new InventoryServiceConfiguration();
+    private final PinheadApiConfiguration pinhead = new PinheadApiConfiguration();
 
     public String getVersion() {
         return version;
@@ -35,22 +37,11 @@ public class ApplicationProperties {
         this.version = version;
     }
 
-    public InventoryService getInventoryService() {
+    public InventoryServiceConfiguration getInventoryService() {
         return inventoryService;
     }
 
-    /**
-     * Sub-class for inventory service properties
-     */
-    public static class InventoryService {
-        private String url;
-
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
+    public PinheadApiConfiguration getPinhead() {
+        return pinhead;
     }
 }

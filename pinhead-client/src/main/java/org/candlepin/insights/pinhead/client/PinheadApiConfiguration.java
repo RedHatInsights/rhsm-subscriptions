@@ -29,14 +29,31 @@ import javax.net.ssl.HostnameVerifier;
 /**
  * Class to hold values used to build the ApiClient instance wrapped in an SSLContext.
  */
-@Component
-public class X509ApiClientFactoryConfiguration {
+public class PinheadApiConfiguration {
+    private boolean useStub;
+    private String url;
     private String keystorePassword;
     private String keystoreFile;
     private String truststoreFile;
     private String truststorePassword;
 
     private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
+
+    public boolean isUseStub() {
+        return useStub;
+    }
+
+    public void setUseStub(boolean useStub) {
+        this.useStub = useStub;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
 
     public String getKeystorePassword() {
         return keystorePassword;
