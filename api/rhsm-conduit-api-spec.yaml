@@ -40,7 +40,7 @@ paths:
         '200':
           description: 'The request for inventory data was successful.'
           content:
-            application/json:
+            application/vnd.api+json:
               schema:
                 $ref: "#/components/schemas/OrgInventory"
         '400':
@@ -80,7 +80,7 @@ paths:
         '200':
           description: "The request to get the status of the server was successful."
           content:
-            application/json:
+            application/vnd.api+json:
               schema:
                 $ref: "#/components/schemas/Status"
         '500':
@@ -95,7 +95,7 @@ paths:
         '200':
           description: "The request to get the readiness status of the server was successful."
           content:
-            application/json:
+            application/vnd.api+json:
               schema:
                 $ref: "#/components/schemas/Readiness"
         '503':
@@ -106,31 +106,31 @@ components:
     InternalServerError:
       description: "An internal server error has occurred and is not recoverable."
       content:
-        application/json:
+        application/vnd.api+json:
           schema:
             $ref: "#/components/schemas/Error"
     BadRequest:
       description: "The server could could not process the current request."
       content:
-        application/json:
+        application/vnd.api+json:
           schema:
             $ref: "#/components/schemas/Error"
     Forbidden:
       description: "The request was valid, but the request was refused by the server."
       content:
-        application/json:
+        application/vnd.api+json:
           schema:
             $ref: "#/components/schemas/Error"
     ResourceNotFound:
       description: "The requested resource was not found."
       content:
-        application/json:
+        application/vnd.api+json:
           schema:
             $ref: "#/components/schemas/Error"
     ServiceUnavailable:
       description: "The server is currently unavailable."
       content:
-        application/json:
+        application/vnd.api+json:
           schema:
             $ref: "#/components/schemas/Error"
 
