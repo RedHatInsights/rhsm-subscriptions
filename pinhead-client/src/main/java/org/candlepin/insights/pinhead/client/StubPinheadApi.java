@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
+/**
+ * Stub class implementing PinheadApi that we can use for development against if the real thing is unavailable
+ */
 public class StubPinheadApi extends PinheadApi {
     private static Logger log = LoggerFactory.getLogger(StubPinheadApi.class);
 
