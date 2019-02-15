@@ -56,6 +56,9 @@ processResources {
 }
 
 dependencies {
+    // Generates configuration metadata that IntelliJ can use
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:$spring_boot_version"
+
     compile project(":api")
     compile project(":insights-inventory-client")
     compile project(":pinhead-client")
@@ -87,6 +90,9 @@ dependencies {
 
 //    testCompile "org.mockito:mockito-junit-jupiter:2.23.4"
 }
+
+compileJava.dependsOn(processResources)
+
 project(":api") {
     apply plugin: "org.openapi.generator"
 
