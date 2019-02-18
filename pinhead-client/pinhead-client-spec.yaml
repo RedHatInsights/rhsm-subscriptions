@@ -17,6 +17,18 @@ paths:
         schema:
           type: string
         description: "The orgId is the candlepin owner key."
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: "Number of consumers to emit at once."
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: string
+        description: "Paging offset."
     get:
       description: "List consumers on an owner."
       operationId: getConsumersForOrg
@@ -111,7 +123,7 @@ components:
             type: string
         hypervisorUuid:
           type: string
-        hypdervisorName:
+        hypervisorName:
           type: string
         guestId:
           type: string

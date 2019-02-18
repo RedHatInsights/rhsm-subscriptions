@@ -14,7 +14,8 @@
  */
 package org.candlepin.insights;
 
-import org.candlepin.insights.inventory.client.ApiClientFactory;
+import org.candlepin.insights.inventory.client.HostsApiFactory;
+import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +59,12 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    public ApiClientFactory hostInventoryClientFactory() {
-        return new ApiClientFactory(applicationProperties.getInventoryService().getUrl());
+    public HostsApiFactory hostInventoryApiFactory() {
+        return new HostsApiFactory(applicationProperties.getInventoryService());
+    }
+
+    @Bean
+    public PinheadApiFactory pinheadApiFactory() {
+        return new PinheadApiFactory(applicationProperties.getPinhead());
     }
 }

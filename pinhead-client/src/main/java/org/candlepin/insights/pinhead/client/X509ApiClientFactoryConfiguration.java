@@ -16,7 +16,6 @@
 package org.candlepin.insights.pinhead.client;
 
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -29,7 +28,6 @@ import javax.net.ssl.HostnameVerifier;
 /**
  * Class to hold values used to build the ApiClient instance wrapped in an SSLContext.
  */
-@Component
 public class X509ApiClientFactoryConfiguration {
     private String keystorePassword;
     private String keystoreFile;
