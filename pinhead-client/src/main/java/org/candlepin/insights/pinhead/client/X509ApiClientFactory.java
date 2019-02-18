@@ -77,7 +77,9 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
 
             KeyManager[] keyManagers = null;
             if (x509Config.usesClientAuth()) {
-                KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(
+                    KeyManagerFactory.getDefaultAlgorithm()
+                );
                 KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
                 keystore.load(x509Config.getKeystoreStream(), x509Config.getKeystorePassword().toCharArray());
                 keyFactory.init(keystore, x509Config.getKeystorePassword().toCharArray());

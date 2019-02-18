@@ -12,7 +12,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.insights.inventory.client;
 
 import org.candlepin.insights.inventory.client.resources.HostsApi;
