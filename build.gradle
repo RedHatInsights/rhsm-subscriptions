@@ -122,6 +122,11 @@ project(":api") {
         generatorName = "html"
         inputSpec = api_spec_path
         outputDir = "$buildDir/docs"
+        generateApiDocumentation = true
+        generateModelDocumentation = true
+        generateModelTests = false
+        generateApiTests = false
+        withXml = false
     }
 
     dependencies {
@@ -168,6 +173,11 @@ configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.nam
         generatorName = "html"
         inputSpec = api_spec_path
         outputDir = "$buildDir/docs"
+        generateApiDocumentation = true
+        generateModelDocumentation = true
+        generateModelTests = false
+        generateApiTests = false
+        withXml = false
     }
 
     openApiGenerate {
