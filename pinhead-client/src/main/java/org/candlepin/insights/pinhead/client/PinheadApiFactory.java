@@ -16,31 +16,17 @@ package org.candlepin.insights.pinhead.client;
 
 import org.candlepin.insights.pinhead.client.resources.PinheadApi;
 
-
-import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
-
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import javax.ws.rs.client.ClientBuilder;
 
 /**
  * Builds a PinheadApi, which may be a stub, or a normal client, with or without cert auth depending on
  * config.
  */
-public class PinheadApiFactory implements FactoryBean<PinheadApi>  {
+public class PinheadApiFactory implements FactoryBean<PinheadApi> {
     private static Logger log = LoggerFactory.getLogger(PinheadApiFactory.class);
+
     private final PinheadApiConfiguration config;
 
     public PinheadApiFactory(PinheadApiConfiguration config) {
@@ -53,10 +39,11 @@ public class PinheadApiFactory implements FactoryBean<PinheadApi>  {
             log.info("Using stub pinhead client");
             return new StubPinheadApi();
         }
+
         ApiClient client;
         if (config.usesClientAuth()) {
             log.info("Pinhead client configured with client-cert auth");
-            client = buildHttpsClient();
+            client = new X509ApiClientFactory(config.getX509ApiClientFactoryConfiguration()).getObject();
         }
         else {
             log.info("Pinhead client configured without client-cert auth");
@@ -75,47 +62,5 @@ public class PinheadApiFactory implements FactoryBean<PinheadApi>  {
     @Override
     public Class<?> getObjectType() {
         return PinheadApi.class;
-    }
-
-    private ApiClient buildHttpsClient() throws GeneralSecurityException {
-        ApiClient client = Configuration.getDefaultApiClient();
-        ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
-        clientConfig.register(client.getJSON());
-        if (client.isDebugging()) {
-            clientConfig.register(org.jboss.logging.Logger.class);
-        }
-
-        ClientBuilder builder = ClientBuilder.newBuilder().withConfig(clientConfig);
-        builder.hostnameVerifier(config.getHostnameVerifier());
-
-        try {
-            KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
-            truststore.load(
-                config.getTruststoreStream(), config.getTruststorePassword().toCharArray()
-            );
-            TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(
-                TrustManagerFactory.getDefaultAlgorithm()
-            );
-            trustFactory.init(truststore);
-
-            KeyManager[] keyManagers = null;
-            if (config.usesClientAuth()) {
-                KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-                keystore.load(config.getKeystoreStream(), config.getKeystorePassword().toCharArray());
-                keyFactory.init(keystore, config.getKeystorePassword().toCharArray());
-                keyManagers = keyFactory.getKeyManagers();
-            }
-
-            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(keyManagers, trustFactory.getTrustManagers(), null);
-            builder.sslContext(sslContext);
-        }
-        catch (KeyStoreException | NoSuchAlgorithmException | IOException e)  {
-            throw new GeneralSecurityException("Failed to init SSLContext", e);
-        }
-
-        client.setHttpClient(builder.build());
-        return client;
     }
 }

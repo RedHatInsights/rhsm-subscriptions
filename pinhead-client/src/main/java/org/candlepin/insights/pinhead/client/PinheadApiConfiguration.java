@@ -15,29 +15,18 @@
 
 package org.candlepin.insights.pinhead.client;
 
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.springframework.stereotype.Component;
-
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import javax.net.ssl.HostnameVerifier;
 
 /**
- * Class to hold values used to build the ApiClient instance wrapped in an SSLContext.
+ * Class to hold values used to build the ApiClient instance wrapped in an SSLContext for Pinhead.
  */
 public class PinheadApiConfiguration {
+    private final X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
     private boolean useStub;
     private String url;
-    private String keystorePassword;
-    private String keystoreFile;
-    private String truststoreFile;
-    private String truststorePassword;
-
-    private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
 
     public boolean isUseStub() {
         return useStub;
@@ -55,69 +44,59 @@ public class PinheadApiConfiguration {
         this.url = url;
     }
 
+    public X509ApiClientFactoryConfiguration getX509ApiClientFactoryConfiguration() {
+        return x509Config;
+    }
+
     public String getKeystorePassword() {
-        return keystorePassword;
+        return x509Config.getKeystorePassword();
     }
 
     public void setKeystorePassword(String keystorePassword) {
-        this.keystorePassword = keystorePassword;
+        x509Config.setKeystorePassword(keystorePassword);
     }
 
     public String getTruststorePassword() {
-        return truststorePassword;
+        return x509Config.getTruststorePassword();
     }
 
     public void setTruststorePassword(String truststorePassword) {
-        this.truststorePassword = truststorePassword;
+        x509Config.setTruststorePassword(truststorePassword);
     }
 
     public String getKeystoreFile() {
-        return keystoreFile;
+        return x509Config.getKeystoreFile();
     }
 
     public void setKeystoreFile(String keystoreFile) {
-        this.keystoreFile = keystoreFile;
+        x509Config.setKeystoreFile(keystoreFile);
     }
 
     public String getTruststoreFile() {
-        return truststoreFile;
+        return x509Config.getTruststoreFile();
     }
 
     public void setTruststoreFile(String truststoreFile) {
-        this.truststoreFile = truststoreFile;
+        x509Config.setTruststoreFile(truststoreFile);
     }
 
     public InputStream getKeystoreStream() throws IOException {
-        if (keystoreFile == null) {
-            throw new IllegalStateException("No keystore file has been set");
-        }
-        return readStream(keystoreFile);
+        return x509Config.getKeystoreStream();
     }
 
     public InputStream getTruststoreStream() throws IOException {
-        if (truststoreFile == null) {
-            throw new IllegalStateException("No truststore file has been set");
-        }
-        return readStream(truststoreFile);
-    }
-
-    private InputStream readStream(String path) throws IOException {
-        return new ByteArrayInputStream(Files.readAllBytes(Paths.get(path)));
+        return x509Config.getTruststoreStream();
     }
 
     public HostnameVerifier getHostnameVerifier() {
-        return hostnameVerifier;
+        return x509Config.getHostnameVerifier();
     }
 
-    /**
-     * Allow setting the HostnameVerifier implementation.  NoopHostnameVerifier could be used in testing, for
-     * example
-     */
     public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
-        this.hostnameVerifier = hostnameVerifier;
+        x509Config.setHostnameVerifier(hostnameVerifier);
     }
 
     public boolean usesClientAuth() {
-        return (getKeystoreFile() != null && getKeystorePassword() != null);
+        return x509Config.usesClientAuth();
     }
 }
