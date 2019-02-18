@@ -165,6 +165,7 @@ project(":pinhead-client") {
 
 configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.name == 'pinhead-client'}) {
     apply plugin: "org.openapi.generator"
+    apply plugin: "checkstyle"
 
     openApiValidate {
         inputSpec = api_spec_path
