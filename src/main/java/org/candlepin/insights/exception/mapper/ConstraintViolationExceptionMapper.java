@@ -19,26 +19,24 @@ import org.candlepin.insights.exception.ErrorCode;
 
 import org.springframework.stereotype.Component;
 
-import javax.ws.rs.WebApplicationException;
+import javax.validation.ConstraintViolationException;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
 /**
- * An exception mapper used to override the default exception mapping done by
- * resteasy. This implementation generates and returns an Errors object as the
- * response Json instead of redirecting to an error page.
+ * Exception mapper for calls to a resource method that fail to pass validation.
  */
 @Component
 @Provider
-public class WebApplicationExceptionMapper extends BaseExceptionMapper<WebApplicationException> {
-    public static final String ERROR_TITLE = "An rhsm-conduit API error has occurred.";
+public class ConstraintViolationExceptionMapper extends BaseExceptionMapper<ConstraintViolationException> {
+    public static final String ERROR_TITLE = ErrorCode.VALIDATION_FAILED_ERROR.getDescription();
 
     @Override
-    protected Error buildError(WebApplicationException wae) {
+    protected Error buildError(ConstraintViolationException exception) {
         return new Error()
-            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-            .status(String.valueOf(wae.getResponse().getStatus()))
+            .code(ErrorCode.VALIDATION_FAILED_ERROR.getCode())
+            .status(String.valueOf(Status.BAD_REQUEST.getStatusCode()))
             .title(ERROR_TITLE)
-            .detail(wae.getMessage());
+            .detail(exception.getMessage());
     }
-
 }

@@ -22,6 +22,7 @@ ext {
     spring_boot_version = "2.1.2.RELEASE"
     junit_version = "5.3.2"
     slf4j_version = "1.7.25"
+    mockito_version = "2.23.4"
 }
 
 allprojects {
@@ -41,6 +42,18 @@ allprojects {
     }
 
     group = "org.candlepin"
+
+    dependencies {
+        testCompile "org.springframework.boot:spring-boot-test:$spring_boot_version"
+        testCompile "org.springframework:spring-test:$spring_version"
+        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
+        testCompile "org.mockito:mockito-core:$mockito_version"
+        testCompile "org.mockito:mockito-junit-jupiter:$mockito_version"
+        testCompile "org.hamcrest:hamcrest:2.1"
+
+        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+        testRuntime "ch.qos.logback:logback-classic:1.2.3"
+    }
 }
 
 version = "1.0.0"
@@ -81,13 +94,6 @@ dependencies {
     runtime "org.jboss.resteasy:resteasy-jaxrs:$resteasy_version"
     runtime "org.jboss.resteasy:resteasy-validator-provider-11:$resteasy_version"
     runtime "org.hibernate.validator:hibernate-validator:6.0.14.Final"
-
-    testCompile "org.springframework.boot:spring-boot-test:$spring_boot_version"
-    testCompile "org.springframework:spring-test:$spring_version"
-    testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
-    testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
-    testCompile "org.mockito:mockito-core:2.23.4"
-    testCompile "org.mockito:mockito-junit-jupiter:2.23.4"
 }
 
 compileJava.dependsOn(processResources)
@@ -194,12 +200,6 @@ configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.nam
         compile "org.springframework:spring-context:$spring_version"
         compile "org.slf4j:slf4j-api:$slf4j_version"
         compile "io.swagger:swagger-annotations:$swagger_annotations_version"
-
-        testCompile "org.springframework:spring-test:$spring_version"
-        testCompile "org.springframework.boot:spring-boot-test:$spring_boot_version"
-        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
-        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
-        testRuntime "ch.qos.logback:logback-classic:1.2.3"
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

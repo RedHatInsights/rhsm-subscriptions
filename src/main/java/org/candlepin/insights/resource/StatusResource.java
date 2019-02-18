@@ -39,7 +39,6 @@ public class StatusResource implements StatusApi {
      */
     @Override
     public Status getStatus() {
-        log.info("Someone made a request");
         return statusController.createStatus();
     }
 
