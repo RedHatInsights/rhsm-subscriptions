@@ -14,20 +14,16 @@
  */
 package org.candlepin.insights;
 
-import org.candlepin.insights.inventory.client.InventoryServiceConfiguration;
-import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/** POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern */
-
+/**
+ * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
+ */
 @Component
 @ConfigurationProperties(prefix = "rhsm-conduit")
 public class ApplicationProperties {
     private String version;
-    private final InventoryServiceConfiguration inventoryService = new InventoryServiceConfiguration();
-    private final PinheadApiConfiguration pinhead = new PinheadApiConfiguration();
 
     public String getVersion() {
         return version;
@@ -35,13 +31,5 @@ public class ApplicationProperties {
 
     public void setVersion(String version) {
         this.version = version;
-    }
-
-    public InventoryServiceConfiguration getInventoryService() {
-        return inventoryService;
-    }
-
-    public PinheadApiConfiguration getPinhead() {
-        return pinhead;
     }
 }
