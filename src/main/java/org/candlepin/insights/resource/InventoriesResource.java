@@ -16,7 +16,7 @@ package org.candlepin.insights.resource;
 
 import org.candlepin.insights.api.model.ConsumerInventory;
 import org.candlepin.insights.api.model.OrgInventory;
-import org.candlepin.insights.api.resources.InventoryApi;
+import org.candlepin.insights.api.resources.InventoriesApi;
 import org.candlepin.insights.controller.InventoryController;
 
 import org.slf4j.Logger;
@@ -32,13 +32,13 @@ import javax.validation.constraints.NotNull;
 
 
 /**
- * The inventory API implementation.
+ * The inventories API implementation.
  */
 @Component
 @Validated
-public class InventoryResource implements InventoryApi {
+public class InventoriesResource implements InventoriesApi {
 
-    private static Logger log = LoggerFactory.getLogger(InventoryResource.class);
+    private static Logger log = LoggerFactory.getLogger(InventoriesResource.class);
 
     @Autowired
     private InventoryController inventoryController;

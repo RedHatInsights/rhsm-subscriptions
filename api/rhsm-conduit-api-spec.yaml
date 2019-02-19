@@ -8,7 +8,7 @@ servers:
   - url: https://localhost/
 
 paths:
-  /inventory/{org_id}:
+  /inventories/{org_id}:
     description: "All inventory operations related to a specific organization."
     parameters:
       - name: x-rh-identity

@@ -16,8 +16,8 @@ package org.candlepin.insights;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceConfiguration;
-import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 import org.candlepin.insights.jackson.ObjectMapperContextResolver;
+import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 
 import org.slf4j.Logger;
