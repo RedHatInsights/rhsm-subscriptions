@@ -15,11 +15,14 @@
 package org.candlepin.insights;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
+import org.candlepin.insights.inventory.client.InventoryServiceConfiguration;
+import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
@@ -58,13 +61,41 @@ public class ApplicationConfiguration {
         };
     }
 
+    /**
+     * Load values from the application properties file prefixed with "rhsm-conduit.pinhead".  For example,
+     * "rhsm-conduit.pinhead.keystore-password=password" will be injected into the keystorePassword field.
+     * The hyphen is not necessary but it improves readability.  Rather than use the
+     * ConfigurationProperties annotation on the class itself and the EnableConfigurationProperties
+     * annotation on ApplicationConfiguration, we construct and bind values to the class here so that our
+     * sub-projects will not need to have Spring Boot on the class path (since it's Spring Boot that provides
+     * those annotations).
+     * @return an X509ApiClientFactoryConfiguration populated with values from the various property sources.
+     */
     @Bean
-    public HostsApiFactory hostInventoryApiFactory() {
-        return new HostsApiFactory(applicationProperties.getInventoryService());
+    @ConfigurationProperties(prefix = "rhsm-conduit.pinhead")
+    public PinheadApiConfiguration pinheadApiConfiguration() {
+        return new PinheadApiConfiguration();
+    }
+
+    /**
+     * Build the BeanFactory implementation ourselves since the docs say "Implementations are not supposed
+     * to rely on annotation-driven injection or other reflective facilities."
+     * @param conf containing the configuration needed by the factory
+     * @return a configured PinheadApiFactory
+     */
+    @Bean
+    public PinheadApiFactory pinheadApiFactory(PinheadApiConfiguration conf) {
+        return new PinheadApiFactory(conf);
     }
 
     @Bean
-    public PinheadApiFactory pinheadApiFactory() {
-        return new PinheadApiFactory(applicationProperties.getPinhead());
+    @ConfigurationProperties(prefix = "rhsm-conduit.inventory-service")
+    public InventoryServiceConfiguration inventoryServiceConfiguration() {
+        return new InventoryServiceConfiguration();
+    }
+
+    @Bean
+    public HostsApiFactory hostsApiFactory(InventoryServiceConfiguration conf) {
+        return new HostsApiFactory(conf);
     }
 }
