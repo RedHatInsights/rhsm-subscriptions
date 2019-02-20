@@ -38,6 +38,11 @@ public enum ErrorCode {
     REQUEST_PROCESSING_ERROR(1001, "An error occurred while processing a request."),
 
     /**
+     * The client's request is malformed in some way and does not pass validation.
+     */
+    VALIDATION_FAILED_ERROR(1002, "Client request failed validation."),
+
+    /**
      * An unexpected exception was thrown by the inventory service client.
      */
     INVENTORY_SERVICE_ERROR(2000, "Inventory Service Error"),

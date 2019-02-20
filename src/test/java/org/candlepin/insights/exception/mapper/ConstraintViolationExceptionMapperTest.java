@@ -14,8 +14,8 @@
  */
 package org.candlepin.insights.exception.mapper;
 
-import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.api.model.Error;
@@ -23,30 +23,32 @@ import org.candlepin.insights.api.model.Errors;
 
 import org.junit.jupiter.api.Test;
 
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.WebApplicationException;
+import java.util.HashSet;
+
+import javax.validation.ConstraintViolationException;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
-
-public class WebApplicationExceptionMapperTest {
+public class ConstraintViolationExceptionMapperTest {
 
     @Test
     public void testMapsWebApplicationException() {
         String expectedDetail = "FORCED!";
+        ConstraintViolationException exception = new ConstraintViolationException(expectedDetail,
+            new HashSet<>());
 
-        WebApplicationException exception = new NotFoundException(expectedDetail);
-
-        WebApplicationExceptionMapper mapper = new WebApplicationExceptionMapper();
+        ConstraintViolationExceptionMapper mapper = new ConstraintViolationExceptionMapper();
         Response resp = mapper.toResponse(exception);
         Object entityObj = resp.getEntity();
         assertNotNull(entityObj);
         assertThat(entityObj, instanceOf(Errors.class));
+
         Errors errors = (Errors) entityObj;
         assertEquals(1, errors.getErrors().size());
 
         Error error = errors.getErrors().get(0);
-        assertEquals(String.valueOf(exception.getResponse().getStatus()), error.getStatus());
-        assertEquals(WebApplicationExceptionMapper.ERROR_TITLE, error.getTitle());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), Integer.parseInt(error.getStatus()));
+        assertEquals(ConstraintViolationExceptionMapper.ERROR_TITLE, error.getTitle());
         assertEquals(expectedDetail, error.getDetail());
     }
 

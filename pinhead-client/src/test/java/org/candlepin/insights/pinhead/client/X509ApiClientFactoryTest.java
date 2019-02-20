@@ -15,7 +15,7 @@
 package org.candlepin.insights.pinhead.client;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -92,7 +92,7 @@ public class X509ApiClientFactoryTest {
 
     /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
     private String invokeHello(ApiClient client) throws ApiException {
-         return client.<String>invokeAPI(
+        return client.<String>invokeAPI(
             "/hello",
             "GET",
             new ArrayList<>(),

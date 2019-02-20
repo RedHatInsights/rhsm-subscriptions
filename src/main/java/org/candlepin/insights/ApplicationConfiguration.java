@@ -28,6 +28,7 @@ import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -97,5 +98,15 @@ public class ApplicationConfiguration {
     @Bean
     public HostsApiFactory hostsApiFactory(InventoryServiceConfiguration conf) {
         return new HostsApiFactory(conf);
+    }
+
+    /**
+     * Tell Spring AOP to run methods in classes marked @Validated through the JSR-303 Validation
+     * implementation.  Validations that fail will throw an ConstraintViolationException.
+     * @return post-processor used by Spring AOP
+     */
+    @Bean
+    public MethodValidationPostProcessor methodValidationPostProcessor() {
+        return new MethodValidationPostProcessor();
     }
 }

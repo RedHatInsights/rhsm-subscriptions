@@ -111,7 +111,7 @@ public class PinheadApiFactoryTest {
 
     /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
     private String invokeHello(ApiClient client) throws ApiException {
-         return client.<String>invokeAPI(
+        return client.<String>invokeAPI(
             "/hello",
             "GET",
             new ArrayList<>(),
