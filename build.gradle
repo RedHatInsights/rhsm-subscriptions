@@ -135,6 +135,25 @@ project(":api") {
         withXml = false
     }
 
+    task generateOpenApiJson(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "openapi"
+        inputSpec = api_spec_path
+        outputDir = "$buildDir/generated"
+        generateApiDocumentation = true
+        generateModelDocumentation = true
+        generateModelTests = false
+        generateApiTests = false
+        withXml = false
+    }
+
+    processResources {
+        from "$buildDir/generated/openapi.json"
+        from api_spec_path
+        rename { String fileName ->
+            api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
+        }
+    }
+
     dependencies {
         compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.8'
         compile 'javax.validation:validation-api:2.0.1.Final'
@@ -144,6 +163,7 @@ project(":api") {
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
+    processResources.dependsOn tasks.generateOpenApiJson
 }
 
 project(":insights-inventory-client") {
