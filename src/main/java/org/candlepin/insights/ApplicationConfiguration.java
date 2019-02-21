@@ -20,14 +20,17 @@ import org.candlepin.insights.jackson.ObjectMapperContextResolver;
 import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 
+import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 
@@ -36,6 +39,7 @@ import javax.servlet.ServletException;
 
 /** Class to hold configuration beans */
 @Configuration
+@Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableConfigurationProperties(ApplicationProperties.class)
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-conduit.properties")
@@ -116,4 +120,8 @@ public class ApplicationConfiguration {
         return new ObjectMapperContextResolver(applicationProperties);
     }
 
+    @Bean
+    public static BeanFactoryPostProcessor servletInitializer() {
+        return new JaxrsApplicationServletInitializer();
+    }
 }
