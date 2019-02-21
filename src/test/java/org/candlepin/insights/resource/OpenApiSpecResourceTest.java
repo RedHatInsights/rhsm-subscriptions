@@ -21,9 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
-import java.io.InputStream;
-
-import javax.ws.rs.core.Response;
 
 @SpringBootTest
 public class OpenApiSpecResourceTest {
@@ -33,20 +30,14 @@ public class OpenApiSpecResourceTest {
     @Test
     public void testOpenApiJson() throws IOException {
         /* Tests that we receive a successful non-empty response */
-        Response response = resource.openApiJson();
-        assertEquals(200, response.getStatus());
-        InputStream stream = (InputStream) response.getEntity();
-        int character = stream.read();
-        assertNotEquals(0, character);
+        String json = resource.getOpenApiJson();
+        assertNotEquals(0, json.length());
     }
 
     @Test
     public void testOpenApiYaml() throws IOException {
         /* Tests that we receive a successful non-empty response */
-        Response response = resource.openApiYaml();
-        assertEquals(200, response.getStatus());
-        InputStream stream = (InputStream) response.getEntity();
-        int character = stream.read();
-        assertNotEquals(0, character);
+        String yaml = resource.getOpenApiYaml();
+        assertNotEquals(0, yaml.length());
     }
 }

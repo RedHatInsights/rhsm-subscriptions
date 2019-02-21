@@ -14,15 +14,18 @@
  */
 package org.candlepin.insights.resource;
 
+import org.candlepin.insights.api.resources.OpenapiJsonApi;
+import org.candlepin.insights.api.resources.OpenapiYamlApi;
 import org.candlepin.insights.exception.ErrorCode;
 import org.candlepin.insights.exception.RhsmConduitException;
 
+import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 
 /**
@@ -31,35 +34,38 @@ import javax.ws.rs.core.Response;
  * These are loaded from the API jar.
  */
 @Component
-@Path("/")
-public class OpenApiSpecResource {
-    @GET
-    @Path("openapi.json")
-    public Response openApiJson() {
-        InputStream json = getClass().getClassLoader().getResourceAsStream("openapi.json");
-        if (json == null) {
+public class OpenApiSpecResource implements OpenapiJsonApi, OpenapiYamlApi {
+
+    private String getResourceAsString(String filename) {
+        InputStream contents = getClass().getClassLoader().getResourceAsStream(filename);
+        if (contents == null) {
             throw new RhsmConduitException(
                 ErrorCode.UNHANDLED_EXCEPTION_ERROR,
                 Response.Status.INTERNAL_SERVER_ERROR,
-                "Unable to read openapi.json",
+                String.format("Unable to read %s", filename),
                 "This should never happen..."
             );
         }
-        return Response.ok(json, "application/json").build();
+        try {
+            return IOUtils.toString(contents, Charset.forName("UTF-8"));
+        }
+        catch (IOException e) {
+            throw new RhsmConduitException(
+                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
+                Response.Status.INTERNAL_SERVER_ERROR,
+                String.format("Unable to decode %s", filename),
+                "This should never happen..."
+            );
+        }
     }
 
-    @GET
-    @Path("openapi.yaml")
-    public Response openApiYaml() {
-        InputStream yaml = getClass().getClassLoader().getResourceAsStream("openapi.yaml");
-        if (yaml == null) {
-            throw new RhsmConduitException(
-                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                "Unable to read openapi.yaml",
-                "This should never happen..."
-            );
-        }
-        return Response.ok(yaml, "application/x-yaml").build();
+    @Override
+    public String getOpenApiJson() {
+        return getResourceAsString("openapi.json");
+    }
+
+    @Override
+    public String getOpenApiYaml() {
+        return getResourceAsString("openapi.yaml");
     }
 }
