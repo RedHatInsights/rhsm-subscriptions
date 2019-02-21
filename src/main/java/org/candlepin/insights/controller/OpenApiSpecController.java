@@ -12,10 +12,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.resource;
+package org.candlepin.insights.controller;
 
-import org.candlepin.insights.api.resources.OpenapiJsonApi;
-import org.candlepin.insights.api.resources.OpenapiYamlApi;
 import org.candlepin.insights.exception.ErrorCode;
 import org.candlepin.insights.exception.RhsmConduitException;
 
@@ -29,13 +27,12 @@ import java.nio.charset.Charset;
 import javax.ws.rs.core.Response;
 
 /**
- * Serves the OpenAPI spec as /openapi.json and /openapi.yaml.
+ * Fetches and returns the OpenAPI spec in either JSON or YAML format.
  *
- * These are loaded from the API jar.
+ * Pulls the spec files from the API jar.
  */
 @Component
-public class OpenApiSpecResource implements OpenapiJsonApi, OpenapiYamlApi {
-
+public class OpenApiSpecController {
     private String getResourceAsString(String filename) {
         InputStream contents = getClass().getClassLoader().getResourceAsStream(filename);
         if (contents == null) {
@@ -59,12 +56,10 @@ public class OpenApiSpecResource implements OpenapiJsonApi, OpenapiYamlApi {
         }
     }
 
-    @Override
     public String getOpenApiJson() {
         return getResourceAsString("openapi.json");
     }
 
-    @Override
     public String getOpenApiYaml() {
         return getResourceAsString("openapi.yaml");
     }

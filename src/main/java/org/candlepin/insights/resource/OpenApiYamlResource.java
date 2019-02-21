@@ -14,30 +14,22 @@
  */
 package org.candlepin.insights.resource;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.candlepin.insights.api.resources.OpenapiYamlApi;
+import org.candlepin.insights.controller.OpenApiSpecController;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
-@SpringBootTest
-public class OpenApiSpecResourceTest {
+/**
+ * Serves the OpenAPI spec as /openapi.yaml.
+ */
+@Component
+public class OpenApiYamlResource implements OpenapiYamlApi {
     @Autowired
-    OpenApiSpecResource resource;
+    OpenApiSpecController controller;
 
-    @Test
-    public void testOpenApiJson() throws IOException {
-        /* Tests that we receive a successful non-empty response */
-        String json = resource.getOpenApiJson();
-        assertNotEquals(0, json.length());
-    }
-
-    @Test
-    public void testOpenApiYaml() throws IOException {
-        /* Tests that we receive a successful non-empty response */
-        String yaml = resource.getOpenApiYaml();
-        assertNotEquals(0, yaml.length());
+    @Override
+    public String getOpenApiYaml() {
+        return controller.getOpenApiYaml();
     }
 }
