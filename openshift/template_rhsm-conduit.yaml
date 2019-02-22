@@ -15,7 +15,7 @@ objects:
     selector:
       deploymentconfig: ${APPLICATION_NAME}
     strategy:
-      type: Recreate
+      type: Rolling
     template:
       metadata:
         labels:
