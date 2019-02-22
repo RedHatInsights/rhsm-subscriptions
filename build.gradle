@@ -76,6 +76,7 @@ dependencies {
     compile project(":insights-inventory-client")
     compile project(":pinhead-client")
     compile "javax.servlet:javax.servlet-api:3.1.0"
+    compile "org.jboss.resteasy:resteasy-spring-boot-starter:3.0.0.Final"
     compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
     compile "org.springframework.boot:spring-boot-actuator-autoconfigure:$spring_boot_version"
     compile "org.springframework.boot:spring-boot-autoconfigure:$spring_boot_version"
@@ -90,7 +91,6 @@ dependencies {
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.
     runtime "ch.qos.logback:logback-classic:1.2.3"
-    runtime "org.jboss.resteasy:resteasy-spring-boot-starter:3.0.0.Final"
     runtime "org.jboss.resteasy:resteasy-jaxrs:$resteasy_version"
     runtime "org.jboss.resteasy:resteasy-validator-provider-11:$resteasy_version"
     runtime "org.hibernate.validator:hibernate-validator:6.0.14.Final"
