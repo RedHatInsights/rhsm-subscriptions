@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "rhsm-conduit")
 public class ApplicationProperties {
     private String version;
+    private boolean prettyPrintJson = false;
 
     public String getVersion() {
         return version;
@@ -32,4 +33,13 @@ public class ApplicationProperties {
     public void setVersion(String version) {
         this.version = version;
     }
+
+    public boolean isPrettyPrintJson() {
+        return prettyPrintJson;
+    }
+
+    public void setPrettyPrintJson(boolean prettyPrintJson) {
+        this.prettyPrintJson = prettyPrintJson;
+    }
+
 }

@@ -8,7 +8,7 @@ servers:
   - url: https://localhost/
 
 paths:
-  /inventory/{orgId}:
+  /inventories/{org_id}:
     description: "All inventory operations related to a specific organization."
     parameters:
       - name: x-rh-identity
@@ -20,12 +20,12 @@ paths:
         description: "Base64-encoded JSON identity header provided by 3Scale.
               Contains an account number of the user issuing the request. Format of the
               JSON: {'identity': {'account_number': '12345678'}}"
-      - name: orgId
+      - name: org_id
         in: path
         required: true
         schema:
           type: string
-        description: "The orgId is the candlepin owner key."
+        description: "The org_id is the candlepin owner key."
 
     # TODO Address the following once we start building out the application
     #  * We probably don't need the ConsumerInventory or OrgInventory objects
@@ -134,73 +134,72 @@ components:
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     BadRequest:
       description: "The server could could not process the current request."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     Forbidden:
       description: "The request was valid, but the request was refused by the server."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     ResourceNotFound:
       description: "The requested resource was not found."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
     ServiceUnavailable:
       description: "The server is currently unavailable."
       content:
         application/vnd.api+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/Errors"
 
   schemas:
     ConsumerInventory:
       # The properties list here will depend on what is returned
       # from the IT endpoint.
       required:
-        - consumerUuid
-        - ownerAccountKey
+        - consumer_uuid
+        - owner_account_key
       properties:
         id:
           type: integer
           format: int64
-        ownerAccountKey:
+        owner_account_key:
           type: string
-        hypervisorHostName:
+        hypervisor_host_name:
           type: string
-        guestHypervisor:
+        guest_hypervisor:
           type: string
-        guestId:
+        guest_id:
           type: string
-        installedProducts:
+        installed_products:
           type: object
           additionalProperties:
             type: string
-        lastCheckin:
-          # TODO Should this be a datetime type instead of a long?
-          type: integer
-          format: int64
-        consumerType:
+        last_checkin:
           type: string
-        systemPurposeFacts:
+          format: date-time
+        consumer_type:
+          type: string
+        system_purpose_facts:
           type: object
           additionalProperties:
             type: string
-        consumerFacts:
+        consumer_facts:
           type: object
           additionalProperties:
             type: string
 
     OrgInventory:
       properties:
-        consumerInventories:
+        consumer_inventories:
           type: array
           items:
             $ref: "#/components/schemas/ConsumerInventory"

@@ -14,8 +14,9 @@
  */
 package org.candlepin.insights.resource;
 
+import org.candlepin.insights.api.model.ConsumerInventory;
 import org.candlepin.insights.api.model.OrgInventory;
-import org.candlepin.insights.api.resources.InventoryApi;
+import org.candlepin.insights.api.resources.InventoriesApi;
 import org.candlepin.insights.controller.InventoryController;
 
 import org.slf4j.Logger;
@@ -24,23 +25,32 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Collections;
+import java.util.Date;
+
 import javax.validation.constraints.NotNull;
 
+
 /**
- * The inventory API implementation.
+ * The inventories API implementation.
  */
 @Component
 @Validated
-public class InventoryResource implements InventoryApi {
+public class InventoriesResource implements InventoriesApi {
 
-    private static Logger log = LoggerFactory.getLogger(InventoryResource.class);
+    private static Logger log = LoggerFactory.getLogger(InventoriesResource.class);
 
     @Autowired
     private InventoryController inventoryController;
 
     @Override
     public OrgInventory getInventoryForOrg(@NotNull byte[] xRhIdentity, String orgId) {
-        return new OrgInventory();
+        return new OrgInventory().consumerInventories(Collections.singletonList(
+            new ConsumerInventory()
+                .consumerType("system")
+                .lastCheckin(new Date())
+                .ownerAccountKey(orgId)
+        ));
     }
 
     @Override
