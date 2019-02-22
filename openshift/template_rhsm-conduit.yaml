@@ -35,7 +35,7 @@ objects:
               command:
                 - /usr/bin/curl
                 - '-s'
-                - 'http://localhost:8080/${PATH_PREFIX:-/r/insights/platform}/${APP_NAME:-rhsm-conduit}/status'
+                - 'http://localhost:8080/${PATH_PREFIX:-/r/insights/platform}/${APP_NAME:-rhsm-conduit}/v1/status'
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
@@ -46,7 +46,7 @@ objects:
               command:
                 - /usr/bin/curl
                 - '-s'
-                - 'http://localhost:8080/${PATH_PREFIX:-/r/insights/platform}/${APP_NAME:-rhsm-conduit}/status/ready'
+                - 'http://localhost:8080/${PATH_PREFIX:-/r/insights/platform}/${APP_NAME:-rhsm-conduit}/v1/status/ready'
             initialDelaySeconds: 20
             periodSeconds: 10
             successThreshold: 1
