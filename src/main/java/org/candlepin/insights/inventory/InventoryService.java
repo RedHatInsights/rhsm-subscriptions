@@ -103,15 +103,7 @@ public class InventoryService {
         facts.add(rhsmFacts);
 
         CreateHostIn host = new CreateHostIn();
-        // Magic account number that tells the inventory app to
-        // ignore the auth header account check. When running
-        // against production insights-inventory, the account in
-        // the header must match what is set on the Host.
-        //
-        // In hosted the account will be the orgId.
-        // TODO Properly set the account when we determine how
-        //      auth will work going forward.
-        host.setAccount("0000001");
+        host.setAccount(orgId);
         host.setFqdn(conduitFacts.getFqdn());
         host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
         host.setBiosUuid(conduitFacts.getBiosUuid());

@@ -26,6 +26,7 @@ package org.candlepin.insights.inventory.client;
 public class InventoryServiceProperties {
     private boolean useStub;
     private String url;
+    private String apiKey;
 
     public boolean isUseStub() {
         return useStub;
@@ -41,5 +42,13 @@ public class InventoryServiceProperties {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
     }
 }
