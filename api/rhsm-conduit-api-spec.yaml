@@ -5,7 +5,13 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://localhost/
+  - url: http://localhost:8080/rhsm-conduit/v1
+  - url: http://localhost:8080/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: r/insights/platform
+      APP_NAME:
+        default: rhsm-conduit
 
 paths:
   /inventories/{org_id}:

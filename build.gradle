@@ -87,6 +87,7 @@ dependencies {
     compile "org.slf4j:slf4j-api:$slf4j_version"
     compile "net.logstash.logback:logstash-logback-encoder:5.3"
     compile "io.micrometer:micrometer-registry-prometheus:1.1.2"
+    compile "org.webjars:swagger-ui:3.20.8"
 
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.

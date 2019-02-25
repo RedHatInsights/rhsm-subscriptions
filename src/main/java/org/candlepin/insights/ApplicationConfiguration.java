@@ -33,6 +33,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -43,7 +45,7 @@ import javax.servlet.ServletException;
 @EnableConfigurationProperties(ApplicationProperties.class)
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-conduit.properties")
-public class ApplicationConfiguration {
+public class ApplicationConfiguration implements WebMvcConfigurer {
     private static final Logger log = LoggerFactory.getLogger(ApplicationConfiguration.class);
 
     @Autowired
@@ -123,5 +125,11 @@ public class ApplicationConfiguration {
     @Bean
     public static BeanFactoryPostProcessor servletInitializer() {
         return new JaxrsApplicationServletInitializer();
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
+        registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
     }
 }
