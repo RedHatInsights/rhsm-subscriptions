@@ -13,6 +13,14 @@ There is an example config files in `openshift/example_config/rhsm-conduit.conf`
 oc create configmap rhsm-conduit-config --from-file openshift/example_config
 ```
 
+Also, set up rhsm-conduit secrets:
+
+```
+oc create -f openshift/secret-rhsm-conduit_dummy.yaml
+```
+
+The secrets are used for client certificates, so having an empty secret is acceptable if client certificates are not used.
+
 ## Deploying to Openshift
 
 First, log in to an openshift instance. Make sure the project has been set up (see previous section).
