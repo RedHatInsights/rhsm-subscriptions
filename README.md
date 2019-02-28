@@ -89,3 +89,17 @@ Test the installation:
 curl http://<your_route_address>/metrics
 curl http://<your_route_address>/r/insights/platform/inventory/api/v1/hosts
 ```
+
+## Deploying Kafka
+
+### Deploying via Docker
+
+A local Kafka cluster can be deployed very quickly via docker. This deployment includes
+a web interface that allows you to monitor messages and kafka statistics. This is useful
+for development.
+
+See: https://github.com/Landoop/fast-data-dev
+
+```
+docker run --rm --net host landoop/fast-data-dev
+```
