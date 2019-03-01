@@ -129,4 +129,5 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
         registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
     }
+
 }
