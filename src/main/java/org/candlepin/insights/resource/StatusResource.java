@@ -20,15 +20,12 @@ import org.candlepin.insights.api.resources.StatusApi;
 import org.candlepin.insights.controller.StatusController;
 import org.candlepin.insights.exception.NotReadyException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Resource to report on application status. */
 @Component
 public class StatusResource implements StatusApi {
-    private static final Logger log = LoggerFactory.getLogger(StatusResource.class);
 
     @Autowired
     private StatusController statusController;

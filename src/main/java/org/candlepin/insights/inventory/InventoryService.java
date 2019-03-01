@@ -21,8 +21,6 @@ import org.candlepin.insights.inventory.client.model.Host;
 import org.candlepin.insights.inventory.client.model.HostOut;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -37,8 +35,6 @@ import java.util.Map;
  */
 @Component
 public class InventoryService {
-
-    private static Logger log = LoggerFactory.getLogger(InventoryService.class);
 
     private final HostsApi hostsInventoryApi;
 

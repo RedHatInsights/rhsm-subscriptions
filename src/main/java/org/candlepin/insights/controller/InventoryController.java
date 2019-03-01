@@ -19,8 +19,6 @@ import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +34,6 @@ import java.util.stream.Collectors;
 public class InventoryController {
 
     private static final int KIBIBYTES_PER_GIBIBYTE = 1048576;
-    private static Logger log = LoggerFactory.getLogger(InventoryController.class);
 
     @Autowired
     private InventoryService inventoryService;
