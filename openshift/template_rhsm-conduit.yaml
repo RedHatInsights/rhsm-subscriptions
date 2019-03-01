@@ -57,11 +57,16 @@ objects:
           volumeMounts:
           - name: config
             mountPath: /config
+          - name: secrets
+            mountPath: /secrets
           workingDir: /
         volumes:
         - name: config
           configMap:
             name: rhsm-conduit-config
+        - name: secrets
+          secret:
+            secretName: rhsm-conduit
         restartPolicy: Always
         terminationGracePeriodSeconds: 75
     triggers:
