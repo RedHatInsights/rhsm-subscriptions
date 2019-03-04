@@ -21,8 +21,6 @@ import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -46,7 +44,6 @@ import javax.servlet.ServletException;
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-conduit.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
-    private static final Logger log = LoggerFactory.getLogger(ApplicationConfiguration.class);
 
     @Autowired
     private ApplicationProperties applicationProperties;

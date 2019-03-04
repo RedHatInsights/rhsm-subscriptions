@@ -14,8 +14,6 @@
  */
 package org.candlepin.insights.filter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -38,8 +36,6 @@ import javax.ws.rs.ext.Provider;
 @Provider
 @PreMatching
 public class ContentNegotiationRequestFilter implements ContainerRequestFilter {
-
-    private static Logger log = LoggerFactory.getLogger(ContentNegotiationRequestFilter.class);
 
     private static final String APPLICATION_TYPE = "application";
     private static final String VENDOR_JSON_SUBTYPE = "vnd.api+json";
