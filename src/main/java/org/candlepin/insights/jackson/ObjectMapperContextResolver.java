@@ -39,6 +39,10 @@ public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
         objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
+
+        // Tell the mapper to check the classpath for any serialization/deserialization modules
+        // such as the Java8 date/time module (JavaTimeModule).
+        objectMapper.findAndRegisterModules();
     }
 
     @Override
