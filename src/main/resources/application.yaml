@@ -26,3 +26,6 @@ rhsm-conduit:
   # language (SPEL) and Gradle's expand method both using the same expansion token.
   # See https://docs.spring.io/spring-boot/docs/current/reference/html/howto-properties-and-configuration.html#howto-automatic-expansion-gradle
   version: ${version}
+spring:
+  quartz:
+    job-store-type: memory
