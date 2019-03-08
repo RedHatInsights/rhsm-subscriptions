@@ -144,6 +144,11 @@ public class TaskDescriptor {
             return this;
         }
 
+        public TaskDescriptorBuilder setArgs(Map<String, String> args) {
+            this.args = new HashMap<>(args);
+            return this;
+        }
+
         public TaskDescriptor build() {
             return new TaskDescriptor(this);
         }
