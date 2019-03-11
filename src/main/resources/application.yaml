@@ -27,5 +27,18 @@ rhsm-conduit:
   # See https://docs.spring.io/spring-boot/docs/current/reference/html/howto-properties-and-configuration.html#howto-automatic-expansion-gradle
   version: ${version}
 spring:
+  datasource:
+    platform: hsqldb
   quartz:
-    job-store-type: memory
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+      # There is an issue with the hsqldb schema file that is shipped with Quartz, so we need to carry our own
+      # See https://stackoverflow.com/questions/34784328/quartz-jobpersistenceexception-with-hsqldb
+      schema: classpath:tables_hsqldb.sql
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: RhsmConduitScheduler
+            instanceId: AUTO
