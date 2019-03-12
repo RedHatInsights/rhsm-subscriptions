@@ -19,7 +19,7 @@ import static org.mockito.BDDMockito.*;
 
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
-import org.candlepin.insights.inventory.client.model.HostOut;
+import org.candlepin.insights.inventory.client.model.BulkHostOut;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
@@ -54,7 +54,7 @@ public class InventoryControllerTest {
         consumer2.setUuid(uuid2.toString());
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
-        when(inventoryService.sendHostUpdate(anyString(), isNotNull())).thenReturn(new HostOut());
+        when(inventoryService.sendHostUpdate(anyString(), isNotNull())).thenReturn(new BulkHostOut());
         controller.updateInventoryForOrg("123");
         Mockito.verify(inventoryService, times(2)).sendHostUpdate(eq("123"), any());
     }

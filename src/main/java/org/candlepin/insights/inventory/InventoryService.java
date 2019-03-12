@@ -16,9 +16,9 @@ package org.candlepin.insights.inventory;
 
 import org.candlepin.insights.exception.RhsmConduitException;
 import org.candlepin.insights.exception.inventory.InventoryServiceException;
+import org.candlepin.insights.inventory.client.model.BulkHostOut;
 import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.insights.inventory.client.model.Host;
-import org.candlepin.insights.inventory.client.model.HostOut;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,19 +44,19 @@ public class InventoryService {
     }
 
     // TODO Update the parameters once we know what will be coming from the RHSM service.
-    public HostOut sendHostUpdate(String orgId, ConduitFacts facts)
+    public BulkHostOut sendHostUpdate(String orgId, ConduitFacts facts)
         throws RhsmConduitException {
+
+        List<Host> toSend = new LinkedList<>();
+        toSend.add(createHost(orgId, facts));
+
         try {
-            return hostsInventoryApi.apiHostAddHost(forgeAuthHeader(orgId), createHost(orgId, facts));
+            return hostsInventoryApi.apiHostAddHostList(toSend);
         }
         catch (Exception e) {
             throw new InventoryServiceException(
                 "An error occurred while sending a host update to the inventory service.", e);
         }
-    }
-
-    private byte[] forgeAuthHeader(String accountNumber) {
-        return "b".getBytes();
     }
 
     /**
