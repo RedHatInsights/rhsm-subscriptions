@@ -23,7 +23,7 @@ import javax.net.ssl.HostnameVerifier;
 /**
  * Class to hold values used to build the ApiClient instance wrapped in an SSLContext for Pinhead.
  */
-public class PinheadApiConfiguration {
+public class PinheadApiProperties {
     private final X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
     private boolean useStub;
     private String url;

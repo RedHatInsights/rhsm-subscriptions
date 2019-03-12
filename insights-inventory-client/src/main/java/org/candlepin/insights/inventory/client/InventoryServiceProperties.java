@@ -17,7 +17,7 @@ package org.candlepin.insights.inventory.client;
 /**
  * Sub-class for inventory service properties
  */
-public class InventoryServiceConfiguration {
+public class InventoryServiceProperties {
     private boolean useStub;
     private String url;
 

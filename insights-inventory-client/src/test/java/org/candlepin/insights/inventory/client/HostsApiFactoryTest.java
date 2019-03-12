@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 public class HostsApiFactoryTest {
     @Test
     public void testStubClientConfiguration() throws Exception {
-        InventoryServiceConfiguration config = new InventoryServiceConfiguration();
+        InventoryServiceProperties config = new InventoryServiceProperties();
         config.setUseStub(true);
         HostsApiFactory factory = new HostsApiFactory(config);
         assertEquals(StubHostsApi.class, factory.getObject().getClass());
@@ -29,7 +29,7 @@ public class HostsApiFactoryTest {
 
     @Test
     public void testClientGetsUrlFromConfiguration() throws Exception {
-        InventoryServiceConfiguration config = new InventoryServiceConfiguration();
+        InventoryServiceProperties config = new InventoryServiceProperties();
         config.setUrl("http://example.com/foobar");
         HostsApiFactory factory = new HostsApiFactory(config);
         assertEquals("http://example.com/foobar", factory.getObject().getApiClient().getBasePath());

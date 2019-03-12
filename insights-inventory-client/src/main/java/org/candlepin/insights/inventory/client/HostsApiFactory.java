@@ -27,22 +27,22 @@ public class HostsApiFactory implements FactoryBean<HostsApi> {
 
     private static Logger log = LoggerFactory.getLogger(HostsApiFactory.class);
 
-    private final InventoryServiceConfiguration config;
+    private final InventoryServiceProperties serviceProperties;
 
-    public HostsApiFactory(InventoryServiceConfiguration config) {
-        this.config = config;
+    public HostsApiFactory(InventoryServiceProperties serviceProperties) {
+        this.serviceProperties = serviceProperties;
     }
 
     @Override
     public HostsApi getObject() throws Exception {
-        if (config.isUseStub()) {
+        if (serviceProperties.isUseStub()) {
             log.info("Using stub host inventory client");
             return new StubHostsApi();
         }
         ApiClient apiClient = new ApiClient();
-        if (config.getUrl() != null) {
-            log.info("Host inventory service URL: {}", config.getUrl());
-            apiClient.setBasePath(config.getUrl());
+        if (serviceProperties.getUrl() != null) {
+            log.info("Host inventory service URL: {}", serviceProperties.getUrl());
+            apiClient.setBasePath(serviceProperties.getUrl());
         }
         else {
             log.warn("Host inventory service URL not set...");
