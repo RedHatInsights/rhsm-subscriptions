@@ -29,19 +29,27 @@ import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
+import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Properties;
+
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.sql.DataSource;
 
 /** Class to hold configuration beans */
 @Configuration
@@ -108,6 +116,37 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
         return new HostsApiFactory(properties);
+    }
+
+    @Bean
+    // Override the annotations on the DataSourceProperties class itself so that we can read from a custom
+    // prefix
+    @Primary
+    @ConfigurationProperties(prefix = "rhsm-conduit.datasource")
+    public DataSourceProperties dataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean
+    @QuartzDataSource
+    public DataSource dataSource(DataSourceProperties dataSourceProperties) {
+        DataSourceBuilder builder = dataSourceProperties.initializeDataSourceBuilder();
+        return builder.build();
+    }
+
+    @Bean
+    public SchedulerFactoryBeanCustomizer schedulerFactoryBeanCustomizer(DataSourceProperties properties) {
+        String driverDelegate = "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
+        if (properties.getPlatform().startsWith("postgres")) {
+            driverDelegate = "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate";
+        }
+
+        final String finalDriverDelegate = driverDelegate;
+        return schedulerFactoryBean -> {
+            Properties props = new Properties();
+            props.put("org.quartz.jobStore.driverDelegateClass", finalDriverDelegate);
+            schedulerFactoryBean.setQuartzProperties(props);
+        };
     }
 
     /**

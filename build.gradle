@@ -1,3 +1,5 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 buildscript {
     repositories {
         mavenLocal()
@@ -66,7 +68,8 @@ bootJar {
 
 processResources {
     filesMatching("**/application.yaml") {
-        expand(project.properties)
+        // Only expand ${version}.  We don't want to conflict with Spring expansions.
+        filter(tokens: [version: version], ReplaceTokens)
     }
 }
 
@@ -107,6 +110,8 @@ dependencies {
     runtime "org.jboss.resteasy:resteasy-validator-provider-11:$resteasy_version"
     runtime "org.hibernate.validator:hibernate-validator:6.0.14.Final"
     runtime "org.hsqldb:hsqldb:2.4.1"
+    runtime "org.apache.tomcat:tomcat-jdbc:9.0.16"
+    runtime "org.postgresql:postgresql:42.2.2"
 }
 
 compileJava.dependsOn(processResources)
