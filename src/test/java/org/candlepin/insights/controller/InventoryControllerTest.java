@@ -56,7 +56,7 @@ public class InventoryControllerTest {
             Arrays.asList(consumer1, consumer2));
         when(inventoryService.sendHostUpdate(anyString(), isNotNull())).thenReturn(new BulkHostOut());
         controller.updateInventoryForOrg("123");
-        Mockito.verify(inventoryService, times(2)).sendHostUpdate(eq("123"), any());
+        Mockito.verify(inventoryService, times(1)).sendHostUpdate(eq("123"), any());
     }
 
     @Test

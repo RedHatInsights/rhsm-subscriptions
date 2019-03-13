@@ -15,6 +15,7 @@
 package org.candlepin.insights.inventory.client;
 
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
+import org.candlepin.insights.inventory.client.model.BulkHostOutDetails;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
@@ -33,6 +34,14 @@ public class StubHostsApi extends HostsApi {
     @Override
     public BulkHostOut apiHostAddHostList(List<CreateHostIn> hosts) throws ApiException {
         log.info("Adding specified hosts to inventory.");
-        return new BulkHostOut();
+        BulkHostOut out = new BulkHostOut().total(hosts.size());
+        hosts.forEach(h -> {
+            BulkHostOutDetails hostOutDetails = new BulkHostOutDetails()
+                .title(String.format("Host updated: %s", h.getSubscriptionManagerId()))
+                .status(200)
+                .detail("Update complete!");
+            out.addDataItem(hostOutDetails);
+        });
+        return out;
     }
 }
