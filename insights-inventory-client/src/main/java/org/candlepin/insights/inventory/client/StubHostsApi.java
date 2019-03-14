@@ -15,7 +15,7 @@
 package org.candlepin.insights.inventory.client;
 
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
-import org.candlepin.insights.inventory.client.model.Host;
+import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.slf4j.Logger;
@@ -31,7 +31,7 @@ public class StubHostsApi extends HostsApi {
     private static Logger log = LoggerFactory.getLogger(StubHostsApi.class);
 
     @Override
-    public BulkHostOut apiHostAddHostList(List<Host> hosts) throws ApiException {
+    public BulkHostOut apiHostAddHostList(List<CreateHostIn> hosts) throws ApiException {
         log.info("Adding specified hosts to inventory.");
         return new BulkHostOut();
     }
