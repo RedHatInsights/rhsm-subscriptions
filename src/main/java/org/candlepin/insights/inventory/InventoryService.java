@@ -17,8 +17,8 @@ package org.candlepin.insights.inventory;
 import org.candlepin.insights.exception.RhsmConduitException;
 import org.candlepin.insights.exception.inventory.InventoryServiceException;
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
+import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.model.Host;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class InventoryService {
     public BulkHostOut sendHostUpdate(String orgId, ConduitFacts facts)
         throws RhsmConduitException {
 
-        List<Host> toSend = new LinkedList<>();
+        List<CreateHostIn> toSend = new LinkedList<>();
         toSend.add(createHost(orgId, facts));
 
         try {
@@ -64,7 +64,7 @@ public class InventoryService {
      *
      * @return the new host.
      */
-    private Host createHost(String orgId, ConduitFacts conduitFacts) {
+    private CreateHostIn createHost(String orgId, ConduitFacts conduitFacts) {
         Map<String, Object> rhsmFactMap = new HashMap<>();
         rhsmFactMap.put("orgId", orgId);
         if (conduitFacts.getCpuSockets() != null) {
@@ -95,7 +95,7 @@ public class InventoryService {
         List<FactSet> facts = new LinkedList<>();
         facts.add(rhsmFacts);
 
-        Host host = new Host();
+        CreateHostIn host = new CreateHostIn();
         // Magic account number that tells the inventory app to
         // ignore the auth header account check. When running
         // against production insights-inventory, the account in
