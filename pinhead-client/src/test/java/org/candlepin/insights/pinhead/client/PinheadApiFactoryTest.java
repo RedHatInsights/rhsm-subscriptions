@@ -39,7 +39,7 @@ public class PinheadApiFactoryTest {
     public static final String STORE_PASSWORD = "password";
 
     private WireMockServer server;
-    private PinheadApiConfiguration config;
+    private PinheadApiProperties config;
     private X509ApiClientFactory x509Factory;
 
     private MappingBuilder stubHelloWorld() {
@@ -57,7 +57,7 @@ public class PinheadApiFactoryTest {
 
     @BeforeEach
     private void setUp() {
-        config = new PinheadApiConfiguration();
+        config = new PinheadApiProperties();
     }
 
     @Test

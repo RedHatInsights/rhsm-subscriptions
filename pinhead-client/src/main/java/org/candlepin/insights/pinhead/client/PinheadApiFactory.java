@@ -22,36 +22,36 @@ import org.springframework.beans.factory.FactoryBean;
 
 /**
  * Builds a PinheadApi, which may be a stub, or a normal client, with or without cert auth depending on
- * config.
+ * properties.
  */
 public class PinheadApiFactory implements FactoryBean<PinheadApi> {
     private static Logger log = LoggerFactory.getLogger(PinheadApiFactory.class);
 
-    private final PinheadApiConfiguration config;
+    private final PinheadApiProperties properties;
 
-    public PinheadApiFactory(PinheadApiConfiguration config) {
-        this.config = config;
+    public PinheadApiFactory(PinheadApiProperties properties) {
+        this.properties = properties;
     }
 
     @Override
     public PinheadApi getObject() throws Exception {
-        if (config.isUseStub()) {
+        if (properties.isUseStub()) {
             log.info("Using stub pinhead client");
             return new StubPinheadApi();
         }
 
         ApiClient client;
-        if (config.usesClientAuth()) {
+        if (properties.usesClientAuth()) {
             log.info("Pinhead client configured with client-cert auth");
-            client = new X509ApiClientFactory(config.getX509ApiClientFactoryConfiguration()).getObject();
+            client = new X509ApiClientFactory(properties.getX509ApiClientFactoryConfiguration()).getObject();
         }
         else {
             log.info("Pinhead client configured without client-cert auth");
             client = new ApiClient();
         }
-        if (config.getUrl() != null) {
-            log.info("Pinhead URL: {}", config.getUrl());
-            client.setBasePath(config.getUrl());
+        if (properties.getUrl() != null) {
+            log.info("Pinhead URL: {}", properties.getUrl());
+            client.setBasePath(properties.getUrl());
         }
         else {
             log.warn("Pinhead URL not set...");

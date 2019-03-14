@@ -15,10 +15,10 @@
 package org.candlepin.insights;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
-import org.candlepin.insights.inventory.client.InventoryServiceConfiguration;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.jackson.ObjectMapperContextResolver;
-import org.candlepin.insights.pinhead.client.PinheadApiConfiguration;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
+import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,30 +78,30 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConfigurationProperties(prefix = "rhsm-conduit.pinhead")
-    public PinheadApiConfiguration pinheadApiConfiguration() {
-        return new PinheadApiConfiguration();
+    public PinheadApiProperties pinheadApiProperties() {
+        return new PinheadApiProperties();
     }
 
     /**
      * Build the BeanFactory implementation ourselves since the docs say "Implementations are not supposed
      * to rely on annotation-driven injection or other reflective facilities."
-     * @param conf containing the configuration needed by the factory
+     * @param properties containing the configuration needed by the factory
      * @return a configured PinheadApiFactory
      */
     @Bean
-    public PinheadApiFactory pinheadApiFactory(PinheadApiConfiguration conf) {
-        return new PinheadApiFactory(conf);
+    public PinheadApiFactory pinheadApiFactory(PinheadApiProperties properties) {
+        return new PinheadApiFactory(properties);
     }
 
     @Bean
     @ConfigurationProperties(prefix = "rhsm-conduit.inventory-service")
-    public InventoryServiceConfiguration inventoryServiceConfiguration() {
-        return new InventoryServiceConfiguration();
+    public InventoryServiceProperties inventoryServiceProperties() {
+        return new InventoryServiceProperties();
     }
 
     @Bean
-    public HostsApiFactory hostsApiFactory(InventoryServiceConfiguration conf) {
-        return new HostsApiFactory(conf);
+    public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
+        return new HostsApiFactory(properties);
     }
 
     /**
