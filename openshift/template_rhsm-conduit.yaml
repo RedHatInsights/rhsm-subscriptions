@@ -29,6 +29,21 @@ objects:
           env:
           - name: JAVA_OPTIONS
             value: -Dlogging.config=/config/logback.xml -Dspring.config.additional-location=file:/config/rhsm-conduit.properties
+          - name: QUARTZ_DATABASE_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${APPLICATION_NAME}-quartz-postgresql
+                key: database-user
+          - name: QUARTZ_DATABASE_NAME
+            valueFrom:
+              secretKeyRef:
+                name: ${APPLICATION_NAME}-quartz-postgresql
+                key: database-name
+          - name: QUARTZ_DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${APPLICATION_NAME}-quartz-postgresql
+                key: database-password
           livenessProbe:
             failureThreshold: 3
             exec:
@@ -86,7 +101,6 @@ objects:
       app: ${APPLICATION_NAME}
     name: ${APPLICATION_NAME}
   spec:
-    nodeSelector: null
     output:
       to:
         kind: ImageStreamTag
@@ -131,7 +145,162 @@ objects:
       targetPort: 8080
     selector:
       deploymentconfig: ${APPLICATION_NAME}
+- apiVersion: v1
+  stringData:
+    database-name: ${POSTGRESQL_DATABASE}
+    database-password: ${POSTGRESQL_PASSWORD}
+    database-user: ${POSTGRESQL_USER}
+  kind: Secret
+  metadata:
+    annotations:
+      template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+      template.openshift.io/expose-password: '{.data[''database-password'']}'
+      template.openshift.io/expose-username: '{.data[''database-user'']}'
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}-quartz-postgresql
+  type: Opaque
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: ${APPLICATION_NAME}-quartz-postgresql
+  spec:
+    replicas: 1
+    selector:
+      name: ${APPLICATION_NAME}-quartz-postgresql
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${APPLICATION_NAME}-quartz-postgresql
+      spec:
+        containers:
+        - capabilities: {}
+          env:
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: ${APPLICATION_NAME}-quartz-postgresql
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: ${APPLICATION_NAME}-quartz-postgresql
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                key: database-name
+                name: ${APPLICATION_NAME}-quartz-postgresql
+          image: openshift/postgresql
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+              - /usr/libexec/check-container
+              - --live
+            initialDelaySeconds: 120
+            timeoutSeconds: 10
+          name: postgresql
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /usr/libexec/check-container
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: ${APPLICATION_NAME}-quartz-postgresql-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        volumes:
+        - name: ${APPLICATION_NAME}-quartz-postgresql-data
+          persistentVolumeClaim:
+            claimName: ${APPLICATION_NAME}-quartz-postgresql
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - postgresql
+        from:
+          kind: ImageStreamTag
+          name: postgresql:9.6
+          namespace: openshift
+      type: ImageChange
+    - type: ConfigChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      template.openshift.io/expose-uri: postgres://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}
+    labels:
+      app: ${APPLICATION_NAME}
+    name: quartz-postgresql
+  spec:
+    ports:
+    - name: postgresql
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector:
+      name: ${APPLICATION_NAME}-quartz-postgresql
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${APPLICATION_NAME}-quartz-postgresql
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${VOLUME_CAPACITY}
 parameters:
+- description: Username for PostgreSQL user that will be used for accessing the database.
+  displayName: PostgreSQL Connection Username
+  name: POSTGRESQL_USER
+  required: true
+  value: quartz
+- description: Password for the PostgreSQL connection user.
+  displayName: PostgreSQL Connection Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: POSTGRESQL_PASSWORD
+  required: true
+- description: Name of the PostgreSQL database accessed.
+  displayName: PostgreSQL Database Name
+  name: POSTGRESQL_DATABASE
+  required: true
+  value: quartz
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Volume space available for data, e.g. 512Mi, 2Gi.
+  displayName: Volume Capacity
+  name: VOLUME_CAPACITY
+  required: true
+  value: 1Gi
 - description: Git repo
   displayName: Git repo URL
   name: SOURCE_REPOSITORY_URL
