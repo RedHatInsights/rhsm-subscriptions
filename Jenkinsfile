@@ -32,6 +32,10 @@ pipeline {
         }
         stage('SonarQube Quality Gate') {
             steps {
+                withSonarQubeEnv('Sonar') {
+                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/dashboard?id=org.candlepin%3Arhsm-conduit"
+                    echo 'NOTE: only latest scan results are available. If you need to see previous results again, rerun the "Upload to SonarQube" stage.'
+                }
                 timeout(time: 1, unit: 'HOURS') {
                     waitForQualityGate abortPipeline: true
                 }
