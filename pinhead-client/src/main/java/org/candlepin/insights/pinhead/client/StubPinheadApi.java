@@ -45,8 +45,8 @@ public class StubPinheadApi extends PinheadApi {
         consumer1.setHypervisorName("hypervisor1.test.com");
         consumer1.getFacts().put("network.fqdn", "host1.test.com");
         consumer1.getFacts().put("dmi.system.uuid", UUID.randomUUID().toString());
-        consumer1.getFacts().put("ip-addresses", "192.168.1.1, 10.0.0.1");
-        consumer1.getFacts().put("mac-addresses", "00:00:00:00:00:00, ff:ff:ff:ff:ff:ff");
+        consumer1.getFacts().put("Ip-addresses", "192.168.1.1, 10.0.0.1");
+        consumer1.getFacts().put("Mac-addresses", "00:00:00:00:00:00, ff:ff:ff:ff:ff:ff");
         consumer1.getFacts().put("cpu.cpu_socket(s)", "2");
         consumer1.getFacts().put("cpu.core(s)_per_socket", "2");
         consumer1.getFacts().put("memory.memtotal", "32757812");
@@ -60,8 +60,8 @@ public class StubPinheadApi extends PinheadApi {
         consumer2.setUuid(UUID.randomUUID().toString());
         consumer2.getFacts().put("network.fqdn", "host2.test.com");
 
-        inventory.getConsumers().add(consumer1);
-        inventory.getConsumers().add(consumer2);
+        inventory.getFeeds().add(consumer1);
+        inventory.getFeeds().add(consumer2);
         log.info("Returning canned pinhead response: {}", inventory);
         return inventory;
     }

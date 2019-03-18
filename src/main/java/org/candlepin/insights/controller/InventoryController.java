@@ -59,53 +59,64 @@ public class InventoryController {
         facts.setSubscriptionManagerId(UUID.fromString(consumer.getUuid()));
 
         String systemUuid = consumer.getFacts().get("dmi.system.uuid");
-        if (systemUuid != null) {
+        if (systemUuid != null && !systemUuid.isEmpty()) {
             facts.setBiosUuid(UUID.fromString(systemUuid));
         }
 
-        String ipAddresses = consumer.getFacts().get("ip-addresses");
-        if (ipAddresses != null) {
+        String ipAddresses = consumer.getFacts().get("Ip-addresses");
+        if (ipAddresses != null && !ipAddresses.isEmpty()) {
             String[] ipAddressesSplit = ipAddresses.split(", ");
             facts.setIpAddresses(Arrays.asList(ipAddressesSplit));
         }
 
-        facts.setFqdn(consumer.getFacts().get("network.fqdn"));
+        String fqdn = consumer.getFacts().get("network.fqdn");
+        if (fqdn != null && !fqdn.isEmpty()) {
+            facts.setFqdn(fqdn);
+        }
 
-        String macAddresses = consumer.getFacts().get("mac-addresses");
-        if (macAddresses != null) {
+        String macAddresses = consumer.getFacts().get("Mac-addresses");
+        if (macAddresses != null && !macAddresses.isEmpty()) {
             String[] macAddressesSplit = macAddresses.split(", ");
             facts.setMacAddresses(Arrays.asList(macAddressesSplit));
         }
 
         String cpuSockets = consumer.getFacts().get("cpu.cpu_socket(s)");
         Integer numCpuSockets = null;
-        if (cpuSockets != null) {
+        if (cpuSockets != null && !cpuSockets.isEmpty()) {
             numCpuSockets = Integer.parseInt(cpuSockets);
             facts.setCpuSockets(numCpuSockets);
         }
 
         String coresPerSocket = consumer.getFacts().get("cpu.core(s)_per_socket");
-        if (coresPerSocket != null && cpuSockets != null) {
+        if (coresPerSocket != null && !coresPerSocket.isEmpty() &&
+            cpuSockets != null && !cpuSockets.isEmpty()) {
+
             Integer numCoresPerSocket = Integer.parseInt(coresPerSocket);
             facts.setCpuCores(numCoresPerSocket * numCpuSockets);
         }
 
         String memoryTotal = consumer.getFacts().get("memory.memtotal");
-        if (memoryTotal != null) {
+        if (memoryTotal != null && !memoryTotal.isEmpty()) {
             int memoryBytes = Integer.parseInt(memoryTotal);
             // memtotal is a little less than accessible memory, round up to next GB
             int memoryGigabytes = (int) Math.ceil((float) memoryBytes / (float) KIBIBYTES_PER_GIBIBYTE);
             facts.setMemory(memoryGigabytes);
         }
 
-        facts.setArchitecture(consumer.getFacts().get("uname.machine"));
+        String architecture = consumer.getFacts().get("uname.machine");
+        if (architecture != null && !architecture.isEmpty()) {
+            facts.setArchitecture(architecture);
+        }
 
         String isGuest = consumer.getFacts().get("virt.is_guest");
         if (isGuest != null && !isGuest.equals("Unknown")) {
             facts.setVirtual(isGuest.equals("True"));
         }
 
-        facts.setVmHost(consumer.getHypervisorName());
+        String vmHost = consumer.getHypervisorName();
+        if (vmHost != null && !vmHost.isEmpty()) {
+            facts.setVmHost(vmHost);
+        }
 
         List<String> productIds = consumer.getInstalledProducts().stream()
             .map(installedProduct -> installedProduct.getProductId().toString()).collect(Collectors.toList());

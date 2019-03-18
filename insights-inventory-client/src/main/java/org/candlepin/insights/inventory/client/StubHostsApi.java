@@ -39,7 +39,7 @@ public class StubHostsApi extends HostsApi {
 
     @Override
     public BulkHostOut apiHostAddHostList(List<CreateHostIn> hosts) throws ApiException {
-        log.info("Adding specified hosts to inventory.");
+        log.info("Adding specified hosts to inventory: {}", hosts);
         BulkHostOut out = new BulkHostOut().total(hosts.size());
         hosts.forEach(h -> {
             BulkHostOutDetails hostOutDetails = new BulkHostOutDetails()

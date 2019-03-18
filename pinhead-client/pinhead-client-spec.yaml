@@ -8,7 +8,7 @@ servers:
   - url: https://localhost/
 
 paths:
-  /owners/{orgId}/consumer_feed:
+  /owners/{orgId}/consumers/feed:
     description: "Consumer operations based on an owner."
     parameters:
       - name: orgId
@@ -100,9 +100,8 @@ components:
           type: integer
           format: int64
         lastCheckin:
-          # TODO Should this be a datetime type instead of a long?
-          type: integer
-          format: int64
+          type: string
+          format: date-time
         consumerType:
           type: string
         installedProducts:
@@ -140,8 +139,7 @@ components:
         productName:
           type: string
         productVersion:
-          type: integer
-          format: int64
+          type: string
 
     Status:
       required:
@@ -184,7 +182,7 @@ components:
       properties:
         status:
           $ref: "#/components/schemas/Status"
-        consumers:
+        feeds:
           type: array
           items:
             $ref: "#/components/schemas/Consumer"
