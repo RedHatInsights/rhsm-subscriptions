@@ -109,7 +109,7 @@ public class InventoryController {
     private void extractNetworkFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
         String ipAddresses = pinheadFacts.get("Ip-addresses");
         if (!isEmpty(ipAddresses)) {
-            String[] ipAddressesSplit = ipAddresses.split(", ");
+            String[] ipAddressesSplit = ipAddresses.split(",\\s*");
             facts.setIpAddresses(Arrays.asList(ipAddressesSplit));
         }
 
@@ -120,7 +120,7 @@ public class InventoryController {
 
         String macAddresses = pinheadFacts.get("Mac-addresses");
         if (!isEmpty(macAddresses)) {
-            String[] macAddressesSplit = macAddresses.split(", ");
+            String[] macAddressesSplit = macAddresses.split(",\\s*");
             facts.setMacAddresses(Arrays.asList(macAddressesSplit));
         }
     }
@@ -129,8 +129,8 @@ public class InventoryController {
         ConduitFacts facts) {
 
         String isGuest = pinheadFacts.get("virt.is_guest");
-        if (!isEmpty(isGuest) && !isGuest.equals("Unknown")) {
-            facts.setVirtual(isGuest.equals("True"));
+        if (!isEmpty(isGuest) && !isGuest.equalsIgnoreCase("Unknown")) {
+            facts.setVirtual(isGuest.equalsIgnoreCase("True"));
         }
 
         String vmHost = consumer.getHypervisorName();
