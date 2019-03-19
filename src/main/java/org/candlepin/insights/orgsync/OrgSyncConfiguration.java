@@ -28,7 +28,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
@@ -64,15 +63,12 @@ public class OrgSyncConfiguration {
     }
 
     @Bean
-    @Conditional(NoStrategyCondition.class)
-    public OrgListStrategy noOrgListStrategy() {
-        throw new IllegalStateException(
-            "Either no value or no valid value is defined for " + ORG_LIST_STRATEGY
-        );
-    }
-
-    @Bean
-    public JobDetailFactoryBean orgSyncJobDetail() {
+    public JobDetailFactoryBean orgSyncJobDetail(@Autowired(required = false) OrgListStrategy strategy) {
+        if (strategy == null) {
+            throw new IllegalStateException(
+                "Either no value or no valid value is defined for " + ORG_LIST_STRATEGY
+            );
+        }
         JobDetailFactoryBean jobDetail = new JobDetailFactoryBean();
         jobDetail.setDurability(true);
         jobDetail.setName("OrgSyncJob");
