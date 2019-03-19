@@ -58,6 +58,7 @@ public class PinheadApiFactory implements FactoryBean<PinheadApi> {
         if (properties.getUrl() != null) {
             log.info("Pinhead URL: {}", properties.getUrl());
             client.setBasePath(properties.getUrl());
+            client.addDefaultHeader("cp-lookup-permissions", "false");
         }
         else {
             log.warn("Pinhead URL not set...");

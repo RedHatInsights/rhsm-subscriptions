@@ -54,8 +54,8 @@ public class PinheadServiceTest {
                 throws ApiException {
                 if (offset == null) {
                     OrgInventory inventory = new OrgInventory();
-                    inventory.getConsumers().add(consumer1);
-                    inventory.getConsumers().add(consumer2);
+                    inventory.getFeeds().add(consumer1);
+                    inventory.getFeeds().add(consumer2);
                     Status status = new Status();
                     Pagination pagination = new Pagination();
                     pagination.setNextOffset("next");
@@ -65,8 +65,8 @@ public class PinheadServiceTest {
                 }
                 else {
                     OrgInventory inventory = new OrgInventory();
-                    inventory.getConsumers().add(consumer3);
-                    inventory.getConsumers().add(consumer4);
+                    inventory.getFeeds().add(consumer3);
+                    inventory.getFeeds().add(consumer4);
                     Status status = new Status();
                     Pagination pagination = new Pagination();
                     pagination.setNextOffset(null);

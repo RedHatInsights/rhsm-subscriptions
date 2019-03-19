@@ -57,7 +57,7 @@ public class PinheadService {
         private void fetchPage() {
             try {
                 OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, BATCH_SIZE, nextOffset);
-                consumers = consumersForOrg.getConsumers();
+                consumers = consumersForOrg.getFeeds();
 
                 Status status = consumersForOrg.getStatus();
                 if (status != null && status.getPagination() != null) {
@@ -74,7 +74,7 @@ public class PinheadService {
 
         @Override
         public boolean hasNext() {
-            return !consumers.isEmpty() || nextOffset != null && !nextOffset.equals("");
+            return (consumers != null && !consumers.isEmpty()) || nextOffset != null && !nextOffset.isEmpty();
         }
 
         @Override
