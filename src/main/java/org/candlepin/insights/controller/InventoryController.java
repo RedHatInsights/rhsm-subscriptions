@@ -82,16 +82,14 @@ public class InventoryController {
         }
 
         String cpuSockets = pinheadFacts.get("cpu.cpu_socket(s)");
-        Integer numCpuSockets = null;
-        if (!isEmpty(cpuSockets)) {
-            numCpuSockets = Integer.parseInt(cpuSockets);
-            facts.setCpuSockets(numCpuSockets);
-        }
-
         String coresPerSocket = pinheadFacts.get("cpu.core(s)_per_socket");
-        if (!isEmpty(coresPerSocket) && !isEmpty(cpuSockets)) {
-            Integer numCoresPerSocket = Integer.parseInt(coresPerSocket);
-            facts.setCpuCores(numCoresPerSocket * numCpuSockets);
+        if (!isEmpty(cpuSockets)) {
+            Integer numCpuSockets = Integer.parseInt(cpuSockets);
+            facts.setCpuSockets(numCpuSockets);
+            if (!isEmpty(coresPerSocket)) {
+                Integer numCoresPerSocket = Integer.parseInt(coresPerSocket);
+                facts.setCpuCores(numCoresPerSocket * numCpuSockets);
+            }
         }
 
         String memoryTotal = pinheadFacts.get("memory.memtotal");
