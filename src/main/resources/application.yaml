@@ -26,3 +26,21 @@ rhsm-conduit:
   # language (SPEL) and Gradle's expand method both using the same expansion token.
   # See https://docs.spring.io/spring-boot/docs/current/reference/html/howto-properties-and-configuration.html#howto-automatic-expansion-gradle
   version: ${version}
+spring:
+  # Datasource properties are read under the rhsm-conduit.datasource prefix (placed in the
+  # rhsm-conduit.properties file).
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      # There is an issue with the hsqldb schema file that is shipped with Quartz, so we need to carry our own
+      # See https://stackoverflow.com/questions/34784328/quartz-jobpersistenceexception-with-hsqldb
+      # We also carry our own postgresql schema file so that we can run the create statements in an
+      # idempotent way. There are no drop statements and every "create" is partnered with an "if not exists".
+      schema: classpath:tables_${rhsm-conduit.datasource.platform}.sql
+      initialize-schema: always
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: RhsmConduitScheduler
+            instanceId: AUTO
