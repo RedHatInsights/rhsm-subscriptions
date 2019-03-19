@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -49,15 +50,15 @@ public class InventoryService {
         this.hostsInventoryApi = hostsInventoryApi;
     }
 
-    // TODO Update the parameters once we know what will be coming from the RHSM service.
-    public BulkHostOut sendHostUpdate(String orgId, ConduitFacts facts)
+    public BulkHostOut sendHostUpdate(String orgId, List<ConduitFacts> facts)
         throws RhsmConduitException {
 
-        List<CreateHostIn> toSend = new LinkedList<>();
-        toSend.add(createHost(orgId, facts));
+        List<CreateHostIn> hostsToSend = facts.stream()
+            .map(cf -> createHost(orgId, cf))
+            .collect(Collectors.toList());
 
         try {
-            return hostsInventoryApi.apiHostAddHostList(toSend);
+            return hostsInventoryApi.apiHostAddHostList(hostsToSend);
         }
         catch (Exception e) {
             throw new InventoryServiceException(

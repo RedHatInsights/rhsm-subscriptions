@@ -22,13 +22,17 @@ package org.candlepin.insights.controller;
 
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
+import org.candlepin.insights.inventory.client.model.BulkHostOut;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,6 +42,8 @@ import java.util.stream.Collectors;
  */
 @Component
 public class InventoryController {
+
+    private static Logger log = LoggerFactory.getLogger(InventoryController.class);
 
     private static final int KIBIBYTES_PER_GIBIBYTE = 1048576;
 
@@ -109,9 +115,12 @@ public class InventoryController {
     }
 
     public void updateInventoryForOrg(String orgId) {
+        List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
-            ConduitFacts facts = getFactsFromConsumer(consumer);
-            inventoryService.sendHostUpdate(orgId, facts);
+            conduitFactsForOrg.add(getFactsFromConsumer(consumer));
         }
+        BulkHostOut result = inventoryService.sendHostUpdate(orgId, conduitFactsForOrg);
+        log.info("Host inventory update completed for org: {}", orgId);
+        log.debug("Results for org {}: {}", orgId, result);
     }
 }
