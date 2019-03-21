@@ -20,8 +20,13 @@
  */
 package org.candlepin.insights.inventory;
 
+import org.hibernate.validator.constraints.Length;
+
 import java.util.List;
 import java.util.UUID;
+
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Positive;
 
 /**
  * POJO that holds all facts scoped for collection by the conduit.
@@ -29,12 +34,26 @@ import java.util.UUID;
 public class ConduitFacts {
     private UUID subscriptionManagerId;
     private UUID biosUuid;
-    private List<String> ipAddresses;
+
+    // This is a soft validation.  Bogus IP addresses like "999.999.999.999" will still validate
+    private List<@Pattern(regexp = "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$") String> ipAddresses;
+
+    @Length(min = 1, max = 255)
     private String fqdn;
-    private List<String> macAddresses;
+
+    // See https://stackoverflow.com/a/4260512/6124862
+    // Also a soft validation.  A mixed delimiter MAC like a1:b2-c3:d4-e5:f6 will still validate
+    private List<@Pattern(regexp = "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$") String> macAddresses;
+
+    @Positive
     private Integer cpuSockets;
+
+    @Positive
     private Integer cpuCores;
+
+    @Positive
     private Integer memory;
+
     private String architecture;
     private Boolean isVirtual;
     private String vmHost;
