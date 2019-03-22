@@ -22,10 +22,7 @@ management:
     prometheus:
       enabled: true
 rhsm-conduit:
-  # If this value doesn't get populated by Gradle filtering, the app won't start due to Spring's expression
-  # language (SPEL) and Gradle's expand method both using the same expansion token.
-  # See https://docs.spring.io/spring-boot/docs/current/reference/html/howto-properties-and-configuration.html#howto-automatic-expansion-gradle
-  version: ${version}
+  version: @version@
 spring:
   # Datasource properties are read under the rhsm-conduit.datasource prefix (placed in the
   # rhsm-conduit.properties file).

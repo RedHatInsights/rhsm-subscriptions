@@ -69,7 +69,7 @@ bootJar {
 processResources {
     filesMatching("**/application.yaml") {
         // Only expand ${version}.  We don't want to conflict with Spring expansions.
-        filter(tokens: [version: version], ReplaceTokens)
+        filter(ReplaceTokens, tokens: [version: version])
     }
 }
 
