@@ -22,6 +22,7 @@ package org.candlepin.insights.jackson;
 
 import org.candlepin.insights.ApplicationProperties;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
@@ -45,6 +46,8 @@ public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
         objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
+        objectMapper.setSerializationInclusion(Include.NON_NULL);
+        objectMapper.setSerializationInclusion(Include.NON_EMPTY);
 
         // Tell the mapper to check the classpath for any serialization/deserialization modules
         // such as the Java8 date/time module (JavaTimeModule).
