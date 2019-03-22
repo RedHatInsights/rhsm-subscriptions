@@ -1,0 +1,3 @@
+utilization:
+  version: @version@
+  something-else: ${foo}

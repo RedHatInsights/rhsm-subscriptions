@@ -1,0 +1,106 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.openapitools:openapi-generator-gradle-plugin:4.0.0-beta"
+    }
+}
+
+plugins {
+    id "checkstyle"
+    id "jacoco"
+    id "org.sonarqube" version "2.7"
+    id "org.springframework.boot" version "2.0.8.RELEASE"
+}
+
+ext {
+    swagger_annotations_version = "1.5.21"
+    jackson_version = "2.8.11"
+    jackson_databind_version = "2.8.11.2"
+    resteasy_version = "3.6.2.Final"
+    spring_version = "5.1.4.RELEASE"
+    spring_boot_version = "2.1.2.RELEASE"
+    junit_version = "5.3.2"
+    slf4j_version = "1.7.25"
+    mockito_version = "2.23.4"
+}
+
+allprojects {
+    apply plugin: "java"
+    sourceCompatibility = "1.8"
+    targetCompatibility = "1.8"
+    repositories {
+        mavenCentral()
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    checkstyle {
+        toolVersion "8.16"
+    }
+
+    group = "org.candlepin"
+
+    dependencies {
+        testCompile "org.springframework.boot:spring-boot-test:$spring_boot_version"
+        testCompile "org.springframework:spring-test:$spring_version"
+        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
+        testCompile "org.mockito:mockito-core:$mockito_version"
+        testCompile "org.mockito:mockito-junit-jupiter:$mockito_version"
+        testCompile "org.hamcrest:hamcrest:2.1"
+
+        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
+        testRuntime "ch.qos.logback:logback-classic:1.2.3"
+    }
+
+}
+
+version = "1.0.0"
+
+
+project(":utilization") {
+    apply plugin: "org.springframework.boot"
+    version = "3.0.0"
+    processResources {
+        filesMatching("**/application.yaml") {
+            // Expand @version@.
+            filter(ReplaceTokens, tokens: [version: project.version])
+        }
+    }
+
+    bootJar {
+        mainClassName = "org.candlepin.utilization.BootApplication"
+    }
+
+    dependencies {
+        // Generates configuration metadata that IntelliJ can use
+        annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:$spring_boot_version"
+
+        compile "javax.servlet:javax.servlet-api:3.1.0"
+        compile "org.jboss.resteasy:resteasy-spring-boot-starter:3.0.0.Final"
+        compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
+        compile "org.springframework.boot:spring-boot-actuator-autoconfigure:$spring_boot_version"
+        compile "org.springframework.boot:spring-boot-autoconfigure:$spring_boot_version"
+        compile "org.springframework.boot:spring-boot:$spring_boot_version"
+        compile "org.springframework:spring-beans:$spring_version"
+        compile "org.springframework:spring-context:$spring_version"
+        compile "org.springframework:spring-context-support:$spring_version"
+        compile "org.slf4j:slf4j-api:$slf4j_version"
+        compile "net.logstash.logback:logstash-logback-encoder:5.3"
+        compile "io.micrometer:micrometer-registry-prometheus:1.1.2"
+
+        runtime "ch.qos.logback:logback-classic:1.2.3"
+        runtime "org.jboss.resteasy:resteasy-jaxrs:$resteasy_version"
+        runtime "org.jboss.resteasy:resteasy-validator-provider-11:$resteasy_version"
+        runtime "org.hibernate.validator:hibernate-validator:6.0.14.Final"
+    }
+
+    compileJava.dependsOn(processResources)
+}
+
