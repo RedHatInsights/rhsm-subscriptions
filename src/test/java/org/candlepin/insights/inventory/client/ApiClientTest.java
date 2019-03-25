@@ -30,7 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@TestPropertySource("classpath:/api_client_test.properties")
 public class ApiClientTest {
     @Autowired
     private HostsApi hostsApi;

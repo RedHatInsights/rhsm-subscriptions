@@ -27,17 +27,45 @@ import org.junit.jupiter.api.Test;
 public class HostsApiFactoryTest {
     @Test
     public void testStubClientConfiguration() throws Exception {
-        InventoryServiceProperties config = new InventoryServiceProperties();
-        config.setUseStub(true);
-        HostsApiFactory factory = new HostsApiFactory(config);
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setUseStub(true);
+        HostsApiFactory factory = new HostsApiFactory(props);
         assertEquals(StubHostsApi.class, factory.getObject().getClass());
     }
 
     @Test
     public void testClientGetsUrlFromConfiguration() throws Exception {
-        InventoryServiceProperties config = new InventoryServiceProperties();
-        config.setUrl("http://example.com/foobar");
-        HostsApiFactory factory = new HostsApiFactory(config);
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiKey("mysecret");
+        props.setUrl("http://example.com/foobar");
+        HostsApiFactory factory = new HostsApiFactory(props);
         assertEquals("http://example.com/foobar", factory.getObject().getApiClient().getBasePath());
+    }
+
+    @Test
+    public void testNoErrorWhenApiKeyIsSet() throws Exception {
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiKey("mysecret");
+
+        HostsApiFactory factory = new HostsApiFactory(props);
+        factory.getObject();
+    }
+
+    @Test
+    public void throwsIllegalStateWhenApiKeyIsNull() throws Exception {
+        testApiToken(null);
+    }
+
+    @Test
+    public void throwsIllegalStateWhenApiKeyIsEmpty() throws Exception {
+        testApiToken("");
+    }
+
+    private void testApiToken(String key) {
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiKey(key);
+        HostsApiFactory factory = new HostsApiFactory(props);
+
+        assertThrows(IllegalStateException.class, () -> factory.getObject());
     }
 }

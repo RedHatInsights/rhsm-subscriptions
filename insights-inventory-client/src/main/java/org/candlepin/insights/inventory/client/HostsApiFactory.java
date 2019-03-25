@@ -45,7 +45,7 @@ public class HostsApiFactory implements FactoryBean<HostsApi> {
             log.info("Using stub host inventory client");
             return new StubHostsApi();
         }
-        ApiClient apiClient = new ApiClient();
+        ApiClient apiClient = Configuration.getDefaultApiClient();
         if (serviceProperties.getUrl() != null) {
             log.info("Host inventory service URL: {}", serviceProperties.getUrl());
             apiClient.setBasePath(serviceProperties.getUrl());
@@ -54,6 +54,13 @@ public class HostsApiFactory implements FactoryBean<HostsApi> {
             log.warn("Host inventory service URL not set...");
         }
 
+        // Inventory API requires us to use key based auth.
+        String apiKey = serviceProperties.getApiKey();
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new IllegalStateException("No api key has been set for the inventory client.");
+        }
+        apiClient.addDefaultHeader("Authorization", String.format("Bearer %s", apiKey));
+
         return new HostsApi(apiClient);
     }
 
@@ -61,4 +68,5 @@ public class HostsApiFactory implements FactoryBean<HostsApi> {
     public Class<?> getObjectType() {
         return HostsApi.class;
     }
+
 }
