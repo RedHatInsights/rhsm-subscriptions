@@ -62,16 +62,16 @@ Next install insights-inventory. Requires pipenv to be installed.
 git clone https://github.com/RedHatInsights/insights-host-inventory.git
 cd insights-host-inventory
 mkdir ./prometheumultiprocess
+export INVENTORY_DB_NAME=inventory
 pipenv install --dev
 pipenv shell
 python manage.py db upgrade
-LISTEN_PORT=8080 INVENTORY_LOGGING_CONFIG_FILE=logconfig.ini prometheus_multiproc_dir=./prometheumultiprocess/ FLASK_DEBUG=1 NOAUTH=1 INVENTORY_DB_NAME="inventory" python run.py
+LISTEN_PORT=8080 INVENTORY_LOGGING_CONFIG_FILE=logconfig.ini prometheus_multiproc_dir=./prometheumultiprocess/ FLASK_DEBUG=1 INVENTORY_DB_NAME="inventory" INVENTORY_SHARED_SECRET=mysecret python run.py
 ```
 
 Once the app has started, check to make sure you can access the API
 ```
 curl http://localhost:8080/metrics
-curl http://localhost:8080/r/insights/platform/inventory/api/v1/hosts
 ```
 
 
@@ -89,13 +89,12 @@ Create a new insights-inventory template. Take note of the route for the new app
 
 ```
 oc create -f openshift/template_insights-inventory.yaml
-oc new-app --template=rhsm-insights-inventory -p INVENTORY_DB_HOSTNAME=<YOUR_DATABASE_HOSTNAME>
+oc new-app --template=rhsm-insights-inventory -p INVENTORY_DB_HOSTNAME=<YOUR_DATABASE_HOSTNAME> -p INVENTORY_SHARED_SECRET=<YOUR_SHARED_SECRET>
 ```
 
 Test the installation:
 ```
 curl http://<your_route_address>/metrics
-curl http://<your_route_address>/r/insights/platform/inventory/api/v1/hosts
 ```
 
 ## Deploying Kafka
