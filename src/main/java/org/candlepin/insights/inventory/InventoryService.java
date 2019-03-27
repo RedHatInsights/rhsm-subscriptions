@@ -105,8 +105,8 @@ public class InventoryService {
         CreateHostIn host = new CreateHostIn();
         host.setAccount(orgId);
         host.setFqdn(conduitFacts.getFqdn());
-        host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
-        host.setBiosUuid(conduitFacts.getBiosUuid());
+        host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId().toString());
+        host.setBiosUuid(conduitFacts.getBiosUuid().toString());
         host.setIpAddresses(conduitFacts.getIpAddresses());
         host.setMacAddresses(conduitFacts.getMacAddresses());
         host.facts(facts);
