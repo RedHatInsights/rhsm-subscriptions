@@ -25,7 +25,6 @@ import static org.mockito.BDDMockito.*;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
@@ -37,14 +36,12 @@ public class TaskWorkerTest {
     @MockBean
     private TaskFactory factory;
 
-    @Autowired
-    private TaskWorker worker;
-
     @Mock
     private Task mockTask;
 
     @Test
     public void testExecuteTask() throws Exception {
+        TaskWorker worker = new TaskWorker(factory);
         when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
         worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, "group").build());
         verify(mockTask).execute();
@@ -52,6 +49,7 @@ public class TaskWorkerTest {
 
     @Test
     public void testThrowsTaskExecutionExceptionOnTaskFailure() throws Exception {
+        TaskWorker worker = new TaskWorker(factory);
         when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
         doThrow(RuntimeException.class).when(mockTask).execute();
         assertThrows(TaskExecutionException.class,

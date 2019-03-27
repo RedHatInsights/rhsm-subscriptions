@@ -18,14 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.task.queue.passthrough;
+package org.candlepin.insights.task.queue;
 
-import static org.mockito.BDDMockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.task.TaskDescriptor;
-import org.candlepin.insights.task.TaskExecutionException;
+import org.candlepin.insights.task.TaskFactory;
 import org.candlepin.insights.task.TaskType;
-import org.candlepin.insights.task.TaskWorker;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,30 +32,46 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @ExtendWith(MockitoExtension.class)
-public class PassThroughTaskQueueTest {
-
+public class ExecutorTaskQueueTest {
     @Mock
-    private TaskWorker worker;
+    TaskFactory taskFactory;
 
     @Test
-    public void ensureTaskIsExecutedImmediately() throws TaskExecutionException {
-        PassThroughTaskQueue queue = new PassThroughTaskQueue(worker);
+    public void ensureTaskIsExecutedPriorToShutdown() throws InterruptedException {
+        ExecutorTaskQueue queue = new ExecutorTaskQueue(Executors.newCachedThreadPool(), taskFactory);
         TaskDescriptor expectedTaskDesc =
             TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, "my-group").build();
+        final AtomicBoolean done = new AtomicBoolean();
+        Mockito.when(taskFactory.build(Mockito.any())).thenReturn(() -> {
+            done.set(true);
+        });
         queue.enqueue(expectedTaskDesc);
-        Mockito.verify(worker).executeTask(eq(expectedTaskDesc));
+        queue.shutdown(2000, TimeUnit.MILLISECONDS);
+        assertTrue(done.get());
     }
 
     @Test
-    public void verifyNoExceptionWhenTaskFails() throws Exception {
-        PassThroughTaskQueue queue = new PassThroughTaskQueue(worker);
+    public void verifyNoExceptionWhenTaskFails() throws InterruptedException {
+        AtomicBoolean failed = new AtomicBoolean();
+        ExecutorTaskQueue queue = new ExecutorTaskQueue(Executors.newCachedThreadPool((runnable) -> {
+            Thread thread = new Thread(runnable);
+            thread.setUncaughtExceptionHandler((_thread, throwable) -> {
+                failed.set(true);
+            });
+            return thread;
+        }), taskFactory);
         TaskDescriptor expectedTaskDesc =
             TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, "my-group").build();
-
-        Mockito.doThrow(TaskExecutionException.class).when(worker).executeTask(eq(expectedTaskDesc));
+        Mockito.when(taskFactory.build(Mockito.any())).thenReturn(() -> {
+            throw new RuntimeException("Error!");
+        });
         queue.enqueue(expectedTaskDesc);
-        Mockito.verify(worker).executeTask(eq(expectedTaskDesc));
+        queue.shutdown(2000, TimeUnit.MILLISECONDS);
+        assertFalse(failed.get());
     }
 }

@@ -20,14 +20,16 @@
  */
 package org.candlepin.insights.task;
 
+import org.candlepin.insights.task.queue.ExecutorTaskQueue;
 import org.candlepin.insights.task.queue.TaskQueue;
-import org.candlepin.insights.task.queue.passthrough.PassThroughTaskQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.concurrent.Executors;
 
 /**
  * Instantiates/Configures the TaskQueue implementation that should be used. A bean should
@@ -47,12 +49,18 @@ public class TaskQueueConfiguration {
 
     public static final String TASK_GROUP = "rhsm-conduit-tasks";
 
+    /**
+     * Creates an in-memory queue, implemented with {@link java.util.concurrent.ThreadPoolExecutor}.
+     *
+     * Does not block while executing a task. Spin up a new thread for each task, only practically bound by
+     * amount of memory available.
+     */
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "pass-through",
+    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "in-memory",
         matchIfMissing = true)
-    TaskQueue passThroughQueue(TaskWorker worker) {
-        log.info("Configuring a pass-through task queue.");
-        return new PassThroughTaskQueue(worker);
+    TaskQueue inMemoryQueue(TaskFactory taskFactory) {
+        log.info("Configuring an in-memory task queue.");
+        return new ExecutorTaskQueue(Executors.newCachedThreadPool(), taskFactory);
     }
 
 }
