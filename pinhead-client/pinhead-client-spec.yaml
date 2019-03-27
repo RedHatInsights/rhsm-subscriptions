@@ -92,6 +92,8 @@ components:
         - sysPurposeAddons
         - facts
       properties:
+        type:
+          type: string
         uuid:
           type: string
         name:

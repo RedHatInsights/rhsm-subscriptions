@@ -53,6 +53,7 @@ public class FileBasedOrgListStrategy implements OrgListStrategy, ResourceLoader
         try (InputStream s = orgResource.getInputStream()) {
             return new BufferedReader(new InputStreamReader(s, Charset.defaultCharset()))
                 .lines()
+                .filter(line -> line != null && !line.isEmpty())
                 .collect(Collectors.toList());
         }
     }
