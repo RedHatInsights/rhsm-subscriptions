@@ -22,6 +22,7 @@ package org.candlepin.insights.jackson;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.insights.ApplicationProperties;
@@ -98,6 +99,24 @@ public class ObjectMapperContextResolverTest {
         assertContainsProperty(data, "value2", v2);
     }
 
+    @Test
+    public void testDeserialization() throws Exception {
+        String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\"}";
+        TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
+        assertNotNull(pojo);
+        assertEquals("value1", pojo.getValue1());
+        assertEquals("value2", pojo.getValue2());
+    }
+
+    @Test
+    public void testDeserializationDoesNotFailOnUnknownProperties() throws Exception {
+        String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\",\"value3\":\"value3\"}";
+        TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
+        assertNotNull(pojo);
+        assertEquals("value1", pojo.getValue1());
+        assertEquals("value2", pojo.getValue2());
+    }
+
     private void assertContainsProperty(String data, String key, String value)  throws Exception {
         String toFind = String.format("\"%s\":\"%s\"", key, value);
         assertTrue(data.contains(toFind));
@@ -107,31 +126,4 @@ public class ObjectMapperContextResolverTest {
         assertFalse(data.contains(property));
     }
 
-    private class TestPojo {
-        private String value1;
-        private String value2;
-
-        public TestPojo() { }
-
-        public TestPojo(String value1, String value2) {
-            this.value1 = value1;
-            this.value2 = value2;
-        }
-
-        public String getValue1() {
-            return value1;
-        }
-
-        public void setValue1(String value1) {
-            this.value1 = value1;
-        }
-
-        public String getValue2() {
-            return value2;
-        }
-
-        public void setValue2(String value2) {
-            this.value2 = value2;
-        }
-    }
 }
