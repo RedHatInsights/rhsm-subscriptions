@@ -15,14 +15,18 @@ pipeline {
                         try {
                             def GITHUB_WEBHOOK_SECRET = openshift.raw("get bc rhsm-conduit -o jsonpath='{.spec.triggers[*].github.secret}'").out.trim()
                             def GENERIC_WEBHOOK_SECRET = openshift.raw("get bc rhsm-conduit -o jsonpath='{.spec.triggers[*].generic.secret}'").out.trim()
+                            def POSTGRESQL_PASSWORD_ENCODED = openshift.raw("get secret rhsm-conduit-quartz-postgresql -o jsonpath='{.data.database-password}'").out.trim()
+                            def POSTGRESQL_PASSWORD = sh(script: "set +x; echo $POSTGRESQL_PASSWORD_ENCODED | base64 -d", returnStdout: true).trim()
                             resources = openshift.process(readFile(file:'openshift/template_rhsm-conduit.yaml'),
                                 '-p', "GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}",
                                 '-p', "GENERIC_WEBHOOK_SECRET=${GENERIC_WEBHOOK_SECRET}",
-                                '-p', "SOURCE_REPOSITORY_REF=${branch}"
+                                '-p', "SOURCE_REPOSITORY_REF=${branch}",
+                                '-p', "POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD}",
                             )
                             echo "Updating existing deployment"
                         }
                         catch (Exception e) {  // doesn't exist in the environment yet? try a new deployment
+                            echo "Exception while attempting update: ${e}"
                             echo "Attempting a new deployment"
                             resources = openshift.process(readFile(file:'openshift/template_rhsm-conduit.yaml'),
                                 '-p', "SOURCE_REPOSITORY_REF=${branch}"
