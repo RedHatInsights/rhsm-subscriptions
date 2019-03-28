@@ -251,7 +251,7 @@ objects:
       template.openshift.io/expose-uri: postgres://{.spec.clusterIP}:{.spec.ports[?(.name=="postgresql")].port}
     labels:
       app: ${APPLICATION_NAME}
-    name: quartz-postgresql
+    name: ${APPLICATION_NAME}-quartz-postgresql
   spec:
     ports:
     - name: postgresql
