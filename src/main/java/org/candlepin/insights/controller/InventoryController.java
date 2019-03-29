@@ -35,24 +35,40 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Validator;
 
 /**
  * Controller used to interact with the Inventory service.
  */
 @Component
 public class InventoryController {
-
-    private static Logger log = LoggerFactory.getLogger(InventoryController.class);
+    private static final Logger log = LoggerFactory.getLogger(InventoryController.class);
 
     private static final int KIBIBYTES_PER_GIBIBYTE = 1048576;
+
+    public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
+    public static final String IP_ADDRESSES = "Ip-addresses";
+    public static final String NETWORK_FQDN = "network.fqdn";
+    public static final String MAC_ADDRESSES = "Mac-addresses";
+    public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
+    public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
+    public static final String MEMORY_MEMTOTAL = "memory.memtotal";
+    public static final String UNAME_MACHINE = "uname.machine";
+    public static final String VIRT_IS_GUEST = "virt.is_guest";
 
     @Autowired
     private InventoryService inventoryService;
 
     @Autowired
     private PinheadService pinheadService;
+
+    @Autowired
+    private Validator validator;
 
     private static boolean isEmpty(String value) {
         return value == null || value.isEmpty();
@@ -76,13 +92,13 @@ public class InventoryController {
     }
 
     private void extractHardwareFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
-        String systemUuid = pinheadFacts.get("dmi.system.uuid");
+        String systemUuid = pinheadFacts.get(DMI_SYSTEM_UUID);
         if (!isEmpty(systemUuid)) {
             facts.setBiosUuid(UUID.fromString(systemUuid));
         }
 
-        String cpuSockets = pinheadFacts.get("cpu.cpu_socket(s)");
-        String coresPerSocket = pinheadFacts.get("cpu.core(s)_per_socket");
+        String cpuSockets = pinheadFacts.get(CPU_SOCKETS);
+        String coresPerSocket = pinheadFacts.get(CPU_CORES_PER_SOCKET);
         if (!isEmpty(cpuSockets)) {
             Integer numCpuSockets = Integer.parseInt(cpuSockets);
             facts.setCpuSockets(numCpuSockets);
@@ -92,7 +108,7 @@ public class InventoryController {
             }
         }
 
-        String memoryTotal = pinheadFacts.get("memory.memtotal");
+        String memoryTotal = pinheadFacts.get(MEMORY_MEMTOTAL);
         if (!isEmpty(memoryTotal)) {
             int memoryBytes = Integer.parseInt(memoryTotal);
             // memtotal is a little less than accessible memory, round up to next GB
@@ -100,25 +116,25 @@ public class InventoryController {
             facts.setMemory(memoryGigabytes);
         }
 
-        String architecture = pinheadFacts.get("uname.machine");
+        String architecture = pinheadFacts.get(UNAME_MACHINE);
         if (!isEmpty(architecture)) {
             facts.setArchitecture(architecture);
         }
     }
 
     private void extractNetworkFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
-        String ipAddresses = pinheadFacts.get("Ip-addresses");
+        String ipAddresses = pinheadFacts.get(IP_ADDRESSES);
         if (!isEmpty(ipAddresses)) {
             String[] ipAddressesSplit = ipAddresses.split(",\\s*");
             facts.setIpAddresses(Arrays.asList(ipAddressesSplit));
         }
 
-        String fqdn = pinheadFacts.get("network.fqdn");
+        String fqdn = pinheadFacts.get(NETWORK_FQDN);
         if (!isEmpty(fqdn)) {
             facts.setFqdn(fqdn);
         }
 
-        String macAddresses = pinheadFacts.get("Mac-addresses");
+        String macAddresses = pinheadFacts.get(MAC_ADDRESSES);
         if (!isEmpty(macAddresses)) {
             String[] macAddressesSplit = macAddresses.split(",\\s*");
             facts.setMacAddresses(Arrays.asList(macAddressesSplit));
@@ -128,7 +144,7 @@ public class InventoryController {
     private void extractHypervisorFacts(Consumer consumer, Map<String, String> pinheadFacts,
         ConduitFacts facts) {
 
-        String isGuest = pinheadFacts.get("virt.is_guest");
+        String isGuest = pinheadFacts.get(VIRT_IS_GUEST);
         if (!isEmpty(isGuest) && !isGuest.equalsIgnoreCase("Unknown")) {
             facts.setVirtual(isGuest.equalsIgnoreCase("True"));
         }
@@ -142,7 +158,19 @@ public class InventoryController {
     public void updateInventoryForOrg(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
-            conduitFactsForOrg.add(getFactsFromConsumer(consumer));
+            ConduitFacts facts = getFactsFromConsumer(consumer);
+
+            Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
+            if (violations.isEmpty()) {
+                conduitFactsForOrg.add(getFactsFromConsumer(consumer));
+            }
+            else if (log.isInfoEnabled()) {
+                log.info("Consumer {} failed validation: {}", consumer.getName(),
+                    violations.stream().map(x -> String.format("%s: %s", x.getPropertyPath(), x.getMessage()))
+                    .collect(Collectors.joining("; "))
+                );
+            }
+
         }
         BulkHostOut result = inventoryService.sendHostUpdate(orgId, conduitFactsForOrg);
         log.info("Host inventory update completed for org: {}", orgId);
