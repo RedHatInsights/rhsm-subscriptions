@@ -50,11 +50,11 @@ public class InventoryService {
         this.hostsInventoryApi = hostsInventoryApi;
     }
 
-    public BulkHostOut sendHostUpdate(String orgId, List<ConduitFacts> facts)
+    public BulkHostOut sendHostUpdate(List<ConduitFacts> facts)
         throws RhsmConduitException {
 
         List<CreateHostIn> hostsToSend = facts.stream()
-            .map(cf -> createHost(orgId, cf))
+            .map(this::createHost)
             .collect(Collectors.toList());
 
         try {
@@ -71,9 +71,9 @@ public class InventoryService {
      *
      * @return the new host.
      */
-    private CreateHostIn createHost(String orgId, ConduitFacts conduitFacts) {
+    private CreateHostIn createHost(ConduitFacts conduitFacts) {
         Map<String, Object> rhsmFactMap = new HashMap<>();
-        rhsmFactMap.put("orgId", orgId);
+        rhsmFactMap.put("orgId", conduitFacts.getOrgId());
         if (conduitFacts.getCpuSockets() != null) {
             rhsmFactMap.put("CPU_SOCKETS", conduitFacts.getCpuSockets());
         }
@@ -103,7 +103,7 @@ public class InventoryService {
         facts.add(rhsmFacts);
 
         CreateHostIn host = new CreateHostIn();
-        host.setAccount(orgId);
+        host.setAccount(conduitFacts.getOrgId());
         host.setFqdn(conduitFacts.getFqdn());
         host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
         host.setBiosUuid(conduitFacts.getBiosUuid());

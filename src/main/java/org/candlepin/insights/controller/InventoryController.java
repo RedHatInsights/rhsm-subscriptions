@@ -80,6 +80,7 @@ public class InventoryController {
     public ConduitFacts getFactsFromConsumer(Consumer consumer) {
         final Map<String, String> pinheadFacts = consumer.getFacts();
         ConduitFacts facts = new ConduitFacts();
+        facts.setOrgId(consumer.getOrgId());
 
         facts.setSubscriptionManagerId(consumer.getUuid());
 
@@ -189,7 +190,7 @@ public class InventoryController {
             }
 
         }
-        BulkHostOut result = inventoryService.sendHostUpdate(orgId, conduitFactsForOrg);
+        BulkHostOut result = inventoryService.sendHostUpdate(conduitFactsForOrg);
         log.info("Host inventory update completed for org: {}", orgId);
         log.debug("Results for org {}: {}", orgId, result);
     }
