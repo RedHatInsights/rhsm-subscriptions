@@ -99,8 +99,7 @@ components:
         name:
           type: string
         orgId:
-          type: integer
-          format: int64
+          type: string
         lastCheckin:
           type: string
           format: date-time
