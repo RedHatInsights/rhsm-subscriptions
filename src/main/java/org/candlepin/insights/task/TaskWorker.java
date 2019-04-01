@@ -20,19 +20,18 @@
  */
 package org.candlepin.insights.task;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 
 /**
  * A TaskWorker executes a task when it is notified by a processor that a task was received
  * from a Queue. The task worker should be added as a listener to a TaskQueue's TaskProcessors.
  */
-@Component
 public class TaskWorker {
 
-    @Autowired
-    private TaskFactory taskFactory;
+    private final TaskFactory taskFactory;
+
+    public TaskWorker(TaskFactory taskFactory) {
+        this.taskFactory = taskFactory;
+    }
 
     /**
      * Executes the Task described by the given TaskDescriptor.
