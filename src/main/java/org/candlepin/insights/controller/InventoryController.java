@@ -36,7 +36,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -78,7 +77,7 @@ public class InventoryController {
         final Map<String, String> pinheadFacts = consumer.getFacts();
         ConduitFacts facts = new ConduitFacts();
 
-        facts.setSubscriptionManagerId(UUID.fromString(consumer.getUuid()));
+        facts.setSubscriptionManagerId(consumer.getUuid());
 
         extractNetworkFacts(pinheadFacts, facts);
         extractHardwareFacts(pinheadFacts, facts);
@@ -94,7 +93,7 @@ public class InventoryController {
     private void extractHardwareFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
         String systemUuid = pinheadFacts.get(DMI_SYSTEM_UUID);
         if (!isEmpty(systemUuid)) {
-            facts.setBiosUuid(UUID.fromString(systemUuid));
+            facts.setBiosUuid(systemUuid);
         }
 
         String cpuSockets = pinheadFacts.get(CPU_SOCKETS);
