@@ -57,10 +57,17 @@ First set up a postgres user and database.
 ```
 su - postgres
 createuser --pwprompt -d insights
-createdb -U insights inventory
 ```
 
-Next install insights-inventory. Requires pipenv to be installed.
+#### Using the Script
+
+Run the `bin/deploy-insights` script to install the insights-inventory
+project and begin running it on port 8080 by default. Check the `--help`
+to see all the available options.
+
+#### Manually
+ 
+Install insights-inventory. Requires pipenv to be installed.
 
 ```
 git clone https://github.com/RedHatInsights/insights-host-inventory.git
