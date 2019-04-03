@@ -74,8 +74,10 @@ public class InventoryControllerTest {
         consumer.setHypervisorName("hypervisor1.test.com");
         consumer.getFacts().put("network.fqdn", "host1.test.com");
         consumer.getFacts().put("dmi.system.uuid", systemUuid);
-        consumer.getFacts().put("Ip-addresses", "192.168.1.1, 10.0.0.1");
-        consumer.getFacts().put("Mac-addresses", "00:00:00:00:00:00, ff:ff:ff:ff:ff:ff");
+        consumer.getFacts().put("network.ipv4_address", "192.168.1.1, 10.0.0.1");
+        consumer.getFacts().put("network.ipv6_address", "ff::ff:ff, ::1");
+        consumer.getFacts().put("net.interface.eth0.mac_address", "00:00:00:00:00:00");
+        consumer.getFacts().put("net.interface.virbr0.mac_address", "ff:ff:ff:ff:ff:ff");
         consumer.getFacts().put("cpu.cpu_socket(s)", "2");
         consumer.getFacts().put("uname.machine", "x86_64");
         consumer.getFacts().put("virt.is_guest", "True");
@@ -86,7 +88,8 @@ public class InventoryControllerTest {
         assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
         assertEquals("host1.test.com", conduitFacts.getFqdn());
         assertEquals(systemUuid, conduitFacts.getBiosUuid().toString());
-        assertEquals(Arrays.asList("192.168.1.1", "10.0.0.1"), conduitFacts.getIpAddresses());
+        assertEquals(Arrays.asList("192.168.1.1", "10.0.0.1", "ff::ff:ff", "::1"),
+            conduitFacts.getIpAddresses());
         assertEquals(Arrays.asList("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"), conduitFacts.getMacAddresses());
         assertEquals(new Integer(2), conduitFacts.getCpuSockets());
         assertEquals("x86_64", conduitFacts.getArchitecture());
