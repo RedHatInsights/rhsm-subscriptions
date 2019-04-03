@@ -1,0 +1,3 @@
+[submodule "insights-host-inventory"]
+	path = insights-host-inventory
+	url = https://github.com/RedHatInsights/insights-host-inventory.git
