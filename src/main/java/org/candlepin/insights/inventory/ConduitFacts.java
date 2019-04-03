@@ -23,7 +23,6 @@ package org.candlepin.insights.inventory;
 import org.hibernate.validator.constraints.Length;
 
 import java.util.List;
-import java.util.UUID;
 
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
@@ -32,8 +31,8 @@ import javax.validation.constraints.Positive;
  * POJO that holds all facts scoped for collection by the conduit.
  */
 public class ConduitFacts {
-    private UUID subscriptionManagerId;
-    private UUID biosUuid;
+    private String subscriptionManagerId;
+    private String biosUuid;
 
     // This is a soft validation.  Bogus IP addresses like "999.999.999.999" will still validate
     private List<@Pattern(regexp = "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$") String> ipAddresses;
@@ -59,19 +58,19 @@ public class ConduitFacts {
     private String vmHost;
     private List<String> rhProd;
 
-    public UUID getSubscriptionManagerId() {
+    public String getSubscriptionManagerId() {
         return subscriptionManagerId;
     }
 
-    public void setSubscriptionManagerId(UUID subscriptionManagerId) {
+    public void setSubscriptionManagerId(String subscriptionManagerId) {
         this.subscriptionManagerId = subscriptionManagerId;
     }
 
-    public UUID getBiosUuid() {
+    public String getBiosUuid() {
         return biosUuid;
     }
 
-    public void setBiosUuid(UUID biosUuid) {
+    public void setBiosUuid(String biosUuid) {
         this.biosUuid = biosUuid;
     }
 
