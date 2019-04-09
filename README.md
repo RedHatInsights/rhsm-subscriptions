@@ -1,4 +1,8 @@
-Run using
+## Build and Run rhsm-conduit
+
+In order to build rhsm-conduit, make sure you have Java SDK 8 installed (Java 1.8.x).
+
+Build and run using the following line:
 
 ```
 ./gradlew build && java -jar build/libs/rhsm-conduit-1.0.0.jar
