@@ -89,6 +89,8 @@ objects:
         env:
           - name: INVENTORY_DB_HOST
             value: ${INVENTORY_DB_HOSTNAME}
+          - name: INVENTORY_SHARED_SECRET
+            value: ${INVENTORY_SHARED_SECRET}
           - name: INVENTORY_DB_USER
             value: ${INVENTORY_DB_USER}
           - name: INVENTORY_DB_PASS
@@ -159,6 +161,11 @@ parameters:
     name: APPLICATION_NAME
     value: dev-insights-inventory
     required: true
+  - description: The inventory service's shared secret
+    displayName: Shared Secret
+    name: INVENTORY_SHARED_SECRET
+    value: ""
+    required: false
   - description: The inventory service's database hostname
     displayName: Database Host Name
     name: INVENTORY_DB_HOSTNAME
@@ -179,12 +186,12 @@ parameters:
     name: INVENTORY_DB_PASS
     value: insights
     required: false
-  - description: 'The inventory service path prefix. Used to build the API url (/<INVENTORY_PATH_PREFIX>/<INVENTORY_APP_NAME>/api/v1/)'
+  - description: 'The inventory service path prefix. Used to build the API url (/<INVENTORY_PATH_PREFIX>/<INVENTORY_APP_NAME>/v1/)'
     displayName: Inventory Path Prefix
     name: INVENTORY_PATH_PREFIX
-    value: /r/insights/platform
+    value: r/insights/platform
     required: false
-  - description: 'The inventory service app name. Used to build the API url (/<INVENTORY_PATH_PREFIX>/<INVENTORY_APP_NAME>/api/v1/)'
+  - description: 'The inventory service app name. Used to build the API url (/<INVENTORY_PATH_PREFIX>/<INVENTORY_APP_NAME>/v1/)'
     displayName: Inventory App Name
     name: INVENTORY_APP_NAME
     value: inventory
