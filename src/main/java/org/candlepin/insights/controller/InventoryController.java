@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,11 +50,14 @@ public class InventoryController {
     private static final Logger log = LoggerFactory.getLogger(InventoryController.class);
 
     private static final int KIBIBYTES_PER_GIBIBYTE = 1048576;
+    private static final String COMMA_REGEX = ",\\s*";
 
     public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
-    public static final String IP_ADDRESSES = "Ip-addresses";
+    public static final String MAC_PREFIX = "net.interface.";
+    public static final String MAC_SUFFIX = ".mac_address";
+    public static final String IPV4_ADDRESSES = "network.ipv4_address";
+    public static final String IPV6_ADDRESSES = "network.ipv6_address";
     public static final String NETWORK_FQDN = "network.fqdn";
-    public static final String MAC_ADDRESSES = "Mac-addresses";
     public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
     public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
     public static final String MEMORY_MEMTOTAL = "memory.memtotal";
@@ -122,10 +126,20 @@ public class InventoryController {
     }
 
     private void extractNetworkFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
-        String ipAddresses = pinheadFacts.get(IP_ADDRESSES);
-        if (!isEmpty(ipAddresses)) {
-            String[] ipAddressesSplit = ipAddresses.split(",\\s*");
-            facts.setIpAddresses(Arrays.asList(ipAddressesSplit));
+        String ipv4Addresses = pinheadFacts.get(IPV4_ADDRESSES);
+        String ipv6Addresses = pinheadFacts.get(IPV6_ADDRESSES);
+        ArrayList<String> ipAddresses = new ArrayList<>();
+        if (!isEmpty(ipv4Addresses)) {
+            String[] ipv4AddressesSplit = ipv4Addresses.split(COMMA_REGEX);
+            ipAddresses.addAll(Arrays.asList(ipv4AddressesSplit));
+
+        }
+        if (!isEmpty(ipv6Addresses)) {
+            String[] ipv6AddressesSplit = ipv6Addresses.split(COMMA_REGEX);
+            ipAddresses.addAll(Arrays.asList(ipv6AddressesSplit));
+        }
+        if (!ipAddresses.isEmpty()) {
+            facts.setIpAddresses(ipAddresses);
         }
 
         String fqdn = pinheadFacts.get(NETWORK_FQDN);
@@ -133,10 +147,14 @@ public class InventoryController {
             facts.setFqdn(fqdn);
         }
 
-        String macAddresses = pinheadFacts.get(MAC_ADDRESSES);
-        if (!isEmpty(macAddresses)) {
-            String[] macAddressesSplit = macAddresses.split(",\\s*");
-            facts.setMacAddresses(Arrays.asList(macAddressesSplit));
+        List<String> macAddresses = new ArrayList<>();
+        pinheadFacts.entrySet().stream()
+            .filter(entry -> entry.getKey().startsWith(MAC_PREFIX) &&
+                entry.getKey().endsWith(MAC_SUFFIX)
+            )
+            .forEach(entry -> macAddresses.addAll(Arrays.asList(entry.getValue().split(COMMA_REGEX))));
+        if (!macAddresses.isEmpty()) {
+            facts.setMacAddresses(macAddresses);
         }
     }
 
