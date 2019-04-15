@@ -65,6 +65,11 @@ class InventoryHandler(ActionHandler):
             ) from e
 
         os.environ["INVENTORY_DB_NAME"] = self.args.insights_db_name
+        os.environ["LISTEN_PORT"] = self.args.insights_port
+        os.environ["INVENTORY_LOGGING_CONFIG_FILE"] = "logconfig.ini"
+        os.environ["INVENTORY_SHARED_SECRET"] = self.args.insights_secret
+        os.environ["FLASK_DEBUG"] = "1"
+        os.environ["prometheus_multiproc_dir"] = os.path.join("..", self.INSIGHTS_PROMETHEUS_DIR)
 
         self.verify_pipenv()
 
@@ -72,12 +77,6 @@ class InventoryHandler(ActionHandler):
         #  virtualenv has been inited or not
         self.shell_cmd("pipenv install --dev")
         self.shell_cmd("pipenv run python manage.py db upgrade")
-
-        os.environ["LISTEN_PORT"] = self.args.insights_port
-        os.environ["INVENTORY_LOGGING_CONFIG_FILE"] = "logconfig.ini"
-        os.environ["INVENTORY_SHARED_SECRET"] = self.args.insights_secret
-        os.environ["FLASK_DEBUG"] = "1"
-        os.environ["prometheus_multiproc_dir"] = os.path.join("..", self.INSIGHTS_PROMETHEUS_DIR)
 
         # Exec the pipenv command to run the insights flask application.  The current process is replaced.
         # We use the "execlpe" variant since we have a) fixed arguments b) want to use the PATH and c) want
