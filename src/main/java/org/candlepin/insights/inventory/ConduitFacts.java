@@ -31,13 +31,16 @@ import javax.validation.constraints.Positive;
  * POJO that holds all facts scoped for collection by the conduit.
  */
 public class ConduitFacts {
+
     private String subscriptionManagerId;
     private String biosUuid;
+    private String orgId;
 
     // This is a soft validation.  Bogus IP addresses like "999.999.999.999" will still validate
     private List<@Pattern(regexp = "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$") String> ipAddresses;
 
     @Length(min = 1, max = 255)
+
     private String fqdn;
 
     // See https://stackoverflow.com/a/4260512/6124862
@@ -68,6 +71,14 @@ public class ConduitFacts {
 
     public String getBiosUuid() {
         return biosUuid;
+    }
+
+    public String getOrgId() {
+        return orgId;
+    }
+
+    public void setOrgId(String orgId) {
+        this.orgId = orgId;
     }
 
     public void setBiosUuid(String biosUuid) {

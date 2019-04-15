@@ -60,9 +60,9 @@ public class InventoryControllerTest {
         consumer2.setUuid(uuid2.toString());
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
-        when(inventoryService.sendHostUpdate(anyString(), isNotNull())).thenReturn(new BulkHostOut());
+        when(inventoryService.sendHostUpdate(isNotNull())).thenReturn(new BulkHostOut());
         controller.updateInventoryForOrg("123");
-        Mockito.verify(inventoryService, times(1)).sendHostUpdate(eq("123"), any());
+        Mockito.verify(inventoryService, times(1)).sendHostUpdate(any());
     }
 
     @Test
@@ -71,6 +71,7 @@ public class InventoryControllerTest {
         String systemUuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
+        consumer.setOrgId("test_org");
         consumer.setHypervisorName("hypervisor1.test.com");
         consumer.getFacts().put("network.fqdn", "host1.test.com");
         consumer.getFacts().put("dmi.system.uuid", systemUuid);
@@ -85,6 +86,7 @@ public class InventoryControllerTest {
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
         assertEquals(uuid, conduitFacts.getSubscriptionManagerId().toString());
+        assertEquals("test_org", conduitFacts.getOrgId());
         assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
         assertEquals("host1.test.com", conduitFacts.getFqdn());
         assertEquals(systemUuid, conduitFacts.getBiosUuid().toString());
