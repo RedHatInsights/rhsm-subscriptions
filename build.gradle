@@ -27,6 +27,7 @@ ext {
     junit_version = "5.3.2"
     slf4j_version = "1.7.25"
     mockito_version = "2.23.4"
+    guava_version="19.0"
 }
 
 allprojects {
@@ -102,6 +103,7 @@ dependencies {
         exclude group: "com.mchange", module: "c3p0"
         exclude group: "com.zaxxer", module: "HikariCP-java6"
     }
+    compile "com.google.guava:guava:$guava_version"
 
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.
