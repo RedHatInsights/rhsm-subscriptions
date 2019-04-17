@@ -25,16 +25,15 @@ pipeline {
         }
         stage('Upload to SonarQube') {
             steps {
-                withSonarQubeEnv('Sonar') {
-                    sh "./gradlew --no-daemon sonarqube -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.projectVersion=${env.GIT_BRANCH}"
+                withSonarQubeEnv('sonarcloud.io') {
+                    sh "./gradlew --no-daemon sonarqube -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm"
                 }
             }
         }
         stage('SonarQube Quality Gate') {
             steps {
-                withSonarQubeEnv('Sonar') {
+                withSonarQubeEnv('sonarcloud.io') {
                     echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/dashboard?id=org.candlepin%3Arhsm-conduit"
-                    echo 'NOTE: only latest scan results are available. If you need to see previous results again, rerun the "Upload to SonarQube" stage.'
                 }
                 timeout(time: 1, unit: 'HOURS') {
                     waitForQualityGate abortPipeline: true
