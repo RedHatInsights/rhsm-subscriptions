@@ -50,13 +50,8 @@ objects:
               command:
                 - /usr/bin/curl
                 - '-s'
-                # The ${${X:=blah}:+$X/} construct sets X to blah if X is unset or null and then outputs X
-                # with a trailing slash.  The purpose is to avoid requiring a trailing slash when PATH_PREFIX
-                # is set (required if using a construct like ${PATH_PREFIX:-blah/}${APP_NAME} while also
-                # preventing a superfluous slash if PATH_PREFIX is empty which occurs in the less complex
-                # ${PATH_PREFIX:-blah}/${APP_NAME} construction
-                - 'http://localhost:8080/${${PATH_PREFIX:=/r/insights/platform}:+$PATH_PREFIX/}${APP_NAME:-rhsm-conduit}/v1/status'
-            initialDelaySeconds: 90
+                - 'http://localhost:8080/${PATH_PREFIX:-/r/insights/platform}/${APP_NAME:-rhsm-conduit}/v1/status'
+            initialDelaySeconds: 45
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 3
@@ -66,8 +61,8 @@ objects:
               command:
                 - /usr/bin/curl
                 - '-s'
-                - 'http://localhost:8080/${${PATH_PREFIX:=/r/insights/platform}:+$PATH_PREFIX/}${APP_NAME:-rhsm-conduit}/v1/status/ready'
-            initialDelaySeconds: 90
+                - 'http://localhost:8080/${PATH_PREFIX:-/r/insights/platform}/${APP_NAME:-rhsm-conduit}/v1/status/ready'
+            initialDelaySeconds: 45
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 3
