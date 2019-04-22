@@ -20,6 +20,8 @@
  */
 package org.candlepin.insights.inventory;
 
+import org.candlepin.insights.validator.ip.IpAddress;
+
 import org.hibernate.validator.constraints.Length;
 
 import java.util.List;
@@ -36,8 +38,7 @@ public class ConduitFacts {
     private String biosUuid;
     private String orgId;
 
-    // This is a soft validation.  Bogus IP addresses like "999.999.999.999" will still validate
-    private List<@Pattern(regexp = "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$") String> ipAddresses;
+    private List<@IpAddress String> ipAddresses;
 
     @Length(min = 1, max = 255)
 
