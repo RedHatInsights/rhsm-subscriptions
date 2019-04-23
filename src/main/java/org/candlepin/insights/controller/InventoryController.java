@@ -151,10 +151,15 @@ public class InventoryController {
 
         List<String> macAddresses = new ArrayList<>();
         pinheadFacts.entrySet().stream()
-            .filter(entry -> entry.getKey().startsWith(MAC_PREFIX) &&
-                entry.getKey().endsWith(MAC_SUFFIX)
-            )
-            .forEach(entry -> macAddresses.addAll(Arrays.asList(entry.getValue().split(COMMA_REGEX))));
+            .filter(entry -> entry.getKey().startsWith(MAC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX))
+            .forEach(entry -> {
+                List<String> macs = Arrays.asList(entry.getValue().split(COMMA_REGEX));
+                macAddresses.addAll(
+                    macs.stream().filter(mac -> mac != null && !mac.equalsIgnoreCase("none") &&
+                    !mac.equalsIgnoreCase("unknown")).collect(Collectors.toList())
+                );
+            });
+
         if (!macAddresses.isEmpty()) {
             facts.setMacAddresses(macAddresses);
         }
@@ -185,8 +190,7 @@ public class InventoryController {
             }
             else if (log.isInfoEnabled()) {
                 log.info("Consumer {} failed validation: {}", consumer.getName(),
-                    violations.stream().map(x -> String.format("%s: %s", x.getPropertyPath(), x.getMessage()))
-                    .collect(Collectors.joining("; "))
+                    violations.stream().map(this::buildValidationMessage).collect(Collectors.joining("; "))
                 );
             }
 
@@ -204,5 +208,9 @@ public class InventoryController {
     public OrgInventory getInventoryForOrg(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
         return inventoryService.getInventoryForOrgConsumers(conduitFactsForOrg);
+    }
+
+    private String buildValidationMessage(ConstraintViolation<ConduitFacts> x) {
+        return String.format("%s: %s: %s", x.getPropertyPath(), x.getMessage(), x.getInvalidValue());
     }
 }
