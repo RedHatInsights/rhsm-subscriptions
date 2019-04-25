@@ -108,6 +108,30 @@ oc create -f openshift/template_rhsm-conduit-route.yaml
 oc new-app --template=rhsm-conduit-route
 ```
 
+## Deployment Notes
+
+RHSM Conduit is meant to be deployed under the context path "/". The
+location of conduit specific resources are then controlled by the
+`rhsm-conduit.package_uri_mappings.org.candlepin.insights` property.
+This unusual configuration is due to external requirements that our
+application base its context path on the value of an environment
+variable. Using "/" as the context path means that we can have certain
+resources (such as health checks) with a known, static name while others
+can vary based on an environment variable given to the pod.
+
+### Static Endpoints
+
+* /actuator/health - A Spring Actuator that we use as OKD
+  liveness/readiness probe.
+* /actuator/info - An actuator that reads the information from
+  `META-INF/build-info.properties` and reports it. The response includes
+  things like the version number.
+
+Both the health actuator and info actuator can be modified, expanded, or
+extended. Please see the
+[documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html)
+for a discussion of extension points.
+
 ## Kafka
 
 See the detailed notes [here](README-kafka.md)

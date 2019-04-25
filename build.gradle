@@ -68,10 +68,18 @@ bootJar {
     mainClassName = "org.candlepin.insights.BootApplication"
 }
 
-processResources {
-    filesMatching("**/application.yaml") {
-        // Only expand ${version}.  We don't want to conflict with Spring expansions.
-        filter(ReplaceTokens, tokens: [version: version])
+springBoot {
+	buildInfo {
+        properties {
+            // Leave time empty: The default value is the instant at which the project is built. A
+            // side-effect is the task will never be up-to-date. As a result, builds will take longer.  See
+            // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
+            time = null
+            additional = [
+                    'spring version': spring_version,
+                    'spring-boot version': spring_boot_version
+            ]
+        }
     }
 }
 
