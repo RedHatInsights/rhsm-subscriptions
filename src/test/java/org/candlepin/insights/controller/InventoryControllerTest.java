@@ -95,7 +95,7 @@ public class InventoryControllerTest {
         assertEquals(Arrays.asList("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"), conduitFacts.getMacAddresses());
         assertEquals(new Integer(2), conduitFacts.getCpuSockets());
         assertEquals("x86_64", conduitFacts.getArchitecture());
-        assertTrue(conduitFacts.getVirtual());
+        assertTrue(conduitFacts.getIsVirtual());
     }
 
     @Test

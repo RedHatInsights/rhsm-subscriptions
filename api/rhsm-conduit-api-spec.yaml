@@ -137,39 +137,45 @@ components:
 
   schemas:
     ConsumerInventory:
-      # The properties list here will depend on what is returned
-      # from the IT endpoint.
+      # Container for fields we capture from the IT endpoint for upload to inventory service.
       required:
-        - consumer_uuid
-        - owner_account_key
+        - subscription_manager_id
+        - org_id
       properties:
-        id:
-          type: integer
-          format: int64
-        owner_account_key:
+        subscription_manager_id:
           type: string
-        hypervisor_host_name:
+        org_id:
           type: string
-        guest_hypervisor:
+        bios_uuid:
           type: string
-        guest_id:
-          type: string
-        installed_products:
-          type: object
-          additionalProperties:
+        ip_addresses:
+          type: array
+          items:
             type: string
+        fqdn:
+          type: string
+        mac_addresses:
+          type: array
+          items:
+            type: string
+        cpu_sockets:
+          type: integer
+        cpu_cores:
+          type: integer
         last_checkin:
           type: string
           format: date-time
-        consumer_type:
+        memory:
+          type: integer
+        architecture:
           type: string
-        system_purpose_facts:
-          type: object
-          additionalProperties:
-            type: string
-        consumer_facts:
-          type: object
-          additionalProperties:
+        is_virtual:
+          type: boolean
+        vm_host:
+          type: string
+        rh_prod:
+          type: array
+          items:
             type: string
 
     OrgInventory:

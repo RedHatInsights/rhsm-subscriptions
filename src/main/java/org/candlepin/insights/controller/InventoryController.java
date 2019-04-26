@@ -20,6 +20,7 @@
  */
 package org.candlepin.insights.controller;
 
+import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
@@ -164,7 +165,7 @@ public class InventoryController {
 
         String isGuest = pinheadFacts.get(VIRT_IS_GUEST);
         if (!isEmpty(isGuest) && !isGuest.equalsIgnoreCase("Unknown")) {
-            facts.setVirtual(isGuest.equalsIgnoreCase("True"));
+            facts.setIsVirtual(isGuest.equalsIgnoreCase("True"));
         }
 
         String vmHost = consumer.getHypervisorName();
@@ -173,7 +174,7 @@ public class InventoryController {
         }
     }
 
-    public void updateInventoryForOrg(String orgId) {
+    private List<ConduitFacts> getValidatedConsumers(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
             ConduitFacts facts = getFactsFromConsumer(consumer);
@@ -190,8 +191,18 @@ public class InventoryController {
             }
 
         }
+        return conduitFactsForOrg;
+    }
+
+    public void updateInventoryForOrg(String orgId) {
+        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
         BulkHostOut result = inventoryService.sendHostUpdate(conduitFactsForOrg);
         log.info("Host inventory update completed for org: {}", orgId);
         log.debug("Results for org {}: {}", orgId, result);
+    }
+
+    public OrgInventory getInventoryForOrg(String orgId) {
+        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
+        return inventoryService.getInventoryForOrgConsumers(conduitFactsForOrg);
     }
 }

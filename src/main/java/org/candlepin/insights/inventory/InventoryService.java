@@ -20,6 +20,8 @@
  */
 package org.candlepin.insights.inventory;
 
+import org.candlepin.insights.api.model.ConsumerInventory;
+import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.exception.RhsmConduitException;
 import org.candlepin.insights.exception.inventory.InventoryServiceException;
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
@@ -30,6 +32,7 @@ import org.candlepin.insights.inventory.client.resources.HostsApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -86,8 +89,8 @@ public class InventoryService {
         if (conduitFacts.getArchitecture() != null) {
             rhsmFactMap.put("ARCHITECTURE", conduitFacts.getArchitecture());
         }
-        if (conduitFacts.getVirtual() != null) {
-            rhsmFactMap.put("IS_VIRTUAL", conduitFacts.getVirtual());
+        if (conduitFacts.getIsVirtual() != null) {
+            rhsmFactMap.put("IS_VIRTUAL", conduitFacts.getIsVirtual());
         }
         if (conduitFacts.getVmHost() != null) {
             rhsmFactMap.put("VM_HOST", conduitFacts.getVmHost());
@@ -113,4 +116,8 @@ public class InventoryService {
         return host;
     }
 
+    public OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg) {
+        List<ConsumerInventory> hosts = new ArrayList<>(conduitFactsForOrg);
+        return new OrgInventory().consumerInventories(hosts);
+    }
 }

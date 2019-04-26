@@ -20,39 +20,34 @@
  */
 package org.candlepin.insights.resource;
 
-import org.candlepin.insights.api.model.OrgInventory;
-import org.candlepin.insights.api.resources.InventoriesApi;
 import org.candlepin.insights.controller.InventoryController;
 import org.candlepin.insights.task.TaskManager;
 
-import org.springframework.stereotype.Component;
-import org.springframework.validation.annotation.Validated;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.validation.constraints.NotNull;
+@ExtendWith(MockitoExtension.class)
+class InventoriesResourceTest {
+    @Mock
+    InventoryController controller;
 
+    @Mock
+    TaskManager manager;
 
-/**
- * The inventories API implementation.
- */
-@Component
-@Validated
-public class InventoriesResource implements InventoriesApi {
-
-    private final InventoryController inventoryController;
-    private final TaskManager tasks;
-
-    public InventoriesResource(InventoryController inventoryController, TaskManager tasks) {
-        this.inventoryController = inventoryController;
-        this.tasks = tasks;
+    @Test
+    void testGetInventoryCallsInventoryController() {
+        InventoriesResource inventories = new InventoriesResource(controller, manager);
+        inventories.getInventoryForOrg(new byte[]{}, "org-1234");
+        Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"));
     }
 
-    @Override
-    public OrgInventory getInventoryForOrg(@NotNull byte[] xRhIdentity, String orgId) {
-        return inventoryController.getInventoryForOrg(orgId);
-    }
-
-    @Override
-    public void updateInventoryForOrg(@NotNull byte[] xRhIdentity, String orgId) {
-        tasks.updateOrgInventory(orgId);
+    @Test
+    void testUpdateInventoryDelegatesToTask() {
+        InventoriesResource inventories = new InventoriesResource(controller, manager);
+        inventories.updateInventoryForOrg(new byte[]{}, "org-1234");
+        Mockito.verify(manager).updateOrgInventory(Mockito.eq("org-1234"));
     }
 }
