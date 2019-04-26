@@ -14,14 +14,13 @@ management:
       exposure:
         include:
           - health
+          - info
           - prometheus
   endpoint:
     shutdown:
       enabled: true
     prometheus:
       enabled: true
-rhsm-conduit:
-  version: @version@
 spring:
   # Datasource properties are read under the rhsm-conduit.datasource prefix (placed in the
   # rhsm-conduit.properties file).
