@@ -74,8 +74,9 @@ springBoot {
             // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
             time = null
             additional = [
-                    'spring version': spring_version,
-                    'spring-boot version': spring_boot_version
+                    // --first-parent means git describe won't look at tags that are on merged branches
+                    'gitDescription': "git describe --always --first-parent".execute().text.trim(),
+                    'gitHash': "git rev-parse HEAD".execute().text.trim()
             ]
         }
     }
