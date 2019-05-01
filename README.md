@@ -132,6 +132,26 @@ extended. Please see the
 [documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html)
 for a discussion of extension points.
 
+## Release Notes
+
+You can perform a release using `./gradlew release` **on the master
+branch**. This command will invoke a
+[plugin](https://github.com/researchgate/gradle-release) that will bump
+the version numbers and create a release tag. When you run the command,
+it will ask for input. You can specify all the arguments on the CLI if
+necessary (e.g. doing a release via a CI environment). When asked for
+"This release version" specify the current version **without** the
+"-SNAPSHOT". When asked for the next version number enter the
+appropriate value prefixed **with** "-SNAPSHOT". The plugin should offer
+sane defaults that you can use.
+
+For example. If we are working on `1.0.0-SNAPSHOT`, you would answer the
+first question with `1.0.0` and the second question with
+`1.0.1-SNAPSHOT`.
+
+The plugin will create the tag and bump the version. You just need to
+push with `git push --follow-tags origin master`.
+
 ## Kafka
 
 See the detailed notes [here](README-kafka.md)
