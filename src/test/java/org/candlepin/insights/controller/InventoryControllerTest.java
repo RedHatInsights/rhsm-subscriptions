@@ -85,11 +85,11 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-        assertEquals(uuid, conduitFacts.getSubscriptionManagerId().toString());
+        assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
         assertEquals("test_org", conduitFacts.getOrgId());
         assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
         assertEquals("host1.test.com", conduitFacts.getFqdn());
-        assertEquals(systemUuid, conduitFacts.getBiosUuid().toString());
+        assertEquals(systemUuid, conduitFacts.getBiosUuid());
         assertEquals(Arrays.asList("192.168.1.1", "10.0.0.1", "ff::ff:ff", "::1"),
             conduitFacts.getIpAddresses());
         assertEquals(Arrays.asList("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"), conduitFacts.getMacAddresses());
@@ -134,5 +134,31 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
         assertEquals(Arrays.asList("72"), conduitFacts.getRhProd());
+    }
+
+    @Test
+    public void testUnknownMacIsIgnored() {
+        String uuid = UUID.randomUUID().toString();
+        String systemUuid = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put("net.interface.virbr0.mac_address", "Unknown");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
+        assertTrue(conduitFacts.getMacAddresses().isEmpty());
+    }
+
+    @Test
+    public void testNoneMacIsIgnored() {
+        String uuid = UUID.randomUUID().toString();
+        String systemUuid = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put("net.interface.virbr0.mac_address", "none");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
+        assertTrue(conduitFacts.getMacAddresses().isEmpty());
     }
 }
