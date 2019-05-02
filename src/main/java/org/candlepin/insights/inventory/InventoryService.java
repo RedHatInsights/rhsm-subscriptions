@@ -106,7 +106,7 @@ public class InventoryService {
         facts.add(rhsmFacts);
 
         CreateHostIn host = new CreateHostIn();
-        host.setAccount(conduitFacts.getOrgId());
+        host.setAccount(conduitFacts.getAccountNumber());
         host.setFqdn(conduitFacts.getFqdn());
         host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
         host.setBiosUuid(conduitFacts.getBiosUuid());
