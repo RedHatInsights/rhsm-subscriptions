@@ -24,6 +24,7 @@ import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
+import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
@@ -37,6 +38,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -73,6 +75,9 @@ public class InventoryController {
 
     @Autowired
     private Validator validator;
+
+    @Autowired
+    private OrgListStrategy orgListStrategy;
 
     private static boolean isEmpty(String value) {
         return value == null || value.isEmpty();
@@ -179,14 +184,15 @@ public class InventoryController {
         }
     }
 
-    private List<ConduitFacts> getValidatedConsumers(String orgId) {
+    private List<ConduitFacts> getValidatedConsumers(String orgId, String accountNumber) {
         List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
             ConduitFacts facts = getFactsFromConsumer(consumer);
+            facts.setAccountNumber(accountNumber);
 
             Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
             if (violations.isEmpty()) {
-                conduitFactsForOrg.add(getFactsFromConsumer(consumer));
+                conduitFactsForOrg.add(facts);
             }
             else if (log.isInfoEnabled()) {
                 log.info("Consumer {} failed validation: {}", consumer.getName(),
@@ -199,14 +205,20 @@ public class InventoryController {
     }
 
     public void updateInventoryForOrg(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
+        String accountNumber = orgListStrategy.getAccountNumberForOrg(orgId);
+        Objects.requireNonNull(
+            accountNumber,
+            String.format("Org %s cannot be reported to inventory without an account number", orgId)
+        );
+        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId, accountNumber);
         BulkHostOut result = inventoryService.sendHostUpdate(conduitFactsForOrg);
         log.info("Host inventory update completed for org: {}", orgId);
         log.debug("Results for org {}: {}", orgId, result);
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
+        String accountNumber = orgListStrategy.getAccountNumberForOrg(orgId);
+        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId, accountNumber);
         return inventoryService.getInventoryForOrgConsumers(conduitFactsForOrg);
     }
 

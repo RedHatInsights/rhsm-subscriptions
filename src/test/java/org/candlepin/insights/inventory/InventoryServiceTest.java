@@ -45,6 +45,7 @@ public class InventoryServiceTest {
 
     private ConduitFacts createFullyPopulatedConduitFacts() {
         ConduitFacts conduitFacts = new ConduitFacts();
+        conduitFacts.setAccountNumber("1234-account");
         conduitFacts.setArchitecture("x86_64");
         conduitFacts.setBiosUuid("9d9f7927-1f42-4827-bbb8-1791b2b0a1b4");
         conduitFacts.setCpuCores(8);
@@ -76,7 +77,7 @@ public class InventoryServiceTest {
         expectedFactMap.put("orgId", "1234-org");
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
         CreateHostIn expectedHostEntry = new CreateHostIn()
-            .account("1234-org")
+            .account("1234-account")
             .biosUuid("9d9f7927-1f42-4827-bbb8-1791b2b0a1b4")
             .ipAddresses(Collections.singletonList("127.0.0.1"))
             .macAddresses(Collections.singletonList("de:ad:be:ef:fe:ed"))

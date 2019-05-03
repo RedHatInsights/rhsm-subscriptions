@@ -120,6 +120,7 @@ dependencies {
         exclude group: "com.zaxxer", module: "HikariCP-java6"
     }
     compile "com.google.guava:guava:$guava_version"
+    compile "org.apache.commons:commons-csv:1.6"
 
     // Test dependencies
     testCompile("org.springframework.kafka:spring-kafka-test:${spring_kafka_version}")

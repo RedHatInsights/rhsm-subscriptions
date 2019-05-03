@@ -20,8 +20,7 @@
  */
 package org.candlepin.insights.orgsync;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -34,12 +33,20 @@ public class FileBasedOrgListStrategyTest {
 
     @Test
     public void ensureOneOrgPerLine() throws Exception {
-        assertOrgListFile("file_based_org_list.txt");
+        assertOrgListFile("file_based_org_list.csv");
     }
 
     @Test
     public void ensureEmptyLinesAreIgnored() throws Exception {
-        assertOrgListFile("file_based_org_list_with_empty_lines.txt");
+        assertOrgListFile("file_based_org_list_with_empty_lines.csv");
+    }
+
+    @Test
+    public void ensureAccountNumberIsMapped() throws Exception {
+        FileBasedOrgListStrategy strategy = createStrategy("file_based_org_list.csv");
+        assertNull(strategy.getAccountNumberForOrg("org3"));
+        assertEquals("account1", strategy.getAccountNumberForOrg("org1"));
+        assertEquals("account2", strategy.getAccountNumberForOrg("org2"));
     }
 
     private void assertOrgListFile(String orgListFileLocation) throws Exception {

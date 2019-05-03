@@ -20,24 +20,35 @@
  */
 package org.candlepin.insights.orgsync;
 
+import org.candlepin.insights.exception.ErrorCode;
+import org.candlepin.insights.exception.RhsmConduitException;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.PostConstruct;
+import javax.ws.rs.core.Response;
 
 /**
  * An implementation of OrgListStrategy that reads org ids from a file
  */
 public class FileBasedOrgListStrategy implements OrgListStrategy, ResourceLoaderAware {
+    private static final String CANDLEPIN_ORG_ID = "Candlepin Org ID";
+    private static final String ACCOUNT_NUMBER = "Account Number";
+
     private ResourceLoader resourceLoader;
     private String orgResourceLocation;
     private Resource orgResource;
@@ -46,15 +57,42 @@ public class FileBasedOrgListStrategy implements OrgListStrategy, ResourceLoader
         this.orgResourceLocation = props.getOrgResourceLocation();
     }
 
+    private Stream<CSVRecord> getCSVRecordStream(InputStream s) throws IOException {
+        Iterator<CSVRecord> recordIterator = CSVFormat.DEFAULT.withFirstRecordAsHeader()
+            .parse(new InputStreamReader(s, Charset.defaultCharset())).iterator();
+        Iterable<CSVRecord> iterable = () -> recordIterator;
+        return StreamSupport.stream(iterable.spliterator(), false);
+    }
+
     @Override
     public List<String> getOrgsToSync() throws IOException {
         // Re-read the file every time.  It shouldn't be a massive file and doing so allows us to update the
         // org list without restarting the app.
         try (InputStream s = orgResource.getInputStream()) {
-            return new BufferedReader(new InputStreamReader(s, Charset.defaultCharset()))
-                .lines()
-                .filter(line -> line != null && !line.isEmpty())
+            return getCSVRecordStream(s)
+                .map(record -> record.get(CANDLEPIN_ORG_ID))
                 .collect(Collectors.toList());
+        }
+    }
+
+    public String getAccountNumberForOrg(String orgId) {
+        try {
+            // re-read the csv to get an updated lookup. Inefficient, but this is a stop-gap.
+            try (InputStream s = orgResource.getInputStream()) {
+                return getCSVRecordStream(s)
+                    .filter(record -> record.get(CANDLEPIN_ORG_ID).trim().equals(orgId))
+                    .map(record -> record.get(ACCOUNT_NUMBER))
+                    .filter(accountNumber -> !accountNumber.isEmpty())
+                    .findFirst().orElse(null);
+            }
+        }
+        catch (IOException e) {
+            throw new RhsmConduitException(
+                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
+                Response.Status.INTERNAL_SERVER_ERROR,
+                "Error extracting account number mapping from CSV.",
+                e
+            );
         }
     }
 

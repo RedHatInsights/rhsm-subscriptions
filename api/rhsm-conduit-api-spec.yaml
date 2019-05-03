@@ -146,6 +146,8 @@ components:
           type: string
         org_id:
           type: string
+        account_number:
+          type: string
         bios_uuid:
           type: string
         ip_addresses:

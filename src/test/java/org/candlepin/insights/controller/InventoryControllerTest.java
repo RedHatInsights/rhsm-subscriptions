@@ -26,6 +26,7 @@ import static org.mockito.BDDMockito.*;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.model.BulkHostOut;
+import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
@@ -47,6 +48,9 @@ public class InventoryControllerTest {
     @MockBean
     PinheadService pinheadService;
 
+    @MockBean
+    OrgListStrategy orgListStrategy;
+
     @Autowired
     InventoryController controller;
 
@@ -58,11 +62,18 @@ public class InventoryControllerTest {
         consumer1.setUuid(uuid1.toString());
         Consumer consumer2 = new Consumer();
         consumer2.setUuid(uuid2.toString());
+        when(orgListStrategy.getAccountNumberForOrg(isNotNull())).thenReturn("account");
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
         when(inventoryService.sendHostUpdate(isNotNull())).thenReturn(new BulkHostOut());
         controller.updateInventoryForOrg("123");
         Mockito.verify(inventoryService, times(1)).sendHostUpdate(any());
+    }
+
+    @Test
+    public void testOrgWithoutAccountNumberThrowsError() {
+        when(orgListStrategy.getAccountNumberForOrg(isNotNull())).thenReturn(null);
+        assertThrows(NullPointerException.class, () -> controller.updateInventoryForOrg("123"));
     }
 
     @Test
