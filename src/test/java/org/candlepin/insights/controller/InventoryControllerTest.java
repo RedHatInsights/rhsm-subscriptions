@@ -71,6 +71,12 @@ public class InventoryControllerTest {
     }
 
     @Test
+    public void testOrgWithoutAccountNumberThrowsError() {
+        when(orgListStrategy.getAccountNumberForOrg(isNotNull())).thenReturn(null);
+        assertThrows(NullPointerException.class, () -> controller.updateInventoryForOrg("123"));
+    }
+
+    @Test
     public void testUnmodifiedFieldsTransferred() {
         String uuid = UUID.randomUUID().toString();
         String systemUuid = UUID.randomUUID().toString();
