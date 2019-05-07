@@ -74,8 +74,8 @@ springBoot {
             // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
             time = null
             additional = [
-                'gitDescription': project.git.description,
-                'gitHash': project.git.hash,
+                'gitDescription': "${project.git.description ?: ''}",
+                'gitHash': "${project.git.hash ?: ''}",
             ]
         }
     }
