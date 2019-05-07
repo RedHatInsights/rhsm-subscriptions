@@ -14,6 +14,7 @@ plugins {
     id "org.sonarqube" version "2.7"
     id "org.springframework.boot" version "2.0.8.RELEASE"
     id "net.researchgate.release" version "2.6.0"
+    id "GitProperties"
 }
 
 ext {
@@ -66,16 +67,15 @@ bootJar {
 }
 
 springBoot {
-	buildInfo {
+    buildInfo {
         properties {
             // Leave time empty: The default value is the instant at which the project is built. A
             // side-effect is the task will never be up-to-date. As a result, builds will take longer.  See
             // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
             time = null
             additional = [
-                    // --first-parent means git describe won't look at tags that are on merged branches
-                    'gitDescription': "git describe --always --first-parent".execute().text.trim(),
-                    'gitHash': "git rev-parse HEAD".execute().text.trim()
+                'gitDescription': "${project.git.description ?: ''}",
+                'gitHash': "${project.git.hash ?: ''}",
             ]
         }
     }
