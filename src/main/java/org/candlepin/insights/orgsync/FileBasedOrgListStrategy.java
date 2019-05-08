@@ -71,6 +71,7 @@ public class FileBasedOrgListStrategy implements OrgListStrategy, ResourceLoader
         try (InputStream s = orgResource.getInputStream()) {
             return getCSVRecordStream(s)
                 .map(record -> record.get(CANDLEPIN_ORG_ID))
+                .filter(orgId -> !orgId.isEmpty())
                 .collect(Collectors.toList());
         }
     }
