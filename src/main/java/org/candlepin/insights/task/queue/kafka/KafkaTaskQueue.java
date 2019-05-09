@@ -22,6 +22,7 @@ package org.candlepin.insights.task.queue.kafka;
 
 import org.candlepin.insights.task.TaskDescriptor;
 import org.candlepin.insights.task.queue.TaskQueue;
+import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +44,19 @@ public class KafkaTaskQueue implements TaskQueue {
         log.info("Creating Kafka task queue...");
     }
 
+    @SuppressWarnings("squid:S4449")
     @Override
     public void enqueue(TaskDescriptor taskDescriptor) {
         log.info("Queuing task: {}", taskDescriptor);
+
+        TaskMessage message = TaskMessage.newBuilder()
+            .setType(taskDescriptor.getTaskType().name())
+            .setGroupId(taskDescriptor.getGroupId())
+            .setArgs(taskDescriptor.getTaskArgs())
+            .build();
+
         // Message key is auto-generated.
-        producer.send(taskDescriptor.getGroupId(), null, new TaskMessage(taskDescriptor));
+        producer.send(taskDescriptor.getGroupId(), null, message);
     }
 
 }

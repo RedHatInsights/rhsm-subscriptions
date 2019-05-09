@@ -39,6 +39,7 @@ allprojects {
     targetCompatibility = "1.8"
     repositories {
         mavenCentral()
+        maven { url "http://packages.confluent.io/maven/" }
     }
 
     test {
@@ -127,6 +128,9 @@ dependencies {
     }
     compile "com.google.guava:guava:$guava_version"
     compile "org.apache.commons:commons-csv:1.6"
+    compile("io.confluent:kafka-avro-serializer:5.2.1") {
+        exclude group: "org.apache.kafka"
+    }
 
     // Test dependencies
     testCompile("org.springframework.kafka:spring-kafka-test:${spring_kafka_version}")

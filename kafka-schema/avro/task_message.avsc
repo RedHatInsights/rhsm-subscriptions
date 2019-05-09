@@ -1,10 +1,32 @@
 {
-    "name": "TaskMessage",
-    "namespace": "org.candlepin.insights.task.queue.kafka.message",
-    "type": "record",
-    "fields": [
-        { "name": "groupId", "type": "string" },
-        { "name": "type", "type": "string" },
-        { "name": "args", "type" : {"type" : "map", "values" : "string"} }
-    ]
+  "type": "record",
+  "name": "TaskMessage",
+  "namespace": "org.candlepin.insights.task.queue.kafka.message",
+  "fields": [
+    {
+      "name": "groupId",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      }
+    },
+    {
+      "name": "type",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      }
+    },
+    {
+      "name": "args",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "string",
+          "avro.java.string": "String"
+        },
+        "avro.java.string": "String"
+      }
+    }
+  ]
 }
