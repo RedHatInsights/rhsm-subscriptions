@@ -42,6 +42,11 @@ public class FileBasedOrgListStrategyTest {
     }
 
     @Test
+    public void ensureEmptyOrgIdsAreIgnored() throws Exception {
+        assertOrgListFile("file_based_org_list_with_empty_orgid.csv");
+    }
+
+    @Test
     public void ensureAccountNumberIsMapped() throws Exception {
         FileBasedOrgListStrategy strategy = createStrategy("file_based_org_list.csv");
         assertNull(strategy.getAccountNumberForOrg("org3"));
