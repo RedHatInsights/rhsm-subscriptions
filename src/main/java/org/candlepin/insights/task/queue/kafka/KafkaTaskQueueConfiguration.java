@@ -65,6 +65,12 @@ public class KafkaTaskQueueConfiguration {
         return new KafkaConfigurator();
     }
 
+    @Bean
+    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
+    public KafkaApplicationListener gracefulShutdown() {
+        return new KafkaApplicationListener();
+    }
+
     //
     // KAFKA PRODUCER CONFIGURATION
     //
