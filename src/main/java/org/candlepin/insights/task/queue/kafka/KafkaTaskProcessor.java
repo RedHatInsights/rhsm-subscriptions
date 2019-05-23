@@ -24,7 +24,6 @@ package org.candlepin.insights.task.queue.kafka;
 import org.candlepin.insights.task.TaskDescriptor;
 import org.candlepin.insights.task.TaskExecutionException;
 import org.candlepin.insights.task.TaskFactory;
-import org.candlepin.insights.task.TaskQueueConfiguration;
 import org.candlepin.insights.task.TaskType;
 import org.candlepin.insights.task.TaskWorker;
 import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
@@ -46,7 +45,7 @@ public class KafkaTaskProcessor {
         worker = new TaskWorker(taskFactory);
     }
 
-    @KafkaListener(id = "rhsm-conduit-task-processor", topics = TaskQueueConfiguration.TASK_GROUP)
+    @KafkaListener(id = "rhsm-conduit-task-processor", topics = "${rhsm-conduit.tasks.task-group}")
     public void onTaskAvailable(TaskMessage taskMessage) {
         try {
             log.info("Message received from kafka: {}", taskMessage);

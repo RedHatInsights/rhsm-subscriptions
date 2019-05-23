@@ -23,7 +23,6 @@ package org.candlepin.insights.task.queue.kafka;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.candlepin.insights.task.TaskQueueConfiguration;
 import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -54,7 +53,7 @@ import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 @SpringBootTest
 @TestPropertySource("classpath:/kafka_schema_registry_test.properties")
 @DirtiesContext
-@EmbeddedKafka(partitions = 1, topics = {TaskQueueConfiguration.TASK_GROUP})
+@EmbeddedKafka(partitions = 1, topics = {"${rhsm-conduit.tasks.task-group}"})
 public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 
     @Test

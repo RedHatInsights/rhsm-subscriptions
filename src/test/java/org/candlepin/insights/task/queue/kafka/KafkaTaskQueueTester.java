@@ -28,7 +28,7 @@ import org.candlepin.insights.task.Task;
 import org.candlepin.insights.task.TaskDescriptor;
 import org.candlepin.insights.task.TaskFactory;
 import org.candlepin.insights.task.TaskManager;
-import org.candlepin.insights.task.TaskQueueConfiguration;
+import org.candlepin.insights.task.TaskQueueProperties;
 import org.candlepin.insights.task.TaskType;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,10 +49,14 @@ public class KafkaTaskQueueTester {
     @Autowired
     private TaskManager manager;
 
+    @Autowired
+    private TaskQueueProperties taskQueueProperties;
+
     protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {
         String orgId = "test_org";
         TaskDescriptor taskDescriptor = TaskDescriptor.builder(
-            TaskType.UPDATE_ORG_INVENTORY, TaskQueueConfiguration.TASK_GROUP).setArg("org_id", orgId).build();
+            TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
+            .setArg("org_id", orgId).build();
 
         // Expect the task to be ran once.
         CountDownLatch latch = new CountDownLatch(1);

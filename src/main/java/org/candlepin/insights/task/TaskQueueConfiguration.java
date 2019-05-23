@@ -26,8 +26,10 @@ import org.candlepin.insights.task.queue.TaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 import java.util.concurrent.Executors;
 
@@ -42,12 +44,17 @@ import java.util.concurrent.Executors;
  * It is important that only one TaskQueue implementation can be returned based on the conditional
  * annotation.
  */
+@EnableConfigurationProperties(TaskQueueProperties.class)
+@PropertySource("classpath:/rhsm-conduit.properties")
 @Configuration
 public class TaskQueueConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(TaskQueueConfiguration.class);
 
-    public static final String TASK_GROUP = "rhsm-conduit-tasks";
+    @Bean
+    TaskQueueProperties taskQueueProperties() {
+        return new TaskQueueProperties();
+    }
 
     /**
      * Creates an in-memory queue, implemented with {@link java.util.concurrent.ThreadPoolExecutor}.
