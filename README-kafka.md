@@ -67,3 +67,105 @@ directory. Make sure minishift is up and running.
   pods to come up (you can watch with `oc get pods -n conduit -w`). I
   have seen issues with pods not coming up. I was able to solve the
   problem by restarting minishift.
+
+## Configuring the KafkaTaskQueue in rhsm-conduit
+
+rhsm-conduit can be configured to use Kafka for asynchronous inventory updates.
+The following shows a basic configuration of the Kafka consumers and
+producers used by rhsm-conduit when running with the KafkaTaskQueue.
+
+```properties
+#
+# kafka configuration
+#
+
+# Enables the use of Kafka as a task queue
+rhsm-conduit.tasks.queue=kafka
+
+# The number of threads that will be processing messages (should match
+# the number of partitions on the kafka topic)
+spring.kafka.listener.concurrency=3
+
+# A comma separated list of Kafka servers. When running in a multi-broker
+# configuration, at least 2 servers should be specified.
+spring.kafka.bootstrap-servers=localhost:9092
+
+# When a connection is dropped, this is the amount of time add before the
+# next reconnection attempt.
+spring.kafka.consumer.properties.reconnect.backoff.ms=2000
+
+# The max amount of time to add before the next reconnection attempt.
+spring.kafka.consumer.properties.reconnect.backoff.max.ms=10000
+
+# The amount of time to wait before giving up on a poll of a topic.
+spring.kafka.consumer.properties.default.api.timeout.ms=480000
+```
+
+### Configuring rhsm-conduit to use a Schema Registry
+
+A schema registry can be used to ensure that messages that are sent to Kafka
+are in the correct format and contain the correct data. This can be configured
+in the rhsm-conduit.properties configuration file as follows.
+
+```properties
+#
+# Schema Registry configuration
+#
+
+# The URL of the schema registry service
+spring.kafka.properties.schema.registry.url=http://localhost:8081
+
+# Whether or not to automatically register the schema on message send.
+# In a production environment this is typically set to false and the
+# schema should be registered manually via the registry service's API.
+spring.kafka.properties.auto.register.schemas=false
+
+```
+
+### Manually Registering The Schema
+
+Knowing the URL of the schema registry, you can manually register the schema required
+by rhsm-conduit as follows:
+
+  1. Copy the following to a new file.
+      ```bash
+      $ cat > create_task_message_schema_payload.json <<-JSON
+      {
+        "schema" : "{
+          \"type\": \"record\",
+          \"name\": \"TaskMessage\",
+          \"namespace\": \"org.candlepin.insights.task.queue.kafka.message\",
+          \"fields\": [
+            {
+              \"name\": \"groupId\",
+              \"type\": {
+                \"type\": \"string\"
+              }
+            },
+            {
+              \"name\": \"type\",
+              \"type\": {
+                \"type\": \"string\"
+              }
+            },
+            {
+              \"name\": \"args\",
+              \"type\": {
+                \"type\": \"map\",
+                \"values\": {
+                  \"type\": \"string\"
+                }
+              }
+            }
+          ]
+        }"
+      }
+      JSON
+      ```
+  2. Register the new schema with the file created above.
+      ```bash
+      $ curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" --data "@create_task_message_schema_payload.json" http://localhost:8081/subjects/rhsm-conduit-tasks-value/versions
+      ```
+
+**NOTE**: When deploying Kafka via the docker image above, a schema registry will be
+deployed alongside of Kafka.
