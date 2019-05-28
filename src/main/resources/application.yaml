@@ -25,6 +25,8 @@ spring:
   # Datasource properties are read under the rhsm-conduit.datasource prefix (placed in the
   # rhsm-conduit.properties file).
   quartz:
+    # On startup, overwrite any existing jobs so that the schedule is updated when changed.
+    overwrite-existing-jobs: true
     job-store-type: jdbc
     jdbc:
       # There is an issue with the hsqldb schema file that is shipped with Quartz, so we need to carry our own
