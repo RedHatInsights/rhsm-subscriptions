@@ -15,6 +15,8 @@ plugins {
     id "org.springframework.boot" version "2.0.8.RELEASE"
     id "net.researchgate.release" version "2.6.0"
     id "GitProperties"
+    // Only applied for the rhsm-conduit-kafka sub project; applied below.
+    id "com.commercehub.gradle.plugin.avro-base" version "0.9.1" apply false
 }
 
 ext {
@@ -37,6 +39,7 @@ allprojects {
     targetCompatibility = "1.8"
     repositories {
         mavenCentral()
+        maven { url "http://packages.confluent.io/maven/" }
     }
 
     test {
@@ -99,6 +102,7 @@ dependencies {
     compile project(":api")
     compile project(":insights-inventory-client")
     compile project(":pinhead-client")
+    compile project(":kafka-schema")
     compile "javax.servlet:javax.servlet-api:3.1.0"
     compile "org.jboss.resteasy:resteasy-spring-boot-starter:3.0.0.Final"
     compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
@@ -124,6 +128,9 @@ dependencies {
     }
     compile "com.google.guava:guava:$guava_version"
     compile "org.apache.commons:commons-csv:1.6"
+    compile("io.confluent:kafka-avro-serializer:5.2.1") {
+        exclude group: "org.apache.kafka"
+    }
 
     // Test dependencies
     testCompile("org.springframework.kafka:spring-kafka-test:${spring_kafka_version}")
@@ -278,4 +285,22 @@ configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.nam
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
     compileJava.dependsOn tasks.openApiGenerate
+}
+
+project(":kafka-schema") {
+    apply plugin: "com.commercehub.gradle.plugin.avro-base"
+
+    dependencies {
+        compile "org.apache.avro:avro:1.8.2"
+    }
+
+    task generateAvro(type: com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask) {
+        // sub dir needed so that the plugin does not traverse into the build dir (if it exists).
+        source("${projectDir}/avro")
+        outputDir = file("${buildDir}/generated/avro/src/main/java")
+    }
+
+    sourceSets.main.java.srcDirs += "${buildDir}/generated/avro/src/main/java"
+    compileJava.source(generateAvro.outputs)
+    compileJava.dependsOn tasks.generateAvro
 }

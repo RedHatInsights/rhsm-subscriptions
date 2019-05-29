@@ -36,6 +36,9 @@ import org.springframework.stereotype.Component;
 public class TaskManager {
 
     @Autowired
+    TaskQueueProperties taskQueueProperties;
+
+    @Autowired
     TaskQueue queue;
 
     /**
@@ -46,7 +49,7 @@ public class TaskManager {
     @SuppressWarnings("indentation")
     public void updateOrgInventory(String orgId) {
         queue.enqueue(
-            TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, TaskQueueConfiguration.TASK_GROUP)
+            TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
                 .setArg("org_id", orgId)
                 .build()
         );

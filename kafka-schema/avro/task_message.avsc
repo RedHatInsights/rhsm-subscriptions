@@ -1,0 +1,32 @@
+{
+  "type": "record",
+  "name": "TaskMessage",
+  "namespace": "org.candlepin.insights.task.queue.kafka.message",
+  "fields": [
+    {
+      "name": "groupId",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      }
+    },
+    {
+      "name": "type",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      }
+    },
+    {
+      "name": "args",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "string",
+          "avro.java.string": "String"
+        },
+        "avro.java.string": "String"
+      }
+    }
+  ]
+}

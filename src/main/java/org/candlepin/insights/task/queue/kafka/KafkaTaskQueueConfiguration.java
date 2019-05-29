@@ -22,11 +22,8 @@ package org.candlepin.insights.task.queue.kafka;
 
 import org.candlepin.insights.task.TaskFactory;
 import org.candlepin.insights.task.queue.TaskQueue;
+import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -34,19 +31,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.kafka.annotation.EnableKafka;
-import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer2;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-
-import java.util.Map;
 
 
 /**
@@ -62,66 +51,63 @@ import java.util.Map;
 @PropertySource("classpath:/rhsm-conduit.properties")
 public class KafkaTaskQueueConfiguration {
 
-    private static final String  TYPE_MAPPINGS = "task-message:" + TaskMessage.class.getCanonicalName();
-
     @Autowired
     private KafkaProperties kafkaProperties;
+
+    // Since the bean is only registered when the kafka task queue is configured, it isn't always
+    // required (i.e When conduit is running with the in-memory task queue configured).
+    @Autowired(required = false)
+    private KafkaConfigurator kafkaConfigurator;
+
+    @Bean
+    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
+    public KafkaConfigurator kafkaConfigurator() {
+        return new KafkaConfigurator();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
+    public KafkaApplicationListener gracefulShutdown() {
+        return new KafkaApplicationListener();
+    }
+
+    //
+    // KAFKA PRODUCER CONFIGURATION
+    //
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
     public ProducerFactory<String, TaskMessage> producerFactory() {
-        return new DefaultKafkaProducerFactory<>(producerConfig());
+        return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
-    public Map<String, Object> producerConfig() {
-        Map<String, Object> config = kafkaProperties.buildProducerProperties();
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        config.put(JsonSerializer.TYPE_MAPPINGS, TYPE_MAPPINGS);
-        return config;
+    public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
+        ProducerFactory<String, TaskMessage> factory) {
+        return kafkaConfigurator.taskMessageKafkaTemplate(factory);
     }
+
+    //
+    // KAFKA CONSUMER CONFIGURATION
+    //
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
-    public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate() {
-        return new KafkaTemplate<String, TaskMessage>(producerFactory());
+    public ConsumerFactory<String, TaskMessage> consumerFactory() {
+        return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
     KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
-        kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, TaskMessage> factory =
-            new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
-        // Concurrency should be set to the number of partitions for the target topic.
-        factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
-        return factory;
+        kafkaListenerContainerFactory(ConsumerFactory<String, TaskMessage> consumerFactory) {
+        return kafkaConfigurator.defaultListenerContainerFactory(consumerFactory, kafkaProperties);
     }
 
-    @Bean
-    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
-    public ConsumerFactory<String, TaskMessage> consumerFactory() {
-        return new DefaultKafkaConsumerFactory<>(consumerConfigs());
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
-    public Map<String, Object> consumerConfigs() {
-        Map<String, Object> props = kafkaProperties.buildConsumerProperties();
-
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        // Prevent the client from continuously replaying a message that fails to deserialize.
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer2.class);
-        props.put(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, KafkaTaskQueue.class.getPackage().getName());
-        props.put(JsonDeserializer.TYPE_MAPPINGS, TYPE_MAPPINGS);
-
-        return props;
-    }
-
+    //
+    // TASK QUEUE CONFIGURATION
+    //
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")

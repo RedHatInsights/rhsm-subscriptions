@@ -20,23 +20,26 @@
  */
 package org.candlepin.insights.task.queue.kafka;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
+/**
+ * Stops all message consumption when the application is shutting down.
+ */
+public class KafkaApplicationListener implements ApplicationListener<ContextClosedEvent> {
+    private static final Logger log = LoggerFactory.getLogger(KafkaApplicationListener.class);
+
+    @Autowired
+    private KafkaListenerEndpointRegistry registry;
 
 
-@SpringBootTest
-@TestPropertySource("classpath:/kafka_test.properties")
-@DirtiesContext
-@EmbeddedKafka(partitions = 1, topics = {"${rhsm-conduit.tasks.task-group}"})
-public class KafkaTaskQueueTest extends KafkaTaskQueueTester {
-
-    @Test
-    public void testSendAndReceiveTaskMessage() throws InterruptedException {
-        runSendAndReceiveTaskMessageTest();
+    @Override
+    public void onApplicationEvent(ContextClosedEvent event) {
+        log.info("Shutting down kafka consumers...");
+        registry.stop();
     }
-
 }

@@ -40,13 +40,16 @@ public class TaskManagerTest {
     @Autowired
     private TaskManager manager;
 
+    @Autowired
+    private TaskQueueProperties taskQueueProperties;
+
     @Test
     public void testUpdateOrgInventory() {
         String expectedOrg = "my-org";
         manager.updateOrgInventory(expectedOrg);
 
         TaskDescriptor expectedTaskDescriptor =
-            TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, TaskQueueConfiguration.TASK_GROUP)
+            TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
             .setArg("org_id", expectedOrg)
             .build();
         verify(queue).enqueue(eq(expectedTaskDescriptor));

@@ -21,10 +21,12 @@
 package org.candlepin.insights.task.queue.kafka;
 
 
+import org.candlepin.insights.task.TaskDescriptor;
 import org.candlepin.insights.task.TaskExecutionException;
 import org.candlepin.insights.task.TaskFactory;
-import org.candlepin.insights.task.TaskQueueConfiguration;
+import org.candlepin.insights.task.TaskType;
 import org.candlepin.insights.task.TaskWorker;
+import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,16 +45,27 @@ public class KafkaTaskProcessor {
         worker = new TaskWorker(taskFactory);
     }
 
-    @KafkaListener(id = "rhsm-conduit-task-processor", topics = TaskQueueConfiguration.TASK_GROUP)
+    @KafkaListener(id = "rhsm-conduit-task-processor", topics = "${rhsm-conduit.tasks.task-group}")
     public void onTaskAvailable(TaskMessage taskMessage) {
         try {
             log.info("Message received from kafka: {}", taskMessage);
-            worker.executeTask(taskMessage.toDescriptor());
+            worker.executeTask(describe(taskMessage));
         }
         catch (TaskExecutionException e) {
             // If a task fails to execute for any reason, it is logged and will
             // not get retried.
             log.error("Failed to execute task: {}", taskMessage, e);
+        }
+    }
+
+    private TaskDescriptor describe(TaskMessage message) throws TaskExecutionException {
+        try {
+            return TaskDescriptor.builder(TaskType.valueOf(message.getType()), message.getGroupId())
+                       .setArgs(message.getArgs()).build();
+        }
+        catch (IllegalArgumentException | NullPointerException e) {
+            throw new TaskExecutionException(
+                String.format("Unknown TaskType received from message: %s", message.getType()));
         }
     }
 

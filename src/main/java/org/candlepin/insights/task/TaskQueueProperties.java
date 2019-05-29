@@ -18,25 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.task.queue.kafka;
+package org.candlepin.insights.task;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
+/**
+ * Settings particular to the task queue framework.
+ */
+@ConfigurationProperties(prefix = "rhsm-conduit.tasks")
+public class TaskQueueProperties {
 
+    private String taskGroup;
 
-@SpringBootTest
-@TestPropertySource("classpath:/kafka_test.properties")
-@DirtiesContext
-@EmbeddedKafka(partitions = 1, topics = {"${rhsm-conduit.tasks.task-group}"})
-public class KafkaTaskQueueTest extends KafkaTaskQueueTester {
-
-    @Test
-    public void testSendAndReceiveTaskMessage() throws InterruptedException {
-        runSendAndReceiveTaskMessageTest();
+    public String getTaskGroup() {
+        return taskGroup;
     }
 
+    public void setTaskGroup(String taskGroup) {
+        this.taskGroup = taskGroup;
+    }
 }
