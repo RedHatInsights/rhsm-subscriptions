@@ -18,25 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.utilization;
+package org.candlepin.utilization.jackson;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+public class TestPojo {
+    private String value1;
+    private String value2;
 
-/**
- * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
- */
-@Component
-@ConfigurationProperties(prefix = "subscriptions")
-public class ApplicationProperties {
+    public TestPojo() { }
 
-    private boolean prettyPrintJson = false;
-
-    public boolean isPrettyPrintJson() {
-        return prettyPrintJson;
+    public TestPojo(String value1, String value2) {
+        this.value1 = value1;
+        this.value2 = value2;
     }
 
-    public void setPrettyPrintJson(boolean prettyPrintJson) {
-        this.prettyPrintJson = prettyPrintJson;
+    public String getValue1() {
+        return value1;
+    }
+
+    public void setValue1(String value1) {
+        this.value1 = value1;
+    }
+
+    public String getValue2() {
+        return value2;
+    }
+
+    public void setValue2(String value2) {
+        this.value2 = value2;
     }
 }

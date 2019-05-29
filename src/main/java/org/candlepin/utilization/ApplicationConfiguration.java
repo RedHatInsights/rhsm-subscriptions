@@ -20,7 +20,10 @@
  */
 package org.candlepin.utilization;
 
+import org.candlepin.utilization.jackson.ObjectMapperContextResolver;
+
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -42,6 +45,14 @@ import javax.validation.Validator;
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/subscriptions.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
+    @Bean
+    public ObjectMapperContextResolver objectMapperContextResolver() {
+        return new ObjectMapperContextResolver(applicationProperties);
+    }
 
     /**
      * Tell Spring AOP to run methods in classes marked @Validated through the JSR-303 Validation
