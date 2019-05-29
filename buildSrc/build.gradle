@@ -1,0 +1,20 @@
+apply plugin: "java"
+apply plugin: "java-gradle-plugin"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.3.1.201904271842-r'
+}
+
+gradlePlugin {
+    plugins {
+        GitPropertiesPlugin {
+            id = "GitProperties"
+            implementationClass = "GitProperties"
+        }
+    }
+}

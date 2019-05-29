@@ -1,0 +1,10 @@
+# These are core, default properties that we don't want the user to change.  Take care to use
+# spring.config.additional-location instead of spring.config.location so that this file will continue
+# getting loaded.
+# See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
+
+resteasy:
+  jaxrs:
+    app:
+      registration: property
+      classes: org.candlepin.utilization.JaxrsApplication
