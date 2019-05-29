@@ -8,3 +8,16 @@ resteasy:
     app:
       registration: property
       classes: org.candlepin.utilization.JaxrsApplication
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+  endpoint:
+    shutdown:
+      enabled: true
+    prometheus:
+      enabled: true
