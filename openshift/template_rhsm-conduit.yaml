@@ -64,6 +64,13 @@ objects:
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 100Mi
+            limits:
+              cpu: 300m
+              memory: 500Mi
           ports:
           - containerPort: 8080
             protocol: TCP
