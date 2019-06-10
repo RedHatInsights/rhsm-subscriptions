@@ -32,6 +32,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -76,8 +77,15 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        //TODO Enable once openapi spec is implemented
-//        registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
-//        registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
+        registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
+        registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/api-docs/openapi.*").addResourceLocations(
+            "classpath:openapi.yaml",
+            "classpath:openapi.json"
+        );
     }
 }
