@@ -24,11 +24,13 @@ import org.candlepin.insights.exception.ErrorCode;
 import org.candlepin.insights.exception.RhsmConduitException;
 
 import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import javax.ws.rs.core.Response;
 
@@ -39,34 +41,31 @@ import javax.ws.rs.core.Response;
  */
 @Component
 public class OpenApiSpecController {
-    private String getResourceAsString(String filename) {
-        InputStream contents = getClass().getClassLoader().getResourceAsStream(filename);
-        if (contents == null) {
-            throw new RhsmConduitException(
-                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                String.format("Unable to read %s", filename),
-                "This should never happen..."
-            );
-        }
-        try {
-            return IOUtils.toString(contents, Charset.forName("UTF-8"));
+    @Value("classpath:openapi.yaml")
+    private Resource openApiYaml;
+
+    @Value("classpath:openapi.json")
+    private Resource openApiJson;
+
+    private String getResourceAsString(Resource r) {
+        try (InputStream is = r.getInputStream()) {
+            return IOUtils.toString(is, StandardCharsets.UTF_8);
         }
         catch (IOException e) {
             throw new RhsmConduitException(
                 ErrorCode.UNHANDLED_EXCEPTION_ERROR,
                 Response.Status.INTERNAL_SERVER_ERROR,
-                String.format("Unable to decode %s", filename),
-                "This should never happen..."
+                String.format("Unable to read %s", r.getFilename()),
+                e.getMessage()
             );
         }
     }
 
     public String getOpenApiJson() {
-        return getResourceAsString("openapi.json");
+        return getResourceAsString(openApiJson);
     }
 
     public String getOpenApiYaml() {
-        return getResourceAsString("openapi.yaml");
+        return getResourceAsString(openApiYaml);
     }
 }
