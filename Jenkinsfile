@@ -18,10 +18,20 @@ pipeline {
             steps {
                 sh './gradlew --no-daemon test'
             }
+            post {
+                always {
+                    junit 'build/test-results/**/*.xml'
+                }
+            }
         }
         stage('Checkstyle') {
             steps {
                 sh './gradlew --no-daemon checkstyleMain checkstyleTest'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'build/reports/checkstyle/*.html'
+                }
             }
         }
         stage('Upload to SonarQube') {
@@ -41,12 +51,6 @@ pipeline {
                     waitForQualityGate abortPipeline: true
                 }
             }
-        }
-    }
-    post {
-        always {
-            archiveArtifacts artifacts: 'build/reports/checkstyle/*.html'
-            junit 'build/test-results/**/*.xml'
         }
     }
 }
