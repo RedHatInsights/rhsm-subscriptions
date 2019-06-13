@@ -23,6 +23,7 @@ package org.candlepin.subscriptions;
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
+import org.candlepin.subscriptions.tally.facts.RhelProductListSource;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,6 +88,11 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public static BeanFactoryPostProcessor servletInitializer() {
         return new JaxrsApplicationServletInitializer();
+    }
+
+    @Bean
+    public RhelProductListSource rhelProductListSource() {
+        return new RhelProductListSource(applicationProperties);
     }
 
     @Override

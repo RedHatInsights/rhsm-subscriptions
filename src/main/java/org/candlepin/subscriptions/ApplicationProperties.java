@@ -32,11 +32,24 @@ public class ApplicationProperties {
 
     private boolean prettyPrintJson = false;
 
+    /**
+     * Resource location a file containing a list of RHEL product IDs.
+     */
+    private String rhelProductListResourceLocation;
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
 
     public void setPrettyPrintJson(boolean prettyPrintJson) {
         this.prettyPrintJson = prettyPrintJson;
+    }
+
+    public String getRhelProductListResourceLocation() {
+        return rhelProductListResourceLocation;
+    }
+
+    public void setRhelProductListResourceLocation(String rhelProductListResourceLocation) {
+        this.rhelProductListResourceLocation = rhelProductListResourceLocation;
     }
 }
