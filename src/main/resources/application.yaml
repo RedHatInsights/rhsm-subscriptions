@@ -7,7 +7,7 @@ resteasy:
   jaxrs:
     app:
       registration: property
-      classes: org.candlepin.utilization.JaxrsApplication
+      classes: org.candlepin.subscriptions.JaxrsApplication
 management:
   endpoints:
     web:

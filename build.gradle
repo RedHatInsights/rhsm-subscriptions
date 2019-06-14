@@ -62,7 +62,7 @@ allprojects {
 }
 
 bootJar {
-    mainClassName = "org.candlepin.utilization.BootApplication"
+    mainClassName = "org.candlepin.subscriptions.BootApplication"
 }
 
 springBoot {
@@ -133,8 +133,8 @@ project(":api") {
     checkstyle.sourceSets = []
 
     ext {
-        api_spec_path = "${projectDir}/subscriptions-api-spec.yaml"
-        config_file = "${projectDir}/subscriptions-api-config.json"
+        api_spec_path = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
+        config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
     }
 
     openApiGenerate {
