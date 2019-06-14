@@ -1,0 +1,201 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions-api"
+  description: "REST interface for the rhsm-subscriptions service."
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/rhsm-subscriptions/v1
+  - url: http://localhost:8080/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /owners/{owner_id}/products/{product_id}/:
+    description: "All utilization operations related to a specific organization and product."
+    parameters:
+      - name: x-rh-identity
+        in: header
+        required: true
+        schema:
+          type: string
+          format: byte
+        description: "Identity header provided by 3Scale."
+      - name: owner_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The owner_id is the candlepin owner key."
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The ID for the product we wish to query"
+    get:
+      summary: "Fetch the utilization data for an organization and product."
+      operationId: getTallyReport
+      parameters:
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "The level of granularity to return."
+        - name: beginning
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+            format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+            be provided in UTC."
+      responses:
+        '200':
+          description: 'The request for inventory data was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TallyReport"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /openapi.json:
+    get:
+      description: "Get the OpenAPI spec in JSON format."
+      operationId: getOpenApiJson
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI JSON was successful."
+          content:
+            application/json:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      description: "Get the OpenAPI spec in YAML format."
+      operationId: getOpenApiYaml
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI YAML was successful."
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+
+components:
+  responses:
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ServiceUnavailable:
+      description: "The server is currently unavailable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+
+  schemas:
+    TallyReport:
+      properties:
+        product:
+          type: string
+        granularity:
+          description: "Describes the significance of each date in the TallySnapshot list. For example if the
+            granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
+            seven day period."
+          type: string
+        tally_snapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/TallySnapshot"
+
+    TallySnapshot:
+      # Container for fields we capture from the IT endpoint for upload to inventory service.  The element
+      # being reported should be the only non-required element.  E.g. snapshots containing memory will have
+      # date, instance count, and memory elements while snapshots containing vcpus will contain date,
+      # instance count, and vcpus.
+      required:
+        - date
+        - instance_count
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: "The start date for this snapshot entry. Dates are returned in UTC. Clients must
+            consult the 'granularity' field in the TallyReport to determine the length of time each
+            TallySnapshot covers."
+        instance_count:
+          type: integer
+          format: int32
+          minimum: 0
+        vcpus:
+          type: integer
+          format: int32
+          minimum: 0
+
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
