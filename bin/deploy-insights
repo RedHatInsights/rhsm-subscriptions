@@ -1,0 +1,164 @@
+#! /usr/bin/env python3
+
+import argparse
+import logging
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+
+logging.basicConfig()
+log = logging.getLogger("deploy-insights")
+
+
+class ActionHandler:
+    def __init__(self, parsed_args):
+        self.args = parsed_args
+        self.err_log_func = err_log_func
+
+    def shell_cmd(self, command):
+        try:
+            log.debug("Running '%s'" % command)
+            completed_process = subprocess.run(
+                shlex.split(command),
+                check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+            if completed_process.stdout:
+                log.debug(completed_process.stdout.decode("utf-8"))
+            return completed_process
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("Process execution failed: %s" % e.stderr.decode("utf-8")) from e
+
+    def run(self, *args, **kwargs):
+        raise NotImplementedError("Subclasses must define this method")
+
+
+class SubmoduleHandler(ActionHandler):
+    def run(self, *args, **kwargs):
+        command = "git submodule update --init --recursive"
+        self.shell_cmd(command)
+
+
+class InventoryHandler(ActionHandler):
+    INSIGHTS_CHECKOUT_DIR = "insights-host-inventory"
+    INSIGHTS_PROMETHEUS_DIR = "prometheumultiprocess"
+
+    def verify_pipenv(self):
+        pipenv = shutil.which("pipenv")
+        if not pipenv:
+            raise RuntimeError("Please install pipenv")
+
+    def run(self, *args, **kwargs):
+        try:
+            os.mkdir(self.INSIGHTS_PROMETHEUS_DIR)
+        except FileExistsError as e:
+            log.info("Skipping creation of %s", self.INSIGHTS_PROMETHEUS_DIR)
+
+        try:
+            os.chdir(self.INSIGHTS_CHECKOUT_DIR)
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                "No directory found for insights-host-inventory. Make sure the submodule init succeeded"
+            ) from e
+
+        os.environ["INVENTORY_DB_NAME"] = self.args.insights_db_name
+        os.environ["LISTEN_PORT"] = self.args.insights_port
+        os.environ["INVENTORY_LOGGING_CONFIG_FILE"] = "logconfig.ini"
+        os.environ["INVENTORY_SHARED_SECRET"] = self.args.insights_secret
+        os.environ["FLASK_DEBUG"] = "1"
+        os.environ["prometheus_multiproc_dir"] = os.path.join("..", self.INSIGHTS_PROMETHEUS_DIR)
+
+        self.verify_pipenv()
+
+        # TODO pipenv install every time is slow and not necessary. Need to find a way to verify if the
+        #  virtualenv has been inited or not
+        self.shell_cmd("pipenv install --dev")
+        self.shell_cmd("pipenv run python manage.py db upgrade")
+
+        # Exec the pipenv command to run the insights flask application.  The current process is replaced.
+        # We use the "execlpe" variant since we have a) fixed arguments b) want to use the PATH and c) want
+        # to pass in our altered environment.
+        log.info("Invoking insights Flask application")
+        os.execlpe("pipenv", "pipenv", "run", "python", "run.py", os.environ)
+
+
+class PostgresDbHandler(ActionHandler):
+    def __init__(self, args):
+        super().__init__(args)
+        self.auth()
+
+    def connect_options(self):
+        opts_dict = {
+            "host": self.args.insights_db_host,
+            "username": self.args.insights_db_user,
+        }
+        opts = ["--%s=%s" % (flg, arg) for flg, arg in opts_dict.items() if arg is not None]
+        return " ".join(opts)
+
+    def auth(self):
+        if self.args.insights_db_password:
+            os.environ['PGPASSWORD'] = self.args.insights_db_password
+
+    def db_exists(self):
+        command = "psql -tAq %s -c \"select 1 from pg_database where datname='%s'\" postgres" %\
+              (self.connect_options(), self.args.insights_db_name)
+        completed_process = self.shell_cmd(command)
+        output = completed_process.stdout.decode("utf-8")
+        exists = [True for l in output.splitlines() if l.strip() == "1"]
+        return any(exists)
+
+    def run(self, *args, **kwargs):
+        if self.db_exists():
+            log.info("%s database already exists" % self.args.insights_db_name)
+            return
+
+        command = "sudo createdb %s %s" % (self.connect_options(), self.args.insights_db_name)
+        log.debug("Running `%s`" % command)
+        self.shell_cmd(command)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Deploy rhsm-conduit")
+    parser.add_argument("--insights-db-password", help="Database password")
+    parser.add_argument("--insights-db-host", default="localhost", help="Database host")
+    parser.add_argument("--insights-db-user", default="insights", help="Name of the insights DB user")
+    parser.add_argument("--insights-db-name", default="inventory", help="Name of the insights DB")
+    parser.add_argument("--insights-secret", default="mysecret", help="Secret for the insights app")
+    # TODO add a check to make sure the value is an integer.  It needs to be passed to os.environ as a
+    #  string, but we should make sure it can be cast to an int
+    parser.add_argument("--insights-port", default="8080", help="Port to run the insights app on")
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbose mode")
+    parsed_args = parser.parse_args()
+
+    if parsed_args.verbose:
+        log.setLevel(logging.DEBUG)
+        # Only print stack traces in debug mode
+        err_log_func = log.exception
+    else:
+        log.setLevel(logging.INFO)
+        err_log_func = log.error
+
+    rc = 0
+    try:
+        db_handler = PostgresDbHandler(parsed_args)
+        db_handler.run()
+
+        submodule_handler = SubmoduleHandler(parsed_args)
+        submodule_handler.run()
+
+        inventory_handler = InventoryHandler(parsed_args)
+        inventory_handler.run()
+    except KeyboardInterrupt:
+        rc = 1
+        log.info("User interrupted execution")
+    except RuntimeError as e:
+        rc = 1
+        err_log_func(str(e))
+    except Exception as e:
+        log.exception("Unknown error")
+    finally:
+        sys.exit(rc)
+

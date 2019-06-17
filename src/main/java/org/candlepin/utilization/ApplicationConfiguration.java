@@ -20,11 +20,14 @@
  */
 package org.candlepin.utilization;
 
+import org.candlepin.insights.inventory.client.HostsApiFactory;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.utilization.jackson.ObjectMapperContextResolver;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +56,17 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public ObjectMapperContextResolver objectMapperContextResolver() {
         return new ObjectMapperContextResolver(applicationProperties);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "subscriptions.inventory-service")
+    public InventoryServiceProperties inventoryServiceProperties() {
+        return new InventoryServiceProperties();
+    }
+
+    @Bean
+    public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
+        return new HostsApiFactory(properties);
     }
 
     /**
