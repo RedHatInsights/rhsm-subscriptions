@@ -33,6 +33,7 @@ ext {
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     logstash_logback_encoder_version = "5.3"
+    quartz_version = "2.3.0"
 }
 
 
@@ -69,6 +70,10 @@ allprojects {
             dependencySet(group: "org.mockito", version: "$mockito_version") {
                 entry "mockito-core"
                 entry "mockito-junit-jupiter"
+            }
+            dependency("org.quartz-scheduler:quartz:$quartz_version") {
+                exclude group: "com.zaxxer", name: "HikariCP-java6"
+                exclude group: "com.mchange", name: "c3p0"
             }
         }
     }
@@ -154,9 +159,13 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-actuator"
     compile "org.springframework.boot:spring-boot-starter-data-jpa"
     compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework:spring-tx"
+    compile "org.springframework:spring-context-support"
+
     compile "net.logstash.logback:logstash-logback-encoder"
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.webjars:swagger-ui"
+    compile "org.quartz-scheduler:quartz"
 
     runtime "org.postgresql:postgresql"
     runtime "org.liquibase:liquibase-core"
@@ -164,7 +173,7 @@ dependencies {
         exclude group: 'org.hibernate' // exclude older hibernate validator
     }
 
-    testRuntime "org.hsqldb:hsqldb"
+    runtime "org.hsqldb:hsqldb"
 }
 
 compileJava.dependsOn(processResources)
