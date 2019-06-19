@@ -59,7 +59,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "subscriptions.inventory-service")
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service")
     public InventoryServiceProperties inventoryServiceProperties() {
         return new InventoryServiceProperties();
     }
