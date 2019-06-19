@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.jobs;
 
-import org.candlepin.subscriptions.tally.facts.FactNormalizer;
+import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
+
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
@@ -28,20 +29,24 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
+/**
+ * A quartz job that captures all usage snapshots on a configured schedule.
+ */
 public class CaptureSnapshotsJob extends QuartzJobBean {
 
     private static final Logger log = LoggerFactory.getLogger(CaptureSnapshotsJob.class);
 
-    private FactNormalizer factNormalizer;
+    private UsageSnapshotProducer usageSnapshotProducer;
 
     @Autowired
-    public CaptureSnapshotsJob(FactNormalizer factNormalizer) {
-        this.factNormalizer = factNormalizer;
+    public CaptureSnapshotsJob(UsageSnapshotProducer usageSnapshotProducer) {
+        this.usageSnapshotProducer = usageSnapshotProducer;
     }
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
         log.info("Capturing snapshots!!!!");
+        usageSnapshotProducer.produceSnapshots();
     }
 
 }

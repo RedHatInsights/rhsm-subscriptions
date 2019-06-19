@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally.facts.normalizer;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -42,41 +41,37 @@ public class YupanaFactNormalizerTest {
 
     @Test
     void testRhelFromYupanaFacts() {
-        FactSet yupana = createYupanaFactSet(true);
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, yupana);
+        normalizer.normalize(normalized, FactSetNamespace.YUPANA, createYupanaFactSet(true));
         assertTrue(normalized.getProducts().contains("RHEL"));
     }
 
     @Test
     public void testEmptyProductListWhenIsRhelIsFalse() {
-        FactSet yupana = createYupanaFactSet(false);
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, yupana);
+        normalizer.normalize(normalized, FactSetNamespace.YUPANA, createYupanaFactSet(false));
         assertTrue(normalized.getProducts().isEmpty());
     }
 
     @Test
     public void testEmptyProductListWhenIsRhelNotSet() {
-        FactSet yupana = createYupanaFactSet(null);
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, yupana);
+        normalizer.normalize(normalized, FactSetNamespace.YUPANA, createYupanaFactSet(null));
         assertTrue(normalized.getProducts().isEmpty());
     }
 
     @Test
     void testInvalidNamespace() {
-        FactSet factSet = createYupanaFactSet(true);
-        factSet.setNamespace("unknown_namespace");
         NormalizedFacts normalized = new NormalizedFacts();
-        assertThrows(IllegalArgumentException.class, () -> normalizer.normalize(normalized, factSet));
+        assertThrows(IllegalArgumentException.class, () -> normalizer.normalize(normalized,
+            "unknown_namespace", createYupanaFactSet(true)));
     }
 
-    private FactSet createYupanaFactSet(Boolean isRhel) {
+    private Map<String, Object> createYupanaFactSet(Boolean isRhel) {
         Map<String, Object> yupanaFacts = new HashMap<>();
         if (isRhel != null) {
             yupanaFacts.put(YupanaFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
         }
-        return new FactSet().namespace(FactSetNamespace.YUPANA).facts(yupanaFacts);
+        return yupanaFacts;
     }
 }

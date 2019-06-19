@@ -34,12 +34,29 @@ public class ApplicationProperties {
 
     private boolean prettyPrintJson = false;
 
+    private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
+
     /**
      * Resource location a file containing a list of RHEL product IDs.
      */
     private String rhelProductListResourceLocation;
 
-    private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
+    /**
+     * Resource location of a file containing a list of accounts to process.
+     */
+    private String accountListResourceLocation;
+
+    /**
+     * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
+     * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
+     */
+    private int hostLastSyncThresholdHours = 24;
+
+    /**
+     * The batch size of account numbers that will be processed at a time while producing snapshots.
+     * Default: 500
+     */
+    private int accountBatchSize = 500;
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
@@ -60,4 +77,29 @@ public class ApplicationProperties {
     public TallyRetentionPolicyProperties getTallyRetentionPolicy() {
         return tallyRetentionPolicy;
     }
+
+    public String getAccountListResourceLocation() {
+        return accountListResourceLocation;
+    }
+
+    public void setAccountListResourceLocation(String accountListResourceLocation) {
+        this.accountListResourceLocation = accountListResourceLocation;
+    }
+
+    public int getHostLastSyncThresholdHours() {
+        return hostLastSyncThresholdHours;
+    }
+
+    public void setHostLastSyncThresholdHours(int hostLastSyncThresholdHours) {
+        this.hostLastSyncThresholdHours = hostLastSyncThresholdHours;
+    }
+
+    public int getAccountBatchSize() {
+        return this.accountBatchSize;
+    }
+
+    public void setAccountBatchSize(int accountBatchSize) {
+        this.accountBatchSize = accountBatchSize;
+    }
+
 }

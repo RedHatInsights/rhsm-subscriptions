@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.retention;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallyGranularity;
 
 import org.junit.jupiter.api.Test;
 

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.retention;
 
-import org.candlepin.subscriptions.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallyGranularity;
 
 import java.time.Clock;
 import java.time.DayOfWeek;

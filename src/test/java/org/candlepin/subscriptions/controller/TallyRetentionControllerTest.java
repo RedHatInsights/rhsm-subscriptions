@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.controller;
 
-import org.candlepin.subscriptions.model.TallyGranularity;
-import org.candlepin.subscriptions.model.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 
 import org.junit.jupiter.api.Test;

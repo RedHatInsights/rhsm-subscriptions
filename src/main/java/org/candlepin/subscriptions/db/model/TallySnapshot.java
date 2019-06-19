@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.model;
+package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -32,6 +32,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+
 
 /**
  * Model object to represent pieces of tally data.

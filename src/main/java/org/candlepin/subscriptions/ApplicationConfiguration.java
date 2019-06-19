@@ -22,43 +22,30 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
+import org.candlepin.subscriptions.files.AccountListSource;
+import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
-import org.candlepin.subscriptions.tally.facts.RhelProductListSource;
-
-import com.zaxxer.hikari.HikariDataSource;
+import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.quartz.JobDetail;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
-import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
-import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.IOException;
 import java.time.Clock;
 
-import javax.sql.DataSource;
 import javax.validation.Validator;
-import java.util.Properties;
 
 
 /** Class to hold configuration beans */
@@ -125,53 +112,20 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    @Primary
-    @ConfigurationProperties("rhsm-subscriptions.datasource")
-    public DataSourceProperties dataSourceProperties() {
-        return new DataSourceProperties();
+    public AccountListSource accountListSource(ApplicationProperties applicationProperties) {
+        return new AccountListSource(applicationProperties);
     }
 
     @Bean
-    @Primary
-    @ConfigurationProperties("rhsm-subscriptions.datasource.configuration")
-    public HikariDataSource dataSource(@Qualifier("dataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    public FactNormalizer factNormalizer(ApplicationProperties applicationProperties,
+        RhelProductListSource prodListSource, Clock clock) throws IOException {
+        return new FactNormalizer(applicationProperties, prodListSource, clock);
     }
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
         registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.quartz.datasource")
-    public DataSourceProperties quartzDataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    @Bean
-    @QuartzDataSource
-    public DataSource quartzDataSource(
-        @Qualifier("quartzDataSourceProperties") DataSourceProperties dataSourceProperties) {
-        DataSourceBuilder builder = dataSourceProperties.initializeDataSourceBuilder();
-        return builder.build();
-    }
-
-    @Bean
-    public SchedulerFactoryBeanCustomizer schedulerFactoryBeanCustomizer(
-        @Qualifier("quartzDataSourceProperties") DataSourceProperties properties) {
-        String driverDelegate = "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
-        if (properties.getPlatform().startsWith("postgres")) {
-            driverDelegate = "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate";
-        }
-
-        final String finalDriverDelegate = driverDelegate;
-        return schedulerFactoryBean -> {
-            Properties props = new Properties();
-            props.put("org.quartz.jobStore.driverDelegateClass", finalDriverDelegate);
-            schedulerFactoryBean.setQuartzProperties(props);
-        };
     }
 
     @Override

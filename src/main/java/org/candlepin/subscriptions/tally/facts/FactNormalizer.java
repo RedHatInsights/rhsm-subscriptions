@@ -20,51 +20,54 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.model.HostOut;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.tally.facts.normalizer.FactSetNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.YupanaFactNormalizer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 
 /**
  * Responsible for examining an inventory host and producing normalized
  * and condensed facts based on the host's facts.
  */
-@Component
 public class FactNormalizer {
 
     private static final Logger log = LoggerFactory.getLogger(FactNormalizer.class);
 
     private Map<String, FactSetNormalizer> normalizers;
 
-    public FactNormalizer(RhelProductListSource rhelProductListSource) throws IOException {
+    public FactNormalizer(ApplicationProperties props, RhelProductListSource rhelProductListSource,
+        Clock clock) throws IOException {
         normalizers = new HashMap<>();
-        normalizers.put(FactSetNamespace.RHSM, new RhsmFactNormalizer(rhelProductListSource.getProductIds()));
+        normalizers.put(FactSetNamespace.RHSM, new RhsmFactNormalizer(props.getHostLastSyncThresholdHours(),
+            rhelProductListSource.list(), clock));
         normalizers.put(FactSetNamespace.YUPANA, new YupanaFactNormalizer());
     }
 
     /**
      * Normalize the FactSets of the given host.
      *
-     * @param host the target inventory host.
+     * @param host the target host.
      * @return a normalized version of the host's facts.
      */
-    public NormalizedFacts normalize(HostOut host) {
+    public NormalizedFacts normalize(InventoryHost host) {
         NormalizedFacts facts = new NormalizedFacts();
-        for (FactSet factSet : host.getFacts()) {
-            if (normalizers.containsKey(factSet.getNamespace())) {
+        for (Entry<String, Map<String, Object>> factSet: host.getFacts().entrySet()) {
+            if (normalizers.containsKey(factSet.getKey())) {
                 log.debug("Normalizing facts for host/namespace: {}/{}", host.getDisplayName(),
-                    factSet.getNamespace());
-                normalizers.get(factSet.getNamespace()).normalize(facts, factSet);
+                    factSet.getKey());
+                normalizers.get(factSet.getKey()).normalize(facts, factSet.getKey(), factSet.getValue());
             }
         }
         return facts;

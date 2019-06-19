@@ -20,15 +20,23 @@
  */
 package org.candlepin.subscriptions.jobs;
 
-
 import org.quartz.JobDetail;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
+import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+
+import java.util.Properties;
+
+import javax.sql.DataSource;
 
 /**
  * A class to hold all job related configuration.
@@ -38,8 +46,35 @@ import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class JobsConfiguration {
 
-    @Autowired
-    private JobProperties jobProperties;
+    @Bean
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.quartz.datasource")
+    public DataSourceProperties quartzDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean(name = "quartz-ds")
+    @QuartzDataSource
+    public DataSource quartzDataSource(
+        @Qualifier("quartzDataSourceProperties") DataSourceProperties dataSourceProperties) {
+        DataSourceBuilder builder = dataSourceProperties.initializeDataSourceBuilder();
+        return builder.build();
+    }
+
+    @Bean
+    public SchedulerFactoryBeanCustomizer schedulerFactoryBeanCustomizer(
+        @Qualifier("quartzDataSourceProperties") DataSourceProperties properties) {
+        String driverDelegate = "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
+        if (properties.getPlatform().startsWith("postgres")) {
+            driverDelegate = "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate";
+        }
+
+        final String finalDriverDelegate = driverDelegate;
+        return schedulerFactoryBean -> {
+            Properties props = new Properties();
+            props.put("org.quartz.jobStore.driverDelegateClass", finalDriverDelegate);
+            schedulerFactoryBean.setQuartzProperties(props);
+        };
+    }
 
     @Bean
     public JobDetailFactoryBean orgSyncJobDetail() {
@@ -51,7 +86,7 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public CronTriggerFactoryBean trigger(JobDetail job) {
+    public CronTriggerFactoryBean trigger(JobDetail job, JobProperties jobProperties) {
         CronTriggerFactoryBean trigger = new CronTriggerFactoryBean();
         trigger.setJobDetail(job);
         trigger.setCronExpression(jobProperties.getCaptureSnapshotSchedule());
