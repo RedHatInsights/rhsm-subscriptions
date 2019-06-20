@@ -26,7 +26,6 @@ import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.tally.facts.RhelProductListSource;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -51,11 +50,9 @@ import javax.validation.Validator;
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
 
-    @Autowired
-    private ApplicationProperties applicationProperties;
-
     @Bean
-    public ObjectMapperContextResolver objectMapperContextResolver() {
+    public ObjectMapperContextResolver objectMapperContextResolver(
+        ApplicationProperties applicationProperties) {
         return new ObjectMapperContextResolver(applicationProperties);
     }
 
