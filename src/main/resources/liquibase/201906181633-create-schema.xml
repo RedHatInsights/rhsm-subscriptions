@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="201906181633-1" author="awood">
+        <comment>Initial schema for rhsm-subscriptions</comment>
+        <createTable tableName="tally_snapshots">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="tally_snapshots_pk"/>
+            </column>
+            <column name="product_id" type="VARCHAR(255)"/>
+            <column name="owner_id" type="VARCHAR(255)"/>
+            <column name="instance_count" type="INT"/>
+            <column name="vcpus" type="INT"/>
+            <column name="snapshot_date" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="201906181633-2" author="awood">
+        <createIndex indexName="owner_and_product_idx" tableName="tally_snapshots"
+            unique="false">
+            <column name="owner_id"/>
+            <column name="product_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

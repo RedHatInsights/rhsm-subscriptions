@@ -21,3 +21,6 @@ management:
       enabled: true
     prometheus:
       enabled: true
+spring:
+  liquibase:
+    change-log: classpath:/liquibase/changelog.xml

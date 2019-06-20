@@ -25,6 +25,8 @@ ext {
     prometheus_version = "1.1.2"
     resteasy_version = "3.6.2.Final"
     spring_boot_version = "2.1.6.RELEASE"
+    spring_data_releasetrain = "Lovelace-SR9"
+    postgres_jdbc_driver_version = "42.2.5"
     junit_version = "5.3.2"
     mockito_version = "2.23.4"
     hamcrest_version = "2.1"
@@ -44,6 +46,7 @@ allprojects {
             // See https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies to
             // get listings of the contents of this BOM
             mavenBom "org.springframework.boot:spring-boot-dependencies:$spring_boot_version"
+            mavenBom "org.springframework.data:spring-data-releasetrain:$spring_data_releasetrain"
         }
         dependencies{
             dependency "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:$jboss_jaxrs_api_version"
@@ -52,7 +55,7 @@ allprojects {
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
             dependency "net.logstash.logback:logstash-logback-encoder:$logstash_logback_encoder_version"
             dependency "org.hamcrest:hamcrest:$hamcrest_version"
-
+            dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
             dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
@@ -144,12 +147,17 @@ dependencies {
         exclude group: "org.springframework.boot"
     }
     compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.boot:spring-boot-starter-data-jpa"
     compile "org.springframework.boot:spring-boot-starter-web"
     compile "net.logstash.logback:logstash-logback-encoder"
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.webjars:swagger-ui"
 
+    runtime "org.postgresql:postgresql"
+    runtime "org.liquibase:liquibase-core"
     runtime "org.jboss.resteasy:resteasy-validator-provider-11"
+
+    testRuntime "org.hsqldb:hsqldb"
 }
 
 compileJava.dependsOn(processResources)
