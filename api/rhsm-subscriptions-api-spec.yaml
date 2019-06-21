@@ -14,7 +14,7 @@ servers:
         default: rhsm-subscriptions
 
 paths:
-  /accounts/{account_number}/products/{product_id}/tally_report:
+  /tally/accounts/{account_number}/products/{product_id}:
     description: "Operations for a tally report for a specific account and product."
     parameters:
       - name: x-rh-identity
@@ -77,6 +77,8 @@ paths:
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+      tags:
+        - tally
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
