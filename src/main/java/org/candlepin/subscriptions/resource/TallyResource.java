@@ -54,7 +54,7 @@ public class TallyResource implements TallyApi {
         try {
             // extract account number from json like {'identity': {'account_number': '12345678'}}"
             Map authObject = mapper.readValue(xRhIdentity, Map.class);
-            Map identity = (Map) authObject.getOrDefault("identity", Collections.EMPTY_MAP);
+            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
             String authAccountNumber = (String) identity.get("account_number");
             if (!accountNumber.equals(authAccountNumber)) {
                 throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR,
