@@ -14,8 +14,8 @@ servers:
         default: rhsm-subscriptions
 
 paths:
-  /owners/{owner_id}/products/{product_id}/:
-    description: "All utilization operations related to a specific organization and product."
+  /accounts/{account_number}/products/{product_id}/tally_report:
+    description: "Operations for a tally report for a specific account and product."
     parameters:
       - name: x-rh-identity
         in: header
@@ -24,12 +24,12 @@ paths:
           type: string
           format: byte
         description: "Identity header provided by 3Scale."
-      - name: owner_id
+      - name: account_number
         in: path
         required: true
         schema:
           type: string
-        description: "The owner_id is the candlepin owner key."
+        description: "Account number for to fetch data for. Must match the authenticated account number."
       - name: product_id
         in: path
         required: true
@@ -37,7 +37,7 @@ paths:
           type: string
         description: "The ID for the product we wish to query"
     get:
-      summary: "Fetch the utilization data for an organization and product."
+      summary: "Fetch a tally report for an account and product."
       operationId: getTallyReport
       parameters:
         - name: granularity
@@ -64,7 +64,7 @@ paths:
             be provided in UTC."
       responses:
         '200':
-          description: 'The request for inventory data was successful.'
+          description: 'The request for a tally report was successful.'
           content:
             application/vnd.api+json:
               schema:
