@@ -28,15 +28,24 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
-
 
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
 @TestPropertySource("classpath:/test.properties")
 public class TallySnapshotRepositoryTest {
+    private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
+        ZoneId.systemDefault());
+    private static final OffsetDateTime NOWISH = OffsetDateTime.of(2019, 06, 23, 00, 00, 00, 00,
+        ZoneOffset.UTC);
+    private static final OffsetDateTime FAR_FUTURE = OffsetDateTime.of(2099, 01, 01, 00, 00, 00, 00,
+        ZoneOffset.UTC);
+
     @Autowired private TallySnapshotRepository repository;
 
     @Test
@@ -45,31 +54,48 @@ public class TallySnapshotRepositoryTest {
         t.setOwnerId("Hello");
         t.setProductId("World");
         t.setVcpus(2);
+        t.setGranularity("daily");
         t.setSnapshotDate(OffsetDateTime.now());
         TallySnapshot saved = repository.saveAndFlush(t);
         assertNotNull(saved.getId());
     }
 
     @Test
-    public void testFindByOwnerAndProduct() {
+    public void testFindByAccountNumberAndProduct() {
         TallySnapshot t1 = new TallySnapshot();
-        t1.setOwnerId("Hello");
+        t1.setAccountNumber("Hello");
         t1.setProductId("World");
         t1.setVcpus(2);
-        t1.setSnapshotDate(OffsetDateTime.now());
+        t1.setGranularity("daily");
+        t1.setSnapshotDate(NOWISH);
 
         TallySnapshot t2 = new TallySnapshot();
-        t2.setOwnerId("Bugs");
+        t2.setAccountNumber("Bugs");
         t2.setProductId("Bunny");
+        t2.setOwnerId("N/A");
         t2.setVcpus(9999);
-        t2.setSnapshotDate(OffsetDateTime.now());
+        t2.setGranularity("daily");
+        t2.setSnapshotDate(NOWISH);
 
         repository.save(t1);
         repository.save(t2);
         repository.flush();
 
-        List<TallySnapshot> found = repository.findByOwnerIdAndProductId("Bugs", "Bunny");
+        List<TallySnapshot> found = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
+
+            "Bugs",
+            "Bunny",
+            "daily",
+            LONG_AGO,
+            FAR_FUTURE
+        );
         assertEquals(1, found.size());
-        assertEquals(9999, (int) found.get(0).getVcpus());
+        TallySnapshot snapshot = found.get(0);
+        assertEquals(9999, (int) snapshot.getVcpus());
+        assertEquals("Bugs", snapshot.getAccountNumber());
+        assertEquals("Bunny", snapshot.getProductId());
+        assertEquals("N/A", snapshot.getOwnerId());
+        assertEquals(NOWISH, found.get(0).getSnapshotDate());
     }
 }

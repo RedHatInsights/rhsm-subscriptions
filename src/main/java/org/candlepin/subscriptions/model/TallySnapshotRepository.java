@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.model;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,5 +31,7 @@ import java.util.UUID;
  * Interface that Spring Data will turn into a DAO for us.
  */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
-    List<TallySnapshot> findByOwnerIdAndProductId(String ownerId, String productId);
+    List<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
+        String accountNumber, String productId, String granularity, OffsetDateTime beginning,
+        OffsetDateTime ending);
 }

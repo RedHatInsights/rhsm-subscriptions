@@ -13,6 +13,8 @@
                 <constraints primaryKey="true" primaryKeyName="tally_snapshots_pk"/>
             </column>
             <column name="product_id" type="VARCHAR(255)"/>
+            <column name="account_number" type="VARCHAR(255)"/>
+            <column name="granularity" type="VARCHAR(255)"/>
             <column name="owner_id" type="VARCHAR(255)"/>
             <column name="instance_count" type="INT"/>
             <column name="vcpus" type="INT"/>
@@ -21,9 +23,9 @@
     </changeSet>
 
     <changeSet id="201906181633-2" author="awood">
-        <createIndex indexName="owner_and_product_idx" tableName="tally_snapshots"
+        <createIndex indexName="acct_and_product_idx" tableName="tally_snapshots"
             unique="false">
-            <column name="owner_id"/>
+            <column name="account_number"/>
             <column name="product_id"/>
         </createIndex>
     </changeSet>

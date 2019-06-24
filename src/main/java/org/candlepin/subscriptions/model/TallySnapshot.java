@@ -56,6 +56,12 @@ public class TallySnapshot implements Serializable {
     @Column(name = "owner_id")
     private String ownerId;
 
+    @Column(name = "account_number")
+    private String accountNumber;
+
+    @Column(name = "granularity")
+    private String granularity;
+
     public UUID getId() {
         return id;
     }
@@ -102,5 +108,21 @@ public class TallySnapshot implements Serializable {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
+    public String getGranularity() {
+        return granularity;
+    }
+
+    public void setGranularity(String granularity) {
+        this.granularity = granularity;
     }
 }
