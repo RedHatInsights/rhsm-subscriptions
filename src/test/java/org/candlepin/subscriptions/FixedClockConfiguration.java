@@ -18,23 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
+package org.candlepin.subscriptions;
 
-package org.candlepin.subscriptions.model;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
-/**
- * Interface that Spring Data will turn into a DAO for us.
- */
-public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
-    List<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
-        String accountNumber, String productId, TallyGranularity granularity, OffsetDateTime beginning,
-        OffsetDateTime ending);
-
-    void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
-        TallyGranularity granularity, OffsetDateTime cutoffDate);
+@TestConfiguration
+public class FixedClockConfiguration {
+    @Bean
+    @Primary
+    public Clock fixedClock() {
+        return Clock.fixed(
+            Instant.from(OffsetDateTime.of(2019, 5, 24, 12, 35, 0, 0, ZoneOffset.UTC)),
+            ZoneId.of("UTC")
+        );
+    }
 }

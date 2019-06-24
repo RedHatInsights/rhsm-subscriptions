@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions;
 
+import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,8 @@ public class ApplicationProperties {
      */
     private String rhelProductListResourceLocation;
 
+    private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
@@ -51,5 +55,9 @@ public class ApplicationProperties {
 
     public void setRhelProductListResourceLocation(String rhelProductListResourceLocation) {
         this.rhelProductListResourceLocation = rhelProductListResourceLocation;
+    }
+
+    public TallyRetentionPolicyProperties getTallyRetentionPolicy() {
+        return tallyRetentionPolicy;
     }
 }
