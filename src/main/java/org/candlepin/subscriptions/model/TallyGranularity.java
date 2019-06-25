@@ -18,20 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.model;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-
 /**
- * Interface that Spring Data will turn into a DAO for us.
+ * Granularity of a given tally snapshot.
+ *
+ * Granularity defines the scope of max concurrent usage. For example, max concurrent usage across a week
+ * represents the maximum tally totals across all days in that week. For example, given a week where daily
+ * tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
-public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
-    List<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
-        String accountNumber, String productId, TallyGranularity granularity, OffsetDateTime beginning,
-        OffsetDateTime ending);
+public enum TallyGranularity {
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    QUARTERLY,
+    YEARLY
 }

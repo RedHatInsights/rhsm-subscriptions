@@ -26,6 +26,8 @@ import java.util.UUID;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -37,6 +39,7 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "tally_snapshots")
 public class TallySnapshot implements Serializable {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
@@ -47,8 +50,8 @@ public class TallySnapshot implements Serializable {
     @Column(name = "instance_count")
     private Integer instanceCount;
 
-    @Column(name = "vcpus")
-    private Integer vcpus;
+    @Column(name = "cores")
+    private Integer cores;
 
     @Column(name = "product_id")
     private String productId;
@@ -59,8 +62,9 @@ public class TallySnapshot implements Serializable {
     @Column(name = "account_number")
     private String accountNumber;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "granularity")
-    private String granularity;
+    private TallyGranularity granularity;
 
     public UUID getId() {
         return id;
@@ -86,12 +90,12 @@ public class TallySnapshot implements Serializable {
         this.instanceCount = instanceCount;
     }
 
-    public Integer getVcpus() {
-        return vcpus;
+    public Integer getCores() {
+        return cores;
     }
 
-    public void setVcpus(Integer vcpus) {
-        this.vcpus = vcpus;
+    public void setCores(Integer cores) {
+        this.cores = cores;
     }
 
     public String getProductId() {
@@ -118,11 +122,11 @@ public class TallySnapshot implements Serializable {
         this.accountNumber = accountNumber;
     }
 
-    public String getGranularity() {
+    public TallyGranularity getGranularity() {
         return granularity;
     }
 
-    public void setGranularity(String granularity) {
+    public void setGranularity(TallyGranularity granularity) {
         this.granularity = granularity;
     }
 }

@@ -53,8 +53,8 @@ public class TallySnapshotRepositoryTest {
         TallySnapshot t = new TallySnapshot();
         t.setOwnerId("Hello");
         t.setProductId("World");
-        t.setVcpus(2);
-        t.setGranularity("daily");
+        t.setCores(2);
+        t.setGranularity(TallyGranularity.DAILY);
         t.setSnapshotDate(OffsetDateTime.now());
         TallySnapshot saved = repository.saveAndFlush(t);
         assertNotNull(saved.getId());
@@ -65,16 +65,16 @@ public class TallySnapshotRepositoryTest {
         TallySnapshot t1 = new TallySnapshot();
         t1.setAccountNumber("Hello");
         t1.setProductId("World");
-        t1.setVcpus(2);
-        t1.setGranularity("daily");
+        t1.setCores(2);
+        t1.setGranularity(TallyGranularity.DAILY);
         t1.setSnapshotDate(NOWISH);
 
         TallySnapshot t2 = new TallySnapshot();
         t2.setAccountNumber("Bugs");
         t2.setProductId("Bunny");
         t2.setOwnerId("N/A");
-        t2.setVcpus(9999);
-        t2.setGranularity("daily");
+        t2.setCores(9999);
+        t2.setGranularity(TallyGranularity.DAILY);
         t2.setSnapshotDate(NOWISH);
 
         repository.save(t1);
@@ -86,13 +86,13 @@ public class TallySnapshotRepositoryTest {
 
             "Bugs",
             "Bunny",
-            "daily",
+            TallyGranularity.DAILY,
             LONG_AGO,
             FAR_FUTURE
         );
         assertEquals(1, found.size());
         TallySnapshot snapshot = found.get(0);
-        assertEquals(9999, (int) snapshot.getVcpus());
+        assertEquals(9999, (int) snapshot.getCores());
         assertEquals("Bugs", snapshot.getAccountNumber());
         assertEquals("Bunny", snapshot.getProductId());
         assertEquals("N/A", snapshot.getOwnerId());

@@ -12,12 +12,12 @@
             <column name="id" type="UUID">
                 <constraints primaryKey="true" primaryKeyName="tally_snapshots_pk"/>
             </column>
-            <column name="product_id" type="VARCHAR(255)"/>
-            <column name="account_number" type="VARCHAR(255)"/>
-            <column name="granularity" type="VARCHAR(255)"/>
-            <column name="owner_id" type="VARCHAR(255)"/>
+            <column name="product_id" type="VARCHAR(32)"/>
+            <column name="account_number" type="VARCHAR(32)"/>
+            <column name="granularity" type="VARCHAR(32)"/>
+            <column name="owner_id" type="VARCHAR(32)"/>
             <column name="instance_count" type="INT"/>
-            <column name="vcpus" type="INT"/>
+            <column name="cores" type="INT"/>
             <column name="snapshot_date" type="TIMESTAMP WITH TIME ZONE"/>
         </createTable>
     </changeSet>
