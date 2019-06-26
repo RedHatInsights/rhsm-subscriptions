@@ -15,13 +15,6 @@ paths:
   /tally/accounts/{account_number}/products/{product_id}:
     description: "Operations for a tally report of a specific account and product."
     parameters:
-      - name: x-rh-identity
-        in: header
-        required: true
-        schema:
-          type: string
-          format: byte
-        description: "Identity header provided by 3Scale."
       - name: account_number
         in: path
         required: true
@@ -105,6 +98,15 @@ paths:
                 type: string
 
 components:
+  securitySchemes:
+    3ScaleIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-identity
+      description: >-
+        Base64-encoded JSON identity header provided by 3Scale. Contains an
+        account number of the user issuing the request. Format of the JSON:
+        {"identity": {"account_number": "12345678"}}
   responses:
     InternalServerError:
       description: "An internal server error has occurred and is not recoverable."
@@ -199,3 +201,6 @@ components:
           type: string
         detail:
           type: string
+
+security:
+  - 3ScaleIdentity: []

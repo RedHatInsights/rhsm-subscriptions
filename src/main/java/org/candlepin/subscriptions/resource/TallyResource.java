@@ -25,17 +25,14 @@ import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
-import java.util.Collections;
-import java.util.Map;
 
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 /**
  * Tally API implementation.
@@ -43,34 +40,22 @@ import javax.ws.rs.core.Response;
 @Component
 public class TallyResource implements TallyApi {
 
-    private final ObjectMapper mapper;
+    @Context
+    SecurityContext securityContext;
 
-    public TallyResource(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
-
-    private void checkPermission(byte[] xRhIdentity, String accountNumber) {
-        try {
-            // extract account number from json like {'identity': {'account_number': '12345678'}}"
-            Map authObject = mapper.readValue(xRhIdentity, Map.class);
-            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
-            String authAccountNumber = (String) identity.get("account_number");
-            if (!accountNumber.equals(authAccountNumber)) {
-                throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR,
-                    Response.Status.UNAUTHORIZED, "Unauthorized",
-                    String.format("%s not authorized to access %s", authAccountNumber, accountNumber));
-            }
-        }
-        catch (IOException e) {
-            throw new SubscriptionsException(ErrorCode.REQUEST_PROCESSING_ERROR,
-                Response.Status.BAD_REQUEST, "Error reading auth header", e);
+    private void checkPermission(String accountNumber) {
+        String authAccountNumber = securityContext.getUserPrincipal().getName();
+        if (!accountNumber.equals(authAccountNumber)) {
+            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR,
+                Response.Status.FORBIDDEN, "Unauthorized",
+                String.format("%s not authorized to access %s", authAccountNumber, accountNumber));
         }
     }
 
     @Override
-    public TallyReport getTallyReport(@NotNull byte[] xRhIdentity, String accountNumber, String productId,
-        @NotNull String granularity, OffsetDateTime beginning, OffsetDateTime ending) {
-        checkPermission(xRhIdentity, accountNumber);
+    public TallyReport getTallyReport(String accountNumber, String productId, @NotNull String granularity,
+        OffsetDateTime beginning, OffsetDateTime ending) {
+        checkPermission(accountNumber);
         return null; // TODO implement
     }
 }

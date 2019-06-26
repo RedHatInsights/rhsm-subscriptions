@@ -24,43 +24,47 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 public class TallyResourceTest {
-    private static final byte[] TEST_ACCOUNT_HEADER =
-        "{\"identity\":{\"account_number\":\"123456\"}}".getBytes(StandardCharsets.UTF_8);
 
     @Test
     public void testAccountNumberMustMatchHeader() {
-        TallyResource resource = new TallyResource(new ObjectMapper());
-        SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
-            TEST_ACCOUNT_HEADER,
-            "42",
-            "product1",
-            "daily",
-            null,
-            null
-        ));
-        assertEquals(Response.Status.UNAUTHORIZED, e.getStatus());
-    }
+        TallyResource resource = new TallyResource();
+        resource.securityContext = new SecurityContext() {
 
-    @Test
-    public void testBadAuthHeaderRespondsWithBadRequest() {
-        TallyResource resource = new TallyResource(new ObjectMapper());
+            @Override
+            public Principal getUserPrincipal() {
+                return () -> "123456";
+            }
+
+            @Override
+            public boolean isUserInRole(String role) {
+                return false;
+            }
+
+            @Override
+            public boolean isSecure() {
+                return false;
+            }
+
+            @Override
+            public String getAuthenticationScheme() {
+                return null;
+            }
+        };
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
-            "{".getBytes(StandardCharsets.UTF_8),
             "42",
             "product1",
             "daily",
             null,
             null
         ));
-        assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+        assertEquals(Response.Status.FORBIDDEN, e.getStatus());
     }
 }
