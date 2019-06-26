@@ -157,8 +157,8 @@ components:
     TallySnapshot:
       # Container for fields we capture from the IT endpoint for upload to inventory service.  The element
       # being reported should be the only non-required element.  E.g. snapshots containing memory will have
-      # date, instance count, and memory elements while snapshots containing vcpus will contain date,
-      # instance count, and vcpus.
+      # date, instance count, and memory elements while snapshots containing cores will contain date,
+      # instance count, and cores.
       required:
         - date
         - instance_count
@@ -173,7 +173,7 @@ components:
           type: integer
           format: int32
           minimum: 0
-        vcpus:
+        cores:
           type: integer
           format: int32
           minimum: 0
