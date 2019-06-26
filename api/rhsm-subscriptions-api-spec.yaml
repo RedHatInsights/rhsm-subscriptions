@@ -15,7 +15,7 @@ servers:
 
 paths:
   /tally/accounts/{account_number}/products/{product_id}:
-    description: "Operations for a tally report for a specific account and product."
+    description: "Operations for a tally report of a specific account and product."
     parameters:
       - name: x-rh-identity
         in: header
@@ -29,7 +29,7 @@ paths:
         required: true
         schema:
           type: string
-        description: "Account number for to fetch data for. Must match the authenticated account number."
+        description: "Account number to fetch data for. Must match the authenticated account number."
       - name: product_id
         in: path
         required: true
