@@ -25,14 +25,17 @@ import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.tally.facts.RhelProductListSource;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
@@ -51,11 +54,9 @@ import javax.validation.Validator;
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
 
-    @Autowired
-    private ApplicationProperties applicationProperties;
-
     @Bean
-    public ObjectMapperContextResolver objectMapperContextResolver() {
+    public ObjectMapperContextResolver objectMapperContextResolver(
+        ApplicationProperties applicationProperties) {
         return new ObjectMapperContextResolver(applicationProperties);
     }
 
@@ -91,8 +92,21 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public RhelProductListSource rhelProductListSource() {
+    public RhelProductListSource rhelProductListSource(ApplicationProperties applicationProperties) {
         return new RhelProductListSource(applicationProperties);
+    }
+
+    @Bean
+    @Primary
+    @ConfigurationProperties("rhsm-subscriptions.datasource")
+    public DataSourceProperties dataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean
+    @ConfigurationProperties("rhsm-subscriptions.datasource.configuration")
+    public HikariDataSource dataSource(DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Override
