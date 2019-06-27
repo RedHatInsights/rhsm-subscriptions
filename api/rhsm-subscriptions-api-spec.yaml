@@ -5,13 +5,11 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8080/rhsm-subscriptions/v1
-  - url: http://localhost:8080/{PATH_PREFIX}/{APP_NAME}/v1
-    variables:
-      PATH_PREFIX:
-        default: api
-      APP_NAME:
-        default: rhsm-subscriptions
+  - url: http://localhost:8080/api/rhsm-subscriptions/v1
+  - url: https://ci.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://qa.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://stage.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://cloud.redhat.com/api/rhsm-subscriptions/v1
 
 paths:
   /tally/accounts/{account_number}/products/{product_id}:
