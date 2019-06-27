@@ -82,7 +82,7 @@ public class TallyRetentionPolicy {
                 firstDayOfMonth = today.with(TemporalAdjusters.firstDayOfMonth());
                 return firstDayOfMonth.with(ChronoField.MONTH_OF_YEAR,
                     firstDayOfMonth.getMonth().firstMonthOfQuarter().getValue())
-                    .minusMonths(3 * config.getQuarterly());
+                    .minusMonths(3L * config.getQuarterly());
             case YEARLY:
                 if (config.getYearly() == null) {
                     return null;
