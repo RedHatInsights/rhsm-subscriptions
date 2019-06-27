@@ -37,48 +37,6 @@ public class TallyResourceTest {
         "{\"identity\":{\"account_number\":\"123456\"}}".getBytes(StandardCharsets.UTF_8);
 
     @Test
-    public void testGranularityRequired() {
-        TallyResource resource = new TallyResource(new ObjectMapper());
-        NullPointerException e = assertThrows(NullPointerException.class, () -> resource.getTallyReport(
-            TEST_ACCOUNT_HEADER,
-            "123456",
-            "product1",
-            null,
-            null,
-            null
-        ));
-        assertEquals("granularity required", e.getMessage());
-    }
-
-    @Test
-    public void testAccountNumberRequired() {
-        TallyResource resource = new TallyResource(new ObjectMapper());
-        NullPointerException e = assertThrows(NullPointerException.class, () -> resource.getTallyReport(
-            TEST_ACCOUNT_HEADER,
-            null,
-            "product1",
-            "daily",
-            null,
-            null
-        ));
-        assertEquals("account_number required", e.getMessage());
-    }
-
-    @Test
-    public void testProductIdRequired() {
-        TallyResource resource = new TallyResource(new ObjectMapper());
-        NullPointerException e = assertThrows(NullPointerException.class, () -> resource.getTallyReport(
-            TEST_ACCOUNT_HEADER,
-            "123456",
-            null,
-            "daily",
-            null,
-            null
-        ));
-        assertEquals("product_id required", e.getMessage());
-    }
-
-    @Test
     public void testAccountNumberMustMatchHeader() {
         TallyResource resource = new TallyResource(new ObjectMapper());
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(

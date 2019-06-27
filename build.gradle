@@ -75,6 +75,11 @@ allprojects {
 
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
+
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << '-parameters'
+    }
+
     repositories {
         mavenCentral()
     }
@@ -155,7 +160,9 @@ dependencies {
 
     runtime "org.postgresql:postgresql"
     runtime "org.liquibase:liquibase-core"
-    runtime "org.jboss.resteasy:resteasy-validator-provider-11"
+    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
+        exclude group: 'org.hibernate' // exclude older hibernate validator
+    }
 
     testRuntime "org.hsqldb:hsqldb"
 }

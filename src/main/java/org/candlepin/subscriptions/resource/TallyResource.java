@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Response;
@@ -71,9 +70,6 @@ public class TallyResource implements TallyApi {
     @Override
     public TallyReport getTallyReport(@NotNull byte[] xRhIdentity, String accountNumber, String productId,
         @NotNull String granularity, OffsetDateTime beginning, OffsetDateTime ending) {
-        Objects.requireNonNull(accountNumber, "account_number required");
-        Objects.requireNonNull(productId, "product_id required");
-        Objects.requireNonNull(granularity, "granularity required");
         checkPermission(xRhIdentity, accountNumber);
         return null; // TODO implement
     }
