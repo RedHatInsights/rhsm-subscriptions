@@ -64,6 +64,32 @@ paths:
             application/vnd.api+json:
               schema:
                 $ref: "#/components/schemas/TallyReport"
+              example:
+                data:
+                  - date: '2017-08-04T17:32:05Z'
+                    instance_count: 5
+                    cores: 10
+                  - date: '2017-08-05T17:31:04Z'
+                    instance_count: 7
+                    cores: 14
+                  - date: '2017-08-06T17:32:03Z'
+                    instance_count: 20
+                    cores: 20
+                  - date: '2017-08-07T17:34:02Z'
+                    instance_count: 7
+                    cores: 14
+                  - date: '2017-08-08T17:32:01Z'
+                    instance_count: 5
+                    cores: 10
+                links:
+                  first: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                meta:
+                  resultSetSize: 10
+                  product: RHEL
+                  granularity: DAILY
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':
