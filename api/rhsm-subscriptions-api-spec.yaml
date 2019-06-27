@@ -5,17 +5,15 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8080/rhsm-subscriptions/v1
-  - url: http://localhost:8080/{PATH_PREFIX}/{APP_NAME}/v1
-    variables:
-      PATH_PREFIX:
-        default: api
-      APP_NAME:
-        default: rhsm-subscriptions
+  - url: http://localhost:8080/api/rhsm-subscriptions/v1
+  - url: https://ci.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://qa.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://stage.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://cloud.redhat.com/api/rhsm-subscriptions/v1
 
 paths:
-  /owners/{owner_id}/products/{product_id}/:
-    description: "All utilization operations related to a specific organization and product."
+  /tally/accounts/{account_number}/products/{product_id}:
+    description: "Operations for a tally report of a specific account and product."
     parameters:
       - name: x-rh-identity
         in: header
@@ -24,12 +22,12 @@ paths:
           type: string
           format: byte
         description: "Identity header provided by 3Scale."
-      - name: owner_id
+      - name: account_number
         in: path
         required: true
         schema:
           type: string
-        description: "The owner_id is the candlepin owner key."
+        description: "Account number to fetch data for. Must match the authenticated account number."
       - name: product_id
         in: path
         required: true
@@ -37,7 +35,7 @@ paths:
           type: string
         description: "The ID for the product we wish to query"
     get:
-      summary: "Fetch the utilization data for an organization and product."
+      summary: "Fetch a tally report for an account and product."
       operationId: getTallyReport
       parameters:
         - name: granularity
@@ -64,7 +62,7 @@ paths:
             be provided in UTC."
       responses:
         '200':
-          description: 'The request for inventory data was successful.'
+          description: 'The request for a tally report was successful.'
           content:
             application/vnd.api+json:
               schema:
@@ -77,6 +75,8 @@ paths:
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+      tags:
+        - tally
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
@@ -155,8 +155,8 @@ components:
     TallySnapshot:
       # Container for fields we capture from the IT endpoint for upload to inventory service.  The element
       # being reported should be the only non-required element.  E.g. snapshots containing memory will have
-      # date, instance count, and memory elements while snapshots containing vcpus will contain date,
-      # instance count, and vcpus.
+      # date, instance count, and memory elements while snapshots containing cores will contain date,
+      # instance count, and cores.
       required:
         - date
         - instance_count
@@ -171,7 +171,7 @@ components:
           type: integer
           format: int32
           minimum: 0
-        vcpus:
+        cores:
           type: integer
           format: int32
           minimum: 0
