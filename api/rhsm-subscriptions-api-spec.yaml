@@ -43,7 +43,7 @@ paths:
           description: "The level of granularity to return."
         - name: beginning
           in: query
-          required: false
+          required: true
           schema:
             type: string
             format: date-time
@@ -51,7 +51,7 @@ paths:
             format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
         - name: ending
           in: query
-          required: false
+          required: true
           schema:
             type: string
             format: date-time

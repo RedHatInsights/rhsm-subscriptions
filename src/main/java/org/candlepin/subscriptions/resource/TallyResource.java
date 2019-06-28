@@ -42,7 +42,7 @@ public class TallyResource implements TallyApi {
 
     @Override
     public TallyReport getTallyReport(String productId, @NotNull String granularity, Integer offset,
-        Integer limit, OffsetDateTime beginning, OffsetDateTime ending) {
+        Integer limit, @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
         // TODO pull accountNumber from context
         return null; // TODO implement
     }
