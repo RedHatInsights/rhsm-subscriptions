@@ -141,4 +141,14 @@ public class TallySnapshot implements Serializable {
     public void setGranularity(TallyGranularity granularity) {
         this.granularity = granularity;
     }
+
+    public org.candlepin.subscriptions.utilization.api.model.TallySnapshot asApiSnapshot() {
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
+            new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
+
+        snapshot.setDate(this.getSnapshotDate());
+        snapshot.setCores(this.getCores());
+        snapshot.setInstanceCount(this.getInstanceCount());
+        return snapshot;
+    }
 }

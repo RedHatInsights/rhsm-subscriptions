@@ -34,6 +34,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @SpringBootTest
@@ -71,9 +73,10 @@ public class WeeklySnapshotRollerTest {
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> weeklySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
+        List<TallySnapshot> weeklySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
 
         TallySnapshot result = weeklySnaps.get(0);
@@ -94,9 +97,10 @@ public class WeeklySnapshotRollerTest {
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> weeklySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
+        List<TallySnapshot> weeklySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
         TallySnapshot result = weeklySnaps.get(0);
         assertEquals("A1", result.getAccountNumber());
@@ -116,9 +120,10 @@ public class WeeklySnapshotRollerTest {
         roller.rollSnapshots(Arrays.asList("A1"));
 
         // Check the weekly again. Should still be a single instance, but have updated values.
-        List<TallySnapshot> updatedWeeklySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
+        List<TallySnapshot> updatedWeeklySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedWeeklySnaps.size());
 
         TallySnapshot updated = updatedWeeklySnaps.get(0);

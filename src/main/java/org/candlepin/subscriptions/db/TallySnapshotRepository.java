@@ -25,6 +25,8 @@ import org.candlepin.subscriptions.db.model.AccountMaxValues;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,10 +41,10 @@ import java.util.stream.Stream;
  * Interface that Spring Data will turn into a DAO for us.
  */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
-
-    List<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
+    Page<TallySnapshot>
+        findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
         String accountNumber, String productId, TallyGranularity granularity, OffsetDateTime beginning,
-        OffsetDateTime ending);
+        OffsetDateTime ending, Pageable pageable);
 
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
         TallyGranularity granularity, OffsetDateTime cutoffDate);

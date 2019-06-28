@@ -20,11 +20,103 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.security.Principal;
+import java.time.OffsetDateTime;
+import java.util.Collections;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+
+@ExtendWith(MockitoExtension.class)
 public class TallyResourceTest {
+
+    @Mock
+    TallySnapshotRepository repository;
+
+    @Mock
+    PageLinkCreator pageLinkCreator;
+
     @Test
-    public void testGetTallyReport() {
-        // TODO add a test
+    public void testShouldUseQueryBasedOnHeaderAndParameters() {
+        TallyResource resource = new TallyResource(repository, pageLinkCreator);
+        resource.securityContext = new SecurityContext() {
+
+            @Override
+            public Principal getUserPrincipal() {
+                return () -> "123456";
+            }
+
+            @Override
+            public boolean isUserInRole(String role) {
+                return false;
+            }
+
+            @Override
+            public boolean isSecure() {
+                return false;
+            }
+
+            @Override
+            public String getAuthenticationScheme() {
+                return null;
+            }
+        };
+        Mockito.when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("123456"),
+            Mockito.eq("product1"),
+            Mockito.eq(TallyGranularity.DAILY),
+            Mockito.eq(OffsetDateTime.MIN),
+            Mockito.eq(OffsetDateTime.MAX),
+            Mockito.any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        resource.getTallyReport(
+            "product1",
+            "daily",
+            OffsetDateTime.MIN,
+            OffsetDateTime.MAX,
+            10,
+            10
+        );
+        Pageable expectedPageable = PageRequest.of(1, 10);
+        Mockito.verify(repository)
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("123456"),
+            Mockito.eq("product1"),
+            Mockito.eq(TallyGranularity.DAILY),
+            Mockito.eq(OffsetDateTime.MIN),
+            Mockito.eq(OffsetDateTime.MAX),
+            Mockito.eq(expectedPageable)
+            );
+    }
+
+    @Test
+    public void testShouldThrowExceptionOnBadOffset() {
+        TallyResource resource = new TallyResource(repository, pageLinkCreator);
+        SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
+            "product1",
+            "daily",
+            OffsetDateTime.MIN,
+            OffsetDateTime.MAX,
+            11,
+            10
+        ));
+        assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
     }
 }
