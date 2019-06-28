@@ -20,15 +20,12 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
@@ -41,16 +38,10 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class OffsetDateTimeParamConverterProvider implements ParamConverterProvider {
 
-    private final ObjectMapper mapper;
-
-    public OffsetDateTimeParamConverterProvider(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
-
     @Override
     public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
         if (rawType.isAssignableFrom(OffsetDateTime.class)) {
-            return (ParamConverter<T>) new OffsetDateTimeParamConverter(mapper);
+            return (ParamConverter<T>) new OffsetDateTimeParamConverter();
         }
         return null;
     }
@@ -60,30 +51,22 @@ public class OffsetDateTimeParamConverterProvider implements ParamConverterProvi
      */
     public static class OffsetDateTimeParamConverter implements ParamConverter<OffsetDateTime> {
 
-        private final ObjectMapper mapper;
-
-        public OffsetDateTimeParamConverter(ObjectMapper mapper) {
-            this.mapper = mapper;
-        }
-
         @Override
         public OffsetDateTime fromString(String value) {
-            try {
-                return mapper.readValue(value, OffsetDateTime.class);
+            if (value == null) {
+                return null;
             }
-            catch (IOException e) {
+            try {
+                return OffsetDateTime.parse(value);
+            }
+            catch (DateTimeParseException e) {
                 throw new IllegalArgumentException(e);
             }
         }
 
         @Override
         public String toString(OffsetDateTime value) {
-            try {
-                return mapper.writeValueAsString(value);
-            }
-            catch (JsonProcessingException e) {
-                throw new IllegalArgumentException(e);
-            }
+            return value.toString();
         }
     }
 }
