@@ -9,6 +9,7 @@ buildscript {
 }
 
 plugins {
+    id "io.spring.dependency-management" version "1.0.8.RELEASE"
     id "checkstyle"
     id "jacoco"
     id "org.sonarqube" version "2.7"
@@ -21,20 +22,26 @@ plugins {
 
 ext {
     swagger_annotations_version = "1.5.21"
-    jackson_version = "2.8.11"
-    jackson_databind_version = "2.8.11.2"
+    swagger_ui_version = "3.20.8"
+    prometheus_version = "1.1.2"
     resteasy_version = "3.6.2.Final"
-    spring_version = "5.1.4.RELEASE"
     spring_boot_version = "2.1.2.RELEASE"
+    postgres_jdbc_driver_version = "42.2.5"
     junit_version = "5.3.2"
-    slf4j_version = "1.7.25"
     mockito_version = "2.23.4"
-    guava_version="19.0"
-    spring_kafka_version = "2.2.4.RELEASE"
+    hamcrest_version = "2.1"
+    jboss_jaxrs_api_version = "1.0.2.Final"
+    resteasy_spring_boot_starter_version = "3.0.0.Final"
+    logstash_logback_encoder_version = "5.3"
+    commons_csv_version = "1.6"
+    kafka_avro_serializer_version = "5.2.1"
+    avro_version = "1.8.2"
 }
 
 allprojects {
     apply plugin: "java"
+    apply plugin: "io.spring.dependency-management"
+
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
     repositories {
@@ -52,16 +59,50 @@ allprojects {
 
     group = "org.candlepin"
 
+    // Define all versions here so that all projects will use the same versions.
+    dependencyManagement {
+        imports {
+            // See https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies to
+            // get listings of the contents of this BOM
+            mavenBom "org.springframework.boot:spring-boot-dependencies:$spring_boot_version"
+        }
+        dependencies{
+            dependency "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:$jboss_jaxrs_api_version"
+            dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
+            dependency "io.micrometer:micrometer-registry-prometheus:$prometheus_version"
+            dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
+            dependency "org.apache.avro:avro:$avro_version"
+            dependency "org.apache.commons:commons-csv:$commons_csv_version"
+            dependency "org.webjars:swagger-ui:$swagger_ui_version"
+            dependency "net.logstash.logback:logstash-logback-encoder:$logstash_logback_encoder_version"
+            dependency "org.hamcrest:hamcrest:$hamcrest_version"
+            dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
+            dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
+            dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
+                entry "resteasy-client"
+                entry "resteasy-multipart-provider"
+                entry "resteasy-validator-provider-11"
+            }
+            dependencySet(group: "org.junit.jupiter", version: "$junit_version") {
+                entry "junit-jupiter-api"
+                entry "junit-jupiter-engine"
+            }
+            dependencySet(group: "org.mockito", version: "$mockito_version") {
+                entry "mockito-core"
+                entry "mockito-junit-jupiter"
+            }
+        }
+    }
     dependencies {
-        testCompile "org.springframework.boot:spring-boot-test:$spring_boot_version"
-        testCompile "org.springframework:spring-test:$spring_version"
-        testCompile "org.junit.jupiter:junit-jupiter-api:$junit_version"
-        testCompile "org.mockito:mockito-core:$mockito_version"
-        testCompile "org.mockito:mockito-junit-jupiter:$mockito_version"
-        testCompile "org.hamcrest:hamcrest:2.1"
+        testCompile "org.springframework.boot:spring-boot-test"
+        testCompile "org.springframework:spring-test"
+        testCompile "org.junit.jupiter:junit-jupiter-api"
+        testCompile "org.mockito:mockito-core"
+        testCompile "org.mockito:mockito-junit-jupiter"
+        testCompile "org.hamcrest:hamcrest"
 
-        testRuntime "org.junit.jupiter:junit-jupiter-engine:$junit_version"
-        testRuntime "ch.qos.logback:logback-classic:1.2.3"
+        testRuntime "org.junit.jupiter:junit-jupiter-engine"
+        testRuntime "ch.qos.logback:logback-classic"
     }
 }
 
@@ -97,53 +138,42 @@ release {
 
 dependencies {
     // Generates configuration metadata that IntelliJ can use
-    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:$spring_boot_version"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
     compile project(":api")
     compile project(":insights-inventory-client")
     compile project(":pinhead-client")
     compile project(":kafka-schema")
-    compile "javax.servlet:javax.servlet-api:3.1.0"
-    compile "org.jboss.resteasy:resteasy-spring-boot-starter:3.0.0.Final"
-    compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final"
-    compile "org.springframework.boot:spring-boot-actuator-autoconfigure:$spring_boot_version"
-    compile "org.springframework.boot:spring-boot-autoconfigure:$spring_boot_version"
-    compile "org.springframework.boot:spring-boot:$spring_boot_version"
-    compile "org.springframework:spring-beans:$spring_version"
-    compile "org.springframework:spring-context:$spring_version"
-    compile "org.springframework:spring-context-support:$spring_version"
-    compile "org.springframework:spring-jdbc:$spring_version"
-    compile "org.springframework:spring-tx:$spring_version"
-    compile "org.springframework:spring-webmvc:$spring_version"
-    compile "org.slf4j:slf4j-api:$slf4j_version"
-    compile "net.logstash.logback:logstash-logback-encoder:5.3"
-    compile "io.micrometer:micrometer-registry-prometheus:1.1.2"
-    compile "org.webjars:swagger-ui:3.20.8"
-    compile "org.springframework.kafka:spring-kafka:$spring_kafka_version"
-    compile("org.quartz-scheduler:quartz:2.3.0") {
-        // These excludes are present in the spring-boot-starter-quartz POM file but we don't want to use
-        // the starter since it pulls in some other items
-        exclude group: "com.mchange", module: "c3p0"
-        exclude group: "com.zaxxer", module: "HikariCP-java6"
+
+    // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
+    // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
+    compile("org.jboss.resteasy:resteasy-spring-boot-starter") {
+        exclude group: "org.springframework.boot"
     }
-    compile "com.google.guava:guava:$guava_version"
-    compile "org.apache.commons:commons-csv:1.6"
-    compile("io.confluent:kafka-avro-serializer:5.2.1") {
+    compile("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
     }
 
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.boot:spring-boot-starter-jdbc"
+    compile "org.springframework.boot:spring-boot-starter-quartz"
+    compile "org.springframework.kafka:spring-kafka"
+    compile "net.logstash.logback:logstash-logback-encoder"
+    compile "io.micrometer:micrometer-registry-prometheus"
+    compile "org.webjars:swagger-ui"
+    compile "org.apache.commons:commons-csv"
+
     // Test dependencies
-    testCompile("org.springframework.kafka:spring-kafka-test:${spring_kafka_version}")
+    testCompile "org.springframework.kafka:spring-kafka-test"
 
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.
-    runtime "ch.qos.logback:logback-classic:1.2.3"
-    runtime "org.jboss.resteasy:resteasy-jaxrs:$resteasy_version"
-    runtime "org.jboss.resteasy:resteasy-validator-provider-11:$resteasy_version"
-    runtime "org.hibernate.validator:hibernate-validator:6.0.14.Final"
-    runtime "org.hsqldb:hsqldb:2.4.1"
-    runtime "org.apache.tomcat:tomcat-jdbc:9.0.16"
-    runtime "org.postgresql:postgresql:42.2.2"
+    runtime "org.hsqldb:hsqldb"
+    runtime "org.postgresql:postgresql"
+    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
+        exclude group: 'org.hibernate' // exclude older hibernate validator
+    }
 }
 
 compileJava.dependsOn(processResources)
@@ -205,10 +235,10 @@ project(":api") {
     }
 
     dependencies {
-        compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.8'
-        compile 'javax.validation:validation-api:2.0.1.Final'
-        compile 'org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:1.0.2.Final'
-        compile 'io.swagger:swagger-annotations:1.5.21'
+        compile 'com.fasterxml.jackson.core:jackson-annotations'
+        compile 'javax.validation:validation-api'
+        compile 'org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec'
+        compile 'io.swagger:swagger-annotations'
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
@@ -271,16 +301,16 @@ configure(subprojects.findAll { it.name == 'insights-inventory-client' || it.nam
     }
 
     dependencies {
-        compile "org.jboss.resteasy:resteasy-client:$resteasy_version"
-        compile "org.jboss.resteasy:resteasy-multipart-provider:$resteasy_version"
+        compile "org.jboss.resteasy:resteasy-client"
+        compile "org.jboss.resteasy:resteasy-multipart-provider"
 
-        compile "com.fasterxml.jackson.core:jackson-databind:$jackson_databind_version"
-        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
-        compile "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
+        compile "com.fasterxml.jackson.core:jackson-annotations"
+        compile "com.fasterxml.jackson.core:jackson-databind"
+        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
 
-        compile "org.springframework:spring-context:$spring_version"
-        compile "org.slf4j:slf4j-api:$slf4j_version"
-        compile "io.swagger:swagger-annotations:$swagger_annotations_version"
+        compile "org.springframework:spring-context"
+        compile "org.slf4j:slf4j-api"
+        compile "io.swagger:swagger-annotations"
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
@@ -291,7 +321,7 @@ project(":kafka-schema") {
     apply plugin: "com.commercehub.gradle.plugin.avro-base"
 
     dependencies {
-        compile "org.apache.avro:avro:1.8.2"
+        compile "org.apache.avro:avro"
     }
 
     task generateAvro(type: com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask) {
