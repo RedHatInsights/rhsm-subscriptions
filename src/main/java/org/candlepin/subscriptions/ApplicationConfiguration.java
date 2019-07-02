@@ -23,6 +23,7 @@ package org.candlepin.subscriptions;
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
+import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.facts.RhelProductListSource;
 
 import com.zaxxer.hikari.HikariDataSource;
@@ -42,6 +43,8 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.time.Clock;
 
 import javax.validation.Validator;
 
@@ -64,6 +67,19 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service")
     public InventoryServiceProperties inventoryServiceProperties() {
         return new InventoryServiceProperties();
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    public TallyRetentionPolicy tallyRetentionPolicy(ApplicationProperties applicationProperties,
+        Clock clock) {
+
+        return new TallyRetentionPolicy(clock,
+            applicationProperties.getTallyRetentionPolicy());
     }
 
     @Bean
