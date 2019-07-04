@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions;
 
+import org.candlepin.subscriptions.util.ApplicationClock;
+
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -32,12 +34,14 @@ import java.time.ZoneOffset;
 
 @TestConfiguration
 public class FixedClockConfiguration {
+
     @Bean
     @Primary
-    public Clock fixedClock() {
-        return Clock.fixed(
+    public ApplicationClock fixedClock() {
+        return new ApplicationClock(Clock.fixed(
             Instant.from(OffsetDateTime.of(2019, 5, 24, 12, 35, 0, 0, ZoneOffset.UTC)),
-            ZoneId.of("UTC")
+            ZoneId.of("UTC"))
         );
     }
+
 }

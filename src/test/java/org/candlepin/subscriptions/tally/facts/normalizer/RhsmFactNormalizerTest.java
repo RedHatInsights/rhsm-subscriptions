@@ -29,13 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,7 +47,7 @@ import java.util.Map;
 public class RhsmFactNormalizerTest {
 
     private RhsmFactNormalizer normalizer;
-    private Clock clock;
+    private ApplicationClock clock;
 
     @BeforeAll
     public void setupTests() {
@@ -100,7 +100,7 @@ public class RhsmFactNormalizerTest {
 
     @Test
     public void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
-        OffsetDateTime lastSynced = OffsetDateTime.now(clock).minusDays(2);
+        OffsetDateTime lastSynced = clock.now().minusDays(2);
         Map<String, Object> facts = createRhsmFactSet(Arrays.asList("P1"), 4);
         facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced);
 
@@ -112,7 +112,7 @@ public class RhsmFactNormalizerTest {
 
     @Test
     public void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
-        OffsetDateTime lastSynced = OffsetDateTime.now(clock).minusDays(1);
+        OffsetDateTime lastSynced = clock.now().minusDays(1);
         Map<String, Object> facts = createRhsmFactSet(Arrays.asList("P1"), 4);
         facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced);
 

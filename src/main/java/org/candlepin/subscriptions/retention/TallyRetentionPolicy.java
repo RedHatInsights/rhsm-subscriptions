@@ -21,8 +21,8 @@
 package org.candlepin.subscriptions.retention;
 
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
-import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoField;
@@ -38,11 +38,11 @@ import java.time.temporal.TemporalAdjusters;
  */
 public class TallyRetentionPolicy {
 
-    private final Clock clock;
+    private final ApplicationClock applicationClock;
     private final TallyRetentionPolicyProperties config;
 
-    public TallyRetentionPolicy(Clock clock, TallyRetentionPolicyProperties config) {
-        this.clock = clock;
+    public TallyRetentionPolicy(ApplicationClock applicationClock, TallyRetentionPolicyProperties config) {
+        this.applicationClock = applicationClock;
         this.config = config;
     }
 
@@ -55,7 +55,7 @@ public class TallyRetentionPolicy {
      * @return cutoff date (i.e. dates less than this are candidates for removal), or null
      */
     public OffsetDateTime getCutoffDate(TallyGranularity granularity) {
-        OffsetDateTime today = OffsetDateTime.now(clock).truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime today = OffsetDateTime.now(applicationClock.getClock()).truncatedTo(ChronoUnit.DAYS);
         switch (granularity) {
             case DAILY:
                 if (config.getDaily() == null) {

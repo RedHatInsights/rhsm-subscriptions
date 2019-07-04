@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.tally.facts.normalizer;
 
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +41,11 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
     public static final String SYNC_TIMESTAMP = "SYNC_TIMESTAMP";
 
     private final List<String> configuredRhelProducts;
-    private final Clock clock;
+    private final ApplicationClock clock;
     private final int hostSyncThresholdHours;
 
-    public RhsmFactNormalizer(int hostSyncThresholdHours, List<String> configuredRhelProducts, Clock clock) {
+    public RhsmFactNormalizer(int hostSyncThresholdHours, List<String> configuredRhelProducts,
+        ApplicationClock clock) {
         this.hostSyncThresholdHours = hostSyncThresholdHours;
         this.configuredRhelProducts = configuredRhelProducts;
         this.clock = clock;
@@ -101,10 +102,7 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
         if (lastSync == null) {
             return false;
         }
-        return lastSync.isBefore(getLastSyncThreshold());
+        return lastSync.isBefore(clock.now().minusHours(hostSyncThresholdHours));
     }
 
-    private OffsetDateTime getLastSyncThreshold() {
-        return OffsetDateTime.now(clock).minusHours(hostSyncThresholdHours);
-    }
 }

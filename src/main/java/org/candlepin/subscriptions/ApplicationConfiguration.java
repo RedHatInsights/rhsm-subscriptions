@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -43,7 +44,6 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.io.IOException;
-import java.time.Clock;
 
 import javax.validation.Validator;
 
@@ -69,16 +69,14 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public Clock clock() {
-        return Clock.systemUTC();
+    public ApplicationClock applicationClock() {
+        return new ApplicationClock();
     }
 
     @Bean
     public TallyRetentionPolicy tallyRetentionPolicy(ApplicationProperties applicationProperties,
-        Clock clock) {
-
-        return new TallyRetentionPolicy(clock,
-            applicationProperties.getTallyRetentionPolicy());
+        ApplicationClock applicationClock) {
+        return new TallyRetentionPolicy(applicationClock, applicationProperties.getTallyRetentionPolicy());
     }
 
     @Bean
@@ -118,7 +116,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
     @Bean
     public FactNormalizer factNormalizer(ApplicationProperties applicationProperties,
-        RhelProductListSource prodListSource, Clock clock) throws IOException {
+        RhelProductListSource prodListSource, ApplicationClock clock) throws IOException {
         return new FactNormalizer(applicationProperties, prodListSource, clock);
     }
 
