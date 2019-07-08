@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.facts.normalizer;
 
-import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -34,13 +33,13 @@ public class YupanaFactNormalizer implements FactSetNormalizer {
     public static final String IS_RHEL = "IS_RHEL";
 
     @Override
-    public void normalize(NormalizedFacts normalizedFacts, FactSet factSet) {
-        if (!FactSetNamespace.YUPANA.equalsIgnoreCase(factSet.getNamespace())) {
-            throw new IllegalArgumentException("FactSet has an invalid namespace.");
+    public void normalize(NormalizedFacts normalizedFacts, String namespace,
+        Map<String, Object> yupanaFacts) {
+        if (!FactSetNamespace.YUPANA.equalsIgnoreCase(namespace)) {
+            throw new IllegalArgumentException("Attempted to process an invalid namespace.");
         }
 
         // Check if this is a RHEL host and set product.
-        Map<String, Object> yupanaFacts = (Map<String, Object>) factSet.getFacts();
         if (checkIsRhelFact(yupanaFacts.get(IS_RHEL))) {
             normalizedFacts.addProduct("RHEL");
         }

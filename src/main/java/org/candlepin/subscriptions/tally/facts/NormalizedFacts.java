@@ -32,9 +32,11 @@ public class NormalizedFacts {
 
     public static final String PRODUCTS_KEY = "products";
     public static final String CORES_KEY = "cores";
+    public static final String OWNER_KEY = "owner";
 
     private Set<String> products;
     private Integer cores;
+    private String owner;
 
     public NormalizedFacts() {
         products = new HashSet<>();
@@ -60,10 +62,19 @@ public class NormalizedFacts {
         this.cores = cores;
     }
 
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
     public Map<String, Object> toInventoryPayload() {
         Map<String, Object> payload = new HashMap<>();
         payload.put(PRODUCTS_KEY, this.products);
         payload.put(CORES_KEY, this.cores);
+        payload.put(OWNER_KEY, this.owner);
         return payload;
     }
 }

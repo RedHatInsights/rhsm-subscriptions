@@ -18,9 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.model;
+package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +36,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
@@ -50,40 +55,21 @@ public class TallySnapshotRepositoryTest {
 
     @Test
     public void testSave() {
-        TallySnapshot t = new TallySnapshot();
-        t.setOwnerId("Hello");
-        t.setProductId("World");
-        t.setCores(2);
-        t.setGranularity(TallyGranularity.DAILY);
-        t.setSnapshotDate(OffsetDateTime.now());
+        TallySnapshot t = createUnpersisted("Hello", "World", 2, OffsetDateTime.now());
         TallySnapshot saved = repository.saveAndFlush(t);
         assertNotNull(saved.getId());
     }
 
     @Test
     public void testFindByAccountNumberAndProduct() {
-        TallySnapshot t1 = new TallySnapshot();
-        t1.setAccountNumber("Hello");
-        t1.setProductId("World");
-        t1.setCores(2);
-        t1.setGranularity(TallyGranularity.DAILY);
-        t1.setSnapshotDate(NOWISH);
+        TallySnapshot t1 = createUnpersisted("Hello", "World", 2, NOWISH);
+        TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", 9999, NOWISH);
 
-        TallySnapshot t2 = new TallySnapshot();
-        t2.setAccountNumber("Bugs");
-        t2.setProductId("Bunny");
-        t2.setOwnerId("N/A");
-        t2.setCores(9999);
-        t2.setGranularity(TallyGranularity.DAILY);
-        t2.setSnapshotDate(NOWISH);
-
-        repository.save(t1);
-        repository.save(t2);
+        repository.saveAll(Arrays.asList(t1, t2));
         repository.flush();
 
         List<TallySnapshot> found = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
-
             "Bugs",
             "Bunny",
             TallyGranularity.DAILY,
@@ -97,5 +83,43 @@ public class TallySnapshotRepositoryTest {
         assertEquals("Bunny", snapshot.getProductId());
         assertEquals("N/A", snapshot.getOwnerId());
         assertEquals(NOWISH, found.get(0).getSnapshotDate());
+    }
+
+    @Test
+    public void testFindByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween() {
+        String productId = "Product1";
+        TallySnapshot t1 = createUnpersisted("Account1", productId, 2, LONG_AGO);
+        TallySnapshot t2 = createUnpersisted("Account2", productId, 9, NOWISH);
+        TallySnapshot t3 = createUnpersisted("Account2", "Another Product", 19, NOWISH);
+        // Will not be in result - Account not in query
+        TallySnapshot t4 = createUnpersisted("Account3", productId, 99, FAR_FUTURE);
+
+        repository.saveAll(Arrays.asList(t1, t2, t3, t4));
+        repository.flush();
+
+        OffsetDateTime min = OffsetDateTime.of(2019, 05, 23, 00, 00, 00, 00,
+            ZoneOffset.UTC);
+        OffsetDateTime max = OffsetDateTime.of(2019, 07, 23, 00, 00, 00, 00,
+            ZoneOffset.UTC);
+
+        List<String> accounts = Arrays.asList("Account1", "Account2");
+        List<TallySnapshot> found =
+            repository.findByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween(accounts,
+            productId, TallyGranularity.DAILY, min, max);
+        assertEquals(1, found.size());
+        assertEquals("Account2", found.get(0).getAccountNumber());
+        assertEquals(found.get(0).getProductId(), productId);
+        assertEquals(found.get(0).getCores(), Integer.valueOf(9));
+    }
+
+    private TallySnapshot createUnpersisted(String account, String product, int cores, OffsetDateTime date) {
+        TallySnapshot tally = new TallySnapshot();
+        tally.setAccountNumber(account);
+        tally.setProductId(product);
+        tally.setOwnerId("N/A");
+        tally.setCores(cores);
+        tally.setGranularity(TallyGranularity.DAILY);
+        tally.setSnapshotDate(date);
+        return tally;
     }
 }

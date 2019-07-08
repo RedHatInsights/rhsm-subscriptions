@@ -18,47 +18,48 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.facts;
+package org.candlepin.subscriptions.files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import org.candlepin.subscriptions.ApplicationProperties;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 
-public class RhelProductListSourceTest {
+public class PerLineFileResourceTest {
 
     @Test
     public void ensureOneProductPerLine() throws Exception {
-        assertRhelProductListFile("rhel_prod_list.txt");
+        assertListFile("item_per_line.txt", Arrays.asList("I1", "I2", "I3"));
     }
 
     @Test
     public void ensureEmptyLinesAreIgnored() throws Exception {
-        assertRhelProductListFile("rhel_prod_list_with_empty_lines.txt");
+        assertListFile("item_per_line_with_empty_lines.txt", Arrays.asList("I10", "I20", "I30"));
     }
 
-    private void assertRhelProductListFile(String orgListFileLocation) throws Exception {
-        RhelProductListSource source = createProductSource(orgListFileLocation);
-        Set<String> prodList = source.getProductIds();
-        assertEquals(3, prodList.size());
-
-        List<String> expectedProducts = Arrays.asList("P1", "P2", "P3");
-        assertTrue(prodList.containsAll(expectedProducts));
+    @Test
+    public void ensureExceptionWhenResourceNotFound() {
+        RuntimeException rte = assertThrows(RuntimeException.class, () -> {
+            assertListFile("bogus", Arrays.asList());
+        });
+        assertEquals("Resource not found: class path resource [bogus]", rte.getMessage());
     }
 
-    private RhelProductListSource createProductSource(String filename) {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setRhelProductListResourceLocation(String.format("classpath:%s", filename));
+    private void assertListFile(String orgListFileLocation, List<String> expectedLines) throws Exception {
+        PerLineFileSource source = createSource(orgListFileLocation);
+        List<String> read = source.list();
+        assertEquals(3, read.size());
+        assertTrue(read.containsAll(expectedLines));
+    }
 
-        RhelProductListSource source = new RhelProductListSource(props);
+    private PerLineFileSource createSource(String filename) {
+        PerLineFileSource source = new PerLineFileSource(String.format("classpath:%s", filename));
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
         return source;

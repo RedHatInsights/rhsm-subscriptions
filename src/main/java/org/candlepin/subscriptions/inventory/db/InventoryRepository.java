@@ -18,24 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.facts.normalizer;
+package org.candlepin.subscriptions.inventory.db;
 
-import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 
-import java.util.Map;
+import org.springframework.data.repository.Repository;
+
+import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
- * A FactNormalizer processes an inventory host's FactSet and sets a normalized value to
- * the NormalizedFacts.
+ * Interface that Spring Data will turn into a read-only DAO.
  */
-public interface FactSetNormalizer {
+public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
-    /**
-     * Normalizes the given inventory FactSet.
-     *
-     * @param normalizedFacts the already normalized facts.
-     * @param namespace the namespace of the factset we are normalizing.
-     * @param factValues the fact values belonging to this namespace.
-     */
-    void normalize(NormalizedFacts normalizedFacts, String namespace, Map<String, Object> factValues);
+    Stream<InventoryHost> findByAccount(String account);
+
 }

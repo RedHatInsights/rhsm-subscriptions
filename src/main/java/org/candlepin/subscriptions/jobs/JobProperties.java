@@ -18,24 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.facts.normalizer;
+package org.candlepin.subscriptions.jobs;
 
-import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-
-import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
- * A FactNormalizer processes an inventory host's FactSet and sets a normalized value to
- * the NormalizedFacts.
+ * Contains the configuration properties for all jobs.
  */
-public interface FactSetNormalizer {
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.jobs")
+public class JobProperties {
 
-    /**
-     * Normalizes the given inventory FactSet.
-     *
-     * @param normalizedFacts the already normalized facts.
-     * @param namespace the namespace of the factset we are normalizing.
-     * @param factValues the fact values belonging to this namespace.
-     */
-    void normalize(NormalizedFacts normalizedFacts, String namespace, Map<String, Object> factValues);
+    private String captureSnapshotSchedule = "0 5 * * * ?";
+
+    public String getCaptureSnapshotSchedule() {
+        return captureSnapshotSchedule;
+    }
+
+    public void setCaptureSnapshotSchedule(String captureSnapshotSchedule) {
+        this.captureSnapshotSchedule = captureSnapshotSchedule;
+    }
 }

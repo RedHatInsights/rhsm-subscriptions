@@ -18,9 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.facts;
-
-import org.candlepin.subscriptions.ApplicationProperties;
+package org.candlepin.subscriptions.files;
 
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.Resource;
@@ -31,33 +29,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-
 /**
- * Reads a set of RHEL product IDs from a file.
+ * Collects each line of a file and returns it as a List of Strings. Empty strings are ignored.
  */
-public class RhelProductListSource implements ResourceLoaderAware {
+public class PerLineFileSource implements ResourceLoaderAware {
 
     private ResourceLoader resourceLoader;
-    private Resource productListResource;
+    private Resource fileResource;
     private String resourceLocation;
 
-    public RhelProductListSource(ApplicationProperties properties) {
-        this.resourceLocation = properties.getRhelProductListResourceLocation();
+    public PerLineFileSource(String resourceLocation) {
+        this.resourceLocation = resourceLocation;
     }
 
-    public Set<String> getProductIds() throws IOException {
+    public List<String> list() throws IOException {
         // Re-read the file every time.  It shouldn't be a massive file and doing so allows us to update the
         // product list without restarting the app.
-        try (InputStream s = productListResource.getInputStream()) {
+        try (InputStream s = fileResource.getInputStream()) {
             return new BufferedReader(new InputStreamReader(s, Charset.defaultCharset()))
                 .lines()
                 .filter(line -> line != null && !line.isEmpty())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
         }
     }
 
@@ -68,18 +65,10 @@ public class RhelProductListSource implements ResourceLoaderAware {
 
     @PostConstruct
     public void init() {
-        try {
-            productListResource = resourceLoader.getResource(resourceLocation);
-        }
-        catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("The rhelProductListResourceLocation property is unset. " +
-                "Please set in the application configuration files.");
-        }
-
-        if (!productListResource.exists()) {
-            throw new IllegalStateException(
-                "Cannot find the resource " + productListResource.getDescription()
-            );
+        fileResource = resourceLoader.getResource(resourceLocation);
+        if (!fileResource.exists()) {
+            throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
         }
     }
+
 }

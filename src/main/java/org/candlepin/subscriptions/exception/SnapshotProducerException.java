@@ -18,24 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.facts.normalizer;
-
-import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-
-import java.util.Map;
+package org.candlepin.subscriptions.exception;
 
 /**
- * A FactNormalizer processes an inventory host's FactSet and sets a normalized value to
- * the NormalizedFacts.
+ * An exception thrown when an error occurs during snapshot production.
  */
-public interface FactSetNormalizer {
+public class SnapshotProducerException extends RuntimeException {
 
-    /**
-     * Normalizes the given inventory FactSet.
-     *
-     * @param normalizedFacts the already normalized facts.
-     * @param namespace the namespace of the factset we are normalizing.
-     * @param factValues the fact values belonging to this namespace.
-     */
-    void normalize(NormalizedFacts normalizedFacts, String namespace, Map<String, Object> factValues);
+    public SnapshotProducerException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

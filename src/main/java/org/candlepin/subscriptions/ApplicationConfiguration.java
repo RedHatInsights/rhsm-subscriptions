@@ -22,21 +22,19 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
+import org.candlepin.subscriptions.files.AccountListSource;
+import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
-import org.candlepin.subscriptions.tally.facts.RhelProductListSource;
-
-import com.zaxxer.hikari.HikariDataSource;
+import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
@@ -44,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.IOException;
 import java.time.Clock;
 
 import javax.validation.Validator;
@@ -113,16 +112,14 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    @Primary
-    @ConfigurationProperties("rhsm-subscriptions.datasource")
-    public DataSourceProperties dataSourceProperties() {
-        return new DataSourceProperties();
+    public AccountListSource accountListSource(ApplicationProperties applicationProperties) {
+        return new AccountListSource(applicationProperties);
     }
 
     @Bean
-    @ConfigurationProperties("rhsm-subscriptions.datasource.configuration")
-    public HikariDataSource dataSource(DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    public FactNormalizer factNormalizer(ApplicationProperties applicationProperties,
+        RhelProductListSource prodListSource, Clock clock) throws IOException {
+        return new FactNormalizer(applicationProperties, prodListSource, clock);
     }
 
     @Override
@@ -138,4 +135,5 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
             "classpath:openapi.json"
         );
     }
+
 }

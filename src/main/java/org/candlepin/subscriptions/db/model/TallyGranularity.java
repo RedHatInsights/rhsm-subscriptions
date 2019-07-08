@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.model;
+package org.candlepin.subscriptions.db.model;
 
 /**
  * Granularity of a given tally snapshot.

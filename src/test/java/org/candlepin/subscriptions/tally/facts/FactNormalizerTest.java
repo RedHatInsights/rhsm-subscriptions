@@ -25,9 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.model.HostOut;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.YupanaFactNormalizer;
 
@@ -38,6 +38,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.core.io.FileSystemResourceLoader;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -52,18 +53,18 @@ public class FactNormalizerTest {
     @BeforeAll
     public void setup() throws IOException {
         ApplicationProperties props = new ApplicationProperties();
-        props.setRhelProductListResourceLocation("classpath:rhel_prod_list.txt");
+        props.setRhelProductListResourceLocation("classpath:product_list.txt");
 
         RhelProductListSource source = new RhelProductListSource(props);
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 
-        normalizer = new FactNormalizer(source);
+        normalizer = new FactNormalizer(new ApplicationProperties(), source, Clock.systemUTC());
     }
 
     @Test
     public void testRhsmNormalization() {
-        HostOut host = createRhsmHost(Arrays.asList("P1"), 12);
+        InventoryHost host = createRhsmHost(Arrays.asList("P1"), 12);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertNotNull(normalized.getCores());
@@ -72,7 +73,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testYupanaNormalization() {
-        HostOut host = createYupanaHost(true);
+        InventoryHost host = createYupanaHost(true);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertNull(normalized.getCores());
@@ -80,8 +81,8 @@ public class FactNormalizerTest {
 
     @Test
     public void testCombinedNamespaces() {
-        HostOut host = createRhsmHost(Arrays.asList("P1"), 12);
-        host.getFacts().addAll(createYupanaHost(false).getFacts());
+        InventoryHost host = createRhsmHost(Arrays.asList("P1"), 12);
+        host.getFacts().putAll(createYupanaHost(false).getFacts());
         assertEquals(2, host.getFacts().size());
 
         NormalizedFacts normalized = normalizer.normalize(host);
@@ -89,21 +90,28 @@ public class FactNormalizerTest {
         assertEquals(Integer.valueOf(12), normalized.getCores());
     }
 
-    private HostOut createRhsmHost(List<String> products, Integer cores) {
+    private InventoryHost createRhsmHost(List<String> products, Integer cores) {
         Map<String, Object> rhsmFacts = new HashMap<>();
         rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
         rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
 
-        FactSet rhsmFactSet = new FactSet().namespace(FactSetNamespace.RHSM).facts(rhsmFacts);
-        return new HostOut().addFactsItem(rhsmFactSet);
+        Map<String, Map<String, Object>> factNamespaces = new HashMap<>();
+        factNamespaces.put(FactSetNamespace.RHSM, rhsmFacts);
+
+        InventoryHost host = new InventoryHost();
+        host.setFacts(factNamespaces);
+        return host;
     }
 
-    private HostOut createYupanaHost(boolean isRhel) {
+    private InventoryHost createYupanaHost(boolean isRhel) {
         Map<String, Object> yupanaFacts = new HashMap<>();
         yupanaFacts.put(YupanaFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
 
-        FactSet yupanaFactSet = new FactSet().namespace(FactSetNamespace.YUPANA).facts(yupanaFacts);
-        HostOut host = new HostOut().addFactsItem(yupanaFactSet);
+        Map<String, Map<String, Object>> factNamespaces = new HashMap<>();
+        factNamespaces.put(FactSetNamespace.YUPANA, yupanaFacts);
+
+        InventoryHost host = new InventoryHost();
+        host.setFacts(factNamespaces);
         return host;
     }
 

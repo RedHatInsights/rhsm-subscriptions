@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.facts.normalizer;
 
-import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,20 +36,34 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
 
     public static final String RH_PRODUCTS = "RH_PROD";
     public static final String CPU_CORES = "CPU_CORES";
+    // TODO: This should be uppercase in conduit.
+    public static final String ORG_ID = "orgId";
+    public static final String SYNC_TIMESTAMP = "SYNC_TIMESTAMP";
 
-    private final Set<String> configuredRhelProducts;
+    private final List<String> configuredRhelProducts;
+    private final Clock clock;
+    private final int hostSyncThresholdHours;
 
-    public RhsmFactNormalizer(Set<String> configuredRhelProducts) {
+    public RhsmFactNormalizer(int hostSyncThresholdHours, List<String> configuredRhelProducts, Clock clock) {
+        this.hostSyncThresholdHours = hostSyncThresholdHours;
         this.configuredRhelProducts = configuredRhelProducts;
+        this.clock = clock;
     }
 
     @Override
-    public void normalize(NormalizedFacts normalizedFacts, FactSet factSet) {
-        if (!FactSetNamespace.RHSM.equalsIgnoreCase(factSet.getNamespace())) {
-            throw new IllegalArgumentException("FactSet has an invalid namespace.");
+    public void normalize(NormalizedFacts normalizedFacts, String namespace, Map<String, Object> rhsmFacts) {
+        if (!FactSetNamespace.RHSM.equalsIgnoreCase(namespace)) {
+            throw new IllegalArgumentException("Attempted to process an invalid namespace.");
         }
 
-        Map<String, Object> rhsmFacts = (Map<String, Object>) factSet.getFacts();
+        // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
+        // apply this host's facts.
+        //
+        // NOTE: This logic is applied since currently the inventory service does not prune inventory
+        //       records once a host no longer exists.
+        if (hostUnregistered((OffsetDateTime) rhsmFacts.get(SYNC_TIMESTAMP))) {
+            return;
+        }
 
         // Check if using RHEL
         if (isRhel(rhsmFacts)) {
@@ -58,6 +72,7 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
 
         // Check for cores. If not included, default to 0 cores.
         normalizedFacts.setCores(rhsmFacts.containsKey(CPU_CORES) ? (Integer) rhsmFacts.get(CPU_CORES) : 0);
+        normalizedFacts.setOwner((String) rhsmFacts.get(ORG_ID));
     }
 
     private boolean isRhel(Map<String, Object> facts) {
@@ -72,4 +87,24 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
             .isEmpty();
     }
 
+    /**
+     * A host is considered unregistered if the last time it was synced passes the configured number
+     * of hours.
+     *
+     * NOTE: If the passed lastSync date is null, it is considered to be registered.
+     *
+     * @param lastSync the last known time that a host sync occured from pinhead to conduit.
+     * @return true if the host is considered unregistered, false otherwise.
+     */
+    private boolean hostUnregistered(OffsetDateTime lastSync) {
+        // If last sync is not present, consider it a registered host.
+        if (lastSync == null) {
+            return false;
+        }
+        return lastSync.isBefore(getLastSyncThreshold());
+    }
+
+    private OffsetDateTime getLastSyncThreshold() {
+        return OffsetDateTime.now(clock).minusHours(hostSyncThresholdHours);
+    }
 }

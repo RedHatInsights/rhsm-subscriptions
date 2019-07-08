@@ -18,23 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
+package org.candlepin.subscriptions.files;
 
-package org.candlepin.subscriptions.model;
+import org.candlepin.subscriptions.ApplicationProperties;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
 
 /**
- * Interface that Spring Data will turn into a DAO for us.
+ * Reads a set of RHEL product IDs from a file. Each line is a single
+ * product ID.
  */
-public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
-    List<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
-        String accountNumber, String productId, TallyGranularity granularity, OffsetDateTime beginning,
-        OffsetDateTime ending);
+public class RhelProductListSource extends PerLineFileSource {
 
-    void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
-        TallyGranularity granularity, OffsetDateTime cutoffDate);
+    public RhelProductListSource(ApplicationProperties properties) {
+        super(properties.getRhelProductListResourceLocation());
+    }
+
 }
