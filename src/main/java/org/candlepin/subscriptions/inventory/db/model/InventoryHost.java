@@ -63,11 +63,13 @@ public class InventoryHost implements Serializable {
     @Column(name = "modified_on")
     private OffsetDateTime modifiedOn;
 
+    @SuppressWarnings("squid:S1948")
     @Type(type = "jsonb")
     @Column(columnDefinition = "jsonb")
     @Basic(fetch = FetchType.LAZY)
     private Map<String, Map<String, Object>> facts;
 
+    @SuppressWarnings("squid:S1948")
     @Type(type = "jsonb")
     @Column(name = "canonical_facts", columnDefinition = "jsonb")
     @Basic(fetch = FetchType.LAZY)
