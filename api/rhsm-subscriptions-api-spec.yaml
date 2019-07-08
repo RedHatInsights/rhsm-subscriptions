@@ -12,21 +12,25 @@ servers:
   - url: https://cloud.redhat.com/api/rhsm-subscriptions/v1
 
 paths:
-  /tally/accounts/{account_number}/products/{product_id}:
+  /tally/products/{product_id}:
     description: "Operations for a tally report of a specific account and product."
     parameters:
-      - name: account_number
-        in: path
-        required: true
-        schema:
-          type: string
-        description: "Account number to fetch data for. Must match the authenticated account number."
       - name: product_id
         in: path
         required: true
         schema:
           type: string
         description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+        description: "The numbers of items to return"
     get:
       summary: "Fetch a tally report for an account and product."
       operationId: getTallyReport
@@ -138,22 +142,48 @@ components:
         application/vnd.api+json:
           schema:
             $ref: "#/components/schemas/Errors"
-
   schemas:
+    # If we need additional responses, look at
+    # https://swagger.io/docs/specification/data-models/inheritance-and-polymorphism/ to reduce
+    # redundancy
     TallyReport:
       properties:
-        product:
-          type: string
-        granularity:
-          description: "Describes the significance of each date in the TallySnapshot list. For example if the
-            granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
-            seven day period."
-          type: string
-        tally_snapshots:
+        data:
           type: array
           items:
             $ref: "#/components/schemas/TallySnapshot"
-
+        links:
+          type: object
+          properties:
+            first:
+              type: string
+            last:
+              type: string
+            previous:
+              type: string
+            next:
+              type: string
+          required:
+            - first
+            - previous
+            - last
+            - next
+        meta:
+          type: object
+          properties:
+            resultSetSize:
+              type: integer
+            product:
+              type: string
+            granularity:
+              description: "Describes the significance of each date in the TallySnapshot list. For example if the
+                granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
+                seven day period."
+              type: string
+          required:
+            - resultSetSize
+            - product
+            - granularity
     TallySnapshot:
       # Container for fields we capture from the IT endpoint for upload to inventory service.  The element
       # being reported should be the only non-required element.  E.g. snapshots containing memory will have
@@ -177,7 +207,6 @@ components:
           type: integer
           format: int32
           minimum: 0
-
     Errors:
       required:
         - errors
@@ -186,7 +215,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Error"
-
     Error:
       required:
         - status

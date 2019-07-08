@@ -20,51 +20,11 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.candlepin.subscriptions.exception.SubscriptionsException;
-
 import org.junit.jupiter.api.Test;
 
-import java.security.Principal;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-
 public class TallyResourceTest {
-
     @Test
-    public void testAccountNumberMustMatchHeader() {
-        TallyResource resource = new TallyResource();
-        resource.securityContext = new SecurityContext() {
-
-            @Override
-            public Principal getUserPrincipal() {
-                return () -> "123456";
-            }
-
-            @Override
-            public boolean isUserInRole(String role) {
-                return false;
-            }
-
-            @Override
-            public boolean isSecure() {
-                return false;
-            }
-
-            @Override
-            public String getAuthenticationScheme() {
-                return null;
-            }
-        };
-        SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
-            "42",
-            "product1",
-            "daily",
-            null,
-            null
-        ));
-        assertEquals(Response.Status.FORBIDDEN, e.getStatus());
+    public void testGetTallyReport() {
+        // TODO add a test
     }
 }
