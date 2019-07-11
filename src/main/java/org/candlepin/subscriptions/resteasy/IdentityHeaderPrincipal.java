@@ -43,7 +43,7 @@ public class IdentityHeaderPrincipal implements Principal {
     private final String accountNumber;
 
     public IdentityHeaderPrincipal(ObjectMapper mapper, String header) {
-        // extract account number from json like {"identity":{"account_number":"12345678"}}
+        // extract account number from base64 encoded json ($.identity.account_number in JSONPath)
         try {
             byte[] decoded = Base64.getDecoder().decode(header);
             Map authObject = mapper.readValue(decoded, Map.class);
