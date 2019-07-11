@@ -30,12 +30,14 @@ import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,8 +86,35 @@ public class InventoryServiceTest {
             .subscriptionManagerId("108152b1-6b41-4e1b-b908-922c943e7950")
             .fqdn("test.example.com")
             .facts(Collections.singletonList(expectedFacts));
-        Mockito.verify(api).apiHostAddHostList(Mockito.eq(Collections.singletonList(expectedHostEntry)));
+
+        ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(api).apiHostAddHostList(argument.capture());
+
+        List<CreateHostIn> resultList = argument.getValue();
+        assertEquals(1, resultList.size());
+        assertCreateHostEquals(expectedHostEntry, resultList.get(0));
     }
+
+    /**
+     * Compare two CreateHostIn objects excepting the syncTimestamp fact since times will be slightly
+     * different between an expected CreateHostIn that we create for a test and the one actually created in
+     * the InventoryService.
+     */
+    @SuppressWarnings("unchecked")
+    private void assertCreateHostEquals(CreateHostIn expected, CreateHostIn actual) {
+        List<FactSet> actualFactSet = actual.getFacts();
+        for (FactSet fs : actualFactSet) {
+            Map<String, Object> actualMap = (Map<String, Object>) fs.getFacts();
+            if (actualMap.containsKey("SYNC_TIMESTAMP") && actualMap.get("SYNC_TIMESTAMP") != null) {
+                actualMap.remove("SYNC_TIMESTAMP");
+            }
+            else {
+                fail("SYNC_TIMESTAMP is missing from the FactSet");
+            }
+        }
+        assertEquals(expected, actual);
+    }
+
 
     @Test
     public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
