@@ -22,12 +22,16 @@ package org.candlepin.subscriptions.resteasy;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.resource.OpenApiJsonResource;
+import org.candlepin.subscriptions.resource.OpenApiYamlResource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
@@ -46,17 +50,30 @@ public class IdentityHeaderAuthFilter implements ContainerRequestFilter {
 
     private final ObjectMapper mapper;
 
+    private static final List<Class<?>> NOAUTH_RESOURCE_CLASSES = Arrays.asList(
+        OpenApiJsonResource.class,
+        OpenApiYamlResource.class
+    );
+
     public IdentityHeaderAuthFilter(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
+        if (requestContext.getUriInfo().getMatchedResources()
+            .stream()
+            .map(Object::getClass)
+            .anyMatch(NOAUTH_RESOURCE_CLASSES::contains)) {
+
+            return;
+        }
         String identityHeader = requestContext.getHeaderString("x-rh-identity");
         if (identityHeader == null) {
-            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR,
-                Response.Status.UNAUTHORIZED, "Unauthorized", "No identity header supplied");
+            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR, Response.Status.UNAUTHORIZED,
+                "Unauthorized", "No identity header supplied");
         }
+
         requestContext.setSecurityContext(new IdentityHeaderSecurityContext(mapper, identityHeader));
     }
 }
