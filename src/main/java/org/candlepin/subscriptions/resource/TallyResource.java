@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 
@@ -31,7 +29,6 @@ import java.time.OffsetDateTime;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 /**
@@ -43,19 +40,10 @@ public class TallyResource implements TallyApi {
     @Context
     SecurityContext securityContext;
 
-    private void checkPermission(String accountNumber) {
-        String authAccountNumber = securityContext.getUserPrincipal().getName();
-        if (!accountNumber.equals(authAccountNumber)) {
-            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR,
-                Response.Status.FORBIDDEN, "Unauthorized",
-                String.format("%s not authorized to access %s", authAccountNumber, accountNumber));
-        }
-    }
-
     @Override
-    public TallyReport getTallyReport(String accountNumber, String productId, @NotNull String granularity,
-        OffsetDateTime beginning, OffsetDateTime ending) {
-        checkPermission(accountNumber);
+    public TallyReport getTallyReport(String productId, @NotNull String granularity, Integer offset,
+        Integer limit, OffsetDateTime beginning, OffsetDateTime ending) {
+        // TODO pull accountNumber from context
         return null; // TODO implement
     }
 }
