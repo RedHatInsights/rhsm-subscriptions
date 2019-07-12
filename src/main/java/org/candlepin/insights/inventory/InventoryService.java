@@ -32,6 +32,7 @@ import org.candlepin.insights.inventory.client.resources.HostsApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -42,6 +43,26 @@ import java.util.stream.Collectors;
 
 /**
  * A wrapper for the insights inventory client.
+ *
+ * If we get to the point where we are making multiple manipulations to the data stream as it flows through
+ * this class consider
+ * <code>
+ * public interface ConduitVisitor {
+ *     default FactSet visit(FactSet factSet) {
+ *         return factSet;
+ *     }
+ *
+ *     default CreateHostIn visit(CreateHostIn createHostIn) {
+ *         return createHostIn;
+ *     }
+ *
+ *     default BulkHostOut visit(BulkHostOut bulkHostOut) {
+ *         return bulkHostOut;
+ *     }
+ * </code>
+ *
+ * The visit methods can then get called at the appropriate places in sendHostUpdate and createHost
+ * allowing us to externalize manipulations to the implementation(s) of ConduitVisitor.
  */
 @Component
 public class InventoryService {
@@ -56,8 +77,10 @@ public class InventoryService {
     public BulkHostOut sendHostUpdate(List<ConduitFacts> facts)
         throws RhsmConduitException {
 
+        // The same timestamp for the whole batch
+        OffsetDateTime now = OffsetDateTime.now();
         List<CreateHostIn> hostsToSend = facts.stream()
-            .map(this::createHost)
+            .map(x -> createHost(x, now))
             .collect(Collectors.toList());
 
         try {
@@ -74,7 +97,7 @@ public class InventoryService {
      *
      * @return the new host.
      */
-    private CreateHostIn createHost(ConduitFacts conduitFacts) {
+    private CreateHostIn createHost(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
         Map<String, Object> rhsmFactMap = new HashMap<>();
         rhsmFactMap.put("orgId", conduitFacts.getOrgId());
         if (conduitFacts.getCpuSockets() != null) {
@@ -98,6 +121,8 @@ public class InventoryService {
         if (conduitFacts.getRhProd() != null) {
             rhsmFactMap.put("RH_PROD", conduitFacts.getRhProd());
         }
+
+        rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
 
         FactSet rhsmFacts = new FactSet()
             .namespace("rhsm")
