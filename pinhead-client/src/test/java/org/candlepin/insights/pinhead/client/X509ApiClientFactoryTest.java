@@ -21,18 +21,20 @@
 package org.candlepin.insights.pinhead.client;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.google.common.io.Resources;
 
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.ResourceUtils;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -59,6 +61,28 @@ public class X509ApiClientFactoryTest {
     }
 
     @Test
+    public void testNoCustomTruststoreRequired() throws Exception {
+        server = new WireMockServer(buildWireMockConfig());
+        server.start();
+        server.stubFor(stubHelloWorld());
+
+        X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+        x509Config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
+        x509Config.setKeystorePassword(STORE_PASSWORD);
+
+        X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
+        ApiClient client = factory.getObject();
+
+        client.setBasePath(server.baseUrl());
+        ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(client));
+        // We should get a handshake exception since the Wiremock server is using a cert signed by a
+        // self-signed CA that isn't in the default Java truststore.  We actually would like to test that
+        // a certificate signed by a legitimate CA gets accepted, but that would require us to have a
+        // legitimate server certificate and key for the Wiremock server to use.
+        assertThat(e.getCause(), IsInstanceOf.instanceOf(SSLHandshakeException.class));
+    }
+
+    @Test
     public void testTlsClientAuth() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
@@ -68,7 +92,7 @@ public class X509ApiClientFactoryTest {
         x509Config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
         x509Config.setKeystorePassword(STORE_PASSWORD);
 
-        x509Config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+        x509Config.setTruststoreFile(ResourceUtils.getFile("classpath:test-ca.jks").getPath());
         x509Config.setTruststorePassword(STORE_PASSWORD);
 
         X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
@@ -85,7 +109,7 @@ public class X509ApiClientFactoryTest {
         server.stubFor(stubHelloWorld());
 
         X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
-        x509Config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+        x509Config.setTruststoreFile(ResourceUtils.getFile("classpath:test-ca.jks").getPath());
         x509Config.setTruststorePassword(STORE_PASSWORD);
 
         X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
@@ -112,9 +136,9 @@ public class X509ApiClientFactoryTest {
         );
     }
 
-    private WireMockConfiguration buildWireMockConfig() {
-        String keystorePath = Resources.getResource("server.jks").getPath();
-        String truststorePath = Resources.getResource("test-ca.jks").getPath();
+    private WireMockConfiguration buildWireMockConfig() throws FileNotFoundException {
+        String keystorePath = ResourceUtils.getFile("classpath:server.jks").getPath();
+        String truststorePath = ResourceUtils.getFile("classpath:test-ca.jks").getPath();
         return WireMockConfiguration.options()
             .dynamicHttpsPort()
             .dynamicPort()

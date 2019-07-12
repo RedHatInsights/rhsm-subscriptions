@@ -108,6 +108,10 @@ public class X509ApiClientFactoryConfiguration {
         return (getKeystoreFile() != null && getKeystorePassword() != null);
     }
 
+    public boolean usesDefaultTruststore() {
+        return getTruststoreFile() == null;
+    }
+
     public String toString() {
         return String.format("X509ApiClientFactoryConfiguration[truststore=%s, keystore=%s]",
             truststoreFile, keystoreFile);

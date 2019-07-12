@@ -34,6 +34,7 @@ import java.security.NoSuchAlgorithmException;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -72,14 +73,16 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
         builder.hostnameVerifier(x509Config.getHostnameVerifier());
 
         try {
-            KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
-            truststore.load(
-                x509Config.getTruststoreStream(), x509Config.getTruststorePassword().toCharArray()
-            );
-            TrustManagerFactory trustFactory = TrustManagerFactory.getInstance(
-                TrustManagerFactory.getDefaultAlgorithm()
-            );
-            trustFactory.init(truststore);
+            TrustManager[] trustManagers = null;
+            if (!x509Config.usesDefaultTruststore()) {
+                KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
+                truststore.load(x509Config.getTruststoreStream(),
+                    x509Config.getTruststorePassword().toCharArray());
+                TrustManagerFactory trustFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                trustFactory.init(truststore);
+                trustManagers = trustFactory.getTrustManagers();
+            }
 
             KeyManager[] keyManagers = null;
             if (x509Config.usesClientAuth()) {
@@ -93,7 +96,7 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
             }
 
             SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(keyManagers, trustFactory.getTrustManagers(), null);
+            sslContext.init(keyManagers, trustManagers, null);
             builder.sslContext(sslContext);
         }
         catch (KeyStoreException | NoSuchAlgorithmException | IOException e)  {
