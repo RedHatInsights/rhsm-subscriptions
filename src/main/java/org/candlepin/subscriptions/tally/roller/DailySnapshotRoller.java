@@ -67,6 +67,7 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
         produceDailySnapshots(accounts, calculateMaxValuesFromInventory(accounts));
     }
 
+    @SuppressWarnings("squid:S3776")
     @Transactional(value = "inventoryTransactionManager", readOnly = true)
     public Collection<ProductUsageCalculation> calculateMaxValuesFromInventory(List<String> accounts) {
         Map<String, ProductUsageCalculation> calcsByAccount = new HashMap<>();
@@ -79,8 +80,10 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
 
                 ProductUsageCalculation calc = calcsByAccount.get(account);
                 NormalizedFacts facts = factNormalizer.normalize(host);
+
                 if (facts.getProducts().contains(calc.getProductId())) {
                     calc.addCores(facts.getCores() != null ? facts.getCores() : 0);
+                    calc.addSockets(facts.getSockets() != null ? facts.getSockets() : 0);
                     calc.addInstance();
                 }
 
@@ -105,8 +108,8 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
 
         if (log.isDebugEnabled()) {
             for (ProductUsageCalculation calc : calcsByAccount.values()) {
-                log.info("Account: {}, Cores: {}, Instances: {}", calc.getAccount(), calc.getTotalCores(),
-                    calc.getInstanceCount());
+                log.info("Account: {}, Cores: {}, Sockets: {}, Instances: {}", calc.getAccount(),
+                    calc.getTotalCores(), calc.getTotalSockets(), calc.getInstanceCount());
             }
         }
         return calcsByAccount.values();

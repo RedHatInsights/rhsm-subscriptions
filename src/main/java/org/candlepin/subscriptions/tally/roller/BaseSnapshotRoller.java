@@ -78,6 +78,7 @@ public abstract class BaseSnapshotRoller {
     protected void updateWithMax(TallySnapshot snapshot, AccountMaxValues maxValues) {
         snapshot.setInstanceCount(maxValues.getMaxInstances());
         snapshot.setCores(maxValues.getMaxCores());
+        snapshot.setSockets(maxValues.getMaxSockets());
         snapshot.setOwnerId(maxValues.getOwnerId());
         snapshot.setAccountNumber(maxValues.getAccountNumber());
         snapshot.setSnapshotDate(getSnapshotDate(snapshot.getGranularity()));

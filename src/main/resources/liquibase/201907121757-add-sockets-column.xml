@@ -6,9 +6,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <include file="liquibase/201906181633-create-schema.xml"/>
-    <include file="liquibase/201907121110-add-snapshot-date-index.xml"/>
-    <include file="liquibase/201907121757-add-sockets-column.xml"/>
+    <changeSet id="201907121757-1" author="mstead">
+        <comment>Add sockets column to tally_snapshots table</comment>
+        <addColumn tableName="tally_snapshots">
+            <column name="sockets" type="INT" />
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

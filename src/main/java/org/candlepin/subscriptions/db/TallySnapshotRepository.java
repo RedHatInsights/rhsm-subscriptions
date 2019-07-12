@@ -54,7 +54,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
     @SuppressWarnings("indentation")
     @Query("select " +
                "new org.candlepin.subscriptions.db.model.AccountMaxValues(" +
-                    "s.accountNumber, s.ownerId, max(s.cores), max(s.instanceCount)) " +
+                    "s.accountNumber, s.ownerId, max(s.cores), max(s.sockets), max(s.instanceCount)) " +
            "from TallySnapshot s " +
            "where s.granularity=:granularity and s.accountNumber in (:accounts) " +
                "and s.productId = :product and s.snapshotDate between :beginning and :ending " +

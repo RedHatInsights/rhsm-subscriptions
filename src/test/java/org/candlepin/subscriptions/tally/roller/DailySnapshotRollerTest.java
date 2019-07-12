@@ -87,13 +87,13 @@ public class DailySnapshotRollerTest {
     }
 
     @Test
-    public void testTallyCoresOfRhelWhenInventoryFoundForAccount() throws Exception {
+    public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
         ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
 
         List<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHost host1 = createHost("A1", "O1", TEST_PRODUCT, 4);
-        InventoryHost host2 = createHost("A1", "O1", TEST_PRODUCT, 8);
-        InventoryHost host3 = createHost("A2", "O2", TEST_PRODUCT, 2);
+        InventoryHost host1 = createHost("A1", "O1", TEST_PRODUCT, 4, 4);
+        InventoryHost host2 = createHost("A1", "O1", TEST_PRODUCT, 8, 4);
+        InventoryHost host3 = createHost("A2", "O2", TEST_PRODUCT, 2, 6);
         when(inventoryRepo.findByAccountIn(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -112,6 +112,7 @@ public class DailySnapshotRollerTest {
                 assertEquals("A1", snap.getAccountNumber());
                 assertEquals(TEST_PRODUCT, snap.getProductId());
                 assertEquals(Integer.valueOf(12), snap.getCores());
+                assertEquals(Integer.valueOf(8), snap.getSockets());
                 assertEquals(Integer.valueOf(2), snap.getInstanceCount());
                 assertEquals("O1", snap.getOwnerId());
                 assertEquals(TallyGranularity.DAILY, snap.getGranularity());
@@ -121,6 +122,7 @@ public class DailySnapshotRollerTest {
                 assertEquals("A2", snap.getAccountNumber());
                 assertEquals(TEST_PRODUCT, snap.getProductId());
                 assertEquals(Integer.valueOf(2), snap.getCores());
+                assertEquals(Integer.valueOf(6), snap.getSockets());
                 assertEquals(Integer.valueOf(1), snap.getInstanceCount());
                 assertEquals("O2", snap.getOwnerId());
                 assertEquals(TallyGranularity.DAILY, snap.getGranularity());
@@ -137,7 +139,7 @@ public class DailySnapshotRollerTest {
     public void testUpdatesTallySnapshotIfOneAlreadyExists() throws Exception {
         ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
         List<String> targetAccounts = Arrays.asList("A1");
-        InventoryHost host = createHost("A1", "O1", TEST_PRODUCT, 4);
+        InventoryHost host = createHost("A1", "O1", TEST_PRODUCT, 4, 8);
         when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(host).stream());
 
         TallySnapshot existing = new TallySnapshot();
@@ -164,6 +166,7 @@ public class DailySnapshotRollerTest {
         assertEquals("A1", snap.getAccountNumber());
         assertEquals(TEST_PRODUCT, snap.getProductId());
         assertEquals(Integer.valueOf(4), snap.getCores());
+        assertEquals(Integer.valueOf(8), snap.getSockets());
         assertEquals(Integer.valueOf(1), snap.getInstanceCount());
         assertEquals("O1", snap.getOwnerId());
         assertEquals(TallyGranularity.DAILY, snap.getGranularity());
@@ -173,8 +176,8 @@ public class DailySnapshotRollerTest {
     public void testSnapshotDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8);
-        InventoryHost h2 = createHost("A1", "Owner1", "NOT_RHEL", 12);
+        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8, 12);
+        InventoryHost h2 = createHost("A1", "Owner1", "NOT_RHEL", 12, 14);
         when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
@@ -188,6 +191,7 @@ public class DailySnapshotRollerTest {
         assertEquals("A1", emptySnapshot.getAccountNumber());
         assertEquals(TEST_PRODUCT, emptySnapshot.getProductId());
         assertEquals(Integer.valueOf(8), emptySnapshot.getCores());
+        assertEquals(Integer.valueOf(12), emptySnapshot.getSockets());
         assertEquals(Integer.valueOf(1), emptySnapshot.getInstanceCount());
         assertEquals("Owner1", emptySnapshot.getOwnerId());
         assertEquals(TallyGranularity.DAILY, emptySnapshot.getGranularity());
@@ -197,8 +201,8 @@ public class DailySnapshotRollerTest {
     public void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwner() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 1);
-        InventoryHost h2 = createHost("A1", "Owner2", TEST_PRODUCT, 1);
+        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 1, 2);
+        InventoryHost h2 = createHost("A1", "Owner2", TEST_PRODUCT, 1, 2);
         when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
@@ -209,9 +213,11 @@ public class DailySnapshotRollerTest {
         assertEquals(expectedMessage, e.getMessage());
     }
 
-    private InventoryHost createHost(String account, String orgId, String product, Integer cores) {
+    private InventoryHost createHost(String account, String orgId, String product, Integer cores,
+        Integer sockets) {
         Map<String, Object> rhsmFacts = new HashMap<>();
         rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
+        rhsmFacts.put(RhsmFactNormalizer.CPU_SOCKETS, sockets);
         rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, Arrays.asList(product));
         rhsmFacts.put(RhsmFactNormalizer.ORG_ID, orgId);
 

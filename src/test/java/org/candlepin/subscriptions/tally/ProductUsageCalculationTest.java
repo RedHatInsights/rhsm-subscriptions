@@ -44,4 +44,12 @@ public class ProductUsageCalculationTest {
         assertEquals(expectedCores, calculation.getTotalCores());
     }
 
+    @Test
+    public void testAddingSockets() {
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Account", "Product");
+        int expectedSockets = 10;
+        IntStream.rangeClosed(0, 4).forEach(i -> calculation.addSockets(i));
+        assertEquals(expectedSockets, calculation.getTotalSockets());
+    }
+
 }

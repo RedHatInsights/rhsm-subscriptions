@@ -80,6 +80,7 @@ public class YearlySnapshotRollerTest {
         assertEquals(TallyGranularity.YEARLY, result.getGranularity());
         assertEquals(TEST_PRODUCT, result.getProductId());
         assertEquals(Integer.valueOf(11), result.getCores());
+        assertEquals(Integer.valueOf(12), result.getSockets());
         assertEquals(Integer.valueOf(11), result.getInstanceCount());
     }
 
@@ -99,10 +100,12 @@ public class YearlySnapshotRollerTest {
         assertEquals(TallyGranularity.YEARLY, toUpdate.getGranularity());
         assertEquals(TEST_PRODUCT, toUpdate.getProductId());
         assertEquals(Integer.valueOf(11), toUpdate.getCores());
+        assertEquals(Integer.valueOf(12), toUpdate.getSockets());
         assertEquals(Integer.valueOf(11), toUpdate.getInstanceCount());
 
         TallySnapshot monthlyToUpdate = monthlies.get(0);
         monthlyToUpdate.setCores(100);
+        monthlyToUpdate.setSockets(200);
         monthlyToUpdate.setInstanceCount(50);
         repository.saveAndFlush(monthlyToUpdate);
 
@@ -120,6 +123,7 @@ public class YearlySnapshotRollerTest {
         assertEquals(TallyGranularity.YEARLY, updated.getGranularity());
         assertEquals(monthlyToUpdate.getProductId(), updated.getProductId());
         assertEquals(monthlyToUpdate.getCores(), updated.getCores());
+        assertEquals(monthlyToUpdate.getSockets(), updated.getSockets());
         assertEquals(monthlyToUpdate.getInstanceCount(), updated.getInstanceCount());
     }
 
@@ -129,7 +133,7 @@ public class YearlySnapshotRollerTest {
         List<TallySnapshot> monthlyForYear = new LinkedList<>();
         IntStream.rangeClosed(0, 11).forEach(i -> {
             monthlyForYear.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.MONTHLY, i,
-                i, startOfYear.plusMonths(i)));
+                i + 1, i, startOfYear.plusMonths(i)));
         });
 
         repository.saveAll(monthlyForYear);
@@ -139,12 +143,13 @@ public class YearlySnapshotRollerTest {
     }
 
     private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int instanceCount, OffsetDateTime date) {
+        int cores, int sockets, int instanceCount, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);
         tally.setOwnerId("N/A");
         tally.setCores(cores);
+        tally.setSockets(sockets);
         tally.setGranularity(granularity);
         tally.setInstanceCount(instanceCount);
         tally.setSnapshotDate(date);

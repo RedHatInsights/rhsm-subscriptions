@@ -54,6 +54,9 @@ public class TallySnapshot implements Serializable {
     @Column(name = "cores")
     private Integer cores;
 
+    @Column(name = "sockets")
+    private Integer sockets;
+
     @Column(name = "product_id")
     private String productId;
 
@@ -97,6 +100,14 @@ public class TallySnapshot implements Serializable {
 
     public void setCores(Integer cores) {
         this.cores = cores;
+    }
+
+    public Integer getSockets() {
+        return sockets;
+    }
+
+    public void setSockets(Integer sockets) {
+        this.sockets = sockets;
     }
 
     public String getProductId() {

@@ -82,6 +82,7 @@ public class QuarterlySnapshotRollerTest {
         assertEquals(TallyGranularity.QUARTERLY, secondQuarter.getGranularity());
         assertEquals(TEST_PRODUCT, secondQuarter.getProductId());
         assertEquals(Integer.valueOf(5), secondQuarter.getCores());
+        assertEquals(Integer.valueOf(6), secondQuarter.getSockets());
         assertEquals(Integer.valueOf(5), secondQuarter.getInstanceCount());
     }
 
@@ -102,10 +103,12 @@ public class QuarterlySnapshotRollerTest {
         assertEquals(TallyGranularity.QUARTERLY, toUpdate.getGranularity());
         assertEquals(TEST_PRODUCT, toUpdate.getProductId());
         assertEquals(Integer.valueOf(5), toUpdate.getCores());
+        assertEquals(Integer.valueOf(6), toUpdate.getSockets());
         assertEquals(Integer.valueOf(5), toUpdate.getInstanceCount());
 
         TallySnapshot secondQuarterMonthlyToUpdate = monthlies.get(5);
         secondQuarterMonthlyToUpdate.setCores(100);
+        secondQuarterMonthlyToUpdate.setSockets(200);
         secondQuarterMonthlyToUpdate.setInstanceCount(50);
         repository.saveAndFlush(secondQuarterMonthlyToUpdate);
 
@@ -124,6 +127,7 @@ public class QuarterlySnapshotRollerTest {
         assertEquals(TallyGranularity.QUARTERLY, updated.getGranularity());
         assertEquals(secondQuarterMonthlyToUpdate.getProductId(), updated.getProductId());
         assertEquals(secondQuarterMonthlyToUpdate.getCores(), updated.getCores());
+        assertEquals(secondQuarterMonthlyToUpdate.getSockets(), updated.getSockets());
         assertEquals(secondQuarterMonthlyToUpdate.getInstanceCount(), updated.getInstanceCount());
     }
 
@@ -133,7 +137,7 @@ public class QuarterlySnapshotRollerTest {
         List<TallySnapshot> monthlyForYear = new LinkedList<>();
         IntStream.rangeClosed(0, 11).forEach(i -> {
             monthlyForYear.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.MONTHLY, i,
-                i, startOfYear.plusMonths(i)));
+                i + 1, i, startOfYear.plusMonths(i)));
         });
 
         repository.saveAll(monthlyForYear);
@@ -143,12 +147,13 @@ public class QuarterlySnapshotRollerTest {
     }
 
     private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int instanceCount, OffsetDateTime date) {
+        int cores, int sockets, int instanceCount, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);
         tally.setOwnerId("N/A");
         tally.setCores(cores);
+        tally.setSockets(sockets);
         tally.setGranularity(granularity);
         tally.setInstanceCount(instanceCount);
         tally.setSnapshotDate(date);

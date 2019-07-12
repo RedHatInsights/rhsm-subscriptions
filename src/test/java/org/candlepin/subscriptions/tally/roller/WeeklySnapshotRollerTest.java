@@ -79,8 +79,8 @@ public class WeeklySnapshotRollerTest {
         TallySnapshot result = weeklySnaps.get(0);
         assertEquals(TallyGranularity.WEEKLY, result.getGranularity());
         assertEquals(TEST_PRODUCT, result.getProductId());
-        // Cores and instance count should both come from the daily snap with the largest cores count.
         assertEquals(Integer.valueOf(6), result.getCores());
+        assertEquals(Integer.valueOf(7), result.getSockets());
         assertEquals(Integer.valueOf(6), result.getInstanceCount());
     }
 
@@ -102,13 +102,14 @@ public class WeeklySnapshotRollerTest {
         assertEquals("A1", result.getAccountNumber());
         assertEquals(TallyGranularity.WEEKLY, result.getGranularity());
         assertEquals(TEST_PRODUCT, result.getProductId());
-        // Cores and instance count should both come from the daily snap with the largest cores count.
         assertEquals(Integer.valueOf(6), result.getCores());
+        assertEquals(Integer.valueOf(7), result.getSockets());
         assertEquals(Integer.valueOf(6), result.getInstanceCount());
 
         // Update the daily and run again
         TallySnapshot dailyToUpdate = dailies.get(0);
         dailyToUpdate.setCores(124);
+        dailyToUpdate.setSockets(248);
         dailyToUpdate.setInstanceCount(20);
         repository.saveAndFlush(dailyToUpdate);
 
@@ -126,6 +127,7 @@ public class WeeklySnapshotRollerTest {
         assertEquals(TallyGranularity.WEEKLY, updated.getGranularity());
         assertEquals(dailyToUpdate.getProductId(), updated.getProductId());
         assertEquals(dailyToUpdate.getCores(), updated.getCores());
+        assertEquals(dailyToUpdate.getSockets(), updated.getSockets());
         assertEquals(dailyToUpdate.getInstanceCount(), updated.getInstanceCount());
     }
 
@@ -137,7 +139,7 @@ public class WeeklySnapshotRollerTest {
         List<TallySnapshot> dailyForWeek = new LinkedList<>();
         IntStream.rangeClosed(0, 6).forEach(i -> {
             dailyForWeek.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.DAILY, i,
-                i, startOfWeek.plusDays(i)));
+                i + 1, i, startOfWeek.plusDays(i)));
         });
 
         repository.saveAll(dailyForWeek);
@@ -147,12 +149,13 @@ public class WeeklySnapshotRollerTest {
     }
 
     private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int instanceCount, OffsetDateTime date) {
+        int cores, int sockets, int instanceCount, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);
         tally.setOwnerId("N/A");
         tally.setCores(cores);
+        tally.setSockets(sockets);
         tally.setGranularity(granularity);
         tally.setInstanceCount(instanceCount);
         tally.setSnapshotDate(date);

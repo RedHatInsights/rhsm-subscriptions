@@ -29,12 +29,14 @@ public class ProductUsageCalculation {
     private String owner;
     private String productId;
     private int totalCores;
+    private int totalSockets;
     private int instanceCount;
 
     public ProductUsageCalculation(String account, String productId) {
         this.account = account;
         this.productId = productId;
         this.totalCores = 0;
+        this.totalSockets = 0;
         this.instanceCount = 0;
     }
 
@@ -53,6 +55,14 @@ public class ProductUsageCalculation {
 
     public int getTotalCores() {
         return totalCores;
+    }
+
+    public int getTotalSockets() {
+        return totalSockets;
+    }
+
+    public void addSockets(int socketsToAdd) {
+        this.totalSockets += socketsToAdd;
     }
 
     public void addInstance() {
