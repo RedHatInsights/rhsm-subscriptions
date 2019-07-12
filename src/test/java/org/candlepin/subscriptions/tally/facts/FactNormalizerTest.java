@@ -20,16 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
+import org.candlepin.subscriptions.tally.facts.normalizer.QpcFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
-import org.candlepin.subscriptions.tally.facts.normalizer.YupanaFactNormalizer;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -72,8 +69,8 @@ public class FactNormalizerTest {
     }
 
     @Test
-    public void testYupanaNormalization() {
-        InventoryHost host = createYupanaHost(true);
+    public void testQpcNormalization() {
+        InventoryHost host = createQpcHost(true);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertNull(normalized.getCores());
@@ -82,7 +79,7 @@ public class FactNormalizerTest {
     @Test
     public void testCombinedNamespaces() {
         InventoryHost host = createRhsmHost(Arrays.asList("P1"), 12);
-        host.getFacts().putAll(createYupanaHost(false).getFacts());
+        host.getFacts().putAll(createQpcHost(false).getFacts());
         assertEquals(2, host.getFacts().size());
 
         NormalizedFacts normalized = normalizer.normalize(host);
@@ -103,12 +100,12 @@ public class FactNormalizerTest {
         return host;
     }
 
-    private InventoryHost createYupanaHost(boolean isRhel) {
-        Map<String, Object> yupanaFacts = new HashMap<>();
-        yupanaFacts.put(YupanaFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
+    private InventoryHost createQpcHost(boolean isRhel) {
+        Map<String, Object> qpcFacts = new HashMap<>();
+        qpcFacts.put(QpcFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
 
         Map<String, Map<String, Object>> factNamespaces = new HashMap<>();
-        factNamespaces.put(FactSetNamespace.YUPANA, yupanaFacts);
+        factNamespaces.put(FactSetNamespace.QPC, qpcFacts);
 
         InventoryHost host = new InventoryHost();
         host.setFacts(factNamespaces);

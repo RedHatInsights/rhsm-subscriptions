@@ -24,8 +24,8 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.tally.facts.normalizer.FactSetNormalizer;
+import org.candlepin.subscriptions.tally.facts.normalizer.QpcFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
-import org.candlepin.subscriptions.tally.facts.normalizer.YupanaFactNormalizer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,7 @@ public class FactNormalizer {
         normalizers = new HashMap<>();
         normalizers.put(FactSetNamespace.RHSM, new RhsmFactNormalizer(props.getHostLastSyncThresholdHours(),
             rhelProductListSource.list(), clock));
-        normalizers.put(FactSetNamespace.YUPANA, new YupanaFactNormalizer());
+        normalizers.put(FactSetNamespace.QPC, new QpcFactNormalizer());
     }
 
     /**
