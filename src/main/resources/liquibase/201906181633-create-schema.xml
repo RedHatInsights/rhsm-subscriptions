@@ -29,5 +29,6 @@
             <column name="product_id"/>
         </createIndex>
     </changeSet>
+
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

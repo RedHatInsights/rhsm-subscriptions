@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.tally.facts.normalizer.QpcFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.core.io.FileSystemResourceLoader;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +56,7 @@ public class FactNormalizerTest {
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 
-        normalizer = new FactNormalizer(new ApplicationProperties(), source, Clock.systemUTC());
+        normalizer = new FactNormalizer(new ApplicationProperties(), source, new ApplicationClock());
     }
 
     @Test

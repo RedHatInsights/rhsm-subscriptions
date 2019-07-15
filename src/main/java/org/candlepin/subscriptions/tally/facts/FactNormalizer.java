@@ -26,12 +26,12 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.tally.facts.normalizer.FactSetNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.QpcFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,7 +48,7 @@ public class FactNormalizer {
     private Map<String, FactSetNormalizer> normalizers;
 
     public FactNormalizer(ApplicationProperties props, RhelProductListSource rhelProductListSource,
-        Clock clock) throws IOException {
+        ApplicationClock clock) throws IOException {
         normalizers = new HashMap<>();
         normalizers.put(FactSetNamespace.RHSM, new RhsmFactNormalizer(props.getHostLastSyncThresholdHours(),
             rhelProductListSource.list(), clock));

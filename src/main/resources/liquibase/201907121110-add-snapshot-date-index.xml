@@ -6,7 +6,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <include file="liquibase/201906181633-create-schema.xml"/>
-    <include file="liquibase/201907121110-add-snapshot-date-index.xml"/>
+    <changeSet id="201907121110-1" author="mstead">
+        <comment>Add an index on snapshot_date column in the tally_snapshots table</comment>
+        <createIndex indexName="snapshot_date_idx" tableName="tally_snapshots"
+                     unique="false">
+            <column name="snapshot_date"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

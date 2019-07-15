@@ -21,20 +21,25 @@
 
 package org.candlepin.subscriptions.db;
 
+import org.candlepin.subscriptions.db.model.AccountMaxValues;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Interface that Spring Data will turn into a DAO for us.
  */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
+
     List<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
         String accountNumber, String productId, TallyGranularity granularity, OffsetDateTime beginning,
         OffsetDateTime ending);
@@ -42,8 +47,19 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
         TallyGranularity granularity, OffsetDateTime cutoffDate);
 
-    List<TallySnapshot> findByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween(
+    Stream<TallySnapshot> findByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween(
         Collection<String> accountNumbers, String productId, TallyGranularity granularity,
         OffsetDateTime beginning, OffsetDateTime ending);
 
+    @SuppressWarnings("indentation")
+    @Query("select " +
+               "new org.candlepin.subscriptions.db.model.AccountMaxValues(" +
+                    "s.accountNumber, s.ownerId, max(s.cores), max(s.instanceCount)) " +
+           "from TallySnapshot s " +
+           "where s.granularity=:granularity and s.accountNumber in (:accounts) " +
+               "and s.productId = :product and s.snapshotDate between :beginning and :ending " +
+           "group by s.accountNumber, s.ownerId order by s.accountNumber")
+    List<AccountMaxValues> getMaxValuesForAccounts(@Param("accounts") Collection<String> accountNumbers,
+        @Param("product") String productId, @Param("granularity") TallyGranularity granularity,
+        @Param("beginning") OffsetDateTime beginning, @Param("ending") OffsetDateTime ending);
 }

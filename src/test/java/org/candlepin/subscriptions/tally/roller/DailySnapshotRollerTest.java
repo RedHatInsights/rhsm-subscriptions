@@ -18,10 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally;
+package org.candlepin.subscriptions.tally.roller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -36,20 +35,19 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.files.AccountListSource;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,70 +55,49 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class UsageSnapShotProducerTest {
+public class DailySnapshotRollerTest {
 
-    private AccountListSource accountListSourceMock;
+    // Product name must be RHEL, otherwise it will not be included in the
+    // normalized facts.
+    private static final String TEST_PRODUCT = "RHEL";
+
     private RhelProductListSource productListSourceMock;
     private InventoryRepository inventoryRepo;
     private TallySnapshotRepository tallyRepoMock;
     private FactNormalizer factNormalizer;
-    private UsageSnapshotProducer producer;
-    private Clock clock = Clock.systemUTC();
-
+    private DailySnapshotRoller roller;
+    private ApplicationClock clock;
 
     @BeforeEach
     public void setupTest() throws Exception {
+        clock = new ApplicationClock();
         inventoryRepo = mock(InventoryRepository.class);
         tallyRepoMock = mock(TallySnapshotRepository.class);
-        accountListSourceMock = mock(AccountListSource.class);
         productListSourceMock = mock(RhelProductListSource.class);
 
-        List<String> rhelProducts = Arrays.asList("RHEL");
+        List<String> rhelProducts = Arrays.asList(TEST_PRODUCT);
         when(productListSourceMock.list()).thenReturn(rhelProducts);
 
         ApplicationProperties appProps = new ApplicationProperties();
         appProps.setAccountBatchSize(500);
 
         factNormalizer = new FactNormalizer(new ApplicationProperties(), productListSourceMock, clock);
-        producer = new UsageSnapshotProducer(factNormalizer, accountListSourceMock, inventoryRepo,
-            tallyRepoMock, clock, appProps);
-    }
-
-    @Test
-    public void testProduceEmptySnapshotWhenNoInventoryFoundForAccount() throws Exception {
-        // When no inventory data is found, a snapshot is still created for the configured account,
-        // but the counts should all be zero.
-        when(accountListSourceMock.list()).thenReturn(Arrays.asList("A1"));
-        ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
-        producer.produceSnapshots();
-
-        verify(tallyRepoMock).saveAll(saveArgCapture.capture());
-
-        List<TallySnapshot> saved = saveArgCapture.getValue();
-        assertEquals(1, saved.size());
-        TallySnapshot emptySnapshot = saved.get(0);
-        assertEquals("A1", emptySnapshot.getAccountNumber());
-        assertEquals("RHEL", emptySnapshot.getProductId());
-        assertEquals(Integer.valueOf(0), emptySnapshot.getCores());
-        assertEquals(Integer.valueOf(0), emptySnapshot.getInstanceCount());
-        // Would not have been able to determine the owner ID until at least
-        // one host was reported.
-        assertNull(emptySnapshot.getOwnerId());
-        assertEquals(TallyGranularity.DAILY, emptySnapshot.getGranularity());
+        roller = new DailySnapshotRoller(TEST_PRODUCT, inventoryRepo, tallyRepoMock, factNormalizer,
+            clock);
     }
 
     @Test
     public void testTallyCoresOfRhelWhenInventoryFoundForAccount() throws Exception {
-        when(accountListSourceMock.list()).thenReturn(Arrays.asList("A1", "A2"));
         ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
 
-        InventoryHost host1 = createHost("A1", "O1", "RHEL", 4);
-        InventoryHost host2 = createHost("A1", "O1", "RHEL", 8);
-        InventoryHost host3 = createHost("A2", "O2", "RHEL", 2);
-        when(inventoryRepo.findByAccount(eq("A1"))).thenReturn(Arrays.asList(host1, host2).stream());
-        when(inventoryRepo.findByAccount(eq("A2"))).thenReturn(Arrays.asList(host3).stream());
+        List<String> targetAccounts = Arrays.asList("A1", "A2");
+        InventoryHost host1 = createHost("A1", "O1", TEST_PRODUCT, 4);
+        InventoryHost host2 = createHost("A1", "O1", TEST_PRODUCT, 8);
+        InventoryHost host3 = createHost("A2", "O2", TEST_PRODUCT, 2);
+        when(inventoryRepo.findByAccountIn(eq(targetAccounts)))
+            .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
-        producer.produceSnapshots();
+        roller.rollSnapshots(targetAccounts);
 
         verify(tallyRepoMock).saveAll(saveArgCapture.capture());
 
@@ -133,7 +110,7 @@ public class UsageSnapShotProducerTest {
             String account = snap.getAccountNumber();
             if ("A1".equals(account)) {
                 assertEquals("A1", snap.getAccountNumber());
-                assertEquals("RHEL", snap.getProductId());
+                assertEquals(TEST_PRODUCT, snap.getProductId());
                 assertEquals(Integer.valueOf(12), snap.getCores());
                 assertEquals(Integer.valueOf(2), snap.getInstanceCount());
                 assertEquals("O1", snap.getOwnerId());
@@ -142,7 +119,7 @@ public class UsageSnapShotProducerTest {
             }
             else if ("A2".equals(account)) {
                 assertEquals("A2", snap.getAccountNumber());
-                assertEquals("RHEL", snap.getProductId());
+                assertEquals(TEST_PRODUCT, snap.getProductId());
                 assertEquals(Integer.valueOf(2), snap.getCores());
                 assertEquals(Integer.valueOf(1), snap.getInstanceCount());
                 assertEquals("O2", snap.getOwnerId());
@@ -158,32 +135,34 @@ public class UsageSnapShotProducerTest {
 
     @Test
     public void testUpdatesTallySnapshotIfOneAlreadyExists() throws Exception {
-        when(accountListSourceMock.list()).thenReturn(Arrays.asList("A1"));
         ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
-
-        InventoryHost host = createHost("A1", "O1", "RHEL", 4);
-        when(inventoryRepo.findByAccount(eq("A1"))).thenReturn(Arrays.asList(host).stream());
+        List<String> targetAccounts = Arrays.asList("A1");
+        InventoryHost host = createHost("A1", "O1", TEST_PRODUCT, 4);
+        when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(host).stream());
 
         TallySnapshot existing = new TallySnapshot();
         existing.setId(UUID.randomUUID());
         existing.setAccountNumber("A1");
+        existing.setGranularity(TallyGranularity.DAILY);
+        existing.setProductId(TEST_PRODUCT);
 
         when(tallyRepoMock.findByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween(
-            anyCollection(), eq("RHEL"), eq(TallyGranularity.DAILY), any(OffsetDateTime.class),
+            anyCollection(), eq(TEST_PRODUCT), eq(TallyGranularity.DAILY), any(OffsetDateTime.class),
             any(OffsetDateTime.class))
-        ).thenReturn(Arrays.asList(existing));
+        ).thenReturn(Arrays.asList(existing).stream());
 
-        producer.produceSnapshots();
+        roller.rollSnapshots(targetAccounts);
 
         verify(tallyRepoMock).saveAll(saveArgCapture.capture());
 
         List<TallySnapshot> saved = saveArgCapture.getValue();
+
         assertEquals(1, saved.size());
 
         TallySnapshot snap = saved.get(0);
         assertEquals(existing.getId(), snap.getId());
         assertEquals("A1", snap.getAccountNumber());
-        assertEquals("RHEL", snap.getProductId());
+        assertEquals(TEST_PRODUCT, snap.getProductId());
         assertEquals(Integer.valueOf(4), snap.getCores());
         assertEquals(Integer.valueOf(1), snap.getInstanceCount());
         assertEquals("O1", snap.getOwnerId());
@@ -192,21 +171,22 @@ public class UsageSnapShotProducerTest {
 
     @Test
     public void testSnapshotDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
-        InventoryHost h1 = createHost("A1", "Owner1", "RHEL", 8);
-        InventoryHost h2 = createHost("A1", "Owner1", "NOT_RHEL", 12);
-        when(inventoryRepo.findByAccount(eq("A1"))).thenReturn(Arrays.asList(h1, h2).stream());
+        List<String> targetAccounts = Arrays.asList("A1");
 
-        when(accountListSourceMock.list()).thenReturn(Arrays.asList("A1"));
+        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8);
+        InventoryHost h2 = createHost("A1", "Owner1", "NOT_RHEL", 12);
+        when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
+
         ArgumentCaptor<List<TallySnapshot>> saveArgCapture = ArgumentCaptor.forClass(List.class);
-        producer.produceSnapshots();
+        roller.rollSnapshots(targetAccounts);
 
         verify(tallyRepoMock).saveAll(saveArgCapture.capture());
-
         List<TallySnapshot> saved = saveArgCapture.getValue();
+
         assertEquals(1, saved.size());
         TallySnapshot emptySnapshot = saved.get(0);
         assertEquals("A1", emptySnapshot.getAccountNumber());
-        assertEquals("RHEL", emptySnapshot.getProductId());
+        assertEquals(TEST_PRODUCT, emptySnapshot.getProductId());
         assertEquals(Integer.valueOf(8), emptySnapshot.getCores());
         assertEquals(Integer.valueOf(1), emptySnapshot.getInstanceCount());
         assertEquals("Owner1", emptySnapshot.getOwnerId());
@@ -215,17 +195,18 @@ public class UsageSnapShotProducerTest {
 
     @Test
     public void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwner() throws IOException {
-        InventoryHost h1 = createHost("A1", "Owner1", "RHEL", 1);
-        InventoryHost h2 = createHost("A1", "Owner2", "RHEL", 1);
-        when(inventoryRepo.findByAccount(eq("A1"))).thenReturn(Arrays.asList(h1, h2).stream());
-        when(accountListSourceMock.list()).thenReturn(Arrays.asList("A1"));
+        List<String> targetAccounts = Arrays.asList("A1");
 
-        Throwable e = assertThrows(IllegalStateException.class, () -> producer.produceSnapshots());
+        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 1);
+        InventoryHost h2 = createHost("A1", "Owner2", TEST_PRODUCT, 1);
+        when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
+
+        Throwable e = assertThrows(IllegalStateException.class,
+            () -> roller.rollSnapshots(Arrays.asList("A1")));
 
         String expectedMessage = String.format("Attempt to set a different owner for an account: %s:%s",
             "Owner1", "Owner2");
         assertEquals(expectedMessage, e.getMessage());
-
     }
 
     private InventoryHost createHost(String account, String orgId, String product, Integer cores) {
