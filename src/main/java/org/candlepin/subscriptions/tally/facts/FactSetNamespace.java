@@ -27,7 +27,7 @@ package org.candlepin.subscriptions.tally.facts;
 public class FactSetNamespace {
 
     public static final String RHSM = "rhsm";
-    public static final String YUPANA = "yupana";
+    public static final String QPC = "qpc";
 
     private FactSetNamespace() {
         throw new AssertionError();

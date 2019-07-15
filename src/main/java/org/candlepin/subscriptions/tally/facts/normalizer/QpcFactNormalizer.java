@@ -26,21 +26,21 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import java.util.Map;
 
 /**
- * Normalizes the inventory host FactSet from the 'yupana' (QPC) namespace.
+ * Normalizes the inventory host FactSet from the QPC namespace.
  */
-public class YupanaFactNormalizer implements FactSetNormalizer {
+public class QpcFactNormalizer implements FactSetNormalizer {
 
     public static final String IS_RHEL = "IS_RHEL";
 
     @Override
     public void normalize(NormalizedFacts normalizedFacts, String namespace,
-        Map<String, Object> yupanaFacts) {
-        if (!FactSetNamespace.YUPANA.equalsIgnoreCase(namespace)) {
+        Map<String, Object> qpcFacts) {
+        if (!FactSetNamespace.QPC.equalsIgnoreCase(namespace)) {
             throw new IllegalArgumentException("Attempted to process an invalid namespace.");
         }
 
         // Check if this is a RHEL host and set product.
-        if (checkIsRhelFact(yupanaFacts.get(IS_RHEL))) {
+        if (checkIsRhelFact(qpcFacts.get(IS_RHEL))) {
             normalizedFacts.addProduct("RHEL");
         }
     }

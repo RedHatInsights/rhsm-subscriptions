@@ -35,28 +35,28 @@ import java.util.Map;
 
 
 @TestInstance(Lifecycle.PER_CLASS)
-public class YupanaFactNormalizerTest {
+public class QpcFactNormalizerTest {
 
-    private YupanaFactNormalizer normalizer = new YupanaFactNormalizer();
+    private QpcFactNormalizer normalizer = new QpcFactNormalizer();
 
     @Test
-    void testRhelFromYupanaFacts() {
+    void testRhelFromQpcFacts() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.YUPANA, createYupanaFactSet(true));
+        normalizer.normalize(normalized, FactSetNamespace.QPC, createQpcFactSet(true));
         assertTrue(normalized.getProducts().contains("RHEL"));
     }
 
     @Test
     public void testEmptyProductListWhenIsRhelIsFalse() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.YUPANA, createYupanaFactSet(false));
+        normalizer.normalize(normalized, FactSetNamespace.QPC, createQpcFactSet(false));
         assertTrue(normalized.getProducts().isEmpty());
     }
 
     @Test
     public void testEmptyProductListWhenIsRhelNotSet() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.YUPANA, createYupanaFactSet(null));
+        normalizer.normalize(normalized, FactSetNamespace.QPC, createQpcFactSet(null));
         assertTrue(normalized.getProducts().isEmpty());
     }
 
@@ -64,14 +64,14 @@ public class YupanaFactNormalizerTest {
     void testInvalidNamespace() {
         NormalizedFacts normalized = new NormalizedFacts();
         assertThrows(IllegalArgumentException.class, () -> normalizer.normalize(normalized,
-            "unknown_namespace", createYupanaFactSet(true)));
+            "unknown_namespace", createQpcFactSet(true)));
     }
 
-    private Map<String, Object> createYupanaFactSet(Boolean isRhel) {
-        Map<String, Object> yupanaFacts = new HashMap<>();
+    private Map<String, Object> createQpcFactSet(Boolean isRhel) {
+        Map<String, Object> qpcFacts = new HashMap<>();
         if (isRhel != null) {
-            yupanaFacts.put(YupanaFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
+            qpcFacts.put(QpcFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
         }
-        return yupanaFacts;
+        return qpcFacts;
     }
 }
