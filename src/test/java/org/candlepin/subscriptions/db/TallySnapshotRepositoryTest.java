@@ -58,7 +58,7 @@ public class TallySnapshotRepositoryTest {
 
     @Test
     public void testSave() {
-        TallySnapshot t = createUnpersisted("Hello", "World", TallyGranularity.DAILY, 2,
+        TallySnapshot t = createUnpersisted("Hello", "World", TallyGranularity.DAILY, 2, 3, 4,
             OffsetDateTime.now());
         TallySnapshot saved = repository.saveAndFlush(t);
         assertNotNull(saved.getId());
@@ -66,8 +66,8 @@ public class TallySnapshotRepositoryTest {
 
     @Test
     public void testFindByAccountNumberAndProduct() {
-        TallySnapshot t1 = createUnpersisted("Hello", "World", TallyGranularity.DAILY, 2, NOWISH);
-        TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", TallyGranularity.DAILY, 9999, NOWISH);
+        TallySnapshot t1 = createUnpersisted("Hello", "World", TallyGranularity.DAILY, 2, 3, 4, NOWISH);
+        TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", TallyGranularity.DAILY, 9999, 999, 99, NOWISH);
 
         repository.saveAll(Arrays.asList(t1, t2));
         repository.flush();
@@ -92,14 +92,18 @@ public class TallySnapshotRepositoryTest {
     @Test
     public void testFindByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween() {
         String productId = "Product1";
-        TallySnapshot t1 = createUnpersisted("Account1", productId, TallyGranularity.DAILY, 2, LONG_AGO);
-        TallySnapshot t2 = createUnpersisted("Account2", productId, TallyGranularity.DAILY, 9, NOWISH);
-        TallySnapshot t3 = createUnpersisted("Account2", "Another Product", TallyGranularity.DAILY, 19,
+        TallySnapshot t1 = createUnpersisted("Account1", productId, TallyGranularity.DAILY, 2, 3, 4,
+            LONG_AGO);
+        TallySnapshot t2 = createUnpersisted("Account2", productId, TallyGranularity.DAILY, 9, 10, 11,
             NOWISH);
+        TallySnapshot t3 = createUnpersisted("Account2", "Another Product", TallyGranularity.DAILY, 19, 20,
+            21, NOWISH);
         // Will not be in result - Account not in query
-        TallySnapshot t4 = createUnpersisted("Account3", productId, TallyGranularity.DAILY, 99, FAR_FUTURE);
+        TallySnapshot t4 = createUnpersisted("Account3", productId, TallyGranularity.DAILY, 99, 100, 101,
+            FAR_FUTURE);
         // Will not be found - incorrect granularity
-        TallySnapshot t5 = createUnpersisted("Account2", productId, TallyGranularity.WEEKLY, 20, NOWISH);
+        TallySnapshot t5 = createUnpersisted("Account2", productId, TallyGranularity.WEEKLY, 20, 22, 23,
+            NOWISH);
 
         repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5));
         repository.flush();
@@ -115,23 +119,25 @@ public class TallySnapshotRepositoryTest {
             productId, TallyGranularity.DAILY, min, max).collect(Collectors.toList());
         assertEquals(1, found.size());
         assertEquals("Account2", found.get(0).getAccountNumber());
-        assertEquals(found.get(0).getProductId(), productId);
-        assertEquals(found.get(0).getCores(), Integer.valueOf(9));
+        assertEquals(productId, found.get(0).getProductId());
+        assertEquals(Integer.valueOf(9), found.get(0).getCores());
+        assertEquals(Integer.valueOf(10), found.get(0).getSockets());
+        assertEquals(Integer.valueOf(11), found.get(0).getInstanceCount());
     }
 
     @Test
     public void testGetMaxForAccounts() {
         String productId = "P1";
         List<TallySnapshot> toPersist = Arrays.asList(
-            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 200, LONG_AGO),
-            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 9, NOWISH),
-            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 19, NOWISH),
-            createUnpersisted("Account1", productId, TallyGranularity.MONTHLY, 192, NOWISH),
-            createUnpersisted("Account1", "Another Product", TallyGranularity.DAILY, 100, NOWISH),
-            createUnpersisted("Account2", productId, TallyGranularity.DAILY, 24, NOWISH),
-            createUnpersisted("Account2", productId, TallyGranularity.DAILY, 224, NOWISH),
-            createUnpersisted("Account3", productId, TallyGranularity.DAILY, 112, NOWISH),
-            createUnpersisted("Account3", productId, TallyGranularity.DAILY, 223, NOWISH)
+            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 200, 400, 200, LONG_AGO),
+            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 9, 10, 20, NOWISH),
+            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 19, 3, 8, NOWISH),
+            createUnpersisted("Account1", productId, TallyGranularity.MONTHLY, 192, 7, 120, NOWISH),
+            createUnpersisted("Account1", "Another Product", TallyGranularity.DAILY, 100, 100, 200, NOWISH),
+            createUnpersisted("Account2", productId, TallyGranularity.DAILY, 24, 64, 20, NOWISH),
+            createUnpersisted("Account2", productId, TallyGranularity.DAILY, 224, 1, 100, NOWISH),
+            createUnpersisted("Account3", productId, TallyGranularity.DAILY, 112, 13, 100, NOWISH),
+            createUnpersisted("Account3", productId, TallyGranularity.DAILY, 223, 27, 200, NOWISH)
         );
         repository.saveAll(toPersist);
         repository.flush();
@@ -146,10 +152,14 @@ public class TallySnapshotRepositoryTest {
         for (AccountMaxValues max : maxValues) {
             if ("Account1".equals(max.getAccountNumber())) {
                 assertEquals(Integer.valueOf(19), max.getMaxCores());
+                assertEquals(Integer.valueOf(10), max.getMaxSockets());
+                assertEquals(Integer.valueOf(20), max.getMaxInstances());
                 foundA1 = true;
             }
             else if ("Account2".equals(max.getAccountNumber())) {
                 assertEquals(Integer.valueOf(224), max.getMaxCores());
+                assertEquals(Integer.valueOf(64), max.getMaxSockets());
+                assertEquals(Integer.valueOf(100), max.getMaxInstances());
                 foundA2 = true;
             }
         }
@@ -158,13 +168,15 @@ public class TallySnapshotRepositoryTest {
 
 
     private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, OffsetDateTime date) {
+        int cores, int sockets, int instances, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);
         tally.setOwnerId("N/A");
         tally.setCores(cores);
+        tally.setSockets(sockets);
         tally.setGranularity(granularity);
+        tally.setInstanceCount(instances);
         tally.setSnapshotDate(date);
         return tally;
     }

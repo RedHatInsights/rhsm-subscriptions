@@ -31,17 +31,21 @@ public class AccountMaxValues {
     private String accountNumber;
     private String ownerId;
     private Integer maxCores;
+    private Integer maxSockets;
     private Integer maxInstances;
 
-    public AccountMaxValues(String accountNumber, String ownerId, Integer maxCores, Integer maxInstances) {
+    public AccountMaxValues(String accountNumber, String ownerId, Integer maxCores, Integer maxSockets,
+        Integer maxInstances) {
         this.accountNumber = accountNumber;
         this.ownerId = ownerId;
         this.maxCores = maxCores;
+        this.maxSockets = maxSockets;
         this.maxInstances = maxInstances;
     }
 
     public AccountMaxValues(ProductUsageCalculation calc) {
-        this(calc.getAccount(), calc.getOwner(), calc.getTotalCores(), calc.getInstanceCount());
+        this(calc.getAccount(), calc.getOwner(), calc.getTotalCores(), calc.getTotalSockets(),
+            calc.getInstanceCount());
     }
 
     public String getAccountNumber() {
@@ -58,6 +62,14 @@ public class AccountMaxValues {
 
     public void setMaxCores(Integer maxCores) {
         this.maxCores = maxCores;
+    }
+
+    public Integer getMaxSockets() {
+        return maxSockets;
+    }
+
+    public void setMaxSockets(Integer maxSockets) {
+        this.maxSockets = maxSockets;
     }
 
     public Integer getMaxInstances() {

@@ -36,6 +36,8 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
 
     public static final String RH_PRODUCTS = "RH_PROD";
     public static final String CPU_CORES = "CPU_CORES";
+    public static final String CPU_SOCKETS = "CPU_SOCKETS";
+
     // TODO: This should be uppercase in conduit.
     public static final String ORG_ID = "orgId";
     public static final String SYNC_TIMESTAMP = "SYNC_TIMESTAMP";
@@ -71,8 +73,10 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
             normalizedFacts.addProduct("RHEL");
         }
 
-        // Check for cores. If not included, default to 0 cores.
+        // Check for cores and sockets. If not included, default to 0.
         normalizedFacts.setCores(rhsmFacts.containsKey(CPU_CORES) ? (Integer) rhsmFacts.get(CPU_CORES) : 0);
+        normalizedFacts.setSockets(rhsmFacts.containsKey(CPU_SOCKETS) ?
+            (Integer) rhsmFacts.get(CPU_SOCKETS) : 0);
         normalizedFacts.setOwner((String) rhsmFacts.get(ORG_ID));
     }
 

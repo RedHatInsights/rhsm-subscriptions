@@ -32,10 +32,12 @@ public class NormalizedFacts {
 
     public static final String PRODUCTS_KEY = "products";
     public static final String CORES_KEY = "cores";
+    public static final String SOCKETS_KEY = "sockets";
     public static final String OWNER_KEY = "owner";
 
     private Set<String> products;
     private Integer cores;
+    private Integer sockets;
     private String owner;
 
     public NormalizedFacts() {
@@ -68,6 +70,14 @@ public class NormalizedFacts {
 
     public void setOwner(String owner) {
         this.owner = owner;
+    }
+
+    public Integer getSockets() {
+        return sockets;
+    }
+
+    public void setSockets(Integer sockets) {
+        this.sockets = sockets;
     }
 
     public Map<String, Object> toInventoryPayload() {

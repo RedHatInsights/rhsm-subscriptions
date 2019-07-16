@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @SpringBootTest
@@ -89,8 +90,8 @@ public class MonthlySnapshotRollerTest {
         assertEquals("A1", result.getAccountNumber());
         assertEquals(TallyGranularity.MONTHLY, result.getGranularity());
         assertEquals(TEST_PRODUCT, result.getProductId());
-        // Cores and instance count should both come from the weekly snap with the largest cores count.
         assertEquals(max.getCores(), result.getCores());
+        assertEquals(max.getSockets(), result.getSockets());
         assertEquals(max.getInstanceCount(), result.getInstanceCount());
     }
 
@@ -99,12 +100,11 @@ public class MonthlySnapshotRollerTest {
     public void testMonthlySnapIsUpdatedWhenItAlreadyExists() {
         List<TallySnapshot> forMonth = setupDailySnapsForMonth("A1");
 
-        TallySnapshot max = forMonth.stream()
+        List<TallySnapshot> dailySnaps = forMonth.stream()
             .filter(t -> t.getCores() != null &&
                  t.getSnapshotDate().getMonth().equals(clock.now().getMonth()) &&
                  TallyGranularity.DAILY.equals(t.getGranularity()))
-            .max(Comparator.comparingInt(TallySnapshot::getCores))
-            .get();
+            .collect(Collectors.toList());
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
@@ -112,15 +112,17 @@ public class MonthlySnapshotRollerTest {
             repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
             TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
         assertEquals(1, monthlySnaps.size());
+        TallySnapshot monthlyToBeUpdated = monthlySnaps.get(0);
 
-        TallySnapshot firstUpdate = monthlySnaps.get(0);
+        TallySnapshot dailyToUpdate = dailySnaps.get(0);
+        Integer updatedCores = 400;
+        Integer updatedSockets = 200;
+        Integer updatedInstances = 100;
 
-        // Update the max so it is no longer the max. The new max should be 1 day behind
-        // and will be one less than the max.
-        Integer expectedUpdatedCoresAndInstance = max.getCores() - 1;
-        max.setCores(12);
-        max.setInstanceCount(12);
-        repository.saveAndFlush(max);
+        dailyToUpdate.setCores(updatedCores);
+        dailyToUpdate.setSockets(updatedSockets);
+        dailyToUpdate.setInstanceCount(updatedInstances);
+        repository.saveAndFlush(dailyToUpdate);
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
@@ -130,13 +132,13 @@ public class MonthlySnapshotRollerTest {
         assertEquals(1, updatedMonthlySnaps.size());
 
         TallySnapshot updated = updatedMonthlySnaps.get(0);
-        assertEquals(firstUpdate.getId(), updated.getId());
+        assertEquals(monthlyToBeUpdated.getId(), updated.getId());
         assertEquals("A1", updated.getAccountNumber());
         assertEquals(TallyGranularity.MONTHLY, updated.getGranularity());
         assertEquals(TEST_PRODUCT, updated.getProductId());
-        // Cores and instance count should both come from the weekly snap with the largest cores count.
-        assertEquals(expectedUpdatedCoresAndInstance, updated.getCores());
-        assertEquals(expectedUpdatedCoresAndInstance, updated.getInstanceCount());
+        assertEquals(updatedCores, updated.getCores());
+        assertEquals(updatedSockets, updated.getSockets());
+        assertEquals(updatedInstances, updated.getInstanceCount());
     }
 
     private List<TallySnapshot> setupDailySnapsForMonth(String account) {
@@ -149,11 +151,13 @@ public class MonthlySnapshotRollerTest {
         List<TallySnapshot> weeklies = new LinkedList<>();
         while (!next.isAfter(lastDayOfLastWeekInMonth)) {
             count++;
-            dailies.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.DAILY, count, count, next));
+            dailies.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.DAILY, count, count,
+                count + 1, next));
 
             OffsetDateTime peek = next.plusDays(1L);
             if (peek.getDayOfWeek().equals(DayOfWeek.SUNDAY)) {
-                weeklies.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.WEEKLY, count, count,
+                weeklies.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.WEEKLY, count,
+                    count + 1, count,
                     clock.startOfWeek(next)));
             }
             next = OffsetDateTime.from(peek);
@@ -166,12 +170,13 @@ public class MonthlySnapshotRollerTest {
     }
 
     private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int instanceCount, OffsetDateTime date) {
+        int cores, int sockets, int instanceCount, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);
         tally.setOwnerId("N/A");
         tally.setCores(cores);
+        tally.setSockets(sockets);
         tally.setGranularity(granularity);
         tally.setInstanceCount(instanceCount);
         tally.setSnapshotDate(date);
