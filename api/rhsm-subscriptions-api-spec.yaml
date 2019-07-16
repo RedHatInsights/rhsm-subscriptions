@@ -87,7 +87,7 @@ paths:
                   previous: null
                   next: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
-                  resultSetSize: 10
+                  count: 10
                   product: RHEL
                   granularity: DAILY
         '400':
@@ -197,7 +197,7 @@ components:
         meta:
           type: object
           properties:
-            resultSetSize:
+            count:
               type: integer
             product:
               type: string
@@ -207,7 +207,7 @@ components:
                 seven day period."
               type: string
           required:
-            - resultSetSize
+            - count
             - product
             - granularity
     TallySnapshot:
