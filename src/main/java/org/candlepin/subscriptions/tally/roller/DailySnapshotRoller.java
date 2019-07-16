@@ -63,7 +63,7 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
     @Override
     @Transactional
     public void rollSnapshots(List<String> accounts) {
-        log.info("Producing daily snapshots for {} account.", accounts.size());
+        log.debug("Producing daily snapshots for {} account(s).", accounts.size());
         produceDailySnapshots(accounts, calculateMaxValuesFromInventory(accounts));
     }
 
@@ -103,14 +103,8 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
                             currentOwner, owner));
                 }
                 calc.setOwner(owner);
+                log.debug("Calculated daily values for host '{}': {}", host.getDisplayName(), calc);
             });
-        }
-
-        if (log.isDebugEnabled()) {
-            for (ProductUsageCalculation calc : calcsByAccount.values()) {
-                log.info("Account: {}, Cores: {}, Sockets: {}, Instances: {}", calc.getAccount(),
-                    calc.getTotalCores(), calc.getTotalSockets(), calc.getInstanceCount());
-            }
         }
         return calcsByAccount.values();
     }

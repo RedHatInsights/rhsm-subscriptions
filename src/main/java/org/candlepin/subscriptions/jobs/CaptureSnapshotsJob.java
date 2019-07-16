@@ -45,7 +45,7 @@ public class CaptureSnapshotsJob extends QuartzJobBean {
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        log.info("Capturing snapshots!!!!");
+        log.info("Starting snapshot production.");
         usageSnapshotProducer.produceSnapshots();
     }
 

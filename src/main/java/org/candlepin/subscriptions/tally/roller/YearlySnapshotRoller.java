@@ -46,7 +46,7 @@ public class YearlySnapshotRoller extends BaseSnapshotRoller {
     @Override
     @Transactional
     public void rollSnapshots(List<String> accounts) {
-        log.info("Producing yearly snapshots for {} accounts.", accounts.size());
+        log.debug("Producing yearly snapshots for {} account(s).", accounts.size());
 
         updateSnapshots(accounts, TallyGranularity.MONTHLY, TallyGranularity.YEARLY,
             clock.startOfCurrentYear(), clock.endOfCurrentYear());

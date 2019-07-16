@@ -81,4 +81,10 @@ public class ProductUsageCalculation {
         this.owner = owner;
     }
 
+    @Override
+    public String toString() {
+        return String.format("[Account: %s, Owner: %s, Product: %s, Cores: %s, Sockets: %s, Instances: %s",
+            this.account, this.owner, this.productId, this.totalCores, this.totalSockets,
+            this.instanceCount);
+    }
 }

@@ -42,6 +42,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Produces usage snapshot for all configured accounts.
@@ -82,9 +83,11 @@ public class UsageSnapshotProducer {
         try {
             // Partition the account list to help reduce memory usage while performing
             // the calculations.
-            log.info("Batch producing snapshots.");
-            Iterables.partition(accountListSource.list(), accountBatchSize).forEach(accounts -> {
-                log.info("Producing snapshots for the next {} accounts.", accounts.size());
+            List<String> accountList = accountListSource.list();
+            log.info("Producing snapshots for {} accounts in batches of {}.", accountList.size(),
+                accountBatchSize);
+            Iterables.partition(accountList, accountBatchSize).forEach(accounts -> {
+                log.info("Producing snapshots for {}/{} accounts.", accounts.size(), accountList.size());
                 dailyRoller.rollSnapshots(accounts);
                 weeklyRoller.rollSnapshots(accounts);
                 monthlyRoller.rollSnapshots(accounts);
