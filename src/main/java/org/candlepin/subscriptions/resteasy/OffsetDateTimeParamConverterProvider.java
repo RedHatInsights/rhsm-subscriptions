@@ -66,6 +66,9 @@ public class OffsetDateTimeParamConverterProvider implements ParamConverterProvi
 
         @Override
         public String toString(OffsetDateTime value) {
+            if (value == null) {
+                return null;
+            }
             return value.toString();
         }
     }
