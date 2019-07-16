@@ -59,7 +59,7 @@ pipeline {
         stage('SonarQube Quality Gate') {
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/dashboard?id=org.candlepin%3Arhsm-subscriptions"
+                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/dashboard?id=rhsm-subscriptions"
                 }
                 timeout(time: 1, unit: 'HOURS') {
                     waitForQualityGate abortPipeline: true
