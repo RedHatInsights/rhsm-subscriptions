@@ -148,6 +148,7 @@ public class TallySnapshot implements Serializable {
 
         snapshot.setDate(this.getSnapshotDate());
         snapshot.setCores(this.getCores());
+        snapshot.setSockets(this.getSockets());
         snapshot.setInstanceCount(this.getInstanceCount());
         return snapshot;
     }

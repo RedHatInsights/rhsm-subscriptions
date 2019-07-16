@@ -69,18 +69,23 @@ paths:
                   - date: '2017-08-04T17:32:05Z'
                     instance_count: 5
                     cores: 10
+                    sockets: 5
                   - date: '2017-08-05T17:31:04Z'
                     instance_count: 7
                     cores: 14
+                    sockets: 7
                   - date: '2017-08-06T17:32:03Z'
                     instance_count: 20
                     cores: 20
+                    sockets: 10
                   - date: '2017-08-07T17:34:02Z'
                     instance_count: 7
                     cores: 14
+                    sockets: 7
                   - date: '2017-08-08T17:32:01Z'
                     instance_count: 5
                     cores: 10
+                    sockets: 5
                 links:
                   first: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
                   last: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
@@ -230,6 +235,10 @@ components:
           format: int32
           minimum: 0
         cores:
+          type: integer
+          format: int32
+          minimum: 0
+        sockets:
           type: integer
           format: int32
           minimum: 0
