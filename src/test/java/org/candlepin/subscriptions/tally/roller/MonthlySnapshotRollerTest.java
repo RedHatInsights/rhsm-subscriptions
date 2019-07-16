@@ -20,12 +20,17 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.assertSnapshot;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountProductCalcs;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountCalc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -38,11 +43,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
-import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,21 +67,18 @@ public class MonthlySnapshotRollerTest {
     @BeforeAll
     public void setupAllTests() {
         this.clock = new FixedClockConfiguration().fixedClock();
-        this.roller = new MonthlySnapshotRoller(TEST_PRODUCT, repository, clock);
+        this.roller = new MonthlySnapshotRoller(repository, clock);
     }
 
     @SuppressWarnings("indentation")
     @Test
     public void testMonthlySnapshotProducer() {
-        List<TallySnapshot> forMonth = setupDailySnapsForMonth("A1");
-        TallySnapshot max = forMonth.stream()
-            .filter(t -> t.getCores() != null &&
-                t.getSnapshotDate().getMonth().equals(clock.now().getMonth()) &&
-                TallyGranularity.DAILY.equals(t.getGranularity()))
-            .max(Comparator.comparingInt(TallySnapshot::getCores))
-            .get();
-
-        roller.rollSnapshots(Arrays.asList("A1"));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, 12, 24, 6);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> monthlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
@@ -88,27 +86,19 @@ public class MonthlySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
 
-        TallySnapshot result = monthlySnaps.get(0);
-        assertEquals("A1", result.getAccountNumber());
-        assertEquals(TallyGranularity.MONTHLY, result.getGranularity());
-        assertEquals(TEST_PRODUCT, result.getProductId());
-        assertEquals(max.getCores(), result.getCores());
-        assertEquals(max.getSockets(), result.getSockets());
-        assertEquals(max.getInstanceCount(), result.getInstanceCount());
+        assertSnapshot(monthlySnaps.get(0), TEST_PRODUCT, TallyGranularity.MONTHLY,
+            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
     @SuppressWarnings("indentation")
     @Test
     public void testMonthlySnapIsUpdatedWhenItAlreadyExists() {
-        List<TallySnapshot> forMonth = setupDailySnapsForMonth("A1");
-
-        List<TallySnapshot> dailySnaps = forMonth.stream()
-            .filter(t -> t.getCores() != null &&
-                 t.getSnapshotDate().getMonth().equals(clock.now().getMonth()) &&
-                 TallyGranularity.DAILY.equals(t.getGranularity()))
-            .collect(Collectors.toList());
-
-        roller.rollSnapshots(Arrays.asList("A1"));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, 12, 24, 6);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> monthlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
@@ -116,18 +106,13 @@ public class MonthlySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
         TallySnapshot monthlyToBeUpdated = monthlySnaps.get(0);
+        assertSnapshot(monthlyToBeUpdated, TEST_PRODUCT, TallyGranularity.MONTHLY,
+            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
-        TallySnapshot dailyToUpdate = dailySnaps.get(0);
-        Integer updatedCores = 400;
-        Integer updatedSockets = 200;
-        Integer updatedInstances = 100;
-
-        dailyToUpdate.setCores(updatedCores);
-        dailyToUpdate.setSockets(updatedSockets);
-        dailyToUpdate.setInstanceCount(updatedInstances);
-        repository.saveAndFlush(dailyToUpdate);
-
-        roller.rollSnapshots(Arrays.asList("A1"));
+        a1ProductCalc.addCores(100);
+        a1ProductCalc.addSockets(200);
+        a1ProductCalc.addInstances(50);
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedMonthlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
@@ -137,54 +122,48 @@ public class MonthlySnapshotRollerTest {
 
         TallySnapshot updated = updatedMonthlySnaps.get(0);
         assertEquals(monthlyToBeUpdated.getId(), updated.getId());
-        assertEquals("A1", updated.getAccountNumber());
-        assertEquals(TallyGranularity.MONTHLY, updated.getGranularity());
-        assertEquals(TEST_PRODUCT, updated.getProductId());
-        assertEquals(updatedCores, updated.getCores());
-        assertEquals(updatedSockets, updated.getSockets());
-        assertEquals(updatedInstances, updated.getInstanceCount());
+        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.MONTHLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
-    private List<TallySnapshot> setupDailySnapsForMonth(String account) {
-        OffsetDateTime firstDayOfFistWeekInMonth = clock.startOfWeek(clock.startOfCurrentMonth());
-        OffsetDateTime lastDayOfLastWeekInMonth = clock.endOfWeek(clock.endOfCurrentMonth());
+    @Test
+    public void ensureCurrentMonthlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+        int expectedCores = 100;
+        int expectedSockets = 200;
+        int expectedInstances = 10;
 
-        int count = 0;
-        OffsetDateTime next = firstDayOfFistWeekInMonth;
-        List<TallySnapshot> dailies = new LinkedList<>();
-        List<TallySnapshot> weeklies = new LinkedList<>();
-        while (!next.isAfter(lastDayOfLastWeekInMonth)) {
-            count++;
-            dailies.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.DAILY, count, count,
-                count + 1, next));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, expectedCores, expectedSockets, expectedInstances);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
-            OffsetDateTime peek = next.plusDays(1L);
-            if (peek.getDayOfWeek().equals(DayOfWeek.SUNDAY)) {
-                weeklies.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.WEEKLY, count,
-                    count + 1, count,
-                    clock.startOfWeek(next)));
-            }
-            next = OffsetDateTime.from(peek);
-        }
+        List<TallySnapshot> monthlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(),
+            clock.endOfCurrentMonth(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, monthlySnaps.size());
 
-        List<TallySnapshot> all = new LinkedList<>(dailies);
-        all.addAll(weeklies);
+        TallySnapshot toUpdate = monthlySnaps.get(0);
+        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.MONTHLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
-        return repository.saveAll(all);
-    }
+        // Update the values and run again
+        accountCalcs.clear();
+        accountCalcs.add(createAccountCalc(account, "O1", TEST_PRODUCT, 2, 2, 2));
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
-    private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int sockets, int instanceCount, OffsetDateTime date) {
-        TallySnapshot tally = new TallySnapshot();
-        tally.setAccountNumber(account);
-        tally.setProductId(product);
-        tally.setOwnerId("N/A");
-        tally.setCores(cores);
-        tally.setSockets(sockets);
-        tally.setGranularity(granularity);
-        tally.setInstanceCount(instanceCount);
-        tally.setSnapshotDate(date);
-        return tally;
+        List<TallySnapshot> updatedMonthlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(),
+            clock.endOfCurrentMonth(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, updatedMonthlySnaps.size());
+
+        TallySnapshot updated = updatedMonthlySnaps.get(0);
+        assertEquals(toUpdate.getId(), updated.getId());
+        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.MONTHLY, expectedCores, expectedSockets,
+            expectedInstances);
     }
 
 }

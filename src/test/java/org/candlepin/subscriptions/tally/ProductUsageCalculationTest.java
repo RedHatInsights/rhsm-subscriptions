@@ -30,15 +30,15 @@ public class ProductUsageCalculationTest {
 
     @Test
     public void testIncrementInstances() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Account", "Product");
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
         int expectedInstances = 10;
-        IntStream.rangeClosed(1, 10).forEach(i -> calculation.addInstance());
+        IntStream.rangeClosed(0, 4).forEach(i -> calculation.addInstances(i));
         assertEquals(expectedInstances, calculation.getInstanceCount());
     }
 
     @Test
     public void testAddingCores() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Account", "Product");
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
         int expectedCores = 10;
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addCores(i));
         assertEquals(expectedCores, calculation.getTotalCores());
@@ -46,7 +46,7 @@ public class ProductUsageCalculationTest {
 
     @Test
     public void testAddingSockets() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Account", "Product");
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
         int expectedSockets = 10;
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addSockets(i));
         assertEquals(expectedSockets, calculation.getTotalSockets());

@@ -22,34 +22,45 @@ package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 
 /**
- * Produces monthly usage snapshots based on the existing daily snapshots for the current month.
+ * Produces monthly snapshots based on data stored in the inventory service. If a snapshot
+ * does not exist for the account for the current month and an incoming calculation exists
+ * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
+ * instances will only be updated if the incoming calculated values are greater than those
+ * existing for the current month.
  */
 public class MonthlySnapshotRoller extends BaseSnapshotRoller {
 
     private static final Logger log = LoggerFactory.getLogger(MonthlySnapshotRoller.class);
 
-    public MonthlySnapshotRoller(String product, TallySnapshotRepository tallyRepo,
+    public MonthlySnapshotRoller(TallySnapshotRepository tallyRepo,
         ApplicationClock clock) {
-        super(product, tallyRepo, clock);
+        super(tallyRepo, clock);
     }
 
     @Override
     @Transactional
-    public void rollSnapshots(List<String> accounts) {
+    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing monthly snapshots for {} account(s).", accounts.size());
 
-        updateSnapshots(accounts, TallyGranularity.DAILY, TallyGranularity.MONTHLY,
-            clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
+        Map<String, List<TallySnapshot>> currentMonthlySnaps = getCurrentSnapshotsByAccount(accounts,
+            getApplicableProducts(accountCalcs), TallyGranularity.MONTHLY, clock.startOfCurrentMonth(),
+            clock.endOfCurrentMonth());
+
+        updateSnapshots(accountCalcs, currentMonthlySnaps, TallyGranularity.MONTHLY);
     }
 
 }

@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 
 import org.springframework.data.repository.Repository;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -33,7 +33,6 @@ import java.util.stream.Stream;
  */
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
-    Stream<InventoryHost> findByAccount(String account);
+    Stream<InventoryHost> findByAccountIn(Collection<String> accounts);
 
-    Stream<InventoryHost> findByAccountIn(List<String> accounts);
 }

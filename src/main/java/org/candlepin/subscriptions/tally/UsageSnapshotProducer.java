@@ -42,6 +42,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -52,11 +54,12 @@ public class UsageSnapshotProducer {
 
     private static final Logger log = LoggerFactory.getLogger(UsageSnapshotProducer.class);
 
-    private static final String RHEL = "RHEL";
+    private static final List<String> APPLICABLE_PRODUCTS = Arrays.asList("RHEL");
 
     private final AccountListSource accountListSource;
     private final int accountBatchSize;
 
+    private final InventoryAccountUsageCollector accountUsageCollector;
     private final DailySnapshotRoller dailyRoller;
     private final WeeklySnapshotRoller weeklyRoller;
     private final MonthlySnapshotRoller monthlyRoller;
@@ -70,29 +73,31 @@ public class UsageSnapshotProducer {
         this.accountListSource = accountListSource;
         this.accountBatchSize = applicationProperties.getAccountBatchSize();
 
-        dailyRoller = new DailySnapshotRoller(RHEL, inventoryRepository,
-            tallyRepo, factNormalizer, clock);
-        weeklyRoller = new WeeklySnapshotRoller(RHEL, tallyRepo, clock);
-        monthlyRoller = new MonthlySnapshotRoller(RHEL, tallyRepo, clock);
-        yearlyRoller = new YearlySnapshotRoller(RHEL, tallyRepo, clock);
-        quarterlyRoller = new QuarterlySnapshotRoller(RHEL, tallyRepo, clock);
+        this.accountUsageCollector = new InventoryAccountUsageCollector(factNormalizer, inventoryRepository);
+        dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
+        weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
+        monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);
+        yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock);
+        quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock);
     }
 
     @Transactional
     public void produceSnapshots() {
         try {
-            // Partition the account list to help reduce memory usage while performing
-            // the calculations.
             List<String> accountList = accountListSource.list();
             log.info("Producing snapshots for {} accounts in batches of {}.", accountList.size(),
                 accountBatchSize);
-            Iterables.partition(accountList, accountBatchSize).forEach(accounts -> {
+
+            // Partition the account list to help reduce memory usage while performing the calculations.
+            Iterables.partition(accountListSource.list(), accountBatchSize).forEach(accounts -> {
                 log.info("Producing snapshots for {}/{} accounts.", accounts.size(), accountList.size());
-                dailyRoller.rollSnapshots(accounts);
-                weeklyRoller.rollSnapshots(accounts);
-                monthlyRoller.rollSnapshots(accounts);
-                yearlyRoller.rollSnapshots(accounts);
-                quarterlyRoller.rollSnapshots(accounts);
+                Collection<AccountUsageCalculation> accountCalcs =
+                    accountUsageCollector.collect(APPLICABLE_PRODUCTS, accounts);
+                dailyRoller.rollSnapshots(accounts, accountCalcs);
+                weeklyRoller.rollSnapshots(accounts, accountCalcs);
+                monthlyRoller.rollSnapshots(accounts, accountCalcs);
+                yearlyRoller.rollSnapshots(accounts, accountCalcs);
+                quarterlyRoller.rollSnapshots(accounts, accountCalcs);
             });
             log.info("Finished producing snapshots for all accounts.");
 

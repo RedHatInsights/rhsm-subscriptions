@@ -22,9 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.candlepin.subscriptions.db.model.AccountMaxValues;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 
@@ -92,22 +90,29 @@ public class TallySnapshotRepositoryTest {
     }
 
     @Test
-    public void testFindByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween() {
-        String productId = "Product1";
-        TallySnapshot t1 = createUnpersisted("Account1", productId, TallyGranularity.DAILY, 2, 3, 4,
+    public void testFindByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween() {
+        String product1 = "Product1";
+        String product2 = "Product2";
+        // Will not be found - out of date range.
+        TallySnapshot t1 = createUnpersisted("Account1", product1, TallyGranularity.DAILY, 2, 3, 4,
             LONG_AGO);
-        TallySnapshot t2 = createUnpersisted("Account2", productId, TallyGranularity.DAILY, 9, 10, 11,
+        // Will be found.
+        TallySnapshot t2 = createUnpersisted("Account2", product1, TallyGranularity.DAILY, 9, 10, 11,
             NOWISH);
-        TallySnapshot t3 = createUnpersisted("Account2", "Another Product", TallyGranularity.DAILY, 19, 20,
-            21, NOWISH);
+        // Will be found.
+        TallySnapshot t3 = createUnpersisted("Account2", product2, TallyGranularity.DAILY, 19, 20, 21,
+            NOWISH);
+        // Will not be found, incorrect granularity
+        TallySnapshot t4 = createUnpersisted("Account2", product2, TallyGranularity.WEEKLY, 19, 20, 21,
+            NOWISH);
         // Will not be in result - Account not in query
-        TallySnapshot t4 = createUnpersisted("Account3", productId, TallyGranularity.DAILY, 99, 100, 101,
+        TallySnapshot t5 = createUnpersisted("Account3", product1, TallyGranularity.DAILY, 99, 100, 101,
             FAR_FUTURE);
         // Will not be found - incorrect granularity
-        TallySnapshot t5 = createUnpersisted("Account2", productId, TallyGranularity.WEEKLY, 20, 22, 23,
+        TallySnapshot t6 = createUnpersisted("Account2", product1, TallyGranularity.WEEKLY, 20, 22, 23,
             NOWISH);
 
-        repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5));
+        repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5, t6));
         repository.flush();
 
         OffsetDateTime min = OffsetDateTime.of(2019, 05, 23, 00, 00, 00, 00,
@@ -116,58 +121,18 @@ public class TallySnapshotRepositoryTest {
             ZoneOffset.UTC);
 
         List<String> accounts = Arrays.asList("Account1", "Account2");
+        List<String> products = Arrays.asList(product1, product2);
         List<TallySnapshot> found =
-            repository.findByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween(accounts,
-            productId, TallyGranularity.DAILY, min, max).collect(Collectors.toList());
-        assertEquals(1, found.size());
+            repository.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(accounts,
+            products, TallyGranularity.DAILY, min, max).collect(Collectors.toList());
+        // TODO Expect this to fail. Need to rebuild test result checking.
+        assertEquals(2, found.size());
         assertEquals("Account2", found.get(0).getAccountNumber());
-        assertEquals(productId, found.get(0).getProductId());
+        assertEquals(product1, found.get(0).getProductId());
         assertEquals(Integer.valueOf(9), found.get(0).getCores());
         assertEquals(Integer.valueOf(10), found.get(0).getSockets());
         assertEquals(Integer.valueOf(11), found.get(0).getInstanceCount());
     }
-
-    @Test
-    public void testGetMaxForAccounts() {
-        String productId = "P1";
-        List<TallySnapshot> toPersist = Arrays.asList(
-            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 200, 400, 200, LONG_AGO),
-            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 9, 10, 20, NOWISH),
-            createUnpersisted("Account1", productId, TallyGranularity.DAILY, 19, 3, 8, NOWISH),
-            createUnpersisted("Account1", productId, TallyGranularity.MONTHLY, 192, 7, 120, NOWISH),
-            createUnpersisted("Account1", "Another Product", TallyGranularity.DAILY, 100, 100, 200, NOWISH),
-            createUnpersisted("Account2", productId, TallyGranularity.DAILY, 24, 64, 20, NOWISH),
-            createUnpersisted("Account2", productId, TallyGranularity.DAILY, 224, 1, 100, NOWISH),
-            createUnpersisted("Account3", productId, TallyGranularity.DAILY, 112, 13, 100, NOWISH),
-            createUnpersisted("Account3", productId, TallyGranularity.DAILY, 223, 27, 200, NOWISH)
-        );
-        repository.saveAll(toPersist);
-        repository.flush();
-
-        List<AccountMaxValues> maxValues = repository.getMaxValuesForAccounts(
-            Arrays.asList("Account1", "Account2"), productId, TallyGranularity.DAILY,
-            NOWISH, NOWISH);
-        assertEquals(2, maxValues.size());
-
-        boolean foundA1 = false;
-        boolean foundA2 = false;
-        for (AccountMaxValues max : maxValues) {
-            if ("Account1".equals(max.getAccountNumber())) {
-                assertEquals(Integer.valueOf(19), max.getMaxCores());
-                assertEquals(Integer.valueOf(10), max.getMaxSockets());
-                assertEquals(Integer.valueOf(20), max.getMaxInstances());
-                foundA1 = true;
-            }
-            else if ("Account2".equals(max.getAccountNumber())) {
-                assertEquals(Integer.valueOf(224), max.getMaxCores());
-                assertEquals(Integer.valueOf(64), max.getMaxSockets());
-                assertEquals(Integer.valueOf(100), max.getMaxInstances());
-                foundA2 = true;
-            }
-        }
-        assertTrue(foundA1 && foundA2);
-    }
-
 
     private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
         int cores, int sockets, int instances, OffsetDateTime date) {

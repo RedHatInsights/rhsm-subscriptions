@@ -22,37 +22,45 @@ package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
-
+import java.util.Map;
 
 /**
- * Produces quarterly usage snapshots based on the existing monthly snapshots for the current quarter.
+ * Produces quarterly snapshots based on data stored in the inventory service. If a snapshot
+ * does not exist for the account for the current quarter and an incoming calculation exists
+ * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
+ * instances will only be updated if the incoming calculated values are greater than those
+ * existing for the current quarter.
+ *
  * A quarter is considered to be chunked by a 3 month interval. In a given year, the quarters are defined as:
  * Jan-Mar, Apr-Jun, Jul-Sept, Oct-Dec
- *
- * Quarterly snapshots are created as the current date enters the quarter.
  */
 public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
     private static final Logger log = LoggerFactory.getLogger(QuarterlySnapshotRoller.class);
 
-    public QuarterlySnapshotRoller(String product, TallySnapshotRepository tallyRepo,
-        ApplicationClock clock) {
-        super(product, tallyRepo, clock);
+    public QuarterlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+        super(tallyRepo, clock);
     }
 
     @Override
     @Transactional
-    public void rollSnapshots(List<String> accounts) {
+    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
 
-        updateSnapshots(accounts, TallyGranularity.MONTHLY, TallyGranularity.QUARTERLY,
-            clock.startOfCurrentQuarter(), clock.endOfCurrentQuarter());
+        Map<String, List<TallySnapshot>> currentQuarterlySnaps = getCurrentSnapshotsByAccount(accounts,
+            getApplicableProducts(accountCalcs), TallyGranularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            clock.endOfCurrentQuarter());
+
+        updateSnapshots(accountCalcs, currentQuarterlySnaps, TallyGranularity.QUARTERLY);
     }
 
 }

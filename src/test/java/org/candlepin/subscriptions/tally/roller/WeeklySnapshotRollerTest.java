@@ -20,12 +20,17 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.assertSnapshot;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountProductCalcs;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountCalc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -38,12 +43,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
@@ -64,14 +66,17 @@ public class WeeklySnapshotRollerTest {
     @BeforeAll
     public void setupAllTests() {
         this.clock = new FixedClockConfiguration().fixedClock();
-        this.roller = new WeeklySnapshotRoller(TEST_PRODUCT, repository, clock);
+        this.roller = new WeeklySnapshotRoller(repository, clock);
     }
 
     @Test
     public void testWeeklySnapshotProduction() {
-        setupWeeksWorthOfDailySnaps("A1", clock.now());
-
-        roller.rollSnapshots(Arrays.asList("A1"));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, 6, 7, 6);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> weeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
@@ -79,45 +84,34 @@ public class WeeklySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
 
-        TallySnapshot result = weeklySnaps.get(0);
-        assertEquals(TallyGranularity.WEEKLY, result.getGranularity());
-        assertEquals(TEST_PRODUCT, result.getProductId());
-        assertEquals(Integer.valueOf(6), result.getCores());
-        assertEquals(Integer.valueOf(7), result.getSockets());
-        assertEquals(Integer.valueOf(6), result.getInstanceCount());
+        assertSnapshot(weeklySnaps.get(0), TEST_PRODUCT, TallyGranularity.WEEKLY,
+            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
     @Test
     public void testWeeklySnapIsUpdatedWhenItAlreadyExists() {
-        // Set up three weeks of daily snaps
-        OffsetDateTime now = clock.now();
-        List<TallySnapshot> dailies = setupWeeksWorthOfDailySnaps("A1", now);
-        setupWeeksWorthOfDailySnaps("A1", now.minusDays(7));
-        setupWeeksWorthOfDailySnaps("A1", now.minusDays(14));
-
-        roller.rollSnapshots(Arrays.asList("A1"));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, 6, 7, 6);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> weeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
-        TallySnapshot result = weeklySnaps.get(0);
-        assertEquals("A1", result.getAccountNumber());
-        assertEquals(TallyGranularity.WEEKLY, result.getGranularity());
-        assertEquals(TEST_PRODUCT, result.getProductId());
-        assertEquals(Integer.valueOf(6), result.getCores());
-        assertEquals(Integer.valueOf(7), result.getSockets());
-        assertEquals(Integer.valueOf(6), result.getInstanceCount());
 
-        // Update the daily and run again
-        TallySnapshot dailyToUpdate = dailies.get(0);
-        dailyToUpdate.setCores(124);
-        dailyToUpdate.setSockets(248);
-        dailyToUpdate.setInstanceCount(20);
-        repository.saveAndFlush(dailyToUpdate);
+        TallySnapshot toUpdate = weeklySnaps.get(0);
+        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.WEEKLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
-        roller.rollSnapshots(Arrays.asList("A1"));
+        // Update the values and run again
+        a1ProductCalc.addCores(100);
+        a1ProductCalc.addSockets(200);
+        a1ProductCalc.addInstances(50);
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         // Check the weekly again. Should still be a single instance, but have updated values.
         List<TallySnapshot> updatedWeeklySnaps = repository
@@ -127,44 +121,49 @@ public class WeeklySnapshotRollerTest {
         assertEquals(1, updatedWeeklySnaps.size());
 
         TallySnapshot updated = updatedWeeklySnaps.get(0);
-        assertEquals(result.getId(), updated.getId());
-        assertEquals("A1", result.getAccountNumber());
-        assertEquals(TallyGranularity.WEEKLY, updated.getGranularity());
-        assertEquals(dailyToUpdate.getProductId(), updated.getProductId());
-        assertEquals(dailyToUpdate.getCores(), updated.getCores());
-        assertEquals(dailyToUpdate.getSockets(), updated.getSockets());
-        assertEquals(dailyToUpdate.getInstanceCount(), updated.getInstanceCount());
+        assertEquals(toUpdate.getId(), updated.getId());
+        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.WEEKLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
-    private List<TallySnapshot> setupWeeksWorthOfDailySnaps(String account, OffsetDateTime anyDayOfWeek) {
-        OffsetDateTime endOfWeek = clock.endOfWeek(anyDayOfWeek);
-        OffsetDateTime startOfWeek = clock.startOfWeek(anyDayOfWeek);
-        System.out.println(String.format("WEEK: %s -> %s", startOfWeek, endOfWeek));
+    @Test
+    public void ensureCurrentWeeklyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+        int expectedCores = 100;
+        int expectedSockets = 200;
+        int expectedInstances = 10;
 
-        List<TallySnapshot> dailyForWeek = new LinkedList<>();
-        IntStream.rangeClosed(0, 6).forEach(i -> {
-            dailyForWeek.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.DAILY, i,
-                i + 1, i, startOfWeek.plusDays(i)));
-        });
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, expectedCores, expectedSockets, expectedInstances);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
-        repository.saveAll(dailyForWeek);
-        repository.flush();
+        List<TallySnapshot> weeklySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, weeklySnaps.size());
 
-        return dailyForWeek;
-    }
+        TallySnapshot toUpdate = weeklySnaps.get(0);
+        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.WEEKLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
-    private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int sockets, int instanceCount, OffsetDateTime date) {
-        TallySnapshot tally = new TallySnapshot();
-        tally.setAccountNumber(account);
-        tally.setProductId(product);
-        tally.setOwnerId("N/A");
-        tally.setCores(cores);
-        tally.setSockets(sockets);
-        tally.setGranularity(granularity);
-        tally.setInstanceCount(instanceCount);
-        tally.setSnapshotDate(date);
-        return tally;
+        // Update the values and run again
+        accountCalcs.clear();
+        accountCalcs.add(createAccountCalc(account, "O1", TEST_PRODUCT, 2, 2, 2));
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+
+        List<TallySnapshot> updatedWeeklySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, updatedWeeklySnaps.size());
+
+        TallySnapshot updated = updatedWeeklySnaps.get(0);
+        assertEquals(toUpdate.getId(), updated.getId());
+        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.WEEKLY, expectedCores, expectedSockets,
+            expectedInstances);
     }
 
 }

@@ -21,14 +21,9 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.AccountMaxValues;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
-import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -36,90 +31,34 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
- * Produces daily usage snapshots based on data stored in the inventory service.
+ * Produces daily snapshots based on data stored in the inventory service. If a snapshot
+ * does not exist for the account for the current day and an incoming calculation exists
+ * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
+ * instances will only be updated if the incoming calculated values are greater than those
+ * existing for the current day.
  */
 public class DailySnapshotRoller extends BaseSnapshotRoller {
 
     private static final Logger log = LoggerFactory.getLogger(DailySnapshotRoller.class);
 
-    private InventoryRepository inventoryRepository;
-    private FactNormalizer factNormalizer;
-
-    public DailySnapshotRoller(String product, InventoryRepository inventoryRepository,
-        TallySnapshotRepository tallyRepo, FactNormalizer factNormalizer, ApplicationClock clock) {
-        super(product, tallyRepo, clock);
-        this.inventoryRepository = inventoryRepository;
-        this.factNormalizer = factNormalizer;
+    public DailySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+        super(tallyRepo, clock);
     }
 
     @Override
     @Transactional
-    public void rollSnapshots(List<String> accounts) {
+    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing daily snapshots for {} account(s).", accounts.size());
-        produceDailySnapshots(accounts, calculateMaxValuesFromInventory(accounts));
-    }
 
-    @SuppressWarnings("squid:S3776")
-    @Transactional(value = "inventoryTransactionManager", readOnly = true)
-    public Collection<ProductUsageCalculation> calculateMaxValuesFromInventory(List<String> accounts) {
-        Map<String, ProductUsageCalculation> calcsByAccount = new HashMap<>();
-        try (Stream<InventoryHost> hostStream = inventoryRepository.findByAccountIn(accounts)) {
-            hostStream.forEach(host -> {
-                String account = host.getAccount();
-                if (!calcsByAccount.containsKey(account)) {
-                    calcsByAccount.put(account, new ProductUsageCalculation(account, this.product));
-                }
+        Map<String, List<TallySnapshot>> existingSnapsForToday = getCurrentSnapshotsByAccount(accounts,
+            getApplicableProducts(accountCalcs), TallyGranularity.DAILY, clock.startOfToday(),
+            clock.endOfToday());
 
-                ProductUsageCalculation calc = calcsByAccount.get(account);
-                NormalizedFacts facts = factNormalizer.normalize(host);
-
-                if (facts.getProducts().contains(calc.getProductId())) {
-                    calc.addCores(facts.getCores() != null ? facts.getCores() : 0);
-                    calc.addSockets(facts.getSockets() != null ? facts.getSockets() : 0);
-                    calc.addInstance();
-                }
-
-                // Validate and set the owner.
-                String owner = facts.getOwner();
-                if (owner == null) {
-                    // Don't set null owner as it may overwrite an existing value.
-                    // Likely won't happen, but there could be stale data in inventory
-                    // with no owner set.
-                    return;
-                }
-
-                String currentOwner = calc.getOwner();
-                if (currentOwner != null && !currentOwner.equalsIgnoreCase(owner)) {
-                    throw new IllegalStateException(
-                        String.format("Attempt to set a different owner for an account: %s:%s",
-                            currentOwner, owner));
-                }
-                calc.setOwner(owner);
-                log.debug("Calculated daily values for host '{}': {}", host.getDisplayName(), calc);
-            });
-        }
-        return calcsByAccount.values();
-    }
-
-    private void produceDailySnapshots(List<String> accounts,
-        Collection<ProductUsageCalculation> calculations) {
-
-        Map<String, AccountMaxValues> maxValues = calculations.stream()
-            .map(AccountMaxValues::new)
-            .collect(Collectors.toMap(AccountMaxValues::getAccountNumber, Function.identity()));
-
-        Map<String, TallySnapshot> existingSnapsForToday = getCurrentSnapshotsByAccount(accounts,
-            TallyGranularity.DAILY, clock.startOfToday(), clock.endOfToday());
-
-        updateSnapshots(existingSnapsForToday, maxValues, TallyGranularity.DAILY);
+        updateSnapshots(accountCalcs, existingSnapsForToday, TallyGranularity.DAILY);
     }
 
 }
