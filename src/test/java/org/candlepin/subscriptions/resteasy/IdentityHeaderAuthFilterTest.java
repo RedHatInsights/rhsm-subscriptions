@@ -64,7 +64,7 @@ public class IdentityHeaderAuthFilterTest {
         Mockito.when(requestContext.getHeaderString("x-rh-identity")).thenReturn(mockHeader);
         Mockito.when(requestContext.getUriInfo()).thenReturn(mockUriInfo);
         Mockito.when(mockUriInfo.getMatchedResources()).thenReturn(
-            Collections.singletonList(new TallyResource()));
+            Collections.singletonList(new TallyResource(null, null)));
         filter.filter(requestContext);
         ArgumentCaptor<SecurityContext> securityContextArgument =
             ArgumentCaptor.forClass(SecurityContext.class);
@@ -81,7 +81,7 @@ public class IdentityHeaderAuthFilterTest {
         Mockito.when(requestContext.getHeaderString("x-rh-identity")).thenReturn(null);
         Mockito.when(requestContext.getUriInfo()).thenReturn(mockUriInfo);
         Mockito.when(mockUriInfo.getMatchedResources()).thenReturn(
-            Collections.singletonList(new TallyResource()));
+            Collections.singletonList(new TallyResource(null, null)));
         SubscriptionsException e = assertThrows(SubscriptionsException.class,
             () -> filter.filter(requestContext));
         assertEquals(Response.Status.UNAUTHORIZED, e.getStatus());

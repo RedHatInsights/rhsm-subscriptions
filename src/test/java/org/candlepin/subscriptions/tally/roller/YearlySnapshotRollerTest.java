@@ -34,6 +34,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @SpringBootTest
@@ -71,9 +73,10 @@ public class YearlySnapshotRollerTest {
         setupYearsWorthOfMonthlySnaps("A1", clock.now().plusYears(1));
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> yearlySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
+        List<TallySnapshot> yearlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, yearlySnaps.size());
 
         TallySnapshot result = yearlySnaps.get(0);
@@ -91,9 +94,10 @@ public class YearlySnapshotRollerTest {
         setupYearsWorthOfMonthlySnaps("A1", clock.now().plusYears(1));
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> originalSnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
+        List<TallySnapshot> originalSnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot toUpdate = originalSnaps.get(0);
@@ -112,9 +116,10 @@ public class YearlySnapshotRollerTest {
         roller.rollSnapshots(Arrays.asList("A1"));
 
         // Check the yearly again. Should still be a single instance, but have updated values.
-        List<TallySnapshot> updatedSnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
+        List<TallySnapshot> updatedSnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot updated = updatedSnaps.get(0);

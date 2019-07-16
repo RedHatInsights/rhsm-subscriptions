@@ -34,6 +34,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,9 +82,10 @@ public class MonthlySnapshotRollerTest {
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> monthlySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
+        List<TallySnapshot> monthlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
 
         TallySnapshot result = monthlySnaps.get(0);
@@ -108,9 +110,10 @@ public class MonthlySnapshotRollerTest {
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> monthlySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
+        List<TallySnapshot> monthlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
         TallySnapshot monthlyToBeUpdated = monthlySnaps.get(0);
 
@@ -126,9 +129,10 @@ public class MonthlySnapshotRollerTest {
 
         roller.rollSnapshots(Arrays.asList("A1"));
 
-        List<TallySnapshot> updatedMonthlySnaps =
-            repository.findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween("A1",
-            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
+        List<TallySnapshot> updatedMonthlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedMonthlySnaps.size());
 
         TallySnapshot updated = updatedMonthlySnaps.get(0);

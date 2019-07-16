@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,13 +74,14 @@ public class TallySnapshotRepositoryTest {
         repository.flush();
 
         List<TallySnapshot> found = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetween(
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             "Bugs",
             "Bunny",
             TallyGranularity.DAILY,
             LONG_AGO,
-            FAR_FUTURE
-        );
+            FAR_FUTURE,
+            PageRequest.of(0, 10)
+        ).stream().collect(Collectors.toList());
         assertEquals(1, found.size());
         TallySnapshot snapshot = found.get(0);
         assertEquals(9999, (int) snapshot.getCores());
