@@ -46,7 +46,7 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
     @Override
     @Transactional
     public void rollSnapshots(List<String> accounts) {
-        log.info("Producing weekly snapshots for {} accounts.", accounts.size());
+        log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
 
         // Fetch snapshots for this week. There should only be one snapshot per account for this week.
         updateSnapshots(accounts, TallyGranularity.DAILY, TallyGranularity.WEEKLY,

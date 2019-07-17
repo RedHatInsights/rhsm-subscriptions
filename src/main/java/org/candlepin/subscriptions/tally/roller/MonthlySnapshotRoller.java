@@ -46,7 +46,7 @@ public class MonthlySnapshotRoller extends BaseSnapshotRoller {
     @Override
     @Transactional
     public void rollSnapshots(List<String> accounts) {
-        log.info("Producing monthly snapshots for {} accounts.", accounts.size());
+        log.debug("Producing monthly snapshots for {} account(s).", accounts.size());
 
         updateSnapshots(accounts, TallyGranularity.DAILY, TallyGranularity.MONTHLY,
             clock.startOfCurrentMonth(), clock.endOfCurrentMonth());

@@ -49,7 +49,7 @@ public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
     @Override
     @Transactional
     public void rollSnapshots(List<String> accounts) {
-        log.info("Producing quarterly snapshots for {} accounts.", accounts.size());
+        log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
 
         updateSnapshots(accounts, TallyGranularity.MONTHLY, TallyGranularity.QUARTERLY,
             clock.startOfCurrentQuarter(), clock.endOfCurrentQuarter());
