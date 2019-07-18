@@ -20,12 +20,9 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
-import org.candlepin.subscriptions.jobs.JobProperties;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +40,6 @@ import javax.sql.DataSource;
  * A class to hold the inventory data source configuration.
  */
 @Configuration
-@EnableConfigurationProperties(JobProperties.class)
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 @EnableTransactionManagement
 @EnableJpaRepositories(
