@@ -31,6 +31,8 @@ import org.springframework.stereotype.Component;
 public class JobProperties {
 
     private String captureSnapshotSchedule = "0 5 * * * ?";
+    // Once a day at 3am
+    private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
     public String getCaptureSnapshotSchedule() {
         return captureSnapshotSchedule;
@@ -38,5 +40,13 @@ public class JobProperties {
 
     public void setCaptureSnapshotSchedule(String captureSnapshotSchedule) {
         this.captureSnapshotSchedule = captureSnapshotSchedule;
+    }
+
+    public String getPurgeSnapshotSchedule() {
+        return purgeSnapshotSchedule;
+    }
+
+    public void setPurgeSnapshotSchedule(String purgeSnapshotSchedule) {
+        this.purgeSnapshotSchedule = purgeSnapshotSchedule;
     }
 }

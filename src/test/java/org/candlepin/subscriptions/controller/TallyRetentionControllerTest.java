@@ -20,47 +20,68 @@
  */
 package org.candlepin.subscriptions.controller;
 
+import static org.mockito.Mockito.*;
+
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.files.AccountListSource;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.List;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 class TallyRetentionControllerTest {
-    @Mock
-    TallyRetentionPolicy policy;
+    @MockBean private TallyRetentionPolicy policy;
+    @MockBean private TallySnapshotRepository repository;
+    @MockBean private AccountListSource accountListSource;
 
-    @Mock
-    TallySnapshotRepository repository;
+    @Autowired private TallyRetentionController controller;
 
     @Test
-    void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() {
+    void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
         OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-        TallyRetentionController controller = new TallyRetentionController(repository, policy);
-        Mockito.when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(cutoff);
+        when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(cutoff);
         controller.cleanStaleSnapshotsForAccount("123456");
-        Mockito.verify(repository).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-            Mockito.eq("123456"),
-            Mockito.eq(TallyGranularity.DAILY),
-            Mockito.eq(cutoff)
+        verify(repository).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+            eq("123456"),
+            eq(TallyGranularity.DAILY),
+            eq(cutoff)
         );
-        Mockito.verifyNoMoreInteractions(repository);
+        verifyNoMoreInteractions(repository);
     }
 
     @Test
-    void retentionControllerShouldIgnoreGranularityWithoutCutoff() {
-        TallyRetentionController controller = new TallyRetentionController(repository, policy);
-        Mockito.when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(null);
+    void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
+        when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(null);
         controller.cleanStaleSnapshotsForAccount("123456");
-        Mockito.verifyZeroInteractions(repository);
+        verifyZeroInteractions(repository);
+    }
+
+    @Test
+    void testPurgeSnapshots() throws Exception {
+        OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+        when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(cutoff);
+
+        List<String> testList = Arrays.asList("1", "2", "3", "4");
+        when(accountListSource.list()).thenReturn(testList);
+
+        controller.purgeSnapshots();
+
+        verify(repository, times(4)).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+            anyString(),
+            eq(TallyGranularity.DAILY),
+            eq(cutoff)
+        );
     }
 }

@@ -22,11 +22,16 @@ package org.candlepin.subscriptions.controller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.files.AccountListSource;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.List;
+
 
 /**
  * Cleans up stale tally snapshots for an account.
@@ -37,11 +42,21 @@ public class TallyRetentionController {
     private final TallySnapshotRepository repository;
     private final TallyRetentionPolicy policy;
 
-    public TallyRetentionController(TallySnapshotRepository repository, TallyRetentionPolicy policy) {
+    private final AccountListSource accountListSource;
+
+    public TallyRetentionController(TallySnapshotRepository repository, TallyRetentionPolicy policy,
+        AccountListSource accountListSource) {
         this.repository = repository;
         this.policy = policy;
+        this.accountListSource = accountListSource;
     }
 
+    public void purgeSnapshots() throws IOException {
+        List<String> accountList = accountListSource.list();
+        accountList.forEach(this::cleanStaleSnapshotsForAccount);
+    }
+
+    @Transactional
     public void cleanStaleSnapshotsForAccount(String accountNumber) {
         for (TallyGranularity granularity : TallyGranularity.values()) {
             OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);

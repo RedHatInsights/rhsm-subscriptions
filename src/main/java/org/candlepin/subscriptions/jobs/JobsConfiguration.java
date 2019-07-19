@@ -86,11 +86,27 @@ public class JobsConfiguration {
     }
 
     @Bean
-    public CronTriggerFactoryBean trigger(JobDetail job, JobProperties jobProperties) {
+    public JobDetailFactoryBean purgeJobDetail() {
+        JobDetailFactoryBean jobDetail = new JobDetailFactoryBean();
+        jobDetail.setDurability(true);
+        jobDetail.setName("PurgeSnapshotsJob");
+        jobDetail.setJobClass(PurgeSnapshotsJob.class);
+        return jobDetail;
+    }
+
+    @Bean
+    public CronTriggerFactoryBean orgSyncTrigger(JobDetail orgSyncJobDetail, JobProperties jobProperties) {
         CronTriggerFactoryBean trigger = new CronTriggerFactoryBean();
-        trigger.setJobDetail(job);
+        trigger.setJobDetail(orgSyncJobDetail);
         trigger.setCronExpression(jobProperties.getCaptureSnapshotSchedule());
         return trigger;
     }
 
+    @Bean
+    public CronTriggerFactoryBean purgeTrigger(JobDetail purgeJobDetail, JobProperties jobProperties) {
+        CronTriggerFactoryBean trigger = new CronTriggerFactoryBean();
+        trigger.setJobDetail(purgeJobDetail);
+        trigger.setCronExpression(jobProperties.getPurgeSnapshotSchedule());
+        return trigger;
+    }
 }
