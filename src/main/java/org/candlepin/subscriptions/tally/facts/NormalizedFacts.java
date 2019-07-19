@@ -84,6 +84,7 @@ public class NormalizedFacts {
         Map<String, Object> payload = new HashMap<>();
         payload.put(PRODUCTS_KEY, this.products);
         payload.put(CORES_KEY, this.cores);
+        payload.put(SOCKETS_KEY, this.sockets);
         payload.put(OWNER_KEY, this.owner);
         return payload;
     }

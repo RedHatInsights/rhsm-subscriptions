@@ -21,11 +21,14 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -38,12 +41,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
@@ -63,15 +63,17 @@ public class YearlySnapshotRollerTest {
     @BeforeEach
     public void setupTest() {
         this.clock = new FixedClockConfiguration().fixedClock();
-        this.roller = new YearlySnapshotRoller(TEST_PRODUCT, repository, clock);
+        this.roller = new YearlySnapshotRoller(repository, clock);
     }
 
     @Test
     public void testYearlySnapshotProduction() {
-        setupYearsWorthOfMonthlySnaps("A1", clock.now().minusYears(1));
-        setupYearsWorthOfMonthlySnaps("A1", clock.now());
-        setupYearsWorthOfMonthlySnaps("A1", clock.now().plusYears(1));
-        roller.rollSnapshots(Arrays.asList("A1"));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, 12, 24, 6);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> yearlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
@@ -79,20 +81,18 @@ public class YearlySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, yearlySnaps.size());
 
-        TallySnapshot result = yearlySnaps.get(0);
-        assertEquals(TallyGranularity.YEARLY, result.getGranularity());
-        assertEquals(TEST_PRODUCT, result.getProductId());
-        assertEquals(Integer.valueOf(11), result.getCores());
-        assertEquals(Integer.valueOf(12), result.getSockets());
-        assertEquals(Integer.valueOf(11), result.getInstanceCount());
+        assertSnapshot(yearlySnaps.get(0), TEST_PRODUCT, TallyGranularity.YEARLY,
+            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
     @Test
     public void testYearlySnapIsUpdatedWhenItAlreadyExists() {
-        setupYearsWorthOfMonthlySnaps("A1", clock.now().minusYears(1));
-        List<TallySnapshot> monthlies = setupYearsWorthOfMonthlySnaps("A1", clock.now());
-        setupYearsWorthOfMonthlySnaps("A1", clock.now().plusYears(1));
-        roller.rollSnapshots(Arrays.asList("A1"));
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, 12, 24, 6);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> originalSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
@@ -101,19 +101,13 @@ public class YearlySnapshotRollerTest {
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot toUpdate = originalSnaps.get(0);
-        assertEquals(TallyGranularity.YEARLY, toUpdate.getGranularity());
-        assertEquals(TEST_PRODUCT, toUpdate.getProductId());
-        assertEquals(Integer.valueOf(11), toUpdate.getCores());
-        assertEquals(Integer.valueOf(12), toUpdate.getSockets());
-        assertEquals(Integer.valueOf(11), toUpdate.getInstanceCount());
+        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.YEARLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
-        TallySnapshot monthlyToUpdate = monthlies.get(0);
-        monthlyToUpdate.setCores(100);
-        monthlyToUpdate.setSockets(200);
-        monthlyToUpdate.setInstanceCount(50);
-        repository.saveAndFlush(monthlyToUpdate);
-
-        roller.rollSnapshots(Arrays.asList("A1"));
+        a1ProductCalc.addCores(100);
+        a1ProductCalc.addSockets(200);
+        a1ProductCalc.addInstances(50);
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         // Check the yearly again. Should still be a single instance, but have updated values.
         List<TallySnapshot> updatedSnaps = repository
@@ -124,40 +118,47 @@ public class YearlySnapshotRollerTest {
 
         TallySnapshot updated = updatedSnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertEquals("A1", toUpdate.getAccountNumber());
-        assertEquals(TallyGranularity.YEARLY, updated.getGranularity());
-        assertEquals(monthlyToUpdate.getProductId(), updated.getProductId());
-        assertEquals(monthlyToUpdate.getCores(), updated.getCores());
-        assertEquals(monthlyToUpdate.getSockets(), updated.getSockets());
-        assertEquals(monthlyToUpdate.getInstanceCount(), updated.getInstanceCount());
+        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.YEARLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
-    private List<TallySnapshot> setupYearsWorthOfMonthlySnaps(String account, OffsetDateTime anyDayOfWeek) {
-        OffsetDateTime startOfYear = clock.startOfYear(anyDayOfWeek);
+    @Test
+    public void ensureCurrentYearlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+        int expectedCores = 100;
+        int expectedSockets = 200;
+        int expectedInstances = 10;
 
-        List<TallySnapshot> monthlyForYear = new LinkedList<>();
-        IntStream.rangeClosed(0, 11).forEach(i -> {
-            monthlyForYear.add(createUnpersisted(account, TEST_PRODUCT, TallyGranularity.MONTHLY, i,
-                i + 1, i, startOfYear.plusMonths(i)));
-        });
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+            TEST_PRODUCT, expectedCores, expectedSockets, expectedInstances);
+        AccountUsageCalculation a1Calc = accountCalcs.get(0);
+        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
-        repository.saveAll(monthlyForYear);
-        repository.flush();
+        List<TallySnapshot> yearlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, yearlySnaps.size());
 
-        return monthlyForYear;
-    }
+        TallySnapshot toUpdate = yearlySnaps.get(0);
+        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.YEARLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
-    private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
-        int cores, int sockets, int instanceCount, OffsetDateTime date) {
-        TallySnapshot tally = new TallySnapshot();
-        tally.setAccountNumber(account);
-        tally.setProductId(product);
-        tally.setOwnerId("N/A");
-        tally.setCores(cores);
-        tally.setSockets(sockets);
-        tally.setGranularity(granularity);
-        tally.setInstanceCount(instanceCount);
-        tally.setSnapshotDate(date);
-        return tally;
+        // Update the values and run again
+        accountCalcs.clear();
+        accountCalcs.add(createAccountCalc(account, "O1", TEST_PRODUCT, 2, 2, 2));
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+
+        List<TallySnapshot> updatedYearlySnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, updatedYearlySnaps.size());
+
+        TallySnapshot updated = updatedYearlySnaps.get(0);
+        assertEquals(toUpdate.getId(), updated.getId());
+        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.YEARLY, expectedCores, expectedSockets,
+            expectedInstances);
     }
 }

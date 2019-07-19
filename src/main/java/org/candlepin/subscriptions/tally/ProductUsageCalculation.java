@@ -21,29 +21,17 @@
 package org.candlepin.subscriptions.tally;
 
 /**
- * The calculated usage for a given product.
+ * The calculated usage for a product.
  */
 public class ProductUsageCalculation {
-
-    private String account;
-    private String owner;
     private String productId;
     private int totalCores;
     private int totalSockets;
     private int instanceCount;
 
-    public ProductUsageCalculation(String account, String productId) {
-        this.account = account;
+    public ProductUsageCalculation(String productId) {
         this.productId = productId;
-        this.totalCores = 0;
-        this.totalSockets = 0;
-        this.instanceCount = 0;
     }
-
-    public String getAccount() {
-        return account;
-    }
-
 
     public String getProductId() {
         return productId;
@@ -65,26 +53,17 @@ public class ProductUsageCalculation {
         this.totalSockets += socketsToAdd;
     }
 
-    public void addInstance() {
-        this.instanceCount++;
+    public void addInstances(int instancesToAdd) {
+        this.instanceCount += instancesToAdd;
     }
 
     public int getInstanceCount() {
         return instanceCount;
     }
 
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
     @Override
     public String toString() {
-        return String.format("[Account: %s, Owner: %s, Product: %s, Cores: %s, Sockets: %s, Instances: %s",
-            this.account, this.owner, this.productId, this.totalCores, this.totalSockets,
-            this.instanceCount);
+        return String.format("[Product: %s, Cores: %s, Sockets: %s, Instances: %s]", productId,
+            totalCores, totalSockets, instanceCount);
     }
 }

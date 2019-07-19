@@ -21,9 +21,10 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.AccountMaxValues;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -31,10 +32,12 @@ import org.slf4j.LoggerFactory;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,55 +53,33 @@ public abstract class BaseSnapshotRoller {
 
     protected  TallySnapshotRepository tallyRepo;
     protected ApplicationClock clock;
-    protected String product;
 
-    public BaseSnapshotRoller(String product, TallySnapshotRepository tallyRepo,
-        ApplicationClock clock) {
+    public BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
         this.tallyRepo = tallyRepo;
         this.clock = clock;
-        this.product = product;
     }
 
     /**
      * Roll the snapshots for the given account.
      *
      * @param accounts the accounts of the snapshots to roll.
+     * @param accountCalcs the current calculations from the host inventory.
      */
-    public abstract void rollSnapshots(List<String> accounts);
+    public abstract void rollSnapshots(Collection<String> accounts,
+        Collection<AccountUsageCalculation> accountCalcs);
 
-    protected TallySnapshot createSnapshotFromMaxValues(AccountMaxValues maxValues,
-        TallyGranularity granularity) {
+    protected TallySnapshot createSnapshotFromProductUsageCalculation(String account, String owner,
+        ProductUsageCalculation productCalc, TallyGranularity granularity) {
         TallySnapshot snapshot = new TallySnapshot();
-        snapshot.setProductId(this.product);
+        snapshot.setProductId(productCalc.getProductId());
         snapshot.setGranularity(granularity);
-        updateWithMax(snapshot, maxValues);
+        snapshot.setCores(productCalc.getTotalCores());
+        snapshot.setSockets(productCalc.getTotalSockets());
+        snapshot.setInstanceCount(productCalc.getInstanceCount());
+        snapshot.setOwnerId(owner);
+        snapshot.setAccountNumber(account);
+        snapshot.setSnapshotDate(getSnapshotDate(granularity));
         return snapshot;
-    }
-
-    protected void updateWithMax(TallySnapshot snapshot, AccountMaxValues maxValues) {
-        snapshot.setInstanceCount(maxValues.getMaxInstances());
-        snapshot.setCores(maxValues.getMaxCores());
-        snapshot.setSockets(maxValues.getMaxSockets());
-        snapshot.setOwnerId(maxValues.getOwnerId());
-        snapshot.setAccountNumber(maxValues.getAccountNumber());
-        snapshot.setSnapshotDate(getSnapshotDate(snapshot.getGranularity()));
-    }
-
-    protected void updateSnapshots(Map<String, TallySnapshot> existingSnapsByAccount,
-        Map<String, AccountMaxValues> maxValuesByAccount, TallyGranularity targetGranularity) {
-        List<TallySnapshot> snapshots = new LinkedList<>();
-        for (Entry<String, AccountMaxValues> next : maxValuesByAccount.entrySet()) {
-            TallySnapshot snap = existingSnapsByAccount.get(next.getKey());
-            if (snap == null) {
-                snap = createSnapshotFromMaxValues(next.getValue(), targetGranularity);
-            }
-            else {
-                updateWithMax(snap, next.getValue());
-            }
-            snapshots.add(snap);
-        }
-        log.debug("Persisting {} {} snapshots.", snapshots.size(), targetGranularity);
-        tallyRepo.saveAll(snapshots);
     }
 
     protected OffsetDateTime getSnapshotDate(TallyGranularity granularity) {
@@ -116,35 +97,71 @@ public abstract class BaseSnapshotRoller {
         }
     }
 
-    protected void updateSnapshots(Collection<String> accounts, TallyGranularity maxValueGranularity,
-        TallyGranularity targetGranularity, OffsetDateTime begin, OffsetDateTime end) {
-        Map<String, AccountMaxValues> maxValues = getMaxValuesByAccount(accounts, maxValueGranularity, begin,
-            end);
-
-        Map<String, TallySnapshot> existingTargetSnaps = getCurrentSnapshotsByAccount(accounts,
-            targetGranularity, begin, end);
-
-        updateSnapshots(existingTargetSnaps, maxValues, targetGranularity);
-    }
-
     @SuppressWarnings("indentation")
-    protected Map<String, AccountMaxValues> getMaxValuesByAccount(Collection<String> accounts,
-        TallyGranularity granularity, OffsetDateTime begin, OffsetDateTime end) {
-        try (Stream<AccountMaxValues> maxValueStream =
-            tallyRepo.getMaxValuesForAccounts(accounts, this.product, granularity, begin, end).stream()) {
-            return maxValueStream.collect(Collectors.toMap(AccountMaxValues::getAccountNumber,
-                Function.identity()));
-        }
-    }
-
-    @SuppressWarnings("indentation")
-    protected Map<String, TallySnapshot> getCurrentSnapshotsByAccount(Collection<String> accounts,
-        TallyGranularity granularity, OffsetDateTime begin, OffsetDateTime end) {
+    protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(Collection<String> accounts,
+        Collection<String> products, TallyGranularity granularity, OffsetDateTime begin, OffsetDateTime end) {
         try (Stream<TallySnapshot> snapStream =
-            tallyRepo.findByAccountNumberInAndProductIdAndGranularityAndSnapshotDateBetween(
-                accounts, this.product, granularity, begin, end)) {
-            return snapStream.collect(Collectors.toMap(TallySnapshot::getAccountNumber, Function.identity()));
+            tallyRepo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+                accounts, products, granularity, begin, end)) {
+            return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
         }
+    }
+
+    protected void updateSnapshots(Collection<AccountUsageCalculation> accountCalcs,
+        Map<String, List<TallySnapshot>> existingSnaps, TallyGranularity targetGranularity) {
+        List<TallySnapshot> snaps = new LinkedList<>();
+        for (AccountUsageCalculation accountCalc : accountCalcs) {
+            String account = accountCalc.getAccount();
+
+            Map<String, TallySnapshot> accountSnapsByProduct = new HashMap<>();
+            if (existingSnaps.containsKey(account)) {
+                accountSnapsByProduct = existingSnaps.get(account)
+                    .stream()
+                    .collect(Collectors.toMap(TallySnapshot::getProductId, Function.identity()));
+            }
+
+            for (String product : accountCalc.getProducts()) {
+                TallySnapshot snap = accountSnapsByProduct.get(product);
+                ProductUsageCalculation productCalc = accountCalc.getProductCalculation(product);
+                if (snap == null) {
+                    snap = createSnapshotFromProductUsageCalculation(accountCalc.getAccount(),
+                        accountCalc.getOwner(), productCalc, targetGranularity);
+                    snaps.add(snap);
+                }
+                else if (updateMaxValues(snap, productCalc)) {
+                    snaps.add(snap);
+                }
+            }
+        }
+        log.debug("Persisting {} {} snapshots.", snaps.size(), targetGranularity);
+        tallyRepo.saveAll(snaps);
+    }
+
+    protected Set<String> getApplicableProducts(Collection<AccountUsageCalculation> accountCalcs) {
+        Set<String> prods = new HashSet<>();
+        accountCalcs.forEach(calc -> prods.addAll(calc.getProducts()));
+        return prods;
+    }
+
+    private boolean updateMaxValues(TallySnapshot toUpdate, ProductUsageCalculation productCalc) {
+        boolean changed = false;
+        boolean overrideMaxCheck = TallyGranularity.DAILY.equals(toUpdate.getGranularity());
+        if (overrideMaxCheck || productCalc.getTotalCores() > toUpdate.getCores()) {
+            toUpdate.setCores(productCalc.getTotalCores());
+            changed = true;
+        }
+
+        if (overrideMaxCheck || productCalc.getTotalSockets() > toUpdate.getSockets()) {
+            toUpdate.setSockets(productCalc.getTotalSockets());
+            changed = true;
+        }
+
+        if (overrideMaxCheck || productCalc.getInstanceCount() > toUpdate.getInstanceCount()) {
+            toUpdate.setInstanceCount(productCalc.getInstanceCount());
+            changed = true;
+        }
+
+        return changed;
     }
 
 }

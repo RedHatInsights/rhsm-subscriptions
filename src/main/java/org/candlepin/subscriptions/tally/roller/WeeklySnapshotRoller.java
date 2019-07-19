@@ -22,35 +22,44 @@ package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 
 /**
- * Produces weekly usage snapshots based on the existing Daily snapshots for the current week.
+ * Produces weekly snapshots based on data stored in the inventory service. If a snapshot
+ * does not exist for the account for the current week and an incoming calculation exists
+ * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
+ * instances will only be updated if the incoming calculated values are greater than those
+ * existing for the current week.
  */
 public class WeeklySnapshotRoller extends BaseSnapshotRoller {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklySnapshotRoller.class);
 
-    public WeeklySnapshotRoller(String product, TallySnapshotRepository tallyRepo,
-        ApplicationClock clock) {
-        super(product, tallyRepo, clock);
+    public WeeklySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+        super(tallyRepo, clock);
     }
 
     @Override
     @Transactional
-    public void rollSnapshots(List<String> accounts) {
+    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
 
-        // Fetch snapshots for this week. There should only be one snapshot per account for this week.
-        updateSnapshots(accounts, TallyGranularity.DAILY, TallyGranularity.WEEKLY,
-            clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
+        Map<String, List<TallySnapshot>> currentForWeek = getCurrentSnapshotsByAccount(accounts,
+            getApplicableProducts(accountCalcs), TallyGranularity.WEEKLY, clock.startOfCurrentWeek(),
+            clock.endOfCurrentWeek());
+
+        updateSnapshots(accountCalcs, currentForWeek, TallyGranularity.WEEKLY);
     }
 
 }
