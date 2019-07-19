@@ -64,7 +64,8 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
         //
         // NOTE: This logic is applied since currently the inventory service does not prune inventory
         //       records once a host no longer exists.
-        if (hostUnregistered((OffsetDateTime) rhsmFacts.get(SYNC_TIMESTAMP))) {
+        String syncTimestamp = (String) rhsmFacts.getOrDefault(SYNC_TIMESTAMP, "");
+        if (!syncTimestamp.isEmpty() && hostUnregistered(OffsetDateTime.parse(syncTimestamp))) {
             return;
         }
 
