@@ -119,7 +119,7 @@ public class RhsmFactNormalizerTest {
     public void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(2);
         Map<String, Object> facts = createRhsmFactSet(Arrays.asList("P1"), 4, 8);
-        facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced);
+        facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced.toString());
 
         NormalizedFacts normalized = new NormalizedFacts();
         normalizer.normalize(normalized, FactSetNamespace.RHSM, facts);
@@ -131,7 +131,7 @@ public class RhsmFactNormalizerTest {
     public void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(1);
         Map<String, Object> facts = createRhsmFactSet(Arrays.asList("P1"), 4, 8);
-        facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced);
+        facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced.toString());
 
         NormalizedFacts normalized = new NormalizedFacts();
         normalizer.normalize(normalized, FactSetNamespace.RHSM, facts);
