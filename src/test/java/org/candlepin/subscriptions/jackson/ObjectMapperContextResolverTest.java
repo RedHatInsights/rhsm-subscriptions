@@ -92,11 +92,11 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void ensureSerializedObjectsDoNotIncludePropsWithEmptyValues() throws Exception {
+    public void ensureSerializedObjectsIncludePropsWithEmptyValues() throws Exception {
         String v2 = "bar";
         TestPojo pojo = new TestPojo("", v2);
         String data = mapper.writeValueAsString(pojo);
-        assertDoesNotContainProperty(data, "value1");
+        assertContainsProperty(data, "value1", "");
         assertContainsProperty(data, "value2", v2);
     }
 
@@ -118,6 +118,15 @@ public class ObjectMapperContextResolverTest {
         assertEquals("value2", pojo.getValue2());
     }
 
+    @Test
+    public void ensureSerializedObjectsIncludeEmptyList() throws Exception {
+        TestPojo pojo = new TestPojo("foo", "bar");
+        String data = mapper.writeValueAsString(pojo);
+        assertContainsProperty(data, "value1", "foo");
+        assertContainsProperty(data, "value2", "bar");
+        assertIncludesCollection(data, "valueList", "[]");
+    }
+
     private void assertContainsProperty(String data, String key, String value)  throws Exception {
         String toFind = String.format("\"%s\":\"%s\"", key, value);
         assertTrue(data.contains(toFind));
@@ -125,6 +134,11 @@ public class ObjectMapperContextResolverTest {
 
     private void assertDoesNotContainProperty(String data, String property) throws Exception {
         assertFalse(data.contains(property));
+    }
+
+    private void assertIncludesCollection(String data, String key, String collectionValue) {
+        String toFind = String.format("\"%s\":%s", key, collectionValue);
+        assertTrue(data.contains(toFind));
     }
 
 }
