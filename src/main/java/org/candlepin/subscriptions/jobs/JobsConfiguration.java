@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.jobs;
 
 import org.quartz.JobDetail;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
 import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
@@ -77,6 +78,7 @@ public class JobsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "true")
     public JobDetailFactoryBean orgSyncJobDetail() {
         JobDetailFactoryBean jobDetail = new JobDetailFactoryBean();
         jobDetail.setDurability(true);
@@ -86,6 +88,7 @@ public class JobsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "true")
     public JobDetailFactoryBean purgeJobDetail() {
         JobDetailFactoryBean jobDetail = new JobDetailFactoryBean();
         jobDetail.setDurability(true);
@@ -95,6 +98,7 @@ public class JobsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "true")
     public CronTriggerFactoryBean orgSyncTrigger(JobDetail orgSyncJobDetail, JobProperties jobProperties) {
         CronTriggerFactoryBean trigger = new CronTriggerFactoryBean();
         trigger.setJobDetail(orgSyncJobDetail);
@@ -103,6 +107,7 @@ public class JobsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "true")
     public CronTriggerFactoryBean purgeTrigger(JobDetail purgeJobDetail, JobProperties jobProperties) {
         CronTriggerFactoryBean trigger = new CronTriggerFactoryBean();
         trigger.setJobDetail(purgeJobDetail);
