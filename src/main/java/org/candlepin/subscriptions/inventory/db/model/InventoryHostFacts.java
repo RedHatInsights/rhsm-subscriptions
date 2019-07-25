@@ -20,22 +20,15 @@
  */
 package org.candlepin.subscriptions.inventory.db.model;
 
-import org.candlepin.insights.inventory.client.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import javax.persistence.Column;
-import javax.persistence.ColumnResult;
-import javax.persistence.ConstructorResult;
-import javax.persistence.NamedNativeQuery;
-import javax.persistence.SqlResultSetMapping;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
- * Represents an inventory host's facts
+ * Represents an inventory host's facts.
  */
 public class InventoryHostFacts {
     private static final Logger log = LoggerFactory.getLogger(InventoryHostFacts.class);
@@ -50,13 +43,13 @@ public class InventoryHostFacts {
     private Set<String> products;
 
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
-                              String isRhel, String products, String syncTimestamp) {
+        String isRhel, String products, String syncTimestamp) {
         this.account = account;
         this.displayName = displayName;
         this.orgId = orgId;
-        this.cores = getInt(cores);
-        this.sockets = getInt(sockets);
-        this.isRhel = getBool(isRhel);
+        this.cores = asInt(cores);
+        this.sockets = asInt(sockets);
+        this.isRhel = asBoolean(isRhel);
         this.products = asProducts(products);
         this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
     }
@@ -101,7 +94,7 @@ public class InventoryHostFacts {
         this.sockets = sockets;
     }
 
-    public boolean getRhel() {
+    public boolean isRhel() {
         return isRhel;
     }
 
@@ -125,7 +118,7 @@ public class InventoryHostFacts {
         this.products = products;
     }
 
-    private int getInt(String value) {
+    private int asInt(String value) {
         try {
             return StringUtils.hasText(value) ? Integer.valueOf(value) : 0;
         }
@@ -134,7 +127,7 @@ public class InventoryHostFacts {
         }
     }
 
-    private boolean getBool(String value) {
+    private boolean asBoolean(String value) {
         return StringUtils.hasText(value) && value.equalsIgnoreCase("true");
     }
 

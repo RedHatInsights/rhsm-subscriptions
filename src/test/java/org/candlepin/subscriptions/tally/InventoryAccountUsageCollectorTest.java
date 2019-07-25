@@ -28,11 +28,8 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
-import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +41,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -134,20 +130,8 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(expectedMessage, e.getMessage());
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, String product, int cores, int sockets) {
-//        Map<String, Object> rhsmFacts = new HashMap<>();
-//        rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
-//        rhsmFacts.put(RhsmFactNormalizer.CPU_SOCKETS, sockets);
-//        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, Arrays.asList(product));
-//        rhsmFacts.put(RhsmFactNormalizer.ORG_ID, orgId);
-//
-//        Map<String, Map<String, Object>> facts = new HashMap<>();
-//        facts.put(FactSetNamespace.RHSM, rhsmFacts);
-//
-//        InventoryHost host = new InventoryHost();
-//        host.setAccount(account);
-//        host.setFacts(facts);
-//        return host;
+    private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
+        int sockets) {
         return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
             String.valueOf(sockets), Boolean.FALSE.toString(),
             StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),

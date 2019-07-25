@@ -21,16 +21,12 @@
 package org.candlepin.subscriptions.inventory.db;
 
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
-
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
-import javax.persistence.ColumnResult;
-import javax.persistence.ConstructorResult;
-import javax.persistence.NamedNativeQuery;
-import javax.persistence.SqlResultSetMapping;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
