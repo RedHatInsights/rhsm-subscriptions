@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.facts.normalizer;
 
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -54,40 +55,35 @@ public class RhsmFactNormalizer implements FactSetNormalizer {
     }
 
     @Override
-    public void normalize(NormalizedFacts normalizedFacts, String namespace, Map<String, Object> rhsmFacts) {
-        if (!FactSetNamespace.RHSM.equalsIgnoreCase(namespace)) {
-            throw new IllegalArgumentException("Attempted to process an invalid namespace.");
-        }
+    public void normalize(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+//        if (!FactSetNamespace.RHSM.equalsIgnoreCase(namespace)) {
+//            throw new IllegalArgumentException("Attempted to process an invalid namespace.");
+//        }
 
         // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
         // apply this host's facts.
         //
         // NOTE: This logic is applied since currently the inventory service does not prune inventory
         //       records once a host no longer exists.
-        String syncTimestamp = (String) rhsmFacts.getOrDefault(SYNC_TIMESTAMP, "");
+//        String syncTimestamp = (String) rhsmFacts.getOrDefault(SYNC_TIMESTAMP, "");
+        String syncTimestamp = hostFacts.getSyncTimestamp();
         if (!syncTimestamp.isEmpty() && hostUnregistered(OffsetDateTime.parse(syncTimestamp))) {
             return;
         }
 
         // Check if using RHEL
-        if (isRhel(rhsmFacts)) {
+        if (isRhel(hostFacts)) {
             normalizedFacts.addProduct("RHEL");
         }
 
         // Check for cores and sockets. If not included, default to 0.
-        normalizedFacts.setCores(rhsmFacts.containsKey(CPU_CORES) ? (Integer) rhsmFacts.get(CPU_CORES) : 0);
-        normalizedFacts.setSockets(rhsmFacts.containsKey(CPU_SOCKETS) ?
-            (Integer) rhsmFacts.get(CPU_SOCKETS) : 0);
-        normalizedFacts.setOwner((String) rhsmFacts.get(ORG_ID));
+        normalizedFacts.setCores(hostFacts.getCores());
+        normalizedFacts.setSockets(hostFacts.getSockets());
+        normalizedFacts.setOwner(hostFacts.getOrgId());
     }
 
-    private boolean isRhel(Map<String, Object> facts) {
-        List<String> products = (List<String>) facts.get(RH_PRODUCTS);
-        if (products == null) {
-            return false;
-        }
-
-        return !products.stream()
+    private boolean isRhel(InventoryHostFacts facts) {
+        return !facts.getProducts().stream()
             .filter(this.configuredRhelProducts::contains)
             .collect(Collectors.toList())
             .isEmpty();

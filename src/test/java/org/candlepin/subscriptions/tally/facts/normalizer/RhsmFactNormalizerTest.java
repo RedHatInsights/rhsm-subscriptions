@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -35,10 +36,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -61,23 +65,16 @@ public class RhsmFactNormalizerTest {
     @Test
     void testRhelFactSetNormalization() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM, createRhsmFactSet(Arrays.asList("P1"), 4, 8));
+        normalizer.normalize(normalized, createRhsmFactSet(Arrays.asList("P1"), 4, 8));
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertEquals(Integer.valueOf(4), normalized.getCores());
         assertEquals(Integer.valueOf(8), normalized.getSockets());
     }
 
     @Test
-    void testInvalidNamespace() {
-        NormalizedFacts normalized = new NormalizedFacts();
-        assertThrows(IllegalArgumentException.class, () -> normalizer.normalize(normalized,
-            "unknown_namespace", createRhsmFactSet(Arrays.asList("69"), 4, 8)));
-    }
-
-    @Test
     public void testNormalizeNonRhelProduct() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM,
+        normalizer.normalize(normalized,
             createRhsmFactSet(Arrays.asList("NonRHEL"), 4, 8));
         assertTrue(normalized.getProducts().isEmpty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
@@ -87,8 +84,7 @@ public class RhsmFactNormalizerTest {
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlyCoresAreSet() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM,
-            createRhsmFactSet(RhsmFactNormalizer.CPU_CORES, 4));
+        normalizer.normalize(normalized, createRhsmCoresFactSet(4));
         assertNotNull(normalized.getProducts());
         assertTrue(normalized.getProducts().isEmpty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
@@ -98,8 +94,7 @@ public class RhsmFactNormalizerTest {
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlySocketsAreSet() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM,
-            createRhsmFactSet(RhsmFactNormalizer.CPU_SOCKETS, 8));
+        normalizer.normalize(normalized, createRhsmSocketsFactSet(8));
         assertNotNull(normalized.getProducts());
         assertTrue(normalized.getProducts().isEmpty());
         assertEquals(Integer.valueOf(0), normalized.getCores());
@@ -109,7 +104,7 @@ public class RhsmFactNormalizerTest {
     @Test
     public void testNormalizeWhenCoresAndSocketsMissingFromFacts() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM, createRhsmFactSet(Arrays.asList("P1")));
+        normalizer.normalize(normalized, createRhsmFactSet(Arrays.asList("P1")));
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertEquals(Integer.valueOf(0), normalized.getCores());
         assertEquals(Integer.valueOf(0), normalized.getSockets());
@@ -118,11 +113,11 @@ public class RhsmFactNormalizerTest {
     @Test
     public void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(2);
-        Map<String, Object> facts = createRhsmFactSet(Arrays.asList("P1"), 4, 8);
-        facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced.toString());
+        InventoryHostFacts facts = createRhsmFactSet(Arrays.asList("P1"), 4, 8);
+        facts.setSyncTimestamp(lastSynced.toString());
 
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM, facts);
+        normalizer.normalize(normalized, facts);
         assertTrue(normalized.getProducts().isEmpty());
         assertNull(normalized.getCores());
     }
@@ -130,33 +125,37 @@ public class RhsmFactNormalizerTest {
     @Test
     public void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(1);
-        Map<String, Object> facts = createRhsmFactSet(Arrays.asList("P1"), 4, 8);
-        facts.put(RhsmFactNormalizer.SYNC_TIMESTAMP, lastSynced.toString());
+        InventoryHostFacts facts = createRhsmFactSet(Arrays.asList("P1"), 4, 8);
+        facts.setSyncTimestamp(lastSynced.toString());
 
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.RHSM, facts);
+        normalizer.normalize(normalized, facts);
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertEquals(Integer.valueOf(4), normalized.getCores());
     }
 
-    private Map<String, Object> createRhsmFactSet(List<String> products, Integer cores, Integer sockets) {
-        Map<String, Object> rhsmFacts = new HashMap<>();
-        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
-        rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
-        rhsmFacts.put(RhsmFactNormalizer.CPU_SOCKETS, sockets);
-        return rhsmFacts;
+    private InventoryHostFacts createRhsmFactSet(List<String> products, Integer cores, Integer sockets) {
+//        Map<String, Object> rhsmFacts = new HashMap<>();
+//        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
+//        rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
+//        rhsmFacts.put(RhsmFactNormalizer.CPU_SOCKETS, sockets);
+//        return rhsmFacts;
+        return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
+            String.valueOf(sockets), Boolean.FALSE.toString(),
+            StringUtils.collectionToCommaDelimitedString(products), OffsetDateTime.now().toString());
     }
 
-    private Map<String, Object> createRhsmFactSet(List<String> products) {
-        Map<String, Object> rhsmFacts = new HashMap<>();
-        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
-        return rhsmFacts;
+    private InventoryHostFacts createRhsmFactSet(List<String> products) {
+//        Map<String, Object> rhsmFacts = new HashMap<>();
+//        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
+        return createRhsmFactSet(products, null, null);
     }
 
-    private Map<String, Object> createRhsmFactSet(String fact, Integer value) {
-        Map<String, Object> rhsmFacts = new HashMap<>();
-        rhsmFacts.put(fact, value);
-        return rhsmFacts;
+    private InventoryHostFacts createRhsmCoresFactSet(int cores) {
+        return createRhsmFactSet(new ArrayList<>(), cores, null);
     }
 
+    private InventoryHostFacts createRhsmSocketsFactSet(int sockets) {
+        return createRhsmFactSet(new ArrayList<>(), null, sockets);
+    }
 }

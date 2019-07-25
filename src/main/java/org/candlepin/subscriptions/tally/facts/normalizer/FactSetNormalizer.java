@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.facts.normalizer;
 
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import java.util.Map;
@@ -34,8 +35,8 @@ public interface FactSetNormalizer {
      * Normalizes the given inventory FactSet.
      *
      * @param normalizedFacts the already normalized facts.
-     * @param namespace the namespace of the factset we are normalizing.
-     * @param factValues the fact values belonging to this namespace.
+     * @param hostFacts the facts from an InventoryHost
      */
-    void normalize(NormalizedFacts normalizedFacts, String namespace, Map<String, Object> factValues);
+    void normalize(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts);
+
 }

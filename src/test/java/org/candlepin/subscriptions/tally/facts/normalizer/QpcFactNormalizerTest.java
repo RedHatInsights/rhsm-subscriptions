@@ -23,12 +23,15 @@ package org.candlepin.subscriptions.tally.facts.normalizer;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,40 +41,32 @@ import java.util.Map;
 public class QpcFactNormalizerTest {
 
     private QpcFactNormalizer normalizer = new QpcFactNormalizer();
+    private ApplicationClock clock = new ApplicationClock();
 
     @Test
     void testRhelFromQpcFacts() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.QPC, createQpcFactSet(true));
+        normalizer.normalize(normalized, createQpcFactSet(true));
         assertTrue(normalized.getProducts().contains("RHEL"));
     }
 
     @Test
     public void testEmptyProductListWhenIsRhelIsFalse() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.QPC, createQpcFactSet(false));
+        normalizer.normalize(normalized, createQpcFactSet(false));
         assertTrue(normalized.getProducts().isEmpty());
     }
 
     @Test
     public void testEmptyProductListWhenIsRhelNotSet() {
         NormalizedFacts normalized = new NormalizedFacts();
-        normalizer.normalize(normalized, FactSetNamespace.QPC, createQpcFactSet(null));
+        normalizer.normalize(normalized, createQpcFactSet(null));
         assertTrue(normalized.getProducts().isEmpty());
     }
 
-    @Test
-    void testInvalidNamespace() {
-        NormalizedFacts normalized = new NormalizedFacts();
-        assertThrows(IllegalArgumentException.class, () -> normalizer.normalize(normalized,
-            "unknown_namespace", createQpcFactSet(true)));
-    }
-
-    private Map<String, Object> createQpcFactSet(Boolean isRhel) {
-        Map<String, Object> qpcFacts = new HashMap<>();
-        if (isRhel != null) {
-            qpcFacts.put(QpcFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
-        }
-        return qpcFacts;
+    private InventoryHostFacts createQpcFactSet(Boolean isRhel) {
+        return new InventoryHostFacts("Account", "Test System", "test_org", null,
+            null, isRhel == null ? null :isRhel.toString(),
+            null, clock.now().toString());
     }
 }

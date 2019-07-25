@@ -32,9 +32,13 @@ import java.util.UUID;
 
 import javax.persistence.Basic;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.NamedNativeQuery;
+import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 
 
@@ -44,6 +48,32 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "hosts")
 @TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
+@SqlResultSetMapping(
+    name="inventoryHostFactsMapping",
+    classes={
+        @ConstructorResult(
+            targetClass=InventoryHostFacts.class,
+            columns={
+                @ColumnResult(name="account"),
+                @ColumnResult(name="display_name"),
+                @ColumnResult(name="org_id"),
+                @ColumnResult(name="cores"),
+                @ColumnResult(name="sockets"),
+                @ColumnResult(name="is_redhat"),
+                @ColumnResult(name="products"),
+                @ColumnResult(name="sync_timestamp")
+            }
+        )
+    }
+)
+@NamedNativeQuery(name="InventoryHost.getFacts",
+    query = "select " +
+                "account, display_name, facts->'rhsm'->>'orgId' as org_id, facts->'rhsm'->>'CPU_CORES' as cores, " +
+                "facts->'rhsm'->>'CPU_SOCKETS' as sockets, facts->'qpc'->>'is_redhat' as is_redhat, " +
+                "facts->'rhsm'->>'RH_PROD' as products, facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp " +
+            "from hosts " +
+            "where account IN (:accounts)",
+    resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {
 
     @Id

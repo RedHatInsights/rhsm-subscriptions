@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -55,13 +56,13 @@ public class InventoryAccountUsageCollector {
     public Collection<AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
         Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
-        try (Stream<InventoryHost> hostStream = inventoryRepository.findByAccountIn(accounts)) {
-            hostStream.forEach(host -> {
-                String account = host.getAccount();
+        try (Stream<InventoryHostFacts> hostFactStream = inventoryRepository.getFacts(accounts)) {
+            hostFactStream.forEach(hostFacts -> {
+                String account = hostFacts.getAccount();
                 calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
 
                 AccountUsageCalculation accountCalc = calcsByAccount.get(account);
-                NormalizedFacts facts = factNormalizer.normalize(host);
+                NormalizedFacts facts = factNormalizer.normalize(hostFacts);
 
                 // Validate and set the owner.
                 // Don't set null owner as it may overwrite an existing value.
@@ -92,9 +93,48 @@ public class InventoryAccountUsageCollector {
                         prodCalc.addInstances(1);
                     }
                 });
-
             });
         }
+//        try (Stream<InventoryHost> hostStream = inventoryRepository.findByAccountIn(accounts)) {
+//            hostStream.forEach(host -> {
+//                String account = host.getAccount();
+//                calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
+//
+//                AccountUsageCalculation accountCalc = calcsByAccount.get(account);
+//                NormalizedFacts facts = factNormalizer.normalize(host);
+//
+//                // Validate and set the owner.
+//                // Don't set null owner as it may overwrite an existing value.
+//                // Likely won't happen, but there could be stale data in inventory
+//                // with no owner set.
+//                String owner = facts.getOwner();
+//                if (owner != null) {
+//                    String currentOwner = accountCalc.getOwner();
+//                    if (currentOwner != null && !currentOwner.equalsIgnoreCase(owner)) {
+//                        throw new IllegalStateException(
+//                            String.format("Attempt to set a different owner for an account: %s:%s",
+//                                currentOwner, owner));
+//                    }
+//                    accountCalc.setOwner(owner);
+//                }
+//
+//                // Calculate for each product.
+//                products.forEach(product -> {
+//                    ProductUsageCalculation prodCalc = accountCalc.getProductCalculation(product);
+//                    if (prodCalc == null) {
+//                        prodCalc = new ProductUsageCalculation(product);
+//                        accountCalc.addProductCalculation(prodCalc);
+//                    }
+//
+//                    if (facts.getProducts().contains(product)) {
+//                        prodCalc.addCores(facts.getCores() != null ? facts.getCores() : 0);
+//                        prodCalc.addSockets(facts.getSockets() != null ? facts.getSockets() : 0);
+//                        prodCalc.addInstances(1);
+//                    }
+//                });
+//
+//            });
+//        }
 
         if (log.isDebugEnabled()) {
             calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));

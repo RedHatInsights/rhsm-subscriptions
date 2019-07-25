@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.facts.normalizer;
 
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -33,31 +34,30 @@ public class QpcFactNormalizer implements FactSetNormalizer {
     public static final String IS_RHEL = "IS_RHEL";
 
     @Override
-    public void normalize(NormalizedFacts normalizedFacts, String namespace,
-        Map<String, Object> qpcFacts) {
-        if (!FactSetNamespace.QPC.equalsIgnoreCase(namespace)) {
-            throw new IllegalArgumentException("Attempted to process an invalid namespace.");
-        }
+    public void normalize(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+//        if (!FactSetNamespace.QPC.equalsIgnoreCase(namespace)) {
+//            throw new IllegalArgumentException("Attempted to process an invalid namespace.");
+//        }
 
         // Check if this is a RHEL host and set product.
-        if (checkIsRhelFact(qpcFacts.get(IS_RHEL))) {
+        if (hostFacts.getRhel()) {
             normalizedFacts.addProduct("RHEL");
         }
     }
 
-    private boolean checkIsRhelFact(Object value) {
-        if (value == null) {
-            return false;
-        }
-
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
-
-        if (value instanceof String) {
-            return ((String) value).equalsIgnoreCase("true");
-        }
-
-        return false;
-    }
+//    private boolean checkIsRhelFact(Object value) {
+//        if (value == null) {
+//            return false;
+//        }
+//
+//        if (value instanceof Boolean) {
+//            return (Boolean) value;
+//        }
+//
+//        if (value instanceof String) {
+//            return ((String) value).equalsIgnoreCase("true");
+//        }
+//
+//        return false;
+//    }
 }

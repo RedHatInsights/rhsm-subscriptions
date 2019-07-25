@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.normalizer.QpcFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -34,9 +35,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.core.io.FileSystemResourceLoader;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,7 @@ import java.util.Map;
 public class FactNormalizerTest {
 
     private FactNormalizer normalizer;
+    private ApplicationClock clock;
 
     @BeforeAll
     public void setup() throws IOException {
@@ -56,60 +60,59 @@ public class FactNormalizerTest {
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 
-        normalizer = new FactNormalizer(new ApplicationProperties(), source, new ApplicationClock());
+        clock = new ApplicationClock();
+        normalizer = new FactNormalizer(new ApplicationProperties(), source, clock);
     }
 
     @Test
     public void testRhsmNormalization() {
-        InventoryHost host = createRhsmHost(Arrays.asList("P1"), 12);
+        InventoryHostFacts host = createRhsmHost(Arrays.asList("P1"), 12, 2);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertNotNull(normalized.getCores());
         assertEquals(Integer.valueOf(12), normalized.getCores());
+        assertEquals(Integer.valueOf(2), normalized.getSockets());
     }
 
     @Test
     public void testQpcNormalization() {
-        InventoryHost host = createQpcHost(true);
+        InventoryHostFacts host = createQpcHost(true);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertTrue(normalized.getProducts().contains("RHEL"));
-        assertNull(normalized.getCores());
+        assertEquals(Integer.valueOf(0), normalized.getCores());
     }
 
     @Test
     public void testCombinedNamespaces() {
-        InventoryHost host = createRhsmHost(Arrays.asList("P1"), 12);
-        host.getFacts().putAll(createQpcHost(false).getFacts());
-        assertEquals(2, host.getFacts().size());
+        // TODO Not that valid of a test
+        InventoryHostFacts host = createRhsmHost(Arrays.asList("P1"), 12, 2);
 
         NormalizedFacts normalized = normalizer.normalize(host);
         assertTrue(normalized.getProducts().contains("RHEL"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
+        assertEquals(Integer.valueOf(2), normalized.getSockets());
     }
 
-    private InventoryHost createRhsmHost(List<String> products, Integer cores) {
-        Map<String, Object> rhsmFacts = new HashMap<>();
-        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
-        rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
+    private InventoryHostFacts createRhsmHost(List<String> products, Integer cores, Integer sockets) {
+//        Map<String, Object> rhsmFacts = new HashMap<>();
+//        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, products);
+//        rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
 
-        Map<String, Map<String, Object>> factNamespaces = new HashMap<>();
-        factNamespaces.put(FactSetNamespace.RHSM, rhsmFacts);
+//        Map<String, Map<String, Object>> factNamespaces = new HashMap<>();
+//        factNamespaces.put(FactSetNamespace.RHSM, rhsmFacts);
 
-        InventoryHost host = new InventoryHost();
-        host.setFacts(factNamespaces);
-        return host;
+//        InventoryHost host = new InventoryHost();
+//        host.setFacts(factNamespaces);
+//        return host;
+        return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
+            String.valueOf(sockets), null,
+            StringUtils.collectionToCommaDelimitedString(products), clock.now().toString());
     }
 
-    private InventoryHost createQpcHost(boolean isRhel) {
-        Map<String, Object> qpcFacts = new HashMap<>();
-        qpcFacts.put(QpcFactNormalizer.IS_RHEL, Boolean.toString(isRhel));
-
-        Map<String, Map<String, Object>> factNamespaces = new HashMap<>();
-        factNamespaces.put(FactSetNamespace.QPC, qpcFacts);
-
-        InventoryHost host = new InventoryHost();
-        host.setFacts(factNamespaces);
-        return host;
+    private InventoryHostFacts createQpcHost(Boolean isRhel) {
+        return new InventoryHostFacts("Account", "Test System", "test_org", null,
+            null, isRhel.toString(),
+            null, clock.now().toString());
     }
 
 }

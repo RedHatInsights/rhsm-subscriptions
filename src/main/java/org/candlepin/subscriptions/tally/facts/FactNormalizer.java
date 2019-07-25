@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.facts;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.normalizer.FactSetNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.QpcFactNormalizer;
 import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
@@ -61,15 +62,16 @@ public class FactNormalizer {
      * @param host the target host.
      * @return a normalized version of the host's facts.
      */
-    public NormalizedFacts normalize(InventoryHost host) {
+    public NormalizedFacts normalize(InventoryHostFacts hostFacts) {
         NormalizedFacts facts = new NormalizedFacts();
-        for (Entry<String, Map<String, Object>> factSet: host.getFacts().entrySet()) {
-            if (normalizers.containsKey(factSet.getKey())) {
-                log.debug("Normalizing facts for host/namespace: {}/{}", host.getDisplayName(),
-                    factSet.getKey());
-                normalizers.get(factSet.getKey()).normalize(facts, factSet.getKey(), factSet.getValue());
-            }
-        }
+        normalizers.values().forEach(normalizer -> normalizer.normalize(facts, hostFacts));
+//        for (Entry<String, Map<String, Object>> factSet: host.getFacts().entrySet()) {
+//            if (normalizers.containsKey(factSet.getKey())) {
+//                log.debug("Normalizing facts for host/namespace: {}/{}", host.getDisplayName(),
+//                    factSet.getKey());
+//                normalizers.get(factSet.getKey()).normalize(facts, factSet.getKey(), factSet.getValue());
+//            }
+//        }
         return facts;
     }
 
