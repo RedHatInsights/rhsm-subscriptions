@@ -136,9 +136,9 @@ public class InventoryHostFacts {
             return new HashSet<>();
         }
 
-        // TODO See if we can make this better.
-        // Yuck - Product data will come back as a String structured as a JSON list so
-        // we trim off what we don't need and convert to a set.
+        // FIXME Should be able to do this via the query. This code is a GROSS quick
+        //       hack to see if the whole query concept would make a difference. This
+        //       has to go.
         String commaSepProds = StringUtils.deleteAny(productJson, "\\[");
         commaSepProds = StringUtils.deleteAny(commaSepProds, "]");
         commaSepProds = StringUtils.deleteAny(commaSepProds, "\"");

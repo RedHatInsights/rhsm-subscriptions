@@ -20,22 +20,14 @@
  */
 package org.candlepin.subscriptions.inventory.db.model;
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
-
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.UUID;
 
-import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.ColumnResult;
 import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.NamedNativeQuery;
 import javax.persistence.SqlResultSetMapping;
@@ -48,7 +40,6 @@ import javax.persistence.Table;
 @SuppressWarnings({"indentation", "linelength"})
 @Entity
 @Table(name = "hosts")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 @SqlResultSetMapping(
     name = "inventoryHostFactsMapping",
     classes = {
@@ -86,26 +77,11 @@ public class InventoryHost implements Serializable {
     @Column(name = "display_name")
     private String displayName;
 
-    @Column(name = "ansible_host")
-    private String ansibleHost;
-
     @Column(name = "created_on")
     private OffsetDateTime createdOn;
 
     @Column(name = "modified_on")
     private OffsetDateTime modifiedOn;
-
-    @SuppressWarnings("squid:S1948")
-    @Type(type = "jsonb")
-    @Column(columnDefinition = "jsonb")
-    @Basic(fetch = FetchType.LAZY)
-    private Map<String, Map<String, Object>> facts;
-
-    @SuppressWarnings("squid:S1948")
-    @Type(type = "jsonb")
-    @Column(name = "canonical_facts", columnDefinition = "jsonb")
-    @Basic(fetch = FetchType.LAZY)
-    private Map<String, Object> canonicalFacts;
 
     public UUID getId() {
         return id;
@@ -131,14 +107,6 @@ public class InventoryHost implements Serializable {
         this.displayName = displayName;
     }
 
-    public String getAnsibleHost() {
-        return ansibleHost;
-    }
-
-    public void setAnsibleHost(String ansibleHost) {
-        this.ansibleHost = ansibleHost;
-    }
-
     public OffsetDateTime getCreatedOn() {
         return createdOn;
     }
@@ -155,19 +123,4 @@ public class InventoryHost implements Serializable {
         this.modifiedOn = modifiedOn;
     }
 
-    public Map<String, Map<String, Object>> getFacts() {
-        return facts;
-    }
-
-    public void setFacts(Map<String, Map<String, Object>> facts) {
-        this.facts = facts;
-    }
-
-    public Map<String, Object> getCanonicalFacts() {
-        return canonicalFacts;
-    }
-
-    public void setCanonicalFacts(Map<String, Object> canonicalFacts) {
-        this.canonicalFacts = canonicalFacts;
-    }
 }
