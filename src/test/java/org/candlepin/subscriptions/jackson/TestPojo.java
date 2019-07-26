@@ -20,9 +20,13 @@
  */
 package org.candlepin.subscriptions.jackson;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class TestPojo {
     private String value1;
     private String value2;
+    private List<String> valueList = new ArrayList<>();
 
     public TestPojo() { }
 
@@ -45,5 +49,13 @@ public class TestPojo {
 
     public void setValue2(String value2) {
         this.value2 = value2;
+    }
+
+    public List<String> getValueList() {
+        return valueList;
+    }
+
+    public void setValueList(List<String> valueList) {
+        this.valueList = valueList;
     }
 }

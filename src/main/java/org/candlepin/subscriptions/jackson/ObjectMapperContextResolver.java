@@ -48,7 +48,6 @@ public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper
         objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
         objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
         objectMapper.setSerializationInclusion(Include.NON_NULL);
-        objectMapper.setSerializationInclusion(Include.NON_EMPTY);
         objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
         // Tell the mapper to check the classpath for any serialization/deserialization modules
