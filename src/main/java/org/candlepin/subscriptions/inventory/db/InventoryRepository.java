@@ -21,8 +21,11 @@
 package org.candlepin.subscriptions.inventory.db;
 
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.UUID;
@@ -33,6 +36,7 @@ import java.util.stream.Stream;
  */
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
-    Stream<InventoryHost> findByAccountIn(Collection<String> accounts);
+    @Query(nativeQuery = true)
+    Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts);
 
 }

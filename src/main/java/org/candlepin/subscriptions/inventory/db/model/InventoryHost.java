@@ -20,30 +20,62 @@
  */
 package org.candlepin.subscriptions.inventory.db.model;
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
-
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.UUID;
 
-import javax.persistence.Basic;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.NamedNativeQuery;
+import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 
 
 /**
  * Represents a host entity stored in the inventory service's database.
  */
+@SuppressWarnings({"indentation", "linelength"})
 @Entity
 @Table(name = "hosts")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
+@SqlResultSetMapping(
+    name = "inventoryHostFactsMapping",
+    classes = {
+        @ConstructorResult(
+            targetClass = InventoryHostFacts.class,
+            columns = {
+                @ColumnResult(name = "account"),
+                @ColumnResult(name = "display_name"),
+                @ColumnResult(name = "org_id"),
+                @ColumnResult(name = "cores"),
+                @ColumnResult(name = "sockets"),
+                @ColumnResult(name = "is_rhel"),
+                @ColumnResult(name = "products"),
+                @ColumnResult(name = "sync_timestamp")
+            }
+        )
+    }
+)
+/* This query is complex so that we can fetch all the product IDs as a comma-delimited string all in one
+ * query.  It's inspired by https://dba.stackexchange.com/a/54289. See also
+ * https://stackoverflow.com/a/28557803/6124862
+ */
+@NamedNativeQuery(name = "InventoryHost.getFacts",
+    query = "select h.account, h.display_name, " +
+        "h.facts->'rhsm'->>'orgId' as org_id, " +
+        "h.facts->'rhsm'->>'CPU_CORES' as cores, " +
+        "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
+        "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
+        "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
+        "cj.products " +
+        "from hosts h " +
+        "cross join lateral ( " +
+            "select string_agg(cj.elem::text, ',') as products " +
+            "from json_array_elements_text(h.facts::json->'rhsm'->'RH_PROD') as cj(elem)) cj " +
+        "where account IN (:accounts)",
+    resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {
 
     @Id
@@ -54,26 +86,11 @@ public class InventoryHost implements Serializable {
     @Column(name = "display_name")
     private String displayName;
 
-    @Column(name = "ansible_host")
-    private String ansibleHost;
-
     @Column(name = "created_on")
     private OffsetDateTime createdOn;
 
     @Column(name = "modified_on")
     private OffsetDateTime modifiedOn;
-
-    @SuppressWarnings("squid:S1948")
-    @Type(type = "jsonb")
-    @Column(columnDefinition = "jsonb")
-    @Basic(fetch = FetchType.LAZY)
-    private Map<String, Map<String, Object>> facts;
-
-    @SuppressWarnings("squid:S1948")
-    @Type(type = "jsonb")
-    @Column(name = "canonical_facts", columnDefinition = "jsonb")
-    @Basic(fetch = FetchType.LAZY)
-    private Map<String, Object> canonicalFacts;
 
     public UUID getId() {
         return id;
@@ -99,14 +116,6 @@ public class InventoryHost implements Serializable {
         this.displayName = displayName;
     }
 
-    public String getAnsibleHost() {
-        return ansibleHost;
-    }
-
-    public void setAnsibleHost(String ansibleHost) {
-        this.ansibleHost = ansibleHost;
-    }
-
     public OffsetDateTime getCreatedOn() {
         return createdOn;
     }
@@ -123,19 +132,4 @@ public class InventoryHost implements Serializable {
         this.modifiedOn = modifiedOn;
     }
 
-    public Map<String, Map<String, Object>> getFacts() {
-        return facts;
-    }
-
-    public void setFacts(Map<String, Map<String, Object>> facts) {
-        this.facts = facts;
-    }
-
-    public Map<String, Object> getCanonicalFacts() {
-        return canonicalFacts;
-    }
-
-    public void setCanonicalFacts(Map<String, Object> canonicalFacts) {
-        this.canonicalFacts = canonicalFacts;
-    }
 }

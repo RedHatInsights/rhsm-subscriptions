@@ -33,7 +33,6 @@ ext {
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     logstash_logback_encoder_version = "5.3"
-    hibernate_types = "2.4.4"
 }
 
 
@@ -71,7 +70,6 @@ allprojects {
                 entry "mockito-core"
                 entry "mockito-junit-jupiter"
             }
-            dependency("com.vladmihalcea:hibernate-types-52:$hibernate_types")
         }
     }
 
@@ -162,7 +160,6 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.webjars:swagger-ui"
     compile "org.springframework.boot:spring-boot-starter-quartz"
-    compile "com.vladmihalcea:hibernate-types-52"
 
     runtime "org.postgresql:postgresql"
     runtime "org.liquibase:liquibase-core"

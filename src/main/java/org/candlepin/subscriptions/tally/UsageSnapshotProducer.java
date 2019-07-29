@@ -89,8 +89,8 @@ public class UsageSnapshotProducer {
                 accountBatchSize);
 
             // Partition the account list to help reduce memory usage while performing the calculations.
-            Iterables.partition(accountListSource.list(), accountBatchSize).forEach(accounts -> {
-                log.info("Producing snapshots for {}/{} accounts.", accounts.size(), accountList.size());
+            int count = 0;
+            for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
                 Collection<AccountUsageCalculation> accountCalcs =
                     accountUsageCollector.collect(APPLICABLE_PRODUCTS, accounts);
                 dailyRoller.rollSnapshots(accounts, accountCalcs);
@@ -98,9 +98,10 @@ public class UsageSnapshotProducer {
                 monthlyRoller.rollSnapshots(accounts, accountCalcs);
                 yearlyRoller.rollSnapshots(accounts, accountCalcs);
                 quarterlyRoller.rollSnapshots(accounts, accountCalcs);
-            });
+                count += accounts.size();
+                log.info("{}/{} accounts processed.", count, accountList.size());
+            }
             log.info("Finished producing snapshots for all accounts.");
-
         }
         catch (IOException ioe) {
             throw new SnapshotProducerException(

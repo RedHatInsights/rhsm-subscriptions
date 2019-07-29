@@ -28,20 +28,19 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-import org.candlepin.subscriptions.tally.facts.FactSetNamespace;
-import org.candlepin.subscriptions.tally.facts.normalizer.RhsmFactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -74,10 +73,10 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHost host1 = createHost("A1", "O1", TEST_PRODUCT, 4, 4);
-        InventoryHost host2 = createHost("A1", "O1", TEST_PRODUCT, 8, 4);
-        InventoryHost host3 = createHost("A2", "O2", TEST_PRODUCT, 2, 6);
-        when(inventoryRepo.findByAccountIn(eq(targetAccounts)))
+        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT, 4, 4);
+        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT, 8, 4);
+        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT, 2, 6);
+        when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -99,9 +98,9 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
-        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8, 12);
-        InventoryHost h2 = createHost("A1", "Owner1", "NOT_RHEL", 12, 14);
-        when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
+        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8, 12);
+        InventoryHostFacts h2 = createHost("A1", "Owner1", "NOT_RHEL", 12, 14);
+        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -119,9 +118,9 @@ public class InventoryAccountUsageCollectorTest {
         throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        InventoryHost h1 = createHost("A1", "Owner1", TEST_PRODUCT, 1, 2);
-        InventoryHost h2 = createHost("A1", "Owner2", TEST_PRODUCT, 1, 2);
-        when(inventoryRepo.findByAccountIn(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
+        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT, 1, 2);
+        InventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT, 1, 2);
+        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
             () -> collector.collect(rhelProducts, targetAccounts));
@@ -131,20 +130,12 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(expectedMessage, e.getMessage());
     }
 
-    private InventoryHost createHost(String account, String orgId, String product, int cores, int sockets) {
-        Map<String, Object> rhsmFacts = new HashMap<>();
-        rhsmFacts.put(RhsmFactNormalizer.CPU_CORES, cores);
-        rhsmFacts.put(RhsmFactNormalizer.CPU_SOCKETS, sockets);
-        rhsmFacts.put(RhsmFactNormalizer.RH_PRODUCTS, Arrays.asList(product));
-        rhsmFacts.put(RhsmFactNormalizer.ORG_ID, orgId);
-
-        Map<String, Map<String, Object>> facts = new HashMap<>();
-        facts.put(FactSetNamespace.RHSM, rhsmFacts);
-
-        InventoryHost host = new InventoryHost();
-        host.setAccount(account);
-        host.setFacts(facts);
-        return host;
+    private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
+        int sockets) {
+        return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
+            String.valueOf(sockets), Boolean.FALSE.toString(),
+            StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),
+            OffsetDateTime.now().toString());
     }
 
     private void assertCalculation(AccountUsageCalculation calc, String account, String owner, String product,
