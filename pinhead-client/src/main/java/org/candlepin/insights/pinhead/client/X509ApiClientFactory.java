@@ -20,7 +20,14 @@
  */
 package org.candlepin.insights.pinhead.client;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.jboss.logging.Logger;
+import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
+import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFactory;
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.springframework.beans.factory.FactoryBean;
@@ -63,14 +70,8 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
 
     private Client buildHttpClient(X509ApiClientFactoryConfiguration x509Config, ApiClient client)
         throws GeneralSecurityException {
-        ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
-        clientConfig.register(client.getJSON());
-        if (client.isDebugging()) {
-            clientConfig.register(Logger.class);
-        }
-
-        ClientBuilder builder = ClientBuilder.newBuilder().withConfig(clientConfig);
-        builder.hostnameVerifier(x509Config.getHostnameVerifier());
+        HttpClientBuilder apacheBuilder = HttpClientBuilder.create();
+        apacheBuilder.setSSLHostnameVerifier(x509Config.getHostnameVerifier());
 
         try {
             TrustManager[] trustManagers = null;
@@ -97,12 +98,29 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
 
             SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(keyManagers, trustManagers, null);
-            builder.sslContext(sslContext);
+            apacheBuilder.setSSLContext(sslContext);
         }
         catch (KeyStoreException | NoSuchAlgorithmException | IOException e)  {
             throw new GeneralSecurityException("Failed to init SSLContext", e);
         }
 
-        return builder.build();
+        RequestConfig cookieConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
+        apacheBuilder.setDefaultRequestConfig(cookieConfig);
+        HttpClient httpClient = apacheBuilder.build();
+
+        // We've now constructed a basic Apache HttpClient.  Now we wire that in to RestEasy.  There is a
+        // lot of overlap in the names and in the classes across Apache's http-components, Resteasy, and
+        // the JAX-RS API.
+
+        ClientHttpEngine engine = ApacheHttpClient4EngineFactory.create(httpClient);
+
+        ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
+        clientConfig.register(client.getJSON());
+        if (client.isDebugging()) {
+            clientConfig.register(Logger.class);
+        }
+        ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
+
+        return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
     }
 }
