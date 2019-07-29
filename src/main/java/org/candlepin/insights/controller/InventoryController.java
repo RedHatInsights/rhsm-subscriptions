@@ -62,10 +62,14 @@ public class InventoryController {
 
     // We should instead pull ip addresses from the following facts:
     //
-    // net.interface.%.ipv4_address_list (or net.interface.%.ipv4_address if the list isn't present)
-    // net.interface.%.ipv6_address.global_list (or net.interface.%.ipv6_address.global if the list isn't present)
-    // net.interface.%.ipv6_address.link_list (or net.interface.%.ipv6_address.link if the list isn't present)
-    public static final String IP_ADDRESS_FACT_REGEX = "^net\\.interface\\.[^.]*\\.ipv[46]_address(\\.global|\\.link)?(_list)?$";
+    // net.interface.%.ipv4_address_list
+    //      (or net.interface.%.ipv4_address if the list isn't present)
+    // net.interface.%.ipv6_address.global_list
+    //      (or net.interface.%.ipv6_address.global if the list isn't present)
+    // net.interface.%.ipv6_address.link_list
+    //      (or net.interface.%.ipv6_address.link if the list isn't present)
+    public static final String IP_ADDRESS_FACT_REGEX =
+        "^net\\.interface\\.[^.]*\\.ipv[46]_address(\\.global|\\.link)?(_list)?$";
     public static final String LIST_SUFFIX = "_list";
     public static final String NETWORK_FQDN = "network.fqdn";
     public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
@@ -166,10 +170,10 @@ public class InventoryController {
     private void extractIpAddresses(Map<String, String> pinheadFacts, ConduitFacts facts) {
         Set<String> ipAddresses = new HashSet<>();
         pinheadFacts.entrySet().stream()
-            .filter(entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX)
-                && !isEmpty(entry.getValue()))
+            .filter(entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX) && !isEmpty(entry.getValue()))
             .forEach(entry -> {
-                // The facts ending with _list have precedence.  We might end up adding the same addresses twice,
+                // The facts ending with _list have precedence.
+                // We might end up adding the same addresses twice,
                 // but Set<String> will take care of the duplicates.
                 String name = entry.getKey();
                 if (!name.endsWith(LIST_SUFFIX) && pinheadFacts.containsKey(name + LIST_SUFFIX)) {
