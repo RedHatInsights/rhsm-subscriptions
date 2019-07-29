@@ -58,13 +58,22 @@ import javax.persistence.Table;
         )
     }
 )
+/* This query is complex so that we can fetch all the product IDs as a comma-delimited string all in one
+ * query.  It's inspired by https://dba.stackexchange.com/a/54289. See also
+ * https://stackoverflow.com/a/28557803/6124862
+ */
 @NamedNativeQuery(name = "InventoryHost.getFacts",
-    query =
-        "select " +
-            "account, display_name, facts->'rhsm'->>'orgId' as org_id, facts->'rhsm'->>'CPU_CORES' as cores, " +
-            "facts->'rhsm'->>'CPU_SOCKETS' as sockets, facts->'qpc'->>'IS_RHEL' as is_rhel, " +
-            "facts->'rhsm'->>'RH_PROD' as products, facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp " +
-        "from hosts " +
+    query = "select h.account, h.display_name, " +
+        "h.facts->'rhsm'->>'orgId' as org_id, " +
+        "h.facts->'rhsm'->>'CPU_CORES' as cores, " +
+        "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
+        "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
+        "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
+        "cj.products " +
+        "from hosts h " +
+        "cross join lateral ( " +
+            "select string_agg(cj.elem::text, ',') as products " +
+            "from json_array_elements_text(h.facts::json->'rhsm'->'RH_PROD') as cj(elem)) cj " +
         "where account IN (:accounts)",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {

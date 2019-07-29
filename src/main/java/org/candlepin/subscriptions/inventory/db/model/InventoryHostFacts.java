@@ -135,14 +135,6 @@ public class InventoryHostFacts {
         if (!StringUtils.hasText(productJson)) {
             return new HashSet<>();
         }
-
-        // FIXME Should be able to do this via the query. This code is a GROSS quick
-        //       hack to see if the whole query concept would make a difference. This
-        //       has to go.
-        String commaSepProds = StringUtils.deleteAny(productJson, "\\[");
-        commaSepProds = StringUtils.deleteAny(commaSepProds, "]");
-        commaSepProds = StringUtils.deleteAny(commaSepProds, "\"");
-        commaSepProds = StringUtils.deleteAny(commaSepProds, " ");
-        return StringUtils.commaDelimitedListToSet(commaSepProds);
+        return StringUtils.commaDelimitedListToSet(productJson);
     }
 }
