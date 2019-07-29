@@ -25,9 +25,6 @@ import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,9 +36,6 @@ import java.util.stream.Collectors;
  * and condensed facts based on the host's facts.
  */
 public class FactNormalizer {
-
-    private static final Logger log = LoggerFactory.getLogger(FactNormalizer.class);
-
     private final List<String> configuredRhelProducts;
     private final ApplicationClock clock;
     private final int hostSyncThresholdHours;

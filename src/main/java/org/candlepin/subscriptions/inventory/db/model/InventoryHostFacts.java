@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.inventory.db.model;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
@@ -31,8 +29,6 @@ import java.util.Set;
  * Represents an inventory host's facts.
  */
 public class InventoryHostFacts {
-    private static final Logger log = LoggerFactory.getLogger(InventoryHostFacts.class);
-
     private String account;
     private String displayName;
     private String orgId;
