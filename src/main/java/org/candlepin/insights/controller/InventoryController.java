@@ -35,6 +35,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -58,8 +59,14 @@ public class InventoryController {
     public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
     public static final String MAC_PREFIX = "net.interface.";
     public static final String MAC_SUFFIX = ".mac_address";
-    public static final String IPV4_ADDRESSES = "network.ipv4_address";
-    public static final String IPV6_ADDRESSES = "network.ipv6_address";
+
+    // We should instead pull ip addresses from the following facts:
+    //
+    // net.interface.%.ipv4_address_list (or net.interface.%.ipv4_address if the list isn't present)
+    // net.interface.%.ipv6_address.global_list (or net.interface.%.ipv6_address.global if the list isn't present)
+    // net.interface.%.ipv6_address.link_list (or net.interface.%.ipv6_address.link if the list isn't present)
+    public static final String IP_ADDRESS_FACT_REGEX = "^net\\.interface\\.[^.]*\\.ipv[46]_address(\\.global|\\.link)?(_list)?$";
+    public static final String LIST_SUFFIX = "_list";
     public static final String NETWORK_FQDN = "network.fqdn";
     public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
     public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
@@ -133,21 +140,6 @@ public class InventoryController {
     }
 
     private void extractNetworkFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
-        String ipv4Addresses = pinheadFacts.get(IPV4_ADDRESSES);
-        String ipv6Addresses = pinheadFacts.get(IPV6_ADDRESSES);
-        ArrayList<String> ipAddresses = new ArrayList<>();
-        if (!isEmpty(ipv4Addresses)) {
-            String[] ipv4AddressesSplit = ipv4Addresses.split(COMMA_REGEX);
-            ipAddresses.addAll(Arrays.asList(ipv4AddressesSplit));
-
-        }
-        if (!isEmpty(ipv6Addresses)) {
-            String[] ipv6AddressesSplit = ipv6Addresses.split(COMMA_REGEX);
-            ipAddresses.addAll(Arrays.asList(ipv6AddressesSplit));
-        }
-        if (!ipAddresses.isEmpty()) {
-            facts.setIpAddresses(ipAddresses);
-        }
 
         String fqdn = pinheadFacts.get(NETWORK_FQDN);
         if (!isEmpty(fqdn)) {
@@ -168,6 +160,28 @@ public class InventoryController {
         if (!macAddresses.isEmpty()) {
             facts.setMacAddresses(macAddresses);
         }
+        extractIpAddresses(pinheadFacts, facts);
+    }
+
+    private void extractIpAddresses(Map<String, String> pinheadFacts, ConduitFacts facts) {
+        Set<String> ipAddresses = new HashSet<>();
+        pinheadFacts.entrySet().stream()
+            .filter(entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX)
+                && !isEmpty(entry.getValue()))
+            .forEach(entry -> {
+                // The facts ending with _list have precedence.  We might end up adding the same addresses twice,
+                // but Set<String> will take care of the duplicates.
+                String name = entry.getKey();
+                if (!name.endsWith(LIST_SUFFIX) && pinheadFacts.containsKey(name + LIST_SUFFIX)) {
+                    name = name + LIST_SUFFIX;
+                }
+                ipAddresses.addAll(Arrays.asList(pinheadFacts.get(name).split(COMMA_REGEX)));
+            });
+
+        if (!ipAddresses.isEmpty()) {
+            facts.setIpAddresses(new ArrayList(ipAddresses));
+        }
+
     }
 
     private void extractHypervisorFacts(Consumer consumer, Map<String, String> pinheadFacts,
