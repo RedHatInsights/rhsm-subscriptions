@@ -20,11 +20,10 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -40,11 +39,11 @@ public class NormalizedFactsTest {
         facts.setCores(12);
 
         Map<String, Object> payload = facts.toInventoryPayload();
-        assertTrue(payload.containsKey(NormalizedFacts.PRODUCTS_KEY));
+        assertThat(payload, Matchers.hasKey(NormalizedFacts.PRODUCTS_KEY));
         Set<String> products = (Set<String>) payload.get(NormalizedFacts.PRODUCTS_KEY);
-        assertTrue(products.contains("RHEL"));
+        assertThat(products, Matchers.hasItem("RHEL"));
 
-        assertTrue(payload.containsKey(NormalizedFacts.CORES_KEY));
+        assertThat(payload, Matchers.hasKey(NormalizedFacts.CORES_KEY));
         assertNotNull(payload.get(NormalizedFacts.CORES_KEY));
         assertEquals(12, payload.get(NormalizedFacts.CORES_KEY));
     }
@@ -54,11 +53,11 @@ public class NormalizedFactsTest {
         NormalizedFacts facts = new NormalizedFacts();
 
         Map<String, Object> payload = facts.toInventoryPayload();
-        assertTrue(payload.containsKey(NormalizedFacts.PRODUCTS_KEY));
+        assertThat(payload, Matchers.hasKey(NormalizedFacts.PRODUCTS_KEY));
         Set<String> products = (Set<String>) payload.get(NormalizedFacts.PRODUCTS_KEY);
-        assertTrue(products.isEmpty());
+        assertThat(products, Matchers.empty());
 
-        assertTrue(payload.containsKey(NormalizedFacts.CORES_KEY));
+        assertThat(payload, Matchers.hasKey(NormalizedFacts.CORES_KEY));
         assertNull(payload.get(NormalizedFacts.CORES_KEY));
     }
 }

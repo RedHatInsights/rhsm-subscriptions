@@ -20,14 +20,11 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class AccountUsageCalculationTest {
 
@@ -59,7 +56,6 @@ public class AccountUsageCalculationTest {
         String p1 = "Product1";
         String p2 = "Product2";
         String p3 = "Product3";
-        List<String> expectedProducts = Arrays.asList(p1, p2, p3);
 
         AccountUsageCalculation calc = new AccountUsageCalculation("Account1");
         calc.addProductCalculation(new ProductUsageCalculation(p1));
@@ -67,6 +63,6 @@ public class AccountUsageCalculationTest {
         calc.addProductCalculation(new ProductUsageCalculation(p3));
 
         assertEquals(3, calc.getProducts().size());
-        assertTrue(calc.getProducts().containsAll(expectedProducts));
+        assertThat(calc.getProducts(), Matchers.containsInAnyOrder(p1, p2, p3));
     }
 }

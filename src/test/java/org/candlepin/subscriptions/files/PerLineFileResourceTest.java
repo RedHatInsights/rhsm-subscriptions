@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
@@ -55,7 +55,7 @@ public class PerLineFileResourceTest {
         PerLineFileSource source = createSource(orgListFileLocation);
         List<String> read = source.list();
         assertEquals(3, read.size());
-        assertTrue(read.containsAll(expectedLines));
+        assertThat(read, Matchers.contains(expectedLines.toArray()));
     }
 
     private PerLineFileSource createSource(String filename) {

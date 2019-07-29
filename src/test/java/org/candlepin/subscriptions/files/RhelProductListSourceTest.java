@@ -20,15 +20,15 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -46,8 +46,7 @@ public class RhelProductListSourceTest {
         List<String> prodList = source.list();
         assertEquals(3, prodList.size());
 
-        List<String> expectedProducts = Arrays.asList("P1", "P2", "P3");
-        assertTrue(prodList.containsAll(expectedProducts));
+        assertThat(prodList, Matchers.contains("P1", "P2", "P3"));
     }
 
 }

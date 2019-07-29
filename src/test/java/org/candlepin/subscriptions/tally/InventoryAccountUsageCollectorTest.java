@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -32,6 +31,7 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.StringUtils;
@@ -83,8 +83,8 @@ public class InventoryAccountUsageCollectorTest {
             .stream()
             .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
         assertEquals(2, calcs.size());
-        assertTrue(calcs.containsKey("A1"));
-        assertTrue(calcs.containsKey("A2"));
+        assertThat(calcs, Matchers.hasKey("A1"));
+        assertThat(calcs, Matchers.hasKey("A2"));
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
@@ -106,7 +106,7 @@ public class InventoryAccountUsageCollectorTest {
             .stream()
             .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
         assertEquals(1, calcs.size());
-        assertTrue(calcs.containsKey("A1"));
+        assertThat(calcs, Matchers.hasKey("A1"));
 
         AccountUsageCalculation accountCalc = calcs.get("A1");
         assertEquals(1, accountCalc.getProducts().size());
