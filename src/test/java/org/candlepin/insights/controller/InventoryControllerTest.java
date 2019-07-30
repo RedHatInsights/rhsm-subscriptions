@@ -66,9 +66,10 @@ public class InventoryControllerTest {
         UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
         consumer1.setUuid(uuid1.toString());
+        consumer1.setAccountNumber("account");
         Consumer consumer2 = new Consumer();
         consumer2.setUuid(uuid2.toString());
-        when(orgListStrategy.getAccountNumberForOrg(isNotNull())).thenReturn("account");
+        consumer2.setAccountNumber("account");
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
         when(inventoryService.sendHostUpdate(isNotNull())).thenReturn(new BulkHostOut());
@@ -77,9 +78,19 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testOrgWithoutAccountNumberThrowsError() {
-        when(orgListStrategy.getAccountNumberForOrg(isNotNull())).thenReturn(null);
-        assertThrows(NullPointerException.class, () -> controller.updateInventoryForOrg("123"));
+    public void testHandleConsumerWithNoAccountNumber() {
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        Consumer consumer1 = new Consumer();
+        consumer1.setUuid(uuid1.toString());
+        consumer1.setAccountNumber("account");
+        Consumer consumer2 = new Consumer();
+        consumer2.setUuid(uuid2.toString());
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
+            Arrays.asList(consumer1, consumer2));
+        when(inventoryService.sendHostUpdate(isNotNull())).thenReturn(new BulkHostOut());
+        controller.updateInventoryForOrg("123");
+        Mockito.verify(inventoryService, times(1)).sendHostUpdate(any());
     }
 
     @Test

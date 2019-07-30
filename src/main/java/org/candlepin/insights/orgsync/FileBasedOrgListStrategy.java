@@ -20,8 +20,6 @@
  */
 package org.candlepin.insights.orgsync;
 
-import org.candlepin.insights.exception.ErrorCode;
-import org.candlepin.insights.exception.RhsmConduitException;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -40,14 +38,12 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.PostConstruct;
-import javax.ws.rs.core.Response;
 
 /**
  * An implementation of OrgListStrategy that reads org ids from a file
  */
 public class FileBasedOrgListStrategy implements OrgListStrategy, ResourceLoaderAware {
     private static final String CANDLEPIN_ORG_ID = "Candlepin Org ID";
-    private static final String ACCOUNT_NUMBER = "Account Number";
 
     private ResourceLoader resourceLoader;
     private String orgResourceLocation;
@@ -73,27 +69,6 @@ public class FileBasedOrgListStrategy implements OrgListStrategy, ResourceLoader
                 .map(record -> record.get(CANDLEPIN_ORG_ID))
                 .filter(orgId -> !orgId.isEmpty())
                 .collect(Collectors.toList());
-        }
-    }
-
-    public String getAccountNumberForOrg(String orgId) {
-        try {
-            // re-read the csv to get an updated lookup. Inefficient, but this is a stop-gap.
-            try (InputStream s = orgResource.getInputStream()) {
-                return getCSVRecordStream(s)
-                    .filter(record -> record.get(CANDLEPIN_ORG_ID).trim().equals(orgId))
-                    .map(record -> record.get(ACCOUNT_NUMBER))
-                    .filter(accountNumber -> !accountNumber.isEmpty())
-                    .findFirst().orElse(null);
-            }
-        }
-        catch (IOException e) {
-            throw new RhsmConduitException(
-                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                "Error extracting account number mapping from CSV.",
-                e
-            );
         }
     }
 

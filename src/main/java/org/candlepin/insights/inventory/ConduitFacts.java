@@ -28,6 +28,7 @@ import org.hibernate.validator.constraints.Length;
 import java.util.List;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 
@@ -40,6 +41,12 @@ public class ConduitFacts extends ConsumerInventory {
     @Override
     public String getFqdn() {
         return super.getFqdn();
+    }
+
+    @Override
+    @NotNull
+    public String getAccountNumber() {
+        return super.getAccountNumber();
     }
 
     @Valid

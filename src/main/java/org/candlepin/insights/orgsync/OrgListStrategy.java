@@ -28,5 +28,4 @@ import java.util.List;
  */
 public interface OrgListStrategy {
     List<String> getOrgsToSync() throws IOException;
-    String getAccountNumberForOrg(String orgId);
 }
