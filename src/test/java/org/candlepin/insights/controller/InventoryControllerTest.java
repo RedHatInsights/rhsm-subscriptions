@@ -188,7 +188,8 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-        assertContainSameElements(Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "fe80::2323:912a:177a:d8e6"),
+        assertContainSameElements(
+            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "fe80::2323:912a:177a:d8e6"),
             conduitFacts.getIpAddresses());
     }
 
@@ -198,16 +199,19 @@ public class InventoryControllerTest {
         String systemUuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
-        // in this convoluted example, we test whether we ignore *_address facts if the associated *_address_list facts exist.
+        // In this convoluted example, we test whether we ignore *_address facts
+        // if the associated *_address_list facts exist.
         consumer.getFacts().put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
         consumer.getFacts().put("net.interface.eth0.ipv4_address", "5.6.7.8");  // should be ignored
         consumer.getFacts().put("net.interface.lo.ipv4_address", "127.0.0.1");
-        consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");  // should be ignored
+        // this one should be ignored, too:
+        consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
         consumer.getFacts().put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-        assertContainSameElements(Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "0088::99aa:bbcc:ddee:ff33"),
+        assertContainSameElements(
+            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "0088::99aa:bbcc:ddee:ff33"),
             conduitFacts.getIpAddresses());
     }
 
