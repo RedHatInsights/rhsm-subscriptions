@@ -20,8 +20,8 @@
  */
 package org.candlepin.insights.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
 
@@ -29,6 +29,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -77,7 +78,8 @@ public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
             Map<String, Object> factoryConfig = factory.getConfigurationProperties();
             assertEquals(KafkaAvroSerializer.class,
                 factoryConfig.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
-            assertTrue(factoryConfig.containsKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
+            assertThat(factoryConfig,
+                Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
 
             return new DefaultKafkaProducerFactory(factoryConfig, new StringSerializer(),
                 new KafkaAvroSerializer(registryClient, factoryConfig));
@@ -95,7 +97,8 @@ public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
                 factoryConfig.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
             assertEquals(KafkaAvroDeserializer.class,
                 factoryConfig.get(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS));
-            assertTrue(factoryConfig.containsKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
+            assertThat(factoryConfig,
+                Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
 
             KafkaAvroDeserializer delegate = new KafkaAvroDeserializer(registryClient, factoryConfig);
             ErrorHandlingDeserializer2 errorDeserializer = new ErrorHandlingDeserializer2(delegate);
