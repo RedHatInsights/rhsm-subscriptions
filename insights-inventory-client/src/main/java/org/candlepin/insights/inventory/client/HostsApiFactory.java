@@ -22,6 +22,9 @@ package org.candlepin.insights.inventory.client;
 
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
@@ -59,6 +62,8 @@ public class HostsApiFactory implements FactoryBean<HostsApi> {
         if (apiKey == null || apiKey.isEmpty()) {
             throw new IllegalStateException("No api key has been set for the inventory client.");
         }
+        ObjectMapper mapper = apiClient.getJSON().getContext(ObjectMapper.class);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         apiClient.addDefaultHeader("Authorization", String.format("Bearer %s", apiKey));
 
         return new HostsApi(apiClient);

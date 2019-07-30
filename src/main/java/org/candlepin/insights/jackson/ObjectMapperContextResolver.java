@@ -36,6 +36,11 @@ import javax.ws.rs.ext.Provider;
  * A ContextResolver responsible for customizing the configuration of Jackson's
  * ObjectMapper instance. This is marked as a Provider so that RestEasy will
  * use the configured ObjectMapper provided by this instance.
+ *
+ * NOTE: this class is responsible for the server's serialization/deserialization only.
+ * Configuration of the ObjectMapper used in the clients is mostly done in the ApiClient classes, and we can
+ * customize them via <pre>apiClient.getJSON().getContext(ObjectMapper.class)</pre> (see
+ * {@link org.candlepin.insights.inventory.client.HostsApiFactory} for an example).
  */
 @Provider
 public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper> {
