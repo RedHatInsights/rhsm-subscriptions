@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.files.RhelProductListSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -33,7 +34,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.FileSystemResourceLoader;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -43,10 +48,14 @@ import java.util.List;
 
 
 @TestInstance(Lifecycle.PER_CLASS)
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
+@Import(FixedClockConfiguration.class)
 public class FactNormalizerTest {
 
     private FactNormalizer normalizer;
-    private ApplicationClock clock;
+
+    @Autowired private ApplicationClock clock;
 
     @BeforeAll
     public void setup() throws IOException {
@@ -57,7 +66,6 @@ public class FactNormalizerTest {
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 
-        clock = new ApplicationClock();
         normalizer = new FactNormalizer(new ApplicationProperties(), source, clock);
     }
 
