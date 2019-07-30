@@ -20,10 +20,12 @@
  */
 package org.candlepin.insights.task;
 
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.task.tasks.UpdateOrgInventoryTask;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,7 +42,7 @@ public class TaskFactoryTest {
     @Test
     public void ensureFactoryBuildsUpdateOrgInventoryTask() {
         Task task = factory.build(TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, "my-group").build());
-        assertTrue(task instanceof UpdateOrgInventoryTask);
+        assertThat(task, Matchers.instanceOf(UpdateOrgInventoryTask.class));
     }
 
     @Test
@@ -48,6 +50,5 @@ public class TaskFactoryTest {
         assertThrows(IllegalArgumentException.class, () -> {
             factory.build(TaskDescriptor.builder(null, "my-group").build());
         });
-
     }
 }

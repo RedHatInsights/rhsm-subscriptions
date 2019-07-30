@@ -20,6 +20,7 @@
  */
 package org.candlepin.insights.exception.mapper;
 
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.api.model.Error;
@@ -28,6 +29,7 @@ import org.candlepin.insights.exception.ErrorCode;
 import org.candlepin.insights.exception.RhsmConduitException;
 import org.candlepin.insights.inventory.client.ApiException;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
@@ -49,7 +51,8 @@ public class RhsmConduitExceptionMapperTest {
             expectedTitle, expectedDetail));
 
         Object entityObj = resp.getEntity();
-        assertTrue(entityObj != null && entityObj instanceof Errors);
+        assertNotNull(entityObj);
+        assertThat(entityObj, Matchers.instanceOf(Errors.class));
 
         Errors errors = (Errors) entityObj;
         assertEquals(1, errors.getErrors().size());
@@ -77,7 +80,8 @@ public class RhsmConduitExceptionMapperTest {
         Response resp = mapper.toResponse(rhsme);
 
         Object entityObj = resp.getEntity();
-        assertTrue(entityObj != null && entityObj instanceof Errors);
+        assertNotNull(entityObj);
+        assertThat(entityObj, Matchers.instanceOf(Errors.class));
 
         Errors errors = (Errors) entityObj;
         assertEquals(1, errors.getErrors().size());

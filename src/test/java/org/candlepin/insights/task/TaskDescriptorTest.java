@@ -20,8 +20,10 @@
  */
 package org.candlepin.insights.task;
 
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -43,7 +45,7 @@ public class TaskDescriptorTest {
         assertEquals(expectedTaskType, desc.getTaskType());
 
         Map<String, String> args = desc.getTaskArgs();
-        assertTrue(args.containsKey(expectedArgKey));
+        assertThat(args, Matchers.hasKey(expectedArgKey));
         assertEquals(expectedArgValue, args.get(expectedArgKey));
         assertEquals(expectedArgValue, desc.getArg(expectedArgKey));
     }

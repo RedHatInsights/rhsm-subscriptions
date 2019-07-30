@@ -20,12 +20,13 @@
  */
 package org.candlepin.insights.exception.mapper;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.api.model.Error;
 import org.candlepin.insights.api.model.Errors;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
@@ -43,7 +44,8 @@ public class DefaultExceptionMapperTest {
         Response resp = mapper.toResponse(new RuntimeException(expectedDetail));
 
         Object entityObj = resp.getEntity();
-        assertTrue(entityObj != null && entityObj instanceof Errors);
+        assertNotNull(entityObj);
+        assertThat(entityObj, Matchers.instanceOf(Errors.class));
 
         Errors errors = (Errors) entityObj;
         assertEquals(1, errors.getErrors().size());
