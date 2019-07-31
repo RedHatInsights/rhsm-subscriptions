@@ -100,7 +100,7 @@ public class FactNormalizer {
 
     private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
         // Check if this is a RHEL host and set product.
-        if (hostFacts.isRhel()) {
+        if (hostFacts.getQpcProducts().contains("RHEL")) {
             normalizedFacts.addProduct("RHEL");
         }
     }

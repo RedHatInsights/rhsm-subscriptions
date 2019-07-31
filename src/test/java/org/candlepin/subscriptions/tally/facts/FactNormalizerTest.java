@@ -79,7 +79,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testQpcNormalization() {
-        InventoryHostFacts host = createQpcHost(true);
+        InventoryHostFacts host = createQpcHost("RHEL");
         NormalizedFacts normalized = normalizer.normalize(host);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(0), normalized.getCores());
@@ -153,38 +153,36 @@ public class FactNormalizerTest {
 
     @Test
     void testRhelFromQpcFacts() {
-        NormalizedFacts normalized = normalizer.normalize(createQpcHost(true));
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL"));
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
     }
 
     @Test
-    public void testEmptyProductListWhenIsRhelIsFalse() {
-        NormalizedFacts normalized = normalizer.normalize(createQpcHost(false));
+    public void testEmptyProductListWhenRhelNotPresent() {
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("EAP"));
         assertThat(normalized.getProducts(), Matchers.empty());
     }
 
     @Test
-    public void testEmptyProductListWhenIsRhelNotSet() {
+    public void testEmptyProductListWhenQpcProductsNotSet() {
         NormalizedFacts normalized = normalizer.normalize(createQpcHost(null));
         assertThat(normalized.getProducts(), Matchers.empty());
     }
 
     private InventoryHostFacts createRhsmHost(List<String> products, Integer cores, Integer sockets) {
         return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
-            String.valueOf(sockets), null,
-            StringUtils.collectionToCommaDelimitedString(products), clock.now().toString(), null, null);
+            String.valueOf(sockets), StringUtils.collectionToCommaDelimitedString(products),
+            clock.now().toString(), null, null, null, null);
     }
 
-    private InventoryHostFacts createQpcHost(Boolean isRhel) {
+    private InventoryHostFacts createQpcHost(String qpcProducts) {
         return new InventoryHostFacts("Account", "Test System", "test_org", null,
-            null, isRhel == null ? null : isRhel.toString(),
-            null, clock.now().toString(), null, null);
+            null, null, clock.now().toString(), qpcProducts, null, qpcProducts, null);
     }
 
     private InventoryHostFacts createSystemProfileHost(Integer coresPerSocket, Integer sockets) {
         return new InventoryHostFacts("Account", "Test System", "test_org", null,
-            null, null, null, clock.now().toString(), String.valueOf(coresPerSocket),
-            String.valueOf(sockets));
+            null, null, clock.now().toString(), String.valueOf(coresPerSocket),
+            String.valueOf(sockets), null, null);
     }
-
 }
