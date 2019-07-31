@@ -55,9 +55,21 @@ public class FactNormalizer {
      */
     public NormalizedFacts normalize(InventoryHostFacts hostFacts) {
         NormalizedFacts normalizedFacts = new NormalizedFacts();
+        normalizeSystemProfileFacts(normalizedFacts, hostFacts);
         normalizeRhsmFacts(normalizedFacts, hostFacts);
         normalizeQpcFacts(normalizedFacts, hostFacts);
         return normalizedFacts;
+    }
+
+    private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+        if (hostFacts.getSystemProfileCoresPerSocket() != 0 && hostFacts.getSystemProfileSockets() != 0) {
+            normalizedFacts.setCores(
+                hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets()
+            );
+            normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
+            // For now we assume that any host with a system profile is a RHEL machine
+            normalizedFacts.addProduct("RHEL");
+        }
     }
 
     private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
@@ -76,8 +88,12 @@ public class FactNormalizer {
             }
 
             // Check for cores and sockets. If not included, default to 0.
-            normalizedFacts.setCores(hostFacts.getCores());
-            normalizedFacts.setSockets(hostFacts.getSockets());
+            if (normalizedFacts.getCores() == null || hostFacts.getCores() != 0) {
+                normalizedFacts.setCores(hostFacts.getCores());
+            }
+            if (normalizedFacts.getSockets() == null || hostFacts.getSockets() != 0) {
+                normalizedFacts.setSockets(hostFacts.getSockets());
+            }
             normalizedFacts.setOwner(hostFacts.getOrgId());
         }
     }

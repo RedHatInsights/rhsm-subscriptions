@@ -53,7 +53,9 @@ import javax.persistence.Table;
                 @ColumnResult(name = "sockets"),
                 @ColumnResult(name = "is_rhel"),
                 @ColumnResult(name = "products"),
-                @ColumnResult(name = "sync_timestamp")
+                @ColumnResult(name = "sync_timestamp"),
+                @ColumnResult(name = "system_profile_cores_per_socket"),
+                @ColumnResult(name = "system_profile_sockets")
             }
         )
     }
@@ -69,11 +71,13 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
         "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
+        "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
+        "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
         "cj.products " +
         "from hosts h " +
         "cross join lateral ( " +
-            "select string_agg(cj.elem::text, ',') as products " +
-            "from json_array_elements_text(h.facts::json->'rhsm'->'RH_PROD') as cj(elem)) cj " +
+            "select string_agg(cj.elem, ',') as products " +
+            "from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as cj(elem)) cj " +
         "where account IN (:accounts)",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {

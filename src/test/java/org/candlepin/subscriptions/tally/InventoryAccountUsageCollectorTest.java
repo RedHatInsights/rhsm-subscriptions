@@ -96,6 +96,31 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     @Test
+    void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
+        Collection<String> targetAccounts = Arrays.asList("A1", "A2");
+        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT, 0, 0, 1, 4);
+        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT, 0, 0, 2, 4);
+        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT, 0, 0, 2, 6);
+        when(inventoryRepo.getFacts(eq(targetAccounts)))
+            .thenReturn(Arrays.asList(host1, host2, host3).stream());
+
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
+            .stream()
+            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        assertEquals(2, calcs.size());
+        assertThat(calcs, Matchers.hasKey("A1"));
+        assertThat(calcs, Matchers.hasKey("A2"));
+
+        AccountUsageCalculation a1Calc = calcs.get("A1");
+        assertEquals(1, a1Calc.getProducts().size());
+        assertCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+
+        AccountUsageCalculation a2Calc = calcs.get("A2");
+        assertEquals(1, a2Calc.getProducts().size());
+        assertCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 12, 6, 1);
+    }
+
+    @Test
     public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
         InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8, 12);
@@ -132,10 +157,16 @@ public class InventoryAccountUsageCollectorTest {
 
     private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
         int sockets) {
+        return createHost(account, orgId, product, cores, sockets, 0, 0);
+    }
+
+    private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
+        int sockets, int systemProfileCoresPerSocket, int systemProfileSockets) {
         return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
             String.valueOf(sockets), Boolean.FALSE.toString(),
             StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),
-            OffsetDateTime.now().toString());
+            OffsetDateTime.now().toString(), String.valueOf(systemProfileCoresPerSocket),
+            String.valueOf(systemProfileSockets));
     }
 
     private void assertCalculation(AccountUsageCalculation calc, String account, String owner, String product,

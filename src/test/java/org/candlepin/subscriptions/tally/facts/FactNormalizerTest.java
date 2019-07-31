@@ -87,6 +87,15 @@ public class FactNormalizerTest {
     }
 
     @Test
+    public void testSystemProfileNormalization() {
+        InventoryHostFacts host = createSystemProfileHost(4, 2);
+        NormalizedFacts normalized = normalizer.normalize(host);
+        assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+        assertEquals(Integer.valueOf(8), normalized.getCores());
+        assertEquals(Integer.valueOf(2), normalized.getSockets());
+    }
+
+    @Test
     public void testNormalizeNonRhelProduct() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList("NonRHEL"), 4, 8));
         assertThat(normalized.getProducts(), Matchers.empty());
@@ -163,13 +172,19 @@ public class FactNormalizerTest {
     private InventoryHostFacts createRhsmHost(List<String> products, Integer cores, Integer sockets) {
         return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
             String.valueOf(sockets), null,
-            StringUtils.collectionToCommaDelimitedString(products), clock.now().toString());
+            StringUtils.collectionToCommaDelimitedString(products), clock.now().toString(), null, null);
     }
 
     private InventoryHostFacts createQpcHost(Boolean isRhel) {
         return new InventoryHostFacts("Account", "Test System", "test_org", null,
             null, isRhel == null ? null : isRhel.toString(),
-            null, clock.now().toString());
+            null, clock.now().toString(), null, null);
+    }
+
+    private InventoryHostFacts createSystemProfileHost(Integer coresPerSocket, Integer sockets) {
+        return new InventoryHostFacts("Account", "Test System", "test_org", null,
+            null, null, null, clock.now().toString(), String.valueOf(coresPerSocket),
+            String.valueOf(sockets));
     }
 
 }
