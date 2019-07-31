@@ -28,8 +28,6 @@ import org.candlepin.insights.task.TaskManager;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotNull;
-
 
 /**
  * The inventories API implementation.
@@ -47,12 +45,12 @@ public class InventoriesResource implements InventoriesApi {
     }
 
     @Override
-    public OrgInventory getInventoryForOrg(@NotNull byte[] xRhIdentity, String orgId) {
+    public OrgInventory getInventoryForOrg(String orgId) {
         return inventoryController.getInventoryForOrg(orgId);
     }
 
     @Override
-    public void updateInventoryForOrg(@NotNull byte[] xRhIdentity, String orgId) {
+    public void updateInventoryForOrg(String orgId) {
         tasks.updateOrgInventory(orgId);
     }
 }
