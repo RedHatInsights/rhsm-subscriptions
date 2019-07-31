@@ -76,8 +76,8 @@ import javax.persistence.Table;
         "cj.products " +
         "from hosts h " +
         "cross join lateral ( " +
-            "select string_agg(cj.elem::text, ',') as products " +
-            "from json_array_elements_text(h.facts::json->'rhsm'->'RH_PROD') as cj(elem)) cj " +
+            "select string_agg(cj.elem, ',') as products " +
+            "from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as cj(elem)) cj " +
         "where account IN (:accounts)",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {
