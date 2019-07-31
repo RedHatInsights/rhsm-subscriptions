@@ -53,7 +53,9 @@ import javax.persistence.Table;
                 @ColumnResult(name = "sockets"),
                 @ColumnResult(name = "is_rhel"),
                 @ColumnResult(name = "products"),
-                @ColumnResult(name = "sync_timestamp")
+                @ColumnResult(name = "sync_timestamp"),
+                @ColumnResult(name = "system_profile_cores_per_socket"),
+                @ColumnResult(name = "system_profile_sockets")
             }
         )
     }
@@ -69,6 +71,8 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
         "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
+        "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
+        "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
         "cj.products " +
         "from hosts h " +
         "cross join lateral ( " +

@@ -37,9 +37,14 @@ public class InventoryHostFacts {
     private boolean isRhel;
     private String syncTimestamp;
     private Set<String> products;
+    private int systemProfileCoresPerSocket;
+    private int systemProfileSockets;
 
+    @SuppressWarnings("squid:S00107")
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
-        String isRhel, String products, String syncTimestamp) {
+        String isRhel, String products, String syncTimestamp, String systemProfileCores,
+        String systemProfileSockets) {
+
         this.account = account;
         this.displayName = displayName;
         this.orgId = orgId;
@@ -48,6 +53,8 @@ public class InventoryHostFacts {
         this.isRhel = asBoolean(isRhel);
         this.products = asProducts(products);
         this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
+        this.systemProfileCoresPerSocket = asInt(systemProfileCores);
+        this.systemProfileSockets = asInt(systemProfileSockets);
     }
 
     public String getAccount() {
@@ -132,5 +139,13 @@ public class InventoryHostFacts {
             return new HashSet<>();
         }
         return StringUtils.commaDelimitedListToSet(productJson);
+    }
+
+    public int getSystemProfileCoresPerSocket() {
+        return systemProfileCoresPerSocket;
+    }
+
+    public int getSystemProfileSockets() {
+        return systemProfileSockets;
     }
 }
