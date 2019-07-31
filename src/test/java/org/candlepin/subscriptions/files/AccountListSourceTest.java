@@ -20,15 +20,15 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -45,7 +45,7 @@ public class AccountListSourceTest {
 
         List<String> accountList = source.list();
         assertEquals(3, accountList.size());
-        assertTrue(accountList.containsAll(Arrays.asList("A1", "A2", "A3")));
+        assertThat(accountList, Matchers.contains("A1", "A2", "A3"));
     }
 
 }
