@@ -40,6 +40,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @SpringBootTest
@@ -88,8 +92,8 @@ public class InventoryControllerTest {
         consumer.setHypervisorName("hypervisor1.test.com");
         consumer.getFacts().put("network.fqdn", "host1.test.com");
         consumer.getFacts().put("dmi.system.uuid", systemUuid);
-        consumer.getFacts().put("network.ipv4_address", "192.168.1.1, 10.0.0.1");
-        consumer.getFacts().put("network.ipv6_address", "ff::ff:ff, ::1");
+        consumer.getFacts().put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 10.0.0.1");
+        consumer.getFacts().put("net.interface.eth0.ipv6_address.link_list", "ff::ff:ff, ::1");
         consumer.getFacts().put("net.interface.eth0.mac_address", "00:00:00:00:00:00");
         consumer.getFacts().put("net.interface.virbr0.mac_address", "ff:ff:ff:ff:ff:ff");
         consumer.getFacts().put("cpu.cpu_socket(s)", "2");
@@ -103,7 +107,7 @@ public class InventoryControllerTest {
         assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
         assertEquals("host1.test.com", conduitFacts.getFqdn());
         assertEquals(systemUuid, conduitFacts.getBiosUuid());
-        assertEquals(Arrays.asList("192.168.1.1", "10.0.0.1", "ff::ff:ff", "::1"),
+        assertContainSameElements(Arrays.asList("192.168.1.1", "10.0.0.1", "ff::ff:ff", "::1"),
             conduitFacts.getIpAddresses());
         assertEquals(Arrays.asList("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"), conduitFacts.getMacAddresses());
         assertEquals(new Integer(2), conduitFacts.getCpuSockets());
@@ -174,4 +178,31 @@ public class InventoryControllerTest {
         assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
         assertThat(conduitFacts.getMacAddresses(), Matchers.empty());
     }
+
+    @Test
+    public void testIpAddressesCollected() {
+        Map<String, String> pinheadFacts = new HashMap<String, String>();
+        pinheadFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
+        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
+        pinheadFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+        pinheadFacts.put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
+
+        ConduitFacts conduitFacts = new ConduitFacts();
+        controller.extractIpAddresses(pinheadFacts, conduitFacts);
+
+        assertContainSameElements(
+            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "fe80::2323:912a:177a:d8e6",
+            "0088::99aa:bbcc:ddee:ff33"),
+            conduitFacts.getIpAddresses());
+        // testing whether the duplicates have been removed
+        assertEquals(5, conduitFacts.getIpAddresses().size());
+    }
+
+    private void assertContainSameElements(List<String> list1, List<String> list2) {
+        Collections.sort(list1);
+        Collections.sort(list2);
+        assertEquals(list1, list2);
+    }
+
 }
