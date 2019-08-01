@@ -163,10 +163,10 @@ public class InventoryAccountUsageCollectorTest {
     private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
         int sockets, int systemProfileCoresPerSocket, int systemProfileSockets) {
         return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
-            String.valueOf(sockets), Boolean.FALSE.toString(),
+            String.valueOf(sockets),
             StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),
             OffsetDateTime.now().toString(), String.valueOf(systemProfileCoresPerSocket),
-            String.valueOf(systemProfileSockets));
+            String.valueOf(systemProfileSockets), null, null);
     }
 
     private void assertCalculation(AccountUsageCalculation calc, String account, String owner, String product,

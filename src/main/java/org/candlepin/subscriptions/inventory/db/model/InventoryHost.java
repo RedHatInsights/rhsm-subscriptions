@@ -51,11 +51,12 @@ import javax.persistence.Table;
                 @ColumnResult(name = "org_id"),
                 @ColumnResult(name = "cores"),
                 @ColumnResult(name = "sockets"),
-                @ColumnResult(name = "is_rhel"),
                 @ColumnResult(name = "products"),
                 @ColumnResult(name = "sync_timestamp"),
                 @ColumnResult(name = "system_profile_cores_per_socket"),
-                @ColumnResult(name = "system_profile_sockets")
+                @ColumnResult(name = "system_profile_sockets"),
+                @ColumnResult(name = "qpc_products"),
+                @ColumnResult(name = "qpc_product_ids")
             }
         )
     }
@@ -73,11 +74,19 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
         "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
         "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
-        "cj.products " +
+        "rhsm_products.products, " +
+        "qpc_prods.qpc_products, " +
+        "qpc_certs.qpc_product_ids " +
         "from hosts h " +
         "cross join lateral ( " +
-            "select string_agg(cj.elem, ',') as products " +
-            "from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as cj(elem)) cj " +
+        "    select string_agg(items, ',') as products " +
+        "    from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products " +
+        "cross join lateral ( " +
+        "    select string_agg(items, ',') as qpc_products " +
+        "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_products_installed') as items) qpc_prods " +
+        "cross join lateral ( " +
+        "    select string_agg(items, ',') as qpc_product_ids " +
+        "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_product_certs') as items) qpc_certs " +
         "where account IN (:accounts)",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {

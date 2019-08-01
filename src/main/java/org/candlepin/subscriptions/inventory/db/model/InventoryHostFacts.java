@@ -34,24 +34,26 @@ public class InventoryHostFacts {
     private String orgId;
     private int cores;
     private int sockets;
-    private boolean isRhel;
     private String syncTimestamp;
     private Set<String> products;
     private int systemProfileCoresPerSocket;
     private int systemProfileSockets;
+    private Set<String> qpcProducts;
+    private Set<String> qpcProductIds;
 
     @SuppressWarnings("squid:S00107")
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
-        String isRhel, String products, String syncTimestamp, String systemProfileCores,
-        String systemProfileSockets) {
+        String products, String syncTimestamp, String systemProfileCores, String systemProfileSockets,
+        String qpcProducts, String qpcProductIds) {
 
         this.account = account;
         this.displayName = displayName;
         this.orgId = orgId;
         this.cores = asInt(cores);
         this.sockets = asInt(sockets);
-        this.isRhel = asBoolean(isRhel);
-        this.products = asProducts(products);
+        this.products = asStringSet(products);
+        this.qpcProducts = asStringSet(qpcProducts);
+        this.qpcProductIds = asStringSet(qpcProductIds);
         this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
         this.systemProfileCoresPerSocket = asInt(systemProfileCores);
         this.systemProfileSockets = asInt(systemProfileSockets);
@@ -97,14 +99,6 @@ public class InventoryHostFacts {
         this.sockets = sockets;
     }
 
-    public boolean isRhel() {
-        return isRhel;
-    }
-
-    public void setRhel(boolean rhel) {
-        isRhel = rhel;
-    }
-
     public String getSyncTimestamp() {
         return syncTimestamp;
     }
@@ -130,22 +124,25 @@ public class InventoryHostFacts {
         }
     }
 
-    private boolean asBoolean(String value) {
-        return StringUtils.hasText(value) && value.equalsIgnoreCase("true");
-    }
-
-    private Set<String> asProducts(String productJson) {
+    private Set<String> asStringSet(String productJson) {
         if (!StringUtils.hasText(productJson)) {
             return new HashSet<>();
         }
         return StringUtils.commaDelimitedListToSet(productJson);
     }
-
     public int getSystemProfileCoresPerSocket() {
         return systemProfileCoresPerSocket;
     }
 
     public int getSystemProfileSockets() {
         return systemProfileSockets;
+    }
+
+    public Set<String> getQpcProducts() {
+        return qpcProducts;
+    }
+
+    public Set<String> getQpcProductIds() {
+        return qpcProductIds;
     }
 }
