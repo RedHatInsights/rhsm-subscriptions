@@ -170,9 +170,7 @@ public class InventoryController {
         Set<String> ipAddresses = new HashSet<>();
         pinheadFacts.entrySet().stream()
             .filter(entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX) && !isEmpty(entry.getValue()))
-            .forEach(entry -> {
-                ipAddresses.addAll(Arrays.asList(entry.getValue().split(COMMA_REGEX)));
-            });
+            .forEach(entry -> ipAddresses.addAll(Arrays.asList(entry.getValue().split(COMMA_REGEX))));
 
         if (!ipAddresses.isEmpty()) {
             facts.setIpAddresses(new ArrayList(ipAddresses));
