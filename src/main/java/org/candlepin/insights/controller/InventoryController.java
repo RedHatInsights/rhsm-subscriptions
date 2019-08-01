@@ -70,7 +70,6 @@ public class InventoryController {
     //      (or net.interface.%.ipv6_address.link if the list isn't present)
     public static final String IP_ADDRESS_FACT_REGEX =
         "^net\\.interface\\.[^.]*\\.ipv[46]_address(\\.global|\\.link)?(_list)?$";
-    public static final String LIST_SUFFIX = "_list";
     public static final String NETWORK_FQDN = "network.fqdn";
     public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
     public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
@@ -167,19 +166,12 @@ public class InventoryController {
         extractIpAddresses(pinheadFacts, facts);
     }
 
-    private void extractIpAddresses(Map<String, String> pinheadFacts, ConduitFacts facts) {
+    protected void extractIpAddresses(Map<String, String> pinheadFacts, ConduitFacts facts) {
         Set<String> ipAddresses = new HashSet<>();
         pinheadFacts.entrySet().stream()
             .filter(entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX) && !isEmpty(entry.getValue()))
             .forEach(entry -> {
-                // The facts ending with _list have precedence.
-                // We might end up adding the same addresses twice,
-                // but Set<String> will take care of the duplicates.
-                String name = entry.getKey();
-                if (!name.endsWith(LIST_SUFFIX) && pinheadFacts.containsKey(name + LIST_SUFFIX)) {
-                    name = name + LIST_SUFFIX;
-                }
-                ipAddresses.addAll(Arrays.asList(pinheadFacts.get(name).split(COMMA_REGEX)));
+                ipAddresses.addAll(Arrays.asList(entry.getValue().split(COMMA_REGEX)));
             });
 
         if (!ipAddresses.isEmpty()) {

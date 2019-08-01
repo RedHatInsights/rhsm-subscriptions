@@ -41,7 +41,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @SpringBootTest
@@ -179,42 +181,22 @@ public class InventoryControllerTest {
 
     @Test
     public void testIpAddressesCollected() {
-        String uuid = UUID.randomUUID().toString();
-        String systemUuid = UUID.randomUUID().toString();
-        Consumer consumer = new Consumer();
-        consumer.setUuid(uuid);
-        consumer.getFacts().put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
-        consumer.getFacts().put("net.interface.eth0.ipv4_address", "192.168.1.1");
-        consumer.getFacts().put("net.interface.lo.ipv4_address", "127.0.0.1");
-        consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+        Map<String, String> pinheadFacts = new HashMap<String, String>();
+        pinheadFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
+        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
+        pinheadFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+        pinheadFacts.put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
 
-        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-
-        assertContainSameElements(
-            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "fe80::2323:912a:177a:d8e6"),
-            conduitFacts.getIpAddresses());
-    }
-
-    @Test
-    public void testSomeIpAddrFactsHavePrecedence() {
-        String uuid = UUID.randomUUID().toString();
-        String systemUuid = UUID.randomUUID().toString();
-        Consumer consumer = new Consumer();
-        consumer.setUuid(uuid);
-        // In this convoluted example, we test whether we ignore *_address facts
-        // if the associated *_address_list facts exist.
-        consumer.getFacts().put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
-        consumer.getFacts().put("net.interface.eth0.ipv4_address", "5.6.7.8");  // should be ignored
-        consumer.getFacts().put("net.interface.lo.ipv4_address", "127.0.0.1");
-        // this one should be ignored, too:
-        consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
-        consumer.getFacts().put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
-
-        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        ConduitFacts conduitFacts = new ConduitFacts();
+        controller.extractIpAddresses(pinheadFacts, conduitFacts);
 
         assertContainSameElements(
-            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "0088::99aa:bbcc:ddee:ff33"),
+            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "fe80::2323:912a:177a:d8e6",
+            "0088::99aa:bbcc:ddee:ff33"),
             conduitFacts.getIpAddresses());
+        // testing whether the duplicates have been removed
+        assertEquals(5, conduitFacts.getIpAddresses().size());
     }
 
     private void assertContainSameElements(List<String> list1, List<String> list2) {
