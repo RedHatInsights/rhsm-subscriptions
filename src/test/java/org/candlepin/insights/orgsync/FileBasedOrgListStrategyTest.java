@@ -20,12 +20,13 @@
  */
 package org.candlepin.insights.orgsync;
 
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -59,8 +60,7 @@ public class FileBasedOrgListStrategyTest {
         List<String> orgs = strategy.getOrgsToSync();
         assertEquals(3, orgs.size());
 
-        List<String> expectedOrgs = Arrays.asList("org1", "org2", "org3");
-        assertTrue(orgs.containsAll(expectedOrgs));
+        assertThat(orgs, Matchers.contains("org1", "org2", "org3"));
     }
 
     private FileBasedOrgListStrategy createStrategy(String orgListFileLocation) {

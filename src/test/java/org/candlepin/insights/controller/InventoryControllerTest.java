@@ -20,6 +20,7 @@
  */
 package org.candlepin.insights.controller;
 
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
@@ -31,6 +32,7 @@ import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,7 +110,7 @@ public class InventoryControllerTest {
         assertEquals(Arrays.asList("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"), conduitFacts.getMacAddresses());
         assertEquals(new Integer(2), conduitFacts.getCpuSockets());
         assertEquals("x86_64", conduitFacts.getArchitecture());
-        assertTrue(conduitFacts.getIsVirtual());
+        assertEquals(true, conduitFacts.getIsVirtual());
     }
 
     @Test
@@ -159,7 +161,7 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
         assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
-        assertTrue(conduitFacts.getMacAddresses().isEmpty());
+        assertThat(conduitFacts.getMacAddresses(), Matchers.empty());
     }
 
     @Test
@@ -172,7 +174,7 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
         assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
-        assertTrue(conduitFacts.getMacAddresses().isEmpty());
+        assertThat(conduitFacts.getMacAddresses(), Matchers.empty());
     }
 
     @Test

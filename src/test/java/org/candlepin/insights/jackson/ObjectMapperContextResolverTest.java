@@ -20,15 +20,14 @@
  */
 package org.candlepin.insights.jackson;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.ApplicationProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -119,11 +118,11 @@ public class ObjectMapperContextResolverTest {
 
     private void assertContainsProperty(String data, String key, String value)  throws Exception {
         String toFind = String.format("\"%s\":\"%s\"", key, value);
-        assertTrue(data.contains(toFind));
+        assertThat(data, Matchers.stringContainsInOrder(toFind));
     }
 
     private void assertDoesNotContainProperty(String data, String property) throws Exception {
-        assertFalse(data.contains(property));
+        assertThat(data, Matchers.not(Matchers.stringContainsInOrder(property)));
     }
 
 }
