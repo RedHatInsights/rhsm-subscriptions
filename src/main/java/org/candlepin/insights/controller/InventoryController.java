@@ -39,7 +39,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -192,11 +191,11 @@ public class InventoryController {
         }
     }
 
-    private List<ConduitFacts> getValidatedConsumers(String orgId, String accountNumber) {
+    private List<ConduitFacts> getValidatedConsumers(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
             ConduitFacts facts = getFactsFromConsumer(consumer);
-            facts.setAccountNumber(accountNumber);
+            facts.setAccountNumber(consumer.getAccountNumber());
 
             Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
             if (violations.isEmpty()) {
@@ -213,20 +212,14 @@ public class InventoryController {
     }
 
     public void updateInventoryForOrg(String orgId) {
-        String accountNumber = orgListStrategy.getAccountNumberForOrg(orgId);
-        Objects.requireNonNull(
-            accountNumber,
-            String.format("Org %s cannot be reported to inventory without an account number", orgId)
-        );
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId, accountNumber);
+        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
         BulkHostOut result = inventoryService.sendHostUpdate(conduitFactsForOrg);
         log.info("Host inventory update completed for org: {}", orgId);
         log.debug("Results for org {}: {}", orgId, result);
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {
-        String accountNumber = orgListStrategy.getAccountNumberForOrg(orgId);
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId, accountNumber);
+        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
         return inventoryService.getInventoryForOrgConsumers(conduitFactsForOrg);
     }
 

@@ -47,14 +47,6 @@ public class FileBasedOrgListStrategyTest {
         assertOrgListFile("file_based_org_list_with_empty_orgid.csv");
     }
 
-    @Test
-    public void ensureAccountNumberIsMapped() throws Exception {
-        FileBasedOrgListStrategy strategy = createStrategy("file_based_org_list.csv");
-        assertNull(strategy.getAccountNumberForOrg("org3"));
-        assertEquals("account1", strategy.getAccountNumberForOrg("org1"));
-        assertEquals("account2", strategy.getAccountNumberForOrg("org2"));
-    }
-
     private void assertOrgListFile(String orgListFileLocation) throws Exception {
         FileBasedOrgListStrategy strategy = createStrategy(orgListFileLocation);
         List<String> orgs = strategy.getOrgsToSync();
