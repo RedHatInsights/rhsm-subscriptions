@@ -17,15 +17,6 @@ paths:
   /inventories/{org_id}:
     description: "All inventory operations related to a specific organization."
     parameters:
-      - name: x-rh-identity
-        in: header
-        required: true
-        schema:
-          type: string
-          format: byte
-        description: "Base64-encoded JSON identity header provided by 3Scale.
-              Contains an account number of the user issuing the request. Format of the
-              JSON: {'identity': {'account_number': '12345678'}}"
       - name: org_id
         in: path
         required: true

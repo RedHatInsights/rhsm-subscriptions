@@ -40,14 +40,14 @@ class InventoriesResourceTest {
     @Test
     void testGetInventoryCallsInventoryController() {
         InventoriesResource inventories = new InventoriesResource(controller, manager);
-        inventories.getInventoryForOrg(new byte[]{}, "org-1234");
+        inventories.getInventoryForOrg("org-1234");
         Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"));
     }
 
     @Test
     void testUpdateInventoryDelegatesToTask() {
         InventoriesResource inventories = new InventoriesResource(controller, manager);
-        inventories.updateInventoryForOrg(new byte[]{}, "org-1234");
+        inventories.updateInventoryForOrg("org-1234");
         Mockito.verify(manager).updateOrgInventory(Mockito.eq("org-1234"));
     }
 }
