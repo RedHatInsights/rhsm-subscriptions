@@ -152,6 +152,18 @@ public class InventoryControllerTest {
     }
 
     @Test
+    void testBadMemoryFactIsIgnored() {
+        String uuid = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put("memory.memtotal", "12345678.00B");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+
+        assertNull(conduitFacts.getMemory());
+    }
+
+    @Test
     public void testInstalledProductsIsMappedToProductId() {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();

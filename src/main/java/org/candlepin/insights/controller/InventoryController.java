@@ -129,10 +129,15 @@ public class InventoryController {
 
         String memoryTotal = pinheadFacts.get(MEMORY_MEMTOTAL);
         if (!isEmpty(memoryTotal)) {
-            int memoryBytes = Integer.parseInt(memoryTotal);
-            // memtotal is a little less than accessible memory, round up to next GB
-            int memoryGigabytes = (int) Math.ceil((float) memoryBytes / (float) KIBIBYTES_PER_GIBIBYTE);
-            facts.setMemory(memoryGigabytes);
+            try {
+                int memoryBytes = Integer.parseInt(memoryTotal);
+                // memtotal is a little less than accessible memory, round up to next GB
+                int memoryGigabytes = (int) Math.ceil((float) memoryBytes / (float) KIBIBYTES_PER_GIBIBYTE);
+                facts.setMemory(memoryGigabytes);
+            }
+            catch (NumberFormatException e) {
+                log.warn("Bad memory.memtotal value", e);
+            }
         }
 
         String architecture = pinheadFacts.get(UNAME_MACHINE);
