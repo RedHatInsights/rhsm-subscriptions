@@ -199,7 +199,14 @@ public class InventoryController {
     private List<ConduitFacts> getValidatedConsumers(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
-            ConduitFacts facts = getFactsFromConsumer(consumer);
+            ConduitFacts facts;
+            try {
+                facts = getFactsFromConsumer(consumer);
+            }
+            catch (Exception e) {
+                log.warn(String.format("Skipping consumer %s due to exception", consumer.getUuid()), e);
+                continue;
+            }
             facts.setAccountNumber(consumer.getAccountNumber());
 
             Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);

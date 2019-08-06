@@ -78,6 +78,25 @@ public class InventoryControllerTest {
     }
 
     @Test
+    void testHostSkippedWhenExceptionHappens() {
+        UUID uuid = UUID.randomUUID();
+        Consumer consumer1 = Mockito.mock(Consumer.class);
+        Consumer consumer2 = new Consumer();
+        consumer2.setUuid(uuid.toString());
+        consumer2.setAccountNumber("account");
+        consumer2.setOrgId("456");
+        when(consumer1.getFacts()).thenThrow(new RuntimeException("foobar"));
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
+            Arrays.asList(consumer1, consumer2));
+        controller.updateInventoryForOrg("123");
+        ConduitFacts expected = new ConduitFacts();
+        expected.setOrgId("456");
+        expected.setAccountNumber("account");
+        expected.setSubscriptionManagerId(uuid.toString());
+        verify(inventoryService).sendHostUpdate(Mockito.eq(Collections.singletonList(expected)));
+    }
+
+    @Test
     public void testHandleConsumerWithNoAccountNumber() {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
