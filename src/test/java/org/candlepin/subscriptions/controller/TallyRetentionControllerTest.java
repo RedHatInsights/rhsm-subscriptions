@@ -24,8 +24,8 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
-import org.candlepin.subscriptions.files.AccountListSource;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
+import org.candlepin.subscriptions.tally.AccountListSource;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

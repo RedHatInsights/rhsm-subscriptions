@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.exception.SnapshotProducerException;
-import org.candlepin.subscriptions.files.AccountListSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;

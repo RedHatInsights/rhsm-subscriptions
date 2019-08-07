@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.controller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
-import org.candlepin.subscriptions.files.AccountListSource;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
+import org.candlepin.subscriptions.tally.AccountListSource;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
