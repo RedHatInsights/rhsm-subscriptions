@@ -29,6 +29,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
@@ -51,13 +52,16 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 @PropertySource("classpath:/rhsm-conduit.properties")
 public class KafkaTaskQueueConfiguration {
 
-    @Autowired
-    private KafkaProperties kafkaProperties;
-
     // Since the bean is only registered when the kafka task queue is configured, it isn't always
     // required (i.e When conduit is running with the in-memory task queue configured).
     @Autowired(required = false)
     private KafkaConfigurator kafkaConfigurator;
+
+    @Bean
+    @Primary
+    public KafkaProperties taskQueueKafkaProperties() {
+        return new KafkaProperties();
+    }
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
@@ -77,7 +81,7 @@ public class KafkaTaskQueueConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
-    public ProducerFactory<String, TaskMessage> producerFactory() {
+    public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
     }
 
@@ -94,14 +98,15 @@ public class KafkaTaskQueueConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
-    public ConsumerFactory<String, TaskMessage> consumerFactory() {
+    public ConsumerFactory<String, TaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
     KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
-        kafkaListenerContainerFactory(ConsumerFactory<String, TaskMessage> consumerFactory) {
+        kafkaListenerContainerFactory(ConsumerFactory<String, TaskMessage> consumerFactory,
+        KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultListenerContainerFactory(consumerFactory, kafkaProperties);
     }
 

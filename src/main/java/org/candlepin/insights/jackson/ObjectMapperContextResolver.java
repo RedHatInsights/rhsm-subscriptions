@@ -37,7 +37,10 @@ import javax.ws.rs.ext.Provider;
  * ObjectMapper instance. This is marked as a Provider so that RestEasy will
  * use the configured ObjectMapper provided by this instance.
  *
- * NOTE: this class is responsible for the server's serialization/deserialization only.
+ * The ObjectMapper created by this class can be considered an application shared 'default' instance.
+ * It is currently used by the application's API JSON (de)serialization, as well as the inventory
+ * service's Kafka producer.
+ *
  * Configuration of the ObjectMapper used in the clients is mostly done in the ApiClient classes, and we can
  * customize them via <pre>apiClient.getJSON().getContext(ObjectMapper.class)</pre> (see
  * {@link org.candlepin.insights.inventory.client.HostsApiFactory} for an example).

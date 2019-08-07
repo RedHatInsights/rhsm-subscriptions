@@ -27,6 +27,8 @@ public class InventoryServiceProperties {
     private boolean useStub;
     private String url;
     private String apiKey;
+    private boolean enableKafka;
+    private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
 
     public boolean isUseStub() {
         return useStub;
@@ -50,5 +52,21 @@ public class InventoryServiceProperties {
 
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
+    }
+
+    public boolean isEnableKafka() {
+        return enableKafka;
+    }
+
+    public void setEnableKafka(boolean enableKafka) {
+        this.enableKafka = enableKafka;
+    }
+
+    public String getKafkaHostIngressTopic() {
+        return kafkaHostIngressTopic;
+    }
+
+    public void setKafkaHostIngressTopic(String kafkaHostIngressTopic) {
+        this.kafkaHostIngressTopic = kafkaHostIngressTopic;
     }
 }

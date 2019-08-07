@@ -18,18 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.inventory;
+package org.candlepin.insights.inventory.kafka;
 
-import org.candlepin.insights.api.model.OrgInventory;
+import org.candlepin.insights.inventory.client.model.CreateHostIn;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Defines operations against the inventory service.
+ * Represents a message that is sent to the inventory service's kafka instance to request the
+ * creation/update of a host in the inventory service.
  */
-public interface InventoryService {
+public class CreateUpdateHostMessage extends HostOperationMessage<Map<String, String>, CreateHostIn> {
 
-    void sendHostUpdate(List<ConduitFacts> conduitFactsForOrg);
+    public CreateUpdateHostMessage() {
+        this.operation = "add_host";
+        this.metadata = new HashMap<>();
+    }
 
-    OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg);
+    public CreateUpdateHostMessage(CreateHostIn host) {
+        super("add_host", new HashMap<>(), host);
+    }
+
+    public void setMetadata(String key, String value) {
+        this.metadata.put(key, value);
+    }
 }
