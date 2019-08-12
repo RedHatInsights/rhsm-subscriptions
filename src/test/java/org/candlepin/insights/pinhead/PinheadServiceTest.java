@@ -21,6 +21,7 @@
 package org.candlepin.insights.pinhead;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.pinhead.client.model.Consumer;
@@ -30,11 +31,22 @@ import org.candlepin.insights.pinhead.client.model.Status;
 import org.candlepin.insights.pinhead.client.resources.PinheadApi;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.retry.backoff.NoBackOffPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 public class PinheadServiceTest {
+    @Autowired
+    private RetryTemplate retryTemplate;
+
     private Consumer generateConsumer(String uuid) {
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
@@ -47,7 +59,7 @@ public class PinheadServiceTest {
         Consumer consumer2 = generateConsumer("2");
         Consumer consumer3 = generateConsumer("3");
         Consumer consumer4 = generateConsumer("4");
-        PinheadService service = new PinheadService(new PinheadApi() {
+        PinheadApi testApi = new PinheadApi() {
 
             @Override
             public OrgInventory getConsumersForOrg(String orgId, Integer perPage, String offset)
@@ -75,7 +87,8 @@ public class PinheadServiceTest {
                     return inventory;
                 }
             }
-        });
+        };
+        PinheadService service = new PinheadService(testApi, retryTemplate);
         List<Consumer> consumers = new ArrayList<>();
         service.getOrganizationConsumers("123").forEach(consumers::add);
         assertEquals(4, consumers.size());
@@ -83,5 +96,23 @@ public class PinheadServiceTest {
         assertEquals(consumer2, consumers.get(1));
         assertEquals(consumer3, consumers.get(2));
         assertEquals(consumer4, consumers.get(3));
+    }
+
+    @Test
+    public void testPinheadServiceRetry() throws Exception {
+        PinheadApi testApi = Mockito.mock(PinheadApi.class);
+        when(
+            testApi.getConsumersForOrg(anyString(), any(Integer.class), nullable(String.class))
+        ).thenThrow(ApiException.class);
+
+        // Make the tests run faster!
+        retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
+        PinheadService service = new PinheadService(testApi, retryTemplate);
+        List<Consumer> consumers = new ArrayList<>();
+        assertThrows(RuntimeException.class,
+            () -> service.getOrganizationConsumers("123").forEach(consumers::add)
+        );
+
+        verify(testApi, times(4)).getConsumersForOrg(anyString(), any(Integer.class), nullable(String.class));
     }
 }

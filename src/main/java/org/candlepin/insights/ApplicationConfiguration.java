@@ -39,6 +39,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -54,6 +58,7 @@ import javax.validation.Validator;
 
 /** Class to hold configuration beans */
 @Configuration
+@EnableRetry
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableConfigurationProperties(ApplicationProperties.class)
 // The values in application.yaml should already be loaded by default
@@ -164,6 +169,21 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     public static BeanFactoryPostProcessor servletInitializer() {
         return new JaxrsApplicationServletInitializer();
     }
+
+    @Bean(name = "pinheadRetryTemplate")
+    public RetryTemplate retryTemplate() {
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(4);
+
+        ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
+        backOffPolicy.setInitialInterval(1000);
+
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setRetryPolicy(retryPolicy);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
+    }
+
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
