@@ -40,11 +40,12 @@ public class InventoryHostFacts {
     private int systemProfileSockets;
     private Set<String> qpcProducts;
     private Set<String> qpcProductIds;
+    private Set<String> systemProfileProductIds;
 
     @SuppressWarnings("squid:S00107")
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
         String products, String syncTimestamp, String systemProfileCores, String systemProfileSockets,
-        String qpcProducts, String qpcProductIds) {
+        String qpcProducts, String qpcProductIds, String systemProfileProductIds) {
 
         this.account = account;
         this.displayName = displayName;
@@ -57,6 +58,7 @@ public class InventoryHostFacts {
         this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
         this.systemProfileCoresPerSocket = asInt(systemProfileCores);
         this.systemProfileSockets = asInt(systemProfileSockets);
+        this.systemProfileProductIds = asStringSet(systemProfileProductIds);
     }
 
     public String getAccount() {
@@ -144,5 +146,9 @@ public class InventoryHostFacts {
 
     public Set<String> getQpcProductIds() {
         return qpcProductIds;
+    }
+
+    public Set<String> getSystemProfileProductIds() {
+        return systemProfileProductIds;
     }
 }

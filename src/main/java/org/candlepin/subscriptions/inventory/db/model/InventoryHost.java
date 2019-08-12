@@ -56,7 +56,8 @@ import javax.persistence.Table;
                 @ColumnResult(name = "system_profile_cores_per_socket"),
                 @ColumnResult(name = "system_profile_sockets"),
                 @ColumnResult(name = "qpc_products"),
-                @ColumnResult(name = "qpc_product_ids")
+                @ColumnResult(name = "qpc_product_ids"),
+                @ColumnResult(name = "system_profile_product_ids")
             }
         )
     }
@@ -76,7 +77,8 @@ import javax.persistence.Table;
         "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
         "rhsm_products.products, " +
         "qpc_prods.qpc_products, " +
-        "qpc_certs.qpc_product_ids " +
+        "qpc_certs.qpc_product_ids, " +
+        "system_profile.system_profile_product_ids " +
         "from hosts h " +
         "cross join lateral ( " +
         "    select string_agg(items, ',') as products " +
@@ -87,6 +89,9 @@ import javax.persistence.Table;
         "cross join lateral ( " +
         "    select string_agg(items, ',') as qpc_product_ids " +
         "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_product_certs') as items) qpc_certs " +
+        "cross join lateral ( " +
+        "    select string_agg(items->>'id', ',') as system_profile_product_ids " +
+        "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile " +
         "where account IN (:accounts)",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {
