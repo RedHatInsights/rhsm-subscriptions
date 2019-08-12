@@ -22,10 +22,13 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
-import org.candlepin.subscriptions.files.AccountListSource;
+import org.candlepin.subscriptions.files.FileAccountListSource;
 import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
+import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.DatabaseAccountListSource;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -110,8 +113,14 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public AccountListSource accountListSource(ApplicationProperties applicationProperties) {
-        return new AccountListSource(applicationProperties);
+    public AccountListSource accountListSource(ApplicationProperties applicationProperties,
+        InventoryRepository inventoryRepository) {
+        if (applicationProperties.getAccountListResourceLocation() != null) {
+            return new FileAccountListSource(applicationProperties);
+        }
+        else {
+            return new DatabaseAccountListSource(inventoryRepository);
+        }
     }
 
     @Bean

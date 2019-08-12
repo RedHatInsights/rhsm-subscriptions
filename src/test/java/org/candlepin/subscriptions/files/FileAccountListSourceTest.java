@@ -32,14 +32,14 @@ import org.springframework.core.io.FileSystemResourceLoader;
 import java.util.List;
 
 
-public class AccountListSourceTest {
+public class FileAccountListSourceTest {
 
     @Test
     public void ensureResourcePathComesFromApplicationProperty() throws Exception {
         ApplicationProperties props = new ApplicationProperties();
         props.setAccountListResourceLocation("classpath:account_list.txt");
 
-        AccountListSource source = new AccountListSource(props);
+        FileAccountListSource source = new FileAccountListSource(props);
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 

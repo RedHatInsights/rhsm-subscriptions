@@ -22,13 +22,13 @@ package org.candlepin.subscriptions.files;
 
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.tally.AccountListSource;
 
 /**
- * Reads a set of RHEL product IDs from a file. Each line is a single
- * product ID.
+ * Reads a set of accounts from a file. Each line is a single account.
  */
-public class AccountListSource extends PerLineFileSource {
-    public AccountListSource(ApplicationProperties applicationProperties) {
+public class FileAccountListSource extends PerLineFileSource implements AccountListSource {
+    public FileAccountListSource(ApplicationProperties applicationProperties) {
         super(applicationProperties.getAccountListResourceLocation());
     }
 }
