@@ -96,6 +96,9 @@ public class InventoryServiceConfiguration {
     public ProducerFactory<String, HostOperationMessage> inventoryServiceKafkaProducerFactory(
         @Qualifier("inventoryServiceKafkaProperties") KafkaProperties kafkaProperties,
         ObjectMapperContextResolver resolver) {
+        // ObjectMapperContextResolver.getContext is be called with a 'null' object type class
+        // since the resolver is only dealing with a single object type (ObjectMapper) and
+        // therefor the parameter is unused.
         return kafkaConfigurator.defaultProducerFactory(kafkaProperties, resolver.getContext(null));
     }
 
