@@ -2,8 +2,11 @@
 
 ## Deploy insights-inventory
 
-rhsm-conduit requires a connection to insights-inventory. First set up a
-postgres user and database.
+### Local Install Via Our Custom Script
+
+NOTE: As of right now, our scripts do not support configuring insights inventory kafka message service.
+
+First set up a postgres user and database.
 
 ```
 su - postgres
@@ -24,6 +27,40 @@ command if you used a different port for deployment).
 ```
 curl http://localhost:8080/metrics
 ```
+
+### Install Via Docker
+
+Insights inventory makes it pretty straightforward to install all components via docker.
+
+**NOTE: The supporting code for this is NOT currently checked into the inventory service's master branch. You will
+need to check out the ```origin/split_inventory_service``` branch.**
+
+
+1. Start a kafka and DB instance (unless you reconfigure the scripts you will need to stop your local postgres instance)
+    ```
+    $ docker-compose -f dev.yml up
+    ```
+
+1. Prep the inventory database
+```
+make upgrade_db
+```
+
+1. Add a host entry in ```/etc/hosts``` pointing to the kafka instance that is running on localhost:
+    ```
+    127.0.0.1      kafka
+    ```
+
+1. Run the kafka host message listener service:
+    ```
+    $ make run_inv_mq_service
+    ```
+
+1. Run the inventory web service
+    ```
+    $ make run_inv_web_service
+    ```
+
 
 ## Build and Run rhsm-conduit
 
