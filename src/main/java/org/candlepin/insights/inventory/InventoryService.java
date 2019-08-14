@@ -20,16 +20,81 @@
  */
 package org.candlepin.insights.inventory;
 
+import org.candlepin.insights.api.model.ConsumerInventory;
 import org.candlepin.insights.api.model.OrgInventory;
+import org.candlepin.insights.inventory.client.model.CreateHostIn;
+import org.candlepin.insights.inventory.client.model.FactSet;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Defines operations against the inventory service.
  */
-public interface InventoryService {
+public abstract class InventoryService {
 
-    void sendHostUpdate(List<ConduitFacts> conduitFactsForOrg);
+    /**
+     * Send host inventory updates for the specified facts.
+     *
+     * @param conduitFactsForOrg the host facts to send.
+     */
+    public abstract void sendHostUpdate(List<ConduitFacts> conduitFactsForOrg);
 
-    OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg);
+    /**
+     * Given a set of facts, report them as a host to the inventory service.
+     *
+     * @return the new host.
+     */
+    protected CreateHostIn createHost(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
+        Map<String, Object> rhsmFactMap = new HashMap<>();
+        rhsmFactMap.put("orgId", conduitFacts.getOrgId());
+        if (conduitFacts.getCpuSockets() != null) {
+            rhsmFactMap.put("CPU_SOCKETS", conduitFacts.getCpuSockets());
+        }
+        if (conduitFacts.getCpuCores() != null) {
+            rhsmFactMap.put("CPU_CORES", conduitFacts.getCpuCores());
+        }
+        if (conduitFacts.getMemory() != null) {
+            rhsmFactMap.put("MEMORY", conduitFacts.getMemory());
+        }
+        if (conduitFacts.getArchitecture() != null) {
+            rhsmFactMap.put("ARCHITECTURE", conduitFacts.getArchitecture());
+        }
+        if (conduitFacts.getIsVirtual() != null) {
+            rhsmFactMap.put("IS_VIRTUAL", conduitFacts.getIsVirtual());
+        }
+        if (conduitFacts.getVmHost() != null) {
+            rhsmFactMap.put("VM_HOST", conduitFacts.getVmHost());
+        }
+        if (conduitFacts.getRhProd() != null) {
+            rhsmFactMap.put("RH_PROD", conduitFacts.getRhProd());
+        }
+
+        rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
+
+        FactSet rhsmFacts = new FactSet()
+            .namespace("rhsm")
+            .facts(rhsmFactMap);
+        List<FactSet> facts = new LinkedList<>();
+        facts.add(rhsmFacts);
+
+        CreateHostIn host = new CreateHostIn();
+        host.setAccount(conduitFacts.getAccountNumber());
+        host.setFqdn(conduitFacts.getFqdn());
+        host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
+        host.setBiosUuid(conduitFacts.getBiosUuid());
+        host.setIpAddresses(conduitFacts.getIpAddresses());
+        host.setMacAddresses(conduitFacts.getMacAddresses());
+        host.facts(facts);
+        return host;
+    }
+
+    public OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg) {
+        List<ConsumerInventory> hosts = new ArrayList<>(conduitFactsForOrg);
+        return new OrgInventory().consumerInventories(hosts);
+    }
 }

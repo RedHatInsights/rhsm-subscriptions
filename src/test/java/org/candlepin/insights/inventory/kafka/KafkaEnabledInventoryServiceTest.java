@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,9 +44,6 @@ public class KafkaEnabledInventoryServiceTest {
 
     @Mock
     private KafkaTemplate producer;
-
-    @Mock
-    private HostsApi api;
 
     @Test
     public void ensureKafkaProducerSendsHostMessage() {
@@ -66,7 +62,7 @@ public class KafkaEnabledInventoryServiceTest {
         expectedFacts.setCpuSockets(45);
 
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer, api);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
@@ -86,16 +82,14 @@ public class KafkaEnabledInventoryServiceTest {
         assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
         assertEquals(expectedFacts.getCpuCores(), (Integer) rhsmFacts.get("CPU_CORES"));
         assertEquals(expectedFacts.getCpuSockets(), (Integer) rhsmFacts.get("CPU_SOCKETS"));
-
-        verifyZeroInteractions(api);
     }
 
     @Test
     public void ensureNoMessageWithEmptyFactList() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer, api);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
         service.sendHostUpdate(Arrays.asList());
 
-        verifyZeroInteractions(producer, api);
+        verifyZeroInteractions(producer);
     }
 }

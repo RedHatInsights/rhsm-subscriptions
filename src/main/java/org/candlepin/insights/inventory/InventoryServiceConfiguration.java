@@ -115,8 +115,8 @@ public class InventoryServiceConfiguration {
         havingValue = "true")
     public InventoryService kafkaInventoryService(
         @Qualifier("inventoryServiceKafkaProducerTemplate")
-        KafkaTemplate<String, HostOperationMessage> producer, HostsApi hostsApi,
+        KafkaTemplate<String, HostOperationMessage> producer,
         InventoryServiceProperties inventoryServiceProperties) {
-        return new KafkaEnabledInventoryService(inventoryServiceProperties, producer, hostsApi);
+        return new KafkaEnabledInventoryService(inventoryServiceProperties, producer);
     }
 }

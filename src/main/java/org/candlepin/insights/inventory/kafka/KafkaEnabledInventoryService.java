@@ -21,9 +21,8 @@
 package org.candlepin.insights.inventory.kafka;
 
 import org.candlepin.insights.inventory.ConduitFacts;
-import org.candlepin.insights.inventory.DefaultInventoryService;
+import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
-import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,7 @@ import java.util.List;
  * An InventoryService implementation that includes a Kafka producer that is capable
  * of sending messages to the inventory service's Kafka instance.
  */
-public class KafkaEnabledInventoryService extends DefaultInventoryService {
+public class KafkaEnabledInventoryService extends InventoryService {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaEnabledInventoryService.class);
 
@@ -44,8 +43,7 @@ public class KafkaEnabledInventoryService extends DefaultInventoryService {
     private final String hostIngressTopic;
 
     public KafkaEnabledInventoryService(InventoryServiceProperties inventoryServiceProperties,
-        KafkaTemplate<String, HostOperationMessage> producer, HostsApi hostsInventoryApi) {
-        super(hostsInventoryApi);
+        KafkaTemplate<String, HostOperationMessage> producer) {
         this.producer = producer;
         this.hostIngressTopic = inventoryServiceProperties.getKafkaHostIngressTopic();
     }
