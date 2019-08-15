@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
-public class InventoryServiceTest {
+public class DefaultInventoryServiceTest {
     @Mock
     HostsApi api;
 
@@ -66,7 +66,7 @@ public class InventoryServiceTest {
 
     @Test
     public void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
-        InventoryService inventoryService = new InventoryService(api);
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api);
         inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
         Map<String, Object> expectedFactMap = new HashMap<>();
         expectedFactMap.put("CPU_SOCKETS", 4);
@@ -118,7 +118,7 @@ public class InventoryServiceTest {
 
     @Test
     public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
-        InventoryService inventoryService = new InventoryService(null);
+        DefaultInventoryService inventoryService = new DefaultInventoryService(null);
         ConduitFacts conduitFacts = createFullyPopulatedConduitFacts();
         OrgInventory orgInventory = inventoryService
             .getInventoryForOrgConsumers(Collections.singletonList(conduitFacts));

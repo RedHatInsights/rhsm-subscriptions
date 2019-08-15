@@ -43,6 +43,7 @@ public class StubPinheadApi extends PinheadApi {
         Consumer consumer1 = new Consumer();
         consumer1.setUuid(UUID.randomUUID().toString());
         consumer1.setOrgId(orgId);
+        consumer1.setAccountNumber("ACCOUNT_1");
         consumer1.setHypervisorName("hypervisor1.test.com");
         consumer1.getFacts().put("network.fqdn", "host1.test.com");
         consumer1.getFacts().put("dmi.system.uuid", UUID.randomUUID().toString());
@@ -60,6 +61,7 @@ public class StubPinheadApi extends PinheadApi {
         Consumer consumer2 = new Consumer();
         consumer2.setUuid(UUID.randomUUID().toString());
         consumer2.setOrgId(orgId);
+        consumer2.setAccountNumber("ACCOUNT_1");
         consumer2.getFacts().put("network.fqdn", "host2.test.com");
 
         inventory.getFeeds().add(consumer1);

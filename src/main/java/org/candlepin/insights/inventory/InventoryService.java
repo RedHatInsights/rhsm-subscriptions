@@ -22,15 +22,8 @@ package org.candlepin.insights.inventory;
 
 import org.candlepin.insights.api.model.ConsumerInventory;
 import org.candlepin.insights.api.model.OrgInventory;
-import org.candlepin.insights.exception.RhsmConduitException;
-import org.candlepin.insights.exception.inventory.InventoryServiceException;
-import org.candlepin.insights.inventory.client.model.BulkHostOut;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.resources.HostsApi;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -38,66 +31,25 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 
 /**
- * A wrapper for the insights inventory client.
- *
- * If we get to the point where we are making multiple manipulations to the data stream as it flows through
- * this class consider
- * <code>
- * public interface ConduitVisitor {
- *     default FactSet visit(FactSet factSet) {
- *         return factSet;
- *     }
- *
- *     default CreateHostIn visit(CreateHostIn createHostIn) {
- *         return createHostIn;
- *     }
- *
- *     default BulkHostOut visit(BulkHostOut bulkHostOut) {
- *         return bulkHostOut;
- *     }
- * </code>
- *
- * The visit methods can then get called at the appropriate places in sendHostUpdate and createHost
- * allowing us to externalize manipulations to the implementation(s) of ConduitVisitor.
+ * Defines operations against the inventory service.
  */
-@Component
-public class InventoryService {
+public abstract class InventoryService {
 
-    private final HostsApi hostsInventoryApi;
-
-    @Autowired
-    public InventoryService(HostsApi hostsInventoryApi) {
-        this.hostsInventoryApi = hostsInventoryApi;
-    }
-
-    public BulkHostOut sendHostUpdate(List<ConduitFacts> facts)
-        throws RhsmConduitException {
-
-        // The same timestamp for the whole batch
-        OffsetDateTime now = OffsetDateTime.now();
-        List<CreateHostIn> hostsToSend = facts.stream()
-            .map(x -> createHost(x, now))
-            .collect(Collectors.toList());
-
-        try {
-            return hostsInventoryApi.apiHostAddHostList(hostsToSend);
-        }
-        catch (Exception e) {
-            throw new InventoryServiceException(
-                "An error occurred while sending a host update to the inventory service.", e);
-        }
-    }
+    /**
+     * Send host inventory updates for the specified facts.
+     *
+     * @param conduitFactsForOrg the host facts to send.
+     */
+    public abstract void sendHostUpdate(List<ConduitFacts> conduitFactsForOrg);
 
     /**
      * Given a set of facts, report them as a host to the inventory service.
      *
      * @return the new host.
      */
-    private CreateHostIn createHost(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
+    protected CreateHostIn createHost(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
         Map<String, Object> rhsmFactMap = new HashMap<>();
         rhsmFactMap.put("orgId", conduitFacts.getOrgId());
         if (conduitFacts.getCpuSockets() != null) {

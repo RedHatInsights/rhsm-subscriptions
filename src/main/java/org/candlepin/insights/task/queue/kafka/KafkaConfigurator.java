@@ -46,7 +46,7 @@ import java.util.Map;
 
 /**
  * Encapsulates the creation of all components required for producing and consuming Kafka
- * messages.
+ * messages for the kafka task queue.
  */
 public class KafkaConfigurator {
 

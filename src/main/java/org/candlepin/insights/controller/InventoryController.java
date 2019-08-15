@@ -23,7 +23,6 @@ package org.candlepin.insights.controller;
 import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
-import org.candlepin.insights.inventory.client.model.BulkHostOut;
 import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
@@ -225,9 +224,8 @@ public class InventoryController {
 
     public void updateInventoryForOrg(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
-        BulkHostOut result = inventoryService.sendHostUpdate(conduitFactsForOrg);
+        inventoryService.sendHostUpdate(conduitFactsForOrg);
         log.info("Host inventory update completed for org: {}", orgId);
-        log.debug("Results for org {}: {}", orgId, result);
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {

@@ -20,8 +20,6 @@
  */
 package org.candlepin.insights;
 
-import org.candlepin.insights.inventory.client.HostsApiFactory;
-import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.jackson.ObjectMapperContextResolver;
 import org.candlepin.insights.pinhead.client.PinheadApiFactory;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
@@ -109,17 +107,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public PinheadApiFactory pinheadApiFactory(PinheadApiProperties properties) {
         return new PinheadApiFactory(properties);
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "rhsm-conduit.inventory-service")
-    public InventoryServiceProperties inventoryServiceProperties() {
-        return new InventoryServiceProperties();
-    }
-
-    @Bean
-    public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
-        return new HostsApiFactory(properties);
     }
 
     @Bean
