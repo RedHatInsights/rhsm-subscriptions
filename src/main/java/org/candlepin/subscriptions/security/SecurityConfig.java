@@ -26,11 +26,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesUserDetailsService;
 
@@ -62,20 +65,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(ObjectMapper objectMapper)
-        throws Exception {
-        IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(objectMapper);
-        filter.setCheckForPrincipalChanges(true);
-        filter.setAuthenticationManager(authenticationManager());
-        filter.setAuthenticationDetailsSource(detailsSource(objectMapper));
-        return filter;
+    public AuthenticationManager identityHeaderAuthenticationManager() {
+        return new IdentityHeaderAuthenticationManager(mapper);
     }
 
     @Bean
-    public IdentityHeaderAuthenticationDetailsSource detailsSource(ObjectMapper objectMapper) {
+    public IdentityHeaderAuthenticationDetailsSource detailsSource() {
         return new IdentityHeaderAuthenticationDetailsSource(
-            objectMapper, identityHeaderAuthoritiesMapper()
+            mapper, identityHeaderAuthoritiesMapper()
         );
+    }
+
+    @Bean
+    public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() {
+        IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter();
+        filter.setCheckForPrincipalChanges(true);
+        filter.setAuthenticationManager(identityHeaderAuthenticationManager());
+        filter.setAuthenticationDetailsSource(detailsSource());
+        filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
+        filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
+        return filter;
     }
 
     @Bean
@@ -83,11 +92,25 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new IdentityHeaderAuthoritiesMapper();
     }
 
+    @Bean
+    public AccessDeniedHandler restAccessDeniedHandler() {
+        return new RestAccessDeniedHandler(mapper);
+    }
+
+    @Bean
+    public AuthenticationEntryPoint restAuthenticationEntryPoint() {
+        return new RestAuthenticationEntryPoint(mapper);
+    }
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-            .addFilter(identityHeaderAuthenticationFilter(mapper))
+            .addFilter(identityHeaderAuthenticationFilter())
             .authenticationProvider(preAuthenticatedAuthenticationProvider())
+            .exceptionHandling()
+                .accessDeniedHandler(restAccessDeniedHandler())
+                .authenticationEntryPoint(restAuthenticationEntryPoint())
+            .and()
             .anonymous()  // Creates an anonymous user if no header is present at all. Prevents NPEs basically
             .and()
             .authorizeRequests()

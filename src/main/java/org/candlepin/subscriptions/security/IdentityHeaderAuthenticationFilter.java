@@ -21,24 +21,14 @@
 
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
 
 /**
  * Spring Security filter responsible for pulling the principal out of the x-rh-identity header
@@ -46,39 +36,26 @@ import javax.ws.rs.core.Response;
 public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
     private static final Logger log = LoggerFactory.getLogger(IdentityHeaderAuthenticationFilter.class);
     public static final String RH_IDENTITY_HEADER = "x-rh-identity";
-    private ObjectMapper mapper;
-
-    public IdentityHeaderAuthenticationFilter(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
 
     @Override
     protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
+        String identityHeader = request.getHeader(RH_IDENTITY_HEADER);
+
+        if (StringUtils.isEmpty(identityHeader)) {
+            log.debug("{} is empty", RH_IDENTITY_HEADER);
+            // Give up and pass responsibility on to the next filter
+            return null;
+        }
+
         try {
-            String identityHeader = request.getHeader(RH_IDENTITY_HEADER);
-
-            if (StringUtils.isEmpty(identityHeader)) {
-                log.debug("{} is empty", RH_IDENTITY_HEADER);
-                // Give up and pass responsibility on to the next filter
-                return null;
-            }
-
-            byte[] decodedHeader = Base64.getDecoder().decode(identityHeader);
-            Map authObject = mapper.readValue(decodedHeader, Map.class);
-            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
-            String accountNumber = (String) identity.get("account_number");
-
-            if (StringUtils.isEmpty(accountNumber)) {
-                throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER +
-                    " contains no principal");
-            }
-
-            return accountNumber;
+            return Base64.getDecoder().decode(identityHeader);
         }
-        catch (IOException | PreAuthenticatedCredentialsNotFoundException e) {
-            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR, Response.Status.BAD_REQUEST,
-                "error processing identity header", e);
+        catch (IllegalArgumentException e) {
+            log.error(RH_IDENTITY_HEADER + " was not valid base64", e);
+            return null;
         }
+
+
     }
 
     /**

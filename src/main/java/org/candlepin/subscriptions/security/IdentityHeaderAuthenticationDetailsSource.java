@@ -23,9 +23,6 @@ package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.*;
 
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
@@ -33,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.mapping.Attributes2GrantedAuthoritiesMapper;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.util.StringUtils;
 
@@ -44,7 +42,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
 
 /**
  * Class in charge of populating the security context with the users roles based on the values in the
@@ -95,8 +92,7 @@ public class IdentityHeaderAuthenticationDetailsSource implements
             }
         }
         catch (IOException e) {
-            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR, Response.Status.BAD_REQUEST,
-                "error reading roles from identity header", e);
+            throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER + " is not valid JSON");
         }
 
         return userRolesList;
