@@ -38,7 +38,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
-
 /**
  * A spring configuration that configures the required Beans to set up a KafkaTaskQueue.
  *
@@ -125,5 +124,4 @@ public class KafkaTaskQueueConfiguration {
     public KafkaTaskProcessor taskProcessor(TaskFactory taskFactory) {
         return new KafkaTaskProcessor(taskFactory);
     }
-
 }

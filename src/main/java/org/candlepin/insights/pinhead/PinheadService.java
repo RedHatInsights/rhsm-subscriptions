@@ -27,7 +27,10 @@ import org.candlepin.insights.pinhead.client.model.Status;
 import org.candlepin.insights.pinhead.client.resources.PinheadApi;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.RetryCallback;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.stereotype.Service;
 
 import java.util.Iterator;
 import java.util.List;
@@ -36,11 +39,12 @@ import java.util.NoSuchElementException;
 /**
  * Abstraction around pulling data from pinhead.
  */
-@Component
+@Service
 public class PinheadService {
     public static final int BATCH_SIZE = 100; // TODO profile to determine a better batch size
 
     private final PinheadApi api;
+    private final RetryTemplate retryTemplate;
 
     private class PagedConsumerIterator implements Iterator<Consumer> {
 
@@ -56,16 +60,18 @@ public class PinheadService {
 
         private void fetchPage() {
             try {
-                OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, BATCH_SIZE, nextOffset);
-                consumers = consumersForOrg.getFeeds();
-
-                Status status = consumersForOrg.getStatus();
-                if (status != null && status.getPagination() != null) {
-                    nextOffset = consumersForOrg.getStatus().getPagination().getNextOffset();
-                }
-                else {
-                    nextOffset = null;
-                }
+                retryTemplate.execute((RetryCallback<Void, ApiException>) context -> {
+                    OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, BATCH_SIZE, nextOffset);
+                    consumers = consumersForOrg.getFeeds();
+                    Status status = consumersForOrg.getStatus();
+                    if (status != null && status.getPagination() != null) {
+                        nextOffset = consumersForOrg.getStatus().getPagination().getNextOffset();
+                    }
+                    else {
+                        nextOffset = null;
+                    }
+                    return null;
+                });
             }
             catch (ApiException e) {
                 throw new RuntimeException("Error while fetching paged consumers", e);
@@ -90,8 +96,9 @@ public class PinheadService {
     }
 
     @Autowired
-    public PinheadService(PinheadApi api) {
+    public PinheadService(PinheadApi api, @Qualifier("pinheadRetryTemplate") RetryTemplate retryTemplate) {
         this.api = api;
+        this.retryTemplate = retryTemplate;
     }
 
     public Iterable<Consumer> getOrganizationConsumers(String orgId) {
