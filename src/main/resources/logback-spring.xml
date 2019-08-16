@@ -15,6 +15,21 @@
         </encoder>
     </appender>
 
+    <appender name="EmergencyAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="org.candlepin.insights.logging.CloudWatchEmergencyFilter" />
+        <encoder>
+            <pattern>%d{ISO8601} [thread=%thread] [%X{requestType}=%X{requestUuid}, org=%X{org}, csid=%X{csid}] %-5p %c - %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CloudWatchAppender" class="com.j256.cloudwatchlogbackappender.CloudWatchAppender">
+        <region>${AWS_REGION}</region>
+        <logGroup>platform</logGroup>
+        <logStream>namespace</logStream>
+        <layout class="net.logstash.logback.layout.LogstashLayout" />
+        <appender-ref ref="EmergencyAppender" />
+    </appender>
+
     <appender name="ErrorAppender" class="ch.qos.logback.core.FileAppender">
         <file>/var/log/rhsm-conduit/error.log</file>
         <encoder>
@@ -32,5 +47,6 @@
         <appender-ref ref="ConsoleAppender" />
         <!--<appender-ref ref="RhsmConduitAppender" />-->
         <!--<appender-ref ref="ErrorAppender" />-->
+        <!--<appender-ref ref="CloudWatchAppender" />-->
     </root>
 </configuration>
