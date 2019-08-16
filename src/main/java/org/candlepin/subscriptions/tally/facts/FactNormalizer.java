@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,12 +63,14 @@ public class FactNormalizer {
     }
 
     private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-        if (hostFacts.getSystemProfileCoresPerSocket() != 0 && hostFacts.getSystemProfileSockets() != 0) {
-            normalizedFacts.setCores(
-                hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets()
-            );
+        if (hostFacts.getSystemProfileSockets() != 0) {
             normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
-            // For now we assume that any host with a system profile is a RHEL machine
+        }
+        if (hostFacts.getSystemProfileSockets() != 0 && hostFacts.getSystemProfileCoresPerSocket() != 0) {
+            normalizedFacts.setCores(
+                hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
+        }
+        if (isRhel(hostFacts.getSystemProfileProductIds())) {
             normalizedFacts.addProduct("RHEL");
         }
     }
@@ -83,7 +86,7 @@ public class FactNormalizer {
             !syncTimestamp.isEmpty() && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
         if (!skipRhsmFacts) {
             // Check if using RHEL
-            if (isRhel(hostFacts)) {
+            if (isRhel(hostFacts.getProducts())) {
                 normalizedFacts.addProduct("RHEL");
             }
 
@@ -105,8 +108,8 @@ public class FactNormalizer {
         }
     }
 
-    private boolean isRhel(InventoryHostFacts facts) {
-        return !facts.getProducts().stream()
+    private boolean isRhel(Collection<String> productIds) {
+        return !productIds.stream()
                     .filter(this.configuredRhelProducts::contains)
                     .collect(Collectors.toList())
                     .isEmpty();
