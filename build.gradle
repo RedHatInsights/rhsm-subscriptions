@@ -153,6 +153,7 @@ dependencies {
     }
     compile "org.springframework.boot:spring-boot-starter-actuator"
     compile "org.springframework.boot:spring-boot-starter-data-jpa"
+    compile "org.springframework.boot:spring-boot-starter-security"
     compile "org.springframework.boot:spring-boot-starter-web"
     compile "org.springframework:spring-context-support"
 
@@ -160,6 +161,8 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.webjars:swagger-ui"
     compile "org.springframework.boot:spring-boot-starter-quartz"
+
+    testCompile "org.springframework.security:spring-security-test"
 
     runtime "org.postgresql:postgresql"
     runtime "org.liquibase:liquibase-core"

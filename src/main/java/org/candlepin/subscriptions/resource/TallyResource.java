@@ -34,6 +34,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
@@ -43,7 +45,6 @@ import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 /**
@@ -53,14 +54,9 @@ import javax.ws.rs.core.UriInfo;
 @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "false",
     matchIfMissing = true)
 public class TallyResource implements TallyApi {
-
     private static final Integer DEFAULT_LIMIT = 50;
 
-    @Context
-    SecurityContext securityContext;
-
-    @Context
-    UriInfo uriInfo;
+    @Context UriInfo uriInfo;
 
     private final TallySnapshotRepository repository;
     private final PageLinkCreator pageLinkCreator;
@@ -69,7 +65,6 @@ public class TallyResource implements TallyApi {
         this.repository = repository;
         this.pageLinkCreator = pageLinkCreator;
     }
-
 
     @Override
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
@@ -98,13 +93,13 @@ public class TallyResource implements TallyApi {
         TallyGranularity granularityValue = TallyGranularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-
             accountNumber,
             productId,
             granularityValue,
             beginning,
             ending,
-            pageable);
+            pageable
+        );
 
         List<TallySnapshot> snapshots = snapshotPage
             .stream()
@@ -123,7 +118,7 @@ public class TallyResource implements TallyApi {
     }
 
     private String getAccountNumber() {
-        return securityContext.getUserPrincipal().getName();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getName();
     }
-
 }

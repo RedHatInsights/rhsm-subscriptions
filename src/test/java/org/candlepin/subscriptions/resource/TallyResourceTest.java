@@ -28,55 +28,37 @@ import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 
-import java.security.Principal;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 public class TallyResourceTest {
 
-    @Mock
+    @MockBean
     TallySnapshotRepository repository;
 
-    @Mock
+    @MockBean
     PageLinkCreator pageLinkCreator;
 
+    @Autowired
+    TallyResource resource;
+
     @Test
+    @WithMockUser("123456")
     public void testShouldUseQueryBasedOnHeaderAndParameters() {
-        TallyResource resource = new TallyResource(repository, pageLinkCreator);
-        resource.securityContext = new SecurityContext() {
-
-            @Override
-            public Principal getUserPrincipal() {
-                return () -> "123456";
-            }
-
-            @Override
-            public boolean isUserInRole(String role) {
-                return false;
-            }
-
-            @Override
-            public boolean isSecure() {
-                return false;
-            }
-
-            @Override
-            public String getAuthenticationScheme() {
-                return null;
-            }
-        };
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("123456"),
@@ -107,8 +89,8 @@ public class TallyResourceTest {
     }
 
     @Test
+    @WithMockUser("123456")
     public void testShouldThrowExceptionOnBadOffset() {
-        TallyResource resource = new TallyResource(repository, pageLinkCreator);
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             "product1",
             "daily",

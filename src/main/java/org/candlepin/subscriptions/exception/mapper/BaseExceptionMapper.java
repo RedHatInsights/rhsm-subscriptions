@@ -73,7 +73,7 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
      * @return an Error object containing the appropriate code and message
      *         as deduced from the passed exception.
      */
-    abstract Error buildError(T exception);
+    protected abstract Error buildError(T exception);
 
     private void logError(Error error, Throwable exception) {
         String message = error.getCode() != null && !error.getCode().isEmpty() ?
