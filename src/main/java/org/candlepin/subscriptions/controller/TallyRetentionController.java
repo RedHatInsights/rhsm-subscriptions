@@ -26,7 +26,6 @@ import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.AccountListSource;
 
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -56,7 +55,6 @@ public class TallyRetentionController {
         accountList.forEach(this::cleanStaleSnapshotsForAccount);
     }
 
-    @Transactional
     public void cleanStaleSnapshotsForAccount(String accountNumber) {
         for (TallyGranularity granularity : TallyGranularity.values()) {
             OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
