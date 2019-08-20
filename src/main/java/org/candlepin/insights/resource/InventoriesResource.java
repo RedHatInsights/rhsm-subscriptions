@@ -28,6 +28,7 @@ import org.candlepin.insights.task.TaskManager;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import io.micrometer.core.annotation.Timed;
 
 /**
  * The inventories API implementation.
@@ -45,11 +46,13 @@ public class InventoriesResource implements InventoriesApi {
     }
 
     @Override
+    @Timed("rhsm-conduit.get.inventory")
     public OrgInventory getInventoryForOrg(String orgId) {
         return inventoryController.getInventoryForOrg(orgId);
     }
 
     @Override
+    @Timed("rhsm-conduit.update.inventory")
     public void updateInventoryForOrg(String orgId) {
         tasks.updateOrgInventory(orgId);
     }

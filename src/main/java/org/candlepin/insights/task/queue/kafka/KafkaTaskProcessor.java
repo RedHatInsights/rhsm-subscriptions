@@ -20,7 +20,6 @@
  */
 package org.candlepin.insights.task.queue.kafka;
 
-
 import org.candlepin.insights.task.TaskDescriptor;
 import org.candlepin.insights.task.TaskExecutionException;
 import org.candlepin.insights.task.TaskFactory;
@@ -32,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 
+import io.micrometer.core.annotation.Timed;
 
 /**
  * Responsible for receiving task messages from Kafka when they become available.
@@ -46,6 +46,7 @@ public class KafkaTaskProcessor {
     }
 
     @KafkaListener(id = "rhsm-conduit-task-processor", topics = "${rhsm-conduit.tasks.task-group}")
+    @Timed("rhsm-conduit.task.execution")
     public void onTaskAvailable(TaskMessage taskMessage) {
         try {
             log.info("Message received from kafka: {}", taskMessage);
