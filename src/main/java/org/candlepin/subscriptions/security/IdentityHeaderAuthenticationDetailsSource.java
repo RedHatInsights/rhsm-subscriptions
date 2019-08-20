@@ -83,11 +83,11 @@ public class IdentityHeaderAuthenticationDetailsSource implements
             Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
             Map user = (Map) identity.getOrDefault("user", Collections.emptyMap());
 
-            if (((String) user.getOrDefault("is_org_admin", "false")).equalsIgnoreCase("true")) {
+            if (((Boolean) user.getOrDefault("is_org_admin", Boolean.FALSE))) {
                 userRolesList.add(ORG_ADMIN);
             }
 
-            if (((String) user.getOrDefault("is_internal", "false")).equalsIgnoreCase("true")) {
+            if (((Boolean) user.getOrDefault("is_internal", Boolean.FALSE))) {
                 userRolesList.add(INTERNAL);
             }
         }
