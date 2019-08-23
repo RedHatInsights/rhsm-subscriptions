@@ -238,6 +238,18 @@ public class InventoryControllerTest {
         assertEquals(5, conduitFacts.getIpAddresses().size());
     }
 
+    @Test
+    public void testInsightsIdCollected() {
+        String uuid = UUID.randomUUID().toString();
+        String insightsId = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals(insightsId, conduitFacts.getInsightsId());
+    }
+
     private void assertContainSameElements(List<String> list1, List<String> list2) {
         Collections.sort(list1);
         Collections.sort(list2);

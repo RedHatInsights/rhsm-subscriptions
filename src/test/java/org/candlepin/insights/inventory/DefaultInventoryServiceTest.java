@@ -59,6 +59,7 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setOrgId("1234-org");
         conduitFacts.setRhProd(Collections.singletonList("72"));
         conduitFacts.setSubscriptionManagerId("108152b1-6b41-4e1b-b908-922c943e7950");
+        conduitFacts.setInsightsId("0be977bc-46e9-4d9b-a798-65cd1ed98710");
         conduitFacts.setIsVirtual(true);
         conduitFacts.setVmHost("vm_host");
         return conduitFacts;
@@ -84,6 +85,7 @@ public class DefaultInventoryServiceTest {
             .ipAddresses(Collections.singletonList("127.0.0.1"))
             .macAddresses(Collections.singletonList("de:ad:be:ef:fe:ed"))
             .subscriptionManagerId("108152b1-6b41-4e1b-b908-922c943e7950")
+            .insightsId("0be977bc-46e9-4d9b-a798-65cd1ed98710")
             .fqdn("test.example.com")
             .facts(Collections.singletonList(expectedFacts));
 

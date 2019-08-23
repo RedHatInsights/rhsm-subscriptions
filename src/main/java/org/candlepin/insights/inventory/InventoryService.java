@@ -89,6 +89,7 @@ public abstract class InventoryService {
         host.setBiosUuid(conduitFacts.getBiosUuid());
         host.setIpAddresses(conduitFacts.getIpAddresses());
         host.setMacAddresses(conduitFacts.getMacAddresses());
+        host.setInsightsId(conduitFacts.getInsightsId());
         host.facts(facts);
         return host;
     }
