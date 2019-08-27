@@ -24,8 +24,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -39,6 +41,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 
 import javax.ws.rs.core.Response;
@@ -56,34 +59,41 @@ public class TallyResourceTest {
     @Autowired
     TallyResource resource;
 
+    private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
+    private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+
     @Test
     @WithMockUser("123456")
     public void testShouldUseQueryBasedOnHeaderAndParameters() {
+        TallySnapshot snap = new TallySnapshot();
+
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("123456"),
             Mockito.eq("product1"),
             Mockito.eq(TallyGranularity.DAILY),
-            Mockito.eq(OffsetDateTime.MIN),
-            Mockito.eq(OffsetDateTime.MAX),
+            Mockito.eq(min),
+            Mockito.eq(max),
             Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Collections.emptyList()));
-        resource.getTallyReport(
+            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+        TallyReport report = resource.getTallyReport(
             "product1",
             "daily",
-            OffsetDateTime.MIN,
-            OffsetDateTime.MAX,
+            min,
+            max,
             10,
             10
         );
+        assertEquals(1, report.getData().size());
+
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository)
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("123456"),
             Mockito.eq("product1"),
             Mockito.eq(TallyGranularity.DAILY),
-            Mockito.eq(OffsetDateTime.MIN),
-            Mockito.eq(OffsetDateTime.MAX),
+            Mockito.eq(min),
+            Mockito.eq(max),
             Mockito.eq(expectedPageable)
             );
     }
@@ -94,11 +104,39 @@ public class TallyResourceTest {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             "product1",
             "daily",
-            OffsetDateTime.MIN,
-            OffsetDateTime.MAX,
+            min,
+            max,
             11,
             10
         ));
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    @WithMockUser("123456")
+    public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
+        Mockito.when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+                 Mockito.eq("123456"),
+                 Mockito.eq("product1"),
+                 Mockito.eq(TallyGranularity.DAILY),
+                 Mockito.eq(min),
+                 Mockito.eq(max),
+                 Mockito.eq(null)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        TallyReport report = resource.getTallyReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            null,
+            null
+        );
+
+        // Since nothing was returned from the DB, there should be one generated snapshot for each day
+        // in the range.
+        assertEquals(9, report.getData().size());
+        report.getData().forEach(snap -> assertFalse(snap.getHasData()));
     }
 }

@@ -25,6 +25,9 @@ import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.tally.filler.ReportFiller;
+import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
@@ -60,34 +63,42 @@ public class TallyResource implements TallyApi {
 
     private final TallySnapshotRepository repository;
     private final PageLinkCreator pageLinkCreator;
+    private final ApplicationClock clock;
 
-    public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator) {
+    public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator,
+        ApplicationClock clock) {
         this.repository = repository;
         this.pageLinkCreator = pageLinkCreator;
+        this.clock = clock;
     }
 
     @Override
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
+        // When limit and offset are not specified, we will fill the report with dummy
+        // records from beginning to ending dates. Otherwise we page as usual.
+        Pageable pageable = null;
+        boolean fill = limit == null && offset == null;
+        if (!fill) {
+            if (limit == null) {
+                limit = DEFAULT_LIMIT;
+            }
 
-        if (limit == null) {
-            limit = DEFAULT_LIMIT;
+            if (offset == null) {
+                offset = 0;
+            }
+
+            if (offset % limit != 0) {
+                throw new SubscriptionsException(
+                    ErrorCode.VALIDATION_FAILED_ERROR,
+                    Response.Status.BAD_REQUEST,
+                    "Offset must be divisible by limit",
+                    "Arbitrary offsets are not currently supported by this API"
+                );
+            }
+            pageable = PageRequest.of(offset / limit, limit);
         }
 
-        if (offset == null) {
-            offset = 0;
-        }
-
-        if (offset % limit != 0) {
-            throw new SubscriptionsException(
-                ErrorCode.VALIDATION_FAILED_ERROR,
-                Response.Status.BAD_REQUEST,
-                "Offset must be divisible by limit",
-                "Arbitrary offsets are not currently supported by this API"
-            );
-        }
-
-        Pageable pageable = PageRequest.of(offset / limit, limit);
 
         String accountNumber = getAccountNumber();
         TallyGranularity granularityValue = TallyGranularity.valueOf(granularity.toUpperCase());
@@ -101,18 +112,30 @@ public class TallyResource implements TallyApi {
             pageable
         );
 
-        List<TallySnapshot> snapshots = snapshotPage
+        List<TallySnapshot> snaps = snapshotPage
             .stream()
             .map(org.candlepin.subscriptions.db.model.TallySnapshot::asApiSnapshot)
             .collect(Collectors.toList());
 
         TallyReport report = new TallyReport();
-        report.setData(snapshots);
-        report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
+        report.setData(snaps);
         report.setMeta(new TallyReportMeta());
         report.getMeta().setGranularity(granularity);
         report.getMeta().setProduct(productId);
-        report.getMeta().setCount((int) snapshotPage.getTotalElements());
+
+        // Only set page links if we are paging (not filling).
+        if (pageable != null) {
+            report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
+        }
+
+        // Fill the report gaps if no paging was requested.
+        if (fill) {
+            ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityValue);
+            reportFiller.fillGaps(report, beginning, ending);
+        }
+
+        // Set the count last since the report may have gotten filled.
+        report.getMeta().setCount(report.getData().size());
 
         return report;
     }
@@ -121,4 +144,5 @@ public class TallyResource implements TallyApi {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
     }
+
 }

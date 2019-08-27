@@ -150,6 +150,7 @@ public class TallySnapshot implements Serializable {
         snapshot.setCores(this.getCores());
         snapshot.setSockets(this.getSockets());
         snapshot.setInstanceCount(this.getInstanceCount());
+        snapshot.setHasData(id != null);
         return snapshot;
     }
 }

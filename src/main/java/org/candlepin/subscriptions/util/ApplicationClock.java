@@ -25,6 +25,8 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.TemporalField;
+import java.time.temporal.WeekFields;
 
 /**
  * The single date and time source to be used by the application.
@@ -35,6 +37,9 @@ import java.time.temporal.TemporalAdjusters;
 public class ApplicationClock {
 
     private Clock clock;
+
+    // Ensure the week starts with Sunday.
+    private TemporalField week = WeekFields.of(DayOfWeek.SUNDAY, 1).dayOfWeek();
 
     public ApplicationClock() {
         this.clock = Clock.systemUTC();
@@ -73,7 +78,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime endOfWeek(OffsetDateTime anyDayInWeek) {
-        return endOfDay(anyDayInWeek.with(DayOfWeek.SATURDAY));
+        return endOfDay(anyDayInWeek.with(week, 7));
     }
 
     public OffsetDateTime startOfCurrentWeek() {
@@ -81,7 +86,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime startOfWeek(OffsetDateTime anyDayOfWeek) {
-        return startOfDay(anyDayOfWeek.with(DayOfWeek.SUNDAY).minusDays(7L));
+        return startOfDay(anyDayOfWeek.with(week, 1));
     }
 
     public OffsetDateTime endOfCurrentMonth() {
@@ -137,4 +142,5 @@ public class ApplicationClock {
         return endOfDay.with(endOfDay.getMonth().firstMonthOfQuarter())
             .plusMonths(2).with(TemporalAdjusters.lastDayOfMonth());
     }
+
 }
