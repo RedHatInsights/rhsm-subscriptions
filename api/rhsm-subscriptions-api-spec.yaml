@@ -12,6 +12,22 @@ servers:
   - url: https://cloud.redhat.com/api/rhsm-subscriptions/v1
 
 paths:
+  /version:
+    description: "Provides version and build information about the deployed application."
+    get:
+      summary: "Request version and build information about the deployed application."
+      operationId: getVersion
+      tags:
+        - version
+      responses:
+        '200':
+          description: 'The request for version information was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /tally/products/{product_id}:
     description: "Operations for a tally report of a specific account and product."
     parameters:
@@ -174,6 +190,23 @@ components:
           schema:
             $ref: "#/components/schemas/Errors"
   schemas:
+    VersionInfo:
+      properties:
+        build:
+          type: object
+          properties:
+            version:
+              type: string
+            gitDescription:
+              type: string
+            artifact:
+              type: string
+            name:
+              type: string
+            group:
+              type: string
+            gitHash:
+              type: string
     # If we need additional responses, look at
     # https://swagger.io/docs/specification/data-models/inheritance-and-polymorphism/ to reduce
     # redundancy
