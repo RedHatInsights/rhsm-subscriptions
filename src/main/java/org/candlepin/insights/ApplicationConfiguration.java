@@ -36,6 +36,7 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
@@ -49,6 +50,9 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import io.micrometer.core.aop.TimedAspect;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import java.util.Properties;
 
 import javax.servlet.ServletContext;
@@ -59,6 +63,7 @@ import javax.validation.Validator;
 /** Class to hold configuration beans */
 @Configuration
 @EnableRetry
+@EnableAspectJAutoProxy
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableConfigurationProperties(ApplicationProperties.class)
 // The values in application.yaml should already be loaded by default
@@ -68,8 +73,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Autowired
     private ApplicationProperties applicationProperties;
 
-
-     /**
+    /**
      * Used to set context-param values since Spring Boot does not have a web.xml.  Technically
      * context-params can be set in application.properties (or application.yaml) with the prefix
      * "server.servlet.context-parameters" but the Spring Boot documentation kind of hides that
@@ -184,6 +188,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         return retryTemplate;
     }
 
+    @Bean
+    public TimedAspect timedAspect(MeterRegistry registry) {
+        return new TimedAspect(registry);
+    }
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
