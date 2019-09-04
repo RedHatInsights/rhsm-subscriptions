@@ -250,6 +250,24 @@ public class InventoryControllerTest {
         assertEquals(insightsId, conduitFacts.getInsightsId());
     }
 
+    @Test
+    public void testUnknownIpsAreIgnored() {
+        Map<String, String> pinheadFacts = new HashMap<String, String>();
+        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
+        pinheadFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+        pinheadFacts.put("net.interface.virbr0-nic.ipv4_address", "Unknown");
+        pinheadFacts.put("net.interface.virbr0.ipv4_address", "192.168.122.1");
+        pinheadFacts.put("net.interface.wlan0.ipv4_address", "Unknown");
+
+        ConduitFacts conduitFacts = new ConduitFacts();
+        controller.extractIpAddresses(pinheadFacts, conduitFacts);
+
+        assertContainSameElements(
+            Arrays.asList("192.168.1.1", "127.0.0.1", "fe80::2323:912a:177a:d8e6", "192.168.122.1"),
+            conduitFacts.getIpAddresses());
+    }
+
     private void assertContainSameElements(List<String> list1, List<String> list2) {
         Collections.sort(list1);
         Collections.sort(list2);
