@@ -74,6 +74,7 @@ public class InventoryController {
     public static final String MEMORY_MEMTOTAL = "memory.memtotal";
     public static final String UNAME_MACHINE = "uname.machine";
     public static final String VIRT_IS_GUEST = "virt.is_guest";
+    public static final String INSIGHTS_ID = "insights_id";
     public static final String UNKNOWN = "unknown";
     public static final String TRUE = "True";
     public static final String NONE = "none";
@@ -100,6 +101,7 @@ public class InventoryController {
         facts.setOrgId(consumer.getOrgId());
 
         facts.setSubscriptionManagerId(consumer.getUuid());
+        facts.setInsightsId(pinheadFacts.get(INSIGHTS_ID));
 
         extractNetworkFacts(pinheadFacts, facts);
         extractHardwareFacts(pinheadFacts, facts);

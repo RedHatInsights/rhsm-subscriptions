@@ -135,6 +135,8 @@ components:
       properties:
         subscription_manager_id:
           type: string
+        insights_id:
+          type: string
         org_id:
           type: string
         account_number:

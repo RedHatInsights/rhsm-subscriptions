@@ -239,6 +239,18 @@ public class InventoryControllerTest {
     }
 
     @Test
+    public void testInsightsIdCollected() {
+        String uuid = UUID.randomUUID().toString();
+        String insightsId = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals(insightsId, conduitFacts.getInsightsId());
+    }
+
+    @Test
     public void testUnknownIpsAreIgnored() {
         Map<String, String> pinheadFacts = new HashMap<String, String>();
         pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
