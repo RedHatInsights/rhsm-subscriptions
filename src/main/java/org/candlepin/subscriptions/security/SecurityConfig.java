@@ -24,6 +24,7 @@ package org.candlepin.subscriptions.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -114,7 +115,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .anonymous()  // Creates an anonymous user if no header is present at all. Prevents NPEs basically
             .and()
             .authorizeRequests()
-                .antMatchers("/**/openapi.*", "/actuator/**").permitAll()
+                // Allow access to Actuator endpoints here
+                .requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll()
+                .antMatchers("/**/openapi.*", "/**/version").permitAll()
                 .anyRequest().authenticated();
     }
 }
