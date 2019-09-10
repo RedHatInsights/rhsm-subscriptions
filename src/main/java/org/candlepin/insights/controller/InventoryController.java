@@ -53,6 +53,7 @@ public class InventoryController {
 
     private static final int KIBIBYTES_PER_GIBIBYTE = 1048576;
     private static final String COMMA_REGEX = ",\\s*";
+    private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
 
     public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
     public static final String MAC_PREFIX = "net.interface.";
@@ -117,7 +118,13 @@ public class InventoryController {
     private void extractHardwareFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
         String systemUuid = pinheadFacts.get(DMI_SYSTEM_UUID);
         if (!isEmpty(systemUuid)) {
-            facts.setBiosUuid(systemUuid);
+            if (systemUuid.matches(UUID_REGEX)) {
+                facts.setBiosUuid(systemUuid);
+            }
+            else {
+                log.warn("Consumer {} in org {} has unparseable BIOS uuid: {}",
+                    facts.getSubscriptionManagerId(), facts.getOrgId(), systemUuid);
+            }
         }
 
         String cpuSockets = pinheadFacts.get(CPU_SOCKETS);
