@@ -6,9 +6,9 @@ info:
 
 servers:
   - url: http://localhost:8080/api/rhsm-subscriptions/v1
-  - url: https://ci.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
-  - url: https://qa.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
-  - url: https://stage.cloud.paas.upshift.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://ci.cloud.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://qa.cloud.redhat.com/api/rhsm-subscriptions/v1
+  - url: https://stage.cloud.redhat.com/api/rhsm-subscriptions/v1
   - url: https://cloud.redhat.com/api/rhsm-subscriptions/v1
 
 paths:
