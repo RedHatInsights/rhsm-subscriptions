@@ -268,6 +268,38 @@ public class InventoryControllerTest {
             conduitFacts.getIpAddresses());
     }
 
+    @Test
+    public void testUnparseableBiosUuidsAreIgnored() {
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        Consumer consumer1 = new Consumer();
+        Consumer consumer2 = new Consumer();
+        consumer1.setUuid(uuid1.toString());
+        consumer1.setAccountNumber("account");
+        consumer1.setOrgId("456");
+        // consumer1 has a valid BIOS UUID
+        String bios1 = UUID.randomUUID().toString();
+        consumer1.getFacts().put("dmi.system.uuid", bios1);
+        consumer2.setUuid(uuid2.toString());
+        consumer2.setAccountNumber("account");
+        consumer2.setOrgId("456");
+        // consumer2 has not
+        consumer2.getFacts().put("dmi.system.uuid", "Not present");
+        when(pinheadService.getOrganizationConsumers("456")).thenReturn(
+            Arrays.asList(consumer1, consumer2));
+        controller.updateInventoryForOrg("456");
+        ConduitFacts cfacts1 = new ConduitFacts();
+        cfacts1.setOrgId("456");
+        cfacts1.setAccountNumber("account");
+        cfacts1.setSubscriptionManagerId(uuid1.toString());
+        cfacts1.setBiosUuid(bios1);
+        ConduitFacts cfacts2 = new ConduitFacts();
+        cfacts2.setOrgId("456");
+        cfacts2.setAccountNumber("account");
+        cfacts2.setSubscriptionManagerId(uuid2.toString());
+        verify(inventoryService).sendHostUpdate(Mockito.eq(Arrays.asList(cfacts1, cfacts2)));
+    }
+
     private void assertContainSameElements(List<String> list1, List<String> list2) {
         Collections.sort(list1);
         Collections.sort(list2);
