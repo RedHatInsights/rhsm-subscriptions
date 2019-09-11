@@ -25,7 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -61,18 +62,24 @@ public class FactNormalizerTest {
     @BeforeAll
     public void setup() throws IOException {
         ApplicationProperties props = new ApplicationProperties();
-        props.setRhelProductListResourceLocation("classpath:product_list.txt");
+        props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
+        props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
 
-        RhelProductListSource source = new RhelProductListSource(props);
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
+        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props);
+        productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
+        productIdToProductsMapSource.init();
 
-        normalizer = new FactNormalizer(new ApplicationProperties(), source, clock);
+        RoleToProductsMapSource productToRolesMapSource = new RoleToProductsMapSource(props);
+        productToRolesMapSource.setResourceLoader(new FileSystemResourceLoader());
+        productToRolesMapSource.init();
+
+        normalizer = new FactNormalizer(new ApplicationProperties(), productIdToProductsMapSource,
+            productToRolesMapSource, clock);
     }
 
     @Test
     public void testRhsmNormalization() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList("P1"), 12, 2));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1), 12, 2, null));
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
         assertEquals(Integer.valueOf(2), normalized.getSockets());
@@ -89,7 +96,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testSystemProfileNormalization() {
-        InventoryHostFacts host = createSystemProfileHost(Collections.singletonList("P1"), 4, 2);
+        InventoryHostFacts host = createSystemProfileHost(Collections.singletonList(1), 4, 2);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(8), normalized.getCores());
@@ -98,7 +105,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testNormalizeNonRhelProduct() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList("NonRHEL"), 4, 8));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(42), 4, 8, null));
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
         assertEquals(Integer.valueOf(8), normalized.getSockets());
@@ -107,7 +114,7 @@ public class FactNormalizerTest {
     @Test
     void testSystemProfileNonRhelProduct() {
         NormalizedFacts normalized =
-            normalizer.normalize(createSystemProfileHost(Collections.singletonList("NonRHEL"), 2, 4));
+            normalizer.normalize(createSystemProfileHost(Collections.singletonList(42), 2, 4));
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(8), normalized.getCores());
         assertEquals(Integer.valueOf(4), normalized.getSockets());
@@ -115,7 +122,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlyCoresAreSet() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(null, 4, null));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(null, 4, null, null));
         assertNotNull(normalized.getProducts());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
@@ -124,7 +131,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlySocketsAreSet() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(null, null, 8));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(null, null, 8, null));
         assertNotNull(normalized.getProducts());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(0), normalized.getCores());
@@ -133,7 +140,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testNormalizeWhenCoresAndSocketsMissingFromFacts() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList("P1"), null, null));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1), null, null, null));
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(0), normalized.getCores());
         assertEquals(Integer.valueOf(0), normalized.getSockets());
@@ -142,7 +149,7 @@ public class FactNormalizerTest {
     @Test
     public void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(2);
-        InventoryHostFacts facts = createRhsmHost(Arrays.asList("P1"), 4, 8);
+        InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), 4, 8, null);
         facts.setSyncTimestamp(lastSynced.toString());
 
         NormalizedFacts normalized = normalizer.normalize(facts);
@@ -153,7 +160,7 @@ public class FactNormalizerTest {
     @Test
     public void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(1);
-        InventoryHostFacts facts = createRhsmHost(Arrays.asList("P1"), 4, 8);
+        InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), 4, 8, null);
         facts.setSyncTimestamp(lastSynced.toString());
 
         NormalizedFacts normalized = normalizer.normalize(facts);
@@ -180,41 +187,59 @@ public class FactNormalizerTest {
     }
 
     @Test
-    void testRoundsUpToEvenSockets() {
-        InventoryHostFacts host1 = createRhsmHost(Collections.emptyList(), 0, 1);
-        InventoryHostFacts host2 = createRhsmHost(Collections.emptyList(), 0, 3);
-
-        NormalizedFacts normalizedHost1 = normalizer.normalize(host1);
-        NormalizedFacts normalizedHost2 = normalizer.normalize(host2);
-
-        assertEquals(2, normalizedHost1.getSockets().intValue());
-        assertEquals(4, normalizedHost2.getSockets().intValue());
-    }
-
-    @Test
     void testNullSocketsNormalizeToZero() {
-        InventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, null);
+        InventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, 0, null);
 
         NormalizedFacts normalizedHost = normalizer.normalize(host);
 
         assertEquals(0, normalizedHost.getSockets().intValue());
     }
 
-    private InventoryHostFacts createRhsmHost(List<String> products, Integer cores, Integer sockets) {
+    @Test
+    void testDetectsMultipleProductsBasedOnProductId() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1, 5, 7), 2, 2, null));
+        assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "NOT RHEL",
+            "RHEL Ungrouped"));
+    }
+
+    @Test
+    void testDetectsProductFromSyspurposeRole() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Collections.emptyList(), 2, 2,
+            "role1"));
+        assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    }
+
+    @Test
+    void testRhelUngroupedIfNoVariants() {
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL"));
+        assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Ungrouped"));
+    }
+
+    @Test
+    void variantFromSyspurposeWinsIfMultipleVariants() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(9, 10), 2, 2,
+            "role1"));
+        assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    }
+
+    private InventoryHostFacts createRhsmHost(List<Integer> products, Integer cores, Integer sockets,
+        String syspurposeRole) {
+
         return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
             String.valueOf(sockets), StringUtils.collectionToCommaDelimitedString(products),
-            clock.now().toString(), null, null, null, null, null);
+            clock.now().toString(), null, null, null, null, null, syspurposeRole);
     }
 
     private InventoryHostFacts createQpcHost(String qpcProducts) {
         return new InventoryHostFacts("Account", "Test System", "test_org", null,
-            null, null, clock.now().toString(), qpcProducts, null, qpcProducts, null, null);
+            null, null, clock.now().toString(), qpcProducts, null, qpcProducts, null, null, null);
     }
 
-    private InventoryHostFacts createSystemProfileHost(List<String> products, Integer coresPerSocket,
+    private InventoryHostFacts createSystemProfileHost(List<Integer> products, Integer coresPerSocket,
         Integer sockets) {
         return new InventoryHostFacts("Account", "Test System", "test_org", null,
             null, null, clock.now().toString(), String.valueOf(coresPerSocket),
-            String.valueOf(sockets), null, null, StringUtils.collectionToCommaDelimitedString(products));
+            String.valueOf(sockets), null, null, StringUtils.collectionToCommaDelimitedString(products),
+            null);
     }
 }

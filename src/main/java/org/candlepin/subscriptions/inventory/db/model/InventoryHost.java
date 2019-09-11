@@ -57,7 +57,8 @@ import javax.persistence.Table;
                 @ColumnResult(name = "system_profile_sockets"),
                 @ColumnResult(name = "qpc_products"),
                 @ColumnResult(name = "qpc_product_ids"),
-                @ColumnResult(name = "system_profile_product_ids")
+                @ColumnResult(name = "system_profile_product_ids"),
+                @ColumnResult(name = "syspurpose_role")
             }
         )
     }
@@ -78,7 +79,8 @@ import javax.persistence.Table;
         "rhsm_products.products, " +
         "qpc_prods.qpc_products, " +
         "qpc_certs.qpc_product_ids, " +
-        "system_profile.system_profile_product_ids " +
+        "system_profile.system_profile_product_ids, " +
+        "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role " +
         "from hosts h " +
         "cross join lateral ( " +
         "    select string_agg(items, ',') as products " +

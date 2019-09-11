@@ -34,6 +34,7 @@ ext {
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     logstash_logback_encoder_version = "5.3"
     aws_sdk_version = "1.11.32"
+    snakeyaml_version = "1.25"
 }
 
 
@@ -61,6 +62,7 @@ allprojects {
             dependency "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender:1.11"
             dependency "com.amazonaws:aws-java-sdk-logs:$aws_sdk_version"
             dependency "com.amazonaws:aws-java-sdk-ec2:$aws_sdk_version"
+            dependency "org.yaml:snakeyaml:$snakeyaml_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
@@ -165,6 +167,7 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.webjars:swagger-ui"
     compile "org.springframework.boot:spring-boot-starter-quartz"
+    compile "org.yaml:snakeyaml"
 
     testCompile "org.springframework.security:spring-security-test"
 

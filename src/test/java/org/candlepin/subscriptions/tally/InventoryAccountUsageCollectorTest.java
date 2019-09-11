@@ -25,7 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -38,9 +39,9 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -49,33 +50,40 @@ import java.util.stream.Collectors;
 public class InventoryAccountUsageCollectorTest {
 
     private static final String TEST_PRODUCT = "RHEL";
+    private static final Integer TEST_PRODUCT_ID = 1;
 
     private ApplicationClock clock;
-    private RhelProductListSource productListSource;
-    private Collection<String> rhelProducts;
+    private ProductIdToProductsMapSource productIdToProductsMapSource;
+    private RoleToProductsMapSource productToRolesMapSource;
+    private List<String> rhelProducts;
     private InventoryRepository inventoryRepo;
     private FactNormalizer factNormalizer;
     private InventoryAccountUsageCollector collector;
 
     @BeforeEach
     public void setupTest() throws Exception {
-        productListSource = mock(RhelProductListSource.class);
+        productIdToProductsMapSource = mock(ProductIdToProductsMapSource.class);
+        productToRolesMapSource = mock(RoleToProductsMapSource.class);
 
-        rhelProducts = Arrays.asList(TEST_PRODUCT);
-        when(productListSource.list()).thenReturn(new ArrayList<>(rhelProducts));
+        rhelProducts = Collections.singletonList("RHEL");
+
+        when(productIdToProductsMapSource.getValue()).thenReturn(
+            Collections.singletonMap(TEST_PRODUCT_ID, rhelProducts));
+        when(productToRolesMapSource.getValue()).thenReturn(Collections.emptyMap());
 
         clock = new ApplicationClock();
         inventoryRepo = mock(InventoryRepository.class);
-        factNormalizer = new FactNormalizer(new ApplicationProperties(), productListSource, clock);
+        factNormalizer = new FactNormalizer(new ApplicationProperties(), productIdToProductsMapSource,
+            productToRolesMapSource, clock);
         collector = new InventoryAccountUsageCollector(factNormalizer, inventoryRepo);
     }
 
     @Test
     public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT, 4, 4);
-        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT, 8, 4);
-        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT, 2, 6);
+        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 4, 4);
+        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 8, 4);
+        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 2, 6);
         when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -88,7 +96,7 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
-        assertCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+        assertCalculation(a1Calc, "A1", "O1", "RHEL", 12, 8, 2);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
@@ -98,9 +106,9 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT, 0, 0, 1, 4);
-        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT, 0, 0, 2, 4);
-        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT, 0, 0, 2, 6);
+        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 1, 4);
+        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 2, 4);
+        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 0, 0, 2, 6);
         when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -123,8 +131,8 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
-        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT, 8, 12);
-        InventoryHostFacts h2 = createHost("A1", "Owner1", "NOT_RHEL", 12, 14);
+        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 8, 12);
+        InventoryHostFacts h2 = createHost("A1", "Owner1", 32, 12, 14);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -143,8 +151,8 @@ public class InventoryAccountUsageCollectorTest {
         throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT, 1, 2);
-        InventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT, 1, 2);
+        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 1, 2);
+        InventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT_ID, 1, 2);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
@@ -155,22 +163,22 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(expectedMessage, e.getMessage());
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
+    private InventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
         int sockets) {
         return createHost(account, orgId, product, cores, sockets, 0, 0);
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, String product, int cores,
+    private InventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
         int sockets, int systemProfileCoresPerSocket, int systemProfileSockets) {
         return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
             String.valueOf(sockets),
             StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),
             OffsetDateTime.now().toString(), String.valueOf(systemProfileCoresPerSocket),
-            String.valueOf(systemProfileSockets), null, null, null);
+            String.valueOf(systemProfileSockets), null, null, null, null);
     }
 
-    private void assertCalculation(AccountUsageCalculation calc, String account, String owner, String product,
-        int cores, int sockets, int instances) {
+    private void assertCalculation(AccountUsageCalculation calc, String account, String owner,
+        String product, int cores, int sockets, int instances) {
         assertEquals(account, calc.getAccount());
         assertEquals(owner, calc.getOwner());
         assertTrue(calc.containsProductCalculation(product));

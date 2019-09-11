@@ -21,15 +21,17 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 
 /**
@@ -37,15 +39,23 @@ import java.util.stream.Collectors;
  * and condensed facts based on the host's facts.
  */
 public class FactNormalizer {
-    private final List<String> configuredRhelProducts;
     private final ApplicationClock clock;
     private final int hostSyncThresholdHours;
+    private final Map<Integer, List<String>> productIdToProductsMap;
+    private final Map<String, List<String>> roleToProductsMap;
 
-    public FactNormalizer(ApplicationProperties props, RhelProductListSource rhelProductListSource,
+    public FactNormalizer(ApplicationProperties props,
+        ProductIdToProductsMapSource productIdToProductsMapSource,
+        RoleToProductsMapSource roleToProductsMapSource,
         ApplicationClock clock) throws IOException {
         this.clock = clock;
         this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
-        this.configuredRhelProducts = rhelProductListSource.list();
+        this.productIdToProductsMap = productIdToProductsMapSource.getValue();
+        this.roleToProductsMap = roleToProductsMapSource.getValue();
+    }
+
+    static boolean isRhelVariant(String product) {
+        return product.startsWith("RHEL ") && !product.startsWith("RHEL for ");
     }
 
     /**
@@ -60,6 +70,7 @@ public class FactNormalizer {
         normalizeRhsmFacts(normalizedFacts, hostFacts);
         normalizeQpcFacts(normalizedFacts, hostFacts);
         normalizeSocketCount(normalizedFacts);
+        normalizeConflictingOrMissingRhelVariants(normalizedFacts);
         return normalizedFacts;
     }
 
@@ -67,6 +78,17 @@ public class FactNormalizer {
         Integer sockets = normalizedFacts.getSockets();
         if (sockets != null && (sockets % 2) == 1) {
             normalizedFacts.setSockets(sockets + 1);
+        }
+    }
+
+    private void normalizeConflictingOrMissingRhelVariants(NormalizedFacts normalizedFacts) {
+        long variantCount = normalizedFacts.getProducts().stream().filter(FactNormalizer::isRhelVariant)
+            .count();
+
+        boolean hasRhel = normalizedFacts.getProducts().contains("RHEL");
+
+        if ((variantCount == 0 && hasRhel) || variantCount > 1) {
+            normalizedFacts.addProduct("RHEL Ungrouped");
         }
     }
 
@@ -78,8 +100,13 @@ public class FactNormalizer {
             normalizedFacts.setCores(
                 hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
         }
-        if (isRhel(hostFacts.getSystemProfileProductIds())) {
-            normalizedFacts.addProduct("RHEL");
+        getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
+    }
+
+    private void getProductsFromProductIds(NormalizedFacts normalizedFacts, Collection<String> productIds) {
+        for (String productId : productIds) {
+            normalizedFacts.getProducts().addAll(
+                productIdToProductsMap.getOrDefault(Integer.parseInt(productId), Collections.emptyList()));
         }
     }
 
@@ -93,10 +120,7 @@ public class FactNormalizer {
         boolean skipRhsmFacts =
             !syncTimestamp.isEmpty() && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
         if (!skipRhsmFacts) {
-            // Check if using RHEL
-            if (isRhel(hostFacts.getProducts())) {
-                normalizedFacts.addProduct("RHEL");
-            }
+            getProductsFromProductIds(normalizedFacts, hostFacts.getProducts());
 
             // Check for cores and sockets. If not included, default to 0.
             if (normalizedFacts.getCores() == null || hostFacts.getCores() != 0) {
@@ -106,6 +130,11 @@ public class FactNormalizer {
                 normalizedFacts.setSockets(hostFacts.getSockets());
             }
             normalizedFacts.setOwner(hostFacts.getOrgId());
+            if (hostFacts.getSyspurposeRole() != null) {
+                normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
+                normalizedFacts.getProducts().addAll(
+                    roleToProductsMap.getOrDefault(hostFacts.getSyspurposeRole(), Collections.emptyList()));
+            }
         }
     }
 
@@ -114,13 +143,7 @@ public class FactNormalizer {
         if (hostFacts.getQpcProducts().contains("RHEL")) {
             normalizedFacts.addProduct("RHEL");
         }
-    }
-
-    private boolean isRhel(Collection<String> productIds) {
-        return !productIds.stream()
-                    .filter(this.configuredRhelProducts::contains)
-                    .collect(Collectors.toList())
-                    .isEmpty();
+        getProductsFromProductIds(normalizedFacts, hostFacts.getQpcProductIds());
     }
 
     /**

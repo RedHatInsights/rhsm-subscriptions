@@ -37,9 +37,14 @@ public class ApplicationProperties {
     private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
 
     /**
-     * Resource location a file containing a list of RHEL product IDs.
+     * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
      */
-    private String rhelProductListResourceLocation;
+    private String productIdToProductsMapResourceLocation;
+
+    /**
+     * Resource location of a file containing a mapping of syspurpose roles to products.
+     */
+    private String roleToProductsMapResourceLocation;
 
     /**
      * Resource location of a file containing a list of accounts to process.
@@ -66,12 +71,20 @@ public class ApplicationProperties {
         this.prettyPrintJson = prettyPrintJson;
     }
 
-    public String getRhelProductListResourceLocation() {
-        return rhelProductListResourceLocation;
+    public String getProductIdToProductsMapResourceLocation() {
+        return productIdToProductsMapResourceLocation;
     }
 
-    public void setRhelProductListResourceLocation(String rhelProductListResourceLocation) {
-        this.rhelProductListResourceLocation = rhelProductListResourceLocation;
+    public void setProductIdToProductsMapResourceLocation(String productIdToProductsMapResourceLocation) {
+        this.productIdToProductsMapResourceLocation = productIdToProductsMapResourceLocation;
+    }
+
+    public String getRoleToProductsMapResourceLocation() {
+        return roleToProductsMapResourceLocation;
+    }
+
+    public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
+        this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
     }
 
     public TallyRetentionPolicyProperties getTallyRetentionPolicy() {

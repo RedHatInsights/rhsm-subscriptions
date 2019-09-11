@@ -41,11 +41,12 @@ public class InventoryHostFacts {
     private Set<String> qpcProducts;
     private Set<String> qpcProductIds;
     private Set<String> systemProfileProductIds;
+    private String syspurposeRole;
 
     @SuppressWarnings("squid:S00107")
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
         String products, String syncTimestamp, String systemProfileCores, String systemProfileSockets,
-        String qpcProducts, String qpcProductIds, String systemProfileProductIds) {
+        String qpcProducts, String qpcProductIds, String systemProfileProductIds, String syspurposeRole) {
 
         this.account = account;
         this.displayName = displayName;
@@ -59,6 +60,7 @@ public class InventoryHostFacts {
         this.systemProfileCoresPerSocket = asInt(systemProfileCores);
         this.systemProfileSockets = asInt(systemProfileSockets);
         this.systemProfileProductIds = asStringSet(systemProfileProductIds);
+        this.syspurposeRole = syspurposeRole;
     }
 
     public String getAccount() {
@@ -150,5 +152,13 @@ public class InventoryHostFacts {
 
     public Set<String> getSystemProfileProductIds() {
         return systemProfileProductIds;
+    }
+
+    public String getSyspurposeRole() {
+        return syspurposeRole;
+    }
+
+    public void setSyspurposeRole(String syspurposeRole) {
+        this.syspurposeRole = syspurposeRole;
     }
 }

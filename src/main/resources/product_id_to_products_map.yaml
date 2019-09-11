@@ -1,0 +1,43 @@
+68:   # Red Hat Enterprise Linux Desktop
+  - RHEL
+  - RHEL for x86
+  - RHEL Desktop
+
+69:   # Red Hat Enterprise Linux Server
+  - RHEL
+  - RHEL for x86
+  - RHEL Server
+
+71:   # Red Hat Enterprise Linux Workstation
+  - RHEL
+  - RHEL for x86
+  - RHEL Workstation
+
+72:   # Red Hat Enterprise Linux for IBM z Systems
+  - RHEL
+  - RHEL for IBM z
+
+74:   # Red Hat Enterprise Linux for Power, big endian
+  - RHEL
+  - RHEL for IBM Power
+
+76:   # Red Hat Enterprise Linux for Scientific Computing
+  - RHEL
+  - RHEL for x86
+  - RHEL Compute Node
+
+279:  # Red Hat Enterprise Linux for Power, little endian
+  - RHEL
+  - RHEL for IBM Power
+
+419:  # Red Hat Enterprise Linux for ARM 64
+  - RHEL
+  - RHEL for ARM
+
+420:  # Red Hat Enterprise Linux for Power 9
+  - RHEL
+  - RHEL for IBM Power
+
+479:  # Red Hat Enterprise Linux for x86_64 (RHEL8)
+  - RHEL
+  - RHEL for x86

@@ -1,0 +1,18 @@
+1:
+  - RHEL
+2:
+  - RHEL
+3:
+  - RHEL
+4:
+  - NOT RHEL
+5:
+  - NOT RHEL
+6:
+  - NOT RHEL
+9:
+  - RHEL
+  - RHEL Workstation
+10:
+  - RHEL
+  - RHEL Server
