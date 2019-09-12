@@ -134,9 +134,16 @@ public class InventoryControllerTest {
         assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
         assertEquals("host1.test.com", conduitFacts.getFqdn());
         assertEquals(systemUuid, conduitFacts.getBiosUuid());
-        assertContainSameElements(Arrays.asList("192.168.1.1", "10.0.0.1", "ff::ff:ff", "::1"),
-            conduitFacts.getIpAddresses());
-        assertEquals(Arrays.asList("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"), conduitFacts.getMacAddresses());
+        assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
+            "192.168.1.1",
+            "10.0.0.1",
+            "ff::ff:ff",
+            "::1")
+        );
+        assertThat(conduitFacts.getMacAddresses(), Matchers.contains(
+            "00:00:00:00:00:00",
+            "ff:ff:ff:ff:ff:ff")
+        );
         assertEquals(new Integer(2), conduitFacts.getCpuSockets());
         assertEquals("x86_64", conduitFacts.getArchitecture());
         assertEquals(true, conduitFacts.getIsVirtual());
@@ -208,7 +215,6 @@ public class InventoryControllerTest {
     @Test
     public void testNoneMacIsIgnored() {
         String uuid = UUID.randomUUID().toString();
-        String systemUuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
         consumer.getFacts().put("net.interface.virbr0.mac_address", "none");
@@ -230,10 +236,13 @@ public class InventoryControllerTest {
         ConduitFacts conduitFacts = new ConduitFacts();
         controller.extractIpAddresses(pinheadFacts, conduitFacts);
 
-        assertContainSameElements(
-            Arrays.asList("192.168.1.1", "1.2.3.4", "127.0.0.1", "fe80::2323:912a:177a:d8e6",
-            "0088::99aa:bbcc:ddee:ff33"),
-            conduitFacts.getIpAddresses());
+        assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
+            "192.168.1.1",
+            "1.2.3.4",
+            "127.0.0.1",
+            "fe80::2323:912a:177a:d8e6",
+            "0088::99aa:bbcc:ddee:ff33")
+        );
         // testing whether the duplicates have been removed
         assertEquals(5, conduitFacts.getIpAddresses().size());
     }
@@ -263,9 +272,12 @@ public class InventoryControllerTest {
         ConduitFacts conduitFacts = new ConduitFacts();
         controller.extractIpAddresses(pinheadFacts, conduitFacts);
 
-        assertContainSameElements(
-            Arrays.asList("192.168.1.1", "127.0.0.1", "fe80::2323:912a:177a:d8e6", "192.168.122.1"),
-            conduitFacts.getIpAddresses());
+        assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
+            "192.168.1.1",
+            "127.0.0.1",
+            "fe80::2323:912a:177a:d8e6",
+            "192.168.122.1")
+        );
     }
 
     @Test
