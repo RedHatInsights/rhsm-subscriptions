@@ -43,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -84,23 +85,7 @@ public class UsageSnapshotProducer {
     public void produceSnapshots() {
         try {
             List<String> accountList = accountListSource.list();
-            log.info("Producing snapshots for {} accounts in batches of {}.", accountList.size(),
-                accountBatchSize);
-
-            // Partition the account list to help reduce memory usage while performing the calculations.
-            int count = 0;
-            for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
-                Collection<AccountUsageCalculation> accountCalcs =
-                    accountUsageCollector.collect(APPLICABLE_PRODUCTS, accounts);
-                dailyRoller.rollSnapshots(accounts, accountCalcs);
-                weeklyRoller.rollSnapshots(accounts, accountCalcs);
-                monthlyRoller.rollSnapshots(accounts, accountCalcs);
-                yearlyRoller.rollSnapshots(accounts, accountCalcs);
-                quarterlyRoller.rollSnapshots(accounts, accountCalcs);
-                count += accounts.size();
-                log.info("{}/{} accounts processed.", count, accountList.size());
-            }
-            log.info("Finished producing snapshots for all accounts.");
+            produceSnapshotsForAccounts(accountList);
         }
         catch (IOException ioe) {
             throw new SnapshotProducerException(
@@ -108,4 +93,28 @@ public class UsageSnapshotProducer {
         }
     }
 
+    @Transactional
+    public void produceSnapshotsForAccount(String account) {
+        produceSnapshotsForAccounts(Collections.singletonList(account));
+    }
+
+    private void produceSnapshotsForAccounts(List<String> accountList) {
+        log.info("Producing snapshots for {} accounts in batches of {}.", accountList.size(),
+            accountBatchSize);
+
+        // Partition the account list to help reduce memory usage while performing the calculations.
+        int count = 0;
+        for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
+            Collection<AccountUsageCalculation> accountCalcs =
+                accountUsageCollector.collect(APPLICABLE_PRODUCTS, accounts);
+            dailyRoller.rollSnapshots(accounts, accountCalcs);
+            weeklyRoller.rollSnapshots(accounts, accountCalcs);
+            monthlyRoller.rollSnapshots(accounts, accountCalcs);
+            yearlyRoller.rollSnapshots(accounts, accountCalcs);
+            quarterlyRoller.rollSnapshots(accounts, accountCalcs);
+            count += accounts.size();
+            log.info("{}/{} accounts processed.", count, accountList.size());
+        }
+        log.info("Finished producing snapshots for all accounts.");
+    }
 }
