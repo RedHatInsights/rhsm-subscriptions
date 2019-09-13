@@ -43,4 +43,9 @@ public class TallyJmxBean {
     public void tallyAccount(String accountNumber) {
         snapshotProducer.produceSnapshotsForAccount(accountNumber);
     }
+
+    @ManagedOperation(description = "Trigger tally for all configured accounts")
+    public void tallyConfiguredAccounts() {
+        snapshotProducer.produceSnapshots();
+    }
 }
