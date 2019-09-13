@@ -59,7 +59,15 @@ public class FactNormalizer {
         normalizeSystemProfileFacts(normalizedFacts, hostFacts);
         normalizeRhsmFacts(normalizedFacts, hostFacts);
         normalizeQpcFacts(normalizedFacts, hostFacts);
+        normalizeSocketCount(normalizedFacts);
         return normalizedFacts;
+    }
+
+    private void normalizeSocketCount(NormalizedFacts normalizedFacts) {
+        Integer sockets = normalizedFacts.getSockets();
+        if (sockets != null && (sockets % 2) == 1) {
+            normalizedFacts.setSockets(sockets + 1);
+        }
     }
 
     private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
