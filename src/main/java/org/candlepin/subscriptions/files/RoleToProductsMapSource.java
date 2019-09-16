@@ -20,33 +20,23 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.candlepin.subscriptions.ApplicationProperties;
 
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Test;
-import org.springframework.core.io.FileSystemResourceLoader;
-
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+/**
+ * Loads the mapping of syspurpose role to Tally products from a YAML file.
+ */
+public class RoleToProductsMapSource extends YamlFileSource<Map<String, List<String>>> {
 
-public class RhelProductListSourceTest {
-
-    @Test
-    public void ensureResourcePathComesFromApplicationProperty() throws Exception {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setRhelProductListResourceLocation("classpath:product_list.txt");
-
-        RhelProductListSource source = new RhelProductListSource(props);
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
-
-        List<String> prodList = source.list();
-        assertEquals(3, prodList.size());
-
-        assertThat(prodList, Matchers.contains("P1", "P2", "P3"));
+    public RoleToProductsMapSource(ApplicationProperties properties) {
+        super(properties.getRoleToProductsMapResourceLocation());
     }
 
+    @Override
+    protected Map<String, List<String>> getDefault() {
+        return Collections.emptyMap();
+    }
 }

@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.tally;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.exception.SnapshotProducerException;
+import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
@@ -41,10 +43,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Produces usage snapshot for all configured accounts.
@@ -54,9 +57,8 @@ public class UsageSnapshotProducer {
 
     private static final Logger log = LoggerFactory.getLogger(UsageSnapshotProducer.class);
 
-    private static final List<String> APPLICABLE_PRODUCTS = Arrays.asList("RHEL");
-
     private final AccountListSource accountListSource;
+    private final Set<String> applicableProducts;
     private final int accountBatchSize;
 
     private final InventoryAccountUsageCollector accountUsageCollector;
@@ -66,11 +68,18 @@ public class UsageSnapshotProducer {
     private final YearlySnapshotRoller yearlyRoller;
     private final QuarterlySnapshotRoller quarterlyRoller;
 
+    @SuppressWarnings("squid:S00107")
     @Autowired
     public UsageSnapshotProducer(FactNormalizer factNormalizer, AccountListSource accountListSource,
-        InventoryRepository inventoryRepository, TallySnapshotRepository tallyRepo, ApplicationClock clock,
-        ApplicationProperties applicationProperties) {
+        ProductIdToProductsMapSource productIdToProductsMapSource,
+        RoleToProductsMapSource roleToProductsMapSource, InventoryRepository inventoryRepository,
+        TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ApplicationProperties applicationProperties) throws IOException {
+
         this.accountListSource = accountListSource;
+        this.applicableProducts = new HashSet<>();
+        productIdToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
+        roleToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
         this.accountBatchSize = applicationProperties.getAccountBatchSize();
 
         this.accountUsageCollector = new InventoryAccountUsageCollector(factNormalizer, inventoryRepository);
@@ -106,7 +115,7 @@ public class UsageSnapshotProducer {
         int count = 0;
         for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
             Collection<AccountUsageCalculation> accountCalcs =
-                accountUsageCollector.collect(APPLICABLE_PRODUCTS, accounts);
+                accountUsageCollector.collect(this.applicableProducts, accounts);
             dailyRoller.rollSnapshots(accounts, accountCalcs);
             weeklyRoller.rollSnapshots(accounts, accountCalcs);
             monthlyRoller.rollSnapshots(accounts, accountCalcs);

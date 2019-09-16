@@ -20,17 +20,33 @@
  */
 package org.candlepin.subscriptions.files;
 
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.candlepin.subscriptions.ApplicationProperties;
 
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
+import org.springframework.core.io.FileSystemResourceLoader;
 
-/**
- * Reads a set of RHEL product IDs from a file. Each line is a single
- * product ID.
- */
-public class RhelProductListSource extends PerLineFileSource {
+import java.util.List;
 
-    public RhelProductListSource(ApplicationProperties properties) {
-        super(properties.getRhelProductListResourceLocation());
+
+public class ProductIdToProductsMapSourceTest {
+
+    @Test
+    public void ensureResourcePathComesFromApplicationProperty() throws Exception {
+        ApplicationProperties props = new ApplicationProperties();
+        props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
+
+        ProductIdToProductsMapSource source = new ProductIdToProductsMapSource(props);
+        source.setResourceLoader(new FileSystemResourceLoader());
+        source.init();
+
+        List<String> prodList = source.getValue().get(1);
+        assertEquals(1, prodList.size());
+
+        assertThat(prodList, Matchers.contains("RHEL"));
     }
 
 }

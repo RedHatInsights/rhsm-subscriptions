@@ -23,7 +23,8 @@ package org.candlepin.subscriptions;
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.files.FileAccountListSource;
-import org.candlepin.subscriptions.files.RhelProductListSource;
+import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
@@ -108,8 +109,15 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public RhelProductListSource rhelProductListSource(ApplicationProperties applicationProperties) {
-        return new RhelProductListSource(applicationProperties);
+    public ProductIdToProductsMapSource productToProductIdsMapSource(
+        ApplicationProperties applicationProperties) {
+
+        return new ProductIdToProductsMapSource(applicationProperties);
+    }
+
+    @Bean
+    public RoleToProductsMapSource roleToProductMapSource(ApplicationProperties applicationProperties) {
+        return new RoleToProductsMapSource(applicationProperties);
     }
 
     @Bean
@@ -125,8 +133,11 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
     @Bean
     public FactNormalizer factNormalizer(ApplicationProperties applicationProperties,
-        RhelProductListSource prodListSource, ApplicationClock clock) throws IOException {
-        return new FactNormalizer(applicationProperties, prodListSource, clock);
+        ProductIdToProductsMapSource productIdToProductsMapSource,
+        RoleToProductsMapSource productToRolesMapSource,
+        ApplicationClock clock) throws IOException {
+        return new FactNormalizer(applicationProperties, productIdToProductsMapSource,
+            productToRolesMapSource, clock);
     }
 
     @Override
