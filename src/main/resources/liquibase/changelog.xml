@@ -9,6 +9,7 @@
     <include file="liquibase/201906181633-create-schema.xml"/>
     <include file="liquibase/201907121110-add-snapshot-date-index.xml"/>
     <include file="liquibase/201907121757-add-sockets-column.xml"/>
+    <include file="liquibase/201909162045-add-capacity-table.xml"/>
 
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
