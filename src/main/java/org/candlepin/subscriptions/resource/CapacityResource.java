@@ -47,17 +47,19 @@ public class CapacityResource implements CapacityApi {
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
 
+        List<CapacitySnapshot> snapshots = createMockData(granularity, beginning, ending);
+
         return new CapacityReport()
-            .data(createMockData(granularity, beginning, ending))
+            .data(snapshots)
             .links(createMockLinks())
-            .meta(createMockMeta(productId, granularity, beginning, ending));
+            .meta(createMockMeta(productId, granularity, snapshots));
     }
 
     private CapacityReportMeta createMockMeta(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
+        List<CapacitySnapshot> snapshots) {
 
         return new CapacityReportMeta()
-            .count(createMockData(granularity, beginning, ending).size())
+            .count(snapshots.size())
             .granularity(granularity)
             .product(productId);
     }
