@@ -179,6 +179,27 @@ public class FactNormalizerTest {
         assertThat(normalized.getProducts(), Matchers.empty());
     }
 
+    @Test
+    void testRoundsUpToEvenSockets() {
+        InventoryHostFacts host1 = createRhsmHost(Collections.emptyList(), 0, 1);
+        InventoryHostFacts host2 = createRhsmHost(Collections.emptyList(), 0, 3);
+
+        NormalizedFacts normalizedHost1 = normalizer.normalize(host1);
+        NormalizedFacts normalizedHost2 = normalizer.normalize(host2);
+
+        assertEquals(2, normalizedHost1.getSockets().intValue());
+        assertEquals(4, normalizedHost2.getSockets().intValue());
+    }
+
+    @Test
+    void testNullSocketsNormalizeToZero() {
+        InventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, null);
+
+        NormalizedFacts normalizedHost = normalizer.normalize(host);
+
+        assertEquals(0, normalizedHost.getSockets().intValue());
+    }
+
     private InventoryHostFacts createRhsmHost(List<String> products, Integer cores, Integer sockets) {
         return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
             String.valueOf(sockets), StringUtils.collectionToCommaDelimitedString(products),
