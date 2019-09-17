@@ -117,7 +117,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .authorizeRequests()
                 // Allow access to Actuator endpoints here
                 .requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll()
-                .antMatchers("/**/openapi.*", "/**/version").permitAll()
+                .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**").permitAll()
                 .anyRequest().authenticated();
     }
 }
