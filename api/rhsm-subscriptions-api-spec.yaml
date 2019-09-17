@@ -48,7 +48,8 @@ paths:
           type: integer
         description: "The numbers of items to return"
     get:
-      summary: "Fetch a tally report for an account and product."
+      summary: "Fetch a tally report for an account and product. If page header parameters are omitted,
+                then any gaps in the resulting report snapshots are filled with a default fake snapshot."
       operationId: getTallyReport
       parameters:
         - name: granularity
@@ -363,6 +364,8 @@ components:
           type: integer
           format: int32
           minimum: 0
+        has_data:
+          type: boolean
     CapacityReport:
       properties:
         data:

@@ -75,6 +75,12 @@ public class ApplicationClockTest {
     }
 
     @Test
+    public void testStartOfWeekWhenDateIsTheStartOfTheWeek() {
+        OffsetDateTime startOfWeek = clock.now().withYear(2019).withMonth(5).withDayOfMonth(12);
+        assertStartOfDay(2019, 5, 12, clock.startOfWeek(startOfWeek));
+    }
+
+    @Test
     public void testEndOfCurrentWeek() {
         assertEndOfDay(2019, 5, 25, clock.endOfCurrentWeek());
     }
@@ -82,6 +88,12 @@ public class ApplicationClockTest {
     @Test
     public void testEndOfWeek() {
         assertEndOfDay(2019, 5, 4, clock.endOfWeek(clock.now().minusWeeks(3)));
+    }
+
+    @Test
+    public void testEndOfWeekWhenDateIsTheEndOfTheWeek() {
+        OffsetDateTime endOfWeek = clock.now().withYear(2019).withMonth(5).withDayOfMonth(18);
+        assertEndOfDay(2019, 5, 18, clock.endOfWeek(endOfWeek));
     }
 
     @Test
