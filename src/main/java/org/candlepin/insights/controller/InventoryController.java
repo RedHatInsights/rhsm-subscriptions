@@ -104,6 +104,10 @@ public class InventoryController {
         facts.setSubscriptionManagerId(consumer.getUuid());
         facts.setInsightsId(pinheadFacts.get(INSIGHTS_ID));
 
+        facts.setSysPurposeRole(consumer.getSysPurposeRole());
+        facts.setSysPurposeUsage(consumer.getSysPurposeUsage());
+        facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
+
         extractNetworkFacts(pinheadFacts, facts);
         extractHardwareFacts(pinheadFacts, facts);
         extractHypervisorFacts(consumer, pinheadFacts, facts);

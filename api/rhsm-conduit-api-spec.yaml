@@ -172,6 +172,14 @@ components:
           type: array
           items:
             type: string
+        sys_purpose_role:
+          type: string
+        sys_purpose_usage:
+          type: string
+        sys_purpose_addons:
+          type: array
+          items:
+            type: string
 
     OrgInventory:
       properties:
