@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +63,9 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setInsightsId("0be977bc-46e9-4d9b-a798-65cd1ed98710");
         conduitFacts.setIsVirtual(true);
         conduitFacts.setVmHost("vm_host");
+        conduitFacts.setSysPurposeRole("test_role");
+        conduitFacts.setSysPurposeUsage("test_usage");
+        conduitFacts.setSysPurposeAddons(Arrays.asList("addon1", "addon2"));
         return conduitFacts;
     }
 
@@ -78,7 +82,11 @@ public class DefaultInventoryServiceTest {
         expectedFactMap.put("VM_HOST", "vm_host");
         expectedFactMap.put("RH_PROD", Collections.singletonList("72"));
         expectedFactMap.put("orgId", "1234-org");
+        expectedFactMap.put("SYSPURPOSE_ROLE", "test_role");
+        expectedFactMap.put("SYSPURPOSE_USAGE", "test_usage");
+        expectedFactMap.put("SYSPURPOSE_ADDONS", Arrays.asList("addon1", "addon2"));
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
+
         CreateHostIn expectedHostEntry = new CreateHostIn()
             .account("1234-account")
             .biosUuid("9d9f7927-1f42-4827-bbb8-1791b2b0a1b4")

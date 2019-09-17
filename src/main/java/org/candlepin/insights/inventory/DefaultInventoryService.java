@@ -70,7 +70,7 @@ public class DefaultInventoryService extends InventoryService {
         // The same timestamp for the whole batch
         OffsetDateTime now = OffsetDateTime.now();
         List<CreateHostIn> hostsToSend = facts.stream()
-            .map(x -> createHost(x, now))
+            .map(conduitFacts -> createHost(conduitFacts, now))
             .collect(Collectors.toList());
 
         try {

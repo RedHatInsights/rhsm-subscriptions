@@ -73,6 +73,15 @@ public abstract class InventoryService {
         if (conduitFacts.getRhProd() != null) {
             rhsmFactMap.put("RH_PROD", conduitFacts.getRhProd());
         }
+        if (conduitFacts.getSysPurposeRole() != null && !conduitFacts.getSysPurposeRole().isEmpty()) {
+            rhsmFactMap.put("SYSPURPOSE_ROLE", conduitFacts.getSysPurposeRole());
+        }
+        if (conduitFacts.getSysPurposeUsage() != null && !conduitFacts.getSysPurposeUsage().isEmpty()) {
+            rhsmFactMap.put("SYSPURPOSE_USAGE", conduitFacts.getSysPurposeUsage());
+        }
+        if (conduitFacts.getSysPurposeAddons() != null) {
+            rhsmFactMap.put("SYSPURPOSE_ADDONS", conduitFacts.getSysPurposeAddons());
+        }
 
         rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
 
