@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="201909162045-1" author="khowell">
+        <comment>Add table for account subscription capacity</comment>
+        <createTable tableName="subscription_capacity">
+            <column name="account_number" type="VARCHAR(32)"/>
+            <column name="product_id" type="VARCHAR(32)"/>
+            <column name="subscription_id" type="VARCHAR(255)"/>
+            <column name="owner_id" type="VARCHAR(32)"/>
+            <column name="physical_sockets" type="INTEGER"/>
+            <column name="virtual_sockets" type="INTEGER"/>
+            <column name="has_unlimited_guest_sockets" type="BOOLEAN"/>
+            <column name="begin_date" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="end_date" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="201906181633-2" author="khowell">
+        <addPrimaryKey constraintName="subs_cap_pkey"
+            tableName="subscription_capacity"
+            columnNames="account_number,product_id,subscription_id"/>
+    </changeSet>
+
+    <changeSet id="201906181633-3" author="khowell">
+        <createIndex indexName="subs_cap_begin_date_idx" tableName="subscription_capacity"
+            unique="false">
+            <column name="begin_date"/>
+        </createIndex>
+        <createIndex indexName="subs_cap_end_date_idx" tableName="subscription_capacity"
+            unique="false">
+            <column name="end_date"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
