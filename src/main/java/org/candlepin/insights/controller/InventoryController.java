@@ -151,7 +151,7 @@ public class InventoryController {
                 facts.setMemory(memoryGigabytes);
             }
             catch (NumberFormatException e) {
-                log.warn("Bad memory.memtotal value", e);
+                log.warn("Bad memory.memtotal value: {}", memoryTotal);
             }
         }
 
