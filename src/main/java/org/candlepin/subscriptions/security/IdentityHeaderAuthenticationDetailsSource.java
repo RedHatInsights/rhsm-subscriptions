@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.*;
 
+import org.candlepin.subscriptions.ApplicationProperties;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
@@ -57,16 +59,22 @@ public class IdentityHeaderAuthenticationDetailsSource implements
     // NB: Right now there are just two roles.  If we expand on that, we should externalize all the
     //  roles to an enum, serialize the header JSON to an object, and write an actual predicate method
     //  isUserInRole
-    private static final String ORG_ADMIN = "ORG_ADMIN";
-    private static final String INTERNAL = "INTERNAL";
+    public static final String ORG_ADMIN_ROLE = "ORG_ADMIN";
+    public static final String INTERNAL_ROLE = "INTERNAL";
 
     private ObjectMapper objectMapper;
     private Attributes2GrantedAuthoritiesMapper authMapper;
+    private ApplicationProperties props;
 
-    public IdentityHeaderAuthenticationDetailsSource(ObjectMapper objectMapper,
+    public IdentityHeaderAuthenticationDetailsSource(ApplicationProperties props, ObjectMapper objectMapper,
         Attributes2GrantedAuthoritiesMapper authMapper) {
         this.objectMapper = objectMapper;
         this.authMapper = authMapper;
+        this.props = props;
+
+        if (props.isDevMode()) {
+            log.info("Running in DEV mode. Security will be disabled.");
+        }
     }
 
     protected Collection<String> getUserRoles(HttpServletRequest context) {
@@ -83,12 +91,12 @@ public class IdentityHeaderAuthenticationDetailsSource implements
             Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
             Map user = (Map) identity.getOrDefault("user", Collections.emptyMap());
 
-            if (((Boolean) user.getOrDefault("is_org_admin", Boolean.FALSE))) {
-                userRolesList.add(ORG_ADMIN);
+            if (Boolean.TRUE.equals(user.get("is_org_admin")) || props.isDevMode()) {
+                userRolesList.add(ORG_ADMIN_ROLE);
             }
 
-            if (((Boolean) user.getOrDefault("is_internal", Boolean.FALSE))) {
-                userRolesList.add(INTERNAL);
+            if (Boolean.TRUE.equals(user.get("is_internal")) || props.isDevMode()) {
+                userRolesList.add(INTERNAL_ROLE);
             }
         }
         catch (IOException e) {

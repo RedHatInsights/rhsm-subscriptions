@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.auth.AdminOnly;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -73,6 +74,7 @@ public class TallyResource implements TallyApi {
     }
 
     @Override
+    @AdminOnly
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
         // When limit and offset are not specified, we will fill the report with dummy
