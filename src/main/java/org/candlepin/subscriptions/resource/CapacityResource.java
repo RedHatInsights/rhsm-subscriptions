@@ -90,6 +90,8 @@ public class CapacityResource implements CapacityApi {
                 sockets = 100;
             }
             snapshots.add(new CapacitySnapshot().date(effectiveDate).sockets(sockets)
+                .physicalSockets(sockets / 2)
+                .hypervisorSockets(sockets / 2)
                 .hasInfiniteQuantity(false));
             i += 1;
         }
