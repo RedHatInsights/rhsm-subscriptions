@@ -50,7 +50,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private ObjectMapper mapper;
 
-    @SuppressWarnings("squid:S3305")
     @Autowired
     private ApplicationProperties appProps;
 
@@ -124,6 +123,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 // Allow access to Actuator endpoints here
                 .requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll()
                 .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**").permitAll()
+                // ingress security is done via server settings (require ssl cert auth), so permit all here
+                .antMatchers("/api/rhsm-subscriptions/v1/ingress/**").permitAll()
                 .anyRequest().authenticated();
+        if (appProps.isEnableIngressEndpoint()) {
+            configureForIngressEndpoint(http);
+        }
+    }
+
+    @SuppressWarnings("squid:S4502")
+    private void configureForIngressEndpoint(HttpSecurity http) throws Exception {
+        // CSRF isn't helpful for the machine-to-machine ingress endpoint
+        http.csrf().disable();
     }
 }

@@ -63,6 +63,11 @@ public class ApplicationProperties {
      */
     private int accountBatchSize = 500;
 
+    /**
+     * Whether the ingress endpoint is enabled on this instance of rhsm-subscriptions or not.
+     */
+    private boolean enableIngressEndpoint;
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
@@ -123,4 +128,11 @@ public class ApplicationProperties {
         this.devMode = devMode;
     }
 
+    public boolean isEnableIngressEndpoint() {
+        return enableIngressEndpoint;
+    }
+
+    public void setEnableIngressEndpoint(boolean enableIngressEndpoint) {
+        this.enableIngressEndpoint = enableIngressEndpoint;
+    }
 }

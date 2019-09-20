@@ -220,6 +220,40 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       tags:
         - capacity
+  /ingress/candlepin_pools/{org_id}:
+    description: "Integration endpoint for updating an account's subscription capacity from
+      Candlepin pool data."
+    parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The org ID of the pool data"
+    post:
+      summary: "Update an account's subscription capacity from Candlepin pool data."
+      operationId: updateCapacityFromCandlepinPools
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CandlepinPool'
+      responses:
+        '204':
+          description: 'Subscription capacity for the account updated successfully.'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - ingress
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
@@ -445,6 +479,50 @@ components:
             If there is an infinite quantity subscription involved, there is no meaningful number for
             capacity."
           type: boolean
+    CandlepinPool:
+      description: Subset of Candlepin pool data that rhsm-subscriptions understands.
+      properties:
+        accountNumber:
+          type: string
+        activeSubscription:
+          type: boolean
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        quantity:
+          type: integer
+          format: int32
+        productId:
+          type: string
+        productAttributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandlepinProductAttribute"
+        providedProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandlepinProvidedProduct"
+        derivedProvidedProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CandlepinProvidedProduct"
+        subscriptionId:
+          type: string
+        type:
+          type: string
+    CandlepinProductAttribute:
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+    CandlepinProvidedProduct:
+      properties:
+        productId:
+          type: string
     Errors:
       required:
         - errors
