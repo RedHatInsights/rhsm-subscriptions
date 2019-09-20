@@ -178,18 +178,28 @@ paths:
                 data:
                   - date: '2017-08-04T17:32:05Z'
                     sockets: 0
+                    physical_sockets: 0
+                    hypervisor_sockets: 0
                     has_infinite_quantity: false
                   - date: '2017-08-05T17:31:04Z'
                     sockets: 0
+                    physical_sockets: 0
+                    hypervisor_sockets: 0
                     has_infinite_quantity: false
                   - date: '2017-08-06T17:32:03Z'
                     sockets: 10
+                    physical_sockets: 5
+                    hypervisor_sockets: 5
                     has_infinite_quantity: false
                   - date: '2017-08-07T17:34:02Z'
                     sockets: null
+                    physical_sockets: null
+                    hypervisor_sockets: null
                     has_infinite_quantity: true
                   - date: '2017-08-08T17:32:01Z'
                     sockets: 10
+                    physical_sockets: 5
+                    hypervisor_sockets: 5
                     has_infinite_quantity: true
                 links:
                   first: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
@@ -416,6 +426,17 @@ components:
             consult the 'granularity' field in the CapacityReport to determine the length of time each
             CapacitySnapshot covers."
         sockets:
+          description: "Total socket capacity."
+          type: integer
+          format: int32
+          minimum: 0
+        physical_sockets:
+          description: "Physical socket capacity."
+          type: integer
+          format: int32
+          minimum: 0
+        hypervisor_sockets:
+          description: "Hypervisor socket capacity."
           type: integer
           format: int32
           minimum: 0
