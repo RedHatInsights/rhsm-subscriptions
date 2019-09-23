@@ -30,6 +30,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -64,7 +65,8 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
     public Authentication authenticate(Authentication authentication) {
         PreAuthenticatedAuthenticationToken token = (PreAuthenticatedAuthenticationToken) authentication;
         byte[] decodedHeader = (byte[]) token.getPrincipal();
-
+        PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details =
+            (PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails) authentication.getDetails();
         try {
             Map authObject = mapper.readValue(decodedHeader, Map.class);
             Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
@@ -75,7 +77,8 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
                     " contains no principal");
             }
 
-            token = new PreAuthenticatedAuthenticationToken(accountNumber, token.getCredentials());
+            token = new PreAuthenticatedAuthenticationToken(accountNumber, token.getCredentials(),
+                details.getGrantedAuthorities());
             token.setAuthenticated(true);
             return token;
 

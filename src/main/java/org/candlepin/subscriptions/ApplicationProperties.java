@@ -23,16 +23,16 @@ package org.candlepin.subscriptions;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
  */
-@Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
 
     private boolean prettyPrintJson = false;
+
+    private boolean devMode = false;
 
     private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
 
@@ -113,6 +113,14 @@ public class ApplicationProperties {
 
     public void setAccountBatchSize(int accountBatchSize) {
         this.accountBatchSize = accountBatchSize;
+    }
+
+    public boolean isDevMode() {
+        return devMode;
+    }
+
+    public void setDevMode(boolean devMode) {
+        this.devMode = devMode;
     }
 
 }

@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.security.auth.AdminOnly;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
@@ -44,6 +45,7 @@ import javax.validation.constraints.NotNull;
 public class CapacityResource implements CapacityApi {
 
     @Override
+    @AdminOnly
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
 

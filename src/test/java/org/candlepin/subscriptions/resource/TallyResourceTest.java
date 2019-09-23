@@ -27,11 +27,13 @@ import org.candlepin.subscriptions.db.model.TallyGranularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsSource;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
@@ -56,6 +58,9 @@ public class TallyResourceTest {
     @MockBean
     PageLinkCreator pageLinkCreator;
 
+    @MockBean
+    BuildProperties buildProperties;
+
     @Autowired
     TallyResource resource;
 
@@ -63,7 +68,8 @@ public class TallyResourceTest {
     private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
     @Test
-    @WithMockUser("123456")
+    @WithMockUser(value = "123456",
+        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void testShouldUseQueryBasedOnHeaderAndParameters() {
         TallySnapshot snap = new TallySnapshot();
 
@@ -99,7 +105,8 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockUser("123456")
+    @WithMockUser(value = "123456",
+        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void testShouldThrowExceptionOnBadOffset() {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             "product1",
@@ -113,7 +120,8 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockUser("123456")
+    @WithMockUser(value = "123456",
+        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(

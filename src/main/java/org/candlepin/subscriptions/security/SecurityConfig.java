@@ -21,6 +21,8 @@
 
 package org.candlepin.subscriptions.security;
 
+import org.candlepin.subscriptions.ApplicationProperties;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private ObjectMapper mapper;
 
+    @SuppressWarnings("squid:S3305")
+    @Autowired
+    private ApplicationProperties appProps;
+
     @Override
     public void configure(AuthenticationManagerBuilder auth) {
         auth.authenticationProvider(preAuthenticatedAuthenticationProvider());
@@ -73,7 +79,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public IdentityHeaderAuthenticationDetailsSource detailsSource() {
         return new IdentityHeaderAuthenticationDetailsSource(
-            mapper, identityHeaderAuthoritiesMapper()
+            appProps, mapper, identityHeaderAuthoritiesMapper()
         );
     }
 
