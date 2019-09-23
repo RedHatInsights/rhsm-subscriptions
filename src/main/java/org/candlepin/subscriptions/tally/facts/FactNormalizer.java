@@ -26,6 +26,9 @@ import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -39,6 +42,8 @@ import java.util.Map;
  * and condensed facts based on the host's facts.
  */
 public class FactNormalizer {
+    private static final Logger log = LoggerFactory.getLogger(FactNormalizer.class);
+
     private final ApplicationClock clock;
     private final int hostSyncThresholdHours;
     private final Map<Integer, List<String>> productIdToProductsMap;
@@ -105,8 +110,14 @@ public class FactNormalizer {
 
     private void getProductsFromProductIds(NormalizedFacts normalizedFacts, Collection<String> productIds) {
         for (String productId : productIds) {
-            normalizedFacts.getProducts().addAll(
-                productIdToProductsMap.getOrDefault(Integer.parseInt(productId), Collections.emptyList()));
+            try {
+                Integer numericProductId = Integer.parseInt(productId);
+                normalizedFacts.getProducts().addAll(
+                    productIdToProductsMap.getOrDefault(numericProductId, Collections.emptyList()));
+            }
+            catch (NumberFormatException e) {
+                log.debug("Skipping non-numeric productId: {}", productId);
+            }
         }
     }
 

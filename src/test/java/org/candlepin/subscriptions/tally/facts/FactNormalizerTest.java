@@ -48,7 +48,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -122,7 +121,8 @@ public class FactNormalizerTest {
 
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlyCoresAreSet() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(null, 4, null, null));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost((List<Integer>) null, 4, null,
+            null));
         assertNotNull(normalized.getProducts());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
@@ -131,7 +131,8 @@ public class FactNormalizerTest {
 
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlySocketsAreSet() {
-        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(null, null, 8, null));
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost((List<Integer>) null, null, 8,
+            null));
         assertNotNull(normalized.getProducts());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(0), normalized.getCores());
@@ -222,11 +223,25 @@ public class FactNormalizerTest {
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
+    @Test
+    void nonNumericProductIdIgnored() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost("9,10,Foobar", 2, 2,
+            "role1"));
+        assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    }
+
     private InventoryHostFacts createRhsmHost(List<Integer> products, Integer cores, Integer sockets,
         String syspurposeRole) {
 
+        return createRhsmHost(StringUtils.collectionToCommaDelimitedString(products), cores, sockets,
+            syspurposeRole);
+    }
+
+    private InventoryHostFacts createRhsmHost(String products, Integer cores, Integer sockets,
+        String syspurposeRole) {
+
         return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
-            String.valueOf(sockets), StringUtils.collectionToCommaDelimitedString(products),
+            String.valueOf(sockets), products,
             clock.now().toString(), null, null, null, null, null, syspurposeRole);
     }
 
