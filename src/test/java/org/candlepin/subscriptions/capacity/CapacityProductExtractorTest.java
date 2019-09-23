@@ -57,14 +57,14 @@ class CapacityProductExtractorTest {
 
     @Test
     void productExtractorReturnsExpectedProducts() {
-        Set<String> products = extractor.getProducts(Arrays.asList(6, 9, 10));
+        Set<String> products = extractor.getProducts(Arrays.asList("6", "9", "10"));
         assertThat(products, Matchers.containsInAnyOrder("RHEL", "NOT RHEL", "RHEL Workstation",
             "RHEL Server"));
     }
 
     @Test
     void productExtractorReturnsNoProductsIfNoProductIdsMatch() {
-        Set<String> products = extractor.getProducts(Collections.singletonList(42));
+        Set<String> products = extractor.getProducts(Collections.singletonList("42"));
         assertThat(products, Matchers.empty());
     }
 
@@ -87,7 +87,7 @@ class CapacityProductExtractorTest {
 
     @Test
     void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
-        Set<String> products = extractor.getProducts(Arrays.asList(12));
+        Set<String> products = extractor.getProducts(Arrays.asList("12"));
         assertThat(products, Matchers.containsInAnyOrder("Satellite 6 Capsule"));
     }
 }

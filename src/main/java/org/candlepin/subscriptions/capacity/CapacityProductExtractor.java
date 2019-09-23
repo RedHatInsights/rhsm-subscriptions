@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.capacity;
 
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -40,6 +42,8 @@ import java.util.stream.Collectors;
 @Component
 public class CapacityProductExtractor {
 
+    private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
+
     private final Map<Integer, List<String>> productIdToProductsMap;
 
     public CapacityProductExtractor(ProductIdToProductsMapSource productIdToProductsMapSource)
@@ -48,9 +52,13 @@ public class CapacityProductExtractor {
         this.productIdToProductsMap = productIdToProductsMapSource.getValue();
     }
 
-    public Set<String> getProducts(Collection<Integer> productIds) {
+    public Set<String> getProducts(Collection<String> productIds) {
         Set<String> products = productIds.stream()
-            .map(productIdToProductsMap::get).filter(Objects::nonNull).flatMap(List::stream)
+            .map(CapacityProductExtractor::parseIntSkipUnparseable)
+            .filter(Objects::nonNull)
+            .map(productIdToProductsMap::get)
+            .filter(Objects::nonNull)
+            .flatMap(List::stream)
             .collect(Collectors.toSet());
 
         if (setIsInvalid(products)) {
@@ -59,6 +67,16 @@ public class CapacityProductExtractor {
         }
 
         return products;
+    }
+
+    private static Integer parseIntSkipUnparseable(String s) {
+        try {
+            return Integer.parseInt(s);
+        }
+        catch (NumberFormatException e) {
+            log.debug("Skipping non-numeric product ID: {}", s);
+        }
+        return null;
     }
 
     /**
