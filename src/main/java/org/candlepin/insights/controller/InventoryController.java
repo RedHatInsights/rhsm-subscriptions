@@ -110,7 +110,7 @@ public class InventoryController {
 
         extractNetworkFacts(pinheadFacts, facts);
         extractHardwareFacts(pinheadFacts, facts);
-        extractHypervisorFacts(consumer, pinheadFacts, facts);
+        extractVirtualizationFacts(consumer, pinheadFacts, facts);
 
         List<String> productIds = consumer.getInstalledProducts().stream()
             .map(installedProduct -> installedProduct.getProductId().toString()).collect(Collectors.toList());
@@ -162,7 +162,6 @@ public class InventoryController {
     }
 
     private void extractNetworkFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
-
         String fqdn = pinheadFacts.get(NETWORK_FQDN);
         if (!isEmpty(fqdn)) {
             facts.setFqdn(fqdn);
@@ -198,12 +197,12 @@ public class InventoryController {
             });
 
         if (!ipAddresses.isEmpty()) {
-            facts.setIpAddresses(new ArrayList(ipAddresses));
+            facts.setIpAddresses(new ArrayList<>(ipAddresses));
         }
 
     }
 
-    private void extractHypervisorFacts(Consumer consumer, Map<String, String> pinheadFacts,
+    private void extractVirtualizationFacts(Consumer consumer, Map<String, String> pinheadFacts,
         ConduitFacts facts) {
 
         String isGuest = pinheadFacts.get(VIRT_IS_GUEST);
@@ -214,6 +213,16 @@ public class InventoryController {
         String vmHost = consumer.getHypervisorName();
         if (!isEmpty(vmHost)) {
             facts.setVmHost(vmHost);
+        }
+
+        String vmHypervisorUuid = consumer.getHypervisorUuid();
+        if (!isEmpty(vmHypervisorUuid)) {
+            facts.setVmHostUuid(vmHypervisorUuid);
+        }
+
+        String vmId = consumer.getGuestId();
+        if (!isEmpty(vmId)) {
+            facts.setGuestId(vmId);
         }
     }
 

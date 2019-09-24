@@ -63,6 +63,8 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setInsightsId("0be977bc-46e9-4d9b-a798-65cd1ed98710");
         conduitFacts.setIsVirtual(true);
         conduitFacts.setVmHost("vm_host");
+        conduitFacts.setGuestId("i_am_a_guest");
+        conduitFacts.setVmHostUuid("14f64266-f957-4765-8420-c3b6b3002bb7");
         conduitFacts.setSysPurposeRole("test_role");
         conduitFacts.setSysPurposeUsage("test_usage");
         conduitFacts.setSysPurposeAddons(Arrays.asList("addon1", "addon2"));
@@ -80,6 +82,8 @@ public class DefaultInventoryServiceTest {
         expectedFactMap.put("ARCHITECTURE", "x86_64");
         expectedFactMap.put("IS_VIRTUAL", true);
         expectedFactMap.put("VM_HOST", "vm_host");
+        expectedFactMap.put("VM_HOST_UUID", "14f64266-f957-4765-8420-c3b6b3002bb7");
+        expectedFactMap.put("GUEST_ID", "i_am_a_guest");
         expectedFactMap.put("RH_PROD", Collections.singletonList("72"));
         expectedFactMap.put("orgId", "1234-org");
         expectedFactMap.put("SYSPURPOSE_ROLE", "test_role");
