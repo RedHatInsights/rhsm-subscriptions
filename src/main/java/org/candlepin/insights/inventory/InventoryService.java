@@ -70,6 +70,12 @@ public abstract class InventoryService {
         if (conduitFacts.getVmHost() != null) {
             rhsmFactMap.put("VM_HOST", conduitFacts.getVmHost());
         }
+        if (conduitFacts.getVmHostUuid() != null) {
+            rhsmFactMap.put("VM_HOST_UUID", conduitFacts.getVmHostUuid());
+        }
+        if (conduitFacts.getGuestId() != null) {
+            rhsmFactMap.put("GUEST_ID", conduitFacts.getGuestId());
+        }
         if (conduitFacts.getRhProd() != null) {
             rhsmFactMap.put("RH_PROD", conduitFacts.getRhProd());
         }

@@ -41,7 +41,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -113,10 +112,13 @@ public class InventoryControllerTest {
     public void testUnmodifiedFieldsTransferred() {
         String uuid = UUID.randomUUID().toString();
         String systemUuid = UUID.randomUUID().toString();
+        String hypervisorUuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
         consumer.setOrgId("test_org");
         consumer.setHypervisorName("hypervisor1.test.com");
+        consumer.setHypervisorUuid(hypervisorUuid);
+        consumer.setGuestId("guest");
         consumer.getFacts().put("network.fqdn", "host1.test.com");
         consumer.getFacts().put("dmi.system.uuid", systemUuid);
         consumer.getFacts().put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 10.0.0.1");
@@ -132,6 +134,8 @@ public class InventoryControllerTest {
         assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
         assertEquals("test_org", conduitFacts.getOrgId());
         assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
+        assertEquals(hypervisorUuid, conduitFacts.getVmHostUuid());
+        assertEquals("guest", conduitFacts.getGuestId());
         assertEquals("host1.test.com", conduitFacts.getFqdn());
         assertEquals(systemUuid, conduitFacts.getBiosUuid());
         assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
@@ -226,7 +230,7 @@ public class InventoryControllerTest {
 
     @Test
     public void testIpAddressesCollected() {
-        Map<String, String> pinheadFacts = new HashMap<String, String>();
+        Map<String, String> pinheadFacts = new HashMap<>();
         pinheadFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
         pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
         pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
@@ -261,7 +265,7 @@ public class InventoryControllerTest {
 
     @Test
     public void testUnknownIpsAreIgnored() {
-        Map<String, String> pinheadFacts = new HashMap<String, String>();
+        Map<String, String> pinheadFacts = new HashMap<>();
         pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
         pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
         pinheadFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
@@ -311,11 +315,4 @@ public class InventoryControllerTest {
         cfacts2.setSubscriptionManagerId(uuid2.toString());
         verify(inventoryService).sendHostUpdate(Mockito.eq(Arrays.asList(cfacts1, cfacts2)));
     }
-
-    private void assertContainSameElements(List<String> list1, List<String> list2) {
-        Collections.sort(list1);
-        Collections.sort(list2);
-        assertEquals(list1, list2);
-    }
-
 }
