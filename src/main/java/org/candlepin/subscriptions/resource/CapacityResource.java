@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 
 import org.springframework.data.domain.Page;
@@ -71,24 +72,32 @@ public class CapacityResource extends AbstractReportResource implements Capacity
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
 
-        Pageable pageable = getPageable(offset, limit);
-
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
 
         String accountNumber = getAccountNumber();
         List<CapacitySnapshot> capacities = getCapacities(accountNumber, productId, granularityValue,
             beginning, ending);
-        List<CapacitySnapshot> snapshotPageData = paginate(capacities, pageable);
-        Page<CapacitySnapshot> snapshotPage = new PageImpl<>(snapshotPageData, pageable,
-            capacities.size());
+
+        List<CapacitySnapshot> data;
+        TallyReportLinks links;
+        if (offset != null || limit != null) {
+            Pageable pageable = getPageable(offset, limit);
+            data = paginate(capacities, pageable);
+            Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+            links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
+        }
+        else {
+            data = capacities;
+            links = null;
+        }
 
         CapacityReport report = new CapacityReport();
-        report.setData(snapshotPageData);
+        report.setData(data);
         report.setMeta(new CapacityReportMeta());
         report.getMeta().setGranularity(granularity);
         report.getMeta().setProduct(productId);
         report.getMeta().setCount(report.getData().size());
-        report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
+        report.setLinks(links);
 
         return report;
     }
