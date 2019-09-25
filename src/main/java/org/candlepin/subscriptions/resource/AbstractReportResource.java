@@ -28,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Response;
 
 /**
@@ -42,6 +43,7 @@ public class AbstractReportResource {
         return auth.getName();
     }
 
+    @NotNull
     Pageable getPageable(Integer offset, Integer limit) {
         if (limit == null) {
             limit = DEFAULT_LIMIT;
