@@ -25,7 +25,7 @@ import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -77,11 +77,11 @@ public class YearlySnapshotRollerTest {
 
         List<TallySnapshot> yearlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            TEST_PRODUCT, Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, yearlySnaps.size());
 
-        assertSnapshot(yearlySnaps.get(0), TEST_PRODUCT, TallyGranularity.YEARLY,
+        assertSnapshot(yearlySnaps.get(0), TEST_PRODUCT, Granularity.YEARLY,
             a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -96,12 +96,12 @@ public class YearlySnapshotRollerTest {
 
         List<TallySnapshot> originalSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            TEST_PRODUCT, Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot toUpdate = originalSnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.YEARLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         a1ProductCalc.addCores(100);
@@ -112,13 +112,13 @@ public class YearlySnapshotRollerTest {
         // Check the yearly again. Should still be a single instance, but have updated values.
         List<TallySnapshot> updatedSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            TEST_PRODUCT, Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot updated = updatedSnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.YEARLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -137,12 +137,12 @@ public class YearlySnapshotRollerTest {
 
         List<TallySnapshot> yearlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            TEST_PRODUCT, Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, yearlySnaps.size());
 
         TallySnapshot toUpdate = yearlySnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.YEARLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         // Update the values and run again
@@ -152,13 +152,13 @@ public class YearlySnapshotRollerTest {
 
         List<TallySnapshot> updatedYearlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
+            TEST_PRODUCT, Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedYearlySnaps.size());
 
         TallySnapshot updated = updatedYearlySnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.YEARLY, expectedCores, expectedSockets,
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.YEARLY, expectedCores, expectedSockets,
             expectedInstances);
     }
 }

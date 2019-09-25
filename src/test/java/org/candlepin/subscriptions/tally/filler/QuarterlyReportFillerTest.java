@@ -24,7 +24,7 @@ import static org.candlepin.subscriptions.tally.filler.Assertions.assertSnapshot
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
@@ -42,7 +42,7 @@ public class QuarterlyReportFillerTest {
 
     public QuarterlyReportFillerTest() {
         clock = new FixedClockConfiguration().fixedClock();
-        filler = ReportFillerFactory.getInstance(clock, TallyGranularity.QUARTERLY);
+        filler = ReportFillerFactory.getInstance(clock, Granularity.QUARTERLY);
     }
 
     @Test

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -80,11 +80,11 @@ public class WeeklySnapshotRollerTest {
 
         List<TallySnapshot> weeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            TEST_PRODUCT, Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
 
-        assertSnapshot(weeklySnaps.get(0), TEST_PRODUCT, TallyGranularity.WEEKLY,
+        assertSnapshot(weeklySnaps.get(0), TEST_PRODUCT, Granularity.WEEKLY,
             a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -99,12 +99,12 @@ public class WeeklySnapshotRollerTest {
 
         List<TallySnapshot> weeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            TEST_PRODUCT, Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
 
         TallySnapshot toUpdate = weeklySnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.WEEKLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.WEEKLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         // Update the values and run again
@@ -116,13 +116,13 @@ public class WeeklySnapshotRollerTest {
         // Check the weekly again. Should still be a single instance, but have updated values.
         List<TallySnapshot> updatedWeeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            TEST_PRODUCT, Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedWeeklySnaps.size());
 
         TallySnapshot updated = updatedWeeklySnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.WEEKLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.WEEKLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -141,12 +141,12 @@ public class WeeklySnapshotRollerTest {
 
         List<TallySnapshot> weeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            TEST_PRODUCT, Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, weeklySnaps.size());
 
         TallySnapshot toUpdate = weeklySnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.WEEKLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.WEEKLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         // Update the values and run again
@@ -156,13 +156,13 @@ public class WeeklySnapshotRollerTest {
 
         List<TallySnapshot> updatedWeeklySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
+            TEST_PRODUCT, Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedWeeklySnaps.size());
 
         TallySnapshot updated = updatedWeeklySnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.WEEKLY, expectedCores, expectedSockets,
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.WEEKLY, expectedCores, expectedSockets,
             expectedInstances);
     }
 

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -80,11 +80,11 @@ public class QuarterlySnapshotRollerTest {
 
         List<TallySnapshot> quarterlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, quarterlySnaps.size());
 
-        assertSnapshot(quarterlySnaps.get(0), TEST_PRODUCT, TallyGranularity.QUARTERLY,
+        assertSnapshot(quarterlySnaps.get(0), TEST_PRODUCT, Granularity.QUARTERLY,
             a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -99,12 +99,12 @@ public class QuarterlySnapshotRollerTest {
 
         List<TallySnapshot> originalSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot toUpdate = originalSnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.QUARTERLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.QUARTERLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         a1ProductCalc.addCores(400);
@@ -115,13 +115,13 @@ public class QuarterlySnapshotRollerTest {
         // Check the yearly again. Should still be a single instance, but have updated values.
         List<TallySnapshot> updatedSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
 
         TallySnapshot updated = updatedSnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.QUARTERLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.QUARTERLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -140,12 +140,12 @@ public class QuarterlySnapshotRollerTest {
 
         List<TallySnapshot> quarterlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, quarterlySnaps.size());
 
         TallySnapshot toUpdate = quarterlySnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.QUARTERLY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.QUARTERLY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         // Update the values and run again
@@ -155,13 +155,13 @@ public class QuarterlySnapshotRollerTest {
 
         List<TallySnapshot> updatedQuarterlySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedQuarterlySnaps.size());
 
         TallySnapshot updated = updatedQuarterlySnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.QUARTERLY, expectedCores, expectedSockets,
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.QUARTERLY, expectedCores, expectedSockets,
             expectedInstances);
     }
 

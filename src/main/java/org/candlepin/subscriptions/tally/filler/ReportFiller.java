@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 
@@ -36,50 +37,24 @@ import java.util.List;
  * Given a granularity, date range and existing snaps for the period, fills out any gaps in a TallyReport.
  *
  */
-public abstract class ReportFiller {
+public class ReportFiller {
     private static final Logger log = LoggerFactory.getLogger(ReportFiller.class);
 
-    protected ApplicationClock clock;
+    private final ApplicationClock clock;
+    private final SnapshotTimeAdjuster timeAdjuster;
 
-    public ReportFiller(ApplicationClock clock) {
+    public ReportFiller(ApplicationClock clock, SnapshotTimeAdjuster timeAdjuster) {
         this.clock = clock;
+        this.timeAdjuster = timeAdjuster;
     }
-
-    /**
-     * Get the TemporalAmount that represents the offset period between each report snapshot. A snapshot
-     * offset is defined by the amount of time between each snapshot in a report. For example, filling in a
-     * report for Daily granularity, the offset would be 1 DAY given that each daily snapshot spans one full
-     * day.
-     *
-     * @return a temporal amount representing the period offset.
-     */
-    abstract TemporalAmount getSnapshotOffset();
-
-    /**
-     * Adjust the given date to the start of this filler's snapshot period. For example, filling in a report
-     * for Daily granularity, the adjusted date would be at the start of the day.
-     *
-     * @param toAdjust the date to adjust
-     * @return the adjusted date instance
-     */
-    abstract OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust);
-
-    /**
-     * Adjust the given date to the end of this filler's snapshot period. For example, filling in a report
-     * for Daily granularity, the adjusted date would be at the end of the day.
-     *
-     * @param toAdjust the date to adjust
-     * @return the adjusted date instance
-     */
-    abstract OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust);
 
     @SuppressWarnings("squid:S2583")
     public void fillGaps(TallyReport report, OffsetDateTime start, OffsetDateTime end) {
         List<TallySnapshot> result = new ArrayList<>();
-        TemporalAmount offset = getSnapshotOffset();
+        TemporalAmount offset = timeAdjuster.getSnapshotOffset();
 
-        OffsetDateTime firstDate = adjustToPeriodStart(start);
-        OffsetDateTime lastDate = adjustToPeriodEnd(end);
+        OffsetDateTime firstDate = timeAdjuster.adjustToPeriodStart(start);
+        OffsetDateTime lastDate = timeAdjuster.adjustToPeriodEnd(end);
 
         List<TallySnapshot> existingSnaps = report.getData();
         if (existingSnaps == null || existingSnaps.isEmpty()) {
@@ -101,7 +76,7 @@ public abstract class ReportFiller {
                     continue;
                 }
 
-                lastSnapDate = adjustToPeriodStart(snapDate);
+                lastSnapDate = timeAdjuster.adjustToPeriodStart(snapDate);
                 // Fill report up until the next snapshot, then add the snapshot to the report list.
                 result.addAll(fillWithRange(nextDate, lastSnapDate.minus(offset), offset));
                 result.add(snapshot);

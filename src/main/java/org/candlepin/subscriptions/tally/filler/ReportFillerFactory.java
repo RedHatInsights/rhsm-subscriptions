@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.tally.filler;
 
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
+import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 
 /**
  * Responsible for creating ReportFiller objects based on granularity.
@@ -34,27 +34,17 @@ public class ReportFillerFactory {
     }
 
     /**
-     * Creates an instance of a ReportFiller based on a TallyGranularity.
+     * Creates an instance of a ReportFiller based on a Granularity.
      *
      * @param clock an application clock instance to base dates off of.
      * @param granularity the target granularity
      * @return a ReportFiller instance for the specified granularity.
      */
-    public static ReportFiller getInstance(ApplicationClock clock, TallyGranularity granularity) {
-        switch (granularity) {
-            case DAILY:
-                return new DailyReportFiller(clock);
-            case WEEKLY:
-                return new WeeklyReportFiller(clock);
-            case MONTHLY:
-                return new MonthlyReportFiller(clock);
-            case YEARLY:
-                return new YearlyReportFiller(clock);
-            case QUARTERLY:
-                return new QuarterlyReportFiller(clock);
-            default:
-        }
-        throw new IllegalArgumentException("Unsupported granularity while filling report: " + granularity);
+    public static ReportFiller getInstance(ApplicationClock clock, Granularity granularity) {
+        SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
+        return new ReportFiller(clock, timeAdjuster);
     }
+
+
 
 }

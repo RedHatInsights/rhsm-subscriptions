@@ -21,7 +21,7 @@
 
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 
 import org.springframework.data.domain.Page;
@@ -40,15 +40,15 @@ import java.util.stream.Stream;
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
     Page<TallySnapshot>
         findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-        String accountNumber, String productId, TallyGranularity granularity, OffsetDateTime beginning,
+        String accountNumber, String productId, Granularity granularity, OffsetDateTime beginning,
         OffsetDateTime ending, Pageable pageable);
 
     @Transactional
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
-        TallyGranularity granularity, OffsetDateTime cutoffDate);
+        Granularity granularity, OffsetDateTime cutoffDate);
 
     Stream<TallySnapshot> findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-        Collection<String> accountNumbers, Collection<String> productIds, TallyGranularity granularity,
+        Collection<String> accountNumbers, Collection<String> productIds, Granularity granularity,
         OffsetDateTime beginning, OffsetDateTime ending);
 
 }

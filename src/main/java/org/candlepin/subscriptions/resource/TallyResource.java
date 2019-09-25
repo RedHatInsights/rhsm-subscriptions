@@ -21,9 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.AdminOnly;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -36,10 +34,7 @@ import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
@@ -48,7 +43,6 @@ import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 /**
@@ -57,8 +51,7 @@ import javax.ws.rs.core.UriInfo;
 @Component
 @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "false",
     matchIfMissing = true)
-public class TallyResource implements TallyApi {
-    private static final Integer DEFAULT_LIMIT = 50;
+public class TallyResource extends AbstractReportResource implements TallyApi {
 
     @Context UriInfo uriInfo;
 
@@ -82,28 +75,12 @@ public class TallyResource implements TallyApi {
         Pageable pageable = null;
         boolean fill = limit == null && offset == null;
         if (!fill) {
-            if (limit == null) {
-                limit = DEFAULT_LIMIT;
-            }
-
-            if (offset == null) {
-                offset = 0;
-            }
-
-            if (offset % limit != 0) {
-                throw new SubscriptionsException(
-                    ErrorCode.VALIDATION_FAILED_ERROR,
-                    Response.Status.BAD_REQUEST,
-                    "Offset must be divisible by limit",
-                    "Arbitrary offsets are not currently supported by this API"
-                );
-            }
-            pageable = PageRequest.of(offset / limit, limit);
+            pageable = getPageable(offset, limit);
         }
 
 
         String accountNumber = getAccountNumber();
-        TallyGranularity granularityValue = TallyGranularity.valueOf(granularity.toUpperCase());
+        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,
@@ -140,11 +117,6 @@ public class TallyResource implements TallyApi {
         report.getMeta().setCount(report.getData().size());
 
         return report;
-    }
-
-    private String getAccountNumber() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getName();
     }
 
 }

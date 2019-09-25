@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.tally.roller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -54,7 +54,7 @@ public class SnapshotRollerTestHelper {
     }
 
     public static void assertSnapshot(TallySnapshot snapshot, String expectedProduct,
-        TallyGranularity expectedGranularity, Integer expectedCores, Integer expectedSockets,
+        Granularity expectedGranularity, Integer expectedCores, Integer expectedSockets,
         Integer expectedInstances) {
         assertNotNull(snapshot);
         assertEquals(expectedGranularity, snapshot.getGranularity());

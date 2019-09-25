@@ -68,7 +68,7 @@ public class TallySnapshot implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")
-    private TallyGranularity granularity;
+    private Granularity granularity;
 
     public UUID getId() {
         return id;
@@ -134,11 +134,11 @@ public class TallySnapshot implements Serializable {
         this.accountNumber = accountNumber;
     }
 
-    public TallyGranularity getGranularity() {
+    public Granularity getGranularity() {
         return granularity;
     }
 
-    public void setGranularity(TallyGranularity granularity) {
+    public void setGranularity(Granularity granularity) {
         this.granularity = granularity;
     }
 

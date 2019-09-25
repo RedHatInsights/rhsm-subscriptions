@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -81,11 +81,11 @@ public class DailySnapshotRollerTest {
 
         List<TallySnapshot> dailySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, TallyGranularity.DAILY, clock.startOfToday(), clock.endOfToday(),
+                TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, dailySnaps.size());
 
-        assertSnapshot(dailySnaps.get(0), TEST_PRODUCT, TallyGranularity.DAILY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(dailySnaps.get(0), TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -101,12 +101,12 @@ public class DailySnapshotRollerTest {
 
         List<TallySnapshot> dailySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, TallyGranularity.DAILY, clock.startOfToday(), clock.endOfToday(),
+                TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, dailySnaps.size());
 
         TallySnapshot dailyToBeUpdated = dailySnaps.get(0);
-        assertSnapshot(dailyToBeUpdated, TEST_PRODUCT, TallyGranularity.DAILY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(dailyToBeUpdated, TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         a1ProductCalc.addCores(100);
@@ -116,13 +116,13 @@ public class DailySnapshotRollerTest {
 
         List<TallySnapshot> updatedDailySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, TallyGranularity.DAILY, clock.startOfToday(), clock.endOfToday(),
+                TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedDailySnaps.size());
 
         TallySnapshot updated = updatedDailySnaps.get(0);
         assertEquals(dailyToBeUpdated.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.DAILY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
     }
 
@@ -137,12 +137,12 @@ public class DailySnapshotRollerTest {
 
         List<TallySnapshot> dailySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.DAILY, clock.startOfToday(), clock.endOfToday(),
+            TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, dailySnaps.size());
 
         TallySnapshot toUpdate = dailySnaps.get(0);
-        assertSnapshot(toUpdate, TEST_PRODUCT, TallyGranularity.DAILY, a1ProductCalc.getTotalCores(),
+        assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
             a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
 
         // Update the values and run again
@@ -152,12 +152,12 @@ public class DailySnapshotRollerTest {
 
         List<TallySnapshot> updatedDailySnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-            TEST_PRODUCT, TallyGranularity.DAILY, clock.startOfToday(), clock.endOfToday(),
+            TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedDailySnaps.size());
 
         TallySnapshot updated = updatedDailySnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
-        assertSnapshot(updated, TEST_PRODUCT, TallyGranularity.DAILY, 2, 3, 4);
+        assertSnapshot(updated, TEST_PRODUCT, Granularity.DAILY, 2, 3, 4);
     }
 }

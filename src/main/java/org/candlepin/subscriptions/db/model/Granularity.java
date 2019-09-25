@@ -18,37 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.filler;
-
-import org.candlepin.subscriptions.util.ApplicationClock;
-
-import java.time.OffsetDateTime;
-import java.time.Period;
-import java.time.temporal.TemporalAmount;
-
+package org.candlepin.subscriptions.db.model;
 
 /**
- * A ReportFiller instance that will fill the given TallyReport's snapshots based on a MONTHLY granularity.
+ * Granularity of a given snapshot.
+ *
+ * Granularity defines the scope of max concurrent usage. For example, max concurrent usage across a week
+ * represents the maximum tally totals across all days in that week. For example, given a week where daily
+ * tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
-public class YearlyReportFiller extends ReportFiller {
-
-    public YearlyReportFiller(ApplicationClock clock) {
-        super(clock);
-    }
-
-    @Override
-    public TemporalAmount getSnapshotOffset() {
-        return Period.ofYears(1);
-    }
-
-    @Override
-    public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
-        return clock.startOfYear(toAdjust);
-    }
-
-    @Override
-    public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
-        return clock.endOfYear(toAdjust);
-    }
-
+public enum Granularity {
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    QUARTERLY,
+    YEARLY
 }
