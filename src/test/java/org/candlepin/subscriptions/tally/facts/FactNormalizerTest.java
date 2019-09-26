@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
@@ -47,6 +48,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
@@ -86,7 +88,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testQpcNormalization() {
-        InventoryHostFacts host = createQpcHost("RHEL");
+        ClassifiedInventoryHostFacts host = createQpcHost("RHEL");
         NormalizedFacts normalized = normalizer.normalize(host);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(0), normalized.getCores());
@@ -95,7 +97,7 @@ public class FactNormalizerTest {
 
     @Test
     public void testSystemProfileNormalization() {
-        InventoryHostFacts host = createSystemProfileHost(Collections.singletonList(1), 4, 2);
+        ClassifiedInventoryHostFacts host = createSystemProfileHost(Collections.singletonList(1), 4, 2);
         NormalizedFacts normalized = normalizer.normalize(host);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(8), normalized.getCores());
@@ -150,8 +152,8 @@ public class FactNormalizerTest {
     @Test
     public void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(2);
-        InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), 4, 8, null);
-        facts.setSyncTimestamp(lastSynced.toString());
+        ClassifiedInventoryHostFacts facts =
+            createRhsmHost("1", 4, 8, null, lastSynced.toString());
 
         NormalizedFacts normalized = normalizer.normalize(facts);
         assertThat(normalized.getProducts(), Matchers.empty());
@@ -161,8 +163,8 @@ public class FactNormalizerTest {
     @Test
     public void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(1);
-        InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), 4, 8, null);
-        facts.setSyncTimestamp(lastSynced.toString());
+        ClassifiedInventoryHostFacts facts =
+            createRhsmHost("1", 4, 8, null, lastSynced.toString());
 
         NormalizedFacts normalized = normalizer.normalize(facts);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
@@ -189,7 +191,7 @@ public class FactNormalizerTest {
 
     @Test
     void testNullSocketsNormalizeToZero() {
-        InventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, 0, null);
+        ClassifiedInventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, 0, null);
 
         NormalizedFacts normalizedHost = normalizer.normalize(host);
 
@@ -230,31 +232,86 @@ public class FactNormalizerTest {
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
-    private InventoryHostFacts createRhsmHost(List<Integer> products, Integer cores, Integer sockets,
-        String syspurposeRole) {
-
+    private ClassifiedInventoryHostFacts createRhsmHost(List<Integer> products, Integer cores,
+        Integer sockets, String syspurposeRole) {
         return createRhsmHost(StringUtils.collectionToCommaDelimitedString(products), cores, sockets,
-            syspurposeRole);
+            syspurposeRole, clock.now().toString());
     }
 
-    private InventoryHostFacts createRhsmHost(String products, Integer cores, Integer sockets,
-        String syspurposeRole) {
-
-        return new InventoryHostFacts("Account", "Test System", "test_org", String.valueOf(cores),
-            String.valueOf(sockets), products,
-            clock.now().toString(), null, null, null, null, null, syspurposeRole);
+    private ClassifiedInventoryHostFacts createRhsmHost(String products, Integer cores,
+        Integer sockets, String syspurposeRole) {
+        return createRhsmHost(products, cores, sockets, syspurposeRole, clock.now().toString());
     }
 
-    private InventoryHostFacts createQpcHost(String qpcProducts) {
-        return new InventoryHostFacts("Account", "Test System", "test_org", null,
-            null, null, clock.now().toString(), qpcProducts, null, qpcProducts, null, null, null);
+    private ClassifiedInventoryHostFacts createRhsmHost(String products, Integer cores,
+        Integer sockets, String syspurposeRole, String syncTimeStamp) {
+
+        InventoryHostFacts baseFacts = new InventoryHostFacts(
+            "Account",
+            "Test System",
+            "test_org",
+            String.valueOf(cores),
+            String.valueOf(sockets),
+            products,
+            syncTimeStamp,
+            null,
+            null,
+            null,
+            null,
+            null,
+            syspurposeRole,
+            "false",
+            null,
+            null,
+            UUID.randomUUID().toString()
+        );
+        return new ClassifiedInventoryHostFacts(baseFacts);
     }
 
-    private InventoryHostFacts createSystemProfileHost(List<Integer> products, Integer coresPerSocket,
-        Integer sockets) {
-        return new InventoryHostFacts("Account", "Test System", "test_org", null,
-            null, null, clock.now().toString(), String.valueOf(coresPerSocket),
-            String.valueOf(sockets), null, null, StringUtils.collectionToCommaDelimitedString(products),
-            null);
+    private ClassifiedInventoryHostFacts createQpcHost(String qpcProducts) {
+        InventoryHostFacts baseFacts = new InventoryHostFacts(
+            "Account",
+            "Test System",
+            "test_org",
+            null,
+            null,
+            null,
+            clock.now().toString(),
+            qpcProducts,
+            null,
+            qpcProducts,
+            null,
+            null,
+            null,
+            "false",
+            null,
+            null,
+            UUID.randomUUID().toString()
+        );
+        return new ClassifiedInventoryHostFacts(baseFacts);
+    }
+
+    private ClassifiedInventoryHostFacts createSystemProfileHost(List<Integer> products,
+        Integer coresPerSocket, Integer sockets) {
+        InventoryHostFacts baseFacts = new InventoryHostFacts(
+            "Account",
+            "Test System",
+            "test_org",
+            null,
+            null,
+            null,
+            clock.now().toString(),
+            String.valueOf(coresPerSocket),
+            String.valueOf(sockets),
+            null,
+            null,
+            StringUtils.collectionToCommaDelimitedString(products),
+            null,
+            "false",
+            null,
+            null,
+            UUID.randomUUID().toString()
+        );
+        return new ClassifiedInventoryHostFacts(baseFacts);
     }
 }

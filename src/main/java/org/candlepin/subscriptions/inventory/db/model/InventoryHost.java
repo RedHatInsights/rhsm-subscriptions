@@ -58,7 +58,11 @@ import javax.persistence.Table;
                 @ColumnResult(name = "qpc_products"),
                 @ColumnResult(name = "qpc_product_ids"),
                 @ColumnResult(name = "system_profile_product_ids"),
-                @ColumnResult(name = "syspurpose_role")
+                @ColumnResult(name = "syspurpose_role"),
+                @ColumnResult(name = "is_virtual"),
+                @ColumnResult(name = "hypervisor_uuid"),
+                @ColumnResult(name = "guest_id"),
+                @ColumnResult(name = "subscription_manager_id")
             }
         )
     }
@@ -72,15 +76,19 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'orgId' as org_id, " +
         "h.facts->'rhsm'->>'CPU_CORES' as cores, " +
         "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
-        "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
+        "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, " +
+        "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, " +
+        "h.facts->'rhsm'->>'GUEST_ID' as guest_id, " +
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
+        "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, " +
+        "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
         "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
         "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
+        "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, " +
         "rhsm_products.products, " +
         "qpc_prods.qpc_products, " +
         "qpc_certs.qpc_product_ids, " +
-        "system_profile.system_profile_product_ids, " +
-        "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role " +
+        "system_profile.system_profile_product_ids " +
         "from hosts h " +
         "cross join lateral ( " +
         "    select string_agg(items, ',') as products " +

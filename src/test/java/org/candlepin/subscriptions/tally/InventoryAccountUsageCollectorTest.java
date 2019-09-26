@@ -26,7 +26,6 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
 import org.hamcrest.Matchers;
@@ -47,6 +46,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -58,7 +58,7 @@ public class InventoryAccountUsageCollectorTest {
     private static final Integer TEST_PRODUCT_ID = 1;
     private static List<String> rhelProducts = Collections.singletonList(TEST_PRODUCT);
 
-    @MockBean private InventoryRepository inventoryRepo;
+    @MockBean private ClassificationProxyRepository inventoryRepo;
     @Autowired private InventoryAccountUsageCollector collector;
 
     /**
@@ -90,9 +90,9 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 4, 4);
-        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 8, 4);
-        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 2, 6);
+        ClassifiedInventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 4, 4);
+        ClassifiedInventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 8, 4);
+        ClassifiedInventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 2, 6);
         when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -115,9 +115,9 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 1, 4);
-        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 2, 4);
-        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 0, 0, 2, 6);
+        ClassifiedInventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 1, 4);
+        ClassifiedInventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 2, 4);
+        ClassifiedInventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 0, 0, 2, 6);
         when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -140,8 +140,8 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
-        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 8, 12);
-        InventoryHostFacts h2 = createHost("A1", "Owner1", 32, 12, 14);
+        ClassifiedInventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 8, 12);
+        ClassifiedInventoryHostFacts h2 = createHost("A1", "Owner1", 32, 12, 14);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -160,8 +160,8 @@ public class InventoryAccountUsageCollectorTest {
         throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 1, 2);
-        InventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT_ID, 1, 2);
+        ClassifiedInventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 1, 2);
+        ClassifiedInventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT_ID, 1, 2);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
@@ -172,18 +172,34 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(expectedMessage, e.getMessage());
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
+    private ClassifiedInventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
         int sockets) {
         return createHost(account, orgId, product, cores, sockets, 0, 0);
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
+    private ClassifiedInventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
         int sockets, int systemProfileCoresPerSocket, int systemProfileSockets) {
-        return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
+        InventoryHostFacts baseFacts = new InventoryHostFacts(
+            account,
+            account + "_system",
+            orgId,
+            String.valueOf(cores),
             String.valueOf(sockets),
             StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),
-            OffsetDateTime.now().toString(), String.valueOf(systemProfileCoresPerSocket),
-            String.valueOf(systemProfileSockets), null, null, null, null);
+            OffsetDateTime.now().toString(),
+            String.valueOf(systemProfileCoresPerSocket),
+            String.valueOf(systemProfileSockets),
+            null,
+            null,
+            null,
+            null,
+            "false",
+            null,
+            null,
+            UUID.randomUUID().toString()
+        );
+
+        return new ClassifiedInventoryHostFacts(baseFacts);
     }
 
     private void assertCalculation(AccountUsageCalculation calc, String account, String owner,

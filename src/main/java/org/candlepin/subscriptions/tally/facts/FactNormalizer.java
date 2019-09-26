@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.tally.facts;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -69,7 +69,7 @@ public class FactNormalizer {
      * @param hostFacts the collection of facts to normalize.
      * @return a normalized version of the host's facts.
      */
-    public NormalizedFacts normalize(InventoryHostFacts hostFacts) {
+    public NormalizedFacts normalize(ClassifiedInventoryHostFacts hostFacts) {
         NormalizedFacts normalizedFacts = new NormalizedFacts();
         normalizeSystemProfileFacts(normalizedFacts, hostFacts);
         normalizeRhsmFacts(normalizedFacts, hostFacts);
@@ -97,7 +97,8 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts,
+        ClassifiedInventoryHostFacts hostFacts) {
         if (hostFacts.getSystemProfileSockets() != 0) {
             normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
         }
@@ -121,7 +122,7 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, ClassifiedInventoryHostFacts hostFacts) {
         // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
         // apply this host's facts.
         //
@@ -149,7 +150,7 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    private void normalizeQpcFacts(NormalizedFacts normalizedFacts, ClassifiedInventoryHostFacts hostFacts) {
         // Check if this is a RHEL host and set product.
         if (hostFacts.getQpcProducts().contains("RHEL")) {
             normalizedFacts.addProduct("RHEL");
