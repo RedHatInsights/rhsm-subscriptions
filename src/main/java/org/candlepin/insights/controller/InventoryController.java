@@ -39,6 +39,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.validation.ConstraintViolation;
@@ -145,7 +147,7 @@ public class InventoryController {
         String memoryTotal = pinheadFacts.get(MEMORY_MEMTOTAL);
         if (!isEmpty(memoryTotal)) {
             try {
-                int memoryBytes = Integer.parseInt(memoryTotal);
+                int memoryBytes = memtotalFromString(memoryTotal);
                 // memtotal is a little less than accessible memory, round up to next GB
                 int memoryGigabytes = (int) Math.ceil((float) memoryBytes / (float) KIBIBYTES_PER_GIBIBYTE);
                 facts.setMemory(memoryGigabytes);
@@ -159,6 +161,19 @@ public class InventoryController {
         if (!isEmpty(architecture)) {
             facts.setArchitecture(architecture);
         }
+    }
+
+    protected int memtotalFromString(String memoryTotal) {
+        // Check for match of openshift
+        String patternString = "^\\d+\\.\\d+[Bb]$";
+        Matcher matcher = Pattern.compile(patternString).matcher(memoryTotal);
+
+        String memStr = memoryTotal;
+        // Any other format will throw a NumberFormatException if not a double.
+        if (matcher.matches()) {
+            memStr = memStr.replaceAll("[Bb]", "");
+        }
+        return (int) Math.round(Double.parseDouble(memStr));
     }
 
     @SuppressWarnings("indentation")
