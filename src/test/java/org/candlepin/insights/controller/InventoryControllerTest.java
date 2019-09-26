@@ -229,6 +229,22 @@ public class InventoryControllerTest {
     }
 
     @Test
+    public void testTruncatedMacAddressIsIgnored() {
+        String truncatedMacFact = "52:54:00:4a:fe:cd,52:54:00:b5:f9:c0,52:54...";
+        String uuid = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put("net.interface.virbr0.mac_address", truncatedMacFact);
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
+        assertEquals(2, conduitFacts.getMacAddresses().size());
+        assertThat(conduitFacts.getMacAddresses(), Matchers.containsInAnyOrder(
+            "52:54:00:4a:fe:cd", "52:54:00:b5:f9:c0"
+        ));
+    }
+
+    @Test
     public void testIpAddressesCollected() {
         Map<String, String> pinheadFacts = new HashMap<>();
         pinheadFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
@@ -281,6 +297,23 @@ public class InventoryControllerTest {
             "127.0.0.1",
             "fe80::2323:912a:177a:d8e6",
             "192.168.122.1")
+        );
+    }
+
+    @Test
+    public void testTruncatedIPsAreIgnored() {
+        Map<String, String> pinheadFacts = new HashMap<>();
+        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...");
+
+        ConduitFacts conduitFacts = new ConduitFacts();
+        controller.extractIpAddresses(pinheadFacts, conduitFacts);
+        assertEquals(4, conduitFacts.getIpAddresses().size());
+        assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
+            "192.168.1.1",
+            "127.0.0.1",
+            "192.168.2.1",
+            "192.168.2.2")
         );
     }
 
