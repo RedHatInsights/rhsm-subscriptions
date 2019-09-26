@@ -24,17 +24,20 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -47,35 +50,41 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 public class InventoryAccountUsageCollectorTest {
 
     private static final String TEST_PRODUCT = "RHEL";
     private static final Integer TEST_PRODUCT_ID = 1;
+    private static List<String> rhelProducts = Collections.singletonList(TEST_PRODUCT);
 
-    private ApplicationClock clock;
-    private ProductIdToProductsMapSource productIdToProductsMapSource;
-    private RoleToProductsMapSource productToRolesMapSource;
-    private List<String> rhelProducts;
-    private InventoryRepository inventoryRepo;
-    private FactNormalizer factNormalizer;
-    private InventoryAccountUsageCollector collector;
+    @MockBean private InventoryRepository inventoryRepo;
+    @Autowired private InventoryAccountUsageCollector collector;
 
-    @BeforeEach
-    public void setupTest() throws Exception {
-        productIdToProductsMapSource = mock(ProductIdToProductsMapSource.class);
-        productToRolesMapSource = mock(RoleToProductsMapSource.class);
+    /**
+     * Why are we doing this?  Because when we use a MockBean annotation on the MapSources, we
+     * don't get access to the mock until an @BeforeEach method. However, we need to mock the
+     * getValue() call before that so the FactNormalizer gets a populated list when it is constructed.
+     * The solution is to replace the bean definition of the MapSource with the ones below.
+     */
+    @TestConfiguration
+    static class TestContextConfiguration {
+        @Bean
+        @Primary
+        public ProductIdToProductsMapSource testProductIdToProductsMapSource() throws IOException {
+            ProductIdToProductsMapSource source = mock(ProductIdToProductsMapSource.class);
+            when(source.getValue()).thenReturn(
+                Collections.singletonMap(TEST_PRODUCT_ID, rhelProducts));
+            return source;
+        }
 
-        rhelProducts = Collections.singletonList("RHEL");
-
-        when(productIdToProductsMapSource.getValue()).thenReturn(
-            Collections.singletonMap(TEST_PRODUCT_ID, rhelProducts));
-        when(productToRolesMapSource.getValue()).thenReturn(Collections.emptyMap());
-
-        clock = new ApplicationClock();
-        inventoryRepo = mock(InventoryRepository.class);
-        factNormalizer = new FactNormalizer(new ApplicationProperties(), productIdToProductsMapSource,
-            productToRolesMapSource, clock);
-        collector = new InventoryAccountUsageCollector(factNormalizer, inventoryRepo);
+        @Bean
+        @Primary
+        public RoleToProductsMapSource testRoleToProducsMapSource() throws IOException {
+            RoleToProductsMapSource source = mock(RoleToProductsMapSource.class);
+            when(source.getValue()).thenReturn(Collections.emptyMap());
+            return source;
+        }
     }
 
     @Test

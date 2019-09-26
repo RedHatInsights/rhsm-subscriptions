@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
@@ -37,6 +38,7 @@ import java.util.stream.Stream;
 /**
  * Collects the max values from all accounts in the inventory.
  */
+@Component
 public class InventoryAccountUsageCollector {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
