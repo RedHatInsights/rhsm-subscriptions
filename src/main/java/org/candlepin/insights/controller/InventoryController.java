@@ -126,7 +126,7 @@ public class InventoryController {
                 facts.setBiosUuid(systemUuid);
             }
             else {
-                log.warn("Consumer {} in org {} has unparseable BIOS uuid: {}",
+                log.info("Consumer {} in org {} has unparseable BIOS uuid: {}",
                     facts.getSubscriptionManagerId(), facts.getOrgId(), systemUuid);
             }
         }
@@ -151,7 +151,7 @@ public class InventoryController {
                 facts.setMemory(memoryGigabytes);
             }
             catch (NumberFormatException e) {
-                log.warn("Bad memory.memtotal value: {}", memoryTotal);
+                log.info("Bad memory.memtotal value: {}", memoryTotal);
             }
         }
 
@@ -276,7 +276,7 @@ public class InventoryController {
 
     private boolean isTruncated(String factKey, String toCheck) {
         if (toCheck != null && toCheck.endsWith("...")) {
-            log.warn("Consumer fact value was truncated. Skipping value: {}:{}", factKey, toCheck);
+            log.info("Consumer fact value was truncated. Skipping value: {}:{}", factKey, toCheck);
             return true;
         }
         return false;
