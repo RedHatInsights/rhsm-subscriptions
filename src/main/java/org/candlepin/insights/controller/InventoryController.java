@@ -126,7 +126,7 @@ public class InventoryController {
                 facts.setBiosUuid(systemUuid);
             }
             else {
-                log.warn("Consumer {} in org {} has unparseable BIOS uuid: {}",
+                log.info("Consumer {} in org {} has unparseable BIOS uuid: {}",
                     facts.getSubscriptionManagerId(), facts.getOrgId(), systemUuid);
             }
         }
@@ -151,7 +151,7 @@ public class InventoryController {
                 facts.setMemory(memoryGigabytes);
             }
             catch (NumberFormatException e) {
-                log.warn("Bad memory.memtotal value: {}", memoryTotal);
+                log.info("Bad memory.memtotal value: {}", memoryTotal);
             }
         }
 
@@ -161,6 +161,7 @@ public class InventoryController {
         }
     }
 
+    @SuppressWarnings("indentation")
     private void extractNetworkFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
         String fqdn = pinheadFacts.get(NETWORK_FQDN);
         if (!isEmpty(fqdn)) {
@@ -173,8 +174,10 @@ public class InventoryController {
             .forEach(entry -> {
                 List<String> macs = Arrays.asList(entry.getValue().split(COMMA_REGEX));
                 macAddresses.addAll(
-                    macs.stream().filter(mac -> mac != null && !mac.equalsIgnoreCase(NONE) &&
-                    !mac.equalsIgnoreCase(UNKNOWN)).collect(Collectors.toList())
+                    macs.stream()
+                        .filter(mac -> mac != null && !mac.equalsIgnoreCase(NONE) &&
+                            !mac.equalsIgnoreCase(UNKNOWN) && !isTruncated(entry.getKey(), mac))
+                        .collect(Collectors.toList())
                 );
             });
 
@@ -184,14 +187,17 @@ public class InventoryController {
         extractIpAddresses(pinheadFacts, facts);
     }
 
+    @SuppressWarnings("indentation")
     protected void extractIpAddresses(Map<String, String> pinheadFacts, ConduitFacts facts) {
         Set<String> ipAddresses = new HashSet<>();
         pinheadFacts.entrySet().stream()
-            .filter(entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX) && !isEmpty(entry.getValue()))
+            .filter(entry ->
+                entry.getKey().matches(IP_ADDRESS_FACT_REGEX) && !isEmpty(entry.getValue()))
             .forEach(entry -> {
                 List<String> items = Arrays.asList(entry.getValue().split(COMMA_REGEX));
                 ipAddresses.addAll(items.stream()
-                    .filter(addr -> !isEmpty(addr) && !addr.equalsIgnoreCase(UNKNOWN))
+                    .filter(addr -> !isEmpty(addr) && !addr.equalsIgnoreCase(UNKNOWN) &&
+                        !isTruncated(entry.getKey(), addr))
                     .collect(Collectors.toList())
                 );
             });
@@ -266,5 +272,13 @@ public class InventoryController {
 
     private String buildValidationMessage(ConstraintViolation<ConduitFacts> x) {
         return String.format("%s: %s: %s", x.getPropertyPath(), x.getMessage(), x.getInvalidValue());
+    }
+
+    private boolean isTruncated(String factKey, String toCheck) {
+        if (toCheck != null && toCheck.endsWith("...")) {
+            log.info("Consumer fact value was truncated. Skipping value: {}:{}", factKey, toCheck);
+            return true;
+        }
+        return false;
     }
 }
