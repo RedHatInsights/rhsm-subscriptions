@@ -494,7 +494,7 @@ components:
           format: date-time
         quantity:
           type: integer
-          format: int32
+          format: int64
         productId:
           type: string
         productAttributes:
