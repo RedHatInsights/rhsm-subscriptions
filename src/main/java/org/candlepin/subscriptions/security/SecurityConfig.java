@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -50,9 +51,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private ObjectMapper mapper;
 
-    @SuppressWarnings("squid:S3305")
     @Autowired
     private ApplicationProperties appProps;
+
+    @Autowired
+    ConfigurableEnvironment env;
 
     @Override
     public void configure(AuthenticationManagerBuilder auth) {
@@ -111,6 +114,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        String apiPath = env.getRequiredProperty(
+            "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
         http
             .addFilter(identityHeaderAuthenticationFilter())
             .authenticationProvider(preAuthenticatedAuthenticationProvider())
@@ -124,6 +129,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 // Allow access to Actuator endpoints here
                 .requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll()
                 .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**").permitAll()
+                // ingress security is done via server settings (require ssl cert auth), so permit all here
+                .antMatchers(String.format("/%s/ingress/**", apiPath)).permitAll()
                 .anyRequest().authenticated();
+        if (appProps.isEnableIngressEndpoint()) {
+            configureForIngressEndpoint(http);
+        }
+    }
+
+    @SuppressWarnings("squid:S4502")
+    private void configureForIngressEndpoint(HttpSecurity http) throws Exception {
+        // CSRF isn't helpful for the machine-to-machine ingress endpoint
+        http.csrf().disable();
     }
 }
