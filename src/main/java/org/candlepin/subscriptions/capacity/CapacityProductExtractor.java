@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -48,9 +49,33 @@ public class CapacityProductExtractor {
     }
 
     public Set<String> getProducts(Collection<Integer> productIds) {
-        // NOTE: this logic can grow over time (e.g. to blacklist certain combinations, etc).
-        return productIds.stream()
+        Set<String> products = productIds.stream()
             .map(productIdToProductsMap::get).filter(Objects::nonNull).flatMap(List::stream)
             .collect(Collectors.toSet());
+
+        if (setIsInvalid(products)) {
+            // Kick out the RHEL products since it's implicit with the Satellite product being there.
+            products = products.stream().filter(matchesRhel().negate()).collect(Collectors.toSet());
+        }
+
+        return products;
     }
+
+    /**
+     * Return whether this set of products should be considered for capacity calculations.
+     * @param products a set of product names
+     * @return true if the set is invalid for capacity calculations
+     */
+    public boolean setIsInvalid(Set<String> products) {
+        return products.stream().anyMatch(matchesRhel()) && products.stream().anyMatch((matchesSatellite()));
+    }
+
+    private Predicate<String> matchesRhel() {
+        return x -> x.startsWith("RHEL");
+    }
+
+    private Predicate<String> matchesSatellite() {
+        return x -> x.startsWith("Satellite");
+    }
+
 }

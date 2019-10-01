@@ -16,3 +16,8 @@
 10:
   - RHEL
   - RHEL Server
+11:
+  - My Custom Satellite Server
+12:
+  - RHEL
+  - Satellite Server
