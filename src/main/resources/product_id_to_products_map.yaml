@@ -30,6 +30,9 @@
   - RHEL
   - RHEL for IBM Power
 
+290: # Red Hat OpenShift Container Platform
+  - OpenShift Container Platform
+
 419:  # Red Hat Enterprise Linux for ARM 64
   - RHEL
   - RHEL for ARM
