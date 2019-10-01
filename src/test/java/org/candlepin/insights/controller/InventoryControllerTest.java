@@ -183,11 +183,23 @@ public class InventoryControllerTest {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
-        consumer.getFacts().put("memory.memtotal", "12345678.00B");
+        consumer.getFacts().put("memory.memtotal", "12345678DDD");
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
         assertNull(conduitFacts.getMemory());
+    }
+
+    @Test
+    public void testHandleOpenShiftStyleMemtotal() {
+        String uuid = UUID.randomUUID().toString();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put("memory.memtotal", "32757812.00B");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+
+        assertEquals(new Integer(32), conduitFacts.getMemory());
     }
 
     @Test
@@ -347,5 +359,17 @@ public class InventoryControllerTest {
         cfacts2.setAccountNumber("account");
         cfacts2.setSubscriptionManagerId(uuid2.toString());
         verify(inventoryService).sendHostUpdate(Mockito.eq(Arrays.asList(cfacts1, cfacts2)));
+    }
+
+    @Test
+    public void memtotalFromString() {
+        assertEquals(12345, controller.memtotalFromString("12345.00B"));
+        assertEquals(12345, controller.memtotalFromString("12345.00b"));
+        assertEquals(12345, controller.memtotalFromString("12345.05"));
+        assertEquals(12346, controller.memtotalFromString("12345.5B"));
+        assertEquals(12345, controller.memtotalFromString("12345"));
+
+        assertThrows(NumberFormatException.class, () -> controller.memtotalFromString("123.00BM"));
+        assertThrows(NumberFormatException.class, () -> controller.memtotalFromString("12B"));
     }
 }
