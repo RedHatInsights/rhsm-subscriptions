@@ -56,7 +56,7 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setFqdn("test.example.com");
         conduitFacts.setIpAddresses(Collections.singletonList("127.0.0.1"));
         conduitFacts.setMacAddresses(Collections.singletonList("de:ad:be:ef:fe:ed"));
-        conduitFacts.setMemory(32757752);
+        conduitFacts.setMemory(32757752L);
         conduitFacts.setOrgId("1234-org");
         conduitFacts.setRhProd(Collections.singletonList("72"));
         conduitFacts.setSubscriptionManagerId("108152b1-6b41-4e1b-b908-922c943e7950");
@@ -78,7 +78,7 @@ public class DefaultInventoryServiceTest {
         Map<String, Object> expectedFactMap = new HashMap<>();
         expectedFactMap.put("CPU_SOCKETS", 4);
         expectedFactMap.put("CPU_CORES", 8);
-        expectedFactMap.put("MEMORY", 32757752);
+        expectedFactMap.put("MEMORY", 32757752L);
         expectedFactMap.put("ARCHITECTURE", "x86_64");
         expectedFactMap.put("IS_VIRTUAL", true);
         expectedFactMap.put("VM_HOST", "vm_host");

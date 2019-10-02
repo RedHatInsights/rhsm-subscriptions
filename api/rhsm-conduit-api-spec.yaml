@@ -162,6 +162,7 @@ components:
           format: date-time
         memory:
           type: integer
+          format: int64
         architecture:
           type: string
         is_virtual:
