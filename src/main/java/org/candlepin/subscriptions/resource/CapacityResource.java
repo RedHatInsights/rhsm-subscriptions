@@ -51,7 +51,7 @@ import javax.ws.rs.core.UriInfo;
  * Capacity API implementation.
  */
 @Component
-public class CapacityResource extends AbstractReportResource implements CapacityApi {
+public class CapacityResource implements CapacityApi {
 
     @Context
     UriInfo uriInfo;
@@ -74,14 +74,14 @@ public class CapacityResource extends AbstractReportResource implements Capacity
 
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
 
-        String accountNumber = getAccountNumber();
+        String accountNumber = ResourceUtils.getAccountNumber();
         List<CapacitySnapshot> capacities = getCapacities(accountNumber, productId, granularityValue,
             beginning, ending);
 
         List<CapacitySnapshot> data;
         TallyReportLinks links;
         if (offset != null || limit != null) {
-            Pageable pageable = getPageable(offset, limit);
+            Pageable pageable = ResourceUtils.getPageable(offset, limit);
             data = paginate(capacities, pageable);
             Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
             links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);

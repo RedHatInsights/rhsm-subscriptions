@@ -51,7 +51,7 @@ import javax.ws.rs.core.UriInfo;
 @Component
 @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "false",
     matchIfMissing = true)
-public class TallyResource extends AbstractReportResource implements TallyApi {
+public class TallyResource implements TallyApi {
 
     @Context UriInfo uriInfo;
 
@@ -75,11 +75,11 @@ public class TallyResource extends AbstractReportResource implements TallyApi {
         Pageable pageable = null;
         boolean fill = limit == null && offset == null;
         if (!fill) {
-            pageable = getPageable(offset, limit);
+            pageable = ResourceUtils.getPageable(offset, limit);
         }
 
 
-        String accountNumber = getAccountNumber();
+        String accountNumber = ResourceUtils.getAccountNumber();
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(

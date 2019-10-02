@@ -34,17 +34,33 @@ import javax.ws.rs.core.Response;
 /**
  * Functionality common to both capacity and tally resources.
  */
-public class AbstractReportResource {
+public class ResourceUtils {
 
     private static final Integer DEFAULT_LIMIT = 50;
 
-    protected String getAccountNumber() {
+    private ResourceUtils() {
+        throw new IllegalStateException("Utility class; should never be instantiated!");
+    }
+
+    /**
+     * Get the account number of the authenticated user.
+     *
+     * @return account number as a String
+     */
+    static String getAccountNumber() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
     }
 
+    /**
+     * Validates offset and limit parameters and produces a {@link Pageable} for them.
+     *
+     * @param offset 0-based offset, can be null.
+     * @param limit max number of items per-page, should be non-zero.
+     * @return Pageable holding paging information.
+     */
     @NotNull
-    Pageable getPageable(Integer offset, Integer limit) {
+    static Pageable getPageable(Integer offset, Integer limit) {
         if (limit == null) {
             limit = DEFAULT_LIMIT;
         }
