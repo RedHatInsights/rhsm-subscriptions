@@ -35,9 +35,8 @@ public class SnapshotRollerTestHelper {
     public static AccountUsageCalculation createAccountCalc(String account, String owner, String product,
         int totalCores, int totalSockets, int totalInstances) {
         ProductUsageCalculation productCalc = new ProductUsageCalculation(product);
-        productCalc.addCores(totalCores);
-        productCalc.addSockets(totalSockets);
-        productCalc.addInstances(totalInstances);
+        // Assume physical systems added
+        productCalc.addPhysical(totalCores, totalSockets, totalInstances);
 
         AccountUsageCalculation calc = new AccountUsageCalculation(account);
         calc.setOwner(owner);
@@ -62,6 +61,17 @@ public class SnapshotRollerTestHelper {
         assertEquals(expectedCores, snapshot.getCores());
         assertEquals(expectedSockets, snapshot.getSockets());
         assertEquals(expectedInstances, snapshot.getInstanceCount());
+    }
+
+    public static void assertSnapshotPhysicalTotals(TallySnapshot snapshot, String expectedProduct,
+        Granularity expectedGranularity, Integer expectedPhysCores, Integer expectedPhysSockets,
+        Integer expectedPhysInstances) {
+        assertNotNull(snapshot);
+        assertEquals(expectedGranularity, snapshot.getGranularity());
+        assertEquals(expectedProduct, snapshot.getProductId());
+        assertEquals(expectedPhysCores, snapshot.getPhysicalCores());
+        assertEquals(expectedPhysSockets, snapshot.getPhysicalSockets());
+        assertEquals(expectedPhysInstances, snapshot.getPhysicalInstanceCount());
     }
 
     private SnapshotRollerTestHelper() {

@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.assertSnapshot;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.assertSnapshotPhysicalTotals;
 import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountProductCalcs;
 import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountCalc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,8 +87,8 @@ public class MonthlySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
 
-        assertSnapshot(monthlySnaps.get(0), TEST_PRODUCT, Granularity.MONTHLY,
-            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+        assertSnapshot(monthlySnaps.get(0), TEST_PRODUCT, Granularity.MONTHLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
     }
 
     @SuppressWarnings("indentation")
@@ -106,12 +107,10 @@ public class MonthlySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
         TallySnapshot monthlyToBeUpdated = monthlySnaps.get(0);
-        assertSnapshot(monthlyToBeUpdated, TEST_PRODUCT, Granularity.MONTHLY,
-            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+        assertSnapshot(monthlyToBeUpdated, TEST_PRODUCT, Granularity.MONTHLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
 
-        a1ProductCalc.addCores(100);
-        a1ProductCalc.addSockets(200);
-        a1ProductCalc.addInstances(50);
+        a1ProductCalc.addPhysical(100, 200, 50);
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedMonthlySnaps = repository
@@ -123,7 +122,10 @@ public class MonthlySnapshotRollerTest {
         TallySnapshot updated = updatedMonthlySnaps.get(0);
         assertEquals(monthlyToBeUpdated.getId(), updated.getId());
         assertSnapshot(updated, TEST_PRODUCT, Granularity.MONTHLY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
+        assertSnapshotPhysicalTotals(updated, TEST_PRODUCT, Granularity.MONTHLY,
+            a1ProductCalc.getTotalPhysicalCores(), a1ProductCalc.getTotalPhysicalSockets(),
+            a1ProductCalc.getTotalPhysicalInstanceCount());
     }
 
     @Test
@@ -147,7 +149,7 @@ public class MonthlySnapshotRollerTest {
 
         TallySnapshot toUpdate = monthlySnaps.get(0);
         assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.MONTHLY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
 
         // Update the values and run again
         accountCalcs.clear();

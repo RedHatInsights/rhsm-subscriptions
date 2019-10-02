@@ -73,12 +73,15 @@ public abstract class BaseSnapshotRoller {
         TallySnapshot snapshot = new TallySnapshot();
         snapshot.setProductId(productCalc.getProductId());
         snapshot.setGranularity(granularity);
-        snapshot.setCores(productCalc.getTotalCores());
-        snapshot.setSockets(productCalc.getTotalSockets());
-        snapshot.setInstanceCount(productCalc.getInstanceCount());
         snapshot.setOwnerId(owner);
         snapshot.setAccountNumber(account);
         snapshot.setSnapshotDate(getSnapshotDate(granularity));
+        snapshot.setCores(productCalc.getTotalCores());
+        snapshot.setSockets(productCalc.getTotalSockets());
+        snapshot.setInstanceCount(productCalc.getTotalInstanceCount());
+        snapshot.setPhysicalCores(productCalc.getTotalPhysicalCores());
+        snapshot.setPhysicalSockets(productCalc.getTotalPhysicalSockets());
+        snapshot.setPhysicalInstanceCount(productCalc.getTotalPhysicalInstanceCount());
         return snapshot;
     }
 
@@ -156,8 +159,24 @@ public abstract class BaseSnapshotRoller {
             changed = true;
         }
 
-        if (overrideMaxCheck || productCalc.getInstanceCount() > toUpdate.getInstanceCount()) {
-            toUpdate.setInstanceCount(productCalc.getInstanceCount());
+        if (overrideMaxCheck || productCalc.getTotalInstanceCount() > toUpdate.getInstanceCount()) {
+            toUpdate.setInstanceCount(productCalc.getTotalInstanceCount());
+            changed = true;
+        }
+
+        if (overrideMaxCheck || productCalc.getTotalPhysicalCores() > toUpdate.getPhysicalCores()) {
+            toUpdate.setPhysicalCores(productCalc.getTotalPhysicalCores());
+            changed = true;
+        }
+
+        if (overrideMaxCheck || productCalc.getTotalPhysicalSockets() > toUpdate.getPhysicalSockets()) {
+            toUpdate.setPhysicalSockets(productCalc.getTotalPhysicalSockets());
+            changed = true;
+        }
+
+        if (overrideMaxCheck ||
+            productCalc.getTotalPhysicalInstanceCount() > toUpdate.getPhysicalInstanceCount()) {
+            toUpdate.setPhysicalInstanceCount(productCalc.getTotalPhysicalInstanceCount());
             changed = true;
         }
 

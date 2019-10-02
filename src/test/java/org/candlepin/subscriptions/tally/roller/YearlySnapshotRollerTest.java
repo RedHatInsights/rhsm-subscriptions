@@ -81,8 +81,8 @@ public class YearlySnapshotRollerTest {
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, yearlySnaps.size());
 
-        assertSnapshot(yearlySnaps.get(0), TEST_PRODUCT, Granularity.YEARLY,
-            a1ProductCalc.getTotalCores(), a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+        assertSnapshot(yearlySnaps.get(0), TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
     }
 
     @Test
@@ -102,11 +102,9 @@ public class YearlySnapshotRollerTest {
 
         TallySnapshot toUpdate = originalSnaps.get(0);
         assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
 
-        a1ProductCalc.addCores(100);
-        a1ProductCalc.addSockets(200);
-        a1ProductCalc.addInstances(50);
+        a1ProductCalc.addPhysical(100, 200, 50);
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         // Check the yearly again. Should still be a single instance, but have updated values.
@@ -119,7 +117,10 @@ public class YearlySnapshotRollerTest {
         TallySnapshot updated = updatedSnaps.get(0);
         assertEquals(toUpdate.getId(), updated.getId());
         assertSnapshot(updated, TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
+        assertSnapshotPhysicalTotals(updated, TEST_PRODUCT, Granularity.YEARLY,
+            a1ProductCalc.getTotalPhysicalCores(), a1ProductCalc.getTotalPhysicalSockets(),
+            a1ProductCalc.getTotalPhysicalInstanceCount());
     }
 
     @Test
@@ -143,7 +144,7 @@ public class YearlySnapshotRollerTest {
 
         TallySnapshot toUpdate = yearlySnaps.get(0);
         assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.YEARLY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
 
         // Update the values and run again
         accountCalcs.clear();

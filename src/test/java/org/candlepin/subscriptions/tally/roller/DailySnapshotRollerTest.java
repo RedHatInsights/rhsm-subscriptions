@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.assertSnapshot;
+import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.assertSnapshotPhysicalTotals;
 import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountProductCalcs;
 import static org.candlepin.subscriptions.tally.roller.SnapshotRollerTestHelper.createAccountCalc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,7 +87,7 @@ public class DailySnapshotRollerTest {
         assertEquals(1, dailySnaps.size());
 
         assertSnapshot(dailySnaps.get(0), TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
     }
 
     @SuppressWarnings("indentation")
@@ -107,11 +108,9 @@ public class DailySnapshotRollerTest {
 
         TallySnapshot dailyToBeUpdated = dailySnaps.get(0);
         assertSnapshot(dailyToBeUpdated, TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
 
-        a1ProductCalc.addCores(100);
-        a1ProductCalc.addSockets(200);
-        a1ProductCalc.addInstances(50);
+        a1ProductCalc.addPhysical(100, 200, 50);
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedDailySnaps = repository
@@ -123,7 +122,10 @@ public class DailySnapshotRollerTest {
         TallySnapshot updated = updatedDailySnaps.get(0);
         assertEquals(dailyToBeUpdated.getId(), updated.getId());
         assertSnapshot(updated, TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
+        assertSnapshotPhysicalTotals(updated, TEST_PRODUCT, Granularity.DAILY,
+            a1ProductCalc.getTotalPhysicalCores(), a1ProductCalc.getTotalPhysicalSockets(),
+            a1ProductCalc.getTotalPhysicalInstanceCount());
     }
 
     @Test
@@ -143,7 +145,7 @@ public class DailySnapshotRollerTest {
 
         TallySnapshot toUpdate = dailySnaps.get(0);
         assertSnapshot(toUpdate, TEST_PRODUCT, Granularity.DAILY, a1ProductCalc.getTotalCores(),
-            a1ProductCalc.getTotalSockets(), a1ProductCalc.getInstanceCount());
+            a1ProductCalc.getTotalSockets(), a1ProductCalc.getTotalInstanceCount());
 
         // Update the values and run again
         accountCalcs.clear();

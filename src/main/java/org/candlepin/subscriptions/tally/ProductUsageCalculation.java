@@ -27,7 +27,12 @@ public class ProductUsageCalculation {
     private String productId;
     private int totalCores;
     private int totalSockets;
-    private int instanceCount;
+    private int totalInstanceCount;
+
+    // Physical
+    private int totalPhysicalCores;
+    private int totalPhysicalSockets;
+    private int totalPhysicalInstanceCount;
 
     public ProductUsageCalculation(String productId) {
         this.productId = productId;
@@ -35,10 +40,6 @@ public class ProductUsageCalculation {
 
     public String getProductId() {
         return productId;
-    }
-
-    public void addCores(int coresToAdd) {
-        this.totalCores += coresToAdd;
     }
 
     public int getTotalCores() {
@@ -49,21 +50,44 @@ public class ProductUsageCalculation {
         return totalSockets;
     }
 
-    public void addSockets(int socketsToAdd) {
-        this.totalSockets += socketsToAdd;
+    public int getTotalInstanceCount() {
+        return totalInstanceCount;
     }
 
-    public void addInstances(int instancesToAdd) {
-        this.instanceCount += instancesToAdd;
+    public int getTotalPhysicalCores() {
+        return totalPhysicalCores;
     }
 
-    public int getInstanceCount() {
-        return instanceCount;
+    public int getTotalPhysicalSockets() {
+        return totalPhysicalSockets;
+    }
+
+    public int getTotalPhysicalInstanceCount() {
+        return totalPhysicalInstanceCount;
+    }
+
+    public void addPhysical(int cores, int sockets, int instances) {
+        totalPhysicalCores += cores;
+        totalPhysicalSockets += sockets;
+        totalPhysicalInstanceCount += instances;
+        addToTotals(cores, sockets, instances);
+    }
+
+    public void addUncategorized(int cores, int sockets, int instances) {
+        addToTotals(cores, sockets, instances);
+    }
+
+    private void addToTotals(int cores, int sockets, int instances) {
+        totalCores += cores;
+        totalSockets += sockets;
+        totalInstanceCount += instances;
     }
 
     @Override
     public String toString() {
-        return String.format("[Product: %s, Cores: %s, Sockets: %s, Instances: %s]", productId,
-            totalCores, totalSockets, instanceCount);
+        return String.format(
+            "[Product: %s, Cores: %s, Sockets: %s, Instances: %s, Physical Cores: %s, Physical Sockets: %s," +
+            " Physical Instances: %s]", productId, totalCores, totalSockets, totalInstanceCount,
+            totalPhysicalCores, totalPhysicalSockets, totalPhysicalInstanceCount);
     }
 }
