@@ -37,7 +37,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.FileSystemResourceLoader;
 import org.springframework.test.context.TestPropertySource;
@@ -59,6 +61,9 @@ public class FactNormalizerTest {
     private FactNormalizer normalizer;
 
     @Autowired private ApplicationClock clock;
+
+    @MockBean
+    BuildProperties buildProperties;
 
     @BeforeAll
     public void setup() throws IOException {
@@ -230,6 +235,24 @@ public class FactNormalizerTest {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost("9,10,Foobar", 2, 2,
             "role1"));
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    }
+
+    @Test
+    public void testNormalizationDiscardsRHELWhenSatelliteExists() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(2, 11), 12, 2, null));
+        assertEquals(1, normalized.getProducts().size());
+        assertThat(normalized.getProducts(), Matchers.hasItem("Satellite 6"));
+        assertEquals(Integer.valueOf(12), normalized.getCores());
+        assertEquals(Integer.valueOf(2), normalized.getSockets());
+    }
+
+    @Test
+    public void testNormalizationDiscardsRHELWhenSatelliteExistsSameProduct() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(12), 12, 2, null));
+        assertEquals(1, normalized.getProducts().size());
+        assertThat(normalized.getProducts(), Matchers.hasItem("Satellite 6 Capsule"));
+        assertEquals(Integer.valueOf(12), normalized.getCores());
+        assertEquals(Integer.valueOf(2), normalized.getSockets());
     }
 
     private ClassifiedInventoryHostFacts createRhsmHost(List<Integer> products, Integer cores,

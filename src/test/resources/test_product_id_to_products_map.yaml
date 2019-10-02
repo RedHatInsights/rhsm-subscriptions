@@ -17,7 +17,7 @@
   - RHEL
   - RHEL Server
 11:
-  - My Custom Satellite Server
+  - Satellite 6
 12:
   - RHEL
-  - Satellite Server
+  - Satellite 6 Capsule
