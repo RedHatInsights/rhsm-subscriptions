@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -56,10 +56,10 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
         log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentForWeek = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), TallyGranularity.WEEKLY, clock.startOfCurrentWeek(),
+            getApplicableProducts(accountCalcs), Granularity.WEEKLY, clock.startOfCurrentWeek(),
             clock.endOfCurrentWeek());
 
-        updateSnapshots(accountCalcs, currentForWeek, TallyGranularity.WEEKLY);
+        updateSnapshots(accountCalcs, currentForWeek, Granularity.WEEKLY);
     }
 
 }

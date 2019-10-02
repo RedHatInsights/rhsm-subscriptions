@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -69,7 +69,7 @@ public abstract class BaseSnapshotRoller {
         Collection<AccountUsageCalculation> accountCalcs);
 
     protected TallySnapshot createSnapshotFromProductUsageCalculation(String account, String owner,
-        ProductUsageCalculation productCalc, TallyGranularity granularity) {
+        ProductUsageCalculation productCalc, Granularity granularity) {
         TallySnapshot snapshot = new TallySnapshot();
         snapshot.setProductId(productCalc.getProductId());
         snapshot.setGranularity(granularity);
@@ -82,7 +82,7 @@ public abstract class BaseSnapshotRoller {
         return snapshot;
     }
 
-    protected OffsetDateTime getSnapshotDate(TallyGranularity granularity) {
+    protected OffsetDateTime getSnapshotDate(Granularity granularity) {
         switch (granularity) {
             case QUARTERLY:
                 return clock.startOfCurrentQuarter();
@@ -99,7 +99,7 @@ public abstract class BaseSnapshotRoller {
 
     @SuppressWarnings("indentation")
     protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(Collection<String> accounts,
-        Collection<String> products, TallyGranularity granularity, OffsetDateTime begin, OffsetDateTime end) {
+        Collection<String> products, Granularity granularity, OffsetDateTime begin, OffsetDateTime end) {
         try (Stream<TallySnapshot> snapStream =
             tallyRepo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
                 accounts, products, granularity, begin, end)) {
@@ -108,7 +108,7 @@ public abstract class BaseSnapshotRoller {
     }
 
     protected void updateSnapshots(Collection<AccountUsageCalculation> accountCalcs,
-        Map<String, List<TallySnapshot>> existingSnaps, TallyGranularity targetGranularity) {
+        Map<String, List<TallySnapshot>> existingSnaps, Granularity targetGranularity) {
         List<TallySnapshot> snaps = new LinkedList<>();
         for (AccountUsageCalculation accountCalc : accountCalcs) {
             String account = accountCalc.getAccount();
@@ -145,7 +145,7 @@ public abstract class BaseSnapshotRoller {
 
     private boolean updateMaxValues(TallySnapshot toUpdate, ProductUsageCalculation productCalc) {
         boolean changed = false;
-        boolean overrideMaxCheck = TallyGranularity.DAILY.equals(toUpdate.getGranularity());
+        boolean overrideMaxCheck = Granularity.DAILY.equals(toUpdate.getGranularity());
         if (overrideMaxCheck || productCalc.getTotalCores() > toUpdate.getCores()) {
             toUpdate.setCores(productCalc.getTotalCores());
             changed = true;

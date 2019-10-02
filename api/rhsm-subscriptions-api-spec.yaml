@@ -46,6 +46,7 @@ paths:
         in: query
         schema:
           type: integer
+          minimum: 1
         description: "The numbers of items to return"
     get:
       summary: "Fetch a tally report for an account and product. If page header parameters are omitted,
@@ -140,6 +141,7 @@ paths:
         in: query
         schema:
           type: integer
+          minimum: 1
         description: "The numbers of items to return"
     get:
       summary: "Fetch a capacity report for an account and product."

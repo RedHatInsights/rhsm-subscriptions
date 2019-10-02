@@ -18,37 +18,34 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.filler;
-
-import org.candlepin.subscriptions.util.ApplicationClock;
+package org.candlepin.subscriptions.util;
 
 import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
 
 /**
- * A ReportFiller instance that will fill the given TallyReport's snapshots based on a DAILY granularity.
- * The offset between the snapshots in the report is 1 day.
+ * A ReportFiller instance that will fill the given TallyReport's snapshots based on a MONTHLY granularity.
  */
-public class DailyReportFiller extends ReportFiller {
+public class MonthlyTimeAdjuster extends SnapshotTimeAdjuster {
 
-    public DailyReportFiller(ApplicationClock clock) {
+    public MonthlyTimeAdjuster(ApplicationClock clock) {
         super(clock);
     }
 
     @Override
-    TemporalAmount getSnapshotOffset() {
-        return Period.ofDays(1);
+    public TemporalAmount getSnapshotOffset() {
+        return Period.ofMonths(1);
     }
 
     @Override
-    OffsetDateTime adjustToPeriodStart(OffsetDateTime startDate) {
-        return clock.startOfDay(startDate);
+    public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
+        return clock.startOfMonth(toAdjust);
     }
 
     @Override
-    OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
-        return clock.endOfDay(toAdjust);
+    public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
+        return clock.endOfMonth(toAdjust);
     }
 
 }

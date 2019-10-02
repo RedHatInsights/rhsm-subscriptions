@@ -20,23 +20,32 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.AdminOnly;
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
-import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.UriInfo;
 
 /**
  * Capacity API implementation.
@@ -44,76 +53,115 @@ import javax.validation.constraints.NotNull;
 @Component
 public class CapacityResource implements CapacityApi {
 
+    @Context
+    UriInfo uriInfo;
+
+    private final SubscriptionCapacityRepository repository;
+    private final PageLinkCreator pageLinkCreator;
+    private final ApplicationClock clock;
+
+    public CapacityResource(SubscriptionCapacityRepository repository, PageLinkCreator pageLinkCreator,
+        ApplicationClock clock) {
+        this.repository = repository;
+        this.pageLinkCreator = pageLinkCreator;
+        this.clock = clock;
+    }
+
     @Override
     @AdminOnly
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
 
-        List<CapacitySnapshot> snapshots = createMockData(granularity, beginning, ending);
+        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
 
-        return new CapacityReport()
-            .data(snapshots)
-            .links(createMockLinks())
-            .meta(createMockMeta(productId, granularity, snapshots));
-    }
+        String accountNumber = ResourceUtils.getAccountNumber();
+        List<CapacitySnapshot> capacities = getCapacities(accountNumber, productId, granularityValue,
+            beginning, ending);
 
-    private CapacityReportMeta createMockMeta(String productId, @NotNull String granularity,
-        List<CapacitySnapshot> snapshots) {
-
-        return new CapacityReportMeta()
-            .count(snapshots.size())
-            .granularity(granularity)
-            .product(productId);
-    }
-
-    private TallyReportLinks createMockLinks() {
-        return new TallyReportLinks();
-    }
-
-    private List<CapacitySnapshot> createMockData(@NotNull String granularity,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
-
-        List<CapacitySnapshot> snapshots = new ArrayList<>();
-        int i = 0;
-        for (OffsetDateTime current = beginning; current.isBefore(ending); current =
-            current.plus(getAmount(granularity))) {
-
-            OffsetDateTime effectiveDate = current;
-            if (i == 0) {
-                effectiveDate = current.plusSeconds(1); // to keep our "range is exclusive" correct with this
-                // mock data :-)
-            }
-            int sockets = 64;
-            if (i == 4) {
-                // leave a gap for illustrative purposes
-                sockets = 0;
-            }
-            else if (i > 4) {
-                sockets = 100;
-            }
-            snapshots.add(new CapacitySnapshot().date(effectiveDate).sockets(sockets)
-                .physicalSockets(sockets / 2)
-                .hypervisorSockets(sockets / 2)
-                .hasInfiniteQuantity(false));
-            i += 1;
+        List<CapacitySnapshot> data;
+        TallyReportLinks links;
+        if (offset != null || limit != null) {
+            Pageable pageable = ResourceUtils.getPageable(offset, limit);
+            data = paginate(capacities, pageable);
+            Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+            links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
         }
-        return snapshots;
+        else {
+            data = capacities;
+            links = null;
+        }
+
+        CapacityReport report = new CapacityReport();
+        report.setData(data);
+        report.setMeta(new CapacityReportMeta());
+        report.getMeta().setGranularity(granularity);
+        report.getMeta().setProduct(productId);
+        report.getMeta().setCount(report.getData().size());
+        report.setLinks(links);
+
+        return report;
     }
 
-    private TemporalAmount getAmount(String granularity) {
-        switch (TallyGranularity.valueOf(granularity.toUpperCase())) {
-            case DAILY:
-                return Period.ofDays(1);
-            case WEEKLY:
-                return Period.ofWeeks(1);
-            case MONTHLY:
-                return Period.ofMonths(1);
-            case QUARTERLY:
-                return Period.ofMonths(3);
-            case YEARLY:
-                return Period.ofYears(1);
-            default:
-                return null;
+    private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
+        if (pageable == null) {
+            return capacities;
         }
+        int offset = pageable.getPageNumber() * pageable.getPageSize();
+        int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
+        return capacities.subList(offset, lastIndex);
     }
+
+    private List<CapacitySnapshot> getCapacities(String accountNumber, String productId,
+        Granularity granularity, @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
+
+        List<SubscriptionCapacity> matches =
+            repository.findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
+            accountNumber,
+            productId,
+            beginning,
+            ending);
+
+        SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
+
+        OffsetDateTime start = timeAdjuster.adjustToPeriodStart(beginning);
+        OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(ending);
+        TemporalAmount offset = timeAdjuster.getSnapshotOffset();
+
+        List<CapacitySnapshot> result = new ArrayList<>();
+        OffsetDateTime next = OffsetDateTime.from(start);
+        while (next.isBefore(end) || next.isEqual(end)) {
+            result.add(createCapacitySnapshot(clock.startOfDay(next), matches));
+            next = clock.startOfDay(next.plus(offset));
+        }
+        return result;
+    }
+
+    private CapacitySnapshot createCapacitySnapshot(OffsetDateTime date, List<SubscriptionCapacity> matches) {
+        // NOTE there is room for future optimization here, as the we're *generally* calculating the same sum
+        // across a time range, also we might opt to do some of this in the DB query in the future.
+        int sockets = 0;
+        int physicalSockets = 0;
+        int hypervisorSockets = 0;
+
+        for (SubscriptionCapacity capacity : matches) {
+            if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
+                if (capacity.getVirtualSockets() != null) {
+                    sockets += capacity.getVirtualSockets();
+                    hypervisorSockets += capacity.getVirtualSockets();
+                }
+                if (capacity.getPhysicalSockets() != null) {
+                    sockets += capacity.getPhysicalSockets();
+                    physicalSockets += capacity.getPhysicalSockets();
+                }
+            }
+        }
+
+        return new CapacitySnapshot()
+            .date(date)
+            .sockets(sockets)
+            .physicalSockets(physicalSockets)
+            .hypervisorSockets(hypervisorSockets)
+            .hasInfiniteQuantity(false);
+    }
+
 }

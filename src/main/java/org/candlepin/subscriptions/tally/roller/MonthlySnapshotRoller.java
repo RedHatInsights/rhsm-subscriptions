@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -57,10 +57,10 @@ public class MonthlySnapshotRoller extends BaseSnapshotRoller {
         log.debug("Producing monthly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentMonthlySnaps = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), TallyGranularity.MONTHLY, clock.startOfCurrentMonth(),
+            getApplicableProducts(accountCalcs), Granularity.MONTHLY, clock.startOfCurrentMonth(),
             clock.endOfCurrentMonth());
 
-        updateSnapshots(accountCalcs, currentMonthlySnaps, TallyGranularity.MONTHLY);
+        updateSnapshots(accountCalcs, currentMonthlySnaps, Granularity.MONTHLY);
     }
 
 }

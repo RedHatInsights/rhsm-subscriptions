@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.resource;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -77,7 +77,7 @@ public class TallyResourceTest {
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("123456"),
             Mockito.eq("product1"),
-            Mockito.eq(TallyGranularity.DAILY),
+            Mockito.eq(Granularity.DAILY),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.any(Pageable.class)))
@@ -97,7 +97,7 @@ public class TallyResourceTest {
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("123456"),
             Mockito.eq("product1"),
-            Mockito.eq(TallyGranularity.DAILY),
+            Mockito.eq(Granularity.DAILY),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
@@ -127,7 +127,7 @@ public class TallyResourceTest {
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
                  Mockito.eq("123456"),
                  Mockito.eq("product1"),
-                 Mockito.eq(TallyGranularity.DAILY),
+                 Mockito.eq(Granularity.DAILY),
                  Mockito.eq(min),
                  Mockito.eq(max),
                  Mockito.eq(null)))

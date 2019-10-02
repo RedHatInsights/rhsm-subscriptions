@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.controller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.AccountListSource;
 
@@ -56,7 +56,7 @@ public class TallyRetentionController {
     }
 
     public void cleanStaleSnapshotsForAccount(String accountNumber) {
-        for (TallyGranularity granularity : TallyGranularity.values()) {
+        for (Granularity granularity : Granularity.values()) {
             OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
             if (cutoffDate == null) {
                 continue;

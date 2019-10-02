@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 
 import org.junit.jupiter.api.Test;
@@ -57,7 +57,7 @@ public class TallySnapshotRepositoryTest {
 
     @Test
     public void testSave() {
-        TallySnapshot t = createUnpersisted("Hello", "World", TallyGranularity.DAILY, 2, 3, 4,
+        TallySnapshot t = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4,
             OffsetDateTime.now());
         TallySnapshot saved = repository.saveAndFlush(t);
         assertNotNull(saved.getId());
@@ -65,8 +65,8 @@ public class TallySnapshotRepositoryTest {
 
     @Test
     public void testFindByAccountNumberAndProduct() {
-        TallySnapshot t1 = createUnpersisted("Hello", "World", TallyGranularity.DAILY, 2, 3, 4, NOWISH);
-        TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", TallyGranularity.DAILY, 9999, 999, 99, NOWISH);
+        TallySnapshot t1 = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
+        TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
 
         repository.saveAll(Arrays.asList(t1, t2));
         repository.flush();
@@ -75,7 +75,7 @@ public class TallySnapshotRepositoryTest {
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
             "Bugs",
             "Bunny",
-            TallyGranularity.DAILY,
+            Granularity.DAILY,
             LONG_AGO,
             FAR_FUTURE,
             PageRequest.of(0, 10)
@@ -94,22 +94,22 @@ public class TallySnapshotRepositoryTest {
         String product1 = "Product1";
         String product2 = "Product2";
         // Will not be found - out of date range.
-        TallySnapshot t1 = createUnpersisted("Account1", product1, TallyGranularity.DAILY, 2, 3, 4,
+        TallySnapshot t1 = createUnpersisted("Account1", product1, Granularity.DAILY, 2, 3, 4,
             LONG_AGO);
         // Will be found.
-        TallySnapshot t2 = createUnpersisted("Account2", product1, TallyGranularity.DAILY, 9, 10, 11,
+        TallySnapshot t2 = createUnpersisted("Account2", product1, Granularity.DAILY, 9, 10, 11,
             NOWISH);
         // Will be found.
-        TallySnapshot t3 = createUnpersisted("Account2", product2, TallyGranularity.DAILY, 19, 20, 21,
+        TallySnapshot t3 = createUnpersisted("Account2", product2, Granularity.DAILY, 19, 20, 21,
             NOWISH);
         // Will not be found, incorrect granularity
-        TallySnapshot t4 = createUnpersisted("Account2", product2, TallyGranularity.WEEKLY, 19, 20, 21,
+        TallySnapshot t4 = createUnpersisted("Account2", product2, Granularity.WEEKLY, 19, 20, 21,
             NOWISH);
         // Will not be in result - Account not in query
-        TallySnapshot t5 = createUnpersisted("Account3", product1, TallyGranularity.DAILY, 99, 100, 101,
+        TallySnapshot t5 = createUnpersisted("Account3", product1, Granularity.DAILY, 99, 100, 101,
             FAR_FUTURE);
         // Will not be found - incorrect granularity
-        TallySnapshot t6 = createUnpersisted("Account2", product1, TallyGranularity.WEEKLY, 20, 22, 23,
+        TallySnapshot t6 = createUnpersisted("Account2", product1, Granularity.WEEKLY, 20, 22, 23,
             NOWISH);
 
         repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5, t6));
@@ -124,7 +124,7 @@ public class TallySnapshotRepositoryTest {
         List<String> products = Arrays.asList(product1, product2);
         List<TallySnapshot> found =
             repository.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(accounts,
-            products, TallyGranularity.DAILY, min, max).collect(Collectors.toList());
+            products, Granularity.DAILY, min, max).collect(Collectors.toList());
         // TODO Expect this to fail. Need to rebuild test result checking.
         assertEquals(2, found.size());
         assertEquals("Account2", found.get(0).getAccountNumber());
@@ -134,7 +134,7 @@ public class TallySnapshotRepositoryTest {
         assertEquals(Integer.valueOf(11), found.get(0).getInstanceCount());
     }
 
-    private TallySnapshot createUnpersisted(String account, String product, TallyGranularity granularity,
+    private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
         int cores, int sockets, int instances, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);

@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.retention;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class TallyRetentionPolicyTest {
     void testDailyCutoffDate() {
         TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
         config.setDaily(15);
-        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(TallyGranularity.DAILY);
+        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.DAILY);
         OffsetDateTime fifteenDaysAgo = OffsetDateTime.of(2019, 5, 9, 0, 0, 0, 0, ZoneOffset.UTC);
         assertEquals(fifteenDaysAgo, cutoff);
     }
@@ -50,7 +50,7 @@ class TallyRetentionPolicyTest {
     void testWeeklyCutoffDate() {
         TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
         config.setWeekly(3);
-        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(TallyGranularity.WEEKLY);
+        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.WEEKLY);
         OffsetDateTime threeWeeksAgo = OffsetDateTime.of(2019, 4, 28, 0, 0, 0, 0, ZoneOffset.UTC);
         assertEquals(threeWeeksAgo, cutoff);
     }
@@ -59,7 +59,7 @@ class TallyRetentionPolicyTest {
     void testMonthlyCutoffDate() {
         TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
         config.setMonthly(2);
-        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(TallyGranularity.MONTHLY);
+        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.MONTHLY);
         OffsetDateTime twoMonthsAgo = OffsetDateTime.of(2019, 3, 1, 0, 0, 0, 0, ZoneOffset.UTC);
         assertEquals(twoMonthsAgo, cutoff);
     }
@@ -68,7 +68,7 @@ class TallyRetentionPolicyTest {
     void testQuarterlyCutoffDate() {
         TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
         config.setQuarterly(2);
-        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(TallyGranularity.QUARTERLY);
+        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.QUARTERLY);
         OffsetDateTime twoQuartersAgo = OffsetDateTime.of(2018, 10, 1, 0, 0, 0, 0, ZoneOffset.UTC);
         assertEquals(twoQuartersAgo, cutoff);
     }
@@ -77,7 +77,7 @@ class TallyRetentionPolicyTest {
     void testYearlyCutoffDate() {
         TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
         config.setYearly(2);
-        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(TallyGranularity.YEARLY);
+        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.YEARLY);
         OffsetDateTime twoYearsAgo = OffsetDateTime.of(2017, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
         assertEquals(twoYearsAgo, cutoff);
     }

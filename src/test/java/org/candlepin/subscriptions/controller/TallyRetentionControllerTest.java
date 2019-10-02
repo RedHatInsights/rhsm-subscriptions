@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.controller;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.TallyGranularity;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.AccountListSource;
 
@@ -51,11 +51,11 @@ class TallyRetentionControllerTest {
     @Test
     void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
         OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-        when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(cutoff);
+        when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
         controller.cleanStaleSnapshotsForAccount("123456");
         verify(repository).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
             eq("123456"),
-            eq(TallyGranularity.DAILY),
+            eq(Granularity.DAILY),
             eq(cutoff)
         );
         verifyNoMoreInteractions(repository);
@@ -63,7 +63,7 @@ class TallyRetentionControllerTest {
 
     @Test
     void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
-        when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(null);
+        when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
         controller.cleanStaleSnapshotsForAccount("123456");
         verifyZeroInteractions(repository);
     }
@@ -71,7 +71,7 @@ class TallyRetentionControllerTest {
     @Test
     void testPurgeSnapshots() throws Exception {
         OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-        when(policy.getCutoffDate(TallyGranularity.DAILY)).thenReturn(cutoff);
+        when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
 
         List<String> testList = Arrays.asList("1", "2", "3", "4");
         when(accountListSource.list()).thenReturn(testList);
@@ -80,7 +80,7 @@ class TallyRetentionControllerTest {
 
         verify(repository, times(4)).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
             anyString(),
-            eq(TallyGranularity.DAILY),
+            eq(Granularity.DAILY),
             eq(cutoff)
         );
     }
