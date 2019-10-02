@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -53,7 +55,8 @@ import javax.validation.Validator;
 public class InventoryController {
     private static final Logger log = LoggerFactory.getLogger(InventoryController.class);
 
-    private static final int KIBIBYTES_PER_GIBIBYTE = 1048576;
+    private static final BigDecimal KIBIBYTES_PER_GIBIBYTE = BigDecimal.valueOf(1048576);
+    private static final BigDecimal BYTES_PER_KIBIBYTE = BigDecimal.valueOf(1024);
     private static final String COMMA_REGEX = ",\\s*";
     private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
 
@@ -147,9 +150,10 @@ public class InventoryController {
         String memoryTotal = pinheadFacts.get(MEMORY_MEMTOTAL);
         if (!isEmpty(memoryTotal)) {
             try {
-                int memoryBytes = memtotalFromString(memoryTotal);
+                BigDecimal memoryBytes = memtotalFromString(memoryTotal);
                 // memtotal is a little less than accessible memory, round up to next GB
-                int memoryGigabytes = (int) Math.ceil((float) memoryBytes / (float) KIBIBYTES_PER_GIBIBYTE);
+                long memoryGigabytes = memoryBytes.divide(KIBIBYTES_PER_GIBIBYTE, RoundingMode.CEILING)
+                    .longValue();
                 facts.setMemory(memoryGigabytes);
             }
             catch (NumberFormatException e) {
@@ -163,7 +167,12 @@ public class InventoryController {
         }
     }
 
-    protected int memtotalFromString(String memoryTotal) {
+    /**
+     * Return memorytotal in kibibytes, as seen in /proc/meminfo
+     * @param memoryTotal memory fact as a string
+     * @return memory total in kibibytes
+     */
+    protected BigDecimal memtotalFromString(String memoryTotal) {
         // Check for match of openshift
         String patternString = "^\\d+\\.\\d+[Bb]$";
         Matcher matcher = Pattern.compile(patternString).matcher(memoryTotal);
@@ -172,8 +181,11 @@ public class InventoryController {
         // Any other format will throw a NumberFormatException if not a double.
         if (matcher.matches()) {
             memStr = memStr.replaceAll("[Bb]", "");
+            return new BigDecimal(memStr).divide(BYTES_PER_KIBIBYTE, RoundingMode.CEILING);
         }
-        return (int) Math.round(Double.parseDouble(memStr));
+        else {
+            return new BigDecimal(memStr);
+        }
     }
 
     @SuppressWarnings("indentation")

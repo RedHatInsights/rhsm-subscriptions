@@ -38,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -175,7 +176,7 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-        assertEquals(new Integer(32), conduitFacts.getMemory());
+        assertEquals(new Long(32), conduitFacts.getMemory());
     }
 
     @Test
@@ -195,11 +196,11 @@ public class InventoryControllerTest {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
-        consumer.getFacts().put("memory.memtotal", "32757812.00B");
+        consumer.getFacts().put("memory.memtotal", "9223372036854775807.00B");
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-        assertEquals(new Integer(32), conduitFacts.getMemory());
+        assertEquals(new Long(8589934592L), conduitFacts.getMemory());
     }
 
     @Test
@@ -363,11 +364,11 @@ public class InventoryControllerTest {
 
     @Test
     public void memtotalFromString() {
-        assertEquals(12345, controller.memtotalFromString("12345.00B"));
-        assertEquals(12345, controller.memtotalFromString("12345.00b"));
-        assertEquals(12345, controller.memtotalFromString("12345.05"));
-        assertEquals(12346, controller.memtotalFromString("12345.5B"));
-        assertEquals(12345, controller.memtotalFromString("12345"));
+        assertEquals(new BigDecimal("12.06"), controller.memtotalFromString("12345.00B"));
+        assertEquals(new BigDecimal("12.06"), controller.memtotalFromString("12345.00b"));
+        assertEquals(new BigDecimal("12345.05"), controller.memtotalFromString("12345.05"));
+        assertEquals(new BigDecimal("12.1"), controller.memtotalFromString("12345.5B"));
+        assertEquals(BigDecimal.valueOf(12345), controller.memtotalFromString("12345"));
 
         assertThrows(NumberFormatException.class, () -> controller.memtotalFromString("123.00BM"));
         assertThrows(NumberFormatException.class, () -> controller.memtotalFromString("12B"));

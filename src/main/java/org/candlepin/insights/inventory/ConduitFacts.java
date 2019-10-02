@@ -77,7 +77,7 @@ public class ConduitFacts extends ConsumerInventory {
 
     @Positive
     @Override
-    public Integer getMemory() {
+    public Long getMemory() {
         return super.getMemory();
     }
 }
