@@ -25,6 +25,9 @@ import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,16 +36,54 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Defines operations against the inventory service.
+ * Defines operations against the inventory service. This service allows batching host fact
+ * updates. Once the maximum fact queue depth is reached, the service will auto flush the updates
+ * so that we don't keep too many facts in memory before they are pushed to inventory.
  */
 public abstract class InventoryService {
+
+    private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
+
+    private int maxQueueDepth;
+    private List<ConduitFacts> factQueue;
+
+    public InventoryService(int maxQueueDepth) {
+        this.maxQueueDepth = maxQueueDepth;
+        this.factQueue = new LinkedList<>();
+    }
 
     /**
      * Send host inventory updates for the specified facts.
      *
      * @param conduitFactsForOrg the host facts to send.
      */
-    public abstract void sendHostUpdate(List<ConduitFacts> conduitFactsForOrg);
+    protected abstract void sendHostUpdate(List<ConduitFacts> conduitFactsForOrg);
+
+    /**
+     * Schedules the given host facts for update. When the max queue depth is reached,
+     * fact updates are automatically flushed.
+     *
+     * @param facts the host facts to schedule for update.
+     */
+    public void scheduleHostUpdate(ConduitFacts facts) {
+        factQueue.add(facts);
+
+        // Auto flush updates when max queue depth is reached.
+        if (factQueue.size() == maxQueueDepth) {
+            log.debug("Max queue depth reached. Auto flusing updates.");
+            flushHostUpdates();
+        }
+    }
+
+    /**
+     * Force the currently scheduled updates to be sent to inventory.
+     */
+    public void flushHostUpdates() {
+        if (!factQueue.isEmpty()) {
+            sendHostUpdate(factQueue);
+            factQueue.clear();
+        }
+    }
 
     /**
      * Given a set of facts, report them as a host to the inventory service.

@@ -259,8 +259,8 @@ public class InventoryController {
         }
     }
 
-    private List<ConduitFacts> getValidatedConsumers(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
+    private int validateConduitFactsForOrg(String orgId, PostFactValidationAction action) {
+        int validated = 0;
         for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
             ConduitFacts facts;
             try {
@@ -274,7 +274,9 @@ public class InventoryController {
 
             Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
             if (violations.isEmpty()) {
-                conduitFactsForOrg.add(facts);
+                // post process the conduit facts
+                action.postProcess(facts);
+                validated++;
             }
             else if (log.isInfoEnabled()) {
                 log.info("Consumer {} failed validation: {}", consumer.getName(),
@@ -283,19 +285,19 @@ public class InventoryController {
             }
 
         }
-        return conduitFactsForOrg;
+        return validated;
     }
 
     public void updateInventoryForOrg(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
-        inventoryService.sendHostUpdate(conduitFactsForOrg);
-        log.info("Host inventory update completed for org {}. Consumers: {}", orgId,
-            conduitFactsForOrg.size());
+        int processed = validateConduitFactsForOrg(orgId, inventoryService::scheduleHostUpdate);
+        inventoryService.flushHostUpdates();
+        log.info("Host inventory update completed for org {}. Updates: {}", orgId, processed);
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
-        return inventoryService.getInventoryForOrgConsumers(conduitFactsForOrg);
+        List<ConduitFacts> cFacts = new LinkedList<>();
+        validateConduitFactsForOrg(orgId, cFacts::add);
+        return inventoryService.getInventoryForOrgConsumers(cFacts);
     }
 
     private String buildValidationMessage(ConstraintViolation<ConduitFacts> x) {
@@ -308,5 +310,12 @@ public class InventoryController {
             return true;
         }
         return false;
+    }
+
+    /**
+     * An action that is executed for each consumer that is pulled from pinhead.
+     */
+    private interface PostFactValidationAction {
+        void postProcess(ConduitFacts facts);
     }
 }

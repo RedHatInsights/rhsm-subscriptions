@@ -40,7 +40,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -64,15 +63,32 @@ public class InventoryControllerTest {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
+        consumer1.setOrgId("123");
         consumer1.setUuid(uuid1.toString());
         consumer1.setAccountNumber("account");
+
+        ConduitFacts expectedFacts1 = new ConduitFacts();
+        expectedFacts1.setOrgId("123");
+        expectedFacts1.setAccountNumber("account");
+        expectedFacts1.setSubscriptionManagerId(uuid1.toString());
+
         Consumer consumer2 = new Consumer();
+        consumer2.setOrgId("123");
         consumer2.setUuid(uuid2.toString());
         consumer2.setAccountNumber("account");
+
+        ConduitFacts expectedFacts2 = new ConduitFacts();
+        expectedFacts2.setOrgId("123");
+        expectedFacts2.setAccountNumber("account");
+        expectedFacts2.setSubscriptionManagerId(uuid2.toString());
+
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
-        Mockito.verify(inventoryService, times(1)).sendHostUpdate(any());
+
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(expectedFacts1));
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(expectedFacts2));
+        verify(inventoryService, times(1)).flushHostUpdates();
     }
 
     @Test
@@ -87,11 +103,13 @@ public class InventoryControllerTest {
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
+
         ConduitFacts expected = new ConduitFacts();
         expected.setOrgId("456");
         expected.setAccountNumber("account");
         expected.setSubscriptionManagerId(uuid.toString());
-        verify(inventoryService).sendHostUpdate(Mockito.eq(Collections.singletonList(expected)));
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
+        verify(inventoryService, times(1)).flushHostUpdates();
     }
 
     @Test
@@ -99,14 +117,23 @@ public class InventoryControllerTest {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
+        consumer1.setOrgId("123");
         consumer1.setUuid(uuid1.toString());
         consumer1.setAccountNumber("account");
         Consumer consumer2 = new Consumer();
         consumer2.setUuid(uuid2.toString());
+
+        ConduitFacts expected = new ConduitFacts();
+        expected.setOrgId("123");
+        expected.setAccountNumber("account");
+        expected.setSubscriptionManagerId(uuid1.toString());
+
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
+
         controller.updateInventoryForOrg("123");
-        Mockito.verify(inventoryService, times(1)).sendHostUpdate(any());
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
+        verify(inventoryService, times(1)).flushHostUpdates();
     }
 
     @Test
@@ -359,7 +386,9 @@ public class InventoryControllerTest {
         cfacts2.setOrgId("456");
         cfacts2.setAccountNumber("account");
         cfacts2.setSubscriptionManagerId(uuid2.toString());
-        verify(inventoryService).sendHostUpdate(Mockito.eq(Arrays.asList(cfacts1, cfacts2)));
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts1));
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts2));
+        verify(inventoryService, times(1)).flushHostUpdates();
     }
 
     @Test

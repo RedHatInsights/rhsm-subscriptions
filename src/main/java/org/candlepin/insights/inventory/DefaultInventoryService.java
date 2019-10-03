@@ -21,7 +21,6 @@
 package org.candlepin.insights.inventory;
 
 import org.candlepin.insights.exception.inventory.InventoryServiceException;
-import org.candlepin.insights.inventory.client.model.BulkHostOut;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
@@ -34,39 +33,20 @@ import java.util.stream.Collectors;
 
 
 /**
- * A wrapper for the insights inventory client.
- *
- * If we get to the point where we are making multiple manipulations to the data stream as it flows through
- * this class consider
- * <code>
- * public interface ConduitVisitor {
- *     default FactSet visit(FactSet factSet) {
- *         return factSet;
- *     }
- *
- *     default CreateHostIn visit(CreateHostIn createHostIn) {
- *         return createHostIn;
- *     }
- *
- *     default BulkHostOut visit(BulkHostOut bulkHostOut) {
- *         return bulkHostOut;
- *     }
- * </code>
- *
- * The visit methods can then get called at the appropriate places in sendHostUpdate and createHost
- * allowing us to externalize manipulations to the implementation(s) of ConduitVisitor.
+ * The default wrapper for the insights inventory client.
  */
 public class DefaultInventoryService extends InventoryService {
     private static final Logger log = LoggerFactory.getLogger(DefaultInventoryService.class);
 
     private final HostsApi hostsInventoryApi;
 
-    public DefaultInventoryService(HostsApi hostsInventoryApi) {
+    public DefaultInventoryService(HostsApi hostsInventoryApi, int maxQueueDepth) {
+        super(maxQueueDepth);
         this.hostsInventoryApi = hostsInventoryApi;
     }
 
-    public void sendHostUpdate(List<ConduitFacts> facts) {
-
+    @Override
+    protected void sendHostUpdate(List<ConduitFacts> facts) {
         // The same timestamp for the whole batch
         OffsetDateTime now = OffsetDateTime.now();
         List<CreateHostIn> hostsToSend = facts.stream()
@@ -74,8 +54,8 @@ public class DefaultInventoryService extends InventoryService {
             .collect(Collectors.toList());
 
         try {
-            BulkHostOut hosts = hostsInventoryApi.apiHostAddHostList(hostsToSend);
-            log.debug("Finished updating hosts: {}", hosts);
+            log.debug("Sending host updates to inventory via API.");
+            hostsInventoryApi.apiHostAddHostList(hostsToSend);
         }
         catch (Exception e) {
             throw new InventoryServiceException(

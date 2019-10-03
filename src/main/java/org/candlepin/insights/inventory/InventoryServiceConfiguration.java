@@ -65,8 +65,8 @@ public class InventoryServiceConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.inventory-service", name = "enableKafka",
         havingValue = "false", matchIfMissing = true)
-    public InventoryService apiInventoryService(HostsApi hostsApi) {
-        return new DefaultInventoryService(hostsApi);
+    public InventoryService apiInventoryService(InventoryServiceProperties props, HostsApi hostsApi) {
+        return new DefaultInventoryService(hostsApi, props.getApiHostUpdateBatchSize());
     }
 
     //
