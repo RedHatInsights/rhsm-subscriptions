@@ -41,6 +41,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -69,7 +70,8 @@ public class TallyResource implements TallyApi {
     @Override
     @AdminOnly
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
+        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
+        @Min(1) Integer limit) {
         // When limit and offset are not specified, we will fill the report with dummy
         // records from beginning to ending dates. Otherwise we page as usual.
         Pageable pageable = null;
