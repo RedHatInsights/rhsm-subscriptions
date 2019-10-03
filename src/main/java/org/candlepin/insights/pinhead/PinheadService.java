@@ -27,6 +27,8 @@ import org.candlepin.insights.pinhead.client.model.OrgInventory;
 import org.candlepin.insights.pinhead.client.model.Status;
 import org.candlepin.insights.pinhead.client.resources.PinheadApi;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.RetryCallback;
@@ -49,6 +51,8 @@ public class PinheadService {
 
     private class PagedConsumerIterator implements Iterator<Consumer> {
 
+        private final Logger log = LoggerFactory.getLogger(PagedConsumerIterator.class);
+
         private final String orgId;
 
         private List<Consumer> consumers;
@@ -62,6 +66,7 @@ public class PinheadService {
         private void fetchPage() {
             try {
                 retryTemplate.execute((RetryCallback<Void, ApiException>) context -> {
+                    log.debug("Fetching next page of consumers for org {}.", orgId);
                     OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, batchSize, nextOffset);
                     consumers = consumersForOrg.getFeeds();
                     Status status = consumersForOrg.getStatus();
@@ -71,6 +76,8 @@ public class PinheadService {
                     else {
                         nextOffset = null;
                     }
+                    log.debug("Consumer fetch complete. Found {} for batch of {}.", consumers.size(),
+                        batchSize);
                     return null;
                 });
             }

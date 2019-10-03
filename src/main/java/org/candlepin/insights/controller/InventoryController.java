@@ -289,7 +289,8 @@ public class InventoryController {
     public void updateInventoryForOrg(String orgId) {
         List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
         inventoryService.sendHostUpdate(conduitFactsForOrg);
-        log.info("Host inventory update completed for org: {}", orgId);
+        log.info("Host inventory update completed for org {}. Consumers: {}", orgId,
+            conduitFactsForOrg.size());
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {
