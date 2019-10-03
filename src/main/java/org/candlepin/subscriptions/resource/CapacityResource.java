@@ -43,6 +43,7 @@ import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -70,7 +71,8 @@ public class CapacityResource implements CapacityApi {
     @Override
     @AdminOnly
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset, Integer limit) {
+        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
+        @Min(1) Integer limit) {
 
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
 
