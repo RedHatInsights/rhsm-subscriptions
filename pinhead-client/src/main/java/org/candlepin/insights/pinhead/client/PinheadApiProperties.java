@@ -33,6 +33,7 @@ public class PinheadApiProperties {
     private final X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
     private boolean useStub;
     private String url;
+    private int requestBatchSize = 100;
 
     public boolean isUseStub() {
         return useStub;
@@ -104,5 +105,13 @@ public class PinheadApiProperties {
 
     public boolean usesClientAuth() {
         return x509Config.usesClientAuth();
+    }
+
+    public int getRequestBatchSize() {
+        return requestBatchSize;
+    }
+
+    public void setRequestBatchSize(int requestBatchSize) {
+        this.requestBatchSize = requestBatchSize;
     }
 }

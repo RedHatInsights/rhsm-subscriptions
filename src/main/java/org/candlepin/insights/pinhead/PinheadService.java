@@ -21,6 +21,7 @@
 package org.candlepin.insights.pinhead;
 
 import org.candlepin.insights.pinhead.client.ApiException;
+import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.OrgInventory;
 import org.candlepin.insights.pinhead.client.model.Status;
@@ -41,9 +42,9 @@ import java.util.NoSuchElementException;
  */
 @Service
 public class PinheadService {
-    public static final int BATCH_SIZE = 100; // TODO profile to determine a better batch size
 
     private final PinheadApi api;
+    private final int batchSize;
     private final RetryTemplate retryTemplate;
 
     private class PagedConsumerIterator implements Iterator<Consumer> {
@@ -61,7 +62,7 @@ public class PinheadService {
         private void fetchPage() {
             try {
                 retryTemplate.execute((RetryCallback<Void, ApiException>) context -> {
-                    OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, BATCH_SIZE, nextOffset);
+                    OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, batchSize, nextOffset);
                     consumers = consumersForOrg.getFeeds();
                     Status status = consumersForOrg.getStatus();
                     if (status != null && status.getPagination() != null) {
@@ -96,7 +97,9 @@ public class PinheadService {
     }
 
     @Autowired
-    public PinheadService(PinheadApi api, @Qualifier("pinheadRetryTemplate") RetryTemplate retryTemplate) {
+    public PinheadService(PinheadApiProperties apiProperties, PinheadApi api,
+        @Qualifier("pinheadRetryTemplate") RetryTemplate retryTemplate) {
+        this.batchSize = apiProperties.getRequestBatchSize();
         this.api = api;
         this.retryTemplate = retryTemplate;
     }

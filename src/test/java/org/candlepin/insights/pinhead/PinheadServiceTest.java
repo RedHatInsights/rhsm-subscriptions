@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.insights.pinhead.client.ApiException;
+import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.OrgInventory;
 import org.candlepin.insights.pinhead.client.model.Pagination;
@@ -88,7 +89,7 @@ public class PinheadServiceTest {
                 }
             }
         };
-        PinheadService service = new PinheadService(testApi, retryTemplate);
+        PinheadService service = new PinheadService(new PinheadApiProperties(), testApi, retryTemplate);
         List<Consumer> consumers = new ArrayList<>();
         service.getOrganizationConsumers("123").forEach(consumers::add);
         assertEquals(4, consumers.size());
@@ -107,7 +108,7 @@ public class PinheadServiceTest {
 
         // Make the tests run faster!
         retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
-        PinheadService service = new PinheadService(testApi, retryTemplate);
+        PinheadService service = new PinheadService(new PinheadApiProperties(), testApi, retryTemplate);
         List<Consumer> consumers = new ArrayList<>();
         assertThrows(RuntimeException.class,
             () -> service.getOrganizationConsumers("123").forEach(consumers::add)
