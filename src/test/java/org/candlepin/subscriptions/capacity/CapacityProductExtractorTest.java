@@ -34,6 +34,7 @@ import org.springframework.core.io.FileSystemResourceLoader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -65,5 +66,28 @@ class CapacityProductExtractorTest {
     void productExtractorReturnsNoProductsIfNoProductIdsMatch() {
         Set<String> products = extractor.getProducts(Collections.singletonList(42));
         assertThat(products, Matchers.empty());
+    }
+
+    @Test
+    void productSetIsInvalid() {
+        Set<String> products = new HashSet<>();
+        products.add("RHEL Workstation");
+        products.add("Satellite 6");
+        assertThat(extractor.setIsInvalid(products), Matchers.is(true));
+    }
+
+    @Test
+    void productSetIsValid() {
+        Set<String> products = new HashSet<>();
+        products.add("RHEL Workstation");
+        products.add("RHEL");
+        products.add("RHEL for x86");
+        assertThat(extractor.setIsInvalid(products), Matchers.is(false));
+    }
+
+    @Test
+    void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
+        Set<String> products = extractor.getProducts(Arrays.asList(12));
+        assertThat(products, Matchers.containsInAnyOrder("Satellite Server"));
     }
 }

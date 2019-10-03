@@ -44,3 +44,9 @@
 479:  # Red Hat Enterprise Linux for x86_64 (RHEL8)
   - RHEL
   - RHEL for x86
+
+250:  # Red Hat Satellite
+  - Satellite 6
+
+269:  # Red Hat Satellite Capsule
+  - Satellite 6 Capsule
