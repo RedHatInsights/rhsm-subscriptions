@@ -25,7 +25,6 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.exception.SnapshotProducerException;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.MonthlySnapshotRoller;
@@ -72,7 +71,7 @@ public class UsageSnapshotProducer {
     @Autowired
     public UsageSnapshotProducer(FactNormalizer factNormalizer, AccountListSource accountListSource,
         ProductIdToProductsMapSource productIdToProductsMapSource,
-        RoleToProductsMapSource roleToProductsMapSource, InventoryRepository inventoryRepository,
+        RoleToProductsMapSource roleToProductsMapSource, InventoryAccountUsageCollector accountUsageCollector,
         TallySnapshotRepository tallyRepo, ApplicationClock clock,
         ApplicationProperties applicationProperties) throws IOException {
 
@@ -82,7 +81,7 @@ public class UsageSnapshotProducer {
         roleToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
         this.accountBatchSize = applicationProperties.getAccountBatchSize();
 
-        this.accountUsageCollector = new InventoryAccountUsageCollector(factNormalizer, inventoryRepository);
+        this.accountUsageCollector = accountUsageCollector;
         dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
         weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
         monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);

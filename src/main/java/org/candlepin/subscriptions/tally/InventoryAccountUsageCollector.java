@@ -20,13 +20,12 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
@@ -37,17 +36,18 @@ import java.util.stream.Stream;
 /**
  * Collects the max values from all accounts in the inventory.
  */
+@Component
 public class InventoryAccountUsageCollector {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
 
     private final FactNormalizer factNormalizer;
-    private final InventoryRepository inventoryRepository;
+    private final ClassificationProxyRepository proxyRepository;
 
     public InventoryAccountUsageCollector(FactNormalizer factNormalizer,
-        InventoryRepository inventoryRepository) {
+        ClassificationProxyRepository proxyRepository) {
         this.factNormalizer = factNormalizer;
-        this.inventoryRepository = inventoryRepository;
+        this.proxyRepository = proxyRepository;
     }
 
     @SuppressWarnings("squid:S3776")
@@ -55,7 +55,7 @@ public class InventoryAccountUsageCollector {
     public Collection<AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
         Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
-        try (Stream<InventoryHostFacts> hostFactStream = inventoryRepository.getFacts(accounts)) {
+        try (Stream<ClassifiedInventoryHostFacts> hostFactStream = proxyRepository.getFacts(accounts)) {
             hostFactStream.forEach(hostFacts -> {
                 String account = hostFacts.getAccount();
                 calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));

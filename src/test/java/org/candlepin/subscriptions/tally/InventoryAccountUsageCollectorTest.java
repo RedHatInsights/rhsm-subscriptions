@@ -24,17 +24,19 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -44,46 +46,53 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 public class InventoryAccountUsageCollectorTest {
 
     private static final String TEST_PRODUCT = "RHEL";
     private static final Integer TEST_PRODUCT_ID = 1;
+    private static List<String> rhelProducts = Collections.singletonList(TEST_PRODUCT);
 
-    private ApplicationClock clock;
-    private ProductIdToProductsMapSource productIdToProductsMapSource;
-    private RoleToProductsMapSource productToRolesMapSource;
-    private List<String> rhelProducts;
-    private InventoryRepository inventoryRepo;
-    private FactNormalizer factNormalizer;
-    private InventoryAccountUsageCollector collector;
+    @MockBean private ClassificationProxyRepository inventoryRepo;
+    @Autowired private InventoryAccountUsageCollector collector;
 
-    @BeforeEach
-    public void setupTest() throws Exception {
-        productIdToProductsMapSource = mock(ProductIdToProductsMapSource.class);
-        productToRolesMapSource = mock(RoleToProductsMapSource.class);
+    /**
+     * Why are we doing this?  Because when we use a MockBean annotation on the MapSources, we
+     * don't get access to the mock until an @BeforeEach method. However, we need to mock the
+     * getValue() call before that so the FactNormalizer gets a populated list when it is constructed.
+     * The solution is to replace the bean definition of the MapSource with the ones below.
+     */
+    @TestConfiguration
+    static class TestContextConfiguration {
+        @Bean
+        @Primary
+        public ProductIdToProductsMapSource testProductIdToProductsMapSource() throws IOException {
+            ProductIdToProductsMapSource source = mock(ProductIdToProductsMapSource.class);
+            when(source.getValue()).thenReturn(
+                Collections.singletonMap(TEST_PRODUCT_ID, rhelProducts));
+            return source;
+        }
 
-        rhelProducts = Collections.singletonList("RHEL");
-
-        when(productIdToProductsMapSource.getValue()).thenReturn(
-            Collections.singletonMap(TEST_PRODUCT_ID, rhelProducts));
-        when(productToRolesMapSource.getValue()).thenReturn(Collections.emptyMap());
-
-        clock = new ApplicationClock();
-        inventoryRepo = mock(InventoryRepository.class);
-        factNormalizer = new FactNormalizer(new ApplicationProperties(), productIdToProductsMapSource,
-            productToRolesMapSource, clock);
-        collector = new InventoryAccountUsageCollector(factNormalizer, inventoryRepo);
+        @Bean
+        @Primary
+        public RoleToProductsMapSource testRoleToProducsMapSource() throws IOException {
+            RoleToProductsMapSource source = mock(RoleToProductsMapSource.class);
+            when(source.getValue()).thenReturn(Collections.emptyMap());
+            return source;
+        }
     }
 
     @Test
     public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 4, 4);
-        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 8, 4);
-        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 2, 6);
+        ClassifiedInventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 4, 4);
+        ClassifiedInventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 8, 4);
+        ClassifiedInventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 2, 6);
         when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -106,9 +115,9 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        InventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 1, 4);
-        InventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 2, 4);
-        InventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 0, 0, 2, 6);
+        ClassifiedInventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 1, 4);
+        ClassifiedInventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 0, 0, 2, 4);
+        ClassifiedInventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 0, 0, 2, 6);
         when(inventoryRepo.getFacts(eq(targetAccounts)))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
@@ -131,8 +140,8 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
-        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 8, 12);
-        InventoryHostFacts h2 = createHost("A1", "Owner1", 32, 12, 14);
+        ClassifiedInventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 8, 12);
+        ClassifiedInventoryHostFacts h2 = createHost("A1", "Owner1", 32, 12, 14);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -151,8 +160,8 @@ public class InventoryAccountUsageCollectorTest {
         throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        InventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 1, 2);
-        InventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT_ID, 1, 2);
+        ClassifiedInventoryHostFacts h1 = createHost("A1", "Owner1", TEST_PRODUCT_ID, 1, 2);
+        ClassifiedInventoryHostFacts h2 = createHost("A1", "Owner2", TEST_PRODUCT_ID, 1, 2);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
@@ -163,18 +172,34 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(expectedMessage, e.getMessage());
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
+    private ClassifiedInventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
         int sockets) {
         return createHost(account, orgId, product, cores, sockets, 0, 0);
     }
 
-    private InventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
+    private ClassifiedInventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
         int sockets, int systemProfileCoresPerSocket, int systemProfileSockets) {
-        return new InventoryHostFacts(account, account + "_system", orgId, String.valueOf(cores),
+        InventoryHostFacts baseFacts = new InventoryHostFacts(
+            account,
+            account + "_system",
+            orgId,
+            String.valueOf(cores),
             String.valueOf(sockets),
             StringUtils.collectionToCommaDelimitedString(Arrays.asList(product)),
-            OffsetDateTime.now().toString(), String.valueOf(systemProfileCoresPerSocket),
-            String.valueOf(systemProfileSockets), null, null, null, null);
+            OffsetDateTime.now().toString(),
+            String.valueOf(systemProfileCoresPerSocket),
+            String.valueOf(systemProfileSockets),
+            null,
+            null,
+            null,
+            null,
+            "false",
+            null,
+            null,
+            UUID.randomUUID().toString()
+        );
+
+        return new ClassifiedInventoryHostFacts(baseFacts);
     }
 
     private void assertCalculation(AccountUsageCalculation calc, String account, String owner,
