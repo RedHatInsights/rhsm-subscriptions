@@ -52,6 +52,12 @@ public class ApplicationProperties {
     private String accountListResourceLocation;
 
     /**
+     * Resource location of a file containing a list of products (SKUs) to process. If not specified, all
+     * products will be processed.
+     */
+    private String productWhitelistResourceLocation;
+
+    /**
      * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
      * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
      */
@@ -134,5 +140,13 @@ public class ApplicationProperties {
 
     public void setEnableIngressEndpoint(boolean enableIngressEndpoint) {
         this.enableIngressEndpoint = enableIngressEndpoint;
+    }
+
+    public String getProductWhitelistResourceLocation() {
+        return productWhitelistResourceLocation;
+    }
+
+    public void setProductWhitelistResourceLocation(String productWhitelistResourceLocation) {
+        this.productWhitelistResourceLocation = productWhitelistResourceLocation;
     }
 }
