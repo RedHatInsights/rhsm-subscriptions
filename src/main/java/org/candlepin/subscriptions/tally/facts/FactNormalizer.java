@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -76,7 +77,22 @@ public class FactNormalizer {
         normalizeQpcFacts(normalizedFacts, hostFacts);
         normalizeSocketCount(normalizedFacts);
         normalizeConflictingOrMissingRhelVariants(normalizedFacts);
+        pruneProducts(normalizedFacts);
         return normalizedFacts;
+    }
+
+    @SuppressWarnings("indentation")
+    private void pruneProducts(NormalizedFacts normalizedFacts) {
+        // If a Satellite product was found, do not include RHEL or its variants.
+        boolean hasSatellite = normalizedFacts.getProducts().stream()
+            .anyMatch(s -> s.startsWith("Satellite"));
+        if (hasSatellite) {
+            normalizedFacts.setProducts(
+                normalizedFacts.getProducts().stream()
+                    .filter(prod -> !"RHEL".equalsIgnoreCase(prod) && !isRhelVariant(prod))
+                    .collect(Collectors.toSet())
+            );
+        }
     }
 
     private void normalizeSocketCount(NormalizedFacts normalizedFacts) {

@@ -88,6 +88,6 @@ class CapacityProductExtractorTest {
     @Test
     void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
         Set<String> products = extractor.getProducts(Arrays.asList(12));
-        assertThat(products, Matchers.containsInAnyOrder("Satellite Server"));
+        assertThat(products, Matchers.containsInAnyOrder("Satellite 6 Capsule"));
     }
 }
