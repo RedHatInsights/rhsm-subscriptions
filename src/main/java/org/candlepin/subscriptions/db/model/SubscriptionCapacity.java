@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -137,5 +138,49 @@ public class SubscriptionCapacity implements Serializable {
 
     public void setEndDate(OffsetDateTime endDate) {
         this.endDate = endDate;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+            getAccountNumber(),
+            getBeginDate(),
+            getEndDate(),
+            getHasUnlimitedGuestSockets(),
+            getOwnerId(),
+            getPhysicalSockets(),
+            getProductId(),
+            getSubscriptionId(),
+            getVirtualSockets()
+        );
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof SubscriptionCapacity)) {
+            return false;
+        }
+        SubscriptionCapacity that = (SubscriptionCapacity) o;
+        return getHasUnlimitedGuestSockets() == that.getHasUnlimitedGuestSockets() &&
+            Objects.equals(getAccountNumber(), that.getAccountNumber()) &&
+            Objects.equals(getProductId(), that.getProductId()) &&
+            Objects.equals(getSubscriptionId(), that.getSubscriptionId()) &&
+            Objects.equals(getOwnerId(), that.getOwnerId()) &&
+            Objects.equals(getPhysicalSockets(), that.getPhysicalSockets()) &&
+            Objects.equals(getVirtualSockets(), that.getVirtualSockets()) &&
+            Objects.equals(getBeginDate(), that.getBeginDate()) &&
+            Objects.equals(getEndDate(), that.getEndDate());
+    }
+
+    @Override
+    public String toString() {
+        return "SubscriptionCapacity{" + "accountNumber='" + accountNumber + '\'' + ", productId='" +
+            productId + '\'' + ", subscriptionId='" + subscriptionId + '\'' + ", ownerId='" + ownerId + '\'' +
+            ", physicalSockets=" + physicalSockets + ", virtualSockets=" + virtualSockets +
+            ", hasUnlimitedGuestSockets=" + hasUnlimitedGuestSockets + ", beginDate=" + beginDate +
+            ", endDate=" + endDate + '}';
     }
 }
