@@ -37,13 +37,15 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
@@ -259,45 +261,53 @@ public class InventoryController {
         }
     }
 
-    private int validateConduitFactsForOrg(String orgId, PostFactValidationAction action) {
-        int validated = 0;
-        for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
-            ConduitFacts facts;
-            try {
-                facts = getFactsFromConsumer(consumer);
-            }
-            catch (Exception e) {
-                log.warn(String.format("Skipping consumer %s due to exception", consumer.getUuid()), e);
-                continue;
-            }
-            facts.setAccountNumber(consumer.getAccountNumber());
-
-            Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
-            if (violations.isEmpty()) {
-                // post process the conduit facts
-                action.postProcess(facts);
-                validated++;
-            }
-            else if (log.isInfoEnabled()) {
-                log.info("Consumer {} failed validation: {}", consumer.getName(),
-                    violations.stream().map(this::buildValidationMessage).collect(Collectors.joining("; "))
-                );
-            }
-
-        }
-        return validated;
-    }
-
     public void updateInventoryForOrg(String orgId) {
-        int processed = validateConduitFactsForOrg(orgId, inventoryService::scheduleHostUpdate);
+        long processed = validateConduitFactsForOrg(orgId)
+            .map(hostFacts -> {
+                inventoryService.scheduleHostUpdate(hostFacts);
+                return 1;
+            })
+            .count();
         inventoryService.flushHostUpdates();
         log.info("Host inventory update completed for org {}. Updates: {}", orgId, processed);
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {
-        List<ConduitFacts> cFacts = new LinkedList<>();
-        validateConduitFactsForOrg(orgId, cFacts::add);
-        return inventoryService.getInventoryForOrgConsumers(cFacts);
+        return inventoryService.getInventoryForOrgConsumers(
+            validateConduitFactsForOrg(orgId).collect(Collectors.toList())
+        );
+    }
+
+    private Stream<ConduitFacts> validateConduitFactsForOrg(String orgId) {
+        return StreamSupport.stream(pinheadService.getOrganizationConsumers(orgId).spliterator(), false)
+            .map(this::validateConsumer).filter(Optional::isPresent).map(Optional::get);
+    }
+
+    @SuppressWarnings("indentation")
+    private Optional<ConduitFacts> validateConsumer(Consumer consumer) {
+        try {
+            ConduitFacts facts = getFactsFromConsumer(consumer);
+            facts.setAccountNumber(consumer.getAccountNumber());
+
+            Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
+            if (violations.isEmpty()) {
+                return Optional.of(facts);
+            }
+            else {
+                if (log.isInfoEnabled()) {
+                    log.info("Consumer {} failed validation: {}", consumer.getName(),
+                        violations.stream()
+                            .map(this::buildValidationMessage)
+                            .collect(Collectors.joining("; "))
+                    );
+                }
+                return Optional.empty();
+            }
+        }
+        catch (Exception e) {
+            log.warn(String.format("Skipping consumer %s due to exception", consumer.getUuid()), e);
+            return Optional.empty();
+        }
     }
 
     private String buildValidationMessage(ConstraintViolation<ConduitFacts> x) {
@@ -312,10 +322,4 @@ public class InventoryController {
         return false;
     }
 
-    /**
-     * An action that is executed for each consumer that is pulled from pinhead.
-     */
-    private interface PostFactValidationAction {
-        void postProcess(ConduitFacts facts);
-    }
 }
