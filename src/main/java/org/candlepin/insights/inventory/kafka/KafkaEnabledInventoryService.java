@@ -33,7 +33,8 @@ import java.util.List;
 
 /**
  * An InventoryService implementation that includes a Kafka producer that is capable
- * of sending messages to the inventory service's Kafka instance.
+ * of sending messages to the inventory service's Kafka instance. A message is sent
+ * as soon as a host update is scheduled.
  */
 public class KafkaEnabledInventoryService extends InventoryService {
 
@@ -44,12 +45,14 @@ public class KafkaEnabledInventoryService extends InventoryService {
 
     public KafkaEnabledInventoryService(InventoryServiceProperties inventoryServiceProperties,
         KafkaTemplate<String, HostOperationMessage> producer) {
+        // Flush updates as soon as they get scheduled.
+        super(1);
         this.producer = producer;
         this.hostIngressTopic = inventoryServiceProperties.getKafkaHostIngressTopic();
     }
 
     @Override
-    public void sendHostUpdate(List<ConduitFacts> facts) {
+    protected void sendHostUpdate(List<ConduitFacts> facts) {
         if (facts.isEmpty()) {
             log.info("No facts to report!");
             return;
@@ -57,19 +60,17 @@ public class KafkaEnabledInventoryService extends InventoryService {
 
         OffsetDateTime now = OffsetDateTime.now();
         for (ConduitFacts factSet : facts) {
-            log.debug("Sending: {}:{}:{}", factSet.getAccountNumber(), factSet.getOrgId(),
-                factSet.getSubscriptionManagerId());
-
             // Attempt to send the host create/update message. If the send fails for any reason,
             // log the error and move on to the next one.
             try {
+                log.debug("Sending host inventory message: {}:{}:{}", factSet.getAccountNumber(),
+                    factSet.getOrgId(), factSet.getSubscriptionManagerId());
                 producer.send(hostIngressTopic, new CreateUpdateHostMessage(createHost(factSet, now)));
             }
             catch (Exception e) {
                 log.error("Unable to send host create/update message.", e);
             }
         }
-
     }
 
 }

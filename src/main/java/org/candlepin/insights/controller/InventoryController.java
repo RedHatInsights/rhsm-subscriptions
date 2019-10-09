@@ -37,13 +37,15 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
@@ -259,42 +261,53 @@ public class InventoryController {
         }
     }
 
-    private List<ConduitFacts> getValidatedConsumers(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = new LinkedList<>();
-        for (Consumer consumer : pinheadService.getOrganizationConsumers(orgId)) {
-            ConduitFacts facts;
-            try {
-                facts = getFactsFromConsumer(consumer);
-            }
-            catch (Exception e) {
-                log.warn(String.format("Skipping consumer %s due to exception", consumer.getUuid()), e);
-                continue;
-            }
+    public void updateInventoryForOrg(String orgId) {
+        long processed = validateConduitFactsForOrg(orgId)
+            .map(hostFacts -> {
+                inventoryService.scheduleHostUpdate(hostFacts);
+                return 1;
+            })
+            .count();
+        inventoryService.flushHostUpdates();
+        log.info("Host inventory update completed for org {}. Updates: {}", orgId, processed);
+    }
+
+    public OrgInventory getInventoryForOrg(String orgId) {
+        return inventoryService.getInventoryForOrgConsumers(
+            validateConduitFactsForOrg(orgId).collect(Collectors.toList())
+        );
+    }
+
+    private Stream<ConduitFacts> validateConduitFactsForOrg(String orgId) {
+        return StreamSupport.stream(pinheadService.getOrganizationConsumers(orgId).spliterator(), false)
+            .map(this::validateConsumer).filter(Optional::isPresent).map(Optional::get);
+    }
+
+    @SuppressWarnings("indentation")
+    private Optional<ConduitFacts> validateConsumer(Consumer consumer) {
+        try {
+            ConduitFacts facts = getFactsFromConsumer(consumer);
             facts.setAccountNumber(consumer.getAccountNumber());
 
             Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
             if (violations.isEmpty()) {
-                conduitFactsForOrg.add(facts);
+                return Optional.of(facts);
             }
-            else if (log.isInfoEnabled()) {
-                log.info("Consumer {} failed validation: {}", consumer.getName(),
-                    violations.stream().map(this::buildValidationMessage).collect(Collectors.joining("; "))
-                );
+            else {
+                if (log.isInfoEnabled()) {
+                    log.info("Consumer {} failed validation: {}", consumer.getName(),
+                        violations.stream()
+                            .map(this::buildValidationMessage)
+                            .collect(Collectors.joining("; "))
+                    );
+                }
+                return Optional.empty();
             }
-
         }
-        return conduitFactsForOrg;
-    }
-
-    public void updateInventoryForOrg(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
-        inventoryService.sendHostUpdate(conduitFactsForOrg);
-        log.info("Host inventory update completed for org: {}", orgId);
-    }
-
-    public OrgInventory getInventoryForOrg(String orgId) {
-        List<ConduitFacts> conduitFactsForOrg = getValidatedConsumers(orgId);
-        return inventoryService.getInventoryForOrgConsumers(conduitFactsForOrg);
+        catch (Exception e) {
+            log.warn(String.format("Skipping consumer %s due to exception", consumer.getUuid()), e);
+            return Optional.empty();
+        }
     }
 
     private String buildValidationMessage(ConstraintViolation<ConduitFacts> x) {
@@ -308,4 +321,5 @@ public class InventoryController {
         }
         return false;
     }
+
 }

@@ -22,6 +22,10 @@ package org.candlepin.insights.inventory.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -91,5 +95,15 @@ public class KafkaEnabledInventoryServiceTest {
         service.sendHostUpdate(Arrays.asList());
 
         verifyZeroInteractions(producer);
+    }
+
+    @Test
+    public void ensureMessageSentWhenHostUpdateScheduled() {
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        service.scheduleHostUpdate(new ConduitFacts());
+        service.scheduleHostUpdate(new ConduitFacts());
+
+        verify(producer, times(2)).send(anyString(), any());
     }
 }

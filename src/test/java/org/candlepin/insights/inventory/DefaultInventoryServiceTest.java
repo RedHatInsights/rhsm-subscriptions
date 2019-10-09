@@ -73,7 +73,7 @@ public class DefaultInventoryServiceTest {
 
     @Test
     public void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(api);
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 1);
         inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
         Map<String, Object> expectedFactMap = new HashMap<>();
         expectedFactMap.put("CPU_SOCKETS", 4);
@@ -109,6 +109,30 @@ public class DefaultInventoryServiceTest {
         assertCreateHostEquals(expectedHostEntry, resultList.get(0));
     }
 
+    @Test
+    public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
+        DefaultInventoryService inventoryService = new DefaultInventoryService(null, 1);
+        ConduitFacts conduitFacts = createFullyPopulatedConduitFacts();
+        OrgInventory orgInventory = inventoryService.getInventoryForOrgConsumers(
+            Collections.singletonList(conduitFacts));
+        assertEquals(1, orgInventory.getConsumerInventories().size());
+        assertEquals(conduitFacts, orgInventory.getConsumerInventories().get(0));
+    }
+
+    @Test
+    public void scheduleHostUpdateAutoFlushesWhenMaxQueueDepthIsReached() throws Exception {
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 2);
+
+        inventoryService.scheduleHostUpdate(createFullyPopulatedConduitFacts());
+        inventoryService.scheduleHostUpdate(createFullyPopulatedConduitFacts());
+
+        ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(api, Mockito.times(1)).apiHostAddHostList(argument.capture());
+
+        List<CreateHostIn> resultList = argument.getValue();
+        assertEquals(2, resultList.size());
+    }
+
     /**
      * Compare two CreateHostIn objects excepting the syncTimestamp fact since times will be slightly
      * different between an expected CreateHostIn that we create for a test and the one actually created in
@@ -129,14 +153,4 @@ public class DefaultInventoryServiceTest {
         assertEquals(expected, actual);
     }
 
-
-    @Test
-    public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(null);
-        ConduitFacts conduitFacts = createFullyPopulatedConduitFacts();
-        OrgInventory orgInventory = inventoryService
-            .getInventoryForOrgConsumers(Collections.singletonList(conduitFacts));
-        assertEquals(1, orgInventory.getConsumerInventories().size());
-        assertEquals(conduitFacts, orgInventory.getConsumerInventories().get(0));
-    }
 }
