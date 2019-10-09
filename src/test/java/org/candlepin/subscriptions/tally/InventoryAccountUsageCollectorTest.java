@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -58,6 +59,7 @@ public class InventoryAccountUsageCollectorTest {
     private static final Integer TEST_PRODUCT_ID = 1;
     private static List<String> rhelProducts = Collections.singletonList(TEST_PRODUCT);
 
+    @MockBean private BuildProperties buildProperties;
     @MockBean private ClassificationProxyRepository inventoryRepo;
     @Autowired private InventoryAccountUsageCollector collector;
 
@@ -105,11 +107,11 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
-        assertCalculation(a1Calc, "A1", "O1", "RHEL", 12, 8, 2);
+        assertTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 12, 8, 2);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
-        assertCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
+        assertTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
     }
 
     @Test
@@ -130,11 +132,11 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
-        assertCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+        assertTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
-        assertCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 12, 6, 1);
+        assertTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 12, 6, 1);
     }
 
     @Test
@@ -152,7 +154,7 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation accountCalc = calcs.get("A1");
         assertEquals(1, accountCalc.getProducts().size());
-        assertCalculation(accountCalc, "A1", "Owner1", TEST_PRODUCT, 8, 12, 1);
+        assertTotalsCalculation(accountCalc, "A1", "Owner1", TEST_PRODUCT, 8, 12, 1);
     }
 
     @Test
@@ -170,6 +172,38 @@ public class InventoryAccountUsageCollectorTest {
         String expectedMessage = String.format("Attempt to set a different owner for an account: %s:%s",
             "Owner1", "Owner2");
         assertEquals(expectedMessage, e.getMessage());
+    }
+
+    @Test
+    public void testTallyCoresAndSocketsOfRhelForPhysicalSystems() throws Exception {
+        Collection<String> targetAccounts = Arrays.asList("A1", "A2");
+        ClassifiedInventoryHostFacts host1 = createHost("A1", "O1", TEST_PRODUCT_ID, 4, 4);
+        ClassifiedInventoryHostFacts host2 = createHost("A1", "O1", TEST_PRODUCT_ID, 8, 4);
+        host2.setHypervisor(true);
+
+        ClassifiedInventoryHostFacts host3 = createHost("A2", "O2", TEST_PRODUCT_ID, 2, 6);
+        ClassifiedInventoryHostFacts host4 = createHost("A2", "O2", TEST_PRODUCT_ID, 3, 4);
+        host4.setVirtual(true);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts)))
+            .thenReturn(Arrays.asList(host1, host2, host3, host4).stream());
+
+        Map<String, AccountUsageCalculation> calcs =
+            collector.collect(rhelProducts, targetAccounts).stream()
+            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        assertEquals(2, calcs.size());
+        assertThat(calcs, Matchers.hasKey("A1"));
+        assertThat(calcs, Matchers.hasKey("A2"));
+
+        AccountUsageCalculation a1Calc = calcs.get("A1");
+        assertEquals(1, a1Calc.getProducts().size());
+        assertTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+        assertPhysicalTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 4, 4, 1);
+
+        AccountUsageCalculation a2Calc = calcs.get("A2");
+        assertEquals(1, a2Calc.getProducts().size());
+        assertTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 5, 10, 2);
+        assertPhysicalTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
     }
 
     private ClassifiedInventoryHostFacts createHost(String account, String orgId, Integer product, int cores,
@@ -202,7 +236,7 @@ public class InventoryAccountUsageCollectorTest {
         return new ClassifiedInventoryHostFacts(baseFacts);
     }
 
-    private void assertCalculation(AccountUsageCalculation calc, String account, String owner,
+    private void assertTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, int cores, int sockets, int instances) {
         assertEquals(account, calc.getAccount());
         assertEquals(owner, calc.getOwner());
@@ -212,6 +246,19 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(product, prodCalc.getProductId());
         assertEquals(cores, prodCalc.getTotalCores());
         assertEquals(sockets, prodCalc.getTotalSockets());
-        assertEquals(instances, prodCalc.getInstanceCount());
+        assertEquals(instances, prodCalc.getTotalInstanceCount());
+    }
+
+    private void assertPhysicalTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
+        String product, int physicalCores, int physicalSockets, int physicalInstances) {
+        assertEquals(account, calc.getAccount());
+        assertEquals(owner, calc.getOwner());
+        assertTrue(calc.containsProductCalculation(product));
+
+        ProductUsageCalculation prodCalc = calc.getProductCalculation(product);
+        assertEquals(product, prodCalc.getProductId());
+        assertEquals(physicalCores, prodCalc.getTotalPhysicalCores());
+        assertEquals(physicalSockets, prodCalc.getTotalPhysicalSockets());
+        assertEquals(physicalInstances, prodCalc.getTotalPhysicalInstanceCount());
     }
 }

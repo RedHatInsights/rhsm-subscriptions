@@ -87,9 +87,19 @@ public class InventoryAccountUsageCollector {
                     }
 
                     if (facts.getProducts().contains(product)) {
-                        prodCalc.addCores(facts.getCores() != null ? facts.getCores() : 0);
-                        prodCalc.addSockets(facts.getSockets() != null ? facts.getSockets() : 0);
-                        prodCalc.addInstances(1);
+                        int cores = facts.getCores() != null ? facts.getCores() : 0;
+                        int sockets = facts.getSockets() != null ? facts.getSockets() : 0;
+
+                        // Calculate the physical usage data
+                        if (!hostFacts.isHypervisor() && !hostFacts.isVirtual()) {
+                            prodCalc.addPhysical(cores, sockets, 1);
+                        }
+                        // Assume uncategorized classification and just add to the general totals.
+                        else {
+                            prodCalc.addUncategorized(cores, sockets, 1);
+                        }
+
+                        // Accumulate hypervisor and guest data here
                     }
                 });
             });

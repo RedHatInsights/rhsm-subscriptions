@@ -57,6 +57,15 @@ public class TallySnapshot implements Serializable {
     @Column(name = "sockets")
     private Integer sockets;
 
+    @Column(name = "physical_instance_count")
+    private Integer physicalInstanceCount;
+
+    @Column(name = "physical_cores")
+    private Integer physicalCores;
+
+    @Column(name = "physical_sockets")
+    private Integer physicalSockets;
+
     @Column(name = "product_id")
     private String productId;
 
@@ -108,6 +117,30 @@ public class TallySnapshot implements Serializable {
 
     public void setSockets(Integer sockets) {
         this.sockets = sockets;
+    }
+
+    public Integer getPhysicalInstanceCount() {
+        return physicalInstanceCount;
+    }
+
+    public void setPhysicalInstanceCount(Integer physicalInstanceCount) {
+        this.physicalInstanceCount = physicalInstanceCount;
+    }
+
+    public Integer getPhysicalCores() {
+        return physicalCores;
+    }
+
+    public void setPhysicalCores(Integer physicalCores) {
+        this.physicalCores = physicalCores;
+    }
+
+    public Integer getPhysicalSockets() {
+        return physicalSockets;
+    }
+
+    public void setPhysicalSockets(Integer physicalSockets) {
+        this.physicalSockets = physicalSockets;
     }
 
     public String getProductId() {
