@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import org.candlepin.subscriptions.controller.PoolIngressController;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.resources.IngressApi;
 
@@ -37,8 +38,14 @@ import javax.validation.Valid;
 @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableIngressEndpoint", havingValue = "true")
 public class IngressResource implements IngressApi {
 
+    private final PoolIngressController controller;
+
+    public IngressResource(PoolIngressController controller) {
+        this.controller = controller;
+    }
+
     @Override
-    public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> candlepinPool) {
-        // to be implemented in later work
+    public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> pools) {
+        controller.updateCapacityForOrg(orgId, pools);
     }
 }
