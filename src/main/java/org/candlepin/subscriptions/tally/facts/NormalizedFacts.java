@@ -39,6 +39,9 @@ public class NormalizedFacts {
     private Integer cores;
     private Integer sockets;
     private String owner;
+    private boolean isVirtual;
+    private boolean isHypervisor;
+    private boolean isHypervisorUnknown;
 
     public NormalizedFacts() {
         products = new HashSet<>();
@@ -78,6 +81,30 @@ public class NormalizedFacts {
 
     public void setSockets(Integer sockets) {
         this.sockets = sockets;
+    }
+
+    public boolean isVirtual() {
+        return isVirtual;
+    }
+
+    public void setVirtual(boolean virtual) {
+        isVirtual = virtual;
+    }
+
+    public boolean isHypervisor() {
+        return isHypervisor;
+    }
+
+    public void setHypervisor(boolean hypervisor) {
+        isHypervisor = hypervisor;
+    }
+
+    public boolean isHypervisorUnknown() {
+        return isHypervisorUnknown;
+    }
+
+    public void setHypervisorUnknown(boolean hypervisorUnknown) {
+        isHypervisorUnknown = hypervisorUnknown;
     }
 
     public Map<String, Object> toInventoryPayload() {

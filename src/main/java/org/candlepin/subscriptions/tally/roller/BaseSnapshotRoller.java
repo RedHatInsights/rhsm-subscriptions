@@ -82,6 +82,9 @@ public abstract class BaseSnapshotRoller {
         snapshot.setPhysicalCores(productCalc.getTotalPhysicalCores());
         snapshot.setPhysicalSockets(productCalc.getTotalPhysicalSockets());
         snapshot.setPhysicalInstanceCount(productCalc.getTotalPhysicalInstanceCount());
+        snapshot.setHypervisorCores(productCalc.getTotalHypervisorCores());
+        snapshot.setHypervisorSockets(productCalc.getTotalHypervisorSockets());
+        snapshot.setHypervisorInstanceCount(productCalc.getTotalHypervisorInstanceCount());
         return snapshot;
     }
 
@@ -146,41 +149,79 @@ public abstract class BaseSnapshotRoller {
         return prods;
     }
 
-    private boolean updateMaxValues(TallySnapshot toUpdate, ProductUsageCalculation productCalc) {
+    private boolean updateMaxValues(TallySnapshot snap, ProductUsageCalculation calc) {
         boolean changed = false;
-        boolean overrideMaxCheck = Granularity.DAILY.equals(toUpdate.getGranularity());
-        if (overrideMaxCheck || productCalc.getTotalCores() > toUpdate.getCores()) {
-            toUpdate.setCores(productCalc.getTotalCores());
+        boolean overrideMaxCheck = Granularity.DAILY.equals(snap.getGranularity());
+
+        changed |= updateMainTotals(overrideMaxCheck, snap, calc);
+        changed |= updatePhysicalTotals(overrideMaxCheck, snap, calc);
+        changed |= updateHypervisorTotals(overrideMaxCheck, snap, calc);
+        return changed;
+    }
+
+    private boolean updateMainTotals(boolean override, TallySnapshot snap, ProductUsageCalculation calc) {
+        boolean changed = false;
+        if (override || mustUpdate(snap.getCores(), calc.getTotalCores())) {
+            snap.setCores(calc.getTotalCores());
             changed = true;
         }
 
-        if (overrideMaxCheck || productCalc.getTotalSockets() > toUpdate.getSockets()) {
-            toUpdate.setSockets(productCalc.getTotalSockets());
+        if (override || mustUpdate(snap.getSockets(), calc.getTotalSockets())) {
+            snap.setSockets(calc.getTotalSockets());
             changed = true;
         }
 
-        if (overrideMaxCheck || productCalc.getTotalInstanceCount() > toUpdate.getInstanceCount()) {
-            toUpdate.setInstanceCount(productCalc.getTotalInstanceCount());
+        if (override || mustUpdate(snap.getInstanceCount(), calc.getTotalInstanceCount())) {
+            snap.setInstanceCount(calc.getTotalInstanceCount());
+            changed = true;
+        }
+        return changed;
+    }
+
+    private boolean updatePhysicalTotals(boolean override, TallySnapshot snap, ProductUsageCalculation calc) {
+        boolean changed = false;
+        if (override || mustUpdate(snap.getPhysicalCores(), calc.getTotalPhysicalCores())) {
+            snap.setPhysicalCores(calc.getTotalPhysicalCores());
             changed = true;
         }
 
-        if (overrideMaxCheck || productCalc.getTotalPhysicalCores() > toUpdate.getPhysicalCores()) {
-            toUpdate.setPhysicalCores(productCalc.getTotalPhysicalCores());
+        if (override || mustUpdate(snap.getPhysicalSockets(), calc.getTotalPhysicalSockets())) {
+            snap.setPhysicalSockets(calc.getTotalPhysicalSockets());
             changed = true;
         }
 
-        if (overrideMaxCheck || productCalc.getTotalPhysicalSockets() > toUpdate.getPhysicalSockets()) {
-            toUpdate.setPhysicalSockets(productCalc.getTotalPhysicalSockets());
+        if (override || mustUpdate(snap.getPhysicalInstanceCount(), calc.getTotalPhysicalInstanceCount())) {
+            snap.setPhysicalInstanceCount(calc.getTotalPhysicalInstanceCount());
+            changed = true;
+        }
+        return changed;
+    }
+
+    private boolean updateHypervisorTotals(boolean override, TallySnapshot snap,
+        ProductUsageCalculation calc) {
+        boolean changed = false;
+
+        if (override || mustUpdate(snap.getHypervisorCores(), calc.getTotalHypervisorCores())) {
+            snap.setHypervisorCores(calc.getTotalHypervisorCores());
             changed = true;
         }
 
-        if (overrideMaxCheck ||
-            productCalc.getTotalPhysicalInstanceCount() > toUpdate.getPhysicalInstanceCount()) {
-            toUpdate.setPhysicalInstanceCount(productCalc.getTotalPhysicalInstanceCount());
+        if (override || mustUpdate(snap.getHypervisorSockets(), calc.getTotalHypervisorSockets())) {
+            snap.setHypervisorSockets(calc.getTotalHypervisorSockets());
+            changed = true;
+        }
+
+        if (override ||
+            mustUpdate(snap.getHypervisorInstanceCount(), calc.getTotalHypervisorInstanceCount())) {
+            snap.setHypervisorInstanceCount(calc.getTotalHypervisorInstanceCount());
             changed = true;
         }
 
         return changed;
+    }
+
+    private boolean mustUpdate(Integer v1, Integer v2) {
+        return v1 == null || v2 > v1;
     }
 
 }

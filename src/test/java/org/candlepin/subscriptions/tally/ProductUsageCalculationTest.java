@@ -44,7 +44,7 @@ public class ProductUsageCalculationTest {
     public void testUncategorizedSystemTotal() {
         ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
         int expected = 10;
-        IntStream.rangeClosed(0, 4).forEach(i -> calculation.addUncategorized(i + 2, i + 1, i));
+        IntStream.rangeClosed(0, 4).forEach(i -> calculation.addToTotal(i + 2, i + 1, i));
         assertEquals(20, calculation.getTotalCores());
         assertEquals(15, calculation.getTotalSockets());
         assertEquals(10, calculation.getTotalInstanceCount());
@@ -55,30 +55,9 @@ public class ProductUsageCalculationTest {
         ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
         int expected = 10;
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addPhysical(i + 2, i + 1, i));
-        assertEquals(20, calculation.getTotalCores());
-        assertEquals(15, calculation.getTotalSockets());
-        assertEquals(10, calculation.getTotalInstanceCount());
-
         assertEquals(20, calculation.getTotalPhysicalCores());
         assertEquals(15, calculation.getTotalPhysicalSockets());
         assertEquals(10, calculation.getTotalPhysicalInstanceCount());
-    }
-
-    @Test
-    public void testAddPhysicalAndUncategorized() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
-        calculation.addPhysical(3, 2, 1);
-        calculation.addUncategorized(6, 5, 4);
-
-        // Total should include both the uncategorized and physical counts.
-        assertEquals(9, calculation.getTotalCores());
-        assertEquals(7, calculation.getTotalSockets());
-        assertEquals(5, calculation.getTotalInstanceCount());
-
-        // Physical should be kept separate
-        assertEquals(3, calculation.getTotalPhysicalCores());
-        assertEquals(2, calculation.getTotalPhysicalSockets());
-        assertEquals(1, calculation.getTotalPhysicalInstanceCount());
     }
 
 }

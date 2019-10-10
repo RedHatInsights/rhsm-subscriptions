@@ -25,6 +25,8 @@ package org.candlepin.subscriptions.tally;
  */
 public class ProductUsageCalculation {
     private String productId;
+
+    // Overall totals
     private int totalCores;
     private int totalSockets;
     private int totalInstanceCount;
@@ -33,6 +35,11 @@ public class ProductUsageCalculation {
     private int totalPhysicalCores;
     private int totalPhysicalSockets;
     private int totalPhysicalInstanceCount;
+
+    // Hypervisor
+    private int totalHypervisorSockets;
+    private int totalHypervisorCores;
+    private int totalHypervisorInstanceCount;
 
     public ProductUsageCalculation(String productId) {
         this.productId = productId;
@@ -66,18 +73,33 @@ public class ProductUsageCalculation {
         return totalPhysicalInstanceCount;
     }
 
+    public int getTotalHypervisorSockets() {
+        return totalHypervisorSockets;
+    }
+
+    public int getTotalHypervisorCores() {
+        return totalHypervisorCores;
+    }
+
+    public int getTotalHypervisorInstanceCount() {
+        return totalHypervisorInstanceCount;
+    }
+
     public void addPhysical(int cores, int sockets, int instances) {
         totalPhysicalCores += cores;
         totalPhysicalSockets += sockets;
         totalPhysicalInstanceCount += instances;
-        addToTotals(cores, sockets, instances);
+        addToTotal(cores, sockets, instances);
     }
 
-    public void addUncategorized(int cores, int sockets, int instances) {
-        addToTotals(cores, sockets, instances);
+    public void addHypervisor(int cores, int sockets, int instances) {
+        totalHypervisorCores += cores;
+        totalHypervisorSockets += sockets;
+        totalHypervisorInstanceCount += instances;
+        addToTotal(cores, sockets, instances);
     }
 
-    private void addToTotals(int cores, int sockets, int instances) {
+    public void addToTotal(int cores, int sockets, int instances) {
         totalCores += cores;
         totalSockets += sockets;
         totalInstanceCount += instances;
@@ -87,7 +109,10 @@ public class ProductUsageCalculation {
     public String toString() {
         return String.format(
             "[Product: %s, Cores: %s, Sockets: %s, Instances: %s, Physical Cores: %s, Physical Sockets: %s," +
-            " Physical Instances: %s]", productId, totalCores, totalSockets, totalInstanceCount,
-            totalPhysicalCores, totalPhysicalSockets, totalPhysicalInstanceCount);
+            " Physical Instances: %s, Hypervisor Cores: %s, Hypervisor Sockets: %s, Hypervisor Instance: %s]",
+            productId, totalCores, totalSockets, totalInstanceCount,
+            totalPhysicalCores, totalPhysicalSockets, totalPhysicalInstanceCount,
+            totalHypervisorCores, totalHypervisorSockets, totalHypervisorInstanceCount);
     }
+
 }

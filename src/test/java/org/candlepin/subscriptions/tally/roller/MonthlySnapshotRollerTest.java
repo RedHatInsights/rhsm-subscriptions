@@ -39,7 +39,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +59,9 @@ import java.util.stream.Collectors;
 public class MonthlySnapshotRollerTest {
 
     private static final String TEST_PRODUCT = "TEST_PROD";
+
+    @MockBean
+    private BuildProperties buildProperties;
 
     @Autowired
     private TallySnapshotRepository repository;

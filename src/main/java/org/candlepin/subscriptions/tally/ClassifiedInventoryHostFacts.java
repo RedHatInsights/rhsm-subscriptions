@@ -89,11 +89,11 @@ public class ClassifiedInventoryHostFacts {
         return inventoryHostFacts.getProducts();
     }
 
-    public int getSystemProfileCoresPerSocket() {
+    public Integer getSystemProfileCoresPerSocket() {
         return inventoryHostFacts.getSystemProfileCoresPerSocket();
     }
 
-    public int getSystemProfileSockets() {
+    public Integer getSystemProfileSockets() {
         return inventoryHostFacts.getSystemProfileSockets();
     }
 

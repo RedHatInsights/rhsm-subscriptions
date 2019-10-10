@@ -60,7 +60,7 @@ public class FactNormalizer {
         this.roleToProductsMap = roleToProductsMapSource.getValue();
     }
 
-    static boolean isRhelVariant(String product) {
+    public static boolean isRhelVariant(String product) {
         return product.startsWith("RHEL ") && !product.startsWith("RHEL for ");
     }
 
@@ -72,13 +72,21 @@ public class FactNormalizer {
      */
     public NormalizedFacts normalize(ClassifiedInventoryHostFacts hostFacts) {
         NormalizedFacts normalizedFacts = new NormalizedFacts();
+        normalizeClassification(normalizedFacts, hostFacts);
         normalizeSystemProfileFacts(normalizedFacts, hostFacts);
         normalizeRhsmFacts(normalizedFacts, hostFacts);
         normalizeQpcFacts(normalizedFacts, hostFacts);
-        normalizeSocketCount(normalizedFacts);
+        normalizeSocketCount(normalizedFacts, hostFacts);
         normalizeConflictingOrMissingRhelVariants(normalizedFacts);
         pruneProducts(normalizedFacts);
         return normalizedFacts;
+    }
+
+    private void normalizeClassification(NormalizedFacts normalizedFacts,
+        ClassifiedInventoryHostFacts hostFacts) {
+        normalizedFacts.setHypervisor(hostFacts.isHypervisor());
+        normalizedFacts.setVirtual(hostFacts.isVirtual());
+        normalizedFacts.setHypervisorUnknown(hostFacts.isHypervisorUnknown());
     }
 
     @SuppressWarnings("indentation")
@@ -95,10 +103,14 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeSocketCount(NormalizedFacts normalizedFacts) {
-        Integer sockets = normalizedFacts.getSockets();
-        if (sockets != null && (sockets % 2) == 1) {
-            normalizedFacts.setSockets(sockets + 1);
+    private void normalizeSocketCount(NormalizedFacts normalizedFacts,
+        ClassifiedInventoryHostFacts hostFacts) {
+        // modulo-2 rounding only applied to physical or hypervisors
+        if (hostFacts.isHypervisor() || !hostFacts.isVirtual()) {
+            Integer sockets = normalizedFacts.getSockets();
+            if (sockets != null && (sockets % 2) == 1) {
+                normalizedFacts.setSockets(sockets + 1);
+            }
         }
     }
 
@@ -126,6 +138,10 @@ public class FactNormalizer {
     }
 
     private void getProductsFromProductIds(NormalizedFacts normalizedFacts, Collection<String> productIds) {
+        if (productIds == null) {
+            return;
+        }
+
         for (String productId : productIds) {
             try {
                 Integer numericProductId = Integer.parseInt(productId);
@@ -168,7 +184,7 @@ public class FactNormalizer {
 
     private void normalizeQpcFacts(NormalizedFacts normalizedFacts, ClassifiedInventoryHostFacts hostFacts) {
         // Check if this is a RHEL host and set product.
-        if (hostFacts.getQpcProducts().contains("RHEL")) {
+        if (hostFacts.getQpcProducts() != null && hostFacts.getQpcProducts().contains("RHEL")) {
             normalizedFacts.addProduct("RHEL");
         }
         getProductsFromProductIds(normalizedFacts, hostFacts.getQpcProductIds());
