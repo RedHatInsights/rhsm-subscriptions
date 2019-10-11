@@ -37,6 +37,7 @@ ext {
     kafka_avro_serializer_version = "5.2.1"
     avro_version = "1.8.2"
     aws_sdk_version = "1.11.32"
+    guava_version = "28.1-jre"
 }
 
 allprojects {
@@ -82,6 +83,7 @@ allprojects {
             dependency "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender:1.11"
             dependency "com.amazonaws:aws-java-sdk-logs:$aws_sdk_version"
             dependency "com.amazonaws:aws-java-sdk-ec2:$aws_sdk_version"
+            dependency "com.google.guava:guava:$guava_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
@@ -168,6 +170,7 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.webjars:swagger-ui"
     compile "org.apache.commons:commons-csv"
+    compile "com.google.guava:guava"
 
     // Test dependencies
     testCompile "org.springframework.kafka:spring-kafka-test"
