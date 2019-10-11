@@ -99,6 +99,7 @@ public class InventoryControllerTest {
         consumer2.setUuid(uuid.toString());
         consumer2.setAccountNumber("account");
         consumer2.setOrgId("456");
+        when(consumer1.getAccountNumber()).thenReturn("account");
         when(consumer1.getFacts()).thenThrow(new RuntimeException("foobar"));
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
             Arrays.asList(consumer1, consumer2));
@@ -110,6 +111,20 @@ public class InventoryControllerTest {
         expected.setSubscriptionManagerId(uuid.toString());
         verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
         verify(inventoryService, times(1)).flushHostUpdates();
+    }
+
+    @Test
+    public void testShortCircuitsOnMissingAccountNumbers() {
+        Consumer consumer1 = new Consumer();
+        consumer1.setOrgId("123");
+        consumer1.setUuid(UUID.randomUUID().toString());
+        Consumer consumer2 = new Consumer();
+        consumer1.setOrgId("123");
+        consumer2.setUuid(UUID.randomUUID().toString());
+
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(Arrays.asList(consumer1, consumer2));
+        controller.updateInventoryForOrg("123");
+        verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
     }
 
     @Test

@@ -27,10 +27,15 @@ import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.Streams;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -45,7 +50,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
@@ -279,8 +283,19 @@ public class InventoryController {
     }
 
     private Stream<ConduitFacts> validateConduitFactsForOrg(String orgId) {
-        return StreamSupport.stream(pinheadService.getOrganizationConsumers(orgId).spliterator(), false)
-            .map(this::validateConsumer).filter(Optional::isPresent).map(Optional::get);
+        PeekingIterator<Consumer> consumerIterator =
+            Iterators.peekingIterator(pinheadService.getOrganizationConsumers(orgId).iterator());
+
+        // Peek at the first consumer.  If it is missing an account number, that means they all are.  Abort
+        // and return an empty stream.  No sense in wasting time looping through everything.
+        if (StringUtils.isEmpty(consumerIterator.peek().getAccountNumber())) {
+            return Stream.empty();
+        }
+
+        return Streams.stream(consumerIterator)
+            .map(this::validateConsumer)
+            .filter(Optional::isPresent)
+            .map(Optional::get);
     }
 
     @SuppressWarnings("indentation")
