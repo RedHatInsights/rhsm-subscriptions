@@ -21,56 +21,33 @@
 
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.mapper.BaseExceptionMapper;
-import org.candlepin.subscriptions.utilization.api.model.Error;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 /**
- * Entry point to allow returning a JSON response.  An error will be returned if the x-rh-identity header is
- * absent and the client will be informed that authorization is required.
+ * If the user is not presently authenticated, the server needs to send back a response indicating that
+ * they must authenticate.  In normal web applications, this would be a redirect to a login page or similar.
+ * But since we require external authentication, there is no entry point we can direct the user to.  If the
+ * x-rh-identity header is absent we send back a 401 telling the user that authentication failed.
+ * @see org.springframework.security.web.authentication.Http403ForbiddenEntryPoint
  */
-public class RestAuthenticationEntryPoint extends BaseExceptionMapper<AuthenticationException>
-    implements AuthenticationEntryPoint {
+public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    private final IdentityHeaderAuthenticationFailureHandler failureHandler;
 
-    private final ObjectMapper mapper;
-
-    public RestAuthenticationEntryPoint(ObjectMapper mapper) {
-        this.mapper = mapper;
+    public RestAuthenticationEntryPoint(IdentityHeaderAuthenticationFailureHandler failureHandler) {
+        this.failureHandler = failureHandler;
     }
 
     @Override
     public void commence(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
         AuthenticationException authException) throws IOException, ServletException {
 
-        Response r = toResponse(authException);
-        servletResponse.setContentType(r.getMediaType().toString());
-        servletResponse.setStatus(r.getStatus());
-
-        OutputStream out = servletResponse.getOutputStream();
-        mapper.writeValue(out, r.getEntity());
-        out.flush();
-    }
-
-    @Override
-    protected Error buildError(AuthenticationException exception) {
-        return new Error()
-            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-            .status(String.valueOf(Status.UNAUTHORIZED.getStatusCode()))
-            .title("Authorization Required")
-            .detail(exception.getMessage());
+        failureHandler.onAuthenticationFailure(servletRequest, servletResponse, authException);
     }
 }

@@ -22,11 +22,13 @@
 package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.mapper.BaseExceptionMapper;
+import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
@@ -43,9 +45,8 @@ import javax.ws.rs.core.Response.Status;
  * Entry point to allow returning a JSON response.  This handler is invoked when a client requests a
  * resource they are not authorized to access.
  */
-public class RestAccessDeniedHandler extends BaseExceptionMapper<AccessDeniedException>
-    implements AccessDeniedHandler {
-
+public class RestAccessDeniedHandler implements AccessDeniedHandler {
+    private static final Logger log = LoggerFactory.getLogger(RestAccessDeniedHandler.class);
     private final ObjectMapper mapper;
 
     public RestAccessDeniedHandler(ObjectMapper mapper) {
@@ -55,8 +56,10 @@ public class RestAccessDeniedHandler extends BaseExceptionMapper<AccessDeniedExc
     @Override
     public void handle(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
         AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        Error error = buildError(accessDeniedException);
+        log.error(error.getTitle(), accessDeniedException);
 
-        Response r = toResponse(accessDeniedException);
+        Response r = ExceptionUtil.toResponse(error);
         servletResponse.setContentType(r.getMediaType().toString());
         servletResponse.setStatus(r.getStatus());
 
@@ -65,7 +68,6 @@ public class RestAccessDeniedHandler extends BaseExceptionMapper<AccessDeniedExc
         out.flush();
     }
 
-    @Override
     protected Error buildError(AccessDeniedException exception) {
         return new Error()
             .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())

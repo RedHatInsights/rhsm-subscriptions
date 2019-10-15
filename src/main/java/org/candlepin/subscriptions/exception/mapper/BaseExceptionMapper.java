@@ -20,14 +20,12 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
+import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.utilization.api.model.Error;
-import org.candlepin.subscriptions.utilization.api.model.Errors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
+import org.springframework.util.StringUtils;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -39,30 +37,13 @@ import javax.ws.rs.ext.ExceptionMapper;
  * @param <T> the throwable that is to be mapped
  */
 public abstract class BaseExceptionMapper<T extends Throwable> implements ExceptionMapper<T> {
-
     private static final Logger log = LoggerFactory.getLogger(BaseExceptionMapper.class);
-
-    // Media type required per the jsonapi.org API spec. JAXRS doesn't provide
-    // this type as a constant, so we define it ourselves.
-    // TODO We may need to move this media type somewhere common.
-    protected static final String MEDIA_TYPE = "application/vnd.api+json";
 
     @Override
     public Response toResponse(T exception) {
         Error error = buildError(exception);
         logError(error, exception);
-
-        // IMPL NOTE:
-        //   The jsonapi.org spec requires that an Error response should be a
-        //   collection of Error objects in a dictionary with an 'errors' key
-        //   in case the server should want to return multiple errors in a single
-        //   response. While we likely won't ever need to do this, we'll conform
-        //   to the spec anyhow.
-        Errors errors = new Errors().errors(new ArrayList<>(Collections.singleton(error)));
-        return Response.status(Integer.valueOf(error.getStatus()))
-            .entity(errors)
-            .type(MEDIA_TYPE)
-            .build();
+        return ExceptionUtil.toResponse(error);
     }
 
     /**
@@ -76,7 +57,7 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
     protected abstract Error buildError(T exception);
 
     private void logError(Error error, Throwable exception) {
-        String message = error.getCode() != null && !error.getCode().isEmpty() ?
+        String message = StringUtils.hasText(error.getCode()) ?
             String.format("%s: %s", error.getCode(), error.getTitle()) : error.getTitle();
         log.error(message, exception);
     }
