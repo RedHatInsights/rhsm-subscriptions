@@ -56,7 +56,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
         AccessDeniedException accessDeniedException) throws IOException, ServletException {
-        Error error = buildError(accessDeniedException);
+        Error error = RestAccessDeniedHandler.buildError(accessDeniedException);
         log.error(error.getTitle(), accessDeniedException);
 
         Response r = ExceptionUtil.toResponse(error);
@@ -68,7 +68,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         out.flush();
     }
 
-    protected Error buildError(AccessDeniedException exception) {
+    public static Error buildError(AccessDeniedException exception) {
         return new Error()
             .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
             .status(String.valueOf(Status.FORBIDDEN.getStatusCode()))
