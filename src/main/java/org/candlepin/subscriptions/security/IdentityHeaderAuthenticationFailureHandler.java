@@ -22,18 +22,19 @@
 package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.mapper.BaseExceptionMapper;
+import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
@@ -42,8 +43,11 @@ import javax.ws.rs.core.Response.Status;
 /**
  * Entry point to allow returning a JSON response.
  */
-public class IdentityHeaderAuthenticationFailureHandler extends BaseExceptionMapper<AuthenticationException>
+public class IdentityHeaderAuthenticationFailureHandler
     implements AuthenticationFailureHandler {
+
+    private static final Logger log =
+        LoggerFactory.getLogger(IdentityHeaderAuthenticationFailureHandler.class);
 
     private final ObjectMapper mapper;
 
@@ -54,9 +58,12 @@ public class IdentityHeaderAuthenticationFailureHandler extends BaseExceptionMap
     @Override
     public void onAuthenticationFailure(HttpServletRequest servletRequest,
         HttpServletResponse servletResponse, AuthenticationException authException)
-        throws IOException, ServletException {
+        throws IOException {
 
-        Response r = toResponse(authException);
+        Error error = buildError(authException);
+        log.error(error.getTitle(), authException);
+
+        Response r = ExceptionUtil.toResponse(error);
         servletResponse.setContentType(r.getMediaType().toString());
         servletResponse.setStatus(r.getStatus());
 
@@ -65,11 +72,10 @@ public class IdentityHeaderAuthenticationFailureHandler extends BaseExceptionMap
         out.flush();
     }
 
-    @Override
     protected Error buildError(AuthenticationException exception) {
         return new Error()
             .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-            .status(String.valueOf(Status.BAD_REQUEST.getStatusCode()))
+            .status(String.valueOf(Status.UNAUTHORIZED.getStatusCode()))
             .title("Could not authenticate the user.")
             .detail(exception.getMessage());
     }

@@ -109,7 +109,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Bean
     public AuthenticationEntryPoint restAuthenticationEntryPoint() {
-        return new RestAuthenticationEntryPoint(mapper);
+        return new RestAuthenticationEntryPoint(new IdentityHeaderAuthenticationFailureHandler(mapper));
     }
 
     @Override
