@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
@@ -43,6 +44,7 @@ import java.util.stream.Stream;
 public class ClassificationProxyRepositoryTest {
 
     @MockBean private InventoryRepository inventoryRepository;
+    @MockBean private BuildProperties buildProperties;
     @Autowired private ClassificationProxyRepository proxyRepository;
 
     @Test
@@ -51,6 +53,24 @@ public class ClassificationProxyRepositoryTest {
         guest.setVirtual(true);
         guest.setSubscriptionManagerId("sub-man-id");
         guest.setHypervisorUuid("no-such-hypervisor");
+
+        List<InventoryHostFacts> testFacts = new ArrayList<>();
+        testFacts.add(guest);
+
+        when(inventoryRepository.getFacts(any())).thenReturn(testFacts.stream());
+
+        List<ClassifiedInventoryHostFacts> enhancedFacts =
+            proxyRepository.getFacts(Arrays.asList("123")).collect(Collectors.toList());
+
+        assertEquals(true, enhancedFacts.get(0).isHypervisorUnknown());
+    }
+
+    @Test
+    public void testMarksGuestWithUnknownHypervisorWhenHypervisorIdIsNull() {
+        InventoryHostFacts guest = new InventoryHostFacts();
+        guest.setVirtual(true);
+        guest.setSubscriptionManagerId("sub-man-id");
+        assertNull(guest.getHypervisorUuid());
 
         List<InventoryHostFacts> testFacts = new ArrayList<>();
         testFacts.add(guest);
