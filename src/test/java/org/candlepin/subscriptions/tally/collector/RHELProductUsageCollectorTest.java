@@ -22,17 +22,18 @@ package org.candlepin.subscriptions.tally.collector;
 
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.junit.jupiter.api.Test;
 
-public class RHELProductUsageCollectorTests {
+public class RHELProductUsageCollectorTest {
 
     private RHELProductUsageCollector collector;
 
-    public RHELProductUsageCollectorTests() {
+    public RHELProductUsageCollectorTest() {
         collector = new RHELProductUsageCollector();
     }
 
@@ -86,6 +87,13 @@ public class RHELProductUsageCollectorTests {
         assertTotalsCalculation(calc, 4, 12, 1);
         assertHypervisorTotalsCalculation(calc, 0, 0, 0);
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
+    }
+
+    @Test
+    public void hypervisorReportedWithNoSocketsWillRaiseException() {
+        NormalizedFacts facts = hypervisorFacts(0, 0);
+        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        assertThrows(IllegalStateException.class, () -> collector.collect(calc, facts));
     }
 
 }

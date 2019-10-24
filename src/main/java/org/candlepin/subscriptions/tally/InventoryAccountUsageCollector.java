@@ -91,9 +91,9 @@ public class InventoryAccountUsageCollector {
                         try {
                             ProductUsageCollectorFactory.get(product).collect(prodCalc, facts);
                         }
-                        catch (IllegalArgumentException e) {
-                            // If a product happens to be empty (likely never to happen) do nothing
-                            // and move on to the next product.
+                        catch (Exception e) {
+                            log.error("Unable to collect usage data for host: {} product: {}",
+                                hostFacts.getSubscriptionManagerId(), product, e);
                         }
                     }
                 });

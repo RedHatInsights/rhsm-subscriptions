@@ -300,7 +300,7 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     @Test
-    public void testTallyCoresAndSocketsOfRhelForPhysicalSystems() throws Exception {
+    public void testTallyCoresAndSocketsOfRhelForPhysicalSystems() {
         Collection<String> targetAccounts = Arrays.asList("A1", "A2");
         ClassifiedInventoryHostFacts host1 =
             createRhsmHost("A1", "O1", Arrays.asList(TEST_PRODUCT_ID), 4, 4, "", OffsetDateTime.now());

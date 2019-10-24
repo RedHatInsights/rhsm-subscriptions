@@ -39,9 +39,17 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         boolean guestWithUnknownHypervisor =
             normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
 
-        // NOTE: If the hypervisor is unknown for a guest, we consider it as having a
-        // unique hypervisor instance contributing to the overall count.
-        if (normalizedFacts.isHypervisor() || guestWithUnknownHypervisor) {
+        if (normalizedFacts.isHypervisor()) {
+            if (sockets == 0) {
+                throw new IllegalStateException("Hypervisor has no sockets and will not contribute to the " +
+                    "totals. The tally for the RHEL product will not be accurate since all associated " +
+                    "guests will not contribute to the tally.");
+            }
+            prodCalc.addHypervisor(cores, sockets, 1);
+        }
+        else if (guestWithUnknownHypervisor) {
+            // If the hypervisor is unknown for a guest, we consider it as having a
+            // unique hypervisor instance contributing to the hypervisor counts.
             prodCalc.addHypervisor(cores, sockets, 1);
         }
         else if (!normalizedFacts.isVirtual()) {
