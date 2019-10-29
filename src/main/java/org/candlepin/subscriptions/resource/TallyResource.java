@@ -81,11 +81,11 @@ public class TallyResource implements TallyApi {
         }
 
 
-        String accountNumber = ResourceUtils.getAccountNumber();
+        String ownerId = ResourceUtils.getOwnerId();
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-            accountNumber,
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            ownerId,
             productId,
             granularityValue,
             beginning,

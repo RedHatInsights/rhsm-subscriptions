@@ -72,15 +72,15 @@ public class QuarterlySnapshotRollerTest {
 
     @Test
     public void testQuarterlySnapshotProduction() {
-        String account = "A1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+        String owner = "O1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
             TEST_PRODUCT, 12, 24, 6);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
+        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> quarterlySnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
             TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, quarterlySnaps.size());
@@ -92,15 +92,15 @@ public class QuarterlySnapshotRollerTest {
 
     @Test
     public void testQuarterlySnapIsUpdatedWhenItAlreadyExists() {
-        String account = "A1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+        String owner = "O1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
             TEST_PRODUCT, 12, 24, 6);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(owner), accountCalcs);
 
         List<TallySnapshot> originalSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
             TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
@@ -114,7 +114,7 @@ public class QuarterlySnapshotRollerTest {
 
         // Check the yearly again. Should still be a single instance, but have updated values.
         List<TallySnapshot> updatedSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
             TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, originalSnaps.size());
@@ -134,15 +134,15 @@ public class QuarterlySnapshotRollerTest {
         int expectedSockets = 200;
         int expectedInstances = 10;
 
-        String account = "A1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
+        String owner = "O1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
             TEST_PRODUCT, expectedCores, expectedSockets, expectedInstances);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(owner), accountCalcs);
 
         List<TallySnapshot> quarterlySnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
             TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, quarterlySnaps.size());
@@ -153,11 +153,11 @@ public class QuarterlySnapshotRollerTest {
 
         // Update the values and run again
         accountCalcs.clear();
-        accountCalcs.add(createAccountCalc(account, "O1", TEST_PRODUCT, 2, 2, 2));
+        accountCalcs.add(createAccountCalc("A1", owner, TEST_PRODUCT, 2, 2, 2));
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedQuarterlySnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
             TEST_PRODUCT, Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedQuarterlySnaps.size());

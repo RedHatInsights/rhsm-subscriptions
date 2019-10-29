@@ -37,8 +37,8 @@ public interface SubscriptionCapacityRepository extends
 
     @Transactional
     List<SubscriptionCapacity>
-        findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-        String accountNumber,
+        findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+        String ownerId,
         String productId,
         OffsetDateTime begin,
         OffsetDateTime end

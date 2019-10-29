@@ -30,8 +30,8 @@ import javax.persistence.Column;
  */
 public class SubscriptionCapacityKey implements Serializable {
 
-    @Column(name = "account_number")
-    private String accountNumber;
+    @Column(name = "owner_id")
+    private String ownerId;
 
     @Column(name = "product_id")
     private String productId;
@@ -47,12 +47,12 @@ public class SubscriptionCapacityKey implements Serializable {
         this.productId = productId;
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
+    public String getOwnerId() {
+        return ownerId;
     }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 
     public String getSubscriptionId() {
@@ -65,7 +65,7 @@ public class SubscriptionCapacityKey implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(accountNumber, productId, subscriptionId);
+        return Objects.hash(ownerId, productId, subscriptionId);
     }
 
     @Override
@@ -77,7 +77,7 @@ public class SubscriptionCapacityKey implements Serializable {
             return false;
         }
         SubscriptionCapacityKey other = (SubscriptionCapacityKey) obj;
-        return Objects.equals(getAccountNumber(), other.getAccountNumber()) &&
+        return Objects.equals(getOwnerId(), other.getOwnerId()) &&
             Objects.equals(getProductId(), other.getProductId()) &&
             Objects.equals(getSubscriptionId(), other.getSubscriptionId());
     }

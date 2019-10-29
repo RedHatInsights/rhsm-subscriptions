@@ -68,14 +68,14 @@ public class TallyResourceTest {
     private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void testShouldUseQueryBasedOnHeaderAndParameters() {
         TallySnapshot snap = new TallySnapshot();
 
         Mockito.when(repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("123456"),
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("owner123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(min),
@@ -94,8 +94,8 @@ public class TallyResourceTest {
 
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository)
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("123456"),
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("owner123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(min),
@@ -105,7 +105,7 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void testShouldThrowExceptionOnBadOffset() {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
@@ -120,12 +120,12 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
         Mockito.when(repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-                 Mockito.eq("123456"),
+            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+                 Mockito.eq("owner123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
                  Mockito.eq(min),

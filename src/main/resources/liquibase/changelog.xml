@@ -12,6 +12,6 @@
     <include file="liquibase/201909162045-add-capacity-table.xml"/>
     <include file="liquibase/201910021550-add-physical-counts-columns.xml"/>
     <include file="liquibase/201910091200-add-hypervisor-counts-columns.xml"/>
-
+    <include file="liquibase/201910291044-alter-capacity-pk-and-tally-idx.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

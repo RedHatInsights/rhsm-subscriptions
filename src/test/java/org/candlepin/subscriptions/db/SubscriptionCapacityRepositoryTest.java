@@ -65,8 +65,8 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            "account",
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
             "product",
             NOWISH,
             FAR_FUTURE);
@@ -77,7 +77,7 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
-        assertEquals("owner_id", capacity.getOwnerId());
+        assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
         assertFalse(capacity.getHasUnlimitedGuestSockets());
@@ -91,8 +91,8 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            "account",
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
             "product",
             NOWISH,
             FAR_FUTURE);
@@ -103,7 +103,7 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
-        assertEquals("owner_id", capacity.getOwnerId());
+        assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
         assertFalse(capacity.getHasUnlimitedGuestSockets());
@@ -117,8 +117,8 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            "account",
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
             "product",
             NOWISH,
             FAR_FUTURE);
@@ -129,7 +129,7 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
-        assertEquals("owner_id", capacity.getOwnerId());
+        assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
         assertFalse(capacity.getHasUnlimitedGuestSockets());
@@ -143,8 +143,8 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            "account",
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
             "product",
             NOWISH,
             FAR_FUTURE);
@@ -155,7 +155,7 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
-        assertEquals("owner_id", capacity.getOwnerId());
+        assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
         assertFalse(capacity.getHasUnlimitedGuestSockets());
@@ -169,8 +169,8 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            "account",
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
             "product",
             NOWISH,
             FAR_FUTURE);
@@ -185,16 +185,31 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            "account",
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
             "product",
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
     }
 
-    private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
+    @Test
+    void testAllowsNullAccountNumber() {
+        SubscriptionCapacity c = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        c.setAccountNumber(null);
+        repository.save(c);
+        repository.flush();
 
+        List<SubscriptionCapacity> found = repository
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
+            "product",
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(1, found.size());
+    }
+
+    private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
         capacity.setAccountNumber("account");
         capacity.setProductId("product");
@@ -202,7 +217,7 @@ class SubscriptionCapacityRepositoryTest {
         capacity.setBeginDate(begin);
         capacity.setEndDate(end);
         capacity.setHasUnlimitedGuestSockets(false);
-        capacity.setOwnerId("owner_id");
+        capacity.setOwnerId("ownerId");
         capacity.setPhysicalSockets(4);
         capacity.setVirtualSockets(20);
         return capacity;
