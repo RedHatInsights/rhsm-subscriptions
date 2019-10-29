@@ -101,6 +101,12 @@ public class ReportFiller {
             .cores(0)
             .sockets(0)
             .instanceCount(0)
+            .physicalSockets(0)
+            .physicalCores(0)
+            .physicalInstanceCount(0)
+            .hypervisorSockets(0)
+            .hypervisorCores(0)
+            .hypervisorInstanceCount(0)
             .hasData(false);
     }
 

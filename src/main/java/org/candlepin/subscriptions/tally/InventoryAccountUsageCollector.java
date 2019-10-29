@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -87,19 +88,13 @@ public class InventoryAccountUsageCollector {
                     }
 
                     if (facts.getProducts().contains(product)) {
-                        int cores = facts.getCores() != null ? facts.getCores() : 0;
-                        int sockets = facts.getSockets() != null ? facts.getSockets() : 0;
-
-                        // Calculate the physical usage data
-                        if (!hostFacts.isHypervisor() && !hostFacts.isVirtual()) {
-                            prodCalc.addPhysical(cores, sockets, 1);
+                        try {
+                            ProductUsageCollectorFactory.get(product).collect(prodCalc, facts);
                         }
-                        // Assume uncategorized classification and just add to the general totals.
-                        else {
-                            prodCalc.addUncategorized(cores, sockets, 1);
+                        catch (Exception e) {
+                            log.error("Unable to collect usage data for host: {} product: {}",
+                                hostFacts.getSubscriptionManagerId(), product, e);
                         }
-
-                        // Accumulate hypervisor and guest data here
                     }
                 });
             });

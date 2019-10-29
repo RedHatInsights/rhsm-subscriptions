@@ -32,12 +32,12 @@ public class InventoryHostFacts {
     private String account;
     private String displayName;
     private String orgId;
-    private int cores;
-    private int sockets;
+    private Integer cores;
+    private Integer sockets;
     private String syncTimestamp;
     private Set<String> products;
-    private int systemProfileCoresPerSocket;
-    private int systemProfileSockets;
+    private Integer systemProfileCoresPerSocket;
+    private Integer systemProfileSockets;
     private boolean isVirtual;
     private String hypervisorUuid;
     private String guestId;
@@ -101,7 +101,7 @@ public class InventoryHostFacts {
     }
 
     public Integer getCores() {
-        return cores;
+        return cores == null ? 0 : cores;
     }
 
     public void setCores(Integer cores) {
@@ -109,7 +109,7 @@ public class InventoryHostFacts {
     }
 
     public Integer getSockets() {
-        return sockets;
+        return sockets == null ? 0 : sockets;
     }
 
     public void setSockets(Integer sockets) {
@@ -132,11 +132,15 @@ public class InventoryHostFacts {
         this.products = products;
     }
 
+    public void setProducts(String products) {
+        this.products = asStringSet(products);
+    }
+
     private boolean asBoolean(String value) {
         return Boolean.parseBoolean(value);
     }
 
-    private int asInt(String value) {
+    private Integer asInt(String value) {
         try {
             return StringUtils.hasText(value) ? Integer.valueOf(value) : 0;
         }
@@ -151,24 +155,44 @@ public class InventoryHostFacts {
         }
         return StringUtils.commaDelimitedListToSet(productJson);
     }
-    public int getSystemProfileCoresPerSocket() {
-        return systemProfileCoresPerSocket;
+    public Integer getSystemProfileCoresPerSocket() {
+        return systemProfileCoresPerSocket == null ? 0 : systemProfileCoresPerSocket;
     }
 
-    public int getSystemProfileSockets() {
-        return systemProfileSockets;
+    public void setSystemProfileCoresPerSocket(Integer coresPerSocket) {
+        this.systemProfileCoresPerSocket = coresPerSocket;
+    }
+
+    public Integer getSystemProfileSockets() {
+        return systemProfileSockets == null ? 0 : systemProfileSockets;
+    }
+
+    public void setSystemProfileSockets(Integer sockets) {
+        this.systemProfileSockets = sockets;
     }
 
     public Set<String> getQpcProducts() {
         return qpcProducts;
     }
 
+    public void setQpcProducts(String qpcProducts) {
+        this.qpcProducts = asStringSet(qpcProducts);
+    }
+
     public Set<String> getQpcProductIds() {
         return qpcProductIds;
     }
 
+    public void setQpcProductIds(String qpcProductIds) {
+        this.qpcProductIds = asStringSet(qpcProductIds);
+    }
+
     public Set<String> getSystemProfileProductIds() {
         return systemProfileProductIds;
+    }
+
+    public void setSystemProfileProductIds(String productIds) {
+        this.systemProfileProductIds = asStringSet(productIds);
     }
 
     public String getSyspurposeRole() {
@@ -210,4 +234,5 @@ public class InventoryHostFacts {
     public void setSubscriptionManagerId(String subscriptionManagerId) {
         this.subscriptionManagerId = subscriptionManagerId;
     }
+
 }

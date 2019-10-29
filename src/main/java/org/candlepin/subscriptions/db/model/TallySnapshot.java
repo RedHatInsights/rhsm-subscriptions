@@ -66,6 +66,15 @@ public class TallySnapshot implements Serializable {
     @Column(name = "physical_sockets")
     private Integer physicalSockets;
 
+    @Column(name = "hypervisor_instance_count")
+    private Integer hypervisorInstanceCount;
+
+    @Column(name = "hypervisor_cores")
+    private Integer hypervisorCores;
+
+    @Column(name = "hypervisor_sockets")
+    private Integer hypervisorSockets;
+
     @Column(name = "product_id")
     private String productId;
 
@@ -143,6 +152,30 @@ public class TallySnapshot implements Serializable {
         this.physicalSockets = physicalSockets;
     }
 
+    public Integer getHypervisorInstanceCount() {
+        return hypervisorInstanceCount;
+    }
+
+    public void setHypervisorInstanceCount(Integer hypervisorInstanceCount) {
+        this.hypervisorInstanceCount = hypervisorInstanceCount;
+    }
+
+    public Integer getHypervisorCores() {
+        return hypervisorCores;
+    }
+
+    public void setHypervisorCores(Integer hypervisorCores) {
+        this.hypervisorCores = hypervisorCores;
+    }
+
+    public Integer getHypervisorSockets() {
+        return hypervisorSockets;
+    }
+
+    public void setHypervisorSockets(Integer hypervisorSockets) {
+        this.hypervisorSockets = hypervisorSockets;
+    }
+
     public String getProductId() {
         return productId;
     }
@@ -183,6 +216,12 @@ public class TallySnapshot implements Serializable {
         snapshot.setCores(this.getCores());
         snapshot.setSockets(this.getSockets());
         snapshot.setInstanceCount(this.getInstanceCount());
+        snapshot.setPhysicalCores(this.getPhysicalCores());
+        snapshot.setPhysicalSockets(this.getPhysicalSockets());
+        snapshot.setPhysicalInstanceCount(this.getPhysicalInstanceCount());
+        snapshot.setHypervisorCores(this.getHypervisorCores());
+        snapshot.setHypervisorSockets(this.getHypervisorSockets());
+        snapshot.setHypervisorInstanceCount(this.getHypervisorInstanceCount());
         snapshot.setHasData(id != null);
         return snapshot;
     }

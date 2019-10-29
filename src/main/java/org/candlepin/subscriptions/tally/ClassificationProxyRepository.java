@@ -76,10 +76,13 @@ public class ClassificationProxyRepository {
         for (InventoryHostFacts hostFacts : hostFactsList) {
             ClassifiedInventoryHostFacts enhancedFacts = new ClassifiedInventoryHostFacts(hostFacts);
 
-            // Determine whether a system reporting it has a hypervisor has an unknown hypervisor
+            // Determine whether a reported system has an unknown hypervisor. The hypervisor is
+            // considered unknown if the system is virtual (a guest) and either has a null
+            // hypervisor UUID OR the guest's hypervisor UUID was not reported by conduit.
             String hypervisorUuid = enhancedFacts.getHypervisorUuid();
             boolean isHypervisorUnknown =
-                StringUtils.hasText(hypervisorUuid) && missingHypervisors.contains(hypervisorUuid);
+                (enhancedFacts.isVirtual() && !StringUtils.hasText(hypervisorUuid)) ||
+                missingHypervisors.contains(hypervisorUuid);
             enhancedFacts.setHypervisorUnknown(isHypervisorUnknown);
 
             // Determine whether a reported system is a hypervisor based on whether it is on our list
