@@ -40,6 +40,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -416,5 +417,13 @@ public class InventoryControllerTest {
 
         assertThrows(NumberFormatException.class, () -> controller.memtotalFromString("123.00BM"));
         assertThrows(NumberFormatException.class, () -> controller.memtotalFromString("12B"));
+    }
+
+    @Test
+    void handlesNoRegisteredSystemsWithoutException() {
+        when(pinheadService.getOrganizationConsumers("456")).thenReturn(Collections.emptyList());
+        controller.updateInventoryForOrg("456");
+        verify(inventoryService).flushHostUpdates();
+        verifyNoMoreInteractions(inventoryService);
     }
 }

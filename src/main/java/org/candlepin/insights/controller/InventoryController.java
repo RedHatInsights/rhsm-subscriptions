@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -288,7 +289,12 @@ public class InventoryController {
 
         // Peek at the first consumer.  If it is missing an account number, that means they all are.  Abort
         // and return an empty stream.  No sense in wasting time looping through everything.
-        if (StringUtils.isEmpty(consumerIterator.peek().getAccountNumber())) {
+        try {
+            if (StringUtils.isEmpty(consumerIterator.peek().getAccountNumber())) {
+                return Stream.empty();
+            }
+        }
+        catch (NoSuchElementException e) {
             return Stream.empty();
         }
 
