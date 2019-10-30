@@ -66,7 +66,7 @@ class CapacityResourceTest {
     CapacityResource resource;
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldUseQueryBasedOnHeaderAndParameters() {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
@@ -74,8 +74,8 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         Mockito.when(repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            Mockito.eq("123456"),
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            Mockito.eq("owner123456"),
             Mockito.eq("product1"),
             Mockito.eq(min),
             Mockito.eq(max)))
@@ -94,7 +94,7 @@ class CapacityResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
@@ -110,8 +110,8 @@ class CapacityResourceTest {
         capacity2.setEndDate(max);
 
         Mockito.when(repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-                Mockito.eq("123456"),
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+                Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),
                 Mockito.eq(max)))
@@ -132,7 +132,7 @@ class CapacityResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldThrowExceptionOnBadOffset() {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () ->
@@ -147,7 +147,7 @@ class CapacityResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "123456",
+    @WithMockUser(value = "owner123456",
         authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldRespectOffsetAndLimit() {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
@@ -155,8 +155,8 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         Mockito.when(repository
-            .findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-                Mockito.eq("123456"),
+            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+                Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),
                 Mockito.eq(max)))

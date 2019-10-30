@@ -39,8 +39,8 @@ import java.util.stream.Stream;
  */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
     Page<TallySnapshot>
-        findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-        String accountNumber, String productId, Granularity granularity, OffsetDateTime beginning,
+        findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+        String ownerId, String productId, Granularity granularity, OffsetDateTime beginning,
         OffsetDateTime ending, Pageable pageable);
 
     @Transactional

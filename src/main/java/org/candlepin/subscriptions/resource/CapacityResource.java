@@ -76,8 +76,8 @@ public class CapacityResource implements CapacityApi {
 
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
 
-        String accountNumber = ResourceUtils.getAccountNumber();
-        List<CapacitySnapshot> capacities = getCapacities(accountNumber, productId, granularityValue,
+        String ownerId = ResourceUtils.getOwnerId();
+        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, granularityValue,
             beginning, ending);
 
         List<CapacitySnapshot> data;
@@ -113,12 +113,12 @@ public class CapacityResource implements CapacityApi {
         return capacities.subList(offset, lastIndex);
     }
 
-    private List<CapacitySnapshot> getCapacities(String accountNumber, String productId,
+    private List<CapacitySnapshot> getCapacities(String ownerId, String productId,
         Granularity granularity, @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
 
         List<SubscriptionCapacity> matches =
-            repository.findSubscriptionCapacitiesByAccountNumberAndProductIdAndEndDateAfterAndBeginDateBefore(
-            accountNumber,
+            repository.findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            ownerId,
             productId,
             beginning,
             ending);

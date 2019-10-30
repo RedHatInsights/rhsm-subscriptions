@@ -1,0 +1,25 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="201910291044-1" author="awood">
+        <comment>Use owner id in the primary key as some subscriptions have no account number</comment>
+        <dropPrimaryKey constraintName="subs_cap_pkey"
+            tableName="subscription_capacity"/>
+
+        <addPrimaryKey constraintName="subs_cap_pkey"
+            tableName="subscription_capacity"
+            columnNames="owner_id,product_id,subscription_id"/>
+    </changeSet>
+
+    <changeSet id="201910291044-2" author="awood">
+        <createIndex indexName="owner_and_product_idx" tableName="tally_snapshots"
+            unique="false">
+            <column name="owner_id"/>
+            <column name="product_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

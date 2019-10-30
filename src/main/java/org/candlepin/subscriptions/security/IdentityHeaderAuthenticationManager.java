@@ -55,7 +55,31 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
      * {@link IdentityHeaderAuthenticationFilter}, when we throw an exception on a parse error, it is not
      * handled very nicely.  By handling the parsing in an AuthenticationManager we follow the conventions
      * that Spring Security is expecting, but at the expense of taking the Authentication instance, reading
-     * from it, and then creating a totally new instance.
+     * from it, and then creating a totally new instance. Example of the decoded header:
+     *
+     * <pre><code>
+     * {
+     *   "identity": {
+     *     "account_number": "0369233",
+     *     "type": "User",
+     *     "user" : {
+     *       "username": "jdoe",
+     *       "email": "jdoe@acme.com",
+     *       "first_name": "John",
+     *       "last_name": "Doe",
+     *       "is_active": true,
+     *       "is_org_admin": false,
+     *       "is_internal": false,
+     *       "locale": "en_US"
+     *     },
+     *     "internal" : {
+     *       "org_id": "3340851",
+     *       "auth_type": "basic-auth",
+     *       "auth_time": 6300
+     *      }
+     *   }
+     * }
+     * </code></pre>
      *
      * @param authentication a byte[] of base64-decoded data from x-rh-identity
      * @return an approved Authentication object
@@ -69,15 +93,15 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
             (PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails) authentication.getDetails();
         try {
             Map authObject = mapper.readValue(decodedHeader, Map.class);
-            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
-            String accountNumber = (String) identity.get("account_number");
+            Map internal = (Map) authObject.getOrDefault("internal", Collections.emptyMap());
+            String orgId = (String) internal.get("org_id");
 
-            if (StringUtils.isEmpty(accountNumber)) {
+            if (StringUtils.isEmpty(orgId)) {
                 throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER +
-                    " contains no principal");
+                    " contains no owner ID for the principal");
             }
 
-            token = new PreAuthenticatedAuthenticationToken(accountNumber, token.getCredentials(),
+            token = new PreAuthenticatedAuthenticationToken(orgId, token.getCredentials(),
                 details.getGrantedAuthorities());
             token.setAuthenticated(true);
             return token;

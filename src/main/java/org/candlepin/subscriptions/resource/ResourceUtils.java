@@ -43,11 +43,11 @@ public class ResourceUtils {
     }
 
     /**
-     * Get the account number of the authenticated user.
+     * Get the owner ID of the authenticated user.
      *
-     * @return account number as a String
+     * @return ownerId as a String
      */
-    static String getAccountNumber() {
+    static String getOwnerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
     }

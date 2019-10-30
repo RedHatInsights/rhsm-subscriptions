@@ -37,11 +37,6 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "subscription_capacity")
 public class SubscriptionCapacity implements Serializable {
-
-    @Id
-    @Column(name = "account_number")
-    private String accountNumber;
-
     @Id
     @Column(name = "product_id")
     private String productId;
@@ -50,8 +45,12 @@ public class SubscriptionCapacity implements Serializable {
     @Column(name = "subscription_id")
     private String subscriptionId;
 
+    @Id
     @Column(name = "owner_id")
     private String ownerId;
+
+    @Column(name = "account_number")
+    private String accountNumber;
 
     @Column(name = "physical_sockets")
     private Integer physicalSockets;
