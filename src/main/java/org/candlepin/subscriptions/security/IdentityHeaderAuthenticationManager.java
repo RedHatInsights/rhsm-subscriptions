@@ -93,7 +93,8 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
             (PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails) authentication.getDetails();
         try {
             Map authObject = mapper.readValue(decodedHeader, Map.class);
-            Map internal = (Map) authObject.getOrDefault("internal", Collections.emptyMap());
+            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
+            Map internal = (Map) identity.getOrDefault("internal", Collections.emptyMap());
             String orgId = (String) internal.get("org_id");
 
             if (StringUtils.isEmpty(orgId)) {
