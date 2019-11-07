@@ -73,15 +73,15 @@ public class DailySnapshotRollerTest {
     @SuppressWarnings("indentation")
     @Test
     public void testDailySnapshotProducer() {
-        String owner = "O1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
             TEST_PRODUCT, 12, 24, 6);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> dailySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
                 TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, dailySnaps.size());
@@ -93,15 +93,15 @@ public class DailySnapshotRollerTest {
     @SuppressWarnings("indentation")
     @Test
     public void testDailySnapIsUpdatedWhenItAlreadyExists() {
-        String owner = "O1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
             TEST_PRODUCT, 12, 24, 6);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> dailySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
                 TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, dailySnaps.size());
@@ -114,7 +114,7 @@ public class DailySnapshotRollerTest {
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedDailySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
                 TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedDailySnaps.size());
@@ -130,15 +130,15 @@ public class DailySnapshotRollerTest {
 
     @Test
     public void ensureCurrentDailyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
-        String owner = "O1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
             TEST_PRODUCT, 100, 200, 10);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> dailySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, dailySnaps.size());
@@ -149,11 +149,11 @@ public class DailySnapshotRollerTest {
 
         // Update the values and run again
         accountCalcs.clear();
-        accountCalcs.add(createAccountCalc("A1", owner, TEST_PRODUCT, 2, 3, 4));
+        accountCalcs.add(createAccountCalc(account, "O1", TEST_PRODUCT, 2, 3, 4));
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedDailySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedDailySnaps.size());

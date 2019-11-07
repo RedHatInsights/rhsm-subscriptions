@@ -55,7 +55,10 @@ class IdentityHeaderAuthenticationManagerTest {
 
         Authentication result = manager.authenticate(authentication);
 
-        PreAuthenticatedAuthenticationToken expected = new PreAuthenticatedAuthenticationToken("123", "N/A",
+        InsightsUserPrincipal principal = new InsightsUserPrincipal("123", "acct");
+
+        PreAuthenticatedAuthenticationToken expected = new PreAuthenticatedAuthenticationToken(principal,
+            "N/A",
             Collections.emptyList());
         assertEquals(expected, result);
     }

@@ -26,7 +26,7 @@ import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsSource;
+import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 
@@ -36,7 +36,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.OffsetDateTime;
@@ -48,6 +47,7 @@ import javax.ws.rs.core.Response;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
+@WithMockRedHatPrincipal("123456")
 class CapacityResourceTest {
 
     private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
@@ -66,8 +66,6 @@ class CapacityResourceTest {
     CapacityResource resource;
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldUseQueryBasedOnHeaderAndParameters() {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
         capacity.setBeginDate(min);
@@ -94,8 +92,6 @@ class CapacityResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
         capacity.setVirtualSockets(5);
@@ -132,8 +128,6 @@ class CapacityResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldThrowExceptionOnBadOffset() {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () ->
             resource.getCapacityReport(
@@ -147,8 +141,6 @@ class CapacityResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     void testShouldRespectOffsetAndLimit() {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
         capacity.setBeginDate(min);

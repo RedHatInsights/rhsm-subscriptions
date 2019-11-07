@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.security.InsightsUserPrincipal;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,7 +50,19 @@ public class ResourceUtils {
      */
     static String getOwnerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getName();
+        InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+        return principal.getOwnerId();
+    }
+
+    /**
+     * Get the account number of the authenticated user.
+     *
+     * @return account number as a String
+     */
+    static String getAccountNumber() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+        return principal.getAccountNumber();
     }
 
     /**
