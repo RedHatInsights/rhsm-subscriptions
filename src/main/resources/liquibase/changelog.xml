@@ -14,5 +14,6 @@
     <include file="liquibase/201910091200-add-hypervisor-counts-columns.xml"/>
     <include file="liquibase/201910291044-alter-capacity-pk-and-tally-idx.xml"/>
     <include file="liquibase/201911061510-drop-account-not-null.xml"/>
+    <include file="liquibase/201911141401-add-cores-to-subscription-capacity.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

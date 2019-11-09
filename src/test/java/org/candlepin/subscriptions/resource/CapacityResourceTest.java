@@ -96,12 +96,16 @@ class CapacityResourceTest {
         SubscriptionCapacity capacity = new SubscriptionCapacity();
         capacity.setVirtualSockets(5);
         capacity.setPhysicalSockets(2);
+        capacity.setVirtualCores(20);
+        capacity.setPhysicalCores(8);
         capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
         capacity.setEndDate(max);
 
         SubscriptionCapacity capacity2 = new SubscriptionCapacity();
         capacity2.setVirtualSockets(7);
         capacity2.setPhysicalSockets(11);
+        capacity2.setVirtualCores(14);
+        capacity2.setPhysicalCores(22);
         capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
         capacity2.setEndDate(max);
 
@@ -125,6 +129,8 @@ class CapacityResourceTest {
         CapacitySnapshot capacitySnapshot = report.getData().get(0);
         assertEquals(12, capacitySnapshot.getHypervisorSockets().intValue());
         assertEquals(13, capacitySnapshot.getPhysicalSockets().intValue());
+        assertEquals(34, capacitySnapshot.getHypervisorCores().intValue());
+        assertEquals(30, capacitySnapshot.getPhysicalCores().intValue());
     }
 
     @Test
