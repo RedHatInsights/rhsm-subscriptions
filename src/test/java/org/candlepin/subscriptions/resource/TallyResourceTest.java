@@ -27,7 +27,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsSource;
+import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.OffsetDateTime;
@@ -50,6 +49,7 @@ import javax.ws.rs.core.Response;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
+@WithMockRedHatPrincipal("123456")
 public class TallyResourceTest {
 
     @MockBean
@@ -68,14 +68,12 @@ public class TallyResourceTest {
     private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void testShouldUseQueryBasedOnHeaderAndParameters() {
         TallySnapshot snap = new TallySnapshot();
 
         Mockito.when(repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("owner123456"),
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(min),
@@ -94,8 +92,8 @@ public class TallyResourceTest {
 
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository)
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("owner123456"),
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(min),
@@ -105,8 +103,6 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void testShouldThrowExceptionOnBadOffset() {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             "product1",
@@ -120,12 +116,10 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockUser(value = "owner123456",
-        authorities = "ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE)
     public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
         Mockito.when(repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-                 Mockito.eq("owner123456"),
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+                 Mockito.eq("account123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
                  Mockito.eq(min),

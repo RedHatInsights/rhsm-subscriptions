@@ -79,15 +79,15 @@ public class MonthlySnapshotRollerTest {
     @SuppressWarnings("indentation")
     @Test
     public void testMonthlySnapshotProducer() {
-        String owner = "O1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
             TEST_PRODUCT, 12, 24, 6);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> monthlySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
@@ -99,15 +99,15 @@ public class MonthlySnapshotRollerTest {
     @SuppressWarnings("indentation")
     @Test
     public void testMonthlySnapIsUpdatedWhenItAlreadyExists() {
-        String owner = "O1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
             TEST_PRODUCT, 12, 24, 6);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> monthlySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
@@ -119,7 +119,7 @@ public class MonthlySnapshotRollerTest {
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedMonthlySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(),
             PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedMonthlySnaps.size());
@@ -139,15 +139,15 @@ public class MonthlySnapshotRollerTest {
         int expectedSockets = 200;
         int expectedInstances = 10;
 
-        String owner = "O1";
-        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs("A1", owner,
+        String account = "A1";
+        List<AccountUsageCalculation> accountCalcs = createAccountProductCalcs(account, "O1",
             TEST_PRODUCT, expectedCores, expectedSockets, expectedInstances);
         AccountUsageCalculation a1Calc = accountCalcs.get(0);
         ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
-        roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
+        roller.rollSnapshots(Arrays.asList(account), accountCalcs);
 
         List<TallySnapshot> monthlySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.MONTHLY, clock.startOfCurrentMonth(),
             clock.endOfCurrentMonth(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, monthlySnaps.size());
@@ -158,11 +158,11 @@ public class MonthlySnapshotRollerTest {
 
         // Update the values and run again
         accountCalcs.clear();
-        accountCalcs.add(createAccountCalc("A1", owner, TEST_PRODUCT, 2, 2, 2));
+        accountCalcs.add(createAccountCalc(account, "O1", TEST_PRODUCT, 2, 2, 2));
         roller.rollSnapshots(Arrays.asList("A1"), accountCalcs);
 
         List<TallySnapshot> updatedMonthlySnaps = repository
-            .findByOwnerIdAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(owner,
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
             TEST_PRODUCT, Granularity.MONTHLY, clock.startOfCurrentMonth(),
             clock.endOfCurrentMonth(), PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedMonthlySnaps.size());

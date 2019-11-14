@@ -299,10 +299,25 @@ components:
       type: apiKey
       in: header
       name: x-rh-identity
-      description: >-
+      description: |
         Base64-encoded JSON identity header provided by 3Scale. Contains an
         account number of the user issuing the request. Format of the JSON:
-        {"identity": {"account_number": "12345678"}}
+        ```
+        {
+            "identity": {
+                "account_number": "account123",
+                "type": "User",
+                "user" : {
+                    "is_org_admin": true
+                },
+                "internal" : {
+                    "org_id": "org123"
+                }
+            }
+        }
+        ```
+        Encoded (via `base64 -w0`):
+        `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
   responses:
     InternalServerError:
       description: "An internal server error has occurred and is not recoverable."

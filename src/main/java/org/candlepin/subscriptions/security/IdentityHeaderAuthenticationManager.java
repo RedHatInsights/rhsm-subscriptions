@@ -94,6 +94,7 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
         try {
             Map authObject = mapper.readValue(decodedHeader, Map.class);
             Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
+            String accountNumber = (String) identity.get("account_number");
             Map internal = (Map) identity.getOrDefault("internal", Collections.emptyMap());
             String orgId = (String) internal.get("org_id");
 
@@ -101,9 +102,13 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
                 throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER +
                     " contains no owner ID for the principal");
             }
+            if (StringUtils.isEmpty(accountNumber)) {
+                throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER +
+                    " contains no principal");
+            }
 
-            token = new PreAuthenticatedAuthenticationToken(orgId, token.getCredentials(),
-                details.getGrantedAuthorities());
+            token = new PreAuthenticatedAuthenticationToken(new InsightsUserPrincipal(orgId, accountNumber),
+                token.getCredentials(), details.getGrantedAuthorities());
             token.setAuthenticated(true);
             return token;
 
