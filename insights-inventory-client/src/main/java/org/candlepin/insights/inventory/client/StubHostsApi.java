@@ -27,6 +27,7 @@ import org.candlepin.insights.inventory.client.resources.HostsApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -38,8 +39,8 @@ public class StubHostsApi extends HostsApi {
 
     @Override
     public HostQueryOutput apiHostGetHostList(String displayName, String fqdn, String hostnameOrId,
-        UUID insightsId, String branchId, Integer perPage, Integer page, String orderBy, String orderHow)
-        throws ApiException {
+        UUID insightsId, List<String> tags, String branchId, Integer perPage, Integer page, String orderBy,
+        String orderHow) throws ApiException {
         log.info("Getting stub host list");
         HostQueryOutput hostQueryOutput = new HostQueryOutput();
         HostOut hostOut = new HostOut();
