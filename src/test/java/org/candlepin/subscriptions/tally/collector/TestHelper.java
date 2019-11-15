@@ -44,7 +44,8 @@ public class TestHelper {
         facts.setSockets(sockets);
         facts.setCores(cores);
         facts.setVirtual(true);
-        facts.setHypervisor(hypervisorIsunknown);
+        facts.setHypervisorUnknown(hypervisorIsunknown);
+        facts.setHypervisor(false);
         return facts;
     }
 

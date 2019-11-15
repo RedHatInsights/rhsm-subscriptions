@@ -72,8 +72,8 @@ public class RHELProductUsageCollectorTest {
         // A guest with an unknown hypervisor contributes to the overall totals
         // It is considered as having its own unique hypervisor and therefore
         // contributes its own values to the hypervisor counts.
-        assertTotalsCalculation(calc, 3, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 3, 12, 1);
+        assertTotalsCalculation(calc, 1, 12, 1);
+        assertHypervisorTotalsCalculation(calc, 1, 12, 1);
         assertPhysicalTotalsCalculation(calc, 0, 0, 0);
     }
 
