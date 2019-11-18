@@ -70,7 +70,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
     public static Error buildError(AccessDeniedException exception) {
         return new Error()
-            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
+            .code(ErrorCode.REQUEST_DENIED_ERROR.getCode())
             .status(String.valueOf(Status.FORBIDDEN.getStatusCode()))
             .title("Access Denied")
             .detail(exception.getMessage());

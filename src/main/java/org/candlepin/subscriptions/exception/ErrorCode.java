@@ -48,6 +48,11 @@ public enum ErrorCode {
     VALIDATION_FAILED_ERROR(1002, "Client request failed validation."),
 
     /**
+     * The client's request was denied due to lack of roles/permissions.
+     */
+    REQUEST_DENIED_ERROR(1003, "Request was denied due to lack of roles/permissions."),
+
+    /**
      * An unexpected exception was thrown by the inventory service client.
      */
     INVENTORY_SERVICE_ERROR(2000, "Inventory Service Error"),

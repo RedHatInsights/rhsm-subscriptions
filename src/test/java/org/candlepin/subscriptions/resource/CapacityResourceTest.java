@@ -21,23 +21,28 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.TestPropertySource;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -60,10 +65,15 @@ class CapacityResourceTest {
     PageLinkCreator pageLinkCreator;
 
     @MockBean
-    BuildProperties buildProperties;
+    ReportingAccountWhitelist accountWhitelist;
 
     @Autowired
     CapacityResource resource;
+
+    @BeforeEach
+    public void setupTests() throws IOException {
+        when(accountWhitelist.hasAccount(eq("account123456"))).thenReturn(true);
+    }
 
     @Test
     void testShouldUseQueryBasedOnHeaderAndParameters() {
@@ -71,7 +81,7 @@ class CapacityResourceTest {
         capacity.setBeginDate(min);
         capacity.setEndDate(max);
 
-        Mockito.when(repository
+        when(repository
             .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             Mockito.eq("owner123456"),
             Mockito.eq("product1"),
@@ -109,7 +119,7 @@ class CapacityResourceTest {
         capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
         capacity2.setEndDate(max);
 
-        Mockito.when(repository
+        when(repository
             .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
@@ -152,7 +162,7 @@ class CapacityResourceTest {
         capacity.setBeginDate(min);
         capacity.setEndDate(max);
 
-        Mockito.when(repository
+        when(repository
             .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
@@ -172,5 +182,35 @@ class CapacityResourceTest {
         assertEquals(1, report.getData().size());
         assertEquals(OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
             report.getData().get(0).getDate());
+    }
+
+    @Test
+    @WithMockRedHatPrincipal("1111")
+    public void testAccessDeniedWhenAccountIsNotWhitelisted() {
+        assertThrows(AccessDeniedException.class, () -> {
+            resource.getCapacityReport(
+                "product1",
+                "daily",
+                min,
+                max,
+                null,
+                null
+            );
+        });
+    }
+
+    @Test
+    @WithMockRedHatPrincipal(value = "123456", roles = {})
+    public void testAccessDeniedWhenUserIsNotAnAdmin() {
+        assertThrows(AccessDeniedException.class, () -> {
+            resource.getCapacityReport(
+                "product1",
+                "daily",
+                min,
+                max,
+                null,
+                null
+            );
+        });
     }
 }
