@@ -39,7 +39,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,6 +84,7 @@ class CandlepinPoolCapacityMapperTest {
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
         expectedRhelCapacity.setPhysicalSockets(20);
+        expectedRhelCapacity.setPhysicalCores(40);
         expectedRhelCapacity.setAccountNumber("account");
         expectedRhelCapacity.setBeginDate(LONG_AGO);
         expectedRhelCapacity.setEndDate(NOWISH);
@@ -94,6 +94,7 @@ class CandlepinPoolCapacityMapperTest {
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
         expectedServerCapacity.setProductId("RHEL Server");
         expectedServerCapacity.setPhysicalSockets(20);
+        expectedServerCapacity.setPhysicalCores(40);
         expectedServerCapacity.setAccountNumber("account");
         expectedServerCapacity.setBeginDate(LONG_AGO);
         expectedServerCapacity.setEndDate(NOWISH);
@@ -118,6 +119,7 @@ class CandlepinPoolCapacityMapperTest {
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
         expectedRhelCapacity.setVirtualSockets(20);
+        expectedRhelCapacity.setVirtualCores(40);
         expectedRhelCapacity.setAccountNumber("account");
         expectedRhelCapacity.setBeginDate(LONG_AGO);
         expectedRhelCapacity.setEndDate(NOWISH);
@@ -127,6 +129,7 @@ class CandlepinPoolCapacityMapperTest {
         SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
         expectedWorkstationCapacity.setProductId("RHEL Workstation");
         expectedWorkstationCapacity.setVirtualSockets(20);
+        expectedWorkstationCapacity.setVirtualCores(40);
         expectedWorkstationCapacity.setAccountNumber("account");
         expectedWorkstationCapacity.setBeginDate(LONG_AGO);
         expectedWorkstationCapacity.setEndDate(NOWISH);
@@ -150,6 +153,8 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setProductId("RHEL");
         expectedRhelCapacity.setPhysicalSockets(20);
         expectedRhelCapacity.setVirtualSockets(20);
+        expectedRhelCapacity.setPhysicalCores(40);
+        expectedRhelCapacity.setVirtualCores(40);
         expectedRhelCapacity.setAccountNumber("account");
         expectedRhelCapacity.setBeginDate(LONG_AGO);
         expectedRhelCapacity.setEndDate(NOWISH);
@@ -159,6 +164,7 @@ class CandlepinPoolCapacityMapperTest {
         SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
         expectedWorkstationCapacity.setProductId("RHEL Workstation");
         expectedWorkstationCapacity.setVirtualSockets(20);
+        expectedWorkstationCapacity.setVirtualCores(40);
         expectedWorkstationCapacity.setAccountNumber("account");
         expectedWorkstationCapacity.setBeginDate(LONG_AGO);
         expectedWorkstationCapacity.setEndDate(NOWISH);
@@ -168,6 +174,7 @@ class CandlepinPoolCapacityMapperTest {
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
         expectedServerCapacity.setProductId("RHEL Server");
         expectedServerCapacity.setPhysicalSockets(20);
+        expectedServerCapacity.setPhysicalCores(40);
         expectedServerCapacity.setAccountNumber("account");
         expectedServerCapacity.setBeginDate(LONG_AGO);
         expectedServerCapacity.setEndDate(NOWISH);
@@ -198,8 +205,11 @@ class CandlepinPoolCapacityMapperTest {
                 derivedProductIds.stream().map(id -> new CandlepinProvidedProduct().productId(id))
                 .collect(Collectors.toList()));
         }
-        pool.setProductAttributes(Collections.singletonList(new CandlepinProductAttribute()
-            .name("sockets").value("2")));
+
+        pool.setProductAttributes(Arrays.asList(
+            new CandlepinProductAttribute().name("sockets").value("2"),
+            new CandlepinProductAttribute().name("cores").value("4")
+        ));
         return pool;
     }
 }

@@ -77,6 +77,8 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
+        assertEquals(8, capacity.getPhysicalCores().intValue());
+        assertEquals(40, capacity.getVirtualCores().intValue());
         assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
@@ -103,6 +105,8 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
+        assertEquals(8, capacity.getPhysicalCores().intValue());
+        assertEquals(40, capacity.getVirtualCores().intValue());
         assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
@@ -129,6 +133,8 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
+        assertEquals(8, capacity.getPhysicalCores().intValue());
+        assertEquals(40, capacity.getVirtualCores().intValue());
         assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
@@ -155,6 +161,8 @@ class SubscriptionCapacityRepositoryTest {
         assertEquals("subscription", capacity.getSubscriptionId());
         assertEquals(4, capacity.getPhysicalSockets().intValue());
         assertEquals(20, capacity.getVirtualSockets().intValue());
+        assertEquals(8, capacity.getPhysicalCores().intValue());
+        assertEquals(40, capacity.getVirtualCores().intValue());
         assertEquals("ownerId", capacity.getOwnerId());
         assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
         assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
@@ -220,6 +228,8 @@ class SubscriptionCapacityRepositoryTest {
         capacity.setOwnerId("ownerId");
         capacity.setPhysicalSockets(4);
         capacity.setVirtualSockets(20);
+        capacity.setPhysicalCores(8);
+        capacity.setVirtualCores(40);
         return capacity;
     }
 }

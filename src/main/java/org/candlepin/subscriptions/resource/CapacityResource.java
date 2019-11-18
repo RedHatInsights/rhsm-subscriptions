@@ -144,17 +144,27 @@ public class CapacityResource implements CapacityApi {
         int sockets = 0;
         int physicalSockets = 0;
         int hypervisorSockets = 0;
+        int cores = 0;
+        int physicalCores = 0;
+        int hypervisorCores = 0;
 
         for (SubscriptionCapacity capacity : matches) {
             if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
-                if (capacity.getVirtualSockets() != null) {
-                    sockets += capacity.getVirtualSockets();
-                    hypervisorSockets += capacity.getVirtualSockets();
-                }
-                if (capacity.getPhysicalSockets() != null) {
-                    sockets += capacity.getPhysicalSockets();
-                    physicalSockets += capacity.getPhysicalSockets();
-                }
+                int capacityVirtSockets = sanitize(capacity.getVirtualSockets());
+                sockets += capacityVirtSockets;
+                hypervisorSockets += capacityVirtSockets;
+
+                int capacityPhysicalSockets = sanitize(capacity.getPhysicalSockets());
+                sockets += capacityPhysicalSockets;
+                physicalSockets += capacityPhysicalSockets;
+
+                int capacityPhysCores = sanitize(capacity.getPhysicalCores());
+                cores += capacityPhysCores;
+                physicalCores += capacityPhysCores;
+
+                int capacityVirtCores = sanitize(capacity.getVirtualCores());
+                cores += capacityVirtCores;
+                hypervisorCores += capacityVirtCores;
             }
         }
 
@@ -163,7 +173,14 @@ public class CapacityResource implements CapacityApi {
             .sockets(sockets)
             .physicalSockets(physicalSockets)
             .hypervisorSockets(hypervisorSockets)
+            .cores(cores)
+            .physicalCores(physicalCores)
+            .hypervisorCores(hypervisorCores)
             .hasInfiniteQuantity(false);
+    }
+
+    private int sanitize(Integer value) {
+        return value != null ? value : 0;
     }
 
 }

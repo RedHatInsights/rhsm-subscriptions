@@ -58,6 +58,12 @@ public class SubscriptionCapacity implements Serializable {
     @Column(name = "virtual_sockets")
     private Integer virtualSockets;
 
+    @Column(name = "physical_cores")
+    private Integer physicalCores;
+
+    @Column(name = "virtual_cores")
+    private Integer virtualCores;
+
     @Column(name = "has_unlimited_guest_sockets")
     private boolean hasUnlimitedGuestSockets;
 
@@ -115,6 +121,22 @@ public class SubscriptionCapacity implements Serializable {
         this.virtualSockets = virtualSockets;
     }
 
+    public Integer getPhysicalCores() {
+        return physicalCores;
+    }
+
+    public void setPhysicalCores(Integer physicalCores) {
+        this.physicalCores = physicalCores;
+    }
+
+    public Integer getVirtualCores() {
+        return virtualCores;
+    }
+
+    public void setVirtualCores(Integer virtualCores) {
+        this.virtualCores = virtualCores;
+    }
+
     public boolean getHasUnlimitedGuestSockets() {
         return hasUnlimitedGuestSockets;
     }
@@ -150,7 +172,9 @@ public class SubscriptionCapacity implements Serializable {
             getPhysicalSockets(),
             getProductId(),
             getSubscriptionId(),
-            getVirtualSockets()
+            getVirtualSockets(),
+            getPhysicalCores(),
+            getVirtualCores()
         );
     }
 
@@ -171,15 +195,17 @@ public class SubscriptionCapacity implements Serializable {
             Objects.equals(getPhysicalSockets(), that.getPhysicalSockets()) &&
             Objects.equals(getVirtualSockets(), that.getVirtualSockets()) &&
             Objects.equals(getBeginDate(), that.getBeginDate()) &&
-            Objects.equals(getEndDate(), that.getEndDate());
+            Objects.equals(getEndDate(), that.getEndDate()) &&
+            Objects.equals(getPhysicalCores(), that.getPhysicalCores()) &&
+            Objects.equals(getVirtualCores(), that.getVirtualCores());
     }
 
     @Override
     public String toString() {
-        return "SubscriptionCapacity{" + "accountNumber='" + accountNumber + '\'' + ", productId='" +
-            productId + '\'' + ", subscriptionId='" + subscriptionId + '\'' + ", ownerId='" + ownerId + '\'' +
-            ", physicalSockets=" + physicalSockets + ", virtualSockets=" + virtualSockets +
-            ", hasUnlimitedGuestSockets=" + hasUnlimitedGuestSockets + ", beginDate=" + beginDate +
-            ", endDate=" + endDate + '}';
+        return String.format("SubscriptionCapacity{accountNumber=%s, productId=%s, subscriptionId=%s, " +
+            "ownerId=%s, physicalSockets=%s, virtualSockets=%s, hasUnlimitedGuestSockets=%s, " +
+            "physicalCores=%s, virtualCores=%s, beginDate=%s, endDate=%s}",
+            accountNumber, productId, subscriptionId, ownerId, physicalSockets, virtualSockets,
+            hasUnlimitedGuestSockets, physicalCores, virtualCores, beginDate, endDate);
     }
 }

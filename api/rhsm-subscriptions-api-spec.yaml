@@ -525,6 +525,21 @@ components:
           type: integer
           format: int32
           minimum: 0
+        cores:
+          description: "Total cores capacity."
+          type: integer
+          format: int32
+          minimum: 0
+        physical_cores:
+          description: "Total physical cores capacity."
+          type: integer
+          format: int32
+          minimum: 0
+        hypervisor_cores:
+          description: "Total hypervisor cores capacity."
+          type: integer
+          format: int32
+          minimum: 0
         has_infinite_quantity:
           description: "Indicates whether this snapshot has an infinite quantity subscription included.
             If there is an infinite quantity subscription involved, there is no meaningful number for

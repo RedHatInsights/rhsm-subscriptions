@@ -65,20 +65,29 @@ public class CandlepinPoolCapacityMapper {
             capacity.setSubscriptionId(pool.getSubscriptionId());
             capacity.setBeginDate(pool.getStartDate());
             capacity.setEndDate(pool.getEndDate());
-            Long socketCapacity = getSocketCapacity(pool);
+            Long socketCapacity = getCapacityUnit("sockets", pool);
             if (products.contains(product) && socketCapacity != null) {
                 capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
             }
             if (derivedProducts.contains(product) && socketCapacity != null) {
                 capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
             }
+
+            Long coresCapacity = getCapacityUnit("cores", pool);
+            if (products.contains(product) && coresCapacity != null) {
+                capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
+            }
+
+            if (derivedProducts.contains(product) && coresCapacity != null) {
+                capacity.setVirtualCores(Math.toIntExact(coresCapacity));
+            }
             return capacity;
         }).collect(Collectors.toList());
     }
 
-    private Long getSocketCapacity(CandlepinPool pool) {
+    private Long getCapacityUnit(String unitProperty, CandlepinPool pool) {
         Integer sockets = pool.getProductAttributes().stream()
-            .filter(attr -> attr.getName().equals("sockets"))
+            .filter(attr -> attr.getName().equals(unitProperty))
             .map(CandlepinProductAttribute::getValue).mapToInt(Integer::parseInt).boxed().findFirst()
             .orElse(null);
         if (sockets != null) {
