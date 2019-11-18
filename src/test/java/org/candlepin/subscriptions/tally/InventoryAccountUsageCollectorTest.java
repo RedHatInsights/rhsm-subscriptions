@@ -161,7 +161,6 @@ public class InventoryAccountUsageCollectorTest {
     public void guestUnknownHypervisorTotalsForRHEL() {
         List<String> targetAccounts = Arrays.asList("A1");
         ClassifiedInventoryHostFacts guest = createGuest(null, "A1", "O1", TEST_PRODUCT_ID, 12, 3);
-        guest.setHypervisorUnknown(true);
         when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(guest).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -171,9 +170,9 @@ public class InventoryAccountUsageCollectorTest {
         assertThat(calcs, Matchers.hasKey("A1"));
 
         AccountUsageCalculation calc = calcs.get("A1");
-        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 3, 1);
+        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
         assertPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 3, 1);
+        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
     }
 
     @Test

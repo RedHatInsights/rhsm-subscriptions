@@ -50,7 +50,8 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         else if (guestWithUnknownHypervisor) {
             // If the hypervisor is unknown for a guest, we consider it as having a
             // unique hypervisor instance contributing to the hypervisor counts.
-            prodCalc.addHypervisor(cores, sockets, 1);
+            // Since the guest is unmapped, we only contribute a single socket.
+            prodCalc.addHypervisor(cores, 1, 1);
         }
         else if (!normalizedFacts.isVirtual()) {
             // Physical system so increment the physical system counts.
