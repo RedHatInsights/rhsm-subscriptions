@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-
 import org.springframework.util.StringUtils;
 
 /**
@@ -38,7 +36,7 @@ public class ProductUsageCollectorFactory {
             throw new IllegalArgumentException("Specified product was null or empty!");
         }
 
-        if ("RHEL".equalsIgnoreCase(product) || FactNormalizer.isRhelVariant(product)) {
+        if (product.startsWith("RHEL")) {
             return new RHELProductUsageCollector();
         }
 
