@@ -58,6 +58,11 @@ public class ApplicationProperties {
     private String productWhitelistResourceLocation;
 
     /**
+     * Resource location of a file containing the whitelisted accounts allowed to run reports.
+     */
+    private String reportingAccountWhitelistResourceLocation;
+
+    /**
      * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
      * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
      */
@@ -148,5 +153,13 @@ public class ApplicationProperties {
 
     public void setProductWhitelistResourceLocation(String productWhitelistResourceLocation) {
         this.productWhitelistResourceLocation = productWhitelistResourceLocation;
+    }
+
+    public String getReportingAccountWhitelistResourceLocation() {
+        return reportingAccountWhitelistResourceLocation;
+    }
+
+    public void setReportingAccountWhitelistResourceLocation(String location) {
+        this.reportingAccountWhitelistResourceLocation = location;
     }
 }

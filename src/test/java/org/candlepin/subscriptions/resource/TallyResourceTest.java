@@ -21,26 +21,31 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.TestPropertySource;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +64,7 @@ public class TallyResourceTest {
     PageLinkCreator pageLinkCreator;
 
     @MockBean
-    BuildProperties buildProperties;
+    ReportingAccountWhitelist accountWhitelist;
 
     @Autowired
     TallyResource resource;
@@ -67,8 +72,13 @@ public class TallyResourceTest {
     private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
     private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
+    @BeforeEach
+    public void setupTests() throws IOException {
+        when(accountWhitelist.hasAccount(eq("account123456"))).thenReturn(true);
+    }
+
     @Test
-    public void testShouldUseQueryBasedOnHeaderAndParameters() {
+    public void testShouldUseQueryBasedOnHeaderAndParameters() throws Exception {
         TallySnapshot snap = new TallySnapshot();
 
         Mockito.when(repository
@@ -103,7 +113,7 @@ public class TallyResourceTest {
     }
 
     @Test
-    public void testShouldThrowExceptionOnBadOffset() {
+    public void testShouldThrowExceptionOnBadOffset() throws IOException {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             "product1",
             "daily",
@@ -116,7 +126,7 @@ public class TallyResourceTest {
     }
 
     @Test
-    public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
+    public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() throws IOException {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
                  Mockito.eq("account123456"),
@@ -140,5 +150,35 @@ public class TallyResourceTest {
         // in the range.
         assertEquals(9, report.getData().size());
         report.getData().forEach(snap -> assertFalse(snap.getHasData()));
+    }
+
+    @Test
+    @WithMockRedHatPrincipal("1111")
+    public void testAccessDeniedWhenAccountIsNotWhitelisted() {
+        assertThrows(AccessDeniedException.class, () -> {
+            resource.getTallyReport(
+                "product1",
+                "daily",
+                min,
+                max,
+                null,
+                null
+            );
+        });
+    }
+
+    @Test
+    @WithMockRedHatPrincipal(value = "123456", roles = {})
+    public void testAccessDeniedWhenUserIsNotAnAdmin() {
+        assertThrows(AccessDeniedException.class, () -> {
+            resource.getTallyReport(
+                "product1",
+                "daily",
+                min,
+                max,
+                null,
+                null
+            );
+        });
     }
 }
