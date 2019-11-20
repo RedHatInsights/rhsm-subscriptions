@@ -51,7 +51,6 @@ import java.io.IOException;
 
 import javax.validation.Validator;
 
-
 /** Class to hold configuration beans */
 @Configuration
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
@@ -109,22 +108,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public ProductIdToProductsMapSource productToProductIdsMapSource(
-        ApplicationProperties applicationProperties) {
-
-        return new ProductIdToProductsMapSource(applicationProperties);
-    }
-
-    @Bean
-    public RoleToProductsMapSource roleToProductMapSource(ApplicationProperties applicationProperties) {
-        return new RoleToProductsMapSource(applicationProperties);
-    }
-
-    @Bean
     public AccountListSource accountListSource(ApplicationProperties applicationProperties,
-        InventoryRepository inventoryRepository) {
+        InventoryRepository inventoryRepository, ApplicationClock clock) {
         if (applicationProperties.getAccountListResourceLocation() != null) {
-            return new FileAccountListSource(applicationProperties);
+            return new FileAccountListSource(applicationProperties, clock);
         }
         else {
             return new DatabaseAccountListSource(inventoryRepository);

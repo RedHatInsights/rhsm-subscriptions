@@ -69,11 +69,12 @@ public class FactNormalizerTest {
         props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
         props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
 
-        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props);
+        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props,
+            clock);
         productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
         productIdToProductsMapSource.init();
 
-        RoleToProductsMapSource productToRolesMapSource = new RoleToProductsMapSource(props);
+        RoleToProductsMapSource productToRolesMapSource = new RoleToProductsMapSource(props, clock);
         productToRolesMapSource.setResourceLoader(new FileSystemResourceLoader());
         productToRolesMapSource.init();
 

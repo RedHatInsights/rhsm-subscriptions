@@ -21,6 +21,9 @@
 package org.candlepin.subscriptions.files;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
+
+import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
@@ -29,10 +32,12 @@ import java.util.Map;
 /**
  * Loads the mapping of syspurpose role to Tally products from a YAML file.
  */
+@Component
 public class RoleToProductsMapSource extends YamlFileSource<Map<String, List<String>>> {
 
-    public RoleToProductsMapSource(ApplicationProperties properties) {
-        super(properties.getRoleToProductsMapResourceLocation());
+    public RoleToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {
+        super(properties.getRoleToProductsMapResourceLocation(), clock.getClock(),
+            properties.getRoleToProductsMapCacheTtl());
     }
 
     @Override

@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ public class ProductIdToProductsMapSourceTest {
         ApplicationProperties props = new ApplicationProperties();
         props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
 
-        ProductIdToProductsMapSource source = new ProductIdToProductsMapSource(props);
+        ProductIdToProductsMapSource source = new ProductIdToProductsMapSource(props, new ApplicationClock());
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 

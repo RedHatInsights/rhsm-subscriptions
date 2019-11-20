@@ -18,30 +18,41 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.util;
 
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.util.ApplicationClock;
-
-import org.springframework.stereotype.Component;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 
 /**
- * Loads the product ID to list of Tally products mapping from a YAML file.
+ * Clock for testing that allows manipulating the time
  */
-@Component
-public class ProductIdToProductsMapSource extends YamlFileSource<Map<Integer, List<String>>> {
+public class TestClock extends Clock {
 
-    public ProductIdToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {
-        super(properties.getProductIdToProductsMapResourceLocation(), clock.getClock(),
-            properties.getProductIdToProductsMapCacheTtl());
+    private Instant instant;
+    private final ZoneId zone;
+
+    public TestClock(Instant instant, ZoneId zone) {
+        this.instant = instant;
+        this.zone = zone;
+    }
+
+    public void setInstant(Instant instant) {
+        this.instant = instant;
     }
 
     @Override
-    protected Map<Integer, List<String>> getDefault() {
-        return Collections.emptyMap();
+    public ZoneId getZone() {
+        return zone;
+    }
+
+    @Override
+    public Clock withZone(ZoneId zoneId) {
+        return new TestClock(instant, zoneId);
+    }
+
+    @Override
+    public Instant instant() {
+        return instant;
     }
 }

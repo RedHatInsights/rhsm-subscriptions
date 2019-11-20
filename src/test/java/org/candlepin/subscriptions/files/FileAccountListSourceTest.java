@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ public class FileAccountListSourceTest {
         ApplicationProperties props = new ApplicationProperties();
         props.setAccountListResourceLocation("classpath:account_list.txt");
 
-        FileAccountListSource source = new FileAccountListSource(props);
+        FileAccountListSource source = new FileAccountListSource(props, new ApplicationClock());
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
 

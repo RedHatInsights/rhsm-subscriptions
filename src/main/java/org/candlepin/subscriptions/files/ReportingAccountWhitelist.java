@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.files;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
@@ -39,9 +40,11 @@ public class ReportingAccountWhitelist implements ResourceLoaderAware {
     private PerLineFileSource source;
     private boolean isDevMode;
 
-    public ReportingAccountWhitelist(ApplicationProperties props) {
+    public ReportingAccountWhitelist(ApplicationProperties props, ApplicationClock clock) {
         String resourceLocation = props.getReportingAccountWhitelistResourceLocation();
-        source = resourceLocation != null ? new PerLineFileSource(resourceLocation) : null;
+        source = resourceLocation != null ? new PerLineFileSource(resourceLocation, clock.getClock(),
+            props.getReportingAccountWhitelistCacheTtl()) :
+            null;
         this.isDevMode = props.isDevMode();
     }
 
