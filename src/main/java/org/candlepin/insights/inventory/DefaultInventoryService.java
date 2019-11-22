@@ -40,8 +40,8 @@ public class DefaultInventoryService extends InventoryService {
 
     private final HostsApi hostsInventoryApi;
 
-    public DefaultInventoryService(HostsApi hostsInventoryApi, int maxQueueDepth) {
-        super(maxQueueDepth);
+    public DefaultInventoryService(HostsApi hostsInventoryApi, int maxQueueDepth, int staleHostOffset) {
+        super(maxQueueDepth, staleHostOffset);
         this.hostsInventoryApi = hostsInventoryApi;
     }
 

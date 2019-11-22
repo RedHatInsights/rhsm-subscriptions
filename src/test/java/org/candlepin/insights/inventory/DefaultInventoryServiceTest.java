@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,7 +74,7 @@ public class DefaultInventoryServiceTest {
 
     @Test
     public void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 1);
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 1, 0);
         inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
         Map<String, Object> expectedFactMap = new HashMap<>();
         expectedFactMap.put("CPU_SOCKETS", 4);
@@ -99,7 +100,8 @@ public class DefaultInventoryServiceTest {
             .subscriptionManagerId("108152b1-6b41-4e1b-b908-922c943e7950")
             .insightsId("0be977bc-46e9-4d9b-a798-65cd1ed98710")
             .fqdn("test.example.com")
-            .facts(Collections.singletonList(expectedFacts));
+            .facts(Collections.singletonList(expectedFacts))
+            .reporter("rhsm-conduit");
 
         ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
         Mockito.verify(api).apiHostAddHostList(argument.capture());
@@ -111,7 +113,7 @@ public class DefaultInventoryServiceTest {
 
     @Test
     public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(null, 1);
+        DefaultInventoryService inventoryService = new DefaultInventoryService(null, 1, 0);
         ConduitFacts conduitFacts = createFullyPopulatedConduitFacts();
         OrgInventory orgInventory = inventoryService.getInventoryForOrgConsumers(
             Collections.singletonList(conduitFacts));
@@ -120,8 +122,28 @@ public class DefaultInventoryServiceTest {
     }
 
     @Test
+    public void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() throws Exception {
+        int staleHostOffset = 24;
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 1, staleHostOffset);
+        inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
+
+        ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(api).apiHostAddHostList(argument.capture());
+        assertEquals(1, argument.getValue().size());
+
+        CreateHostIn result = argument.getValue().get(0);
+        FactSet rhsm = result.getFacts().get(0);
+        assertEquals("rhsm", rhsm.getNamespace());
+
+        Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
+        OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+        assertNotNull(syncDate);
+        assertEquals(syncDate.plusHours(staleHostOffset), result.getStaleTimestamp());
+    }
+
+    @Test
     public void scheduleHostUpdateAutoFlushesWhenMaxQueueDepthIsReached() throws Exception {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 2);
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 2, 0);
 
         inventoryService.scheduleHostUpdate(createFullyPopulatedConduitFacts());
         inventoryService.scheduleHostUpdate(createFullyPopulatedConduitFacts());
@@ -144,7 +166,10 @@ public class DefaultInventoryServiceTest {
         for (FactSet fs : actualFactSet) {
             Map<String, Object> actualMap = (Map<String, Object>) fs.getFacts();
             if (actualMap.containsKey("SYNC_TIMESTAMP") && actualMap.get("SYNC_TIMESTAMP") != null) {
-                actualMap.remove("SYNC_TIMESTAMP");
+                OffsetDateTime syncTimestamp = (OffsetDateTime) actualMap.remove("SYNC_TIMESTAMP");
+                // Since the stale offset for the service is 0, we can check the stale_timestamp
+                // property against the sync timestamp.
+                expected.setStaleTimestamp(syncTimestamp);
             }
             else {
                 fail("SYNC_TIMESTAMP is missing from the FactSet");

@@ -40,6 +40,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -51,7 +52,6 @@ public class KafkaEnabledInventoryServiceTest {
 
     @Test
     public void ensureKafkaProducerSendsHostMessage() {
-
         ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
             ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
@@ -66,7 +66,8 @@ public class KafkaEnabledInventoryServiceTest {
         expectedFacts.setCpuSockets(45);
 
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
+            props.getKafkaHostIngressTopic(), props.getStaleHostOffsetInDays(), producer);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
@@ -86,12 +87,18 @@ public class KafkaEnabledInventoryServiceTest {
         assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
         assertEquals(expectedFacts.getCpuCores(), (Integer) rhsmFacts.get("CPU_CORES"));
         assertEquals(expectedFacts.getCpuSockets(), (Integer) rhsmFacts.get("CPU_SOCKETS"));
+
+        OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+        assertNotNull(syncDate);
+        assertEquals(syncDate, message.getData().getStaleTimestamp());
+        assertEquals("rhsm-conduit", message.getData().getReporter());
     }
 
     @Test
     public void ensureNoMessageWithEmptyFactList() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
+            props.getKafkaHostIngressTopic(), props.getStaleHostOffsetInDays(), producer);
         service.sendHostUpdate(Arrays.asList());
 
         verifyZeroInteractions(producer);
@@ -100,10 +107,43 @@ public class KafkaEnabledInventoryServiceTest {
     @Test
     public void ensureMessageSentWhenHostUpdateScheduled() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
+            props.getKafkaHostIngressTopic(), props.getStaleHostOffsetInDays(), producer);
         service.scheduleHostUpdate(new ConduitFacts());
         service.scheduleHostUpdate(new ConduitFacts());
 
         verify(producer, times(2)).send(anyString(), any());
+    }
+
+    @Test
+    public void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() {
+        ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
+            ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
+
+        when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
+
+        ConduitFacts expectedFacts = new ConduitFacts();
+        expectedFacts.setAccountNumber("my_account");
+
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
+            props.getKafkaHostIngressTopic(), 24, producer);
+        service.sendHostUpdate(Arrays.asList(expectedFacts));
+
+        CreateUpdateHostMessage message = messageCaptor.getValue();
+        assertNotNull(message);
+        assertEquals("add_host", message.getOperation());
+        assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
+
+        assertNotNull(message.getData().getFacts());
+        assertEquals(1, message.getData().getFacts().size());
+        FactSet rhsm = message.getData().getFacts().get(0);
+        assertEquals("rhsm", rhsm.getNamespace());
+
+        Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
+        OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+        assertNotNull(syncDate);
+        assertEquals(syncDate.plusHours(24), message.getData().getStaleTimestamp());
     }
 }

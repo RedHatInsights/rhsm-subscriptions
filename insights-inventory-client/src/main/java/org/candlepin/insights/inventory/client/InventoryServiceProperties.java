@@ -30,6 +30,7 @@ public class InventoryServiceProperties {
     private boolean enableKafka;
     private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
     private int apiHostUpdateBatchSize = 50;
+    private int staleHostOffsetInDays = 0;
 
     public boolean isUseStub() {
         return useStub;
@@ -61,6 +62,14 @@ public class InventoryServiceProperties {
 
     public void setApiHostUpdateBatchSize(int apiHostUpdateBatchSize) {
         this.apiHostUpdateBatchSize = apiHostUpdateBatchSize;
+    }
+
+    public int getStaleHostOffsetInDays() {
+        return staleHostOffsetInDays;
+    }
+
+    public void setStaleHostOffsetInDays(int staleHostOffsetInDays) {
+        this.staleHostOffsetInDays = staleHostOffsetInDays;
     }
 
     public boolean isEnableKafka() {

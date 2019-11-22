@@ -22,7 +22,6 @@ package org.candlepin.insights.inventory.kafka;
 
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
-import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,12 +42,12 @@ public class KafkaEnabledInventoryService extends InventoryService {
     private final KafkaTemplate<String, HostOperationMessage> producer;
     private final String hostIngressTopic;
 
-    public KafkaEnabledInventoryService(InventoryServiceProperties inventoryServiceProperties,
+    public KafkaEnabledInventoryService(String hostIngressTopic, int hostStaleOffset,
         KafkaTemplate<String, HostOperationMessage> producer) {
         // Flush updates as soon as they get scheduled.
-        super(1);
+        super(1, hostStaleOffset);
         this.producer = producer;
-        this.hostIngressTopic = inventoryServiceProperties.getKafkaHostIngressTopic();
+        this.hostIngressTopic = hostIngressTopic;
     }
 
     @Override
