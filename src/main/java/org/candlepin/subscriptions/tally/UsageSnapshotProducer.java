@@ -41,6 +41,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.micrometer.core.annotation.Timed;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -90,6 +92,7 @@ public class UsageSnapshotProducer {
     }
 
     @Transactional
+    @Timed("rhsm-subscriptions.snapshots.collection")
     public void produceSnapshots() {
         try {
             List<String> accountList = accountListSource.list();
@@ -102,6 +105,7 @@ public class UsageSnapshotProducer {
     }
 
     @Transactional
+    @Timed("rhsm-subscriptions.snapshots.single")
     public void produceSnapshotsForAccount(String account) {
         produceSnapshotsForAccounts(Collections.singletonList(account));
     }

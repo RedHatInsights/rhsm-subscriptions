@@ -28,6 +28,8 @@ import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.annotation.Timed;
+
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ public class ReportFiller {
     }
 
     @SuppressWarnings("squid:S2583")
+    @Timed("rhsm-subscriptions.tally.fillReport")
     public void fillGaps(TallyReport report, OffsetDateTime start, OffsetDateTime end) {
         List<TallySnapshot> result = new ArrayList<>();
         TemporalAmount offset = timeAdjuster.getSnapshotOffset();

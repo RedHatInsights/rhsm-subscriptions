@@ -39,6 +39,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -46,6 +47,9 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import io.micrometer.core.aop.TimedAspect;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.io.IOException;
 
@@ -56,6 +60,7 @@ import javax.validation.Validator;
 @Configuration
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableConfigurationProperties(ApplicationProperties.class)
+@EnableAspectJAutoProxy
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
@@ -154,4 +159,8 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         );
     }
 
+    @Bean
+    public TimedAspect timedAspect(MeterRegistry registry) {
+        return new TimedAspect(registry);
+    }
 }
