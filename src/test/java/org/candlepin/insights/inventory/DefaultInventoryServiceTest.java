@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.client.ApiException;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
@@ -74,7 +75,10 @@ public class DefaultInventoryServiceTest {
 
     @Test
     public void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 1, 0);
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiHostUpdateBatchSize(1);
+
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, props);
         inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
         Map<String, Object> expectedFactMap = new HashMap<>();
         expectedFactMap.put("CPU_SOCKETS", 4);
@@ -113,7 +117,10 @@ public class DefaultInventoryServiceTest {
 
     @Test
     public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(null, 1, 0);
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiHostUpdateBatchSize(1);
+
+        DefaultInventoryService inventoryService = new DefaultInventoryService(null, props);
         ConduitFacts conduitFacts = createFullyPopulatedConduitFacts();
         OrgInventory orgInventory = inventoryService.getInventoryForOrgConsumers(
             Collections.singletonList(conduitFacts));
@@ -123,8 +130,11 @@ public class DefaultInventoryServiceTest {
 
     @Test
     public void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() throws Exception {
-        int staleHostOffset = 24;
-        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 1, staleHostOffset);
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiHostUpdateBatchSize(1);
+        props.setStaleHostOffsetInDays(24);
+
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, props);
         inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
 
         ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
@@ -138,12 +148,15 @@ public class DefaultInventoryServiceTest {
         Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
         OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
         assertNotNull(syncDate);
-        assertEquals(syncDate.plusHours(staleHostOffset), result.getStaleTimestamp());
+        assertEquals(syncDate.plusHours(props.getStaleHostOffsetInDays()), result.getStaleTimestamp());
     }
 
     @Test
     public void scheduleHostUpdateAutoFlushesWhenMaxQueueDepthIsReached() throws Exception {
-        DefaultInventoryService inventoryService = new DefaultInventoryService(api, 2, 0);
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        props.setApiHostUpdateBatchSize(2);
+
+        DefaultInventoryService inventoryService = new DefaultInventoryService(api, props);
 
         inventoryService.scheduleHostUpdate(createFullyPopulatedConduitFacts());
         inventoryService.scheduleHostUpdate(createFullyPopulatedConduitFacts());

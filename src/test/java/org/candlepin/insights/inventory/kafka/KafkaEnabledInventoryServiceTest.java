@@ -66,8 +66,7 @@ public class KafkaEnabledInventoryServiceTest {
         expectedFacts.setCpuSockets(45);
 
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
-            props.getKafkaHostIngressTopic(), props.getStaleHostOffsetInDays(), producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
@@ -97,8 +96,7 @@ public class KafkaEnabledInventoryServiceTest {
     @Test
     public void ensureNoMessageWithEmptyFactList() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
-            props.getKafkaHostIngressTopic(), props.getStaleHostOffsetInDays(), producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
         service.sendHostUpdate(Arrays.asList());
 
         verifyZeroInteractions(producer);
@@ -107,8 +105,7 @@ public class KafkaEnabledInventoryServiceTest {
     @Test
     public void ensureMessageSentWhenHostUpdateScheduled() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
-            props.getKafkaHostIngressTopic(), props.getStaleHostOffsetInDays(), producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
         service.scheduleHostUpdate(new ConduitFacts());
         service.scheduleHostUpdate(new ConduitFacts());
 
@@ -127,8 +124,9 @@ public class KafkaEnabledInventoryServiceTest {
         expectedFacts.setAccountNumber("my_account");
 
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(
-            props.getKafkaHostIngressTopic(), 24, producer);
+        props.setStaleHostOffsetInDays(24);
+
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         CreateUpdateHostMessage message = messageCaptor.getValue();

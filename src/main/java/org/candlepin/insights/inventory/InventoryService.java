@@ -22,6 +22,7 @@ package org.candlepin.insights.inventory;
 
 import org.candlepin.insights.api.model.ConsumerInventory;
 import org.candlepin.insights.api.model.OrgInventory;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
 
@@ -49,9 +50,9 @@ public abstract class InventoryService {
     private int staleHostOffset;
     private List<ConduitFacts> factQueue;
 
-    public InventoryService(int maxQueueDepth, int staleHostOffset) {
+    public InventoryService(InventoryServiceProperties serviceProperties, int maxQueueDepth) {
         this.maxQueueDepth = maxQueueDepth;
-        this.staleHostOffset = staleHostOffset;
+        this.staleHostOffset = serviceProperties.getStaleHostOffsetInDays();
         this.factQueue = new LinkedList<>();
     }
 

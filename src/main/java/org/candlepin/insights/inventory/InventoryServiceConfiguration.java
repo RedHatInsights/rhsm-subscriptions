@@ -65,9 +65,8 @@ public class InventoryServiceConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.inventory-service", name = "enableKafka",
         havingValue = "false", matchIfMissing = true)
-    public InventoryService apiInventoryService(InventoryServiceProperties props, HostsApi hostsApi) {
-        return new DefaultInventoryService(hostsApi, props.getApiHostUpdateBatchSize(),
-            props.getStaleHostOffsetInDays());
+    public InventoryService apiInventoryService(InventoryServiceProperties serviceProps, HostsApi hostsApi) {
+        return new DefaultInventoryService(hostsApi, serviceProps);
     }
 
     //
@@ -118,7 +117,6 @@ public class InventoryServiceConfiguration {
         @Qualifier("inventoryServiceKafkaProducerTemplate")
         KafkaTemplate<String, HostOperationMessage> producer,
         InventoryServiceProperties serviceProperties) {
-        return new KafkaEnabledInventoryService(serviceProperties.getKafkaHostIngressTopic(),
-            serviceProperties.getStaleHostOffsetInDays(), producer);
+        return new KafkaEnabledInventoryService(serviceProperties, producer);
     }
 }
