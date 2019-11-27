@@ -27,6 +27,8 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Clock;
+import java.time.Duration;
 
 import javax.annotation.PostConstruct;
 
@@ -37,24 +39,27 @@ import javax.annotation.PostConstruct;
  */
 public abstract class YamlFileSource<T> implements ResourceLoaderAware {
 
+    private final Cache<T> cachedValue;
     private String resourceLocation;
     private ResourceLoader resourceLoader;
     private Resource fileResource;
 
-    public YamlFileSource(String resourceLocation) {
+    public YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
         this.resourceLocation = resourceLocation;
+        this.cachedValue = new Cache(clock, cacheTtl);
     }
 
     public T getValue() throws IOException {
-        // Re-read the file every time.  It shouldn't be a massive file and doing so allows us to update the
-        // product list without restarting the app.
-        try (InputStream s = fileResource.getInputStream()) {
-            T value = new Yaml().load(s);
-            if (value == null) {
-                return getDefault();
+        if (cachedValue.isExpired()) {
+            try (InputStream s = fileResource.getInputStream()) {
+                T value = new Yaml().load(s);
+                if (value == null) {
+                    return getDefault();
+                }
+                cachedValue.setValue(value);
             }
-            return value;
         }
+        return cachedValue.getValue();
     }
 
     protected abstract T getDefault();

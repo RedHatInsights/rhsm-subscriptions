@@ -24,6 +24,8 @@ import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
  */
@@ -78,6 +80,32 @@ public class ApplicationProperties {
      * Whether the ingress endpoint is enabled on this instance of rhsm-subscriptions or not.
      */
     private boolean enableIngressEndpoint;
+
+    /**
+     * Amount of time to cache the account list, before allowing a re-read from the filesystem.
+     */
+    private Duration accountListCacheTtl = Duration.ofMinutes(5);
+
+    /**
+     * Amount of time to cache the product mapping, before allowing a re-read from the filesystem.
+     */
+    private Duration productIdToProductsMapCacheTtl = Duration.ofMinutes(5);
+
+    /**
+     * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
+     */
+    private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
+
+    /**
+     * Amount of time to cache the syspurpose role to products map, before allowing a re-read from the
+     * filesystem.
+     */
+    private Duration roleToProductsMapCacheTtl = Duration.ofMinutes(5);
+
+    /**
+     * Amount of time to cache the API access whitelist, before allowing a re-read from the filesystem.
+     */
+    private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
@@ -161,5 +189,45 @@ public class ApplicationProperties {
 
     public void setReportingAccountWhitelistResourceLocation(String location) {
         this.reportingAccountWhitelistResourceLocation = location;
+    }
+
+    public Duration getAccountListCacheTtl() {
+        return accountListCacheTtl;
+    }
+
+    public void setAccountListCacheTtl(Duration accountListCacheTtl) {
+        this.accountListCacheTtl = accountListCacheTtl;
+    }
+
+    public Duration getProductIdToProductsMapCacheTtl() {
+        return productIdToProductsMapCacheTtl;
+    }
+
+    public void setProductIdToProductsMapCacheTtl(Duration productIdToProductsMapCacheTtl) {
+        this.productIdToProductsMapCacheTtl = productIdToProductsMapCacheTtl;
+    }
+
+    public Duration getProductWhiteListCacheTtl() {
+        return productWhiteListCacheTtl;
+    }
+
+    public void setProductWhiteListCacheTtl(Duration productWhiteListCacheTtl) {
+        this.productWhiteListCacheTtl = productWhiteListCacheTtl;
+    }
+
+    public Duration getRoleToProductsMapCacheTtl() {
+        return roleToProductsMapCacheTtl;
+    }
+
+    public void setRoleToProductsMapCacheTtl(Duration roleToProductsMapCacheTtl) {
+        this.roleToProductsMapCacheTtl = roleToProductsMapCacheTtl;
+    }
+
+    public Duration getReportingAccountWhitelistCacheTtl() {
+        return reportingAccountWhitelistCacheTtl;
+    }
+
+    public void setReportingAccountWhitelistCacheTtl(Duration reportingAccountWhitelistCacheTtl) {
+        this.reportingAccountWhitelistCacheTtl = reportingAccountWhitelistCacheTtl;
     }
 }

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.files;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -54,7 +55,7 @@ class ProductWhitelistTest {
     private ProductWhitelist initProductWhitelist(String resourceLocation) throws IOException {
         ApplicationProperties props = new ApplicationProperties();
         props.setProductWhitelistResourceLocation(resourceLocation);
-        ProductWhitelist whitelist = new ProductWhitelist(props);
+        ProductWhitelist whitelist = new ProductWhitelist(props, new ApplicationClock());
         whitelist.setResourceLoader(new FileSystemResourceLoader());
         whitelist.init();
         return whitelist;

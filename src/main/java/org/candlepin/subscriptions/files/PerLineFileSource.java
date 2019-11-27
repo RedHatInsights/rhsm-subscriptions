@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,23 +41,24 @@ import javax.annotation.PostConstruct;
  */
 public class PerLineFileSource implements ResourceLoaderAware {
 
+    private final Cache<List<String>> cache;
     private ResourceLoader resourceLoader;
     private Resource fileResource;
     private String resourceLocation;
 
-    public PerLineFileSource(String resourceLocation) {
+    public PerLineFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
         this.resourceLocation = resourceLocation;
+        this.cache = new Cache<>(clock, cacheTtl);
     }
 
     public List<String> list() throws IOException {
-        // Re-read the file every time.  It shouldn't be a massive file and doing so allows us to update the
-        // product list without restarting the app.
-        try (InputStream s = fileResource.getInputStream()) {
-            return new BufferedReader(new InputStreamReader(s, Charset.defaultCharset()))
-                .lines()
-                .filter(line -> line != null && !line.isEmpty())
-                .collect(Collectors.toList());
+        if (cache.isExpired()) {
+            try (InputStream s = fileResource.getInputStream()) {
+                cache.setValue(new BufferedReader(new InputStreamReader(s, Charset.defaultCharset())).lines()
+                    .filter(line -> line != null && !line.isEmpty()).collect(Collectors.toList()));
+            }
         }
+        return cache.getValue();
     }
 
     @Override

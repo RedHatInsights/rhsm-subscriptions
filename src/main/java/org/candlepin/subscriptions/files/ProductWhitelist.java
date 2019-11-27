@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.files;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,10 +46,11 @@ public class ProductWhitelist implements ResourceLoaderAware {
     private final Set<String> whitelistProducts = new HashSet<>();
     private final PerLineFileSource source;
 
-    public ProductWhitelist(ApplicationProperties properties) {
+    public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
         if (properties.getProductWhitelistResourceLocation() != null) {
             source = new PerLineFileSource(
-                properties.getProductWhitelistResourceLocation());
+                properties.getProductWhitelistResourceLocation(), clock.getClock(),
+                properties.getProductWhiteListCacheTtl());
         }
         else {
             source = null;

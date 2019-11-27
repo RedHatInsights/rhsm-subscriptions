@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,6 +33,9 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.core.io.FileSystemResourceLoader;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,6 +45,7 @@ import java.util.Set;
 class CapacityProductExtractorTest {
 
     private CapacityProductExtractor extractor;
+    private ApplicationClock clock = new ApplicationClock(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
     @BeforeAll
     void setup() throws IOException {
@@ -48,7 +53,8 @@ class CapacityProductExtractorTest {
         props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
         props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
 
-        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props);
+        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props,
+            clock);
         productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
         productIdToProductsMapSource.init();
 

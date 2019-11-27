@@ -27,9 +27,10 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-
 
 public class PerLineFileResourceTest {
 
@@ -59,7 +60,8 @@ public class PerLineFileResourceTest {
     }
 
     private PerLineFileSource createSource(String filename) {
-        PerLineFileSource source = new PerLineFileSource(String.format("classpath:%s", filename));
+        PerLineFileSource source = new PerLineFileSource(String.format("classpath:%s", filename),
+            Clock.systemUTC(), Duration.ofMinutes(5));
         source.setResourceLoader(new FileSystemResourceLoader());
         source.init();
         return source;

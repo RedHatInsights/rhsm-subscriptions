@@ -20,15 +20,16 @@
  */
 package org.candlepin.subscriptions.files;
 
-
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 /**
  * Reads a set of accounts from a file. Each line is a single account.
  */
 public class FileAccountListSource extends PerLineFileSource implements AccountListSource {
-    public FileAccountListSource(ApplicationProperties applicationProperties) {
-        super(applicationProperties.getAccountListResourceLocation());
+    public FileAccountListSource(ApplicationProperties applicationProperties, ApplicationClock clock) {
+        super(applicationProperties.getAccountListResourceLocation(), clock.getClock(),
+            applicationProperties.getAccountListCacheTtl());
     }
 }
