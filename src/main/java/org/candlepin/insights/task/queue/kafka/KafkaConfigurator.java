@@ -35,6 +35,7 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.listener.ContainerProperties.AckMode;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer2;
 
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
@@ -63,6 +64,9 @@ public class KafkaConfigurator {
 
     public ConsumerFactory<String, TaskMessage> defaultConsumerFactory(KafkaProperties kafkaProperties) {
         Map<String, Object> consumerConfig = kafkaProperties.buildConsumerProperties();
+        // Task messages should be manually committed once they have been processed.
+        consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
         boolean bypassRegistry = bypassSchemaRegistry(consumerConfig);
 
         consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -96,6 +100,9 @@ public class KafkaConfigurator {
         factory.setConsumerFactory(consumerFactory);
         // Concurrency should be set to the number of partitions for the target topic.
         factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+
+        // Task message offsets will be manually committed as soon as the message has been acked.
+        factory.getContainerProperties().setAckMode(AckMode.MANUAL_IMMEDIATE);
         return factory;
     }
 

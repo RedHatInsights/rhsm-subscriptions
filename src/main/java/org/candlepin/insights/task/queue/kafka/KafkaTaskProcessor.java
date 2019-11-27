@@ -30,6 +30,7 @@ import org.candlepin.insights.task.queue.kafka.message.TaskMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 
 import io.micrometer.core.annotation.Timed;
 
@@ -47,7 +48,7 @@ public class KafkaTaskProcessor {
 
     @KafkaListener(id = "rhsm-conduit-task-processor", topics = "${rhsm-conduit.tasks.task-group}")
     @Timed("rhsm-conduit.task.execution")
-    public void onTaskAvailable(TaskMessage taskMessage) {
+    public void receive(TaskMessage taskMessage, Acknowledgment acknowledgment) {
         try {
             log.info("Message received from kafka: {}", taskMessage);
             worker.executeTask(describe(taskMessage));
@@ -56,6 +57,12 @@ public class KafkaTaskProcessor {
             // If a task fails to execute for any reason, it is logged and will
             // not get retried.
             log.error("Failed to execute task: {}", taskMessage, e);
+        }
+        finally {
+            // We always ack the message regardless of if there are failures.
+            // There is no need to retry the message on failure since the task
+            // can either be manually re-triggered or will run on the next schedule.
+            acknowledgment.acknowledge();
         }
     }
 
