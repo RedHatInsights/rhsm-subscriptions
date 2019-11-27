@@ -21,6 +21,7 @@
 package org.candlepin.insights.inventory;
 
 import org.candlepin.insights.exception.inventory.InventoryServiceException;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
@@ -40,8 +41,8 @@ public class DefaultInventoryService extends InventoryService {
 
     private final HostsApi hostsInventoryApi;
 
-    public DefaultInventoryService(HostsApi hostsInventoryApi, int maxQueueDepth) {
-        super(maxQueueDepth);
+    public DefaultInventoryService(HostsApi hostsInventoryApi, InventoryServiceProperties serviceProperties) {
+        super(serviceProperties, serviceProperties.getApiHostUpdateBatchSize());
         this.hostsInventoryApi = hostsInventoryApi;
     }
 

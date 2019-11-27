@@ -43,12 +43,12 @@ public class KafkaEnabledInventoryService extends InventoryService {
     private final KafkaTemplate<String, HostOperationMessage> producer;
     private final String hostIngressTopic;
 
-    public KafkaEnabledInventoryService(InventoryServiceProperties inventoryServiceProperties,
+    public KafkaEnabledInventoryService(InventoryServiceProperties serviceProperties,
         KafkaTemplate<String, HostOperationMessage> producer) {
         // Flush updates as soon as they get scheduled.
-        super(1);
+        super(serviceProperties, 1);
         this.producer = producer;
-        this.hostIngressTopic = inventoryServiceProperties.getKafkaHostIngressTopic();
+        this.hostIngressTopic = serviceProperties.getKafkaHostIngressTopic();
     }
 
     @Override

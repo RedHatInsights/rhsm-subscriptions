@@ -22,6 +22,7 @@ package org.candlepin.insights.inventory;
 
 import org.candlepin.insights.api.model.ConsumerInventory;
 import org.candlepin.insights.api.model.OrgInventory;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
 
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,10 +47,12 @@ public abstract class InventoryService {
     private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
 
     private int maxQueueDepth;
+    private int staleHostOffset;
     private List<ConduitFacts> factQueue;
 
-    public InventoryService(int maxQueueDepth) {
+    public InventoryService(InventoryServiceProperties serviceProperties, int maxQueueDepth) {
         this.maxQueueDepth = maxQueueDepth;
+        this.staleHostOffset = serviceProperties.getStaleHostOffsetInDays();
         this.factQueue = new LinkedList<>();
     }
 
@@ -90,7 +94,34 @@ public abstract class InventoryService {
      *
      * @return the new host.
      */
-    protected CreateHostIn createHost(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
+    protected CreateHostIn createHost(ConduitFacts facts, OffsetDateTime syncTimestamp) {
+        CreateHostIn host = new CreateHostIn();
+
+        // fact namespace
+        host.facts(Arrays.asList(new FactSet().namespace("rhsm").facts(buildFactMap(facts, syncTimestamp))));
+
+        // required culling properties
+        host.setReporter("rhsm-conduit");
+        host.setStaleTimestamp(syncTimestamp.plusHours(staleHostOffset));
+
+        // canonical facts.
+        host.setAccount(facts.getAccountNumber());
+        host.setFqdn(facts.getFqdn());
+        host.setSubscriptionManagerId(facts.getSubscriptionManagerId());
+        host.setBiosUuid(facts.getBiosUuid());
+        host.setIpAddresses(facts.getIpAddresses());
+        host.setMacAddresses(facts.getMacAddresses());
+        host.setInsightsId(facts.getInsightsId());
+
+        return host;
+    }
+
+    public OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg) {
+        List<ConsumerInventory> hosts = new ArrayList<>(conduitFactsForOrg);
+        return new OrgInventory().consumerInventories(hosts);
+    }
+
+    private Map<String, Object> buildFactMap(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
         Map<String, Object> rhsmFactMap = new HashMap<>();
         rhsmFactMap.put("orgId", conduitFacts.getOrgId());
         if (conduitFacts.getCpuSockets() != null) {
@@ -131,27 +162,6 @@ public abstract class InventoryService {
         }
 
         rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
-
-        FactSet rhsmFacts = new FactSet()
-            .namespace("rhsm")
-            .facts(rhsmFactMap);
-        List<FactSet> facts = new LinkedList<>();
-        facts.add(rhsmFacts);
-
-        CreateHostIn host = new CreateHostIn();
-        host.setAccount(conduitFacts.getAccountNumber());
-        host.setFqdn(conduitFacts.getFqdn());
-        host.setSubscriptionManagerId(conduitFacts.getSubscriptionManagerId());
-        host.setBiosUuid(conduitFacts.getBiosUuid());
-        host.setIpAddresses(conduitFacts.getIpAddresses());
-        host.setMacAddresses(conduitFacts.getMacAddresses());
-        host.setInsightsId(conduitFacts.getInsightsId());
-        host.facts(facts);
-        return host;
-    }
-
-    public OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg) {
-        List<ConsumerInventory> hosts = new ArrayList<>(conduitFactsForOrg);
-        return new OrgInventory().consumerInventories(hosts);
+        return rhsmFactMap;
     }
 }
