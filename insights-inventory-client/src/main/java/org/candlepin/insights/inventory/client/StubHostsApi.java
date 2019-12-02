@@ -40,7 +40,7 @@ public class StubHostsApi extends HostsApi {
     @Override
     public HostQueryOutput apiHostGetHostList(String displayName, String fqdn, String hostnameOrId,
         UUID insightsId, List<String> tags, String branchId, Integer perPage, Integer page, String orderBy,
-        String orderHow) throws ApiException {
+        String orderHow, List<String> staleness) throws ApiException {
         log.info("Getting stub host list");
         HostQueryOutput hostQueryOutput = new HostQueryOutput();
         HostOut hostOut = new HostOut();
