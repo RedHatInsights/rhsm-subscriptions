@@ -70,12 +70,14 @@ public abstract class InventoryService {
      * @param facts the host facts to schedule for update.
      */
     public void scheduleHostUpdate(ConduitFacts facts) {
-        factQueue.add(facts);
+        synchronized (factQueue) {
+            factQueue.add(facts);
 
-        // Auto flush updates when max queue depth is reached.
-        if (factQueue.size() == maxQueueDepth) {
-            log.debug("Max queue depth reached. Auto flusing updates.");
-            flushHostUpdates();
+            // Auto flush updates when max queue depth is reached.
+            if (factQueue.size() == maxQueueDepth) {
+                log.debug("Max queue depth reached. Auto flusing updates.");
+                flushHostUpdates();
+            }
         }
     }
 
@@ -83,9 +85,11 @@ public abstract class InventoryService {
      * Force the currently scheduled updates to be sent to inventory.
      */
     public void flushHostUpdates() {
-        if (!factQueue.isEmpty()) {
-            sendHostUpdate(factQueue);
-            factQueue.clear();
+        synchronized (factQueue) {
+            if (!factQueue.isEmpty()) {
+                sendHostUpdate(factQueue);
+                factQueue.clear();
+            }
         }
     }
 
