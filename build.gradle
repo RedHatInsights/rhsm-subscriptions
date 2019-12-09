@@ -256,13 +256,27 @@ project(":api") {
 project(":insights-inventory-client") {
     apply plugin: "org.openapi.generator"
 
-    // This project should only contain generated code.  No point in running checkstyle
-    checkstyle.sourceSets = []
-
     ext {
         api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
         config_file = "${projectDir}/insights-inventory-client-config.json"
     }
+}
+
+project(":cloudigrade-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/cloudigrade-api-spec.yaml"
+        config_file = "${projectDir}/cloudigrade-client-config.json"
+    }
+}
+
+configure(subprojects.findAll { it.name == "insights-inventory-client" || it.name == "cloudigrade-client"}) {
+    apply plugin: "org.openapi.generator"
+    apply plugin: "checkstyle"
+
+    // These projects should only contain generated code.  No point in running checkstyle.
+    checkstyle.sourceSets = []
 
     openApiValidate {
         inputSpec = api_spec_path
@@ -285,10 +299,10 @@ project(":insights-inventory-client") {
         outputDir = "${buildDir}/generated"
         generatorName = "java"
         configOptions = [
-            generatePom: false,
-            library: "resteasy",
-            java8: true,
-            dateLibrary: "java8"
+                generatePom: false,
+                library: "resteasy",
+                java8: true,
+                dateLibrary: "java8"
         ]
     }
 
@@ -309,3 +323,4 @@ project(":insights-inventory-client") {
 
     compileJava.dependsOn tasks.openApiGenerate
 }
+
