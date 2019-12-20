@@ -42,6 +42,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -58,6 +62,7 @@ import javax.validation.Validator;
 /** Class to hold configuration beans */
 @Configuration
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
+@EnableRetry
 @EnableConfigurationProperties(ApplicationProperties.class)
 @EnableAspectJAutoProxy
 // The values in application.yaml should already be loaded by default
@@ -149,5 +154,19 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public TimedAspect timedAspect(MeterRegistry registry) {
         return new TimedAspect(registry);
+    }
+
+    @Bean(name = "collectorRetryTemplate")
+    public RetryTemplate collectorRetryTemplate() {
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(4);
+
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        backOffPolicy.setBackOffPeriod(2000L);
+
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setRetryPolicy(retryPolicy);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
     }
 }
