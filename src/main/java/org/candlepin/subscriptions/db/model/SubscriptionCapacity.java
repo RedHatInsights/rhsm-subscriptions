@@ -73,6 +73,9 @@ public class SubscriptionCapacity implements Serializable {
     @Column(name = "end_date")
     private OffsetDateTime endDate;
 
+    @Column(name = "sku")
+    private String sku;
+
     public String getAccountNumber() {
         return accountNumber;
     }
@@ -161,6 +164,14 @@ public class SubscriptionCapacity implements Serializable {
         this.endDate = endDate;
     }
 
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -171,6 +182,7 @@ public class SubscriptionCapacity implements Serializable {
             getOwnerId(),
             getPhysicalSockets(),
             getProductId(),
+            getSku(),
             getSubscriptionId(),
             getVirtualSockets(),
             getPhysicalCores(),
@@ -190,6 +202,7 @@ public class SubscriptionCapacity implements Serializable {
         return getHasUnlimitedGuestSockets() == that.getHasUnlimitedGuestSockets() &&
             Objects.equals(getAccountNumber(), that.getAccountNumber()) &&
             Objects.equals(getProductId(), that.getProductId()) &&
+            Objects.equals(getSku(), that.getSku()) &&
             Objects.equals(getSubscriptionId(), that.getSubscriptionId()) &&
             Objects.equals(getOwnerId(), that.getOwnerId()) &&
             Objects.equals(getPhysicalSockets(), that.getPhysicalSockets()) &&
@@ -202,10 +215,10 @@ public class SubscriptionCapacity implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("SubscriptionCapacity{accountNumber=%s, productId=%s, subscriptionId=%s, " +
-            "ownerId=%s, physicalSockets=%s, virtualSockets=%s, hasUnlimitedGuestSockets=%s, " +
-            "physicalCores=%s, virtualCores=%s, beginDate=%s, endDate=%s}",
-            accountNumber, productId, subscriptionId, ownerId, physicalSockets, virtualSockets,
+        return String.format("SubscriptionCapacity{accountNumber=%s, sku=%s, productId=%s, " +
+            "subscriptionId=%s, ownerId=%s, physicalSockets=%s, virtualSockets=%s, " +
+            "hasUnlimitedGuestSockets=%s, physicalCores=%s, virtualCores=%s, beginDate=%s, endDate=%s}",
+            accountNumber, sku, productId, subscriptionId, ownerId, physicalSockets, virtualSockets,
             hasUnlimitedGuestSockets, physicalCores, virtualCores, beginDate, endDate);
     }
 }

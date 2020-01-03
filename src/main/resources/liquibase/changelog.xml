@@ -15,6 +15,7 @@
     <include file="liquibase/201910291044-alter-capacity-pk-and-tally-idx.xml"/>
     <include file="liquibase/201911061510-drop-account-not-null.xml"/>
     <include file="liquibase/201911141401-add-cores-to-subscription-capacity.xml"/>
+    <include file="liquibase/202001031047-add-marketing-product-id-to-capacity.xml"/>
     <include file="liquibase/202001141534-add-snapshot-measurements-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
