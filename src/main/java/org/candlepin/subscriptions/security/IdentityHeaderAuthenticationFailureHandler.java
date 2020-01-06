@@ -61,7 +61,7 @@ public class IdentityHeaderAuthenticationFailureHandler
         throws IOException {
 
         Error error = buildError(authException);
-        log.error(error.getTitle(), authException);
+        log.debug(error.getTitle(), authException);
 
         Response r = ExceptionUtil.toResponse(error);
         servletResponse.setContentType(r.getMediaType().toString());
