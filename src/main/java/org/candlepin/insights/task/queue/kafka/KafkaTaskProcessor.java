@@ -51,15 +51,18 @@ public class KafkaTaskProcessor {
     public void receive(TaskMessage taskMessage, Acknowledgment acknowledgment) {
         try {
             log.info("Message received from kafka: {}", taskMessage);
-            // Ack the message early so that if kafka times out, the message has already been acked
-            // and will not get retried.
-            acknowledgment.acknowledge();
             worker.executeTask(describe(taskMessage));
         }
         catch (TaskExecutionException e) {
             // If a task fails to execute for any reason, it is logged and will
             // not get retried.
             log.error("Failed to execute task: {}", taskMessage, e);
+        }
+        finally {
+            // We always ack the message regardless of if there are failures.
+            // There is no need to retry the message on failure since the task
+            // can either be manually re-triggered or will run on the next schedule.
+            acknowledgment.acknowledge();
         }
     }
 

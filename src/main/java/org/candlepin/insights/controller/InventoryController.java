@@ -23,8 +23,8 @@ package org.candlepin.insights.controller;
 import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
-import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
+import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
 import com.google.common.collect.Iterables;
@@ -95,17 +95,19 @@ public class InventoryController {
     public static final String TRUE = "True";
     public static final String NONE = "none";
 
-    @Autowired
     private InventoryService inventoryService;
-
-    @Autowired
     private PinheadService pinheadService;
-
-    @Autowired
     private Validator validator;
+    private PinheadApiProperties pinheadApiProperties;
 
     @Autowired
-    private OrgListStrategy orgListStrategy;
+    public InventoryController(InventoryService inventoryService, PinheadService pinheadService,
+        Validator validator, PinheadApiProperties pinheadApiProperties) {
+        this.inventoryService = inventoryService;
+        this.pinheadService = pinheadService;
+        this.validator = validator;
+        this.pinheadApiProperties = pinheadApiProperties;
+    }
 
     private static boolean isEmpty(String value) {
         return value == null || value.isEmpty();
@@ -271,7 +273,7 @@ public class InventoryController {
 
     public void updateInventoryForOrg(String orgId) {
         Iterable<List<ConduitFacts>> factsPartitions = Iterables.partition(
-            () -> validateConduitFactsForOrg(orgId), 100);
+            () -> validateConduitFactsForOrg(orgId), pinheadApiProperties.getRequestBatchSize());
 
         long total = 0;
         for (List<ConduitFacts> partition : factsPartitions) {

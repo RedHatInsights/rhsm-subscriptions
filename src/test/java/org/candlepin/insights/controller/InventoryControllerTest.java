@@ -28,6 +28,7 @@ import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
+import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
 
@@ -60,6 +61,9 @@ public class InventoryControllerTest {
 
     @Autowired
     InventoryController controller;
+
+    @Autowired
+    PinheadApiProperties pinheadApiProperties;
 
     @Test
     public void testHostAddedForEachConsumer() {
@@ -430,8 +434,11 @@ public class InventoryControllerTest {
 
     @Test
     void flushesUpdatesInBatches() {
-        List<Consumer> bigCollection = new ArrayList<>(150);
-        for (int i = 0; i < 150; i++) {
+        // Add one to test for off-by-one bugs
+        int size = pinheadApiProperties.getRequestBatchSize() * 3 + 1;
+        assertThat(size, Matchers.greaterThan(0));
+        List<Consumer> bigCollection = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
             Consumer consumer = new Consumer();
             consumer.setUuid(UUID.randomUUID().toString());
             consumer.setAccountNumber("account");
@@ -442,6 +449,7 @@ public class InventoryControllerTest {
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(bigCollection);
 
         controller.updateInventoryForOrg("123");
-        verify(inventoryService, times(2)).flushHostUpdates();
+        int expectedBatches = (int) Math.ceil((double) size / pinheadApiProperties.getRequestBatchSize());
+        verify(inventoryService, times(expectedBatches)).flushHostUpdates();
     }
 }
