@@ -27,7 +27,9 @@ import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Streams;
 
@@ -41,7 +43,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -50,7 +54,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
@@ -267,23 +270,31 @@ public class InventoryController {
     }
 
     public void updateInventoryForOrg(String orgId) {
-        long processed = validateConduitFactsForOrg(orgId)
-            .map(hostFacts -> {
-                inventoryService.scheduleHostUpdate(hostFacts);
-                return 1;
-            })
-            .count();
-        inventoryService.flushHostUpdates();
-        log.info("Host inventory update completed for org {}. Updates: {}", orgId, processed);
+        Iterable<List<ConduitFacts>> factsPartitions = Iterables.partition(
+            () -> validateConduitFactsForOrg(orgId), 100);
+
+        long total = 0;
+        for (List<ConduitFacts> partition : factsPartitions) {
+            long batch = partition.stream()
+                .map(hostFacts -> {
+                    inventoryService.scheduleHostUpdate(hostFacts);
+                    return 1;
+                })
+                .count();
+            inventoryService.flushHostUpdates();
+            total += batch;
+            log.debug("Finished batch of {} inventory updates for org {}", batch, orgId);
+        }
+        log.info("Host inventory update completed for org {}. Updates: {}", orgId, total);
     }
 
     public OrgInventory getInventoryForOrg(String orgId) {
         return inventoryService.getInventoryForOrgConsumers(
-            validateConduitFactsForOrg(orgId).collect(Collectors.toList())
+            Lists.newArrayList(validateConduitFactsForOrg(orgId))
         );
     }
 
-    private Stream<ConduitFacts> validateConduitFactsForOrg(String orgId) {
+    private Iterator<ConduitFacts> validateConduitFactsForOrg(String orgId) {
         PeekingIterator<Consumer> consumerIterator =
             Iterators.peekingIterator(pinheadService.getOrganizationConsumers(orgId).iterator());
 
@@ -291,17 +302,18 @@ public class InventoryController {
         // and return an empty stream.  No sense in wasting time looping through everything.
         try {
             if (StringUtils.isEmpty(consumerIterator.peek().getAccountNumber())) {
-                return Stream.empty();
+                return Collections.emptyIterator();
             }
         }
         catch (NoSuchElementException e) {
-            return Stream.empty();
+            return Collections.emptyIterator();
         }
 
         return Streams.stream(consumerIterator)
             .map(this::validateConsumer)
             .filter(Optional::isPresent)
-            .map(Optional::get);
+            .map(Optional::get)
+            .iterator();
     }
 
     @SuppressWarnings("indentation")

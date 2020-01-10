@@ -39,9 +39,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -423,7 +425,23 @@ public class InventoryControllerTest {
     void handlesNoRegisteredSystemsWithoutException() {
         when(pinheadService.getOrganizationConsumers("456")).thenReturn(Collections.emptyList());
         controller.updateInventoryForOrg("456");
-        verify(inventoryService).flushHostUpdates();
-        verifyNoMoreInteractions(inventoryService);
+        verify(inventoryService, never()).flushHostUpdates();
+    }
+
+    @Test
+    void flushesUpdatesInBatches() {
+        List<Consumer> bigCollection = new ArrayList<>(150);
+        for (int i = 0; i < 150; i++) {
+            Consumer consumer = new Consumer();
+            consumer.setUuid(UUID.randomUUID().toString());
+            consumer.setAccountNumber("account");
+            consumer.setOrgId("123");
+            bigCollection.add(consumer);
+        }
+
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(bigCollection);
+
+        controller.updateInventoryForOrg("123");
+        verify(inventoryService, times(2)).flushHostUpdates();
     }
 }
