@@ -75,7 +75,7 @@ public abstract class InventoryService {
 
             // Auto flush updates when max queue depth is reached.
             if (factQueue.size() == maxQueueDepth) {
-                log.debug("Max queue depth reached. Auto flusing updates.");
+                log.debug("Max queue depth reached. Auto flushing updates.");
                 flushHostUpdates();
             }
         }
