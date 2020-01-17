@@ -166,6 +166,7 @@ dependencies {
 
     compile "net.logstash.logback:logstash-logback-encoder"
     compile "io.micrometer:micrometer-registry-prometheus"
+    compile "org.liquibase:liquibase-core"
     compile "org.webjars:swagger-ui"
     compile "org.springframework.boot:spring-boot-starter-quartz"
     compile "org.yaml:snakeyaml"
@@ -173,7 +174,6 @@ dependencies {
     testCompile "org.springframework.security:spring-security-test"
 
     runtime "org.postgresql:postgresql"
-    runtime "org.liquibase:liquibase-core"
     runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
         exclude group: 'org.hibernate' // exclude older hibernate validator
     }
