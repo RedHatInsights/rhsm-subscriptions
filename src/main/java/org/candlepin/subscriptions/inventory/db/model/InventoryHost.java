@@ -53,6 +53,7 @@ import javax.persistence.Table;
                 @ColumnResult(name = "sockets"),
                 @ColumnResult(name = "products"),
                 @ColumnResult(name = "sync_timestamp"),
+                @ColumnResult(name = "system_profile_infrastructure_type"),
                 @ColumnResult(name = "system_profile_cores_per_socket"),
                 @ColumnResult(name = "system_profile_sockets"),
                 @ColumnResult(name = "qpc_products"),
@@ -82,6 +83,7 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, " +
         "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
+        "h.system_profile_facts->>'infrastructure_type' as infrastructure_type, " +
         "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
         "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
         "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, " +

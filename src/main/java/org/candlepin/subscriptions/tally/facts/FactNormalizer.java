@@ -82,10 +82,15 @@ public class FactNormalizer {
         return normalizedFacts;
     }
 
+    private boolean isVirtual(ClassifiedInventoryHostFacts hostFacts) {
+        return hostFacts.isVirtual() ||
+            "virtual".equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType());
+    }
+
     private void normalizeClassification(NormalizedFacts normalizedFacts,
         ClassifiedInventoryHostFacts hostFacts) {
         normalizedFacts.setHypervisor(hostFacts.isHypervisor());
-        normalizedFacts.setVirtual(hostFacts.isVirtual());
+        normalizedFacts.setVirtual(isVirtual(hostFacts));
         normalizedFacts.setHypervisorUnknown(hostFacts.isHypervisorUnknown());
     }
 
@@ -106,7 +111,7 @@ public class FactNormalizer {
     private void normalizeSocketCount(NormalizedFacts normalizedFacts,
         ClassifiedInventoryHostFacts hostFacts) {
         // modulo-2 rounding only applied to physical or hypervisors
-        if (hostFacts.isHypervisor() || !hostFacts.isVirtual()) {
+        if (hostFacts.isHypervisor() || !isVirtual(hostFacts)) {
             Integer sockets = normalizedFacts.getSockets();
             if (sockets != null && (sockets % 2) == 1) {
                 normalizedFacts.setSockets(sockets + 1);

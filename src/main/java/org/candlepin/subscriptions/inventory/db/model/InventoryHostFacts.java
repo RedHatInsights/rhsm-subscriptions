@@ -36,6 +36,7 @@ public class InventoryHostFacts {
     private Integer sockets;
     private String syncTimestamp;
     private Set<String> products;
+    private String systemProfileInfrastructureType;
     private Integer systemProfileCoresPerSocket;
     private Integer systemProfileSockets;
     private boolean isVirtual;
@@ -53,9 +54,10 @@ public class InventoryHostFacts {
 
     @SuppressWarnings("squid:S00107")
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
-        String products, String syncTimestamp, String systemProfileCores, String systemProfileSockets,
-        String qpcProducts, String qpcProductIds, String systemProfileProductIds, String syspurposeRole,
-        String isVirtual, String hypervisorUuid, String guestId, String subscriptionManagerId) {
+        String products, String syncTimestamp, String systemProfileInfrastructureType,
+        String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
+        String systemProfileProductIds, String syspurposeRole, String isVirtual, String hypervisorUuid,
+        String guestId, String subscriptionManagerId) {
 
         this.account = account;
         this.displayName = displayName;
@@ -66,6 +68,7 @@ public class InventoryHostFacts {
         this.qpcProducts = asStringSet(qpcProducts);
         this.qpcProductIds = asStringSet(qpcProductIds);
         this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
+        this.systemProfileInfrastructureType = systemProfileInfrastructureType;
         this.systemProfileCoresPerSocket = asInt(systemProfileCores);
         this.systemProfileSockets = asInt(systemProfileSockets);
         this.systemProfileProductIds = asStringSet(systemProfileProductIds);
@@ -155,6 +158,15 @@ public class InventoryHostFacts {
         }
         return StringUtils.commaDelimitedListToSet(productJson);
     }
+
+    public String getSystemProfileInfrastructureType() {
+        return systemProfileInfrastructureType;
+    }
+
+    public void setSystemProfileInfrastructureType(String systemProfileInfrastructureType) {
+        this.systemProfileInfrastructureType = systemProfileInfrastructureType;
+    }
+
     public Integer getSystemProfileCoresPerSocket() {
         return systemProfileCoresPerSocket == null ? 0 : systemProfileCoresPerSocket;
     }

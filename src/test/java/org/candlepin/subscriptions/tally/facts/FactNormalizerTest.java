@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -126,6 +127,16 @@ public class FactNormalizerTest {
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(8), normalized.getCores());
         assertEquals(Integer.valueOf(4), normalized.getSockets());
+    }
+
+    @Test
+    public void testSystemProfileInfrastructureType() {
+        InventoryHostFacts baseFacts = createBaseHost("Account", "test-org");
+        baseFacts.setSystemProfileInfrastructureType("virtual");
+        baseFacts.setSyncTimestamp(clock.now().toString());
+        ClassifiedInventoryHostFacts systemProfileHost = new ClassifiedInventoryHostFacts(baseFacts);
+        NormalizedFacts normalized = normalizer.normalize(systemProfileHost);
+        assertThat(normalized.isVirtual(), Matchers.is(true));
     }
 
     @Test

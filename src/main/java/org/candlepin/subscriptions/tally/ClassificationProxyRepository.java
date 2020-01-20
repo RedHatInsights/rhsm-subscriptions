@@ -80,8 +80,10 @@ public class ClassificationProxyRepository {
             // considered unknown if the system is virtual (a guest) and either has a null
             // hypervisor UUID OR the guest's hypervisor UUID was not reported by conduit.
             String hypervisorUuid = enhancedFacts.getHypervisorUuid();
-            boolean isHypervisorUnknown =
-                (enhancedFacts.isVirtual() && !StringUtils.hasText(hypervisorUuid)) ||
+            boolean isVirtual = enhancedFacts.isVirtual() ||
+                "virtual".equalsIgnoreCase(enhancedFacts.getSystemProfileInfrastructureType());
+
+            boolean isHypervisorUnknown = (isVirtual && !StringUtils.hasText(hypervisorUuid)) ||
                 missingHypervisors.contains(hypervisorUuid);
             enhancedFacts.setHypervisorUnknown(isHypervisorUnknown);
 
