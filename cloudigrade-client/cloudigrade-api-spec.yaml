@@ -1,0 +1,106 @@
+# This is a file maintained by the rhsm-subscription project that describes
+# a portion of the Cloudigrade API.
+openapi: "3.0.2"
+info:
+  title: "cloudigrade-api"
+  description: "Third-party specification for Cloudigrade API"
+  version: 1.0.0
+
+paths:
+  /concurrent:
+    description: "Operations on concurrent usages"
+    parameters:
+    - name: limit
+      required: false
+      in: query
+      description: "Number of results to return per page."
+      schema:
+        type: integer
+    - name: offset
+      required: false
+      in: query
+      description: "The initial index from which to return the results."
+      schema:
+        type: integer
+    get:
+      summary: "List daily concurrent usages"
+      operationId: "ListDailyConcurrentUsages"
+      tags:
+        - concurrent
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcurrencyReport'
+
+components:
+  schemas:
+    ConcurrencyReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConcurrentUsage"
+        links:
+          type: object
+          properties:
+            first:
+              type: string
+            last:
+              type: string
+            previous:
+              type: string
+            next:
+              type: string
+          required:
+            - first
+            - previous
+            - last
+            - next
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+    ConcurrentUsage:
+      required:
+        - date
+        - instances
+        - instances_list
+        - vcpu
+        - memory
+      properties:
+        date:
+          type: string
+          format: date
+        instances:
+          type: integer
+        instances_list:
+          type: array
+          items:
+            $ref: "#/components/schemas/CloudInstance"
+        vcpu:
+          type: integer
+        memory:
+          type: number
+    CloudInstance:
+      properties:
+        cloud_instance_id:
+          type: string
+        cloud_type:
+          type: string
+        rhel_version:
+          type: string
+        syspurpose:
+          $ref: "#/components/schemas/Syspurpose"
+    Syspurpose:
+      type: object
+      properties:
+        role:
+          type: string
+        service_level_agreement:
+          type: string
+        usage:
+          type: string
