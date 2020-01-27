@@ -91,3 +91,5 @@ first question with `1.0.0` and the second question with
 
 The plugin will create the tag and bump the version. You just need to
 push with `git push --follow-tags origin master`.
+
+Ignore ME
