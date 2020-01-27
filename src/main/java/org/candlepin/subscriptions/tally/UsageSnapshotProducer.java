@@ -38,6 +38,8 @@ import com.google.common.collect.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,6 +63,7 @@ public class UsageSnapshotProducer {
     private final AccountListSource accountListSource;
     private final Set<String> applicableProducts;
     private final int accountBatchSize;
+    private final RetryTemplate retryTemplate;
 
     private final InventoryAccountUsageCollector accountUsageCollector;
     private final DailySnapshotRoller dailyRoller;
@@ -75,10 +78,12 @@ public class UsageSnapshotProducer {
         ProductIdToProductsMapSource productIdToProductsMapSource,
         RoleToProductsMapSource roleToProductsMapSource, InventoryAccountUsageCollector accountUsageCollector,
         TallySnapshotRepository tallyRepo, ApplicationClock clock,
-        ApplicationProperties applicationProperties) throws IOException {
+        ApplicationProperties applicationProperties,
+        @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate) throws IOException {
 
         this.accountListSource = accountListSource;
         this.applicableProducts = new HashSet<>();
+        this.retryTemplate = retryTemplate;
         productIdToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
         roleToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
         this.accountBatchSize = applicationProperties.getAccountBatchSize();
@@ -117,8 +122,16 @@ public class UsageSnapshotProducer {
         // Partition the account list to help reduce memory usage while performing the calculations.
         int count = 0;
         for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
-            Collection<AccountUsageCalculation> accountCalcs =
-                accountUsageCollector.collect(this.applicableProducts, accounts);
+            Collection<AccountUsageCalculation> accountCalcs;
+            try {
+                accountCalcs = retryTemplate.execute(context ->
+                    accountUsageCollector.collect(this.applicableProducts, accounts)
+                );
+            }
+            catch (Exception e) {
+                log.error("Could not collect for accounts {}", accounts, e);
+                continue;
+            }
             dailyRoller.rollSnapshots(accounts, accountCalcs);
             weeklyRoller.rollSnapshots(accounts, accountCalcs);
             monthlyRoller.rollSnapshots(accounts, accountCalcs);
