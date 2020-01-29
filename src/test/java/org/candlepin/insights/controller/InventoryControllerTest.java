@@ -121,6 +121,33 @@ public class InventoryControllerTest {
     }
 
     @Test
+    void testSkipManifestConsumers() {
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        Consumer consumer1 = new Consumer();
+        Consumer consumer2 = new Consumer();
+        consumer1.setUuid(uuid1.toString());
+        consumer1.setAccountNumber("account");
+        consumer1.setOrgId("456");
+        consumer1.setType("system");
+        consumer2.setUuid(uuid2.toString());
+        consumer2.setAccountNumber("account");
+        consumer2.setOrgId("456");
+        consumer2.setType("candlepin");
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
+            Arrays.asList(consumer1, consumer2));
+        controller.updateInventoryForOrg("123");
+
+        ConduitFacts expected = new ConduitFacts();
+        expected.setOrgId("456");
+        expected.setAccountNumber("account");
+        expected.setSubscriptionManagerId(uuid1.toString());
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
+        verify(inventoryService, times(1)).flushHostUpdates();
+        verifyNoMoreInteractions(inventoryService);
+    }
+
+    @Test
     public void testShortCircuitsOnMissingAccountNumbers() {
         Consumer consumer1 = new Consumer();
         consumer1.setOrgId("123");

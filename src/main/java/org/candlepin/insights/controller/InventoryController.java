@@ -321,6 +321,9 @@ public class InventoryController {
     @SuppressWarnings("indentation")
     private Optional<ConduitFacts> validateConsumer(Consumer consumer) {
         try {
+            if ("candlepin".equals(consumer.getType())) {
+                return Optional.empty();
+            }
             ConduitFacts facts = getFactsFromConsumer(consumer);
             facts.setAccountNumber(consumer.getAccountNumber());
 
