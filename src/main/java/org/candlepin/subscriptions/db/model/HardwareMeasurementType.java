@@ -25,19 +25,8 @@ package org.candlepin.subscriptions.db.model;
  * Enum to capture the various types of measurements in the hardware_measurements table
  */
 public enum HardwareMeasurementType {
-    PHYSICAL("physical"),
-    HYPERVISOR("hypervisor"),
-    TOTAL("total");
-
-    private final String type;
-
-    HardwareMeasurementType(String type) {
-        this.type = type;
-    }
-
-    @Override
-    public String toString() {
-        return this.type;
-    }
+    PHYSICAL,
+    HYPERVISOR,
+    TOTAL;
 }
 

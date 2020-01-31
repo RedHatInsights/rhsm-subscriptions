@@ -43,21 +43,21 @@ public class MigrateTallyColumnsTask extends LiquibaseCustomTask {
             "SELECT id, cores, instance_count, sockets FROM tally_snapshots " +
             "WHERE cores IS NOT NULL OR instance_count IS NOT NULL OR sockets IS NOT NULL"
         );
-        total += insertRows("total", totalTuple);
+        total += insertRows("TOTAL", totalTuple);
 
         ResultSet physicalTuple = this.executeQuery(
             "SELECT id, physical_cores as cores, physical_instance_count as instance_count, " +
             "physical_sockets as sockets FROM tally_snapshots WHERE physical_cores IS NOT NULL " +
             "OR physical_instance_count IS NOT NULL OR physical_sockets IS NOT NULL"
         );
-        total += insertRows("physical", physicalTuple);
+        total += insertRows("PHYSICAL", physicalTuple);
 
         ResultSet hypervisorTuple = this.executeQuery(
             "SELECT id, hypervisor_cores as cores, hypervisor_instance_count as instance_count, " +
             "hypervisor_sockets as sockets FROM tally_snapshots WHERE hypervisor_cores IS NOT NULL " +
             "OR hypervisor_instance_count IS NOT NULL OR hypervisor_sockets IS NOT NULL"
         );
-        total += insertRows("hypervisor", hypervisorTuple);
+        total += insertRows("HYPERVISOR", hypervisorTuple);
 
 
         this.logger.info(total + " rows inserted into the hardware_measurements table");
