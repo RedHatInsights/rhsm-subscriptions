@@ -86,14 +86,21 @@ public class CandlepinPoolCapacityMapper {
     }
 
     private Long getCapacityUnit(String unitProperty, CandlepinPool pool) {
-        Integer sockets = pool.getProductAttributes().stream()
+        Integer units = pool.getProductAttributes().stream()
             .filter(attr -> attr.getName().equals(unitProperty))
             .map(CandlepinProductAttribute::getValue).mapToInt(Integer::parseInt).boxed().findFirst()
             .orElse(null);
-        if (sockets != null) {
-            return sockets * pool.getQuantity();
+        if (units != null) {
+            return units * (pool.getQuantity() / getInstanceBasedMultiplier(pool));
         }
         return null;
+    }
+
+    private long getInstanceBasedMultiplier(CandlepinPool pool) {
+        return pool.getProductAttributes().stream()
+            .filter(attr -> attr.getName().equals("instance_multiplier"))
+            .map(CandlepinProductAttribute::getValue).mapToInt(Integer::parseInt).boxed().findFirst()
+            .orElse(1);
     }
 
     private List<String> extractProductIds(Collection<CandlepinProvidedProduct> providedProducts) {
