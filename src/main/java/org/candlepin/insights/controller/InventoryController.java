@@ -27,6 +27,7 @@ import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -94,6 +95,7 @@ public class InventoryController {
     public static final String UNKNOWN = "unknown";
     public static final String TRUE = "True";
     public static final String NONE = "none";
+    public static final Set<String> IGNORED_CONSUMER_TYPES = ImmutableSet.of("candlepin", "satellite", "sam");
 
     private InventoryService inventoryService;
     private PinheadService pinheadService;
@@ -321,7 +323,7 @@ public class InventoryController {
     @SuppressWarnings("indentation")
     private Optional<ConduitFacts> validateConsumer(Consumer consumer) {
         try {
-            if ("candlepin".equals(consumer.getType())) {
+            if (IGNORED_CONSUMER_TYPES.contains(consumer.getType())) {
                 return Optional.empty();
             }
             ConduitFacts facts = getFactsFromConsumer(consumer);
