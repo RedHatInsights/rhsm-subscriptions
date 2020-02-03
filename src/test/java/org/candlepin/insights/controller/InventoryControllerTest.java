@@ -123,19 +123,28 @@ public class InventoryControllerTest {
     @Test
     void testSkipManifestConsumers() {
         UUID uuid1 = UUID.randomUUID();
-        UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
-        Consumer consumer2 = new Consumer();
+        Consumer candlepinConsumer = new Consumer();
+        Consumer satelliteConsumer = new Consumer();
+        Consumer samConsumer = new Consumer();
         consumer1.setUuid(uuid1.toString());
         consumer1.setAccountNumber("account");
         consumer1.setOrgId("456");
         consumer1.setType("system");
-        consumer2.setUuid(uuid2.toString());
-        consumer2.setAccountNumber("account");
-        consumer2.setOrgId("456");
-        consumer2.setType("candlepin");
+        candlepinConsumer.setUuid(UUID.randomUUID().toString());
+        candlepinConsumer.setAccountNumber("account");
+        candlepinConsumer.setOrgId("456");
+        candlepinConsumer.setType("candlepin");
+        satelliteConsumer.setUuid(UUID.randomUUID().toString());
+        satelliteConsumer.setAccountNumber("account");
+        satelliteConsumer.setOrgId("456");
+        satelliteConsumer.setType("satellite");
+        samConsumer.setUuid(UUID.randomUUID().toString());
+        samConsumer.setAccountNumber("account");
+        samConsumer.setOrgId("456");
+        samConsumer.setType("sam");
         when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1, consumer2));
+            Arrays.asList(consumer1, candlepinConsumer, satelliteConsumer, samConsumer));
         controller.updateInventoryForOrg("123");
 
         ConduitFacts expected = new ConduitFacts();
