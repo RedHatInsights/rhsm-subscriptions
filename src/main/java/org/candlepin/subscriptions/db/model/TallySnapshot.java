@@ -22,15 +22,23 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.UUID;
 
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.MapKeyColumn;
+import javax.persistence.MapKeyEnumerated;
 import javax.persistence.Table;
 
 
@@ -48,33 +56,6 @@ public class TallySnapshot implements Serializable {
     @Column(name = "snapshot_date")
     private OffsetDateTime snapshotDate;
 
-    @Column(name = "instance_count")
-    private Integer instanceCount;
-
-    @Column(name = "cores")
-    private Integer cores;
-
-    @Column(name = "sockets")
-    private Integer sockets;
-
-    @Column(name = "physical_instance_count")
-    private Integer physicalInstanceCount;
-
-    @Column(name = "physical_cores")
-    private Integer physicalCores;
-
-    @Column(name = "physical_sockets")
-    private Integer physicalSockets;
-
-    @Column(name = "hypervisor_instance_count")
-    private Integer hypervisorInstanceCount;
-
-    @Column(name = "hypervisor_cores")
-    private Integer hypervisorCores;
-
-    @Column(name = "hypervisor_sockets")
-    private Integer hypervisorSockets;
-
     @Column(name = "product_id")
     private String productId;
 
@@ -87,6 +68,16 @@ public class TallySnapshot implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")
     private Granularity granularity;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "hardware_measurements",
+        joinColumns = @JoinColumn(name = "snapshot_id")
+    )
+    @MapKeyEnumerated(EnumType.STRING)
+    @MapKeyColumn(name = "measurement_type")
+    private Map<HardwareMeasurementType, HardwareMeasurement> hardwareMeasurements =
+        new EnumMap<>(HardwareMeasurementType.class);
 
     public UUID getId() {
         return id;
@@ -102,78 +93,6 @@ public class TallySnapshot implements Serializable {
 
     public void setSnapshotDate(OffsetDateTime snapshotDate) {
         this.snapshotDate = snapshotDate;
-    }
-
-    public Integer getInstanceCount() {
-        return instanceCount;
-    }
-
-    public void setInstanceCount(Integer instanceCount) {
-        this.instanceCount = instanceCount;
-    }
-
-    public Integer getCores() {
-        return cores;
-    }
-
-    public void setCores(Integer cores) {
-        this.cores = cores;
-    }
-
-    public Integer getSockets() {
-        return sockets;
-    }
-
-    public void setSockets(Integer sockets) {
-        this.sockets = sockets;
-    }
-
-    public Integer getPhysicalInstanceCount() {
-        return physicalInstanceCount;
-    }
-
-    public void setPhysicalInstanceCount(Integer physicalInstanceCount) {
-        this.physicalInstanceCount = physicalInstanceCount;
-    }
-
-    public Integer getPhysicalCores() {
-        return physicalCores;
-    }
-
-    public void setPhysicalCores(Integer physicalCores) {
-        this.physicalCores = physicalCores;
-    }
-
-    public Integer getPhysicalSockets() {
-        return physicalSockets;
-    }
-
-    public void setPhysicalSockets(Integer physicalSockets) {
-        this.physicalSockets = physicalSockets;
-    }
-
-    public Integer getHypervisorInstanceCount() {
-        return hypervisorInstanceCount;
-    }
-
-    public void setHypervisorInstanceCount(Integer hypervisorInstanceCount) {
-        this.hypervisorInstanceCount = hypervisorInstanceCount;
-    }
-
-    public Integer getHypervisorCores() {
-        return hypervisorCores;
-    }
-
-    public void setHypervisorCores(Integer hypervisorCores) {
-        this.hypervisorCores = hypervisorCores;
-    }
-
-    public Integer getHypervisorSockets() {
-        return hypervisorSockets;
-    }
-
-    public void setHypervisorSockets(Integer hypervisorSockets) {
-        this.hypervisorSockets = hypervisorSockets;
     }
 
     public String getProductId() {
@@ -208,20 +127,41 @@ public class TallySnapshot implements Serializable {
         this.granularity = granularity;
     }
 
+    public HardwareMeasurement getHardwareMeasurement(HardwareMeasurementType type) {
+        return hardwareMeasurements.get(type);
+    }
+
+    public void setHardwareMeasurement(HardwareMeasurementType type, HardwareMeasurement measurement) {
+        hardwareMeasurements.put(type, measurement);
+    }
+
     public org.candlepin.subscriptions.utilization.api.model.TallySnapshot asApiSnapshot() {
         org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
             new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
 
         snapshot.setDate(this.getSnapshotDate());
-        snapshot.setCores(this.getCores());
-        snapshot.setSockets(this.getSockets());
-        snapshot.setInstanceCount(this.getInstanceCount());
-        snapshot.setPhysicalCores(this.getPhysicalCores());
-        snapshot.setPhysicalSockets(this.getPhysicalSockets());
-        snapshot.setPhysicalInstanceCount(this.getPhysicalInstanceCount());
-        snapshot.setHypervisorCores(this.getHypervisorCores());
-        snapshot.setHypervisorSockets(this.getHypervisorSockets());
-        snapshot.setHypervisorInstanceCount(this.getHypervisorInstanceCount());
+
+        HardwareMeasurement total = this.hardwareMeasurements.get(HardwareMeasurementType.TOTAL);
+        if (total != null) {
+            snapshot.setCores(total.getCores());
+            snapshot.setSockets(total.getSockets());
+            snapshot.setInstanceCount(total.getInstanceCount());
+        }
+
+        HardwareMeasurement physical = this.hardwareMeasurements.get(HardwareMeasurementType.PHYSICAL);
+        if (physical != null) {
+            snapshot.setPhysicalCores(physical.getCores());
+            snapshot.setPhysicalSockets(physical.getSockets());
+            snapshot.setPhysicalInstanceCount(physical.getInstanceCount());
+        }
+
+        HardwareMeasurement hypervisor = this.hardwareMeasurements.get(HardwareMeasurementType.HYPERVISOR);
+        if (hypervisor != null) {
+            snapshot.setHypervisorCores(hypervisor.getCores());
+            snapshot.setHypervisorSockets(hypervisor.getSockets());
+            snapshot.setHypervisorInstanceCount(hypervisor.getInstanceCount());
+        }
+
         snapshot.setHasData(id != null);
         return snapshot;
     }

@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -76,15 +78,25 @@ public abstract class BaseSnapshotRoller {
         snapshot.setOwnerId(owner);
         snapshot.setAccountNumber(account);
         snapshot.setSnapshotDate(getSnapshotDate(granularity));
-        snapshot.setCores(productCalc.getTotalCores());
-        snapshot.setSockets(productCalc.getTotalSockets());
-        snapshot.setInstanceCount(productCalc.getTotalInstanceCount());
-        snapshot.setPhysicalCores(productCalc.getTotalPhysicalCores());
-        snapshot.setPhysicalSockets(productCalc.getTotalPhysicalSockets());
-        snapshot.setPhysicalInstanceCount(productCalc.getTotalPhysicalInstanceCount());
-        snapshot.setHypervisorCores(productCalc.getTotalHypervisorCores());
-        snapshot.setHypervisorSockets(productCalc.getTotalHypervisorSockets());
-        snapshot.setHypervisorInstanceCount(productCalc.getTotalHypervisorInstanceCount());
+
+        HardwareMeasurement total = new HardwareMeasurement();
+        total.setCores(productCalc.getTotalCores());
+        total.setSockets(productCalc.getTotalSockets());
+        total.setInstanceCount(productCalc.getTotalInstanceCount());
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.TOTAL, total);
+
+        HardwareMeasurement physical = new HardwareMeasurement();
+        physical.setCores(productCalc.getTotalPhysicalCores());
+        physical.setSockets(productCalc.getTotalPhysicalSockets());
+        physical.setInstanceCount(productCalc.getTotalPhysicalInstanceCount());
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.PHYSICAL, physical);
+
+        HardwareMeasurement hypervisor = new HardwareMeasurement();
+        hypervisor.setCores(productCalc.getTotalHypervisorCores());
+        hypervisor.setSockets(productCalc.getTotalHypervisorSockets());
+        hypervisor.setInstanceCount(productCalc.getTotalHypervisorInstanceCount());
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.HYPERVISOR, hypervisor);
+
         return snapshot;
     }
 
@@ -153,68 +165,46 @@ public abstract class BaseSnapshotRoller {
         boolean changed = false;
         boolean overrideMaxCheck = Granularity.DAILY.equals(snap.getGranularity());
 
-        changed |= updateMainTotals(overrideMaxCheck, snap, calc);
-        changed |= updatePhysicalTotals(overrideMaxCheck, snap, calc);
-        changed |= updateHypervisorTotals(overrideMaxCheck, snap, calc);
+        changed |= updateTotals(overrideMaxCheck, snap, HardwareMeasurementType.TOTAL,
+            calc.getTotalCores(), calc.getTotalSockets(), calc.getTotalInstanceCount()
+        );
+        changed |= updateTotals(overrideMaxCheck, snap, HardwareMeasurementType.PHYSICAL,
+            calc.getTotalPhysicalCores(), calc.getTotalPhysicalSockets(), calc.getTotalPhysicalInstanceCount()
+        );
+        changed |= updateTotals(overrideMaxCheck, snap, HardwareMeasurementType.HYPERVISOR,
+            calc.getTotalHypervisorCores(), calc.getTotalHypervisorSockets(),
+            calc.getTotalHypervisorInstanceCount()
+        );
         return changed;
     }
 
-    private boolean updateMainTotals(boolean override, TallySnapshot snap, ProductUsageCalculation calc) {
-        boolean changed = false;
-        if (override || mustUpdate(snap.getCores(), calc.getTotalCores())) {
-            snap.setCores(calc.getTotalCores());
-            changed = true;
-        }
-
-        if (override || mustUpdate(snap.getSockets(), calc.getTotalSockets())) {
-            snap.setSockets(calc.getTotalSockets());
-            changed = true;
-        }
-
-        if (override || mustUpdate(snap.getInstanceCount(), calc.getTotalInstanceCount())) {
-            snap.setInstanceCount(calc.getTotalInstanceCount());
-            changed = true;
-        }
-        return changed;
-    }
-
-    private boolean updatePhysicalTotals(boolean override, TallySnapshot snap, ProductUsageCalculation calc) {
-        boolean changed = false;
-        if (override || mustUpdate(snap.getPhysicalCores(), calc.getTotalPhysicalCores())) {
-            snap.setPhysicalCores(calc.getTotalPhysicalCores());
-            changed = true;
-        }
-
-        if (override || mustUpdate(snap.getPhysicalSockets(), calc.getTotalPhysicalSockets())) {
-            snap.setPhysicalSockets(calc.getTotalPhysicalSockets());
-            changed = true;
-        }
-
-        if (override || mustUpdate(snap.getPhysicalInstanceCount(), calc.getTotalPhysicalInstanceCount())) {
-            snap.setPhysicalInstanceCount(calc.getTotalPhysicalInstanceCount());
-            changed = true;
-        }
-        return changed;
-    }
-
-    private boolean updateHypervisorTotals(boolean override, TallySnapshot snap,
-        ProductUsageCalculation calc) {
+    private boolean updateTotals(boolean override, TallySnapshot snap,
+        HardwareMeasurementType measurementType, int calcCores, int calcSockets, int calcInstanceCount) {
         boolean changed = false;
 
-        if (override || mustUpdate(snap.getHypervisorCores(), calc.getTotalHypervisorCores())) {
-            snap.setHypervisorCores(calc.getTotalHypervisorCores());
+        HardwareMeasurement measurement = snap.getHardwareMeasurement(measurementType);
+        if (measurement == null) {
+            // All the int fields in measurement will be initialized to zero
+            measurement = new HardwareMeasurement();
+        }
+
+        if (override || mustUpdate(measurement.getCores(), calcCores)) {
+            measurement.setCores(calcCores);
             changed = true;
         }
 
-        if (override || mustUpdate(snap.getHypervisorSockets(), calc.getTotalHypervisorSockets())) {
-            snap.setHypervisorSockets(calc.getTotalHypervisorSockets());
+        if (override || mustUpdate(measurement.getSockets(), calcSockets)) {
+            measurement.setSockets(calcSockets);
             changed = true;
         }
 
-        if (override ||
-            mustUpdate(snap.getHypervisorInstanceCount(), calc.getTotalHypervisorInstanceCount())) {
-            snap.setHypervisorInstanceCount(calc.getTotalHypervisorInstanceCount());
+        if (override || mustUpdate(measurement.getInstanceCount(), calcInstanceCount)) {
+            measurement.setInstanceCount(calcInstanceCount);
             changed = true;
+        }
+
+        if (changed) {
+            snap.setHardwareMeasurement(measurementType, measurement);
         }
 
         return changed;

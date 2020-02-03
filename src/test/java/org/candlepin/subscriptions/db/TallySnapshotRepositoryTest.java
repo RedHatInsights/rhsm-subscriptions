@@ -20,10 +20,11 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 
 import org.junit.jupiter.api.Test;
@@ -82,11 +83,13 @@ public class TallySnapshotRepositoryTest {
         ).stream().collect(Collectors.toList());
         assertEquals(1, found.size());
         TallySnapshot snapshot = found.get(0);
-        assertEquals(9999, (int) snapshot.getCores());
         assertEquals("Bugs", snapshot.getAccountNumber());
         assertEquals("Bunny", snapshot.getProductId());
         assertEquals("N/A", snapshot.getOwnerId());
         assertEquals(NOWISH, found.get(0).getSnapshotDate());
+
+        HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
+        assertEquals(9999, total.getCores());
     }
 
     @Test
@@ -127,11 +130,44 @@ public class TallySnapshotRepositoryTest {
             products, Granularity.DAILY, min, max).collect(Collectors.toList());
         // TODO Expect this to fail. Need to rebuild test result checking.
         assertEquals(2, found.size());
-        assertEquals("Account2", found.get(0).getAccountNumber());
-        assertEquals(product1, found.get(0).getProductId());
-        assertEquals(Integer.valueOf(9), found.get(0).getCores());
-        assertEquals(Integer.valueOf(10), found.get(0).getSockets());
-        assertEquals(Integer.valueOf(11), found.get(0).getInstanceCount());
+
+        TallySnapshot result = found.get(0);
+
+        assertEquals("Account2", result.getAccountNumber());
+        assertEquals(product1, result.getProductId());
+
+        HardwareMeasurement total = result.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
+        assertEquals(9, total.getCores());
+        assertEquals(10, total.getSockets());
+        assertEquals(11, total.getInstanceCount());
+    }
+
+    @Test
+    public void testPersistsHardwareMeasurements() {
+        TallySnapshot snap = createUnpersisted("Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3,
+            NOWISH);
+
+        HardwareMeasurement physical = new HardwareMeasurement();
+        physical.setCores(9);
+        physical.setSockets(8);
+        physical.setInstanceCount(7);
+        snap.setHardwareMeasurement(HardwareMeasurementType.PHYSICAL, physical);
+
+        repository.save(snap);
+        repository.flush();
+
+        List<TallySnapshot> found = repository
+            .findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+            Arrays.asList("Acme Inc."), Arrays.asList("rocket-skates"), Granularity.DAILY, LONG_AGO,
+            FAR_FUTURE).collect(Collectors.toList());
+
+        TallySnapshot expected = found.get(0);
+        HardwareMeasurement physicalResult =
+            expected.getHardwareMeasurement(HardwareMeasurementType.PHYSICAL);
+
+        assertEquals(9, physicalResult.getCores());
+        assertEquals(8, physicalResult.getSockets());
+        assertEquals(7, physicalResult.getInstanceCount());
     }
 
     private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
@@ -140,11 +176,15 @@ public class TallySnapshotRepositoryTest {
         tally.setAccountNumber(account);
         tally.setProductId(product);
         tally.setOwnerId("N/A");
-        tally.setCores(cores);
-        tally.setSockets(sockets);
         tally.setGranularity(granularity);
-        tally.setInstanceCount(instances);
         tally.setSnapshotDate(date);
+
+        HardwareMeasurement total = new HardwareMeasurement();
+        total.setCores(cores);
+        total.setSockets(sockets);
+        total.setInstanceCount(instances);
+
+        tally.setHardwareMeasurement(HardwareMeasurementType.TOTAL, total);
         return tally;
     }
 }

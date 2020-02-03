@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
@@ -53,25 +55,31 @@ public class SnapshotRollerTestHelper {
     }
 
     public static void assertSnapshot(TallySnapshot snapshot, String expectedProduct,
-        Granularity expectedGranularity, Integer expectedCores, Integer expectedSockets,
-        Integer expectedInstances) {
+        Granularity expectedGranularity, int expectedCores, int expectedSockets,
+        int expectedInstances) {
         assertNotNull(snapshot);
         assertEquals(expectedGranularity, snapshot.getGranularity());
         assertEquals(expectedProduct, snapshot.getProductId());
-        assertEquals(expectedCores, snapshot.getCores());
-        assertEquals(expectedSockets, snapshot.getSockets());
-        assertEquals(expectedInstances, snapshot.getInstanceCount());
+
+        HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
+
+        assertEquals(expectedCores, total.getCores());
+        assertEquals(expectedSockets, total.getSockets());
+        assertEquals(expectedInstances, total.getInstanceCount());
     }
 
     public static void assertSnapshotPhysicalTotals(TallySnapshot snapshot, String expectedProduct,
-        Granularity expectedGranularity, Integer expectedPhysCores, Integer expectedPhysSockets,
-        Integer expectedPhysInstances) {
+        Granularity expectedGranularity, int expectedPhysCores, int expectedPhysSockets,
+        int expectedPhysInstances) {
         assertNotNull(snapshot);
         assertEquals(expectedGranularity, snapshot.getGranularity());
         assertEquals(expectedProduct, snapshot.getProductId());
-        assertEquals(expectedPhysCores, snapshot.getPhysicalCores());
-        assertEquals(expectedPhysSockets, snapshot.getPhysicalSockets());
-        assertEquals(expectedPhysInstances, snapshot.getPhysicalInstanceCount());
+
+        HardwareMeasurement physical = snapshot.getHardwareMeasurement(HardwareMeasurementType.PHYSICAL);
+
+        assertEquals(expectedPhysCores, physical.getCores());
+        assertEquals(expectedPhysSockets, physical.getSockets());
+        assertEquals(expectedPhysInstances, physical.getInstanceCount());
     }
 
     private SnapshotRollerTestHelper() {
