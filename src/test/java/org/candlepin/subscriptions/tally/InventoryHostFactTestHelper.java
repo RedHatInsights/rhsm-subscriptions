@@ -112,7 +112,7 @@ public class InventoryHostFactTestHelper {
         return new ClassifiedInventoryHostFacts(baseFacts);
     }
 
-    private static InventoryHostFacts createBaseHost(String account, String orgId) {
+    public static InventoryHostFacts createBaseHost(String account, String orgId) {
         InventoryHostFacts baseFacts = new InventoryHostFacts();
         baseFacts.setAccount(account);
         baseFacts.setDisplayName("Test System");
