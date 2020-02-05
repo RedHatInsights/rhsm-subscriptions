@@ -42,6 +42,7 @@ public class NormalizedFacts {
     private boolean isVirtual;
     private boolean isHypervisor;
     private boolean isHypervisorUnknown;
+    private String cloudProvider;
 
     public NormalizedFacts() {
         products = new HashSet<>();
@@ -105,6 +106,14 @@ public class NormalizedFacts {
 
     public void setHypervisorUnknown(boolean hypervisorUnknown) {
         isHypervisorUnknown = hypervisorUnknown;
+    }
+
+    public String getCloudProvider() {
+        return cloudProvider;
+    }
+
+    public void setCloudProvider(String cloudProvider) {
+        this.cloudProvider = cloudProvider;
     }
 
     public Map<String, Object> toInventoryPayload() {

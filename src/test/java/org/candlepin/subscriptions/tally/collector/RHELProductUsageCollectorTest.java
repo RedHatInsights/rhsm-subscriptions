@@ -22,8 +22,10 @@ package org.candlepin.subscriptions.tally.collector;
 
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -45,7 +47,9 @@ public class RHELProductUsageCollectorTest {
         collector.collect(calc, facts);
         assertTotalsCalculation(calc, 4, 12, 1);
         assertHypervisorTotalsCalculation(calc, 4, 12, 1);
-        assertPhysicalTotalsCalculation(calc, 0, 0, 0);
+
+        // Expects no physical totals in this case.
+        assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
     }
 
     @Test
@@ -57,9 +61,9 @@ public class RHELProductUsageCollectorTest {
 
         // A guest with a known hypervisor does not contribute to any counts
         // as they are accounted for by the guest's hypervisor.
-        assertTotalsCalculation(calc, 0, 0, 0);
-        assertHypervisorTotalsCalculation(calc, 0, 0, 0);
-        assertPhysicalTotalsCalculation(calc, 0, 0, 0);
+        assertNull(calc.getTotals(HardwareMeasurementType.TOTAL));
+        assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
+        assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
     }
 
     @Test
@@ -74,7 +78,7 @@ public class RHELProductUsageCollectorTest {
         // contributes its own values to the hypervisor counts.
         assertTotalsCalculation(calc, 1, 12, 1);
         assertHypervisorTotalsCalculation(calc, 1, 12, 1);
-        assertPhysicalTotalsCalculation(calc, 0, 0, 0);
+        assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
     }
 
     @Test
@@ -85,8 +89,8 @@ public class RHELProductUsageCollectorTest {
         collector.collect(calc, facts);
 
         assertTotalsCalculation(calc, 4, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 0, 0, 0);
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
+        assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
     }
 
     @Test
@@ -96,4 +100,31 @@ public class RHELProductUsageCollectorTest {
         assertThrows(IllegalStateException.class, () -> collector.collect(calc, facts));
     }
 
+    @Test
+    public void testCountsForCloudProvider() {
+        // Cloud provider host should contribute to the matched supported cloud provider,
+        // as well as the overall total. A cloud host should only ever contribute 1 socket
+        // along with its cores.
+        NormalizedFacts facts = cloudMachineFacts("aws", 4, 12);
+
+        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        collector.collect(calc, facts);
+
+        assertTotalsCalculation(calc, 1, 12, 1);
+        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.AWS, 1, 12, 1);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS);
+    }
+
+    @Test
+    public void testNormalCollectionRulesWhenCloudProviderIsUnknown() {
+        NormalizedFacts facts = guestFacts(3, 12, true);
+        facts.setCloudProvider("UNKNOWN");
+
+        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        collector.collect(calc, facts);
+
+        assertTotalsCalculation(calc, 1, 12, 1);
+        assertHypervisorTotalsCalculation(calc, 1, 12, 1);
+        assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
+    }
 }

@@ -49,6 +49,14 @@ public class TestHelper {
         return facts;
     }
 
+    public static NormalizedFacts cloudMachineFacts(String cloudProviderName, int sockets, int cores) {
+        NormalizedFacts facts = new NormalizedFacts();
+        facts.setSockets(sockets);
+        facts.setCores(cores);
+        facts.setCloudProvider(cloudProviderName);
+        return facts;
+    }
+
     private TestHelper() {
         throw new IllegalStateException("Utility class; should never be instantiated!");
     }

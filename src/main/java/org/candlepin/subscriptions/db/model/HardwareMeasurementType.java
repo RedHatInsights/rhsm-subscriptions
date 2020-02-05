@@ -27,6 +27,19 @@ package org.candlepin.subscriptions.db.model;
 public enum HardwareMeasurementType {
     PHYSICAL,
     HYPERVISOR,
-    TOTAL;
+    TOTAL,
+    AWS,
+    GOOGLE,
+    ALIBABA,
+    AZURE;
+
+    public static HardwareMeasurementType getCloudProvider(String name) {
+        for (HardwareMeasurementType cloudType : getCloudProviderTypes()) {
+            if (cloudType.name().equalsIgnoreCase(name)) {
+                return cloudType;
+            }
+        }
+        return null;
+    }
 }
 

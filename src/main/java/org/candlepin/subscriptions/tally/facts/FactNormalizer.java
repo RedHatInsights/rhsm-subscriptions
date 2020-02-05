@@ -132,6 +132,9 @@ public class FactNormalizer {
 
     private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts,
         ClassifiedInventoryHostFacts hostFacts) {
+        if (hostFacts.getCloudProvider() != null && !hostFacts.getCloudProvider().isEmpty()) {
+            normalizedFacts.setCloudProvider(hostFacts.getCloudProvider());
+        }
         if (hostFacts.getSystemProfileSockets() != 0) {
             normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
         }

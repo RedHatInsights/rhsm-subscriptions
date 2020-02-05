@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.collector;
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -38,53 +39,79 @@ public class DefaultProductUsageCollectorTest {
 
     @Test
     public void testCountsForHypervisor() {
+        // By default hypervisors are not tracked at all and therefor
+        // it is considered to be a physical machine.
         NormalizedFacts facts = hypervisorFacts(4, 12);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
         collector.collect(calc, facts);
         assertTotalsCalculation(calc, 4, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 0, 0, 0);
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.PHYSICAL);
     }
 
     @Test
     public void testCountsForGuestWithUnknownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, false);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
         collector.collect(calc, facts);
 
         // A guest with a known hypervisor contributes to the overall totals,
         // but does not contribute to the hypervisor or physical totals.
         assertTotalsCalculation(calc, 3, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 0, 0, 0);
-        assertPhysicalTotalsCalculation(calc, 0, 0, 0);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL);
     }
 
     @Test
     public void testCountsForGuestWithKnownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, true);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
         collector.collect(calc, facts);
 
         // A guest with an unknown hypervisor contributes to the overall totals
-        // It is considered as having its own unique hypervisor and therefore
-        // contributes its own values to the hypervisor counts.
+        // but does not contribute to the hypervisor or physical totals.
         assertTotalsCalculation(calc, 3, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 0, 0, 0);
-        assertPhysicalTotalsCalculation(calc, 0, 0, 0);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL);
     }
 
     @Test
     public void testCountsForPhysicalSystem() {
         NormalizedFacts facts = physicalNonHypervisor(4, 12);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("RHEL");
+        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
         collector.collect(calc, facts);
 
         assertTotalsCalculation(calc, 4, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 0, 0, 0);
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.PHYSICAL);
+    }
+
+    @Test
+    public void testCountsForCloudProvider() {
+        // Cloud provider host should contribute to the matched supported cloud provider,
+        // as well as the overall total. A cloud host should only ever contribute 1 socket
+        // along with its cores.
+        NormalizedFacts facts = cloudMachineFacts("aws", 4, 12);
+
+        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        collector.collect(calc, facts);
+
+        assertTotalsCalculation(calc, 1, 12, 1);
+        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.AWS, 1, 12, 1);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS);
+    }
+
+    @Test
+    public void testNormalCollectionRulesWhenCloudProviderIsUnknown() {
+        NormalizedFacts facts = physicalNonHypervisor(4, 12);
+        facts.setCloudProvider("UNKNOWN_CLOUD_PROVIDER");
+
+        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        collector.collect(calc, facts);
+        assertTotalsCalculation(calc, 4, 12, 1);
+        assertPhysicalTotalsCalculation(calc, 4, 12, 1);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.PHYSICAL);
     }
 }

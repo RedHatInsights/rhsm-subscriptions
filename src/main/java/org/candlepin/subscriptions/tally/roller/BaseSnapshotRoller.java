@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
+import org.candlepin.subscriptions.tally.ProductUsageCalculation.Totals;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -79,23 +80,21 @@ public abstract class BaseSnapshotRoller {
         snapshot.setAccountNumber(account);
         snapshot.setSnapshotDate(getSnapshotDate(granularity));
 
-        HardwareMeasurement total = new HardwareMeasurement();
-        total.setCores(productCalc.getTotalCores());
-        total.setSockets(productCalc.getTotalSockets());
-        total.setInstanceCount(productCalc.getTotalInstanceCount());
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.TOTAL, total);
-
-        HardwareMeasurement physical = new HardwareMeasurement();
-        physical.setCores(productCalc.getTotalPhysicalCores());
-        physical.setSockets(productCalc.getTotalPhysicalSockets());
-        physical.setInstanceCount(productCalc.getTotalPhysicalInstanceCount());
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.PHYSICAL, physical);
-
-        HardwareMeasurement hypervisor = new HardwareMeasurement();
-        hypervisor.setCores(productCalc.getTotalHypervisorCores());
-        hypervisor.setSockets(productCalc.getTotalHypervisorSockets());
-        hypervisor.setInstanceCount(productCalc.getTotalHypervisorInstanceCount());
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.HYPERVISOR, hypervisor);
+        // Copy the calculated hardware measurements to the snapshots
+        for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
+            Totals calculatedTotals = productCalc.getTotals(type);
+            if (calculatedTotals != null) {
+                log.debug("Updating snapshot with hardware measurement: {}", type);
+                HardwareMeasurement total = new HardwareMeasurement();
+                total.setCores(calculatedTotals.getCores());
+                total.setSockets(calculatedTotals.getSockets());
+                total.setInstanceCount(calculatedTotals.getInstances());
+                snapshot.setHardwareMeasurement(type, total);
+            }
+            else {
+                log.debug("Skipping hardware measurement {} since it was not found.", type);
+            }
+        }
 
         return snapshot;
     }
@@ -165,24 +164,33 @@ public abstract class BaseSnapshotRoller {
         boolean changed = false;
         boolean overrideMaxCheck = Granularity.DAILY.equals(snap.getGranularity());
 
-        changed |= updateTotals(overrideMaxCheck, snap, HardwareMeasurementType.TOTAL,
-            calc.getTotalCores(), calc.getTotalSockets(), calc.getTotalInstanceCount()
-        );
-        changed |= updateTotals(overrideMaxCheck, snap, HardwareMeasurementType.PHYSICAL,
-            calc.getTotalPhysicalCores(), calc.getTotalPhysicalSockets(), calc.getTotalPhysicalInstanceCount()
-        );
-        changed |= updateTotals(overrideMaxCheck, snap, HardwareMeasurementType.HYPERVISOR,
-            calc.getTotalHypervisorCores(), calc.getTotalHypervisorSockets(),
-            calc.getTotalHypervisorInstanceCount()
-        );
+        for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
+            changed |= updateTotals(overrideMaxCheck, snap, type, calc);
+        }
         return changed;
     }
 
     private boolean updateTotals(boolean override, TallySnapshot snap,
-        HardwareMeasurementType measurementType, int calcCores, int calcSockets, int calcInstanceCount) {
+        HardwareMeasurementType measurementType, ProductUsageCalculation calc) {
+
+        Totals prodCalcTotals = calc.getTotals(measurementType);
+        HardwareMeasurement measurement = snap.getHardwareMeasurement(measurementType);
+
+        // Nothing to update if the existing measure does not exist and there
+        // was no new incoming measurement.
+        if (measurement == null && prodCalcTotals == null) {
+            return false;
+        }
+
         boolean changed = false;
 
-        HardwareMeasurement measurement = snap.getHardwareMeasurement(measurementType);
+        // If the calculated values for the measurement do not exist, zero them out
+        // for the snapshot update. Daily snapshots will have the values reset to zero.
+        // All other snapshots will take the existing value.
+        int calcSockets = prodCalcTotals != null ? prodCalcTotals.getSockets() : 0;
+        int calcCores = prodCalcTotals != null ? prodCalcTotals.getCores() : 0;
+        int calcInstanceCount = prodCalcTotals != null ? prodCalcTotals.getInstances() : 0;
+
         if (measurement == null) {
             // All the int fields in measurement will be initialized to zero
             measurement = new HardwareMeasurement();

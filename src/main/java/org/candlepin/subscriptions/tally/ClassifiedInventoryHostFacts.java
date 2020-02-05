@@ -128,4 +128,8 @@ public class ClassifiedInventoryHostFacts {
     public String getSyspurposeRole() {
         return inventoryHostFacts.getSyspurposeRole();
     }
+
+    public String getCloudProvider() {
+        return inventoryHostFacts.getCloudProvider();
+    }
 }

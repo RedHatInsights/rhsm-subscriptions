@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -39,7 +40,13 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         boolean guestWithUnknownHypervisor =
             normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
 
-        if (normalizedFacts.isHypervisor()) {
+        HardwareMeasurementType cloudProvider =
+            HardwareMeasurementType.getCloudProvider(normalizedFacts.getCloudProvider());
+        // Cloud provider hosts only account for a single socket.
+        if (cloudProvider != null) {
+            prodCalc.addCloudProvider(cloudProvider, cores, 1, 1);
+        }
+        else if (normalizedFacts.isHypervisor()) {
             if (sockets == 0) {
                 throw new IllegalStateException("Hypervisor has no sockets and will not contribute to the " +
                     "totals. The tally for the RHEL product will not be accurate since all associated " +
@@ -53,6 +60,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
             // Since the guest is unmapped, we only contribute a single socket.
             prodCalc.addHypervisor(cores, 1, 1);
         }
+        // Accumulate for physical systems.
         else if (!normalizedFacts.isVirtual()) {
             // Physical system so increment the physical system counts.
             prodCalc.addPhysical(cores, sockets, 1);

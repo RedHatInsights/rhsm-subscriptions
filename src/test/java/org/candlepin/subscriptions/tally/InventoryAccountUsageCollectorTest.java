@@ -20,11 +20,13 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.*;
 import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 
@@ -111,9 +113,9 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation calc = calcs.get("A1");
         // odd sockets are rounded up.
-        assertTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
-        assertPhysicalTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", NON_RHEL, 0, 0, 0);
+        checkTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
+        checkPhysicalTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
+        assertNull(calc.getProductCalculation(NON_RHEL).getTotals(HardwareMeasurementType.HYPERVISOR));
     }
 
     @Test
@@ -132,9 +134,9 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation calc = calcs.get("A1");
         // odd sockets are rounded up.
-        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-        assertPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        assertNull(calc.getProductCalculation(TEST_PRODUCT).getTotals(HardwareMeasurementType.PHYSICAL));
     }
 
     @Test
@@ -151,10 +153,10 @@ public class InventoryAccountUsageCollectorTest {
         assertThat(calcs, Matchers.hasKey("A1"));
 
         AccountUsageCalculation calc = calcs.get("A1");
-        // odd sockets are rounded up.
-        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
-        assertPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
+        ProductUsageCalculation productCalc = calc.getProductCalculation(TEST_PRODUCT);
+        assertNull(productCalc.getTotals(HardwareMeasurementType.TOTAL));
+        assertNull(productCalc.getTotals(HardwareMeasurementType.PHYSICAL));
+        assertNull(productCalc.getTotals(HardwareMeasurementType.HYPERVISOR));
     }
 
     @Test
@@ -170,9 +172,9 @@ public class InventoryAccountUsageCollectorTest {
         assertThat(calcs, Matchers.hasKey("A1"));
 
         AccountUsageCalculation calc = calcs.get("A1");
-        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
-        assertPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
+        checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
+        checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
+        assertNull(calc.getProductCalculation(TEST_PRODUCT).getTotals(HardwareMeasurementType.PHYSICAL));
     }
 
     @Test
@@ -192,9 +194,9 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation calc = calcs.get("A1");
         // odd sockets are rounded up.
-        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-        assertPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
+        checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        assertNull(calc.getProductCalculation(TEST_PRODUCT).getTotals(HardwareMeasurementType.HYPERVISOR));
     }
 
     @Test
@@ -221,11 +223,11 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
-        assertTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 12, 8, 2);
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 12, 8, 2);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
-        assertTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
+        checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
     }
 
     @Test
@@ -251,11 +253,11 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
-        assertTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+        checkTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
-        assertTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 12, 6, 1);
+        checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 12, 6, 1);
     }
 
     @Test
@@ -276,7 +278,7 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation accountCalc = calcs.get("A1");
         assertEquals(1, accountCalc.getProducts().size());
-        assertTotalsCalculation(accountCalc, "A1", "Owner1", TEST_PRODUCT, 8, 12, 1);
+        checkTotalsCalculation(accountCalc, "A1", "Owner1", TEST_PRODUCT, 8, 12, 1);
     }
 
     @Test
@@ -321,13 +323,13 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
-        assertTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
-        assertPhysicalTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 4, 4, 1);
+        checkTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+        checkPhysicalTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 4, 4, 1);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
-        assertTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 5, 10, 2);
-        assertPhysicalTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
+        checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 5, 10, 2);
+        checkPhysicalTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
     }
 
     @Test
@@ -354,25 +356,24 @@ public class InventoryAccountUsageCollectorTest {
 
         AccountUsageCalculation calc = calcs.get("A1");
         // odd sockets are rounded up for hypervisor.
-        assertTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-        assertPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 0, 0, 0);
-        assertHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        assertNull(calc.getProductCalculation(TEST_PRODUCT).getTotals(HardwareMeasurementType.PHYSICAL));
     }
 
-    private void assertTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
+    private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, int cores, int sockets, int instances) {
         assertEquals(account, calc.getAccount());
         assertEquals(owner, calc.getOwner());
         assertTrue(calc.containsProductCalculation(product));
 
         ProductUsageCalculation prodCalc = calc.getProductCalculation(product);
+
         assertEquals(product, prodCalc.getProductId());
-        assertEquals(cores, prodCalc.getTotalCores());
-        assertEquals(sockets, prodCalc.getTotalSockets());
-        assertEquals(instances, prodCalc.getTotalInstanceCount());
+        assertTotalsCalculation(prodCalc, sockets, cores, instances);
     }
 
-    private void assertPhysicalTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
+    private void checkPhysicalTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, int physicalCores, int physicalSockets, int physicalInstances) {
         assertEquals(account, calc.getAccount());
         assertEquals(owner, calc.getOwner());
@@ -380,12 +381,11 @@ public class InventoryAccountUsageCollectorTest {
 
         ProductUsageCalculation prodCalc = calc.getProductCalculation(product);
         assertEquals(product, prodCalc.getProductId());
-        assertEquals(physicalCores, prodCalc.getTotalPhysicalCores());
-        assertEquals(physicalSockets, prodCalc.getTotalPhysicalSockets());
-        assertEquals(physicalInstances, prodCalc.getTotalPhysicalInstanceCount());
+        assertPhysicalTotalsCalculation(prodCalc, physicalSockets, physicalCores,
+            physicalInstances);
     }
 
-    private void assertHypervisorTotalsCalculation(AccountUsageCalculation calc, String account,
+    private void checkHypervisorTotalsCalculation(AccountUsageCalculation calc, String account,
         String owner, String product, int hypCores, int hypSockets, int hypInstances) {
         assertEquals(account, calc.getAccount());
         assertEquals(owner, calc.getOwner());
@@ -393,8 +393,6 @@ public class InventoryAccountUsageCollectorTest {
 
         ProductUsageCalculation prodCalc = calc.getProductCalculation(product);
         assertEquals(product, prodCalc.getProductId());
-        assertEquals(hypCores, prodCalc.getTotalHypervisorCores());
-        assertEquals(hypSockets, prodCalc.getTotalHypervisorSockets());
-        assertEquals(hypInstances, prodCalc.getTotalHypervisorInstanceCount());
+        assertHypervisorTotalsCalculation(prodCalc, hypSockets, hypCores, hypInstances);
     }
 }

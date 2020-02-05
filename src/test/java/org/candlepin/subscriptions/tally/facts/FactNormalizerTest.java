@@ -330,4 +330,35 @@ public class FactNormalizerTest {
         assertTrue(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
     }
+
+    @Test
+    public void testThatCloudProviderIsSet() {
+        String expectedCloudProvider = "aws";
+        InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+        baseFacts.setCloudProvider(expectedCloudProvider);
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNotNull(normalized.getCloudProvider());
+        assertEquals(expectedCloudProvider, normalized.getCloudProvider());
+
+    }
+
+    @Test
+    public void testThatCloudProviderIsNotSetIfNull() {
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(createBaseHost("A1", "O1"));
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNull(normalized.getCloudProvider());
+    }
+
+    @Test
+    public void testThatCloudProviderIsNotSetIfEmpty() {
+        InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+        baseFacts.setCloudProvider("");
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNull(normalized.getCloudProvider());
+    }
 }

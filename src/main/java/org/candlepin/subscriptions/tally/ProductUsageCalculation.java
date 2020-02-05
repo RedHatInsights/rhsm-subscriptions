@@ -20,99 +20,109 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 /**
  * The calculated usage for a product.
  */
 public class ProductUsageCalculation {
+
+    /**
+     * Provides metric totals associated with each hardware type associated with a calculation.
+     */
+    public class Totals {
+        private int cores;
+        private int sockets;
+        private int instances;
+
+        public Totals() {
+            cores = 0;
+            sockets = 0;
+            instances = 0;
+        }
+
+        public String toString() {
+            return String.format("[cores: %s, sockets: %s, instances: %s]", cores, sockets, instances);
+        }
+
+        public int getCores() {
+            return cores;
+        }
+
+        public int getSockets() {
+            return sockets;
+        }
+
+        public int getInstances() {
+            return instances;
+        }
+    }
+
     private String productId;
 
-    // Overall totals
-    private int totalCores;
-    private int totalSockets;
-    private int totalInstanceCount;
-
-    // Physical
-    private int totalPhysicalCores;
-    private int totalPhysicalSockets;
-    private int totalPhysicalInstanceCount;
-
-    // Hypervisor
-    private int totalHypervisorSockets;
-    private int totalHypervisorCores;
-    private int totalHypervisorInstanceCount;
+    private Map<HardwareMeasurementType, Totals> mappedTotals;
 
     public ProductUsageCalculation(String productId) {
         this.productId = productId;
+        this.mappedTotals = new EnumMap<>(HardwareMeasurementType.class);
     }
 
     public String getProductId() {
         return productId;
     }
 
-    public int getTotalCores() {
-        return totalCores;
-    }
-
-    public int getTotalSockets() {
-        return totalSockets;
-    }
-
-    public int getTotalInstanceCount() {
-        return totalInstanceCount;
-    }
-
-    public int getTotalPhysicalCores() {
-        return totalPhysicalCores;
-    }
-
-    public int getTotalPhysicalSockets() {
-        return totalPhysicalSockets;
-    }
-
-    public int getTotalPhysicalInstanceCount() {
-        return totalPhysicalInstanceCount;
-    }
-
-    public int getTotalHypervisorSockets() {
-        return totalHypervisorSockets;
-    }
-
-    public int getTotalHypervisorCores() {
-        return totalHypervisorCores;
-    }
-
-    public int getTotalHypervisorInstanceCount() {
-        return totalHypervisorInstanceCount;
+    public Totals getTotals(HardwareMeasurementType type) {
+        return mappedTotals.get(type);
     }
 
     public void addPhysical(int cores, int sockets, int instances) {
-        totalPhysicalCores += cores;
-        totalPhysicalSockets += sockets;
-        totalPhysicalInstanceCount += instances;
+        increment(HardwareMeasurementType.PHYSICAL, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
     }
 
     public void addHypervisor(int cores, int sockets, int instances) {
-        totalHypervisorCores += cores;
-        totalHypervisorSockets += sockets;
-        totalHypervisorInstanceCount += instances;
+        increment(HardwareMeasurementType.HYPERVISOR, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
     }
 
     public void addToTotal(int cores, int sockets, int instances) {
-        totalCores += cores;
-        totalSockets += sockets;
-        totalInstanceCount += instances;
+        increment(HardwareMeasurementType.TOTAL, cores, sockets, instances);
+    }
+
+    public void addCloudProvider(HardwareMeasurementType cloudType, int cores, int sockets, int instances) {
+        if (!HardwareMeasurementType.getCloudProviderTypes().contains(cloudType)) {
+            throw new IllegalArgumentException(String.format("%s is not a cloud provider type.", cloudType));
+        }
+
+        increment(cloudType, cores, sockets, instances);
+        addToTotal(cores, sockets, instances);
+    }
+
+    private void increment(HardwareMeasurementType type, int cores, int sockets, int instances) {
+        Totals total = getOrDefault(type);
+        total.cores += cores;
+        total.sockets += sockets;
+        total.instances += instances;
+    }
+
+    private Totals getOrDefault(HardwareMeasurementType type) {
+        this.mappedTotals.putIfAbsent(type, new Totals());
+        return this.mappedTotals.get(type);
     }
 
     @Override
     public String toString() {
-        return String.format(
-            "[Product: %s, Cores: %s, Sockets: %s, Instances: %s, Physical Cores: %s, Physical Sockets: %s," +
-            " Physical Instances: %s, Hypervisor Cores: %s, Hypervisor Sockets: %s, Hypervisor Instance: %s]",
-            productId, totalCores, totalSockets, totalInstanceCount,
-            totalPhysicalCores, totalPhysicalSockets, totalPhysicalInstanceCount,
-            totalHypervisorCores, totalHypervisorSockets, totalHypervisorInstanceCount);
+        StringBuilder builder = new StringBuilder();
+        builder.append(String.format("[Product: %s", productId));
+        for (Entry<HardwareMeasurementType, Totals> entry : mappedTotals.entrySet()) {
+            builder.append(String.format(", %s: %s", entry.getKey(), entry.getValue()));
+        }
+        builder.append("]");
+        return builder.toString();
     }
 
 }

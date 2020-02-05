@@ -47,6 +47,7 @@ public class InventoryHostFacts {
     private Set<String> qpcProductIds;
     private Set<String> systemProfileProductIds;
     private String syspurposeRole;
+    private String cloudProvider;
 
     public InventoryHostFacts() {
         // Used for testing
@@ -57,7 +58,7 @@ public class InventoryHostFacts {
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
         String systemProfileProductIds, String syspurposeRole, String isVirtual, String hypervisorUuid,
-        String guestId, String subscriptionManagerId) {
+        String guestId, String subscriptionManagerId, String cloudProvider) {
 
         this.account = account;
         this.displayName = displayName;
@@ -77,6 +78,7 @@ public class InventoryHostFacts {
         this.hypervisorUuid = hypervisorUuid;
         this.guestId = guestId;
         this.subscriptionManagerId = subscriptionManagerId;
+        this.cloudProvider = cloudProvider;
     }
 
     public String getAccount() {
@@ -247,4 +249,11 @@ public class InventoryHostFacts {
         this.subscriptionManagerId = subscriptionManagerId;
     }
 
+    public String getCloudProvider() {
+        return cloudProvider;
+    }
+
+    public void setCloudProvider(String cloudProvider) {
+        this.cloudProvider = cloudProvider;
+    }
 }
