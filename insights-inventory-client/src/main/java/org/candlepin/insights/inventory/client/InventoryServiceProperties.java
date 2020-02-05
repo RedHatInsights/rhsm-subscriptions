@@ -20,6 +20,11 @@
  */
 package org.candlepin.insights.inventory.client;
 
+import org.springframework.boot.convert.DurationUnit;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 /**
  * Sub-class for inventory service properties
  */
@@ -31,6 +36,9 @@ public class InventoryServiceProperties {
     private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
     private int apiHostUpdateBatchSize = 50;
     private int staleHostOffsetInDays = 0;
+
+    @DurationUnit(ChronoUnit.HOURS)
+    private Duration hostLastSyncThreshold = Duration.ofHours(24);
 
     public boolean isUseStub() {
         return useStub;
@@ -86,5 +94,13 @@ public class InventoryServiceProperties {
 
     public void setKafkaHostIngressTopic(String kafkaHostIngressTopic) {
         this.kafkaHostIngressTopic = kafkaHostIngressTopic;
+    }
+
+    public Duration getHostLastSyncThreshold() {
+        return hostLastSyncThreshold;
+    }
+
+    public void setHostLastSyncThreshold(Duration hostLastSyncThreshold) {
+        this.hostLastSyncThreshold = hostLastSyncThreshold;
     }
 }

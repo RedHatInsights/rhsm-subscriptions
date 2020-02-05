@@ -23,6 +23,7 @@ package org.candlepin.insights.controller;
 import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
@@ -42,9 +43,14 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -101,14 +107,17 @@ public class InventoryController {
     private PinheadService pinheadService;
     private Validator validator;
     private PinheadApiProperties pinheadApiProperties;
+    private Duration hostLastSyncThreshold;
 
     @Autowired
     public InventoryController(InventoryService inventoryService, PinheadService pinheadService,
-        Validator validator, PinheadApiProperties pinheadApiProperties) {
+        Validator validator, PinheadApiProperties pinheadApiProperties,
+        InventoryServiceProperties inventoryServiceProperties) {
         this.inventoryService = inventoryService;
         this.pinheadService = pinheadService;
         this.validator = validator;
         this.pinheadApiProperties = pinheadApiProperties;
+        this.hostLastSyncThreshold = inventoryServiceProperties.getHostLastSyncThreshold();
     }
 
     private static boolean isEmpty(String value) {
@@ -119,9 +128,12 @@ public class InventoryController {
         final Map<String, String> pinheadFacts = consumer.getFacts();
         ConduitFacts facts = new ConduitFacts();
         facts.setOrgId(consumer.getOrgId());
-
         facts.setSubscriptionManagerId(consumer.getUuid());
         facts.setInsightsId(pinheadFacts.get(INSIGHTS_ID));
+
+        if (consumer.getLastCheckin() != null) {
+            facts.setLastCheckin(Date.from(consumer.getLastCheckin().toInstant()));
+        }
 
         facts.setSysPurposeRole(consumer.getSysPurposeRole());
         facts.setSysPurposeUsage(consumer.getSysPurposeUsage());
@@ -280,6 +292,7 @@ public class InventoryController {
         long total = 0;
         for (List<ConduitFacts> partition : factsPartitions) {
             long batch = partition.stream()
+                .filter(this::isHostActive)
                 .map(hostFacts -> {
                     inventoryService.scheduleHostUpdate(hostFacts);
                     return 1;
@@ -296,6 +309,21 @@ public class InventoryController {
         return inventoryService.getInventoryForOrgConsumers(
             Lists.newArrayList(validateConduitFactsForOrg(orgId))
         );
+    }
+
+    private boolean isHostActive(ConduitFacts facts) {
+        Instant lastCheckin = (facts.getLastCheckin() == null) ?
+            Instant.now() : facts.getLastCheckin().toInstant();
+        ZonedDateTime zonedLastCheckin = ZonedDateTime.ofInstant(lastCheckin, ZoneId.systemDefault());
+        ZonedDateTime now = ZonedDateTime.now();
+
+        // If a system is from the future, let's just trust they have come back to save us from a cyborg.
+        if (now.isBefore(zonedLastCheckin)) {
+            return true;
+        }
+
+        Duration sinceLastCheckin = Duration.between(zonedLastCheckin, now);
+        return sinceLastCheckin.compareTo(hostLastSyncThreshold) <= 0;
     }
 
     private Iterator<ConduitFacts> validateConduitFactsForOrg(String orgId) {
