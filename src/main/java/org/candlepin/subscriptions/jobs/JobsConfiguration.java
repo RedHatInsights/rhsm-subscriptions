@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.jobs;
 
+import org.candlepin.subscriptions.db.PostgresTlsDataSourceProperties;
+import org.candlepin.subscriptions.db.PostgresTlsHikariDataSourceFactoryBean;
+
 import org.quartz.JobDetail;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,16 +31,14 @@ import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
 import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.Properties;
-
-import javax.sql.DataSource;
 
 /**
  * A class to hold all job related configuration.
@@ -48,17 +49,19 @@ import javax.sql.DataSource;
 public class JobsConfiguration {
 
     @Bean
+    @Validated
     @ConfigurationProperties(prefix = "rhsm-subscriptions.quartz.datasource")
-    public DataSourceProperties quartzDataSourceProperties() {
-        return new DataSourceProperties();
+    public PostgresTlsDataSourceProperties quartzDataSourceProperties() {
+        return new PostgresTlsDataSourceProperties();
     }
 
     @Bean(name = "quartz-ds")
     @QuartzDataSource
-    public DataSource quartzDataSource(
-        @Qualifier("quartzDataSourceProperties") DataSourceProperties dataSourceProperties) {
-        DataSourceBuilder builder = dataSourceProperties.initializeDataSourceBuilder();
-        return builder.build();
+    public PostgresTlsHikariDataSourceFactoryBean quartzDataSource(
+        @Qualifier("quartzDataSourceProperties") PostgresTlsDataSourceProperties dataSourceProperties) {
+        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
+        factory.setTlsDataSourceProperties(dataSourceProperties);
+        return factory;
     }
 
     @Bean
