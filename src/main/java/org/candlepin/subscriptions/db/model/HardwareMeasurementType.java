@@ -21,6 +21,9 @@
 
 package org.candlepin.subscriptions.db.model;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Enum to capture the various types of measurements in the hardware_measurements table
  */
@@ -40,6 +43,10 @@ public enum HardwareMeasurementType {
             }
         }
         return null;
+    }
+
+    public static List<HardwareMeasurementType> getCloudProviderTypes() {
+        return Arrays.asList(AWS, GOOGLE, AZURE, ALIBABA);
     }
 }
 
