@@ -40,6 +40,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -487,5 +489,38 @@ public class InventoryControllerTest {
         controller.updateInventoryForOrg("123");
         int expectedBatches = (int) Math.ceil((double) size / pinheadApiProperties.getRequestBatchSize());
         verify(inventoryService, times(expectedBatches)).flushHostUpdates();
+    }
+
+    @Test
+    void doesNotFilterSystemsWithNoCheckin() {
+        Consumer consumer1 = new Consumer();
+        consumer1.setOrgId("123");
+        consumer1.setUuid(UUID.randomUUID().toString());
+        consumer1.setAccountNumber("account");
+
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
+            Arrays.asList(consumer1));
+        controller.updateInventoryForOrg("123");
+        verify(inventoryService, times(1)).scheduleHostUpdate(any(ConduitFacts.class));
+    }
+
+    @Test
+    void filtersInactiveSystems() {
+        Consumer consumer1 = new Consumer();
+        consumer1.setOrgId("123");
+        consumer1.setUuid(UUID.randomUUID().toString());
+        consumer1.setAccountNumber("account");
+        consumer1.setLastCheckin(OffsetDateTime.now());
+
+        Consumer consumer2 = new Consumer();
+        consumer2.setOrgId("123");
+        consumer2.setUuid(UUID.randomUUID().toString());
+        consumer2.setAccountNumber("account");
+        consumer2.setLastCheckin(OffsetDateTime.now().minus(5, ChronoUnit.YEARS));
+
+        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
+            Arrays.asList(consumer1, consumer2));
+        controller.updateInventoryForOrg("123");
+        verify(inventoryService, times(1)).scheduleHostUpdate(any(ConduitFacts.class));
     }
 }
