@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 public class TestHelper {
@@ -49,11 +50,12 @@ public class TestHelper {
         return facts;
     }
 
-    public static NormalizedFacts cloudMachineFacts(String cloudProviderName, int sockets, int cores) {
+    public static NormalizedFacts cloudMachineFacts(HardwareMeasurementType cloudProviderType, int sockets,
+        int cores) {
         NormalizedFacts facts = new NormalizedFacts();
         facts.setSockets(sockets);
         facts.setCores(cores);
-        facts.setCloudProvider(cloudProviderName);
+        facts.setCloudProviderType(cloudProviderType);
         return facts;
     }
 

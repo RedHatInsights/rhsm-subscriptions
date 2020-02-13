@@ -94,8 +94,9 @@ public class ProductUsageCalculation {
     }
 
     public void addCloudProvider(HardwareMeasurementType cloudType, int cores, int sockets, int instances) {
-        if (!HardwareMeasurementType.getCloudProviderTypes().contains(cloudType)) {
-            throw new IllegalArgumentException(String.format("%s is not a cloud provider type.", cloudType));
+        if (!HardwareMeasurementType.isSupportedCloudProvider(cloudType.name())) {
+            throw new IllegalArgumentException(String.format("%s is not a supported cloud provider type.",
+                cloudType));
         }
 
         increment(cloudType, cores, sockets, instances);

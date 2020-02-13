@@ -36,13 +36,18 @@ public enum HardwareMeasurementType {
     ALIBABA,
     AZURE;
 
-    public static HardwareMeasurementType getCloudProvider(String name) {
-        for (HardwareMeasurementType cloudType : getCloudProviderTypes()) {
-            if (cloudType.name().equalsIgnoreCase(name)) {
-                return cloudType;
-            }
+    public static boolean isSupportedCloudProvider(String name) {
+        if (name == null || name.isEmpty()) {
+            return false;
         }
-        return null;
+
+        try {
+            return getCloudProviderTypes().contains(HardwareMeasurementType.valueOf(name.toUpperCase()));
+        }
+        catch (IllegalArgumentException e) {
+            // Passed an invalid type string, consider it not supported.
+            return false;
+        }
     }
 
     public static List<HardwareMeasurementType> getCloudProviderTypes() {

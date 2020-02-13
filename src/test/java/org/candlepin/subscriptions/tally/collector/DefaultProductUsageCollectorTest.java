@@ -93,7 +93,7 @@ public class DefaultProductUsageCollectorTest {
         // Cloud provider host should contribute to the matched supported cloud provider,
         // as well as the overall total. A cloud host should only ever contribute 1 socket
         // along with its cores.
-        NormalizedFacts facts = cloudMachineFacts("aws", 4, 12);
+        NormalizedFacts facts = cloudMachineFacts(HardwareMeasurementType.AWS, 4, 12);
 
         ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
         collector.collect(calc, facts);
@@ -103,15 +103,4 @@ public class DefaultProductUsageCollectorTest {
         assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS);
     }
 
-    @Test
-    public void testNormalCollectionRulesWhenCloudProviderIsUnknown() {
-        NormalizedFacts facts = physicalNonHypervisor(4, 12);
-        facts.setCloudProvider("UNKNOWN_CLOUD_PROVIDER");
-
-        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
-        collector.collect(calc, facts);
-        assertTotalsCalculation(calc, 4, 12, 1);
-        assertPhysicalTotalsCalculation(calc, 4, 12, 1);
-        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.PHYSICAL);
-    }
 }

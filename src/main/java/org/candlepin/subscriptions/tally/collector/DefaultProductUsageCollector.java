@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.tally.ProductUsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -34,11 +33,9 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
         int cores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
         int sockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
 
-        HardwareMeasurementType cloudProvider =
-            HardwareMeasurementType.getCloudProvider(normalizedFacts.getCloudProvider());
         // Cloud provider hosts only account for a single socket.
-        if (cloudProvider != null) {
-            prodCalc.addCloudProvider(cloudProvider, cores, 1, 1);
+        if (normalizedFacts.getCloudProviderType() != null) {
+            prodCalc.addCloudProvider(normalizedFacts.getCloudProviderType(), cores, 1, 1);
         }
         // Accumulate for physical systems.
         else if (!normalizedFacts.isVirtual()) {

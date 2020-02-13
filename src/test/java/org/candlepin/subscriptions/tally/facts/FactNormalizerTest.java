@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -339,8 +340,8 @@ public class FactNormalizerTest {
         ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
 
         NormalizedFacts normalized = normalizer.normalize(facts);
-        assertNotNull(normalized.getCloudProvider());
-        assertEquals(expectedCloudProvider, normalized.getCloudProvider());
+        assertNotNull(normalized.getCloudProviderType());
+        assertEquals(HardwareMeasurementType.AWS, normalized.getCloudProviderType());
 
     }
 
@@ -349,7 +350,7 @@ public class FactNormalizerTest {
         ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(createBaseHost("A1", "O1"));
 
         NormalizedFacts normalized = normalizer.normalize(facts);
-        assertNull(normalized.getCloudProvider());
+        assertNull(normalized.getCloudProviderType());
     }
 
     @Test
@@ -359,6 +360,17 @@ public class FactNormalizerTest {
         ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
 
         NormalizedFacts normalized = normalizer.normalize(facts);
-        assertNull(normalized.getCloudProvider());
+        assertNull(normalized.getCloudProviderType());
+    }
+
+    @Test
+    public void testThatUnsupportedCloudProviderIsNotSet() {
+        String expectedCloudProvider = "unknown";
+        InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+        baseFacts.setCloudProvider(expectedCloudProvider);
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNull(normalized.getCloudProviderType());
     }
 }

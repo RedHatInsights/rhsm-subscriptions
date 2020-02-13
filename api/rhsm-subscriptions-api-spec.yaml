@@ -471,17 +471,17 @@ components:
           format: int32
           minimum: 0
         cloud_instance_count:
-          description: "Total number of hosts running in the cloud, matching the report criteria on the date of this snapshot."
+          description: "Total number of hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
         cloud_cores:
-          description: "Total number of cores calculated from hosts running in the cloud, matching the report criteria on the date of this snapshot."
+          description: "Total number of cores calculated from hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
         cloud_sockets:
-          description: "Total number of sockets calculated from hosts running in the cloud, matching the report criteria on the date of this snapshot."
+          description: "Total number of sockets calculated from hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
