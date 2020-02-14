@@ -65,6 +65,9 @@ public class TallySnapshot implements Serializable {
     @Column(name = "account_number")
     private String accountNumber;
 
+    @Column(name = "sla")
+    private String serviceLevel;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")
     private Granularity granularity;
@@ -133,6 +136,14 @@ public class TallySnapshot implements Serializable {
 
     public void setHardwareMeasurement(HardwareMeasurementType type, HardwareMeasurement measurement) {
         hardwareMeasurements.put(type, measurement);
+    }
+
+    public String getServiceLevel() {
+        return serviceLevel;
+    }
+
+    public void setServiceLevel(String serviceLevel) {
+        this.serviceLevel = serviceLevel;
     }
 
     public org.candlepin.subscriptions.utilization.api.model.TallySnapshot asApiSnapshot() {
