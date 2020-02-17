@@ -20,7 +20,12 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,32 +37,78 @@ public class ProductUsageCalculationTest {
     public void testDefaults() {
         ProductUsageCalculation calculation = new ProductUsageCalculation("Test Product");
         assertEquals("Test Product", calculation.getProductId());
-        assertEquals(0, calculation.getTotalInstanceCount());
-        assertEquals(0, calculation.getTotalSockets());
-        assertEquals(0, calculation.getTotalCores());
-        assertEquals(0, calculation.getTotalPhysicalInstanceCount());
-        assertEquals(0, calculation.getTotalPhysicalSockets());
-        assertEquals(0, calculation.getTotalPhysicalCores());
+
+        for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
+            assertNull(calculation.getTotals(type), "Unexpected values for type: " + type);
+        }
     }
 
     @Test
-    public void testUncategorizedSystemTotal() {
+    public void testAddToTotal() {
         ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
-        int expected = 10;
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addToTotal(i + 2, i + 1, i));
-        assertEquals(20, calculation.getTotalCores());
-        assertEquals(15, calculation.getTotalSockets());
-        assertEquals(10, calculation.getTotalInstanceCount());
+
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
+        assertNullExcept(calculation, HardwareMeasurementType.TOTAL);
     }
 
     @Test
     public void testPhysicalSystemTotal() {
         ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
-        int expected = 10;
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addPhysical(i + 2, i + 1, i));
-        assertEquals(20, calculation.getTotalPhysicalCores());
-        assertEquals(15, calculation.getTotalPhysicalSockets());
-        assertEquals(10, calculation.getTotalPhysicalInstanceCount());
+
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.PHYSICAL, 15, 20, 10);
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
+        assertNullExcept(calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.PHYSICAL);
+    }
+
+
+    @Test
+    public void testHypervisorTotal() {
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        IntStream.rangeClosed(0, 4).forEach(i -> calculation.addHypervisor(i + 2, i + 1, i));
+
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.HYPERVISOR, 15, 20, 10);
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
+        assertNullExcept(calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.HYPERVISOR);
+    }
+
+    @Test
+    public void testAWSTotal() {
+        checkCloudProvider(HardwareMeasurementType.AWS);
+    }
+
+    @Test
+    public void testAlibabaTotal() {
+        checkCloudProvider(HardwareMeasurementType.ALIBABA);
+    }
+
+    @Test
+    public void testGoogleTotal() {
+        checkCloudProvider(HardwareMeasurementType.GOOGLE);
+    }
+
+    @Test
+    public void testAzureTotal() {
+        checkCloudProvider(HardwareMeasurementType.AZURE);
+    }
+
+    @Test
+    public void invalidCloudTypeThrowsExcpection() {
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        assertThrows(IllegalArgumentException.class, () -> {
+            calculation.addCloudProvider(HardwareMeasurementType.HYPERVISOR, 1, 1, 1);
+        });
+    }
+
+    private void checkCloudProvider(HardwareMeasurementType providerType) {
+        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        IntStream.rangeClosed(0, 4).forEach(i -> calculation.addCloudProvider(
+            providerType, i + 2, i + 1, i));
+
+        assertHardwareMeasurementTotals(calculation, providerType, 15, 20, 10);
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
+        assertNullExcept(calculation, HardwareMeasurementType.TOTAL, providerType);
     }
 
 }

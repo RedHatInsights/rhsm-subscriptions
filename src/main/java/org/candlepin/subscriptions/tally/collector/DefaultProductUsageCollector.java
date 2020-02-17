@@ -33,8 +33,12 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
         int cores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
         int sockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
 
+        // Cloud provider hosts only account for a single socket.
+        if (normalizedFacts.getCloudProviderType() != null) {
+            prodCalc.addCloudProvider(normalizedFacts.getCloudProviderType(), cores, 1, 1);
+        }
         // Accumulate for physical systems.
-        if (!normalizedFacts.isVirtual()) {
+        else if (!normalizedFacts.isVirtual()) {
             prodCalc.addPhysical(cores, sockets, 1);
         }
         // Any other system is simply added to the overall total

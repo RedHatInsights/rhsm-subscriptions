@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -329,5 +330,47 @@ public class FactNormalizerTest {
         assertTrue(normalized.isVirtual());
         assertTrue(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
+    }
+
+    @Test
+    public void testThatCloudProviderIsSet() {
+        String expectedCloudProvider = "aws";
+        InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+        baseFacts.setCloudProvider(expectedCloudProvider);
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNotNull(normalized.getCloudProviderType());
+        assertEquals(HardwareMeasurementType.AWS, normalized.getCloudProviderType());
+
+    }
+
+    @Test
+    public void testThatCloudProviderIsNotSetIfNull() {
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(createBaseHost("A1", "O1"));
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNull(normalized.getCloudProviderType());
+    }
+
+    @Test
+    public void testThatCloudProviderIsNotSetIfEmpty() {
+        InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+        baseFacts.setCloudProvider("");
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNull(normalized.getCloudProviderType());
+    }
+
+    @Test
+    public void testThatUnsupportedCloudProviderIsNotSet() {
+        String expectedCloudProvider = "unknown";
+        InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+        baseFacts.setCloudProvider(expectedCloudProvider);
+        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
+
+        NormalizedFacts normalized = normalizer.normalize(facts);
+        assertNull(normalized.getCloudProviderType());
     }
 }

@@ -63,7 +63,8 @@ import javax.persistence.Table;
                 @ColumnResult(name = "is_virtual"),
                 @ColumnResult(name = "hypervisor_uuid"),
                 @ColumnResult(name = "guest_id"),
-                @ColumnResult(name = "subscription_manager_id")
+                @ColumnResult(name = "subscription_manager_id"),
+                @ColumnResult(name = "cloud_provider")
             }
         )
     }
@@ -86,6 +87,7 @@ import javax.persistence.Table;
         "h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type, " +
         "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
         "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
+        "h.system_profile_facts->>'cloud_provider' as cloud_provider, " +
         "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, " +
         "rhsm_products.products, " +
         "qpc_prods.qpc_products, " +

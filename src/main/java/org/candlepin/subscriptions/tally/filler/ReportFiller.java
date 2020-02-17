@@ -110,6 +110,9 @@ public class ReportFiller {
             .hypervisorSockets(0)
             .hypervisorCores(0)
             .hypervisorInstanceCount(0)
+            .cloudInstanceCount(0)
+            .cloudSockets(0)
+            .cloudCores(0)
             .hasData(false);
     }
 

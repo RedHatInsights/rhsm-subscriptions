@@ -17,5 +17,6 @@
     <include file="liquibase/201911141401-add-cores-to-subscription-capacity.xml"/>
     <include file="liquibase/202001031047-add-marketing-product-id-to-capacity.xml"/>
     <include file="liquibase/202001141534-add-snapshot-measurements-table.xml"/>
+    <include file="liquibase/202002061140-update-copy-measurement-procedure.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

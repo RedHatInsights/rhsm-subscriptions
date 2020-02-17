@@ -21,12 +21,37 @@
 
 package org.candlepin.subscriptions.db.model;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Enum to capture the various types of measurements in the hardware_measurements table
  */
 public enum HardwareMeasurementType {
     PHYSICAL,
     HYPERVISOR,
-    TOTAL;
+    TOTAL,
+    AWS,
+    GOOGLE,
+    ALIBABA,
+    AZURE;
+
+    public static boolean isSupportedCloudProvider(String name) {
+        if (name == null || name.isEmpty()) {
+            return false;
+        }
+
+        try {
+            return getCloudProviderTypes().contains(HardwareMeasurementType.valueOf(name.toUpperCase()));
+        }
+        catch (IllegalArgumentException e) {
+            // Passed an invalid type string, consider it not supported.
+            return false;
+        }
+    }
+
+    public static List<HardwareMeasurementType> getCloudProviderTypes() {
+        return Arrays.asList(AWS, GOOGLE, AZURE, ALIBABA);
+    }
 }
 

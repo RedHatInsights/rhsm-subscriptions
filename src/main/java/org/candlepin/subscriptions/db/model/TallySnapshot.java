@@ -162,7 +162,25 @@ public class TallySnapshot implements Serializable {
             snapshot.setHypervisorInstanceCount(hypervisor.getInstanceCount());
         }
 
+        // Tally up all the cloud providers that we support. We count/store them separately in the DB
+        // so that we can report on each provider if required in the future.
+        Integer cloudInstances = 0;
+        Integer cloudCores = 0;
+        Integer cloudSockets = 0;
+        for (HardwareMeasurementType type : HardwareMeasurementType.getCloudProviderTypes()) {
+            HardwareMeasurement measurement = this.hardwareMeasurements.get(type);
+            if (measurement != null) {
+                cloudInstances += measurement.getInstanceCount();
+                cloudCores += measurement.getCores();
+                cloudSockets += measurement.getSockets();
+            }
+        }
+        snapshot.setCloudInstanceCount(cloudInstances);
+        snapshot.setCloudCores(cloudCores);
+        snapshot.setCloudSockets(cloudSockets);
+
         snapshot.setHasData(id != null);
         return snapshot;
     }
+
 }

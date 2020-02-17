@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -42,6 +44,7 @@ public class NormalizedFacts {
     private boolean isVirtual;
     private boolean isHypervisor;
     private boolean isHypervisorUnknown;
+    private HardwareMeasurementType cloudProviderType;
 
     public NormalizedFacts() {
         products = new HashSet<>();
@@ -105,6 +108,14 @@ public class NormalizedFacts {
 
     public void setHypervisorUnknown(boolean hypervisorUnknown) {
         isHypervisorUnknown = hypervisorUnknown;
+    }
+
+    public HardwareMeasurementType getCloudProviderType() {
+        return cloudProviderType;
+    }
+
+    public void setCloudProviderType(HardwareMeasurementType cloudProviderType) {
+        this.cloudProviderType = cloudProviderType;
     }
 
     public Map<String, Object> toInventoryPayload() {

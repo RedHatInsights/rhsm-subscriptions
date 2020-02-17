@@ -105,15 +105,18 @@ paths:
                     hypervisor_cores: 0
                     hypervisor_sockets: 0
                   - date: '2017-08-06T17:32:03Z'
-                    instance_count: 20
-                    cores: 20
-                    sockets: 10
+                    instance_count: 24
+                    cores: 28
+                    sockets: 14
                     physical_instance_count: 0
                     physical_cores: 0
                     physical_sockets: 0
                     hypervisor_instance_count: 20
                     hypervisor_cores: 20
                     hypervisor_sockets: 10
+                    cloud_instance_count: 4
+                    cloud_cores: 8
+                    cloud_sockets: 4
                 links:
                   first: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
                   last: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
@@ -464,6 +467,21 @@ components:
           minimum: 0
         hypervisor_sockets:
           description: "Total number of sockets calculated from hypervisors matching the report criteria on the date of this snapshot."
+          type: integer
+          format: int32
+          minimum: 0
+        cloud_instance_count:
+          description: "Total number of hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
+          type: integer
+          format: int32
+          minimum: 0
+        cloud_cores:
+          description: "Total number of cores calculated from hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
+          type: integer
+          format: int32
+          minimum: 0
+        cloud_sockets:
+          description: "Total number of sockets calculated from hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0

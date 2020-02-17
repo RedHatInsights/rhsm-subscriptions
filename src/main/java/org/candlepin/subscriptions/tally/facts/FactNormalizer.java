@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
@@ -132,6 +133,11 @@ public class FactNormalizer {
 
     private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts,
         ClassifiedInventoryHostFacts hostFacts) {
+        String cloudProvider = hostFacts.getCloudProvider();
+        if (HardwareMeasurementType.isSupportedCloudProvider(cloudProvider)) {
+            normalizedFacts.setCloudProviderType(
+                HardwareMeasurementType.valueOf(cloudProvider.toUpperCase()));
+        }
         if (hostFacts.getSystemProfileSockets() != 0) {
             normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
         }
