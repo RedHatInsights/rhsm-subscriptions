@@ -22,10 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.jobs.JobProperties;
 
-import com.zaxxer.hikari.HikariDataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
@@ -38,6 +35,7 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.validation.annotation.Validated;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
@@ -56,18 +54,21 @@ import javax.sql.DataSource;
 public class RhsmSubscriptionsDataSourceConfiguration {
 
     @Bean
+    @Validated
     @Primary
     @ConfigurationProperties("rhsm-subscriptions.datasource")
-    public DataSourceProperties rhsmDataSourceProperties() {
-        return new DataSourceProperties();
+    public PostgresTlsDataSourceProperties rhsmDataSourceProperties() {
+        return new PostgresTlsDataSourceProperties();
     }
 
     @Bean(name = "rhsmSubscriptionsDataSource")
     @Primary
-    @ConfigurationProperties("rhsm-subscriptions.datasource.configuration")
-    public HikariDataSource rhsmSubscriptionsDataSource(
-        @Qualifier("rhsmDataSourceProperties") DataSourceProperties rhsmDataSourceProperties) {
-        return rhsmDataSourceProperties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    public PostgresTlsHikariDataSourceFactoryBean rhsmSubscriptionsDataSource(
+        @Qualifier("rhsmDataSourceProperties") PostgresTlsDataSourceProperties rhsmDataSourceProperties) {
+
+        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
+        factory.setTlsDataSourceProperties(rhsmDataSourceProperties);
+        return factory;
     }
 
     @Bean(name = "rhsmSubscriptionsEntityManagerFactory")

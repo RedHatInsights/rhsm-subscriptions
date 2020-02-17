@@ -20,8 +20,10 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
+import org.candlepin.subscriptions.db.PostgresTlsDataSourceProperties;
+import org.candlepin.subscriptions.db.PostgresTlsHikariDataSourceFactoryBean;
+
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
@@ -32,6 +34,7 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.validation.annotation.Validated;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
@@ -48,15 +51,18 @@ import javax.sql.DataSource;
 public class InventoryDataSourceConfiguration {
 
     @Bean
+    @Validated
     @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service.datasource")
-    public DataSourceProperties inventoryDataSourceProperties() {
-        return new DataSourceProperties();
+    public PostgresTlsDataSourceProperties inventoryDataSourceProperties() {
+        return new PostgresTlsDataSourceProperties();
     }
 
     @Bean(name = "inventoryDataSource")
-    public DataSource inventoryDataSource(
-        @Qualifier("inventoryDataSourceProperties") DataSourceProperties inventoryDataSourceProperties) {
-        return inventoryDataSourceProperties.initializeDataSourceBuilder().build();
+    public PostgresTlsHikariDataSourceFactoryBean inventoryDataSource(
+        @Qualifier("inventoryDataSourceProperties") PostgresTlsDataSourceProperties dataSourceProperties) {
+        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
+        factory.setTlsDataSourceProperties(dataSourceProperties);
+        return factory;
     }
 
     @Bean(name = "inventoryEntityManagerFactory")
@@ -74,5 +80,4 @@ public class InventoryDataSourceConfiguration {
         @Qualifier("inventoryEntityManagerFactory") EntityManagerFactory emf) {
         return new JpaTransactionManager(emf);
     }
-
 }
