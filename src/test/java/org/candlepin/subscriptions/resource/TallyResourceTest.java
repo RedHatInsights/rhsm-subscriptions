@@ -22,11 +22,12 @@ package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.TallySnapshotSummation;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -79,35 +80,41 @@ public class TallyResourceTest {
 
     @Test
     public void testShouldUseQueryBasedOnHeaderAndParameters() throws Exception {
-        TallySnapshot snap = new TallySnapshot();
+        TallySnapshotSummation summation = mock(TallySnapshotSummation.class);
+        when(summation.getSnapshotDate()).thenReturn(OffsetDateTime.now());
 
         Mockito.when(repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            .sumSnapshotMeasurements(
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
+            Mockito.eq("Premium"),
             Mockito.eq(min),
             Mockito.eq(max),
+            Mockito.eq(false),
             Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+            .thenReturn(new PageImpl<>(Arrays.asList(summation)));
         TallyReport report = resource.getTallyReport(
             "product1",
             "daily",
             min,
             max,
             10,
-            10
+            10,
+            "Premium"
         );
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository)
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            .sumSnapshotMeasurements(
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
+            Mockito.eq("Premium"),
             Mockito.eq(min),
             Mockito.eq(max),
+            Mockito.eq(false),
             Mockito.eq(expectedPageable)
             );
     }
@@ -120,7 +127,8 @@ public class TallyResourceTest {
             min,
             max,
             11,
-            10
+            10,
+            null
         ));
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
     }
@@ -128,12 +136,14 @@ public class TallyResourceTest {
     @Test
     public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() throws IOException {
         Mockito.when(repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            .sumSnapshotMeasurements(
                  Mockito.eq("account123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
+                 Mockito.eq(null),
                  Mockito.eq(min),
                  Mockito.eq(max),
+                 Mockito.eq(false),
                  Mockito.eq(null)))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
 
@@ -142,6 +152,7 @@ public class TallyResourceTest {
             "daily",
             min,
             max,
+            null,
             null,
             null
         );
@@ -162,6 +173,7 @@ public class TallyResourceTest {
                 min,
                 max,
                 null,
+                null,
                 null
             );
         });
@@ -176,6 +188,7 @@ public class TallyResourceTest {
                 "daily",
                 min,
                 max,
+                null,
                 null,
                 null
             );

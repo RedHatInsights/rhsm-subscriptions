@@ -23,10 +23,13 @@ package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.TallySnapshotSummation;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
@@ -42,6 +45,47 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
         findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
         String accountNumber, String productId, Granularity granularity, OffsetDateTime beginning,
         OffsetDateTime ending, Pageable pageable);
+
+    /**
+     * Sums the hardware measurements totals for snapshots based on the criteria specified.
+     * Measurements sums are grouped by date, account, product and measurement type. The idea
+     * being that since snapshots are created per account per trackable property (such as sla),
+     * the overall unfiltered total for an account will be cumulative of all the snapshots.
+     *
+     * @param accountNumber the account number to match
+     * @param productId the product ID to match
+     * @param granularity the granularity to match
+     * @param serviceLevel the optional service level to match
+     * @param beginning the start of the period
+     * @param ending the end of the period
+     * @param matchEmptySla allow matching empty sla when true. When false and the serviceLevel parameter
+     *                      is null, the serviceLevel match will be ignored completely.
+     * @param pageable query paging data
+     * @return a page of tally snapshot summations
+     */
+    @SuppressWarnings({"linelength", "indentation", "java:S107"})
+    @Query("select " +
+             "s.snapshotDate as snapshotDate, " +
+             "key(m) as type, " +
+             "s.accountNumber as accountNumber, " +
+             "s.productId as productId, " +
+             "sum(m.cores) as cores, " +
+             "sum(m.sockets) as sockets, " +
+             "sum(m.instanceCount) as instances " +
+           "from TallySnapshot s inner join s.hardwareMeasurements m " +
+           "where " +
+             "s.accountNumber = :accountNumber and " +
+             "s.productId = :productId and " +
+             "s.granularity = :granularity and " +
+             "((:serviceLevel is null and :matchEmptySla is False) or (:matchEmptySla is True and s.serviceLevel is null) or s.serviceLevel = :serviceLevel) and " +
+             "s.snapshotDate between :beginning and :ending " +
+           "group by s.snapshotDate, s.accountNumber, s.productId, key(m) " +
+           "order by s.accountNumber, s.productId")
+    Page<TallySnapshotSummation> sumSnapshotMeasurements(@Param("accountNumber") String accountNumber,
+        @Param("productId") String productId, @Param("granularity") Granularity granularity,
+        @Param("serviceLevel") String serviceLevel, @Param("beginning") OffsetDateTime beginning,
+        @Param("ending") OffsetDateTime ending, @Param("matchEmptySla") Boolean matchEmptySla,
+        Pageable pageable);
 
     @Transactional
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
