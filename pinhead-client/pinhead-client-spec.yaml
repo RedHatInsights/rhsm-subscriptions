@@ -111,6 +111,8 @@ components:
           type: array
           items:
             $ref: "#/components/schema/InstalledProducts"
+        serviceLevel:
+          type: string
         sysPurposeRole:
           type: string
         sysPurposeUsage:

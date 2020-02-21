@@ -158,6 +158,9 @@ public abstract class InventoryService {
         if (conduitFacts.getSysPurposeRole() != null && !conduitFacts.getSysPurposeRole().isEmpty()) {
             rhsmFactMap.put("SYSPURPOSE_ROLE", conduitFacts.getSysPurposeRole());
         }
+        if (conduitFacts.getSysPurposeSla() != null && !conduitFacts.getSysPurposeSla().isEmpty()) {
+            rhsmFactMap.put("SYSPURPOSE_SLA", conduitFacts.getSysPurposeSla());
+        }
         if (conduitFacts.getSysPurposeUsage() != null && !conduitFacts.getSysPurposeUsage().isEmpty()) {
             rhsmFactMap.put("SYSPURPOSE_USAGE", conduitFacts.getSysPurposeUsage());
         }

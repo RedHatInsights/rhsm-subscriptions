@@ -68,6 +68,7 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setGuestId("i_am_a_guest");
         conduitFacts.setVmHostUuid("14f64266-f957-4765-8420-c3b6b3002bb7");
         conduitFacts.setSysPurposeRole("test_role");
+        conduitFacts.setSysPurposeSla("Premium");
         conduitFacts.setSysPurposeUsage("test_usage");
         conduitFacts.setSysPurposeAddons(Arrays.asList("addon1", "addon2"));
         return conduitFacts;
@@ -92,6 +93,7 @@ public class DefaultInventoryServiceTest {
         expectedFactMap.put("RH_PROD", Collections.singletonList("72"));
         expectedFactMap.put("orgId", "1234-org");
         expectedFactMap.put("SYSPURPOSE_ROLE", "test_role");
+        expectedFactMap.put("SYSPURPOSE_SLA", "Premium");
         expectedFactMap.put("SYSPURPOSE_USAGE", "test_usage");
         expectedFactMap.put("SYSPURPOSE_ADDONS", Arrays.asList("addon1", "addon2"));
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
