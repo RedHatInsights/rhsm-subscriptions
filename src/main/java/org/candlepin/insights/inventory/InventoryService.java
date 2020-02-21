@@ -128,47 +128,34 @@ public abstract class InventoryService {
     private Map<String, Object> buildFactMap(ConduitFacts conduitFacts, OffsetDateTime syncTimestamp) {
         Map<String, Object> rhsmFactMap = new HashMap<>();
         rhsmFactMap.put("orgId", conduitFacts.getOrgId());
-        if (conduitFacts.getCpuSockets() != null) {
-            rhsmFactMap.put("CPU_SOCKETS", conduitFacts.getCpuSockets());
-        }
-        if (conduitFacts.getCpuCores() != null) {
-            rhsmFactMap.put("CPU_CORES", conduitFacts.getCpuCores());
-        }
-        if (conduitFacts.getMemory() != null) {
-            rhsmFactMap.put("MEMORY", conduitFacts.getMemory());
-        }
-        if (conduitFacts.getArchitecture() != null) {
-            rhsmFactMap.put("ARCHITECTURE", conduitFacts.getArchitecture());
-        }
-        if (conduitFacts.getIsVirtual() != null) {
-            rhsmFactMap.put("IS_VIRTUAL", conduitFacts.getIsVirtual());
-        }
-        if (conduitFacts.getVmHost() != null) {
-            rhsmFactMap.put("VM_HOST", conduitFacts.getVmHost());
-        }
-        if (conduitFacts.getVmHostUuid() != null) {
-            rhsmFactMap.put("VM_HOST_UUID", conduitFacts.getVmHostUuid());
-        }
-        if (conduitFacts.getGuestId() != null) {
-            rhsmFactMap.put("GUEST_ID", conduitFacts.getGuestId());
-        }
-        if (conduitFacts.getRhProd() != null) {
-            rhsmFactMap.put("RH_PROD", conduitFacts.getRhProd());
-        }
-        if (conduitFacts.getSysPurposeRole() != null && !conduitFacts.getSysPurposeRole().isEmpty()) {
-            rhsmFactMap.put("SYSPURPOSE_ROLE", conduitFacts.getSysPurposeRole());
-        }
-        if (conduitFacts.getSysPurposeSla() != null && !conduitFacts.getSysPurposeSla().isEmpty()) {
-            rhsmFactMap.put("SYSPURPOSE_SLA", conduitFacts.getSysPurposeSla());
-        }
-        if (conduitFacts.getSysPurposeUsage() != null && !conduitFacts.getSysPurposeUsage().isEmpty()) {
-            rhsmFactMap.put("SYSPURPOSE_USAGE", conduitFacts.getSysPurposeUsage());
-        }
-        if (conduitFacts.getSysPurposeAddons() != null) {
-            rhsmFactMap.put("SYSPURPOSE_ADDONS", conduitFacts.getSysPurposeAddons());
-        }
+
+        addFact(rhsmFactMap, "CPU_SOCKETS", conduitFacts.getCpuSockets());
+        addFact(rhsmFactMap, "CPU_CORES", conduitFacts.getCpuCores());
+        addFact(rhsmFactMap, "MEMORY", conduitFacts.getMemory());
+        addFact(rhsmFactMap, "ARCHITECTURE", conduitFacts.getArchitecture());
+        addFact(rhsmFactMap, "IS_VIRTUAL", conduitFacts.getIsVirtual());
+        addFact(rhsmFactMap, "VM_HOST", conduitFacts.getVmHost());
+        addFact(rhsmFactMap, "VM_HOST_UUID", conduitFacts.getVmHostUuid());
+        addFact(rhsmFactMap, "GUEST_ID", conduitFacts.getGuestId());
+        addFact(rhsmFactMap, "RH_PROD", conduitFacts.getRhProd());
+        addFact(rhsmFactMap, "SYSPURPOSE_ROLE", conduitFacts.getSysPurposeRole());
+        addFact(rhsmFactMap, "SYSPURPOSE_SLA", conduitFacts.getSysPurposeSla());
+        addFact(rhsmFactMap, "SYSPURPOSE_USAGE", conduitFacts.getSysPurposeUsage());
+        addFact(rhsmFactMap, "SYSPURPOSE_ADDONS", conduitFacts.getSysPurposeAddons());
 
         rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
         return rhsmFactMap;
+    }
+
+    private void addFact(Map<String, Object> factMap, String key, String value) {
+        if (value != null && !value.isEmpty()) {
+            factMap.put(key, value);
+        }
+    }
+
+    private void addFact(Map<String, Object> factMap, String key, Object value) {
+        if (value != null) {
+            factMap.put(key, value);
+        }
     }
 }
