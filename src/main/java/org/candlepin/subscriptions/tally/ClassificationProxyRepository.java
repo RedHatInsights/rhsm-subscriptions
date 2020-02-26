@@ -21,13 +21,16 @@
 
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -43,15 +46,27 @@ import java.util.stream.Stream;
 @Component
 public class ClassificationProxyRepository {
     private final InventoryRepository inventoryRepository;
+    private final ApplicationClock clock;
+    private final int culledOffsetDays;
 
     @Autowired
-    public ClassificationProxyRepository(InventoryRepository inventoryRepository) {
+    public ClassificationProxyRepository(InventoryRepository inventoryRepository, ApplicationClock clock,
+        ApplicationProperties appProps) {
         this.inventoryRepository = inventoryRepository;
+        this.clock = clock;
+        this.culledOffsetDays = appProps.getCullingOffsetDays();
     }
 
     public Stream<ClassifiedInventoryHostFacts> getFacts(Collection<String> accounts) {
+        OffsetDateTime now = clock.now();
         List<InventoryHostFacts> hostFactsList =
-            inventoryRepository.getFacts(accounts).collect(Collectors.toList());
+            inventoryRepository.getFacts(accounts, culledOffsetDays)
+            // Currently being filtered by the DB but filter again to make sure
+            // that this business rule is not missed should we ever move away
+            // from pulling directly from the database.
+            .filter(facts -> facts.getStaleTimestamp() == null ||
+            now.isBefore(facts.getStaleTimestamp().plusDays(culledOffsetDays)))
+            .collect(Collectors.toList());
 
         Set<String> hypervisorUuids = new HashSet<>();
         Set<String> subscriptionManagerIds = new HashSet<>();

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.inventory.db.model;
 
 import org.springframework.util.StringUtils;
 
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -48,6 +49,7 @@ public class InventoryHostFacts {
     private Set<String> systemProfileProductIds;
     private String syspurposeRole;
     private String cloudProvider;
+    private OffsetDateTime staleTimestamp;
 
     public InventoryHostFacts() {
         // Used for testing
@@ -58,7 +60,7 @@ public class InventoryHostFacts {
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
         String systemProfileProductIds, String syspurposeRole, String isVirtual, String hypervisorUuid,
-        String guestId, String subscriptionManagerId, String cloudProvider) {
+        String guestId, String subscriptionManagerId, String cloudProvider, OffsetDateTime staleTimestamp) {
 
         this.account = account;
         this.displayName = displayName;
@@ -79,6 +81,7 @@ public class InventoryHostFacts {
         this.guestId = guestId;
         this.subscriptionManagerId = subscriptionManagerId;
         this.cloudProvider = cloudProvider;
+        this.staleTimestamp = staleTimestamp;
     }
 
     public String getAccount() {
@@ -255,5 +258,13 @@ public class InventoryHostFacts {
 
     public void setCloudProvider(String cloudProvider) {
         this.cloudProvider = cloudProvider;
+    }
+
+    public OffsetDateTime getStaleTimestamp() {
+        return staleTimestamp;
+    }
+
+    public void setStaleTimestamp(OffsetDateTime staleTimestamp) {
+        this.staleTimestamp = staleTimestamp;
     }
 }
