@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.AdminOnly;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -67,11 +69,12 @@ public class TallyResource implements TallyApi {
         this.clock = clock;
     }
 
+    @SuppressWarnings("linelength")
     @Override
     @AdminOnly
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit) {
+        @Min(1) Integer limit, String sla) {
         // When limit and offset are not specified, we will fill the report with dummy
         // records from beginning to ending dates. Otherwise we page as usual.
         Pageable pageable = null;
@@ -80,14 +83,15 @@ public class TallyResource implements TallyApi {
             pageable = ResourceUtils.getPageable(offset, limit);
         }
 
-
         String accountNumber = ResourceUtils.getAccountNumber();
+        String serviceLevel = getSnapshotQueryValue(sla);
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,
             productId,
             granularityValue,
+            serviceLevel,
             beginning,
             ending,
             pageable
@@ -101,8 +105,9 @@ public class TallyResource implements TallyApi {
         TallyReport report = new TallyReport();
         report.setData(snaps);
         report.setMeta(new TallyReportMeta());
-        report.getMeta().setGranularity(granularity);
+        report.getMeta().setGranularity(granularityValue.name());
         report.getMeta().setProduct(productId);
+        report.getMeta().setServiceLevel(sla == null ? null : serviceLevel);
 
         // Only set page links if we are paging (not filling).
         if (pageable != null) {
@@ -119,6 +124,21 @@ public class TallyResource implements TallyApi {
         report.getMeta().setCount(report.getData().size());
 
         return report;
+    }
+
+    private String getSnapshotQueryValue(String sla) {
+        // If the sla parameter was not specified, we assume the query param represents ANY.
+        if (sla == null) {
+            return ServiceLevel.ANY.getValue();
+        }
+
+        // If the sla parameter is not one that we support, then throw an exception.
+        // If we don't, the query would default to UNSPECIFIED, which would be confusing.
+        ServiceLevel sanitized = ServiceLevel.fromString(sla);
+        if (!sla.isEmpty() && ServiceLevel.UNSPECIFIED.equals(sanitized)) {
+            throw new BadRequestException("Invalid sla parameter specified.");
+        }
+        return sanitized.getValue();
     }
 
 }

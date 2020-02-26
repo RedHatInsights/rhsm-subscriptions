@@ -40,9 +40,9 @@ public enum ServiceLevel {
     private final String value;
 
     private static final Map<String, ServiceLevel> VALUE_ENUM_MAP = ImmutableMap.of(
-        PREMIUM.value, PREMIUM,
-        STANDARD.value, STANDARD,
-        SELF_SUPPORT.value, SELF_SUPPORT
+        PREMIUM.value.toUpperCase(), PREMIUM,
+        STANDARD.value.toUpperCase(), STANDARD,
+        SELF_SUPPORT.value.toUpperCase(), SELF_SUPPORT
     );
 
     ServiceLevel(String value) {
@@ -57,7 +57,8 @@ public enum ServiceLevel {
      * @return the ServiceLevel enum; UNSPECIFIED if unparseable.
      */
     public static ServiceLevel fromString(String value) {
-        return VALUE_ENUM_MAP.getOrDefault(value, UNSPECIFIED);
+        String key = value == null ? "" : value.toUpperCase();
+        return VALUE_ENUM_MAP.getOrDefault(key, UNSPECIFIED);
     }
 
     public String getValue() {
