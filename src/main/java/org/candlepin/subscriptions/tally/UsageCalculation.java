@@ -21,15 +21,69 @@
 package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 /**
- * The calculated usage for a product.
+ * The calculated usage for a key where key is (productId, sla).
  */
-public class ProductUsageCalculation {
+public class UsageCalculation {
+
+    private final Key key;
+
+    /**
+     * Natural key for a given calculation.
+     *
+     * Note that already data is scoped to an account, so account is not included in the key.
+     */
+    public static class Key {
+        private final String productId;
+        private final ServiceLevel sla;
+
+        public Key(String productId, ServiceLevel sla) {
+            this.productId = productId;
+            this.sla = sla;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Key that = (Key) o;
+            return Objects.equals(productId, that.productId) &&
+                    Objects.equals(sla, that.sla);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(productId, sla);
+        }
+
+        public static Key fromTallySnapshot(TallySnapshot snapshot) {
+            ServiceLevel sla;
+            if (snapshot.getServiceLevel().equals(ServiceLevel.ANY.getValue())) {
+                sla = ServiceLevel.ANY;
+            }
+            else {
+                sla = ServiceLevel.fromString(snapshot.getServiceLevel());
+            }
+            return new Key(snapshot.getProductId(), sla);
+        }
+
+        @Override
+        public String toString() {
+            return "Key{" + "productId='" + productId + '\'' + ", sla=" + sla + '}';
+        }
+    }
 
     /**
      * Provides metric totals associated with each hardware type associated with a calculation.
@@ -62,17 +116,19 @@ public class ProductUsageCalculation {
         }
     }
 
-    private String productId;
-
     private Map<HardwareMeasurementType, Totals> mappedTotals;
 
-    public ProductUsageCalculation(String productId) {
-        this.productId = productId;
+    public UsageCalculation(Key key) {
+        this.key = key;
         this.mappedTotals = new EnumMap<>(HardwareMeasurementType.class);
     }
 
     public String getProductId() {
-        return productId;
+        return key.productId;
+    }
+
+    public ServiceLevel getSla() {
+        return key.sla;
     }
 
     public Totals getTotals(HardwareMeasurementType type) {
@@ -115,10 +171,14 @@ public class ProductUsageCalculation {
         return this.mappedTotals.get(type);
     }
 
+    public boolean hasMeasurements() {
+        return !this.mappedTotals.isEmpty();
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append(String.format("[Product: %s", productId));
+        builder.append(String.format("[Product: %s, sla: %s", key.productId, key.sla));
         for (Entry<HardwareMeasurementType, Totals> entry : mappedTotals.entrySet()) {
             builder.append(String.format(", %s: %s", entry.getKey(), entry.getValue()));
         }

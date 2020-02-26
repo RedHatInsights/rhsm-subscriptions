@@ -48,6 +48,7 @@ public class InventoryHostFacts {
     private Set<String> qpcProductIds;
     private Set<String> systemProfileProductIds;
     private String syspurposeRole;
+    private String syspurposeSla;
     private String cloudProvider;
     private OffsetDateTime staleTimestamp;
 
@@ -59,8 +60,9 @@ public class InventoryHostFacts {
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
-        String systemProfileProductIds, String syspurposeRole, String isVirtual, String hypervisorUuid,
-        String guestId, String subscriptionManagerId, String cloudProvider, OffsetDateTime staleTimestamp) {
+        String systemProfileProductIds, String syspurposeRole, String syspurposeSla,
+        String isVirtual, String hypervisorUuid, String guestId, String subscriptionManagerId,
+        String cloudProvider, OffsetDateTime staleTimestamp) {
 
         this.account = account;
         this.displayName = displayName;
@@ -76,6 +78,7 @@ public class InventoryHostFacts {
         this.systemProfileSockets = asInt(systemProfileSockets);
         this.systemProfileProductIds = asStringSet(systemProfileProductIds);
         this.syspurposeRole = syspurposeRole;
+        this.syspurposeSla = syspurposeSla;
         this.isVirtual = asBoolean(isVirtual);
         this.hypervisorUuid = hypervisorUuid;
         this.guestId = guestId;
@@ -266,5 +269,13 @@ public class InventoryHostFacts {
 
     public void setStaleTimestamp(OffsetDateTime staleTimestamp) {
         this.staleTimestamp = staleTimestamp;
+    }
+
+    public String getSyspurposeSla() {
+        return syspurposeSla;
+    }
+
+    public void setSyspurposeSla(String syspurposeSla) {
+        this.syspurposeSla = syspurposeSla;
     }
 }

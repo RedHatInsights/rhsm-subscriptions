@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -81,19 +82,23 @@ public class InventoryAccountUsageCollector {
 
                 // Calculate for each product.
                 products.forEach(product -> {
-                    ProductUsageCalculation prodCalc = accountCalc.getProductCalculation(product);
-                    if (prodCalc == null) {
-                        prodCalc = new ProductUsageCalculation(product);
-                        accountCalc.addProductCalculation(prodCalc);
-                    }
-
-                    if (facts.getProducts().contains(product)) {
-                        try {
-                            ProductUsageCollectorFactory.get(product).collect(prodCalc, facts);
+                    ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel.ANY};
+                    for (ServiceLevel sla : slas) {
+                        UsageCalculation.Key key = new UsageCalculation.Key(product, sla);
+                        UsageCalculation calc = accountCalc.getCalculation(key);
+                        if (calc == null) {
+                            calc = new UsageCalculation(key);
+                            accountCalc.addCalculation(calc);
                         }
-                        catch (Exception e) {
-                            log.error("Unable to collect usage data for host: {} product: {}",
-                                hostFacts.getSubscriptionManagerId(), product, e);
+
+                        if (facts.getProducts().contains(product)) {
+                            try {
+                                ProductUsageCollectorFactory.get(product).collect(calc, facts);
+                            }
+                            catch (Exception e) {
+                                log.error("Unable to collect usage data for host: {} product: {}",
+                                    hostFacts.getSubscriptionManagerId(), product, e);
+                            }
                         }
                     }
                 });

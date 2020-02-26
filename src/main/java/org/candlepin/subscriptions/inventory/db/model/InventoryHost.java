@@ -60,6 +60,7 @@ import javax.persistence.Table;
                 @ColumnResult(name = "qpc_product_ids"),
                 @ColumnResult(name = "system_profile_product_ids"),
                 @ColumnResult(name = "syspurpose_role"),
+                @ColumnResult(name = "syspurpose_sla"),
                 @ColumnResult(name = "is_virtual"),
                 @ColumnResult(name = "hypervisor_uuid"),
                 @ColumnResult(name = "guest_id"),
@@ -84,6 +85,7 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'GUEST_ID' as guest_id, " +
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, " +
+        "h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla, " +
         "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
         "h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type, " +
         "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +

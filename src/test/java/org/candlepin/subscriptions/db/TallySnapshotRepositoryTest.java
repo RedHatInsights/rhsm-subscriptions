@@ -177,6 +177,7 @@ public class TallySnapshotRepositoryTest {
         tally.setProductId(product);
         tally.setOwnerId("N/A");
         tally.setGranularity(granularity);
+        tally.setServiceLevel("");
         tally.setSnapshotDate(date);
 
         HardwareMeasurement total = new HardwareMeasurement();

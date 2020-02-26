@@ -73,4 +73,11 @@ public class DailySnapshotRollerTest {
         tester.performUpdateWithLesserValueTest(Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
             false);
     }
+
+    @Test
+    @SuppressWarnings("java:S2699") /* NOTE(khowell): have no idea why sonar thinks no assertions */
+    public void testEmptySnapshotsNotPersisted() {
+        tester.performDoesNotPersistEmptySnapshots(Granularity.DAILY, clock.startOfToday(),
+            clock.endOfToday());
+    }
 }

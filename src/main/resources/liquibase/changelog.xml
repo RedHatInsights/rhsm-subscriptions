@@ -19,5 +19,6 @@
     <include file="liquibase/202001141534-add-snapshot-measurements-table.xml"/>
     <include file="liquibase/202002061140-update-copy-measurement-procedure.xml"/>
     <include file="liquibase/202002140932-add-sla-column-to-snapshot-and-capacity-tables.xml"/>
+    <include file="liquibase/202003021107-make-tally-sla-non-null.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

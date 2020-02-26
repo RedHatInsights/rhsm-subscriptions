@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 /**
@@ -29,7 +29,7 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 public class DefaultProductUsageCollector implements ProductUsageCollector {
 
     @Override
-    public void collect(ProductUsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
+    public void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
         int cores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
         int sockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
 

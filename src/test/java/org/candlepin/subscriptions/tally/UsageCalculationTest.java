@@ -26,16 +26,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.IntStream;
 
-public class ProductUsageCalculationTest {
+public class UsageCalculationTest {
 
     @Test
     public void testDefaults() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Test Product");
+        UsageCalculation calculation = new UsageCalculation(createUsageKey("Test Product"));
         assertEquals("Test Product", calculation.getProductId());
 
         for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
@@ -45,7 +46,7 @@ public class ProductUsageCalculationTest {
 
     @Test
     public void testAddToTotal() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addToTotal(i + 2, i + 1, i));
 
         assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
@@ -54,7 +55,7 @@ public class ProductUsageCalculationTest {
 
     @Test
     public void testPhysicalSystemTotal() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addPhysical(i + 2, i + 1, i));
 
         assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.PHYSICAL, 15, 20, 10);
@@ -62,10 +63,13 @@ public class ProductUsageCalculationTest {
         assertNullExcept(calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.PHYSICAL);
     }
 
+    private UsageCalculation.Key createUsageKey(String product) {
+        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED);
+    }
 
     @Test
     public void testHypervisorTotal() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addHypervisor(i + 2, i + 1, i));
 
         assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.HYPERVISOR, 15, 20, 10);
@@ -95,14 +99,14 @@ public class ProductUsageCalculationTest {
 
     @Test
     public void invalidCloudTypeThrowsExcpection() {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         assertThrows(IllegalArgumentException.class, () -> {
             calculation.addCloudProvider(HardwareMeasurementType.HYPERVISOR, 1, 1, 1);
         });
     }
 
     private void checkCloudProvider(HardwareMeasurementType providerType) {
-        ProductUsageCalculation calculation = new ProductUsageCalculation("Product");
+        UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addCloudProvider(
             providerType, i + 2, i + 1, i));
 

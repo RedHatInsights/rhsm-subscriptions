@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +39,7 @@ public class NormalizedFacts {
     public static final String OWNER_KEY = "owner";
 
     private Set<String> products;
+    private ServiceLevel sla = ServiceLevel.UNSPECIFIED;
     private Integer cores;
     private Integer sockets;
     private String owner;
@@ -116,6 +118,14 @@ public class NormalizedFacts {
 
     public void setCloudProviderType(HardwareMeasurementType cloudProviderType) {
         this.cloudProviderType = cloudProviderType;
+    }
+
+    public ServiceLevel getSla() {
+        return sla;
+    }
+
+    public void setSla(ServiceLevel sla) {
+        this.sla = sla;
     }
 
     public Map<String, Object> toInventoryPayload() {

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
@@ -189,6 +190,16 @@ public class FactNormalizer {
                 normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
                 normalizedFacts.getProducts().addAll(
                     roleToProductsMap.getOrDefault(hostFacts.getSyspurposeRole(), Collections.emptyList()));
+            }
+            ServiceLevel effectiveSla = ServiceLevel.fromString(hostFacts.getSyspurposeSla());
+            normalizedFacts.setSla(effectiveSla);
+            if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.UNSPECIFIED) {
+                log.warn(
+                    "Owner {} host {} has unsupported value for SLA: {}",
+                    hostFacts.getOrgId(),
+                    hostFacts.getSubscriptionManagerId(),
+                    hostFacts.getSyspurposeSla()
+                );
             }
         }
     }
