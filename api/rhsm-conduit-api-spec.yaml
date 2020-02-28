@@ -179,6 +179,8 @@ components:
             type: string
         sys_purpose_role:
           type: string
+        sys_purpose_sla:
+          type: string
         sys_purpose_usage:
           type: string
         sys_purpose_addons:

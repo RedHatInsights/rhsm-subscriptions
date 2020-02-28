@@ -523,4 +523,26 @@ public class InventoryControllerTest {
         controller.updateInventoryForOrg("123");
         verify(inventoryService, times(1)).scheduleHostUpdate(any(ConduitFacts.class));
     }
+
+    @Test
+    public void testServiceLevelIsAdded() {
+        UUID uuid = UUID.randomUUID();
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid.toString());
+        consumer.setAccountNumber("account");
+        consumer.setOrgId("456");
+
+        consumer.setServiceLevel("Premium");
+
+        when(pinheadService.getOrganizationConsumers("456")).thenReturn(Collections.singletonList(consumer));
+        controller.updateInventoryForOrg("456");
+
+        ConduitFacts cfacts = new ConduitFacts();
+        cfacts.setOrgId("456");
+        cfacts.setAccountNumber("account");
+        cfacts.setSubscriptionManagerId(uuid.toString());
+        cfacts.setSysPurposeSla("Premium");
+        verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts));
+        verify(inventoryService, times(1)).flushHostUpdates();
+    }
 }

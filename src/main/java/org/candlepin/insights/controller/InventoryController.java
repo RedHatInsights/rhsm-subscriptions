@@ -136,6 +136,7 @@ public class InventoryController {
         }
 
         facts.setSysPurposeRole(consumer.getSysPurposeRole());
+        facts.setSysPurposeSla(consumer.getServiceLevel());
         facts.setSysPurposeUsage(consumer.getSysPurposeUsage());
         facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
 
