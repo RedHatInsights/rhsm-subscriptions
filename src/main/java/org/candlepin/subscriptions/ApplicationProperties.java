@@ -107,6 +107,14 @@ public class ApplicationProperties {
      */
     private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
 
+    /**
+     * The number of days after the inventory's stale_timestamp that the record will be culled.
+     * Currently HBI is calculating this value and setting it on messages. Right now the
+     * default is: stale_timestamp + 14 days. Adding this as a configuration setting since
+     * we may need to adjust it at some point to match.
+     */
+    private int cullingOffsetDays = 14;
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
@@ -229,5 +237,13 @@ public class ApplicationProperties {
 
     public void setReportingAccountWhitelistCacheTtl(Duration reportingAccountWhitelistCacheTtl) {
         this.reportingAccountWhitelistCacheTtl = reportingAccountWhitelistCacheTtl;
+    }
+
+    public int getCullingOffsetDays() {
+        return cullingOffsetDays;
+    }
+
+    public void setCullingOffsetDays(int cullingOffsetDays) {
+        this.cullingOffsetDays = cullingOffsetDays;
     }
 }

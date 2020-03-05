@@ -23,19 +23,21 @@ package org.candlepin.subscriptions.tally;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,9 +45,16 @@ import java.util.stream.Stream;
 @TestPropertySource("classpath:/test.properties")
 public class ClassificationProxyRepositoryTest {
 
-    @MockBean private InventoryRepository inventoryRepository;
-    @MockBean private BuildProperties buildProperties;
-    @Autowired private ClassificationProxyRepository proxyRepository;
+    private InventoryRepository inventoryRepository;
+    private ClassificationProxyRepository proxyRepository;
+    private ApplicationClock clock;
+
+    public ClassificationProxyRepositoryTest() {
+        inventoryRepository = mock(InventoryRepository.class);
+        clock = new FixedClockConfiguration().fixedClock();
+        proxyRepository = new ClassificationProxyRepository(inventoryRepository, clock,
+            new ApplicationProperties());
+    }
 
     @Test
     public void testMarksGuestsWithUnknownHypervisor() throws Exception {
@@ -57,7 +66,7 @@ public class ClassificationProxyRepositoryTest {
         List<InventoryHostFacts> testFacts = new ArrayList<>();
         testFacts.add(guest);
 
-        when(inventoryRepository.getFacts(any())).thenReturn(testFacts.stream());
+        when(inventoryRepository.getFacts(any(), anyInt())).thenReturn(testFacts.stream());
 
         List<ClassifiedInventoryHostFacts> enhancedFacts =
             proxyRepository.getFacts(Arrays.asList("123")).collect(Collectors.toList());
@@ -75,7 +84,7 @@ public class ClassificationProxyRepositoryTest {
         List<InventoryHostFacts> testFacts = new ArrayList<>();
         testFacts.add(guest);
 
-        when(inventoryRepository.getFacts(any())).thenReturn(testFacts.stream());
+        when(inventoryRepository.getFacts(any(), anyInt())).thenReturn(testFacts.stream());
 
         List<ClassifiedInventoryHostFacts> enhancedFacts =
             proxyRepository.getFacts(Arrays.asList("123")).collect(Collectors.toList());
@@ -98,7 +107,7 @@ public class ClassificationProxyRepositoryTest {
 
         List<InventoryHostFacts> testFacts = Arrays.asList(guest, hypervisor1, hypervisor2);
 
-        when(inventoryRepository.getFacts(any())).thenReturn(testFacts.stream());
+        when(inventoryRepository.getFacts(any(), anyInt())).thenReturn(testFacts.stream());
 
         Stream<ClassifiedInventoryHostFacts> enhancedFacts =
             proxyRepository.getFacts(Arrays.asList("123"));
@@ -109,6 +118,45 @@ public class ClassificationProxyRepositoryTest {
 
         assertEquals(1, results.size());
         assertEquals(true, results.get(0).isHypervisor());
+    }
+
+    @Test
+    public void ensureStaleHostsAreNotIncludedInFacts() {
+        InventoryHostFacts system = new InventoryHostFacts();
+        system.setSubscriptionManagerId("valid-system-1");
+        system.setStaleTimestamp(clock.endOfCurrentMonth());
+
+        // System included if we can not check stale date due to null date.
+        InventoryHostFacts systemWithUnknownStaleDate = new InventoryHostFacts();
+        systemWithUnknownStaleDate.setSubscriptionManagerId("valid-system-2");
+        systemWithUnknownStaleDate.setStaleTimestamp(null);
+
+        InventoryHostFacts staleSystem1 = new InventoryHostFacts();
+        staleSystem1.setSubscriptionManagerId("stale-1");
+        staleSystem1.setStaleTimestamp(clock.startOfCurrentMonth().minusMonths(4));
+
+        InventoryHostFacts staleSystem2 = new InventoryHostFacts();
+        staleSystem2.setSubscriptionManagerId("stale-2");
+        staleSystem2.setStaleTimestamp(clock.startOfCurrentMonth().minusMonths(10));
+
+        List<InventoryHostFacts> facts = Arrays.asList(
+            system,
+            staleSystem1,
+            staleSystem2,
+            systemWithUnknownStaleDate
+        );
+
+        when(inventoryRepository.getFacts(any(), anyInt())).thenReturn(facts.stream());
+
+        Map<String, ClassifiedInventoryHostFacts> enhancedFacts =
+            proxyRepository.getFacts(Arrays.asList("123"))
+            .collect(Collectors.toMap(ClassifiedInventoryHostFacts::getSubscriptionManagerId,
+            Function.identity()));
+        assertEquals(2, enhancedFacts.size());
+        assertTrue(enhancedFacts.keySet().containsAll(Arrays.asList("valid-system-1", "valid-system-2")));
+        assertEquals("valid-system-1", enhancedFacts.get("valid-system-1").getSubscriptionManagerId());
+        assertEquals("valid-system-2", enhancedFacts.get("valid-system-2").getSubscriptionManagerId());
+
     }
 
 }

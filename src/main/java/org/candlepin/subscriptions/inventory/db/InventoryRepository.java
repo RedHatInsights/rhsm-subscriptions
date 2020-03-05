@@ -39,7 +39,8 @@ import java.util.stream.Stream;
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
     @Query(nativeQuery = true)
-    Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts);
+    Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts,
+        @Param("culledOffsetDays") Integer culledOffsetDays);
 
     @Transactional(readOnly = true, transactionManager = "inventoryTransactionManager")
     @Query("select distinct h.account from InventoryHost h")
