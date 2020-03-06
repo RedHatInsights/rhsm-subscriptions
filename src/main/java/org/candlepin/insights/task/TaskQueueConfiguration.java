@@ -67,7 +67,10 @@ public class TaskQueueConfiguration {
         matchIfMissing = true)
     TaskQueue inMemoryQueue(TaskFactory taskFactory) {
         log.info("Configuring an in-memory task queue.");
-        return new ExecutorTaskQueue(Executors.newCachedThreadPool(), taskFactory);
+        return new ExecutorTaskQueue(
+            Executors.newFixedThreadPool(taskQueueProperties().getExecutorTaskQueueThreadLimit()),
+            taskFactory
+        );
     }
 
 }

@@ -20,11 +20,17 @@
  */
 package org.candlepin.insights.task;
 
+import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.task.queue.TaskQueue;
 
+import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.util.List;
 
 /**
  * A TaskManager is an injectable component that is responsible for putting tasks into
@@ -34,9 +40,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TaskManager {
+    private static final Logger log = LoggerFactory.getLogger(TaskManager.class);
 
     @Autowired
     TaskQueueProperties taskQueueProperties;
+
+    @Autowired
+    OrgListStrategy orgListStrategy;
 
     @Autowired
     TaskQueue queue;
@@ -55,4 +65,25 @@ public class TaskManager {
         );
     }
 
+    /**
+     * Queue up tasks for each configured org.
+     *
+     * @throws JobExecutionException if the org list can't be fetched
+     */
+    public void syncFullOrgList() throws IOException {
+        List<String> orgsToSync;
+
+        orgsToSync = orgListStrategy.getOrgsToSync();
+
+        log.info("Starting inventory update for {} orgs", orgsToSync.size());
+        orgsToSync.forEach(org -> {
+            try {
+                updateOrgInventory(org);
+            }
+            catch (Exception e) {
+                log.error("Could not update inventory for org: {}", org, e);
+            }
+        });
+        log.info("Inventory update complete.");
+    }
 }

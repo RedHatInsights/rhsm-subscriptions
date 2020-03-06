@@ -159,3 +159,8 @@ LOCK_NAME VARCHAR(40) NOT NULL,
 PRIMARY KEY (SCHED_NAME,LOCK_NAME)
 );
 
+-- add table to hold org list
+create table org_sync_list(
+    org_id varchar(255),
+    primary key (org_id),
+);

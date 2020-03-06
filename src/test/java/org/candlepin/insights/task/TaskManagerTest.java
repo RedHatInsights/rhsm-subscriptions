@@ -20,8 +20,10 @@
  */
 package org.candlepin.insights.task;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
+import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -40,6 +46,9 @@ public class TaskManagerTest {
     @Autowired
     private TaskManager manager;
 
+    @MockBean
+    private OrgListStrategy orgListStrategy;
+
     @Autowired
     private TaskQueueProperties taskQueueProperties;
 
@@ -48,10 +57,47 @@ public class TaskManagerTest {
         String expectedOrg = "my-org";
         manager.updateOrgInventory(expectedOrg);
 
-        TaskDescriptor expectedTaskDescriptor =
-            TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
-            .setArg("org_id", expectedOrg)
+        verify(queue).enqueue(eq(createDescriptor(expectedOrg)));
+    }
+
+    @Test
+    public void ensureUpdateIsRunForEachOrg() throws Exception {
+        List<String> expectedOrgs = Arrays.asList("org_a", "org_b");
+        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+
+        manager.syncFullOrgList();
+
+        verify(queue, times(1)).enqueue(eq(createDescriptor("org_a")));
+        verify(queue, times(1)).enqueue(eq(createDescriptor("org_b")));
+    }
+
+    @Test
+    public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
+        List<String> expectedOrgs = Arrays.asList("org_a", "org_b");
+        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+
+        doThrow(new RuntimeException("Forced!")).when(queue).enqueue(eq(createDescriptor("org_a")));
+
+        manager.syncFullOrgList();
+
+        verify(queue, times(1)).enqueue(eq(createDescriptor("org_a")));
+        verify(queue, times(1)).enqueue(eq(createDescriptor("org_b")));
+    }
+
+    @Test
+    public void ensureNoUpdatesWhenOrgListCanNotBeRetreived() throws Exception {
+        doThrow(new IOException("Forced!")).when(orgListStrategy).getOrgsToSync();
+
+        assertThrows(IOException.class, () -> {
+            manager.syncFullOrgList();
+        });
+
+        verify(queue, never()).enqueue(any());
+    }
+
+    private TaskDescriptor createDescriptor(String org) {
+        return TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
+            .setArg("org_id", org)
             .build();
-        verify(queue).enqueue(eq(expectedTaskDescriptor));
     }
 }

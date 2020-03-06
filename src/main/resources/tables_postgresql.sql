@@ -169,5 +169,10 @@ create index if not exists idx_qrtz_ft_jg on qrtz_fired_triggers(SCHED_NAME,JOB_
 create index if not exists idx_qrtz_ft_t_g on qrtz_fired_triggers(SCHED_NAME,TRIGGER_NAME,TRIGGER_GROUP);
 create index if not exists idx_qrtz_ft_tg on qrtz_fired_triggers(SCHED_NAME,TRIGGER_GROUP);
 
+-- add table to hold org list
+create table if not exists org_sync_list(
+    org_id varchar(255),
+    primary key (org_id)
+);
 
 commit;

@@ -18,33 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.task;
+package org.candlepin.insights.orgsync.db;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Settings particular to the task queue framework.
+ * Repository for fetching the list of orgs to sync with rhsm-conduit.
  */
-@ConfigurationProperties(prefix = "rhsm-conduit.tasks")
-public class TaskQueueProperties {
-
-    private String taskGroup;
-
-    private int executorTaskQueueThreadLimit = 20;
-
-    public String getTaskGroup() {
-        return taskGroup;
-    }
-
-    public void setTaskGroup(String taskGroup) {
-        this.taskGroup = taskGroup;
-    }
-
-    public int getExecutorTaskQueueThreadLimit() {
-        return executorTaskQueueThreadLimit;
-    }
-
-    public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
-        this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
-    }
+public interface OrganizationRepository extends JpaRepository<Organization, String> {
+    /* intentionally left blank */
 }
