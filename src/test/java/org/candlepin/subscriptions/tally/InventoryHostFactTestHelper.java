@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
 import org.springframework.util.StringUtils;
@@ -79,11 +80,19 @@ public class InventoryHostFactTestHelper {
 
     public static ClassifiedInventoryHostFacts createRhsmHost(String account, String orgId, String products,
         Integer cores, Integer sockets, String syspurposeRole, OffsetDateTime syncTimeStamp) {
+        return createRhsmHost(account, orgId, products, ServiceLevel.UNSPECIFIED, cores, sockets,
+            syspurposeRole, syncTimeStamp);
+    }
+
+    public static ClassifiedInventoryHostFacts createRhsmHost(String account, String orgId, String products,
+        ServiceLevel sla, Integer cores, Integer sockets, String syspurposeRole,
+        OffsetDateTime syncTimeStamp) {
         InventoryHostFacts baseFacts = createBaseHost(account, orgId);
         baseFacts.setProducts(products);
         baseFacts.setCores(cores);
         baseFacts.setSockets(sockets);
         baseFacts.setSyspurposeRole(syspurposeRole);
+        baseFacts.setSyspurposeSla(sla.getValue());
         baseFacts.setSyncTimestamp(syncTimeStamp.toString());
         return new ClassifiedInventoryHostFacts(baseFacts);
     }

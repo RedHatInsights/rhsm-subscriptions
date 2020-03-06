@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,14 +30,16 @@ import java.util.Set;
  */
 public class AccountUsageCalculation {
 
+
     private String account;
     private String owner;
-    private Map<String, ProductUsageCalculation> productCalculations;
-
+    private Map<UsageCalculation.Key, UsageCalculation> calculations;
+    private Set<String> products;
 
     public AccountUsageCalculation(String account) {
         this.account = account;
-        this.productCalculations = new HashMap<>();
+        this.calculations = new HashMap<>();
+        this.products = new HashSet<>();
     }
 
     public String getAccount() {
@@ -51,27 +54,33 @@ public class AccountUsageCalculation {
         this.owner = owner;
     }
 
-    public void addProductCalculation(ProductUsageCalculation calc) {
-        this.productCalculations.put(calc.getProductId(), calc);
+    public void addCalculation(UsageCalculation calc) {
+        String productId = calc.getProductId();
+        this.calculations.put(new UsageCalculation.Key(productId, calc.getSla()), calc);
+        this.products.add(productId);
     }
 
-    public boolean containsProductCalculation(String productId) {
-        return this.productCalculations.containsKey(productId);
+    public boolean containsCalculation(UsageCalculation.Key key) {
+        return this.calculations.containsKey(key);
+    }
+
+    public Set<UsageCalculation.Key> getKeys() {
+        return this.calculations.keySet();
     }
 
     public Set<String> getProducts() {
-        return this.productCalculations.keySet();
+        return this.products;
     }
 
-    public ProductUsageCalculation getProductCalculation(String product) {
-        return this.productCalculations.get(product);
+    public UsageCalculation getCalculation(UsageCalculation.Key key) {
+        return this.calculations.get(key);
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append(String.format("[Account: %s, Owner: %s, Calculations: [", account, owner));
-        for (ProductUsageCalculation calc : this.productCalculations.values()) {
+        for (UsageCalculation calc : this.calculations.values()) {
             builder.append(calc);
         }
         builder.append("]");

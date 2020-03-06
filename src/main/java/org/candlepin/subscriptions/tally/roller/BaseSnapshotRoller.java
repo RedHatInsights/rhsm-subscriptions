@@ -26,8 +26,8 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation.Totals;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -72,9 +72,10 @@ public abstract class BaseSnapshotRoller {
         Collection<AccountUsageCalculation> accountCalcs);
 
     protected TallySnapshot createSnapshotFromProductUsageCalculation(String account, String owner,
-        ProductUsageCalculation productCalc, Granularity granularity) {
+        UsageCalculation productCalc, Granularity granularity) {
         TallySnapshot snapshot = new TallySnapshot();
         snapshot.setProductId(productCalc.getProductId());
+        snapshot.setServiceLevel(productCalc.getSla().getValue());
         snapshot.setGranularity(granularity);
         snapshot.setOwnerId(owner);
         snapshot.setAccountNumber(account);
@@ -130,22 +131,23 @@ public abstract class BaseSnapshotRoller {
         for (AccountUsageCalculation accountCalc : accountCalcs) {
             String account = accountCalc.getAccount();
 
-            Map<String, TallySnapshot> accountSnapsByProduct = new HashMap<>();
+            Map<UsageCalculation.Key, TallySnapshot> accountSnapsByUsageKey = new HashMap<>();
             if (existingSnaps.containsKey(account)) {
-                accountSnapsByProduct = existingSnaps.get(account)
+                accountSnapsByUsageKey = existingSnaps.get(account)
                     .stream()
-                    .collect(Collectors.toMap(TallySnapshot::getProductId, Function.identity()));
+                    .collect(Collectors.toMap(UsageCalculation.Key::fromTallySnapshot,
+                        Function.identity()));
             }
 
-            for (String product : accountCalc.getProducts()) {
-                TallySnapshot snap = accountSnapsByProduct.get(product);
-                ProductUsageCalculation productCalc = accountCalc.getProductCalculation(product);
-                if (snap == null) {
+            for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
+                TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
+                UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+                if (snap == null && productCalc.hasMeasurements()) {
                     snap = createSnapshotFromProductUsageCalculation(accountCalc.getAccount(),
                         accountCalc.getOwner(), productCalc, targetGranularity);
                     snaps.add(snap);
                 }
-                else if (updateMaxValues(snap, productCalc)) {
+                else if (snap != null && updateMaxValues(snap, productCalc)) {
                     snaps.add(snap);
                 }
             }
@@ -160,7 +162,7 @@ public abstract class BaseSnapshotRoller {
         return prods;
     }
 
-    private boolean updateMaxValues(TallySnapshot snap, ProductUsageCalculation calc) {
+    private boolean updateMaxValues(TallySnapshot snap, UsageCalculation calc) {
         boolean changed = false;
         boolean overrideMaxCheck = Granularity.DAILY.equals(snap.getGranularity());
 
@@ -171,7 +173,7 @@ public abstract class BaseSnapshotRoller {
     }
 
     private boolean updateTotals(boolean override, TallySnapshot snap,
-        HardwareMeasurementType measurementType, ProductUsageCalculation calc) {
+        HardwareMeasurementType measurementType, UsageCalculation calc) {
 
         Totals prodCalcTotals = calc.getTotals(measurementType);
         HardwareMeasurement measurement = snap.getHardwareMeasurement(measurementType);

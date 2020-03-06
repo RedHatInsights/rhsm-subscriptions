@@ -24,7 +24,8 @@ import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ public class DefaultProductUsageCollectorTest {
         // it is considered to be a physical machine.
         NormalizedFacts facts = hypervisorFacts(4, 12);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
         assertTotalsCalculation(calc, 4, 12, 1);
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
@@ -54,7 +55,7 @@ public class DefaultProductUsageCollectorTest {
     public void testCountsForGuestWithUnknownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, false);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
 
         // A guest with a known hypervisor contributes to the overall totals,
@@ -67,7 +68,7 @@ public class DefaultProductUsageCollectorTest {
     public void testCountsForGuestWithKnownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, true);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
 
         // A guest with an unknown hypervisor contributes to the overall totals
@@ -80,7 +81,7 @@ public class DefaultProductUsageCollectorTest {
     public void testCountsForPhysicalSystem() {
         NormalizedFacts facts = physicalNonHypervisor(4, 12);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
 
         assertTotalsCalculation(calc, 4, 12, 1);
@@ -95,12 +96,16 @@ public class DefaultProductUsageCollectorTest {
         // along with its cores.
         NormalizedFacts facts = cloudMachineFacts(HardwareMeasurementType.AWS, 4, 12);
 
-        ProductUsageCalculation calc = new ProductUsageCalculation("NON_RHEL");
+        UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
 
         assertTotalsCalculation(calc, 1, 12, 1);
         assertHardwareMeasurementTotals(calc, HardwareMeasurementType.AWS, 1, 12, 1);
         assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS);
+    }
+
+    private UsageCalculation.Key createUsageKey() {
+        return new UsageCalculation.Key("NON_RHEL", ServiceLevel.UNSPECIFIED);
     }
 
 }

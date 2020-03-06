@@ -28,15 +28,17 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation.Totals;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
 
 import org.springframework.data.domain.PageRequest;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,7 +64,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         AccountUsageCalculation a1Calc = createTestData();
         String account = a1Calc.getAccount();
 
-        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(TEST_PRODUCT));
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> currentSnaps = repository
@@ -87,7 +89,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         assertEquals(1, currentSnaps.size());
         TallySnapshot toBeUpdated = currentSnaps.get(0);
 
-        ProductUsageCalculation a1ProductCalc = a1Calc.getProductCalculation(TEST_PRODUCT);
+        UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(TEST_PRODUCT));
         assertNotNull(a1ProductCalc);
         assertSnapshot(toBeUpdated, a1ProductCalc, granularity);
 
@@ -134,7 +136,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         assertEquals(1, currentSnaps.size());
 
         TallySnapshot toUpdate = currentSnaps.get(0);
-        assertSnapshot(toUpdate, a1HighCalc.getProductCalculation(TEST_PRODUCT), granularity);
+        assertSnapshot(toUpdate, a1HighCalc.getCalculation(createUsageKey(TEST_PRODUCT)), granularity);
 
 
         // Roll again with the low values
@@ -150,7 +152,26 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         assertEquals(toUpdate.getId(), updated.getId());
 
         // Use the calculation with the expected
-        assertSnapshot(updated, expectedCalc.getProductCalculation(TEST_PRODUCT), granularity);
+        assertSnapshot(updated, expectedCalc.getCalculation(createUsageKey(TEST_PRODUCT)), granularity);
+    }
+
+    @SuppressWarnings("indentation")
+    public void performDoesNotPersistEmptySnapshots(Granularity granularity,
+        OffsetDateTime startOfGranularPeriod, OffsetDateTime endOfGranularPeriod) {
+
+        AccountUsageCalculation calc = createAccountCalc("12345678", "O1", TEST_PRODUCT,
+            0, 0, 0);
+        roller.rollSnapshots(Collections.singletonList("12345678"), Collections.singletonList(calc));
+
+        List<TallySnapshot> currentSnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+                TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+                PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(0, currentSnaps.size());
+    }
+
+    private UsageCalculation.Key createUsageKey(String product) {
+        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED);
     }
 
     private AccountUsageCalculation createTestData() {
@@ -161,7 +182,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     private AccountUsageCalculation createAccountCalc(String account, String owner, String product,
         int totalCores, int totalSockets, int totalInstances) {
-        ProductUsageCalculation productCalc = new ProductUsageCalculation(product);
+        UsageCalculation productCalc = new UsageCalculation(createUsageKey(product));
         productCalc.addPhysical(totalCores, totalSockets, totalInstances);
         productCalc.addHypervisor(totalCores, totalSockets, totalInstances);
         productCalc.addCloudProvider(HardwareMeasurementType.AWS, totalCores, totalSockets,
@@ -169,12 +190,12 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         AccountUsageCalculation calc = new AccountUsageCalculation(account);
         calc.setOwner(owner);
-        calc.addProductCalculation(productCalc);
+        calc.addCalculation(productCalc);
 
         return calc;
     }
 
-    private void assertSnapshot(TallySnapshot snapshot, ProductUsageCalculation expectedVals,
+    private void assertSnapshot(TallySnapshot snapshot, UsageCalculation expectedVals,
         Granularity expectedGranularity) {
         assertNotNull(snapshot);
         assertEquals(expectedGranularity, snapshot.getGranularity());

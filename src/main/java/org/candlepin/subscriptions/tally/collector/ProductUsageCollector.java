@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 /**
@@ -35,5 +35,5 @@ public interface ProductUsageCollector {
      * @param prodCalc the existing calculations for this product.
      * @param normalizedHostFacts the normalized view of the facts from inventory.
      */
-    void collect(ProductUsageCalculation prodCalc, NormalizedFacts normalizedHostFacts);
+    void collect(UsageCalculation prodCalc, NormalizedFacts normalizedHostFacts);
 }

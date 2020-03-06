@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202003021107-1" author="khowell">
+        <comment>Make Tally SLA non-null and default existing to _ANY</comment>
+        <addNotNullConstraint
+            tableName="tally_snapshots"
+            columnName="sla"
+            defaultNullValue="_ANY"/>
+    </changeSet>
+    <changeSet id="202003021107-2" author="khowell">
+        <comment>Create an index on account, product_id, sla, granularity</comment>
+        <createIndex indexName="acct_prod_sla_granularity_idx" tableName="tally_snapshots"
+                     unique="false">
+            <column name="account_number"/>
+            <column name="product_id"/>
+            <column name="sla"/>
+            <column name="granularity"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

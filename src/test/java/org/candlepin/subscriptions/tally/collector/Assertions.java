@@ -25,32 +25,32 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation;
-import org.candlepin.subscriptions.tally.ProductUsageCalculation.Totals;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class Assertions {
 
-    public static void assertTotalsCalculation(ProductUsageCalculation calc, int sockets, int cores,
+    public static void assertTotalsCalculation(UsageCalculation calc, int sockets, int cores,
         int instances) {
         assertHardwareMeasurementTotals(calc, HardwareMeasurementType.TOTAL, sockets, cores, instances);
     }
 
-    public static void assertPhysicalTotalsCalculation(ProductUsageCalculation calc, int physSockets,
+    public static void assertPhysicalTotalsCalculation(UsageCalculation calc, int physSockets,
         int physCores, int physInstances) {
         assertHardwareMeasurementTotals(calc, HardwareMeasurementType.PHYSICAL, physSockets, physCores,
             physInstances);
     }
 
-    public static void assertHypervisorTotalsCalculation(ProductUsageCalculation calc, int hypSockets,
+    public static void assertHypervisorTotalsCalculation(UsageCalculation calc, int hypSockets,
         int hypCores, int hypInstances) {
         assertHardwareMeasurementTotals(calc, HardwareMeasurementType.HYPERVISOR, hypSockets, hypCores,
             hypInstances);
     }
 
-    public static void assertHardwareMeasurementTotals(ProductUsageCalculation calc,
+    public static void assertHardwareMeasurementTotals(UsageCalculation calc,
         HardwareMeasurementType type, int sockets, int cores, int instances) {
         Totals totals = calc.getTotals(type);
         assertNotNull(totals, "No totals found for " + type);
@@ -60,7 +60,7 @@ public class Assertions {
         assertEquals(instances, totals.getInstances());
     }
 
-    public static void assertNullExcept(ProductUsageCalculation calc, HardwareMeasurementType ... types) {
+    public static void assertNullExcept(UsageCalculation calc, HardwareMeasurementType ... types) {
         List<HardwareMeasurementType> notNull = Arrays.asList(types);
         for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
             if (notNull.contains(type)) {

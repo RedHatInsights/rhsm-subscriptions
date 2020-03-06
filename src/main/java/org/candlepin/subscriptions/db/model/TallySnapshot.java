@@ -194,4 +194,14 @@ public class TallySnapshot implements Serializable {
         return snapshot;
     }
 
+    @Override
+    public String toString() {
+        return "TallySnapshot{" +
+            "id=" + id +
+            ", snapshotDate=" + snapshotDate +
+            ", granularity=" + granularity +
+            ", accountNumber='" + accountNumber + '\'' +
+            ", productId='" + productId + '\'' +
+            ", serviceLevel='" + serviceLevel + '\'' + '}';
+    }
 }
