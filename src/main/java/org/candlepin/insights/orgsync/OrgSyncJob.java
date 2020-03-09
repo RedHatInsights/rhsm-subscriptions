@@ -24,49 +24,30 @@ import org.candlepin.insights.task.TaskManager;
 
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * A job to sync orgs from Pinhead to RHSM Conduit.
  */
 public class OrgSyncJob extends QuartzJobBean {
-    private static final Logger log = LoggerFactory.getLogger(OrgSyncJob.class);
-
-    private OrgListStrategy orgListStrategy;
-
     private TaskManager tasks;
 
     @Autowired
-    public OrgSyncJob(OrgListStrategy orgListStrategy, TaskManager tasks) {
-        this.orgListStrategy = orgListStrategy;
+    public OrgSyncJob(TaskManager tasks) {
         this.tasks = tasks;
     }
 
     @Override
     protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        List<String> orgsToSync;
         try {
-            orgsToSync = orgListStrategy.getOrgsToSync();
+            tasks.syncFullOrgList();
         }
         catch (IOException e) {
             throw new JobExecutionException("Failed to get the list of orgs to update.", e);
         }
-
-        log.info("Starting inventory update for orgs: {}", orgsToSync);
-        orgsToSync.forEach(org -> {
-            try {
-                tasks.updateOrgInventory(org);
-            }
-            catch (Exception e) {
-                log.error("Could not update inventory for org: {}", org, e);
-            }
-        });
-        log.info("Inventory update complete.");
     }
+
 }

@@ -20,6 +20,9 @@
  */
 package org.candlepin.insights.orgsync;
 
+import org.candlepin.insights.orgsync.db.DatabaseOrgListStrategy;
+import org.candlepin.insights.orgsync.db.OrganizationRepository;
+
 import org.quartz.JobDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
 import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 
@@ -39,6 +43,7 @@ import org.springframework.scheduling.quartz.JobDetailFactoryBean;
  * implicit in @SpringBootApplication on the {@link org.candlepin.insights.BootApplication} class.
  */
 @EnableConfigurationProperties(OrgSyncProperties.class)
+@EnableJpaRepositories
 @Configuration
 @PropertySource("classpath:/rhsm-conduit.properties")
 public class OrgSyncConfiguration {
@@ -60,6 +65,12 @@ public class OrgSyncConfiguration {
     public OrgListStrategy fileBasedOrgListStrategy(FileBasedOrgListStrategyProperties conf) {
         log.info("Using {} strategy", orgSyncProperties.getStrategy());
         return new FileBasedOrgListStrategy(conf);
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = ORG_LIST_STRATEGY, havingValue = "databaseOrgListStrategy")
+    public DatabaseOrgListStrategy databaseOrgListStrategy(OrganizationRepository repo) {
+        return new DatabaseOrgListStrategy(repo);
     }
 
     @Bean

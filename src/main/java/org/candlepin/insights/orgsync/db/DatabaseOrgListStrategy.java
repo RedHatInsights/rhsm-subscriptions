@@ -18,33 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.task;
+package org.candlepin.insights.orgsync.db;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.candlepin.insights.orgsync.OrgListStrategy;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Settings particular to the task queue framework.
+ * Pulls the list of orgs to sync from a database table.
+ *
+ * See {@link Organization}.
  */
-@ConfigurationProperties(prefix = "rhsm-conduit.tasks")
-public class TaskQueueProperties {
+public class DatabaseOrgListStrategy implements OrgListStrategy {
 
-    private String taskGroup;
+    private final OrganizationRepository repo;
 
-    private int executorTaskQueueThreadLimit = 20;
-
-    public String getTaskGroup() {
-        return taskGroup;
+    public DatabaseOrgListStrategy(OrganizationRepository repo) {
+        this.repo = repo;
     }
 
-    public void setTaskGroup(String taskGroup) {
-        this.taskGroup = taskGroup;
-    }
-
-    public int getExecutorTaskQueueThreadLimit() {
-        return executorTaskQueueThreadLimit;
-    }
-
-    public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
-        this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
+    @Override
+    public List<String> getOrgsToSync() {
+        return repo.findAll().stream().map(Organization::getId).collect(Collectors.toList());
     }
 }

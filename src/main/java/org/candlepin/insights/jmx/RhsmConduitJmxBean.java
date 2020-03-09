@@ -21,12 +21,20 @@
 package org.candlepin.insights.jmx;
 
 import org.candlepin.insights.controller.InventoryController;
+import org.candlepin.insights.orgsync.db.Organization;
+import org.candlepin.insights.orgsync.db.OrganizationRepository;
+import org.candlepin.insights.task.TaskManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Exposes the ability to trigger a sync of a Candlepin org from JMX.
@@ -38,9 +46,13 @@ public class RhsmConduitJmxBean {
     private static final Logger log = LoggerFactory.getLogger(RhsmConduitJmxBean.class);
 
     private final InventoryController controller;
+    private final OrganizationRepository repo;
+    private final TaskManager tasks;
 
-    RhsmConduitJmxBean(InventoryController controller) {
+    RhsmConduitJmxBean(InventoryController controller, OrganizationRepository repo, TaskManager tasks) {
         this.controller = controller;
+        this.repo = repo;
+        this.tasks = tasks;
     }
 
     @ManagedOperation(description = "Trigger a sync for a given Org ID")
@@ -52,5 +64,49 @@ public class RhsmConduitJmxBean {
         catch (Exception e) {
             log.error("Error during JMX-initiated sync for org ID {}", orgId, e);
         }
+    }
+
+    @ManagedOperation(description = "Sync all orgs from the configured org list")
+    public void syncFullOrgList() {
+        log.info("Starting JMX-initiated sync for all configured orgs");
+        try {
+            tasks.syncFullOrgList();
+        }
+        catch (Exception e) {
+            log.error("Error during JMX-initiated sync for full org list", e);
+        }
+    }
+
+    @ManagedOperation(description = "Add some orgs to the database sync list")
+    @ManagedOperationParameter(name = "orgs", description = "comma-separated org list (whitespace ignored)")
+    public void addOrgsToSyncList(String orgs) {
+        List<Organization> orgList = extractOrgList(orgs);
+
+        log.info("Adding {} orgs to DB sync list", orgList.size());
+
+        repo.saveAll(orgList);
+    }
+
+    @ManagedOperation(description = "Remove some orgs from the database sync list")
+    @ManagedOperationParameter(name = "orgs", description = "comma-separated org list (whitespace ignored)")
+    public void removeOrgsFromSyncList(String orgs) {
+        List<Organization> orgList = extractOrgList(orgs);
+
+        log.info("Removing {} orgs from DB sync list", orgList.size());
+
+        repo.deleteAll(orgList);
+    }
+
+    @ManagedOperation(description = "Check if an org is present in the database sync list")
+    public boolean hasOrgInSyncList(String orgId) {
+        return repo.existsById(orgId);
+    }
+
+    private List<Organization> extractOrgList(String orgs) {
+        return Arrays.stream(orgs.split("[, \n]"))
+            .map(String::trim)
+            .filter(orgId -> !orgId.isEmpty())
+            .map(Organization::new)
+            .collect(Collectors.toList());
     }
 }
