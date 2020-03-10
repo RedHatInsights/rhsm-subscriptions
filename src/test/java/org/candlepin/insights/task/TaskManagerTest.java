@@ -72,6 +72,18 @@ public class TaskManagerTest {
     }
 
     @Test
+    public void ensureOrgLimitIsEnforced() throws Exception {
+        List<String> expectedOrgs = Arrays.asList("org_a", "org_b", "org_c");
+        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+
+        manager.syncFullOrgList();
+
+        verify(queue, times(1)).enqueue(eq(createDescriptor("org_a")));
+        verify(queue, times(1)).enqueue(eq(createDescriptor("org_b")));
+        verify(queue, never()).enqueue(eq(createDescriptor("org_c")));
+    }
+
+    @Test
     public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
         List<String> expectedOrgs = Arrays.asList("org_a", "org_b");
         when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);

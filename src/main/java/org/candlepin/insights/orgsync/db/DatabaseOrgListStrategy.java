@@ -23,7 +23,6 @@ package org.candlepin.insights.orgsync.db;
 import org.candlepin.insights.orgsync.OrgListStrategy;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Pulls the list of orgs to sync from a database table.
@@ -40,6 +39,6 @@ public class DatabaseOrgListStrategy implements OrgListStrategy {
 
     @Override
     public List<String> getOrgsToSync() {
-        return repo.findAll().stream().map(Organization::getId).collect(Collectors.toList());
+        return repo.getOrgIdList();
     }
 }
