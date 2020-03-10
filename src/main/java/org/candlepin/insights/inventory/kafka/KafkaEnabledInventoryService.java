@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,6 +50,16 @@ public class KafkaEnabledInventoryService extends InventoryService {
         super(serviceProperties, 1);
         this.producer = producer;
         this.hostIngressTopic = serviceProperties.getKafkaHostIngressTopic();
+    }
+
+    @Override
+    public void scheduleHostUpdate(ConduitFacts facts) {
+        this.sendHostUpdate(Collections.singletonList(facts));
+    }
+
+    @Override
+    public void flushHostUpdates() {
+        /* intentionally left blank */
     }
 
     @Override
