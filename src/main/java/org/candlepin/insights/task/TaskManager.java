@@ -21,6 +21,7 @@
 package org.candlepin.insights.task;
 
 import org.candlepin.insights.orgsync.OrgListStrategy;
+import org.candlepin.insights.orgsync.OrgSyncProperties;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.quartz.JobExecutionException;
@@ -44,6 +45,9 @@ public class TaskManager {
 
     @Autowired
     TaskQueueProperties taskQueueProperties;
+
+    @Autowired
+    OrgSyncProperties orgSyncProperties;
 
     @Autowired
     OrgListStrategy orgListStrategy;
@@ -75,6 +79,14 @@ public class TaskManager {
 
         orgsToSync = orgListStrategy.getOrgsToSync();
 
+        if (orgSyncProperties.getLimit() != null) {
+            Integer size = orgsToSync.size();
+            Integer limit = orgSyncProperties.getLimit();
+            log.info("Fetched {} orgs to sync, but limiting to {}", size, limit);
+            if (limit < size) {
+                orgsToSync = orgsToSync.subList(0, limit);
+            }
+        }
         log.info("Starting inventory update for {} orgs", orgsToSync.size());
         orgsToSync.forEach(org -> {
             try {

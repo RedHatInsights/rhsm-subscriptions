@@ -32,6 +32,8 @@ public class OrgSyncProperties {
     // Default to every 5 minutes
     private String schedule = "0 5 * * * ?";
     private String strategy = FileBasedOrgListStrategy.class.getSimpleName();
+    /** Artificial limit to number of orgs */
+    private Integer limit = null;
 
     public String getSchedule() {
         return schedule;
@@ -47,5 +49,13 @@ public class OrgSyncProperties {
 
     public void setStrategy(String strategy) {
         this.strategy = strategy;
+    }
+
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
     }
 }

@@ -20,6 +20,8 @@
  */
 package org.candlepin.insights.orgsync.db;
 
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,16 @@ class OrganizationRepositoryTest {
     void testSave() {
         Organization org = new Organization("1");
         assertNotNull(repository.saveAndFlush(org));
+    }
+
+    @Test
+    void testGetOrgIdMethod() {
+        Organization org1 = new Organization("1");
+        Organization org2 = new Organization("2");
+        assertNotNull(repository.saveAll(Arrays.asList(org1, org2)));
+        repository.flush();
+        assertEquals(2, repository.getOrgIdList().size());
+        assertThat(repository.getOrgIdList(), containsInAnyOrder("1", "2"));
     }
 
     @Test

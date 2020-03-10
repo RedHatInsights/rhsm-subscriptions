@@ -21,10 +21,14 @@
 package org.candlepin.insights.orgsync.db;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
 
 /**
  * Repository for fetching the list of orgs to sync with rhsm-conduit.
  */
 public interface OrganizationRepository extends JpaRepository<Organization, String> {
-    /* intentionally left blank */
+    @Query(value = "select org_id from org_sync_list", nativeQuery = true)
+    List<String> getOrgIdList();
 }
