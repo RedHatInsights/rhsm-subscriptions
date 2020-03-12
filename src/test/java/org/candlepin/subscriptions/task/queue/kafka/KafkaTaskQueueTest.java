@@ -18,30 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jobs;
+package org.candlepin.subscriptions.task.queue.kafka;
 
-import org.candlepin.subscriptions.task.TaskManager;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
 
-/**
- * A quartz job that captures all usage snapshots on a configured schedule.
- */
-public class CaptureSnapshotsJob extends QuartzJobBean {
+@SpringBootTest
+@TestPropertySource("classpath:/kafka_test.properties")
+@DirtiesContext
+@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.task-group}"})
+public class KafkaTaskQueueTest extends KafkaTaskQueueTester {
 
-    private TaskManager tasks;
-
-    @Autowired
-    public CaptureSnapshotsJob(TaskManager taskManager) {
-        this.tasks = taskManager;
-    }
-
-    @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
+    @Test
+    public void testSendAndReceiveTaskMessage() throws InterruptedException {
+        runSendAndReceiveTaskMessageTest();
     }
 
 }

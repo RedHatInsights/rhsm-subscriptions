@@ -18,30 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jobs;
+package org.candlepin.subscriptions.task.queue;
 
-import org.candlepin.subscriptions.task.TaskManager;
-
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.candlepin.subscriptions.task.TaskDescriptor;
 
 /**
- * A quartz job that captures all usage snapshots on a configured schedule.
+ * A TaskQueue is responsible for storing tasks until they are processed.
  */
-public class CaptureSnapshotsJob extends QuartzJobBean {
+public interface TaskQueue {
 
-    private TaskManager tasks;
-
-    @Autowired
-    public CaptureSnapshotsJob(TaskManager taskManager) {
-        this.tasks = taskManager;
-    }
-
-    @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
-    }
+    /**
+     * Enqueues a task that is to be processed by the registered processor.
+     *
+     * @param taskDescriptor a TaskDescriptor describing the task that is to be processed.
+     */
+    void enqueue(TaskDescriptor taskDescriptor);
 
 }

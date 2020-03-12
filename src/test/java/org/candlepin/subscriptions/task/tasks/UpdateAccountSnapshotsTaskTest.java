@@ -18,30 +18,33 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jobs;
+package org.candlepin.subscriptions.task.tasks;
 
-import org.candlepin.subscriptions.task.TaskManager;
+import static org.mockito.BDDMockito.eq;
 
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
 
-/**
- * A quartz job that captures all usage snapshots on a configured schedule.
- */
-public class CaptureSnapshotsJob extends QuartzJobBean {
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-    private TaskManager tasks;
+import java.util.Arrays;
+import java.util.List;
 
-    @Autowired
-    public CaptureSnapshotsJob(TaskManager taskManager) {
-        this.tasks = taskManager;
+
+@ExtendWith(MockitoExtension.class)
+public class UpdateAccountSnapshotsTaskTest {
+
+    @Mock
+    private UsageSnapshotProducer snapshotProducer;
+
+    @Test
+    public void testExecute() {
+        List<String> accounts = Arrays.asList("a1", "a2");
+        UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotProducer, accounts);
+        task.execute();
+        Mockito.verify(snapshotProducer).produceSnapshotsForAccounts(eq(accounts));
     }
-
-    @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
-    }
-
 }

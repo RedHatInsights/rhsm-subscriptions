@@ -18,37 +18,33 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jmx;
+package org.candlepin.subscriptions.task.tasks;
 
 import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
-import org.candlepin.subscriptions.task.TaskManager;
+import org.candlepin.subscriptions.task.Task;
 
-import org.springframework.jmx.export.annotation.ManagedOperation;
-import org.springframework.jmx.export.annotation.ManagedResource;
-import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
- * Exposes the ability to trigger a tally for an account from JMX.
+ * Updates the usage snapshots for a given account.
  */
-@Component
-@ManagedResource
-public class TallyJmxBean {
+public class UpdateAccountSnapshotsTask implements Task {
+    private static final Logger log = LoggerFactory.getLogger(UpdateAccountSnapshotsTask.class);
 
+    private final List<String> accountNumbers;
     private final UsageSnapshotProducer snapshotProducer;
-    private final TaskManager tasks;
 
-    public TallyJmxBean(UsageSnapshotProducer snapshotProducer, TaskManager taskManager) {
+    public UpdateAccountSnapshotsTask(UsageSnapshotProducer snapshotProducer, List<String> accountNumbers) {
         this.snapshotProducer = snapshotProducer;
-        this.tasks = taskManager;
+        this.accountNumbers = accountNumbers;
     }
 
-    @ManagedOperation(description = "Trigger a tally for an account")
-    public void tallyAccount(String accountNumber) {
-        snapshotProducer.produceSnapshotsForAccount(accountNumber);
-    }
-
-    @ManagedOperation(description = "Trigger tally for all configured accounts")
-    public void tallyConfiguredAccounts() {
-        tasks.updateSnapshotsForAllAccounts();
+    @Override
+    public void execute() {
+        log.info("Updating snapshots for {} accounts.", accountNumbers.size());
+        snapshotProducer.produceSnapshotsForAccounts(accountNumbers);
     }
 }

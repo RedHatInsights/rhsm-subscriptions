@@ -18,30 +18,33 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jobs;
+package org.candlepin.subscriptions.task;
 
-import org.candlepin.subscriptions.task.TaskManager;
-
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * A quartz job that captures all usage snapshots on a configured schedule.
+ * Settings particular to the task queue framework.
  */
-public class CaptureSnapshotsJob extends QuartzJobBean {
+@ConfigurationProperties(prefix = "rhsm-subscriptions.tasks")
+public class TaskQueueProperties {
 
-    private TaskManager tasks;
+    private String taskGroup;
 
-    @Autowired
-    public CaptureSnapshotsJob(TaskManager taskManager) {
-        this.tasks = taskManager;
+    private int executorTaskQueueThreadLimit = 20;
+
+    public String getTaskGroup() {
+        return taskGroup;
     }
 
-    @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
+    public void setTaskGroup(String taskGroup) {
+        this.taskGroup = taskGroup;
     }
 
+    public int getExecutorTaskQueueThreadLimit() {
+        return executorTaskQueueThreadLimit;
+    }
+
+    public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
+        this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
+    }
 }

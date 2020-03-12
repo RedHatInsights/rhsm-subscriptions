@@ -20,20 +20,15 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.exception.SnapshotProducerException;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
-import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.MonthlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.QuarterlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.WeeklySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.YearlySnapshotRoller;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
-import com.google.common.collect.Iterables;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,9 +55,7 @@ public class UsageSnapshotProducer {
 
     private static final Logger log = LoggerFactory.getLogger(UsageSnapshotProducer.class);
 
-    private final AccountListSource accountListSource;
     private final Set<String> applicableProducts;
-    private final int accountBatchSize;
     private final RetryTemplate retryTemplate;
 
     private final InventoryAccountUsageCollector accountUsageCollector;
@@ -74,19 +67,15 @@ public class UsageSnapshotProducer {
 
     @SuppressWarnings("squid:S00107")
     @Autowired
-    public UsageSnapshotProducer(FactNormalizer factNormalizer, AccountListSource accountListSource,
-        ProductIdToProductsMapSource productIdToProductsMapSource,
+    public UsageSnapshotProducer(ProductIdToProductsMapSource productIdToProductsMapSource,
         RoleToProductsMapSource roleToProductsMapSource, InventoryAccountUsageCollector accountUsageCollector,
         TallySnapshotRepository tallyRepo, ApplicationClock clock,
-        ApplicationProperties applicationProperties,
         @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate) throws IOException {
 
-        this.accountListSource = accountListSource;
         this.applicableProducts = new HashSet<>();
         this.retryTemplate = retryTemplate;
         productIdToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
         roleToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
-        this.accountBatchSize = applicationProperties.getAccountBatchSize();
 
         this.accountUsageCollector = accountUsageCollector;
         dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
@@ -97,49 +86,36 @@ public class UsageSnapshotProducer {
     }
 
     @Transactional
-    @Timed("rhsm-subscriptions.snapshots.collection")
-    public void produceSnapshots() {
-        try {
-            List<String> accountList = accountListSource.list();
-            produceSnapshotsForAccounts(accountList);
-        }
-        catch (IOException ioe) {
-            throw new SnapshotProducerException(
-                "Unable to read account listing while producing usage snapshots.", ioe);
-        }
-    }
-
-    @Transactional
     @Timed("rhsm-subscriptions.snapshots.single")
     public void produceSnapshotsForAccount(String account) {
         produceSnapshotsForAccounts(Collections.singletonList(account));
     }
 
-    private void produceSnapshotsForAccounts(List<String> accountList) {
-        log.info("Producing snapshots for {} accounts in batches of {}.", accountList.size(),
-            accountBatchSize);
-
-        // Partition the account list to help reduce memory usage while performing the calculations.
-        int count = 0;
-        for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
-            Collection<AccountUsageCalculation> accountCalcs;
-            try {
-                accountCalcs = retryTemplate.execute(context ->
-                    accountUsageCollector.collect(this.applicableProducts, accounts)
-                );
-            }
-            catch (Exception e) {
-                log.error("Could not collect for accounts {}", accounts, e);
-                continue;
-            }
-            dailyRoller.rollSnapshots(accounts, accountCalcs);
-            weeklyRoller.rollSnapshots(accounts, accountCalcs);
-            monthlyRoller.rollSnapshots(accounts, accountCalcs);
-            yearlyRoller.rollSnapshots(accounts, accountCalcs);
-            quarterlyRoller.rollSnapshots(accounts, accountCalcs);
-            count += accounts.size();
-            log.info("{}/{} accounts processed.", count, accountList.size());
+    @Transactional
+    @Timed("rhsm-subscriptions.snapshots.collection")
+    public void produceSnapshotsForAccounts(List<String> accounts) {
+        log.info("Producing snapshots for {} accounts.", accounts.size());
+        // Account list could be large. Only print them when debugging.
+        if (log.isDebugEnabled()) {
+            log.debug("Producing snapshots for accounts: {}", String.join(",", accounts));
         }
+
+        Collection<AccountUsageCalculation> accountCalcs;
+        try {
+            accountCalcs = retryTemplate.execute(context ->
+                accountUsageCollector.collect(this.applicableProducts, accounts)
+            );
+        }
+        catch (Exception e) {
+            log.error("Could not collect existing usage snapshots for accounts {}", accounts, e);
+            return;
+        }
+
+        dailyRoller.rollSnapshots(accounts, accountCalcs);
+        weeklyRoller.rollSnapshots(accounts, accountCalcs);
+        monthlyRoller.rollSnapshots(accounts, accountCalcs);
+        yearlyRoller.rollSnapshots(accounts, accountCalcs);
+        quarterlyRoller.rollSnapshots(accounts, accountCalcs);
         log.info("Finished producing snapshots for all accounts.");
     }
 }
