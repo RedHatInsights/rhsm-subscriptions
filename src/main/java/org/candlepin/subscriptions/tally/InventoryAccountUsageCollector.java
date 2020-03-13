@@ -20,7 +20,10 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.inventory.db.InventoryRepository;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -44,26 +47,37 @@ public class InventoryAccountUsageCollector {
     private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
 
     private final FactNormalizer factNormalizer;
-    private final ClassificationProxyRepository proxyRepository;
+    private final InventoryRepository inventoryRepository;
+    private final int culledOffsetDays;
 
     public InventoryAccountUsageCollector(FactNormalizer factNormalizer,
-        ClassificationProxyRepository proxyRepository) {
+        InventoryRepository inventoryRepository, ApplicationProperties props) {
         this.factNormalizer = factNormalizer;
-        this.proxyRepository = proxyRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.culledOffsetDays = props.getCullingOffsetDays();
     }
 
     @SuppressWarnings("squid:S3776")
     @Transactional(value = "inventoryTransactionManager", readOnly = true)
     public Collection<AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
+
+        Map<String, String> hypMapping = new HashMap<>();
+        try (Stream<Object[]> stream = inventoryRepository.getReportedHypervisors(accounts)) {
+            stream.forEach(res -> hypMapping.put((String) res[0], (String) res[1]));
+        }
+        log.info("Found {} reported hypervisors.", hypMapping.size());
+
         Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
-        try (Stream<ClassifiedInventoryHostFacts> hostFactStream = proxyRepository.getFacts(accounts)) {
+        try (Stream<InventoryHostFacts> hostFactStream =
+            inventoryRepository.getFacts(accounts, culledOffsetDays)) {
             hostFactStream.forEach(hostFacts -> {
                 String account = hostFacts.getAccount();
+
                 calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
 
                 AccountUsageCalculation accountCalc = calcsByAccount.get(account);
-                NormalizedFacts facts = factNormalizer.normalize(hostFacts);
+                NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypMapping);
 
                 // Validate and set the owner.
                 // Don't set null owner as it may overwrite an existing value.

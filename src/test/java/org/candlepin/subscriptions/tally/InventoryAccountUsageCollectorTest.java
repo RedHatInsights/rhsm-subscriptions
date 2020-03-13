@@ -30,6 +30,8 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.inventory.db.InventoryRepository;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -45,14 +47,15 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.Stream.Builder;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -67,7 +70,7 @@ public class InventoryAccountUsageCollectorTest {
     private static List<String> nonRhelProducts = Collections.singletonList(NON_RHEL);
 
     @MockBean private BuildProperties buildProperties;
-    @MockBean private ClassificationProxyRepository inventoryRepo;
+    @MockBean private InventoryRepository inventoryRepo;
     @Autowired private InventoryAccountUsageCollector collector;
 
     /**
@@ -103,9 +106,15 @@ public class InventoryAccountUsageCollectorTest {
     public void hypervisorCountsIgnoredForNonRhelProduct() {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        ClassifiedInventoryHostFacts hypervisor = createHypervisor("A1", "O1", NON_RHEL_PRODUCT_ID, 12, 3);
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", NON_RHEL_PRODUCT_ID, 12, 3);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(hypervisor).stream());
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(hypervisor.getSubscriptionManagerId(),
+            hypervisor.getSubscriptionManagerId());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(nonRhelProducts, targetAccounts)
             .stream()
@@ -125,9 +134,15 @@ public class InventoryAccountUsageCollectorTest {
     public void hypervisorTotalsForRHEL() {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        ClassifiedInventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(hypervisor).stream());
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(hypervisor.getSubscriptionManagerId(),
+            hypervisor.getSubscriptionManagerId());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -147,8 +162,12 @@ public class InventoryAccountUsageCollectorTest {
     public void guestWithKnownHypervisorNotAddedToTotalsForRHEL() {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        ClassifiedInventoryHostFacts guest = createGuest("hyper-1", "A1", "O1", TEST_PRODUCT_ID, 12, 3);
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(guest).stream());
+        InventoryHostFacts guest = createGuest("hyper-1", "A1", "O1", TEST_PRODUCT_ID, 12, 3);
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(guest.getHypervisorUuid(), guest.getHypervisorUuid());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -166,8 +185,13 @@ public class InventoryAccountUsageCollectorTest {
     @Test
     public void guestUnknownHypervisorTotalsForRHEL() {
         List<String> targetAccounts = Arrays.asList("A1");
-        ClassifiedInventoryHostFacts guest = createGuest(null, "A1", "O1", TEST_PRODUCT_ID, 12, 3);
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(guest).stream());
+        InventoryHostFacts guest = createGuest(null, "A1", "O1", TEST_PRODUCT_ID, 12, 3);
+
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(guest.getHypervisorUuid(), null);
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -187,9 +211,12 @@ public class InventoryAccountUsageCollectorTest {
         List<String> targetAccounts = Arrays.asList("A1");
         List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
 
-        ClassifiedInventoryHostFacts host = createRhsmHost("A1", "O1", products, 12, 3, "",
+        InventoryHostFacts host = createRhsmHost("A1", "O1", products, 12, 3, "",
             OffsetDateTime.now());
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(host).stream());
+
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(host).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -207,17 +234,18 @@ public class InventoryAccountUsageCollectorTest {
 
     @Test
     public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
-        Collection<String> targetAccounts = Arrays.asList("A1", "A2");
+        List<String> targetAccounts = Arrays.asList("A1", "A2");
         List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
 
-        ClassifiedInventoryHostFacts host1 = createRhsmHost("A1", "O1", products, 4, 4, "",
+        InventoryHostFacts host1 = createRhsmHost("A1", "O1", products, 4, 4, "",
             OffsetDateTime.now());
-        ClassifiedInventoryHostFacts host2 = createRhsmHost("A1", "O1", products, 8, 4, "",
+        InventoryHostFacts host2 = createRhsmHost("A1", "O1", products, 8, 4, "",
             OffsetDateTime.now());
-        ClassifiedInventoryHostFacts host3 = createRhsmHost("A2", "O2", products, 2, 6, "",
+        InventoryHostFacts host3 = createRhsmHost("A2", "O2", products, 2, 6, "",
             OffsetDateTime.now());
 
-        when(inventoryRepo.getFacts(eq(targetAccounts)))
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -237,19 +265,20 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     @Test
-    void testTallyForMultipleSlas() throws Exception {
-        Collection<String> targetAccounts = Collections.singletonList("A1");
+    void testTallyForMultipleSlas() {
+        List<String> targetAccounts = Collections.singletonList("A1");
         List<Integer> products = Collections.singletonList(TEST_PRODUCT_ID);
 
-        ClassifiedInventoryHostFacts host1 = createRhsmHost("A1", "O1",
+        InventoryHostFacts host1 = createRhsmHost("A1", "O1",
             TEST_PRODUCT_ID.toString(), ServiceLevel.STANDARD, 6, 6, "",
             OffsetDateTime.now());
 
-        ClassifiedInventoryHostFacts host2 = createRhsmHost("A1", "O1",
+        InventoryHostFacts host2 = createRhsmHost("A1", "O1",
             TEST_PRODUCT_ID.toString(), ServiceLevel.PREMIUM, 10, 10, "",
             OffsetDateTime.now());
 
-        when(inventoryRepo.getFacts(eq(targetAccounts)))
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(host1, host2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -268,16 +297,17 @@ public class InventoryAccountUsageCollectorTest {
 
     @Test
     void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
-        Collection<String> targetAccounts = Arrays.asList("A1", "A2");
+        List<String> targetAccounts = Arrays.asList("A1", "A2");
 
-        ClassifiedInventoryHostFacts host1 =
+        InventoryHostFacts host1 =
             createSystemProfileHost("A1", "O1", Arrays.asList(TEST_PRODUCT_ID), 1, 4, OffsetDateTime.now());
-        ClassifiedInventoryHostFacts host2 =
+        InventoryHostFacts host2 =
             createSystemProfileHost("A1", "O1", Arrays.asList(TEST_PRODUCT_ID), 2, 4, OffsetDateTime.now());
-        ClassifiedInventoryHostFacts host3 =
+        InventoryHostFacts host3 =
             createSystemProfileHost("A2", "O2", Arrays.asList(TEST_PRODUCT_ID), 2, 6, OffsetDateTime.now());
 
-        when(inventoryRepo.getFacts(eq(targetAccounts)))
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -300,11 +330,14 @@ public class InventoryAccountUsageCollectorTest {
     public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        ClassifiedInventoryHostFacts h1 =
+        InventoryHostFacts h1 =
             createRhsmHost("A1", "Owner1", Arrays.asList(TEST_PRODUCT_ID), 8, 12, "", OffsetDateTime.now());
-        ClassifiedInventoryHostFacts h2 =
+        InventoryHostFacts h2 =
             createRhsmHost("A1", "Owner1", Arrays.asList(32), 12, 14, "", OffsetDateTime.now());
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
+
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -322,11 +355,13 @@ public class InventoryAccountUsageCollectorTest {
         throws IOException {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        ClassifiedInventoryHostFacts h1 =
+        InventoryHostFacts h1 =
             createRhsmHost("A1", "Owner1", Arrays.asList(TEST_PRODUCT_ID), 1, 2, "", OffsetDateTime.now());
-        ClassifiedInventoryHostFacts h2 =
+        InventoryHostFacts h2 =
             createRhsmHost("A1", "Owner2", Arrays.asList(TEST_PRODUCT_ID), 1, 2, "", OffsetDateTime.now());
-        when(inventoryRepo.getFacts(eq(targetAccounts))).thenReturn(Arrays.asList(h1, h2).stream());
+
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
             () -> collector.collect(rhelProducts, targetAccounts));
@@ -338,16 +373,23 @@ public class InventoryAccountUsageCollectorTest {
 
     @Test
     public void testTallyCoresAndSocketsOfRhelForPhysicalSystems() {
-        Collection<String> targetAccounts = Arrays.asList("A1", "A2");
-        ClassifiedInventoryHostFacts host1 =
+        List<String> targetAccounts = Arrays.asList("A1", "A2");
+        InventoryHostFacts host1 =
             createRhsmHost("A1", "O1", Arrays.asList(TEST_PRODUCT_ID), 4, 4, "", OffsetDateTime.now());
-        ClassifiedInventoryHostFacts host2 = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 8, 4);
 
-        ClassifiedInventoryHostFacts host3 =
+        InventoryHostFacts host2 = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 8, 4);
+
+        InventoryHostFacts host3 =
             createRhsmHost("A2", "O2", Arrays.asList(TEST_PRODUCT_ID), 2, 6, "", OffsetDateTime.now());
-        ClassifiedInventoryHostFacts host4 = createHypervisor("A2", "O2", TEST_PRODUCT_ID, 3, 4);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts)))
+        InventoryHostFacts host4 = createHypervisor("A2", "O2", TEST_PRODUCT_ID, 3, 4);
+
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(host2.getSubscriptionManagerId(), null);
+        expectedHypervisorMap.put(host4.getSubscriptionManagerId(), null);
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3, host4).stream());
 
         Map<String, AccountUsageCalculation> calcs =
@@ -372,16 +414,21 @@ public class InventoryAccountUsageCollectorTest {
     public void testHypervisorCalculationsWhenMapped() {
         List<String> targetAccounts = Arrays.asList("A1");
 
-        ClassifiedInventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
 
         // Guests should not end up in the total since only the hypervisor should be counted.
-        ClassifiedInventoryHostFacts guest1 = createGuest(hypervisor.getSubscriptionManagerId(),
+        InventoryHostFacts guest1 = createGuest(hypervisor.getSubscriptionManagerId(),
             "A1", "O1", TEST_PRODUCT_ID, 12, 3);
 
-        ClassifiedInventoryHostFacts guest2 = createGuest(hypervisor.getSubscriptionManagerId(),
+        InventoryHostFacts guest2 = createGuest(hypervisor.getSubscriptionManagerId(),
             "A1", "O1", TEST_PRODUCT_ID, 8, 2);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts)))
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(hypervisor.getSubscriptionManagerId(),
+            hypervisor.getSubscriptionManagerId());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor, guest1, guest2).stream());
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
@@ -444,5 +491,13 @@ public class InventoryAccountUsageCollectorTest {
 
     private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla) {
         return new UsageCalculation.Key(product, sla);
+    }
+
+    private void mockReportedHypervisors(List<String> accounts, Map<String, String> expectedHypervisorMap) {
+        Builder streamBuilder = Stream.builder();
+        for (Entry<String, String> entry : expectedHypervisorMap.entrySet()) {
+            streamBuilder.accept(new Object[] {entry.getKey(), entry.getValue()});
+        }
+        when(inventoryRepo.getReportedHypervisors(eq(accounts))).thenReturn(streamBuilder.build());
     }
 }
