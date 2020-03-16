@@ -18,30 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jobs;
+package org.candlepin.subscriptions.task.queue.kafka;
 
-import org.candlepin.subscriptions.task.TaskManager;
-
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 
 /**
- * A quartz job that captures all usage snapshots on a configured schedule.
+ * Stops all message consumption when the application is shutting down.
  */
-public class CaptureSnapshotsJob extends QuartzJobBean {
-
-    private TaskManager tasks;
+public class KafkaApplicationListener implements ApplicationListener<ContextClosedEvent> {
+    private static final Logger log = LoggerFactory.getLogger(KafkaApplicationListener.class);
 
     @Autowired
-    public CaptureSnapshotsJob(TaskManager taskManager) {
-        this.tasks = taskManager;
-    }
+    private KafkaListenerEndpointRegistry registry;
+
 
     @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
+    public void onApplicationEvent(ContextClosedEvent event) {
+        log.info("Shutting down kafka consumers...");
+        registry.stop();
     }
-
 }

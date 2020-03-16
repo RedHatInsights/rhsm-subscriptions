@@ -18,30 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jobs;
+package org.candlepin.subscriptions.task;
 
-import org.candlepin.subscriptions.task.TaskManager;
-
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
 
 /**
- * A quartz job that captures all usage snapshots on a configured schedule.
+ * An exception that is thrown when the TaskWorker fails to execute a given Task.
  */
-public class CaptureSnapshotsJob extends QuartzJobBean {
+public class TaskExecutionException extends Exception {
 
-    private TaskManager tasks;
-
-    @Autowired
-    public CaptureSnapshotsJob(TaskManager taskManager) {
-        this.tasks = taskManager;
+    public TaskExecutionException(String message) {
+        super(message);
     }
 
-    @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
+    public TaskExecutionException(String message, Throwable cause) {
+        super(message, cause);
     }
 
 }
