@@ -34,6 +34,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Given a granularity, date range and existing snaps for the period, fills out any gaps in a TallyReport.
@@ -66,6 +67,8 @@ public class ReportFiller {
         else {
             OffsetDateTime nextDate = firstDate;
             OffsetDateTime lastSnapDate = null;
+            Optional<TallySnapshot> pending = Optional.empty();
+            Optional<OffsetDateTime> pendingSnapDate = Optional.empty();
 
             for (TallySnapshot snapshot : existingSnaps) {
                 OffsetDateTime snapDate = snapshot.getDate();
@@ -80,11 +83,22 @@ public class ReportFiller {
                 }
 
                 lastSnapDate = timeAdjuster.adjustToPeriodStart(snapDate);
+
+                if (pending.isPresent() && lastSnapDate.isAfter(pendingSnapDate.get())) {
+                    result.add(pending.get());
+                    pending = Optional.empty();
+                    pendingSnapDate = Optional.empty();
+                }
+
                 // Fill report up until the next snapshot, then add the snapshot to the report list.
                 result.addAll(fillWithRange(nextDate, lastSnapDate.minus(offset), offset));
-                result.add(snapshot);
+                if (!pending.isPresent() || snapshotIsLarger(pending.get(), snapshot)) {
+                    pending = Optional.of(snapshot);
+                    pendingSnapDate = Optional.of(lastSnapDate);
+                }
                 nextDate = lastSnapDate.plus(offset);
             }
+            pending.ifPresent(result::add);
 
             // If no snaps contain dates, just use the start of the range. Otherwise,
             // fill from the date of the last snapshot found, to the end of the range.
@@ -96,6 +110,12 @@ public class ReportFiller {
             }
         }
         report.setData(result);
+    }
+
+    private boolean snapshotIsLarger(TallySnapshot oldSnap, TallySnapshot newSnap) {
+        return newSnap.getInstanceCount() > oldSnap.getInstanceCount() ||
+            newSnap.getCores() > oldSnap.getCores() ||
+            newSnap.getSockets() > oldSnap.getSockets();
     }
 
     private TallySnapshot createDefaultSnapshot(OffsetDateTime snapshotDate) {
