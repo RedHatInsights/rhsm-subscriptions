@@ -51,10 +51,8 @@ public class ReportFiller {
         this.timeAdjuster = timeAdjuster;
     }
 
-    @SuppressWarnings("squid:S2583")
     @Timed("rhsm-subscriptions.tally.fillReport")
     public void fillGaps(TallyReport report, OffsetDateTime start, OffsetDateTime end) {
-        List<TallySnapshot> result = new ArrayList<>();
         TemporalAmount offset = timeAdjuster.getSnapshotOffset();
 
         OffsetDateTime firstDate = timeAdjuster.adjustToPeriodStart(start);
@@ -62,54 +60,62 @@ public class ReportFiller {
 
         List<TallySnapshot> existingSnaps = report.getData();
         if (existingSnaps == null || existingSnaps.isEmpty()) {
-            result.addAll(fillWithRange(firstDate, lastDate, offset));
+            report.setData(fillWithRange(firstDate, lastDate, offset));
         }
         else {
-            OffsetDateTime nextDate = firstDate;
-            OffsetDateTime lastSnapDate = null;
-            Optional<TallySnapshot> pending = Optional.empty();
-            Optional<OffsetDateTime> pendingSnapDate = Optional.empty();
-
-            for (TallySnapshot snapshot : existingSnaps) {
-                OffsetDateTime snapDate = snapshot.getDate();
-
-                // Should never happen, but if the Filler is given a snapshot without a date
-                // it can't be slotted into the date range. Warn, and skip the snapshot.
-                if (snapDate == null) {
-                    // NOTE: Sonarcloud notes snapDate == null as always resulting to false. This
-                    // is incorrect so the warning has been suppressed (squid:S2583).
-                    log.warn("Encountered snapshot without date set. Skipping.");
-                    continue;
-                }
-
-                lastSnapDate = timeAdjuster.adjustToPeriodStart(snapDate);
-
-                if (pending.isPresent() && lastSnapDate.isAfter(pendingSnapDate.get())) {
-                    result.add(pending.get());
-                    pending = Optional.empty();
-                    pendingSnapDate = Optional.empty();
-                }
-
-                // Fill report up until the next snapshot, then add the snapshot to the report list.
-                result.addAll(fillWithRange(nextDate, lastSnapDate.minus(offset), offset));
-                if (!pending.isPresent() || snapshotIsLarger(pending.get(), snapshot)) {
-                    pending = Optional.of(snapshot);
-                    pendingSnapDate = Optional.of(lastSnapDate);
-                }
-                nextDate = lastSnapDate.plus(offset);
-            }
-            pending.ifPresent(result::add);
-
-            // If no snaps contain dates, just use the start of the range. Otherwise,
-            // fill from the date of the last snapshot found, to the end of the range.
-            if (lastSnapDate == null) {
-                result.addAll(fillWithRange(firstDate, lastDate, offset));
-            }
-            else if (lastSnapDate.isBefore(lastDate)) {
-                result.addAll(fillWithRange(lastSnapDate.plus(offset), lastDate, offset));
-            }
+            report.setData(fillAndFilterSnapshots(offset, firstDate, lastDate, existingSnaps));
         }
-        report.setData(result);
+    }
+
+    @SuppressWarnings("squid:S2583")
+    private List<TallySnapshot> fillAndFilterSnapshots(TemporalAmount offset,
+        OffsetDateTime firstDate, OffsetDateTime lastDate, List<TallySnapshot> existingSnaps) {
+
+        List<TallySnapshot> result = new ArrayList<>();
+        OffsetDateTime nextDate = firstDate;
+        OffsetDateTime lastSnapDate = null;
+        Optional<TallySnapshot> pending = Optional.empty();
+        Optional<OffsetDateTime> pendingSnapDate = Optional.empty();
+
+        for (TallySnapshot snapshot : existingSnaps) {
+            OffsetDateTime snapDate = snapshot.getDate();
+
+            // Should never happen, but if the Filler is given a snapshot without a date
+            // it can't be slotted into the date range. Warn, and skip the snapshot.
+            if (snapDate == null) {
+                // NOTE: Sonarcloud notes snapDate == null as always resulting to false. This
+                // is incorrect so the warning has been suppressed (squid:S2583).
+                log.warn("Encountered snapshot without date set. Skipping.");
+                continue;
+            }
+
+            lastSnapDate = timeAdjuster.adjustToPeriodStart(snapDate);
+
+            if (pending.isPresent() && lastSnapDate.isAfter(pendingSnapDate.get())) {
+                result.add(pending.get());
+                pending = Optional.empty();
+                pendingSnapDate = Optional.empty();
+            }
+
+            // Fill report up until the next snapshot, then add the snapshot to the report list.
+            result.addAll(fillWithRange(nextDate, lastSnapDate.minus(offset), offset));
+            if (!pending.isPresent() || snapshotIsLarger(pending.get(), snapshot)) {
+                pending = Optional.of(snapshot);
+                pendingSnapDate = Optional.of(lastSnapDate);
+            }
+            nextDate = lastSnapDate.plus(offset);
+        }
+        pending.ifPresent(result::add);
+
+        // If no snaps contain dates, just use the start of the range. Otherwise,
+        // fill from the date of the last snapshot found, to the end of the range.
+        if (lastSnapDate == null) {
+            result.addAll(fillWithRange(firstDate, lastDate, offset));
+        }
+        else if (lastSnapDate.isBefore(lastDate)) {
+            result.addAll(fillWithRange(lastSnapDate.plus(offset), lastDate, offset));
+        }
+        return result;
     }
 
     private boolean snapshotIsLarger(TallySnapshot oldSnap, TallySnapshot newSnap) {
