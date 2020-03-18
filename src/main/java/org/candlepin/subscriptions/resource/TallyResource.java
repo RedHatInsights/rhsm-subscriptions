@@ -33,7 +33,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -52,8 +52,7 @@ import javax.ws.rs.core.UriInfo;
  * Tally API implementation.
  */
 @Component
-@ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableJobProcessing", havingValue = "false",
-    matchIfMissing = true)
+@Profile("api")
 public class TallyResource implements TallyApi {
 
     @Context UriInfo uriInfo;

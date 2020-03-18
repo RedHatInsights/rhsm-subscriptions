@@ -77,11 +77,6 @@ public class ApplicationProperties {
     private int accountBatchSize = 500;
 
     /**
-     * Whether the ingress endpoint is enabled on this instance of rhsm-subscriptions or not.
-     */
-    private boolean enableIngressEndpoint;
-
-    /**
      * Amount of time to cache the account list, before allowing a re-read from the filesystem.
      */
     private Duration accountListCacheTtl = Duration.ofMinutes(5);
@@ -173,14 +168,6 @@ public class ApplicationProperties {
 
     public void setDevMode(boolean devMode) {
         this.devMode = devMode;
-    }
-
-    public boolean isEnableIngressEndpoint() {
-        return enableIngressEndpoint;
-    }
-
-    public void setEnableIngressEndpoint(boolean enableIngressEndpoint) {
-        this.enableIngressEndpoint = enableIngressEndpoint;
     }
 
     public String getProductWhitelistResourceLocation() {

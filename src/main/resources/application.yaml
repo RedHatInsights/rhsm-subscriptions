@@ -21,7 +21,14 @@ management:
       enabled: true
     prometheus:
       enabled: true
+
 spring:
+  profiles:
+    active:
+      - api
+      - in-memory-queue
+      - scheduler
+      - capacity-ingress
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
   quartz:

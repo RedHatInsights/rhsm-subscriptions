@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.controller.PoolIngressController;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.resources.IngressApi;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -35,7 +35,7 @@ import javax.validation.Valid;
  * Updates subscription capacity based on Candlepin pool data.
  */
 @Component
-@ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "enableIngressEndpoint", havingValue = "true")
+@Profile("capacity-ingress")
 public class IngressResource implements IngressApi {
 
     private final PoolIngressController controller;

@@ -25,11 +25,11 @@ import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
@@ -41,19 +41,17 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 /**
  * A spring configuration that configures the required Beans to set up a KafkaTaskQueue.
  *
- * To enable this queue, set the following in the rhsm-subscriptions.properties file:
- * <pre>
- *     rhsm-subscriptions.tasks.queue=kafka
- * </pre>
+ * To enable this queue, run the application with the kafka-queue profile.
+ *
+ * Use the worker profile on any instances that should process the tasks.
  */
 @EnableKafka
 @Configuration
+@Profile({"kafka-queue", "worker"})
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class KafkaTaskQueueConfiguration {
 
-    // Since the bean is only registered when the kafka task queue is configured, it isn't always
-    // required (i.e When rhsm-subscriptions is running with the in-memory task queue configured).
-    @Autowired(required = false)
+    @Autowired
     private KafkaConfigurator kafkaConfigurator;
 
     @Bean
@@ -63,13 +61,11 @@ public class KafkaTaskQueueConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
     public KafkaConfigurator kafkaConfigurator() {
         return new KafkaConfigurator();
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
     public KafkaApplicationListener gracefulShutdown() {
         return new KafkaApplicationListener();
     }
@@ -79,13 +75,11 @@ public class KafkaTaskQueueConfiguration {
     //
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
     public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
     public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
         ProducerFactory<String, TaskMessage> factory) {
         return kafkaConfigurator.taskMessageKafkaTemplate(factory);
@@ -96,13 +90,13 @@ public class KafkaTaskQueueConfiguration {
     //
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
+    @Profile("worker")
     public ConsumerFactory<String, TaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
+    @Profile("worker")
     KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
         kafkaListenerContainerFactory(ConsumerFactory<String, TaskMessage> consumerFactory,
         KafkaProperties kafkaProperties) {
@@ -114,13 +108,12 @@ public class KafkaTaskQueueConfiguration {
     //
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
     public TaskQueue kafkaTaskQueue() {
         return new KafkaTaskQueue();
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "kafka")
+    @Profile("worker")
     public KafkaTaskProcessor taskProcessor(TaskFactory taskFactory) {
         return new KafkaTaskProcessor(taskFactory);
     }
