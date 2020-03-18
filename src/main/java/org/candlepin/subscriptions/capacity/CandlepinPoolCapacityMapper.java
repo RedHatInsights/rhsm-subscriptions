@@ -20,16 +20,20 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProductAttribute;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProvidedProduct;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,6 +42,8 @@ import java.util.stream.Collectors;
  */
 @Component
 public class CandlepinPoolCapacityMapper {
+
+    private static final Logger log = LoggerFactory.getLogger(CandlepinPoolCapacityMapper.class);
 
     private final CapacityProductExtractor productExtractor;
 
@@ -65,6 +71,7 @@ public class CandlepinPoolCapacityMapper {
             capacity.setSubscriptionId(pool.getSubscriptionId());
             capacity.setBeginDate(pool.getStartDate());
             capacity.setEndDate(pool.getEndDate());
+            capacity.setServiceLevel(getSla(pool));
             Long socketCapacity = getCapacityUnit("sockets", pool);
             if (products.contains(product) && socketCapacity != null) {
                 capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
@@ -101,6 +108,23 @@ public class CandlepinPoolCapacityMapper {
             .filter(attr -> attr.getName().equals("instance_multiplier"))
             .map(CandlepinProductAttribute::getValue).mapToInt(Integer::parseInt).boxed().findFirst()
             .orElse(1);
+    }
+
+    private String getSla(CandlepinPool pool) {
+        Optional<String> sla = pool.getProductAttributes().stream()
+            .filter(attr -> attr.getName().equals("support_level")).map(CandlepinProductAttribute::getValue)
+            .findFirst();
+
+        if (sla.isPresent()) {
+            ServiceLevel slaValue = ServiceLevel.fromString(sla.get());
+            if (slaValue == ServiceLevel.UNSPECIFIED) {
+                log.warn("Product {} has unsupported service level {}", pool.getProductId(), sla.get());
+                return null;
+            }
+            return slaValue.getValue();
+        }
+
+        return null;
     }
 
     private List<String> extractProductIds(Collection<CandlepinProvidedProduct> providedProducts) {
