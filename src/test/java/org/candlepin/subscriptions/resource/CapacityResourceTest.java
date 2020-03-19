@@ -48,6 +48,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 @SpringBootTest
@@ -82,7 +83,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             Mockito.eq("owner123456"),
             Mockito.eq("product1"),
             Mockito.eq(min),
@@ -95,7 +96,63 @@ class CapacityResourceTest {
             min,
             max,
             null,
+            null,
             null
+        );
+
+        assertEquals(9, report.getData().size());
+    }
+
+    @Test
+    void testShouldUseSlaQueryParam() {
+        SubscriptionCapacity capacity = new SubscriptionCapacity();
+        capacity.setBeginDate(min);
+        capacity.setEndDate(max);
+
+        when(repository
+            .findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+                Mockito.eq("owner123456"),
+                Mockito.eq("product1"),
+                Mockito.eq("Premium"),
+                Mockito.eq(min),
+                Mockito.eq(max)))
+            .thenReturn(Collections.singletonList(capacity));
+
+        CapacityReport report = resource.getCapacityReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            null,
+            null,
+            "Premium"
+        );
+
+        assertEquals(9, report.getData().size());
+    }
+
+    @Test
+    void testShouldTreatEmptySlaAsNull() {
+        SubscriptionCapacity capacity = new SubscriptionCapacity();
+        capacity.setBeginDate(min);
+        capacity.setEndDate(max);
+
+        when(repository
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+                Mockito.eq("owner123456"),
+                Mockito.eq("product1"),
+                Mockito.eq(min),
+                Mockito.eq(max)))
+            .thenReturn(Collections.singletonList(capacity));
+
+        CapacityReport report = resource.getCapacityReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            null,
+            null,
+            ""
         );
 
         assertEquals(9, report.getData().size());
@@ -120,7 +177,7 @@ class CapacityResourceTest {
         capacity2.setEndDate(max);
 
         when(repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),
@@ -132,6 +189,7 @@ class CapacityResourceTest {
             "daily",
             min,
             max,
+            null,
             null,
             null
         );
@@ -152,8 +210,24 @@ class CapacityResourceTest {
             min,
             max,
             11,
-            10));
+            10,
+            null)
+        );
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    void testShouldThrowBadRequestOnBadSla() {
+        BadRequestException e = assertThrows(BadRequestException.class, () ->
+            resource.getCapacityReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            0,
+            10,
+            "badSla")
+        );
     }
 
     @Test
@@ -163,7 +237,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),
@@ -176,7 +250,8 @@ class CapacityResourceTest {
             min,
             max,
             1,
-            1
+            1,
+            null
         );
 
         assertEquals(1, report.getData().size());
@@ -194,6 +269,7 @@ class CapacityResourceTest {
                 min,
                 max,
                 null,
+                null,
                 null
             );
         });
@@ -208,6 +284,7 @@ class CapacityResourceTest {
                 "daily",
                 min,
                 max,
+                null,
                 null,
                 null
             );

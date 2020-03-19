@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.AdminOnly;
@@ -45,6 +46,7 @@ import java.util.List;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -72,12 +74,18 @@ public class CapacityResource implements CapacityApi {
     @AdminOnly
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit) {
+        @Min(1) Integer limit, String sla) {
+
+        ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
+        if (sla != null && !sla.isEmpty() && sanitizedSla == ServiceLevel.UNSPECIFIED) {
+            throw new BadRequestException("Invalid sla parameter specified.");
+        }
 
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
 
         String ownerId = ResourceUtils.getOwnerId();
-        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, granularityValue,
+
+        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, sanitizedSla, granularityValue,
             beginning, ending);
 
         List<CapacitySnapshot> data;
@@ -99,6 +107,9 @@ public class CapacityResource implements CapacityApi {
         report.getMeta().setGranularity(granularity);
         report.getMeta().setProduct(productId);
         report.getMeta().setCount(report.getData().size());
+        if (sanitizedSla != ServiceLevel.UNSPECIFIED) {
+            report.getMeta().setServiceLevel(sanitizedSla.getValue());
+        }
         report.setLinks(links);
 
         return report;
@@ -113,15 +124,27 @@ public class CapacityResource implements CapacityApi {
         return capacities.subList(offset, lastIndex);
     }
 
-    private List<CapacitySnapshot> getCapacities(String ownerId, String productId,
+    private List<CapacitySnapshot> getCapacities(String ownerId, String productId, ServiceLevel sla,
         Granularity granularity, @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
 
-        List<SubscriptionCapacity> matches =
-            repository.findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
-            ownerId,
-            productId,
-            beginning,
-            ending);
+        List<SubscriptionCapacity> matches;
+        if (sla == ServiceLevel.UNSPECIFIED) {
+            matches = repository.findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+                ownerId,
+                productId,
+                beginning,
+                ending
+            );
+        }
+        else {
+            matches = repository.findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+                ownerId,
+                productId,
+                sla.getValue(),
+                beginning,
+                ending
+            );
+        }
 
         SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 

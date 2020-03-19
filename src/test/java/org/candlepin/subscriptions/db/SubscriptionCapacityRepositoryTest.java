@@ -65,7 +65,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -93,7 +93,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -121,7 +121,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -149,7 +149,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -177,7 +177,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -193,7 +193,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -209,9 +209,41 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(1, found.size());
+    }
+
+    @Test
+    void testShouldFilterOutSlaIfDifferent() {
+        SubscriptionCapacity c = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        repository.save(c);
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository
+            .findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
+            "product",
+            "Standard",
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(0, found.size());
+    }
+
+    @Test
+    void testShouldMatchSlaIfSame() {
+        SubscriptionCapacity c = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        repository.save(c);
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository
+            .findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+            "ownerId",
+            "product",
+            "Premium",
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -230,6 +262,7 @@ class SubscriptionCapacityRepositoryTest {
         capacity.setVirtualSockets(20);
         capacity.setPhysicalCores(8);
         capacity.setVirtualCores(40);
+        capacity.setServiceLevel("Premium");
         return capacity;
     }
 }

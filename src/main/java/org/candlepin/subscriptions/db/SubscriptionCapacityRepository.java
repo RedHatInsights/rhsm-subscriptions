@@ -36,10 +36,18 @@ public interface SubscriptionCapacityRepository extends
     JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey> {
 
     @Transactional
-    List<SubscriptionCapacity>
-        findSubscriptionCapacitiesByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+    List<SubscriptionCapacity> findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
         String ownerId,
         String productId,
+        OffsetDateTime begin,
+        OffsetDateTime end
+    );
+
+    @Transactional
+    List<SubscriptionCapacity> findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+        String ownerId,
+        String productId,
+        String serviceLevel,
         OffsetDateTime begin,
         OffsetDateTime end
     );
