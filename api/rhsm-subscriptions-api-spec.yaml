@@ -172,6 +172,11 @@ paths:
           schema:
             type: string
           description: "The level of granularity to return."
+        - name: sla
+          in: query
+          schema:
+            type: string
+          description: "Include only capacity for the specified service level."
         - name: beginning
           in: query
           required: true
@@ -223,14 +228,15 @@ paths:
                     hypervisor_sockets: 5
                     has_infinite_quantity: true
                 links:
-                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
                   product: RHEL
                   granularity: DAILY
+                  service_level: Premium
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':
@@ -530,6 +536,10 @@ components:
               description: "Describes the significance of each date in the CapacitySnapshot list. For example if the
                 granularity is set to 'weekly', the dates in the CapacitySnapshot list will represent the start of a
                 seven day period."
+              type: string
+            service_level:
+              description: "Describes the service level that the report was made against. Not set if it wasn't
+                specified as a query parameter."
               type: string
           required:
             - count
