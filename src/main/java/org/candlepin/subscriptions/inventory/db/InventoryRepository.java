@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 /**
  * Interface that Spring Data will turn into a read-only DAO.
  */
+@SuppressWarnings({"linelength", "indentation"})
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
     @Query(nativeQuery = true)
@@ -46,4 +47,20 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
     @Query("select distinct h.account from InventoryHost h")
     List<String> listAccounts();
 
+    /**
+     * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID.
+     * If the hypervisor hasn't been reported, then the hyp_subman_id value will be null.
+     *
+     * @param accounts the accounts to filter hosts by.
+     * @return a stream of Object[] with each entry representing a hypervisor mapping.
+     */
+    @Query(nativeQuery = true,
+        value = "select " +
+                    "distinct h.facts->'rhsm'->>'VM_HOST_UUID' as hyp_id, " +
+                    "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
+                "from hosts h " +
+                    "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' " +
+                "where h.facts->'rhsm'->'VM_HOST_UUID' is not null " +
+                    "and h.account IN (:accounts)")
+    Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
 }

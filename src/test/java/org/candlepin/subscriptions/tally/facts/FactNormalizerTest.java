@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
@@ -50,7 +49,9 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
@@ -87,7 +88,7 @@ public class FactNormalizerTest {
     @Test
     public void testRhsmNormalization() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1), 12, 2, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
         assertEquals(Integer.valueOf(2), normalized.getSockets());
@@ -95,8 +96,8 @@ public class FactNormalizerTest {
 
     @Test
     public void testQpcNormalization() {
-        ClassifiedInventoryHostFacts host = createQpcHost("RHEL", clock.now());
-        NormalizedFacts normalized = normalizer.normalize(host);
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL", clock.now()),
+            new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(0), normalized.getCores());
         assertEquals(Integer.valueOf(0), normalized.getSockets());
@@ -104,9 +105,9 @@ public class FactNormalizerTest {
 
     @Test
     public void testSystemProfileNormalization() {
-        ClassifiedInventoryHostFacts host = createSystemProfileHost(Collections.singletonList(1), 4, 2,
+        InventoryHostFacts host = createSystemProfileHost(Collections.singletonList(1), 4, 2,
             clock.now());
-        NormalizedFacts normalized = normalizer.normalize(host);
+        NormalizedFacts normalized = normalizer.normalize(host, new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(8), normalized.getCores());
         assertEquals(Integer.valueOf(2), normalized.getSockets());
@@ -115,7 +116,7 @@ public class FactNormalizerTest {
     @Test
     public void testNormalizeNonRhelProduct() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(42), 4, 8, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
         assertEquals(Integer.valueOf(8), normalized.getSockets());
@@ -123,8 +124,8 @@ public class FactNormalizerTest {
 
     @Test
     void testSystemProfileNonRhelProduct() {
-        NormalizedFacts normalized =
-            normalizer.normalize(createSystemProfileHost(Collections.singletonList(42), 2, 4, clock.now()));
+        NormalizedFacts normalized = normalizer.normalize(createSystemProfileHost(
+            Collections.singletonList(42), 2, 4, clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(8), normalized.getCores());
         assertEquals(Integer.valueOf(4), normalized.getSockets());
@@ -135,15 +136,15 @@ public class FactNormalizerTest {
         InventoryHostFacts baseFacts = createBaseHost("Account", "test-org");
         baseFacts.setSystemProfileInfrastructureType("virtual");
         baseFacts.setSyncTimestamp(clock.now().toString());
-        ClassifiedInventoryHostFacts systemProfileHost = new ClassifiedInventoryHostFacts(baseFacts);
-        NormalizedFacts normalized = normalizer.normalize(systemProfileHost);
+
+        NormalizedFacts normalized = normalizer.normalize(baseFacts, new HashMap<>());
         assertThat(normalized.isVirtual(), Matchers.is(true));
     }
 
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlyCoresAreSet() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost((List<Integer>) null, 4, null,
-            null, clock.now()));
+            null, clock.now()), new HashMap<>());
         assertNotNull(normalized.getProducts());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(4), normalized.getCores());
@@ -153,7 +154,7 @@ public class FactNormalizerTest {
     @Test
     public void testNormalizeWhenProductsMissingFromFactsAndOnlySocketsAreSet() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost((List<Integer>) null, null, 8,
-            null, clock.now()));
+            null, clock.now()), new HashMap<>());
         assertNotNull(normalized.getProducts());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertEquals(Integer.valueOf(0), normalized.getCores());
@@ -163,7 +164,7 @@ public class FactNormalizerTest {
     @Test
     public void testNormalizeWhenCoresAndSocketsMissingFromFacts() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1), null, null, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(0), normalized.getCores());
         assertEquals(Integer.valueOf(0), normalized.getSockets());
@@ -172,10 +173,9 @@ public class FactNormalizerTest {
     @Test
     public void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(2);
-        ClassifiedInventoryHostFacts facts =
-            createRhsmHost("A1", "O1", "1", 4, 8, null, lastSynced);
+        InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", 4, 8, null, lastSynced);
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        NormalizedFacts normalized = normalizer.normalize(facts, new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.empty());
         assertNull(normalized.getCores());
     }
@@ -183,37 +183,36 @@ public class FactNormalizerTest {
     @Test
     public void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
         OffsetDateTime lastSynced = clock.now().minusDays(1);
-        ClassifiedInventoryHostFacts facts =
-            createRhsmHost("A1", "O1", "1", 4, 8, null, lastSynced);
+        InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", 4, 8, null, lastSynced);
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        NormalizedFacts normalized = normalizer.normalize(facts, new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(4), normalized.getCores());
     }
 
     @Test
     void testRhelFromQpcFacts() {
-        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL", clock.now()));
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL", clock.now()),
+            new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
     }
 
     @Test
     public void testEmptyProductListWhenRhelNotPresent() {
-        NormalizedFacts normalized = normalizer.normalize(createQpcHost("EAP", clock.now()));
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("EAP", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.empty());
     }
 
     @Test
     public void testEmptyProductListWhenQpcProductsNotSet() {
-        NormalizedFacts normalized = normalizer.normalize(createQpcHost(null, clock.now()));
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost(null, clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.empty());
     }
 
     @Test
     void testNullSocketsNormalizeToZero() {
-        ClassifiedInventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, 0, null, clock.now());
-
-        NormalizedFacts normalizedHost = normalizer.normalize(host);
+        InventoryHostFacts host = createRhsmHost(Collections.emptyList(), 0, 0, null, clock.now());
+        NormalizedFacts normalizedHost = normalizer.normalize(host, new HashMap<>());
 
         assertEquals(0, normalizedHost.getSockets().intValue());
     }
@@ -221,7 +220,7 @@ public class FactNormalizerTest {
     @Test
     void testDetectsMultipleProductsBasedOnProductId() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1, 5, 7), 2, 2, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "NOT RHEL",
             "RHEL Ungrouped"));
     }
@@ -229,34 +228,35 @@ public class FactNormalizerTest {
     @Test
     void testDetectsProductFromSyspurposeRole() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Collections.emptyList(), 2, 2,
-            "role1", clock.now()));
+            "role1", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
     @Test
     void testRhelUngroupedIfNoVariants() {
-        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL", clock.now()));
+        NormalizedFacts normalized = normalizer.normalize(createQpcHost("RHEL", clock.now()),
+            new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Ungrouped"));
     }
 
     @Test
     void variantFromSyspurposeWinsIfMultipleVariants() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(9, 10), 2, 2,
-            "role1", clock.now()));
+            "role1", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
     @Test
     void nonNumericProductIdIgnored() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost("A1", "O1", "9,10,Foobar", 2, 2,
-            "role1", clock.now()));
+            "role1", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
     @Test
     public void testNormalizationDiscardsRHELWhenSatelliteExists() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(2, 11), 12, 2, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertEquals(1, normalized.getProducts().size());
         assertThat(normalized.getProducts(), Matchers.hasItem("Satellite 6"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
@@ -266,7 +266,7 @@ public class FactNormalizerTest {
     @Test
     public void testNormalizationDiscardsRHELWhenSatelliteExistsSameProduct() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(12), 12, 2, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertEquals(1, normalized.getProducts().size());
         assertThat(normalized.getProducts(), Matchers.hasItem("Satellite 6 Capsule"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
@@ -275,7 +275,12 @@ public class FactNormalizerTest {
 
     @Test
     public void testModulo2SocketNormalizationForHypervisors() {
-        NormalizedFacts normalized = normalizer.normalize(createHypervisor("A1", "O1", 1, 12, 3));
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1, 12, 3);
+
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(hypervisor.getSubscriptionManagerId(), null);
+
+        NormalizedFacts normalized = normalizer.normalize(hypervisor, mappedHypervisors);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
         assertEquals(Integer.valueOf(4), normalized.getSockets());
@@ -284,7 +289,7 @@ public class FactNormalizerTest {
     @Test
     public void testModulo2SocketNormalizationForPhysicalHosts() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(1), 12, 3, null,
-            clock.now()));
+            clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
         assertEquals(Integer.valueOf(4), normalized.getSockets());
@@ -292,7 +297,13 @@ public class FactNormalizerTest {
 
     @Test
     public void testNoModulo2SocketNormalizationForGuests() {
-        NormalizedFacts normalized = normalizer.normalize(createGuest("hyp-id", "A1", "O1", 1, 12, 3));
+        InventoryHostFacts guestFacts = createGuest("hyp-id", "A1", "O1", 1, 12, 3);
+        assertTrue(guestFacts.isVirtual());
+
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(guestFacts.getHypervisorUuid(), guestFacts.getHypervisorUuid());
+
+        NormalizedFacts normalized = normalizer.normalize(guestFacts, mappedHypervisors);
         assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
         assertEquals(Integer.valueOf(12), normalized.getCores());
         assertEquals(Integer.valueOf(3), normalized.getSockets());
@@ -300,33 +311,34 @@ public class FactNormalizerTest {
 
     @Test
     public void testIsHypervisorNormalization() {
-        ClassifiedInventoryHostFacts facts = createHypervisor("A1", "O1", 1, 12, 3);
-        assertTrue(facts.isHypervisor());
+        InventoryHostFacts facts = createHypervisor("A1", "O1", 1, 12, 3);
         assertFalse(facts.isVirtual());
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(facts.getSubscriptionManagerId(), facts.getSubscriptionManagerId());
+
+        NormalizedFacts normalized = normalizer.normalize(facts, mappedHypervisors);
         assertTrue(normalized.isHypervisor());
         assertFalse(normalized.isVirtual());
     }
 
     @Test
     public void testIsGuestNormalization() {
-        ClassifiedInventoryHostFacts facts = createGuest("hyp-id", "A1", "O1", 1, 12, 3);
+        InventoryHostFacts facts = createGuest("hyp-id", "A1", "O1", 1, 12, 3);
         assertTrue(facts.isVirtual());
-        assertFalse(facts.isHypervisorUnknown());
-        assertFalse(facts.isHypervisor());
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        HashMap<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(facts.getHypervisorUuid(), facts.getHypervisorUuid());
+
+        NormalizedFacts normalized = normalizer.normalize(facts, mappedHypervisors);
         assertTrue(normalized.isVirtual());
         assertFalse(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
 
         facts = createGuest(null, "A1", "O1", 1, 12, 3);
         assertTrue(facts.isVirtual());
-        assertTrue(facts.isHypervisorUnknown());
-        assertFalse(facts.isHypervisor());
 
-        normalized = normalizer.normalize(facts);
+        normalized = normalizer.normalize(facts, new HashMap<>());
         assertTrue(normalized.isVirtual());
         assertTrue(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
@@ -337,19 +349,15 @@ public class FactNormalizerTest {
         String expectedCloudProvider = "aws";
         InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
         baseFacts.setCloudProvider(expectedCloudProvider);
-        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        NormalizedFacts normalized = normalizer.normalize(baseFacts, new HashMap<>());
         assertNotNull(normalized.getCloudProviderType());
         assertEquals(HardwareMeasurementType.AWS, normalized.getCloudProviderType());
-
     }
 
     @Test
     public void testThatCloudProviderIsNotSetIfNull() {
-        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(createBaseHost("A1", "O1"));
-
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        NormalizedFacts normalized = normalizer.normalize(createBaseHost("A1", "O1"), new HashMap<>());
         assertNull(normalized.getCloudProviderType());
     }
 
@@ -357,9 +365,8 @@ public class FactNormalizerTest {
     public void testThatCloudProviderIsNotSetIfEmpty() {
         InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
         baseFacts.setCloudProvider("");
-        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        NormalizedFacts normalized = normalizer.normalize(baseFacts, new HashMap<>());
         assertNull(normalized.getCloudProviderType());
     }
 
@@ -368,9 +375,73 @@ public class FactNormalizerTest {
         String expectedCloudProvider = "unknown";
         InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
         baseFacts.setCloudProvider(expectedCloudProvider);
-        ClassifiedInventoryHostFacts facts = new ClassifiedInventoryHostFacts(baseFacts);
 
-        NormalizedFacts normalized = normalizer.normalize(facts);
+        NormalizedFacts normalized = normalizer.normalize(baseFacts, new HashMap<>());
         assertNull(normalized.getCloudProviderType());
+    }
+
+    @Test
+    public void testPhysicalClassification() {
+        InventoryHostFacts physical = createRhsmHost(Arrays.asList(12), 12, 2, null, clock.now());
+        NormalizedFacts facts = normalizer.normalize(physical, new HashMap<>());
+        assertClassification(facts, false, true, false);
+    }
+
+    @Test
+    public void testGuestWithMappedHypervisorClassification() {
+        InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1, 12, 3);
+
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(guestWithMappedHypervisor.getHypervisorUuid(),
+            guestWithMappedHypervisor.getHypervisorUuid());
+
+        NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, mappedHypervisors);
+        assertClassification(facts, false, false, true);
+    }
+
+    @Test
+    public void testGuestWithUnmappedHypervisorClassification() {
+        InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1, 12, 3);
+
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(guestWithMappedHypervisor.getHypervisorUuid(), null);
+
+        NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, mappedHypervisors);
+        assertClassification(facts, false, true, true);
+    }
+
+    @Test
+    public void testGuestWithNullHypIdIsUnmappedHypervisorClassification() {
+        InventoryHostFacts guestWithMappedHypervisor = createGuest(null, "A1", "O1", 1, 12, 3);
+
+        NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, new HashMap<>());
+        assertClassification(facts, false, true, true);
+    }
+
+    @Test
+    public void testHypervisorClassificationWhenMapped() {
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1, 12, 3);
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
+
+        NormalizedFacts facts = normalizer.normalize(hypervisor, mappedHypervisors);
+        assertClassification(facts, true, true, false);
+    }
+
+    @Test
+    public void testHypervisorClassificationWhenUnmapped() {
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1, 12, 3);
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(hypervisor.getSubscriptionManagerId(), null);
+
+        NormalizedFacts facts = normalizer.normalize(hypervisor, mappedHypervisors);
+        assertClassification(facts, true, true, false);
+    }
+
+    private void assertClassification(NormalizedFacts check, boolean isHypervisor,
+        boolean isHypervisorUnknown, boolean isVirtual) {
+        assertEquals(isHypervisor, check.isHypervisor());
+        assertEquals(isHypervisorUnknown, check.isHypervisorUnknown());
+        assertEquals(isVirtual, check.isVirtual());
     }
 }

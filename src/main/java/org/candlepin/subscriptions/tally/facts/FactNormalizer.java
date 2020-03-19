@@ -25,11 +25,12 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
-import org.candlepin.subscriptions.tally.ClassifiedInventoryHostFacts;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -72,9 +73,11 @@ public class FactNormalizer {
      * @param hostFacts the collection of facts to normalize.
      * @return a normalized version of the host's facts.
      */
-    public NormalizedFacts normalize(ClassifiedInventoryHostFacts hostFacts) {
+    public NormalizedFacts normalize(InventoryHostFacts hostFacts,
+        Map<String, String> reportedHypervisors) {
+
         NormalizedFacts normalizedFacts = new NormalizedFacts();
-        normalizeClassification(normalizedFacts, hostFacts);
+        normalizeClassification(normalizedFacts, hostFacts, reportedHypervisors);
         normalizeSystemProfileFacts(normalizedFacts, hostFacts);
         normalizeRhsmFacts(normalizedFacts, hostFacts);
         normalizeQpcFacts(normalizedFacts, hostFacts);
@@ -84,16 +87,24 @@ public class FactNormalizer {
         return normalizedFacts;
     }
 
-    private boolean isVirtual(ClassifiedInventoryHostFacts hostFacts) {
+    private boolean isVirtual(InventoryHostFacts hostFacts) {
         return hostFacts.isVirtual() ||
             "virtual".equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType());
     }
 
     private void normalizeClassification(NormalizedFacts normalizedFacts,
-        ClassifiedInventoryHostFacts hostFacts) {
-        normalizedFacts.setHypervisor(hostFacts.isHypervisor());
-        normalizedFacts.setVirtual(isVirtual(hostFacts));
-        normalizedFacts.setHypervisorUnknown(hostFacts.isHypervisorUnknown());
+        InventoryHostFacts hostFacts, Map<String, String> mappedHypervisors) {
+        boolean isVirtual = isVirtual(hostFacts);
+
+        boolean isHypervisorUnknown = (isVirtual && !StringUtils.hasText(hostFacts.getHypervisorUuid())) ||
+            mappedHypervisors.getOrDefault(hostFacts.getHypervisorUuid(), null) == null;
+
+        boolean isHypervisor = StringUtils.hasText(hostFacts.getSubscriptionManagerId()) &&
+            mappedHypervisors.containsKey(hostFacts.getSubscriptionManagerId());
+
+        normalizedFacts.setHypervisor(isHypervisor);
+        normalizedFacts.setVirtual(isVirtual);
+        normalizedFacts.setHypervisorUnknown(isHypervisorUnknown);
     }
 
     @SuppressWarnings("indentation")
@@ -110,10 +121,9 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeSocketCount(NormalizedFacts normalizedFacts,
-        ClassifiedInventoryHostFacts hostFacts) {
+    private void normalizeSocketCount(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
         // modulo-2 rounding only applied to physical or hypervisors
-        if (hostFacts.isHypervisor() || !isVirtual(hostFacts)) {
+        if (normalizedFacts.isHypervisor() || !isVirtual(hostFacts)) {
             Integer sockets = normalizedFacts.getSockets();
             if (sockets != null && (sockets % 2) == 1) {
                 normalizedFacts.setSockets(sockets + 1);
@@ -133,7 +143,7 @@ public class FactNormalizer {
     }
 
     private void normalizeSystemProfileFacts(NormalizedFacts normalizedFacts,
-        ClassifiedInventoryHostFacts hostFacts) {
+        InventoryHostFacts hostFacts) {
         String cloudProvider = hostFacts.getCloudProvider();
         if (HardwareMeasurementType.isSupportedCloudProvider(cloudProvider)) {
             normalizedFacts.setCloudProviderType(
@@ -166,7 +176,7 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, ClassifiedInventoryHostFacts hostFacts) {
+    private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
         // If the host hasn't been seen by rhsm-conduit, consider the host as unregistered, and do not
         // apply this host's facts.
         //
@@ -204,7 +214,7 @@ public class FactNormalizer {
         }
     }
 
-    private void normalizeQpcFacts(NormalizedFacts normalizedFacts, ClassifiedInventoryHostFacts hostFacts) {
+    private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
         // Check if this is a RHEL host and set product.
         if (hostFacts.getQpcProducts() != null && hostFacts.getQpcProducts().contains("RHEL")) {
             normalizedFacts.addProduct("RHEL");
