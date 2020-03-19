@@ -38,10 +38,11 @@ import java.util.stream.Stream;
  * Interface that Spring Data will turn into a DAO for us.
  */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
-    Page<TallySnapshot>
-        findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
-        String accountNumber, String productId, Granularity granularity, OffsetDateTime beginning,
-        OffsetDateTime ending, Pageable pageable);
+
+    @SuppressWarnings("linelength")
+    Page<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
+        String accountNumber, String productId, Granularity granularity, String serviceLevel,
+        OffsetDateTime beginning, OffsetDateTime ending, Pageable pageable);
 
     @Transactional
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,

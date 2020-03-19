@@ -66,7 +66,7 @@ public class TallySnapshot implements Serializable {
     private String accountNumber;
 
     @Column(name = "sla")
-    private String serviceLevel;
+    private String serviceLevel = "_ANY";
 
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")

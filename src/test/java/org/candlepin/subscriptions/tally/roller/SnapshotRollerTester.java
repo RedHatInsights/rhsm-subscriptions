@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
  * Since the roller tests are very similar, this class provides some common test
  * scenarios.
  */
+@SuppressWarnings("linelength")
 public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     private static final String TEST_PRODUCT = "TEST_PROD";
 
@@ -68,8 +69,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> currentSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
         assertSnapshot(currentSnaps.get(0), a1ProductCalc, granularity);
@@ -83,8 +84,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> currentSnaps = repository
-             .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                 TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                 TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
                  PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
         TallySnapshot toBeUpdated = currentSnaps.get(0);
@@ -97,8 +98,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> updatedSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
 
@@ -130,8 +131,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1HighCalc));
 
         List<TallySnapshot> currentSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
 
@@ -143,8 +144,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1LowCalc));
 
         List<TallySnapshot> updatedSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
 
@@ -164,8 +165,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Collections.singletonList("12345678"), Collections.singletonList(calc));
 
         List<TallySnapshot> currentSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(0, currentSnaps.size());
     }
@@ -175,9 +176,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     }
 
     private AccountUsageCalculation createTestData() {
-        AccountUsageCalculation calc = createAccountCalc("my_account", "O1", TEST_PRODUCT, 12, 24, 6);
-
-        return calc;
+        return createAccountCalc("my_account", "O1", TEST_PRODUCT, 12, 24, 6);
     }
 
     private AccountUsageCalculation createAccountCalc(String account, String owner, String product,

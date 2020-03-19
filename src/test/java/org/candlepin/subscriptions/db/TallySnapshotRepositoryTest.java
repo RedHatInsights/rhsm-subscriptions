@@ -64,23 +64,27 @@ public class TallySnapshotRepositoryTest {
         assertNotNull(saved.getId());
     }
 
+    @SuppressWarnings("linelength")
     @Test
-    public void testFindByAccountNumberAndProduct() {
+    public void findByAccountNumberAndProductIdAndGranularityAndServiceLevel() {
         TallySnapshot t1 = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
         TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
+        TallySnapshot t3 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, "standard", 8888, 888, 88,
+            NOWISH);
 
-        repository.saveAll(Arrays.asList(t1, t2));
+        repository.saveAll(Arrays.asList(t1, t2, t3));
         repository.flush();
 
         List<TallySnapshot> found = repository
-            .findByAccountNumberAndProductIdAndGranularityAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
             "Bugs",
             "Bunny",
             Granularity.DAILY,
+            "standard",
             LONG_AGO,
             FAR_FUTURE,
-            PageRequest.of(0, 10)
-        ).stream().collect(Collectors.toList());
+            PageRequest.of(0, 10))
+            .stream().collect(Collectors.toList());
         assertEquals(1, found.size());
         TallySnapshot snapshot = found.get(0);
         assertEquals("Bugs", snapshot.getAccountNumber());
@@ -89,7 +93,37 @@ public class TallySnapshotRepositoryTest {
         assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
         HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
-        assertEquals(9999, total.getCores());
+        assertEquals(8888, total.getCores());
+    }
+
+    @SuppressWarnings("linelength")
+    @Test
+    public void testFindByEmptyServiceLevel() {
+        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, "", 1111, 111, 11,
+            NOWISH);
+
+        repository.saveAll(Arrays.asList(t1));
+        repository.flush();
+
+        List<TallySnapshot> found = repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
+            "A1",
+            "P1",
+            Granularity.DAILY,
+            "",
+            LONG_AGO,
+            FAR_FUTURE,
+            PageRequest.of(0, 10))
+            .stream().collect(Collectors.toList());
+        assertEquals(1, found.size());
+        TallySnapshot snapshot = found.get(0);
+        assertEquals("A1", snapshot.getAccountNumber());
+        assertEquals("P1", snapshot.getProductId());
+        assertEquals("N/A", snapshot.getOwnerId());
+        assertEquals(NOWISH, found.get(0).getSnapshotDate());
+
+        HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
+        assertEquals(1111, total.getCores());
     }
 
     @Test
@@ -172,6 +206,11 @@ public class TallySnapshotRepositoryTest {
 
     private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
         int cores, int sockets, int instances, OffsetDateTime date) {
+        return createUnpersisted(account, product, granularity, "premium", cores, sockets, instances, date);
+    }
+
+    private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
+        String serviceLevel, int cores, int sockets, int instances, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);
@@ -179,6 +218,7 @@ public class TallySnapshotRepositoryTest {
         tally.setGranularity(granularity);
         tally.setServiceLevel("");
         tally.setSnapshotDate(date);
+        tally.setServiceLevel(serviceLevel);
 
         HardwareMeasurement total = new HardwareMeasurement();
         total.setCores(cores);
