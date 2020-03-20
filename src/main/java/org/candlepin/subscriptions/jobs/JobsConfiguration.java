@@ -26,12 +26,14 @@ import org.candlepin.subscriptions.db.PostgresTlsHikariDataSourceFactoryBean;
 import org.quartz.JobDetail;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
 import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
 import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
@@ -45,6 +47,7 @@ import java.util.Properties;
  */
 @EnableConfigurationProperties(JobProperties.class)
 @Configuration
+@Import(QuartzAutoConfiguration.class)
 @Profile("scheduler")
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class JobsConfiguration {

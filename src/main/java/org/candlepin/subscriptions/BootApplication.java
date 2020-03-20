@@ -22,9 +22,10 @@ package org.candlepin.subscriptions;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
 
 /** Bootstrapper for Spring Boot. */
-@SpringBootApplication
+@SpringBootApplication(exclude = { QuartzAutoConfiguration.class }) // we manually import in scheduler profile
 @SuppressWarnings("checkstyle:hideutilityclassconstructor")
 public class BootApplication {
     public static void main(String[] args) {
