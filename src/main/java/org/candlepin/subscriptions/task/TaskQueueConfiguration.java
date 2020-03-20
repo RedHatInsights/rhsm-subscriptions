@@ -25,10 +25,10 @@ import org.candlepin.subscriptions.task.queue.TaskQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 
 import java.util.concurrent.Executors;
@@ -63,8 +63,7 @@ public class TaskQueueConfiguration {
      * amount of memory available.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "rhsm-subscriptions.tasks", name = "queue", havingValue = "in-memory",
-        matchIfMissing = true)
+    @Profile("in-memory-queue")
     TaskQueue inMemoryQueue(TaskFactory taskFactory) {
         log.info("Configuring an in-memory task queue.");
         return new ExecutorTaskQueue(

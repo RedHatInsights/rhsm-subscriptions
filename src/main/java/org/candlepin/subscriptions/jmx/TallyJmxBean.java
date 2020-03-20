@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.jmx;
 import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
 import org.candlepin.subscriptions.task.TaskManager;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Component;
  * Exposes the ability to trigger a tally for an account from JMX.
  */
 @Component
+@Profile({"in-memory-queue", "kafka-queue", "worker"})
 @ManagedResource
 public class TallyJmxBean {
 

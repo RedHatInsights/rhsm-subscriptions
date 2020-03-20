@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -42,6 +43,7 @@ import java.util.List;
  * method.
  */
 @Component
+@Profile({"in-memory-queue", "kafka-queue", "worker"})
 public class TaskManager {
     private static final Logger log = LoggerFactory.getLogger(TaskManager.class);
 
