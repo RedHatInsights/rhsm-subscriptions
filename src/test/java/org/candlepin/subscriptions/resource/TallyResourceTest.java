@@ -284,6 +284,22 @@ public class TallyResourceTest {
     }
 
     @Test
+    void testEmptySnapshotFilledWithAllZeroes() {
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
+            new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
+
+        assertEquals(0, snapshot.getInstanceCount().intValue());
+        assertEquals(0, snapshot.getCores().intValue());
+        assertEquals(0, snapshot.getSockets().intValue());
+        assertEquals(0, snapshot.getHypervisorInstanceCount().intValue());
+        assertEquals(0, snapshot.getHypervisorCores().intValue());
+        assertEquals(0, snapshot.getHypervisorSockets().intValue());
+        assertEquals(0, snapshot.getCloudInstanceCount().intValue());
+        assertEquals(0, snapshot.getCloudCores().intValue());
+        assertEquals(0, snapshot.getCloudSockets().intValue());
+    }
+
+    @Test
     public void ensureBadRequestExceptionIsThrownWhenAnInvalidSlaParameterIsSpecified() {
         assertThrows(BadRequestException.class, () -> {
             resource.getTallyReport(

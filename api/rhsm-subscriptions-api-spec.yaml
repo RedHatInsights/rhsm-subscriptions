@@ -447,60 +447,72 @@ components:
           type: integer
           format: int32
           minimum: 0
+          default: 0
         cores:
           type: integer
           format: int32
           minimum: 0
+          default: 0
         sockets:
           description: "Total number of sockets calculated from systems matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         physical_instance_count:
           description: "Total number of physical systems matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         physical_cores:
           description: "Total number of cores calculated from physical systems matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         physical_sockets:
           description: "Total number of sockets calculated from physical systems matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         hypervisor_instance_count:
           description: "Total number of hypervisors matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         hypervisor_cores:
           description: "Total number of cores calculated from hypervisors matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         hypervisor_sockets:
           description: "Total number of sockets calculated from hypervisors matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         cloud_instance_count:
           description: "Total number of hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         cloud_cores:
           description: "Total number of cores calculated from hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         cloud_sockets:
           description: "Total number of sockets calculated from hosts running on a public cloud provider, matching the report criteria on the date of this snapshot."
           type: integer
           format: int32
           minimum: 0
+          default: 0
         has_data:
           type: boolean
     CapacityReport:
