@@ -142,6 +142,7 @@ public abstract class InventoryService {
         addFact(rhsmFactMap, "SYSPURPOSE_SLA", conduitFacts.getSysPurposeSla());
         addFact(rhsmFactMap, "SYSPURPOSE_USAGE", conduitFacts.getSysPurposeUsage());
         addFact(rhsmFactMap, "SYSPURPOSE_ADDONS", conduitFacts.getSysPurposeAddons());
+        addFact(rhsmFactMap, "SYSPURPOSE_UNITS", conduitFacts.getSysPurposeUnits());
 
         rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
         return rhsmFactMap;

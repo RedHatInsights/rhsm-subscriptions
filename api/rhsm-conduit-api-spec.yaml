@@ -187,6 +187,8 @@ components:
           type: array
           items:
             type: string
+        sys_purpose_units:
+          type: string
 
     OrgInventory:
       properties:
