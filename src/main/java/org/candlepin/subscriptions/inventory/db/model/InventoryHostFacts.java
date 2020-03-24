@@ -49,6 +49,7 @@ public class InventoryHostFacts {
     private Set<String> systemProfileProductIds;
     private String syspurposeRole;
     private String syspurposeSla;
+    private String syspurposeUnits;
     private String cloudProvider;
     private OffsetDateTime staleTimestamp;
 
@@ -60,7 +61,7 @@ public class InventoryHostFacts {
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
-        String systemProfileProductIds, String syspurposeRole, String syspurposeSla,
+        String systemProfileProductIds, String syspurposeRole, String syspurposeSla, String syspurposeUnits,
         String isVirtual, String hypervisorUuid, String guestId, String subscriptionManagerId,
         String cloudProvider, OffsetDateTime staleTimestamp) {
 
@@ -79,6 +80,7 @@ public class InventoryHostFacts {
         this.systemProfileProductIds = asStringSet(systemProfileProductIds);
         this.syspurposeRole = syspurposeRole;
         this.syspurposeSla = syspurposeSla;
+        this.syspurposeUnits = syspurposeUnits;
         this.isVirtual = asBoolean(isVirtual);
         this.hypervisorUuid = hypervisorUuid;
         this.guestId = guestId;
@@ -277,5 +279,13 @@ public class InventoryHostFacts {
 
     public void setSyspurposeSla(String syspurposeSla) {
         this.syspurposeSla = syspurposeSla;
+    }
+
+    public String getSyspurposeUnits() {
+        return syspurposeUnits;
+    }
+
+    public void setSyspurposeUnits(String syspurposeUnits) {
+        this.syspurposeUnits = syspurposeUnits;
     }
 }
