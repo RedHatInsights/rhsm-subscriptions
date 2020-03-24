@@ -62,9 +62,21 @@ public class TaskManager {
      */
     @SuppressWarnings("indentation")
     public void updateOrgInventory(String orgId) {
+        updateOrgInventory(orgId, null);
+    }
+
+    /**
+     * Initiates a task that will update the inventory of the specified organization's ID.
+     *
+     * @param orgId the ID of the org in which to update.
+     * @param offset the offset to start at
+     */
+    @SuppressWarnings("indentation")
+    public void updateOrgInventory(String orgId, String offset) {
         queue.enqueue(
             TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
                 .setArg("org_id", orgId)
+                .setArg("offset", offset)
                 .build()
         );
     }

@@ -43,7 +43,9 @@ public class ExecutorTaskQueueTest {
 
     @Test
     public void ensureTaskIsExecutedPriorToShutdown() throws InterruptedException {
-        ExecutorTaskQueue queue = new ExecutorTaskQueue(Executors.newCachedThreadPool(), taskFactory);
+        ExecutorTaskQueue queue = new ExecutorTaskQueue();
+        ExecutorTaskProcessor processor = new ExecutorTaskProcessor(Executors.newCachedThreadPool(),
+            taskFactory, queue);
         TaskDescriptor expectedTaskDesc =
             TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, "my-group").build();
         final AtomicBoolean done = new AtomicBoolean();
@@ -51,27 +53,29 @@ public class ExecutorTaskQueueTest {
             done.set(true);
         });
         queue.enqueue(expectedTaskDesc);
-        queue.shutdown(2000, TimeUnit.MILLISECONDS);
+        processor.shutdown(2000, TimeUnit.MILLISECONDS);
         assertTrue(done.get());
     }
 
     @Test
     public void verifyNoExceptionWhenTaskFails() throws InterruptedException {
         AtomicBoolean failed = new AtomicBoolean();
-        ExecutorTaskQueue queue = new ExecutorTaskQueue(Executors.newCachedThreadPool((runnable) -> {
-            Thread thread = new Thread(runnable);
-            thread.setUncaughtExceptionHandler((_thread, throwable) -> {
-                failed.set(true);
-            });
-            return thread;
-        }), taskFactory);
+        ExecutorTaskQueue queue = new ExecutorTaskQueue();
+        ExecutorTaskProcessor processor =
+            new ExecutorTaskProcessor(Executors.newCachedThreadPool((runnable) -> {
+                Thread thread = new Thread(runnable);
+                thread.setUncaughtExceptionHandler((_thread, throwable) -> {
+                    failed.set(true);
+                });
+                return thread;
+            }), taskFactory, queue);
         TaskDescriptor expectedTaskDesc =
             TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, "my-group").build();
         Mockito.when(taskFactory.build(Mockito.any())).thenReturn(() -> {
             throw new RuntimeException("Error!");
         });
         queue.enqueue(expectedTaskDesc);
-        queue.shutdown(2000, TimeUnit.MILLISECONDS);
+        processor.shutdown(2000, TimeUnit.MILLISECONDS);
         assertFalse(failed.get());
     }
 }

@@ -47,7 +47,8 @@ public class TaskFactory {
      */
     public Task build(TaskDescriptor taskDescriptor) {
         if (TaskType.UPDATE_ORG_INVENTORY.equals(taskDescriptor.getTaskType())) {
-            return new UpdateOrgInventoryTask(inventoryController, taskDescriptor.getArg("org_id"));
+            return new UpdateOrgInventoryTask(inventoryController, taskDescriptor.getArg("org_id"),
+                taskDescriptor.getArg("offset"));
         }
         throw new IllegalArgumentException("Could not build task. Unknown task type: " +
             taskDescriptor.getTaskType());

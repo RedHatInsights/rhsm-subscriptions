@@ -21,6 +21,8 @@
 package org.candlepin.insights.task.tasks;
 
 import org.candlepin.insights.controller.InventoryController;
+import org.candlepin.insights.exception.MissingAccountNumberException;
+import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.task.Task;
 
 import org.slf4j.Logger;
@@ -36,16 +38,26 @@ public class UpdateOrgInventoryTask implements Task {
     private static Logger log = LoggerFactory.getLogger(UpdateOrgInventoryTask.class);
 
     private String orgId;
+    private String offset;
     private InventoryController controller;
 
-    public UpdateOrgInventoryTask(InventoryController controller, String orgId) {
+    public UpdateOrgInventoryTask(InventoryController controller, String orgId, String offset) {
         this.orgId = orgId;
+        this.offset = offset;
         this.controller = controller;
     }
 
     @Override
     public void execute() {
-        log.info("Updating inventory for org: {}", orgId);
-        controller.updateInventoryForOrg(orgId);
+        log.info("Updating inventory for org {} with offset {}", orgId, offset);
+        try {
+            controller.updateInventoryForOrg(orgId, offset);
+        }
+        catch (MissingAccountNumberException e) {
+            log.warn("Org {} is missing account number", orgId);
+        }
+        catch (ApiException e) {
+            log.error("Exception calling pinhead", e);
+        }
     }
 }

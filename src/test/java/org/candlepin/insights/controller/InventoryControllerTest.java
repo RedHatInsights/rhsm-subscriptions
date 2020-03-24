@@ -24,14 +24,20 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
+import org.candlepin.insights.exception.MissingAccountNumberException;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.pinhead.PinheadService;
+import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
+import org.candlepin.insights.pinhead.client.model.OrgInventory;
+import org.candlepin.insights.pinhead.client.model.Pagination;
+import org.candlepin.insights.pinhead.client.model.Status;
+import org.candlepin.insights.task.TaskManager;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +55,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -63,6 +68,9 @@ public class InventoryControllerTest {
 
     @MockBean
     DatabaseOrgList orgList;
+
+    @MockBean
+    TaskManager taskManager;
 
     @Autowired
     InventoryController controller;
@@ -79,7 +87,8 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testHostAddedForEachConsumer() {
+    public void testHostAddedForEachConsumer()
+        throws ApiException, MissingAccountNumberException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
@@ -102,8 +111,8 @@ public class InventoryControllerTest {
         expectedFacts2.setAccountNumber("account");
         expectedFacts2.setSubscriptionManagerId(uuid2.toString());
 
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1, consumer2));
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(
+            pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
 
         verify(inventoryService).scheduleHostUpdate(Mockito.eq(expectedFacts1));
@@ -112,7 +121,45 @@ public class InventoryControllerTest {
     }
 
     @Test
-    void testHostSkippedWhenExceptionHappens() {
+    void testHandlesNullNextOffset()
+        throws ApiException, MissingAccountNumberException {
+        Pagination pagination = new Pagination().nextOffset(null);
+        when(pinheadService.getPageOfConsumers("org123", null)).thenReturn(
+            new OrgInventory().feeds(Collections.emptyList()).status(new Status().pagination(pagination))
+        );
+
+        controller.updateInventoryForOrg("org123");
+
+        verifyZeroInteractions(taskManager);
+    }
+
+    @Test
+    void testHandlesEmptyNextOffset()
+        throws ApiException, MissingAccountNumberException {
+        Pagination pagination = new Pagination().nextOffset("");
+        when(pinheadService.getPageOfConsumers("org123", null)).thenReturn(
+            new OrgInventory().feeds(Collections.emptyList()).status(new Status().pagination(pagination))
+        );
+
+        controller.updateInventoryForOrg("org123");
+
+        verifyZeroInteractions(taskManager);
+    }
+
+    private OrgInventory pageOf(Consumer... consumers) {
+        OrgInventory feeds = new OrgInventory().feeds(Arrays.asList(consumers));
+        if (consumers.length > pinheadApiProperties.getRequestBatchSize()) {
+            feeds.status(new Status().pagination(new Pagination().nextOffset("next-offset")));
+        }
+        else {
+            feeds.status(new Status().pagination(new Pagination().nextOffset("")));
+        }
+        return feeds;
+    }
+
+    @Test
+    void testHostSkippedWhenExceptionHappens()
+        throws MissingAccountNumberException, ApiException {
         UUID uuid = UUID.randomUUID();
         Consumer consumer1 = Mockito.mock(Consumer.class);
         Consumer consumer2 = new Consumer();
@@ -121,8 +168,8 @@ public class InventoryControllerTest {
         consumer2.setOrgId("456");
         when(consumer1.getAccountNumber()).thenReturn("account");
         when(consumer1.getFacts()).thenThrow(new RuntimeException("foobar"));
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1, consumer2));
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(
+            pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
 
         ConduitFacts expected = new ConduitFacts();
@@ -134,7 +181,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    void testSkipManifestConsumers() {
+    void testSkipManifestConsumers() throws MissingAccountNumberException, ApiException {
         UUID uuid1 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
         Consumer candlepinConsumer = new Consumer();
@@ -156,8 +203,8 @@ public class InventoryControllerTest {
         samConsumer.setAccountNumber("account");
         samConsumer.setOrgId("456");
         samConsumer.setType("sam");
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1, candlepinConsumer, satelliteConsumer, samConsumer));
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(
+            pageOf(consumer1, candlepinConsumer, satelliteConsumer, samConsumer));
         controller.updateInventoryForOrg("123");
 
         ConduitFacts expected = new ConduitFacts();
@@ -170,7 +217,8 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testShortCircuitsOnMissingAccountNumbers() {
+    public void testShortCircuitsOnMissingAccountNumbers()
+        throws ApiException, MissingAccountNumberException {
         Consumer consumer1 = new Consumer();
         consumer1.setOrgId("123");
         consumer1.setUuid(UUID.randomUUID().toString());
@@ -178,13 +226,16 @@ public class InventoryControllerTest {
         consumer1.setOrgId("123");
         consumer2.setUuid(UUID.randomUUID().toString());
 
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(Arrays.asList(consumer1, consumer2));
-        controller.updateInventoryForOrg("123");
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(pageOf(consumer1, consumer2));
+        assertThrows(MissingAccountNumberException.class, () ->
+            controller.updateInventoryForOrg("123")
+        );
         verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
     }
 
     @Test
-    public void testHandleConsumerWithNoAccountNumber() {
+    public void testHandleConsumerWithNoAccountNumber()
+        throws MissingAccountNumberException, ApiException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
@@ -199,8 +250,8 @@ public class InventoryControllerTest {
         expected.setAccountNumber("account");
         expected.setSubscriptionManagerId(uuid1.toString());
 
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1, consumer2));
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(
+            pageOf(consumer1, consumer2));
 
         controller.updateInventoryForOrg("123");
         verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
@@ -460,7 +511,8 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testUnparseableBiosUuidsAreIgnored() {
+    public void testUnparseableBiosUuidsAreIgnored()
+        throws ApiException, MissingAccountNumberException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
         Consumer consumer1 = new Consumer();
@@ -476,8 +528,8 @@ public class InventoryControllerTest {
         consumer2.setOrgId("456");
         // consumer2 has not
         consumer2.getFacts().put("dmi.system.uuid", "Not present");
-        when(pinheadService.getOrganizationConsumers("456")).thenReturn(
-            Arrays.asList(consumer1, consumer2));
+        when(pinheadService.getPageOfConsumers("456", null)).thenReturn(
+            pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("456");
         ConduitFacts cfacts1 = new ConduitFacts();
         cfacts1.setOrgId("456");
@@ -506,18 +558,19 @@ public class InventoryControllerTest {
     }
 
     @Test
-    void handlesNoRegisteredSystemsWithoutException() {
-        when(pinheadService.getOrganizationConsumers("456")).thenReturn(Collections.emptyList());
+    void handlesNoRegisteredSystemsWithoutException()
+        throws MissingAccountNumberException, ApiException {
+        when(pinheadService.getPageOfConsumers("456", null)).thenReturn(pageOf());
         controller.updateInventoryForOrg("456");
         verify(inventoryService, never()).flushHostUpdates();
     }
 
     @Test
-    void flushesUpdatesInBatches() {
+    void queuesNextPage() throws ApiException, MissingAccountNumberException {
         // Add one to test for off-by-one bugs
         int size = pinheadApiProperties.getRequestBatchSize() * 3 + 1;
         assertThat(size, Matchers.greaterThan(0));
-        List<Consumer> bigCollection = new ArrayList<>(size);
+        ArrayList<Consumer> bigCollection = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             Consumer consumer = new Consumer();
             consumer.setUuid(UUID.randomUUID().toString());
@@ -526,28 +579,30 @@ public class InventoryControllerTest {
             bigCollection.add(consumer);
         }
 
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(bigCollection);
+        when(pinheadService.getPageOfConsumers("123", null))
+            .thenReturn(pageOf(bigCollection.toArray(new Consumer[]{})));
 
         controller.updateInventoryForOrg("123");
-        int expectedBatches = (int) Math.ceil((double) size / pinheadApiProperties.getRequestBatchSize());
-        verify(inventoryService, times(expectedBatches)).flushHostUpdates();
+        verify(inventoryService, times(1)).flushHostUpdates();
+        verify(taskManager, times(1)).updateOrgInventory("123", "next-offset");
     }
 
     @Test
-    void doesNotFilterSystemsWithNoCheckin() {
+    void doesNotFilterSystemsWithNoCheckin()
+        throws ApiException, MissingAccountNumberException {
         Consumer consumer1 = new Consumer();
         consumer1.setOrgId("123");
         consumer1.setUuid(UUID.randomUUID().toString());
         consumer1.setAccountNumber("account");
 
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1));
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(
+            pageOf(consumer1));
         controller.updateInventoryForOrg("123");
         verify(inventoryService, times(1)).scheduleHostUpdate(any(ConduitFacts.class));
     }
 
     @Test
-    void filtersInactiveSystems() {
+    void filtersInactiveSystems() throws ApiException, MissingAccountNumberException {
         Consumer consumer1 = new Consumer();
         consumer1.setOrgId("123");
         consumer1.setUuid(UUID.randomUUID().toString());
@@ -560,14 +615,15 @@ public class InventoryControllerTest {
         consumer2.setAccountNumber("account");
         consumer2.setLastCheckin(OffsetDateTime.now().minus(5, ChronoUnit.YEARS));
 
-        when(pinheadService.getOrganizationConsumers("123")).thenReturn(
-            Arrays.asList(consumer1, consumer2));
+        when(pinheadService.getPageOfConsumers("123", null)).thenReturn(
+            pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
         verify(inventoryService, times(1)).scheduleHostUpdate(any(ConduitFacts.class));
     }
 
     @Test
-    public void testServiceLevelIsAdded() {
+    public void testServiceLevelIsAdded()
+        throws ApiException, MissingAccountNumberException {
         UUID uuid = UUID.randomUUID();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid.toString());
@@ -576,7 +632,7 @@ public class InventoryControllerTest {
 
         consumer.setServiceLevel("Premium");
 
-        when(pinheadService.getOrganizationConsumers("456")).thenReturn(Collections.singletonList(consumer));
+        when(pinheadService.getPageOfConsumers("456", null)).thenReturn(pageOf(consumer));
         controller.updateInventoryForOrg("456");
 
         ConduitFacts cfacts = new ConduitFacts();

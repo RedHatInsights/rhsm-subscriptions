@@ -21,6 +21,8 @@
 package org.candlepin.insights.resource;
 
 import org.candlepin.insights.controller.InventoryController;
+import org.candlepin.insights.exception.MissingAccountNumberException;
+import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.task.TaskManager;
 
 import org.junit.jupiter.api.Test;
@@ -38,10 +40,11 @@ class InventoriesResourceTest {
     TaskManager manager;
 
     @Test
-    void testGetInventoryCallsInventoryController() {
+    void testGetInventoryCallsInventoryController()
+        throws MissingAccountNumberException, ApiException {
         InventoriesResource inventories = new InventoriesResource(controller, manager);
-        inventories.getInventoryForOrg("org-1234");
-        Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"));
+        inventories.getInventoryForOrg("org-1234", null);
+        Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"), Mockito.eq(null));
     }
 
     @Test

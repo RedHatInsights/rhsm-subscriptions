@@ -140,7 +140,9 @@ public class TaskDescriptor {
         }
 
         public TaskDescriptorBuilder setArg(String name, String value) {
-            this.args.put(name, value);
+            if (value != null) {
+                this.args.put(name, value);
+            }
             return this;
         }
 

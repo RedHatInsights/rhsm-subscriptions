@@ -23,12 +23,18 @@ package org.candlepin.insights.resource;
 import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.api.resources.InventoriesApi;
 import org.candlepin.insights.controller.InventoryController;
+import org.candlepin.insights.exception.ErrorCode;
+import org.candlepin.insights.exception.MissingAccountNumberException;
+import org.candlepin.insights.exception.RhsmConduitException;
+import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.task.TaskManager;
 
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import io.micrometer.core.annotation.Timed;
+
+import javax.ws.rs.core.Response;
 
 /**
  * The inventories API implementation.
@@ -47,8 +53,26 @@ public class InventoriesResource implements InventoriesApi {
 
     @Override
     @Timed("rhsm-conduit.get.inventory")
-    public OrgInventory getInventoryForOrg(String orgId) {
-        return inventoryController.getInventoryForOrg(orgId);
+    public OrgInventory getInventoryForOrg(String orgId, String offset) {
+        try {
+            return inventoryController.getInventoryForOrg(orgId, offset);
+        }
+        catch (ApiException e) {
+            throw new RhsmConduitException(
+                ErrorCode.PINHEAD_SERVICE_ERROR,
+                Response.Status.INTERNAL_SERVER_ERROR,
+                String.format("Error while fetching inventory report for orgId %s offset %s", orgId, offset),
+                e
+            );
+        }
+        catch (MissingAccountNumberException e) {
+            throw new RhsmConduitException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                Response.Status.INTERNAL_SERVER_ERROR,
+                String.format("Systems are missing account number in orgId %s", orgId),
+                e
+            );
+        }
     }
 
     @Override

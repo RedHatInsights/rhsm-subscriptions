@@ -64,7 +64,7 @@ public class KafkaTaskQueueTester {
 
         when(factory.build(eq(taskDescriptor))).thenReturn(cdt);
 
-        manager.updateOrgInventory(orgId);
+        manager.updateOrgInventory(orgId, null);
 
         // Wait a max of 5 seconds for the task to be executed
         latch.await(5L, TimeUnit.SECONDS);

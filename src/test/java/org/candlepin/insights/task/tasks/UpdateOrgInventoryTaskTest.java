@@ -23,6 +23,8 @@ package org.candlepin.insights.task.tasks;
 import static org.mockito.BDDMockito.*;
 
 import org.candlepin.insights.controller.InventoryController;
+import org.candlepin.insights.exception.MissingAccountNumberException;
+import org.candlepin.insights.pinhead.client.ApiException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,10 +39,10 @@ public class UpdateOrgInventoryTaskTest {
     private InventoryController controller;
 
     @Test
-    public void testExecute() {
+    public void testExecute() throws MissingAccountNumberException, ApiException {
         String expectedOrg = "my-org";
-        UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg);
+        UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg, null);
         task.execute();
-        Mockito.verify(controller).updateInventoryForOrg(eq(expectedOrg));
+        Mockito.verify(controller).updateInventoryForOrg(eq(expectedOrg), eq(null));
     }
 }
