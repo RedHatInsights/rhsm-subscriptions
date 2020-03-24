@@ -125,7 +125,18 @@ public abstract class InventoryService {
 
     private SystemProfileIn createSystemProfile(ConduitFacts facts) {
         SystemProfileIn systemProfile = new SystemProfileIn();
+        systemProfile.setArch(facts.getArchitecture());
+        systemProfile.setBiosVendor(facts.getBiosVendor());
+        systemProfile.setBiosVersion(facts.getBiosVersion());
+        systemProfile.setCoresPerSocket(facts.getCoresPerSocket());
         systemProfile.setCloudProvider(facts.getCloudProvider());
+        if (facts.getIsVirtual() != null) {
+            systemProfile.setInfrastructureType(
+                Boolean.TRUE.equals(facts.getIsVirtual()) ? "virtual" : "physical"
+            );
+        }
+        systemProfile.setSystemMemoryBytes(facts.getSystemMemoryBytes());
+        systemProfile.setNumberOfSockets(facts.getCpuSockets());
         return systemProfile;
     }
 
