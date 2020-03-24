@@ -143,12 +143,33 @@ public class InventoryController {
         extractNetworkFacts(pinheadFacts, facts);
         extractHardwareFacts(pinheadFacts, facts);
         extractVirtualizationFacts(consumer, pinheadFacts, facts);
+        facts.setCloudProvider(extractCloudProvider(pinheadFacts));
 
         List<String> productIds = consumer.getInstalledProducts().stream()
             .map(installedProduct -> installedProduct.getProductId().toString()).collect(Collectors.toList());
         facts.setRhProd(productIds);
 
         return facts;
+    }
+
+    private String extractCloudProvider(Map<String, String> pinheadFacts) {
+        String assetTag = pinheadFacts.getOrDefault("dmi.chassis.asset_tag", "");
+        String biosVendor = pinheadFacts.getOrDefault("dmi.bios.vendor", "");
+        String biosVersion = pinheadFacts.getOrDefault("dmi.bios.version", "");
+        String systemManufacturer = pinheadFacts.getOrDefault("dmi.system.manufacturer", "");
+        if (assetTag.equals("7783-7084-3265-9085-8269-3286-77")) {
+            return "azure";
+        }
+        else if (biosVendor.toLowerCase().contains("google")) {
+            return "google";
+        }
+        else if (biosVersion.toLowerCase().contains("amazon")) {
+            return "aws";
+        }
+        else if (systemManufacturer.toLowerCase().contains("alibaba")) {
+            return "alibaba";
+        }
+        return null;
     }
 
     private void extractHardwareFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {

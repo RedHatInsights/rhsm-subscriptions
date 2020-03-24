@@ -165,6 +165,8 @@ components:
           format: int64
         architecture:
           type: string
+        cloud_provider:
+          type: string
         is_virtual:
           type: boolean
         vm_host:

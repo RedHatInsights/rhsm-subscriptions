@@ -545,4 +545,68 @@ public class InventoryControllerTest {
         verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts));
         verify(inventoryService, times(1)).flushHostUpdates();
     }
+
+    @Test
+    void testCloudProviderEmptyIfNotDetected() {
+        Consumer consumer = new Consumer();
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertNull(conduitFacts.getCloudProvider());
+    }
+
+    @Test
+    void testDetectsAlibabaHost() {
+        Consumer consumer = new Consumer();
+        Consumer negative = new Consumer();
+        consumer.getFacts().put("dmi.system.manufacturer", "Alibaba Cloud");
+        negative.getFacts().put("dmi.system.manufacturer", "foobar");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("alibaba", conduitFacts.getCloudProvider());
+
+        ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
+        assertNull(conduitFactsNegative.getCloudProvider());
+    }
+
+    @Test
+    void testDetectsAwsHost() {
+        Consumer consumer = new Consumer();
+        Consumer negative = new Consumer();
+        consumer.getFacts().put("dmi.bios.version", "4.2.amazon");
+        negative.getFacts().put("dmi.bios.version", "4.2");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("aws", conduitFacts.getCloudProvider());
+
+        ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
+        assertNull(conduitFactsNegative.getCloudProvider());
+    }
+
+    @Test
+    void testDetectsAzureHost() {
+        Consumer consumer = new Consumer();
+        Consumer negative = new Consumer();
+        consumer.getFacts().put("dmi.chassis.asset_tag", "7783-7084-3265-9085-8269-3286-77");
+        negative.getFacts().put("dmi.chassis.asset_tag", "foobar");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("azure", conduitFacts.getCloudProvider());
+
+        ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
+        assertNull(conduitFactsNegative.getCloudProvider());
+    }
+
+    @Test
+    void testDetectsGoogleHost() {
+        Consumer consumer = new Consumer();
+        Consumer negative = new Consumer();
+        consumer.getFacts().put("dmi.bios.vendor", "Google");
+        negative.getFacts().put("dmi.bios.vendor", "foobar");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("google", conduitFacts.getCloudProvider());
+
+        ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
+        assertNull(conduitFactsNegative.getCloudProvider());
+    }
 }
