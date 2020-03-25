@@ -84,7 +84,25 @@ public class FactNormalizer {
         normalizeSocketCount(normalizedFacts, hostFacts);
         normalizeConflictingOrMissingRhelVariants(normalizedFacts);
         pruneProducts(normalizedFacts);
+        normalizeUnits(normalizedFacts, hostFacts);
         return normalizedFacts;
+    }
+
+    private void normalizeUnits(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+        if (hostFacts.getSyspurposeUnits() == null) {
+            return;
+        }
+        switch (hostFacts.getSyspurposeUnits()) {
+            case "Sockets":
+                normalizedFacts.setCores(0);
+                break;
+            case "Cores/vCPU":
+                normalizedFacts.setSockets(0);
+                break;
+            default:
+                log.warn("Unsupported value on host w/ subscription-manager ID {} for syspurpose units: {}",
+                    hostFacts.getSubscriptionManagerId(), hostFacts.getSyspurposeUnits());
+        }
     }
 
     private boolean isVirtual(InventoryHostFacts hostFacts) {

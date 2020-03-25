@@ -438,6 +438,53 @@ public class FactNormalizerTest {
         assertClassification(facts, true, true, false);
     }
 
+    @Test
+    void testSyspurposeUnitsSockets() {
+        InventoryHostFacts facts = createBaseHost("A1", "O1");
+        facts.setCores(4);
+        facts.setSockets(2);
+        facts.setSyspurposeUnits("Sockets");
+
+        NormalizedFacts normalized = normalizer.normalize(facts, Collections.emptyMap());
+        assertEquals(2, normalized.getSockets().longValue());
+        assertEquals(0, normalized.getCores().longValue());
+    }
+
+    @Test
+    void testSyspurposeUnitsCores() {
+        InventoryHostFacts facts = createBaseHost("A1", "O1");
+        facts.setCores(4);
+        facts.setSockets(2);
+        facts.setSyspurposeUnits("Cores/vCPU");
+
+        NormalizedFacts normalized = normalizer.normalize(facts, Collections.emptyMap());
+        assertEquals(0, normalized.getSockets().longValue());
+        assertEquals(4, normalized.getCores().longValue());
+    }
+
+    @Test
+    void testSyspurposeUnitsUnknown() {
+        InventoryHostFacts facts = createBaseHost("A1", "O1");
+        facts.setCores(4);
+        facts.setSockets(2);
+        facts.setSyspurposeUnits("Foobar");
+
+        NormalizedFacts normalized = normalizer.normalize(facts, Collections.emptyMap());
+        assertEquals(2, normalized.getSockets().longValue());
+        assertEquals(4, normalized.getCores().longValue());
+    }
+
+    @Test
+    void testSyspurposeUnitsUnspecified() {
+        InventoryHostFacts facts = createBaseHost("A1", "O1");
+        facts.setCores(4);
+        facts.setSockets(2);
+
+        NormalizedFacts normalized = normalizer.normalize(facts, Collections.emptyMap());
+        assertEquals(2, normalized.getSockets().longValue());
+        assertEquals(4, normalized.getCores().longValue());
+    }
+
     private void assertClassification(NormalizedFacts check, boolean isHypervisor,
         boolean isHypervisorUnknown, boolean isVirtual) {
         assertEquals(isHypervisor, check.isHypervisor());
