@@ -55,6 +55,7 @@ public class StubPinheadApi extends PinheadApi {
         consumer1.getFacts().put("memory.memtotal", "32757812");
         consumer1.getFacts().put("uname.machine", "x86_64");
         consumer1.getFacts().put("virt.is_guest", "True");
+        consumer1.getFacts().put("ocm.units", "Sockets");
         InstalledProducts product = new InstalledProducts();
         product.setProductId(72L);
         consumer1.getInstalledProducts().add(product);

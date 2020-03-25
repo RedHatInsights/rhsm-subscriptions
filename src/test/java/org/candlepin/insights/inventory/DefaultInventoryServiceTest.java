@@ -71,6 +71,7 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setSysPurposeSla("Premium");
         conduitFacts.setSysPurposeUsage("test_usage");
         conduitFacts.setSysPurposeAddons(Arrays.asList("addon1", "addon2"));
+        conduitFacts.setSysPurposeUnits("Sockets");
         return conduitFacts;
     }
 
@@ -96,6 +97,7 @@ public class DefaultInventoryServiceTest {
         expectedFactMap.put("SYSPURPOSE_SLA", "Premium");
         expectedFactMap.put("SYSPURPOSE_USAGE", "test_usage");
         expectedFactMap.put("SYSPURPOSE_ADDONS", Arrays.asList("addon1", "addon2"));
+        expectedFactMap.put("SYSPURPOSE_UNITS", "Sockets");
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
 
         CreateHostIn expectedHostEntry = new CreateHostIn()

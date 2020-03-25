@@ -216,6 +216,7 @@ public class InventoryControllerTest {
         consumer.getFacts().put("cpu.cpu_socket(s)", "2");
         consumer.getFacts().put("uname.machine", "x86_64");
         consumer.getFacts().put("virt.is_guest", "True");
+        consumer.getFacts().put("ocm.units", "Sockets");
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
@@ -239,6 +240,7 @@ public class InventoryControllerTest {
         assertEquals(new Integer(2), conduitFacts.getCpuSockets());
         assertEquals("x86_64", conduitFacts.getArchitecture());
         assertEquals(true, conduitFacts.getIsVirtual());
+        assertEquals("Sockets", conduitFacts.getSysPurposeUnits());
     }
 
     @Test

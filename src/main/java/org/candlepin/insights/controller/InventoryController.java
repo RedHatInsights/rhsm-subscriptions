@@ -98,6 +98,7 @@ public class InventoryController {
     public static final String UNAME_MACHINE = "uname.machine";
     public static final String VIRT_IS_GUEST = "virt.is_guest";
     public static final String INSIGHTS_ID = "insights_id";
+    public static final String OCM_UNITS = "ocm.units";
     public static final String UNKNOWN = "unknown";
     public static final String TRUE = "True";
     public static final String NONE = "none";
@@ -139,6 +140,7 @@ public class InventoryController {
         facts.setSysPurposeSla(consumer.getServiceLevel());
         facts.setSysPurposeUsage(consumer.getSysPurposeUsage());
         facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
+        facts.setSysPurposeUnits(pinheadFacts.get(OCM_UNITS));
 
         extractNetworkFacts(pinheadFacts, facts);
         extractHardwareFacts(pinheadFacts, facts);
