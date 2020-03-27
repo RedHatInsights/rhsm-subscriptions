@@ -38,8 +38,8 @@ public class WithMockInsightsUserSecurityContextFactory implements
     public SecurityContext createSecurityContext(WithMockRedHatPrincipal annotation) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-        String account = String.format("account%s", annotation.value());
-        String ownerId = String.format("owner%s", annotation.value());
+        String account = annotation.nullifyAccount() ? null : String.format("account%s", annotation.value());
+        String ownerId = annotation.nullifyOwner() ? null : String.format("owner%s", annotation.value());
 
         InsightsUserPrincipal principal = new InsightsUserPrincipal(ownerId, account);
 
