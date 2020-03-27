@@ -21,13 +21,13 @@
 package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.model.config.AccountConfig;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
@@ -41,13 +41,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @SpringBootTest
 @Transactional
 @TestPropertySource("classpath:/test.properties")
-public class AccountConfigRepositoryTest {
+public class OrgConfigRepositoryTest {
 
     @Autowired
-    private AccountConfigRepository repository;
+    private OrgConfigRepository repository;
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
     @Test
@@ -55,38 +56,35 @@ public class AccountConfigRepositoryTest {
         OffsetDateTime creation = clock.now();
         OffsetDateTime expectedUpdate = creation.plusDays(1);
 
-        String account = "test-account";
-        AccountConfig config = new AccountConfig(account);
+        String org = "test-org";
+        OrgConfig config = new OrgConfig(org);
         config.setOptInType(OptInType.JMX);
-        config.setReportingEnabled(true);
         config.setSyncEnabled(true);
         config.setCreated(creation);
         config.setUpdated(expectedUpdate);
 
         repository.saveAndFlush(config);
 
-        AccountConfig found = repository.getOne(account);
+        OrgConfig found = repository.getOne(org);
         assertNotNull(found);
         assertEquals(config, found);
 
-        found.setReportingEnabled(false);
         found.setSyncEnabled(false);
         found.setOptInType(OptInType.API);
         repository.saveAndFlush(found);
 
-        AccountConfig updated = repository.getOne(account);
+        OrgConfig updated = repository.getOne(org);
         assertNotNull(updated);
-        assertEquals(Boolean.FALSE, updated.getReportingEnabled());
         assertEquals(Boolean.FALSE, updated.getSyncEnabled());
         assertEquals(OptInType.API, updated.getOptInType());
     }
 
     @Test
     public void testDelete() {
-        AccountConfig config = createConfig("an-account", true, true);
+        OrgConfig config = createConfig("an-org", true);
         repository.saveAndFlush(config);
 
-        AccountConfig toDelete = repository.getOne(config.getAccountNumber());
+        OrgConfig toDelete = repository.getOne(config.getOrgId());
         assertNotNull(toDelete);
         repository.delete(toDelete);
         repository.flush();
@@ -95,43 +93,27 @@ public class AccountConfigRepositoryTest {
     }
 
     @Test
-    public void testFindAccountsWithEnabledSync() {
+    public void testFindOrgsWithEnabledSync() {
         repository.saveAll(Arrays.asList(
-            createConfig("A1", true, true),
-            createConfig("A2", true, false),
-            createConfig("A3", false, true),
-            createConfig("A4", false, false)
+            createConfig("A1", true),
+            createConfig("A2", true),
+            createConfig("A3", false),
+            createConfig("A4", false)
         ));
         repository.flush();
 
-        List<String> accountsWithSync = repository.findSyncEnabledAccounts().collect(Collectors.toList());
-        assertEquals(2, accountsWithSync.size());
-        assertTrue(accountsWithSync.containsAll(Arrays.asList("A1", "A2")));
+        List<String> orgsWithSync = repository.findSyncEnabledOrgs().collect(Collectors.toList());
+        assertEquals(2, orgsWithSync.size());
+        assertTrue(orgsWithSync.containsAll(Arrays.asList("A1", "A2")));
     }
 
-    @Test
-    public void testIsReportingEnabled() {
-        repository.saveAll(Arrays.asList(
-            createConfig("A1", true, true),
-            createConfig("A2", true, false),
-            createConfig("A3", false, true),
-            createConfig("A4", false, false)
-        ));
-        repository.flush();
-
-        assertTrue(repository.isReportingEnabled("A1"));
-        assertFalse(repository.isReportingEnabled("A2"));
-        assertTrue(repository.isReportingEnabled("A3"));
-        assertFalse(repository.isReportingEnabled("A4"));
-    }
-
-    private AccountConfig createConfig(String account, boolean canSync, boolean canReport) {
-        AccountConfig config = new AccountConfig(account);
+    private OrgConfig createConfig(String org, boolean canSync) {
+        OrgConfig config = new OrgConfig(org);
         config.setOptInType(OptInType.API);
         config.setSyncEnabled(canSync);
-        config.setReportingEnabled(canReport);
         config.setCreated(clock.now());
         config.setUpdated(config.getCreated().plusDays(1));
         return config;
     }
+
 }

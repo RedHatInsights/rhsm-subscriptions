@@ -6,14 +6,11 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <changeSet id="202003261146-1" author="mstead">
-        <comment>Add table for account configuration for tally/conduit</comment>
-        <createTable tableName="account_config">
-            <column name="account_number" type="VARCHAR(32)" />
+    <changeSet id="202003271146-1" author="mstead">
+        <comment>Add table for org based configuration.</comment>
+        <createTable tableName="org_config">
+            <column name="org_id" type="VARCHAR(32)"/>
             <column name="sync_enabled" type="BOOLEAN">
-                <constraints nullable="false" />
-            </column>
-            <column name="reporting_enabled" type="BOOLEAN">
                 <constraints nullable="false" />
             </column>
             <column name="opt_in_type" type="VARCHAR(12)">
@@ -28,10 +25,10 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="202003261146-2" author="mstead">
-        <addPrimaryKey constraintName="acc_num_pkey"
-                       tableName="account_config"
-                       columnNames="account_number"/>
+    <changeSet id="202003271146-2" author="mstead">
+        <addPrimaryKey constraintName="org_id_pkey"
+                       tableName="org_config"
+                       columnNames="org_id"/>
     </changeSet>
 
 </databaseChangeLog>

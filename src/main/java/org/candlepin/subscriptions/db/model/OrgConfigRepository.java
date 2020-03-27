@@ -18,27 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.db.model.config.AccountConfig;
+import org.candlepin.subscriptions.db.model.config.OrgConfig;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.stream.Stream;
 
 /**
- * Defines all operations for storing account config entries.
+ * Defines all operations for storing organization config entries.
  */
-public interface AccountConfigRepository extends JpaRepository<AccountConfig, String> {
+public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
 
-    @Query("select distinct c.accountNumber from AccountConfig c where c.syncEnabled = TRUE")
-    Stream<String> findSyncEnabledAccounts();
-
-    @Query(
-        "select case when count(c) > 0 then true else false end from AccountConfig c " +
-        "where c.accountNumber = :account and c.reportingEnabled = TRUE")
-    boolean isReportingEnabled(@Param("account") String accountNumber);
+    @Query("select distinct c.orgId from OrgConfig c where c.syncEnabled = TRUE")
+    Stream<String> findSyncEnabledOrgs();
 
 }

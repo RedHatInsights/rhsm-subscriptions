@@ -31,23 +31,19 @@ import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-
 /**
- * Represents the configuration properties for an account.
+ * Represents the configuration properties for an organization (owner).
  */
 @Entity
-@Table(name = "account_config")
-public class AccountConfig implements Serializable {
+@Table(name = "org_config")
+public class OrgConfig implements Serializable {
 
     @Id
-    @Column(name = "account_number")
-    private String accountNumber;
+    @Column(name = "org_id")
+    private String orgId;
 
     @Column(name = "sync_enabled")
     private Boolean syncEnabled;
-
-    @Column(name = "reporting_enabled")
-    private Boolean reportingEnabled;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "opt_in_type")
@@ -59,19 +55,19 @@ public class AccountConfig implements Serializable {
     @Column(name = "updated")
     private OffsetDateTime updated;
 
-    public AccountConfig() {
+    public OrgConfig() {
     }
 
-    public AccountConfig(String accountNumber) {
-        this.accountNumber = accountNumber;
+    public OrgConfig(String orgId) {
+        this.orgId = orgId;
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
+    public String getOrgId() {
+        return orgId;
     }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
+    public void setOrgId(String orgId) {
+        this.orgId = orgId;
     }
 
     public Boolean getSyncEnabled() {
@@ -80,14 +76,6 @@ public class AccountConfig implements Serializable {
 
     public void setSyncEnabled(Boolean syncEnabled) {
         this.syncEnabled = syncEnabled;
-    }
-
-    public Boolean getReportingEnabled() {
-        return reportingEnabled;
-    }
-
-    public void setReportingEnabled(Boolean reportingEnabled) {
-        this.reportingEnabled = reportingEnabled;
     }
 
     public OptInType getOptInType() {
@@ -120,14 +108,13 @@ public class AccountConfig implements Serializable {
             return true;
         }
 
-        if (!(o instanceof AccountConfig)) {
+        if (!(o instanceof OrgConfig)) {
             return false;
         }
 
-        AccountConfig that = (AccountConfig) o;
-        return accountNumber.equals(that.accountNumber) &&
+        OrgConfig that = (OrgConfig) o;
+        return orgId.equals(that.orgId) &&
             syncEnabled.equals(that.syncEnabled) &&
-            reportingEnabled.equals(that.reportingEnabled) &&
             optInType == that.optInType &&
             created.equals(that.created) &&
             updated.equals(that.updated);
@@ -135,6 +122,7 @@ public class AccountConfig implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(accountNumber, syncEnabled, reportingEnabled, optInType, created, updated);
+        return Objects.hash(orgId, syncEnabled, optInType, created, updated);
     }
+
 }
