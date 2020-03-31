@@ -20,24 +20,49 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 
-import java.io.IOException;
-import java.util.List;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
+
+import java.util.stream.Stream;
 
 /**
  * Gathers all accounts in the host inventory DB as the list to tally.
  */
 public class DatabaseAccountListSource implements AccountListSource {
 
-    private final InventoryRepository repository;
+    private final AccountConfigRepository repository;
 
-    public DatabaseAccountListSource(InventoryRepository repository) {
+    public DatabaseAccountListSource(AccountConfigRepository repository) {
         this.repository = repository;
     }
 
     @Override
-    public List<String> list() throws IOException {
-        return repository.listAccounts();
+    public Stream<String> syncableAccounts() throws AccountListSourceException {
+        try {
+            return repository.findSyncEnabledAccounts();
+        }
+        catch (Exception e) {
+            throw new AccountListSourceException("Unable to get account sync list!", e);
+        }
+    }
+
+    @Override
+    public boolean containsReportingAccount(String accountNumber) throws AccountListSourceException {
+        try {
+            return repository.isReportingEnabled(accountNumber);
+        }
+        catch (Exception e) {
+            throw new AccountListSourceException("Unable to determine if account was in whitelist.", e);
+        }
+    }
+
+    @Override
+    public Stream<String> purgeReportAccounts() throws AccountListSourceException {
+        try {
+            return repository.findSyncEnabledAccounts();
+        }
+        catch (Exception e) {
+            throw new AccountListSourceException("Unable to get account purge list!", e);
+        }
     }
 }

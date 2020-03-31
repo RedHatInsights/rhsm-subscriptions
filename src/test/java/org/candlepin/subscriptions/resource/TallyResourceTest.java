@@ -29,9 +29,10 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 
@@ -68,7 +69,7 @@ public class TallyResourceTest {
     PageLinkCreator pageLinkCreator;
 
     @MockBean
-    ReportingAccountWhitelist accountWhitelist;
+    AccountListSource accountListSource;
 
     @Autowired
     TallyResource resource;
@@ -77,8 +78,8 @@ public class TallyResourceTest {
     private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
     @BeforeEach
-    public void setupTests() throws IOException {
-        when(accountWhitelist.hasAccount(eq("account123456"))).thenReturn(true);
+    public void setupTests() throws AccountListSourceException {
+        when(accountListSource.containsReportingAccount(eq("account123456"))).thenReturn(true);
     }
 
     @Test

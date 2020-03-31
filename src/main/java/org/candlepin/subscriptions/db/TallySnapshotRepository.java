@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
@@ -44,7 +45,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
         String accountNumber, String productId, Granularity granularity, String serviceLevel,
         OffsetDateTime beginning, OffsetDateTime ending, Pageable pageable);
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
         Granularity granularity, OffsetDateTime cutoffDate);
 

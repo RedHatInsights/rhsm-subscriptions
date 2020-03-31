@@ -26,10 +26,8 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -42,10 +40,6 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
     @Query(nativeQuery = true)
     Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts,
         @Param("culledOffsetDays") Integer culledOffsetDays);
-
-    @Transactional(readOnly = true, transactionManager = "inventoryTransactionManager")
-    @Query("select distinct h.account from InventoryHost h")
-    List<String> listAccounts();
 
     /**
      * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID.

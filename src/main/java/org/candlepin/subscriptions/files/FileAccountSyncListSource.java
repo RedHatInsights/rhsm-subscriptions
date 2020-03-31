@@ -20,33 +20,17 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Test;
-import org.springframework.core.io.FileSystemResourceLoader;
+/**
+ * Reads a set of accounts to sync from a file. Each line is a single account.
+ */
+public class FileAccountSyncListSource extends PerLineFileSource {
 
-import java.util.List;
-
-
-public class FileAccountListSourceTest {
-
-    @Test
-    public void ensureResourcePathComesFromApplicationProperty() throws Exception {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setAccountListResourceLocation("classpath:account_list.txt");
-
-        FileAccountListSource source = new FileAccountListSource(props, new ApplicationClock());
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
-
-        List<String> accountList = source.list();
-        assertEquals(3, accountList.size());
-        assertThat(accountList, Matchers.contains("A1", "A2", "A3"));
+    public FileAccountSyncListSource(ApplicationProperties applicationProperties, ApplicationClock clock) {
+        super(applicationProperties.getAccountListResourceLocation(), clock.getClock(),
+            applicationProperties.getAccountListCacheTtl());
     }
 
 }

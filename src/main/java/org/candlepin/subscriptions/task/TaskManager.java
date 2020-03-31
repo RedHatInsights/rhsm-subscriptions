@@ -22,19 +22,20 @@ package org.candlepin.subscriptions.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-
-import com.google.common.collect.Iterables;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A TaskManager is an injectable component that is responsible for putting tasks into
@@ -81,36 +82,38 @@ public class TaskManager {
      *
      * @throws TaskManagerException
      */
+    @Transactional
     public void updateSnapshotsForAllAccounts() {
-        List<String> accountList;
-        try {
-            accountList = accountListSource.list();
-        }
-        catch (IOException ioe) {
-            throw new TaskManagerException("Could not list accounts for update snapshot task generation",
-                ioe);
-        }
+        final AtomicInteger count = new AtomicInteger();
+        try (Stream<String> accountList = accountListSource.syncableAccounts()) {
+            int accountBatchSize = appProperties.getAccountBatchSize();
+            log.info("Queuing snapshot production in batches of {}.", accountBatchSize);
 
-        int accountBatchSize = appProperties.getAccountBatchSize();
-        log.info("Queuing snapshot production for {} accounts in batches of {}.", accountList.size(),
-            accountBatchSize);
+            accountList
+                .collect(Collectors.groupingBy(a -> count.getAndIncrement() / accountBatchSize))
+                .values()
+                .forEach(accounts -> {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Queuing snapshot updates for accounts: {}", String.join(",", accounts));
+                    }
 
-        for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Queuing snapshot updates for accounts: {}", String.join(",", accounts));
-            }
-
-            try {
-                queue.enqueue(
-                    TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
-                    .setArg("accounts", accounts)
-                    .build()
-                );
-            }
-            catch (Exception e) {
-                log.error("Could not queue snapshot updates for accounts: {}", String.join(",", accounts), e);
-            }
+                    try {
+                        queue.enqueue(
+                            TaskDescriptor
+                            .builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
+                            .setArg("accounts", accounts)
+                            .build()
+                        );
+                    }
+                    catch (Exception e) {
+                        log.error("Could not queue snapshot updates for accounts: {}",
+                            String.join(",", accounts), e);
+                    }
+                });
+            log.info("Done queuing snapshot production for {} accounts.", count);
         }
-        log.info("Done queuing snapshot production for accounts.");
+        catch (AccountListSourceException e) {
+            throw new TaskManagerException("Could not list accounts for update snapshot task generation", e);
+        }
     }
 }

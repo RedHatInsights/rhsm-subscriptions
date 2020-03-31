@@ -20,12 +20,33 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
- * Provides a list of accounts to run Tally against.
+ * Provides account lists to various components of Tally.
  */
 public interface AccountListSource {
-    List<String> list() throws IOException;
+    /**
+     * Get a stream of accounts that should have their data synced.
+     * @return Stream<String> of accounts that should have their data synced.
+     * @throws AccountListSourceException if there is an error processing the data.
+     */
+    Stream<String> syncableAccounts() throws AccountListSourceException;
+
+    /**
+     * Determines if the specified account number is in the reporting list.
+     *
+     * @param accountNumber the account number to check.
+     * @return true if the account is in the list, false otherwise.
+     */
+    boolean containsReportingAccount(String accountNumber) throws AccountListSourceException;
+
+    /**
+     * Get a stream of accounts that should have their data purged according
+     * to the retention policy. Any account not in this list will not have
+     * their data purged.
+     * @return a stream of accounts that should have its report data purged.
+     * @throws AccountListSourceException
+     */
+    Stream<String> purgeReportAccounts() throws AccountListSourceException;
 }
