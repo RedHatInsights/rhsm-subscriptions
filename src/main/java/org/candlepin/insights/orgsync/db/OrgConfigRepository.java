@@ -18,14 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.orgsync;
+package org.candlepin.insights.orgsync.db;
 
-import java.io.IOException;
-import java.util.List;
+import org.candlepin.insights.orgsync.db.model.OrgConfig;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.stream.Stream;
 
 /**
- * A Strategy pattern interface that returns a list of org ids for the {@link OrgSyncJob} to use
+ * Defines all operations for storing organization config entries.
  */
-public interface OrgListStrategy {
-    List<String> getOrgsToSync() throws IOException;
+public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
+
+    @Query("select distinct c.orgId from OrgConfig c where c.syncEnabled = TRUE")
+    Stream<String> findSyncEnabledOrgs();
+
 }

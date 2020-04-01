@@ -178,6 +178,7 @@ dependencies {
     compile "org.webjars:swagger-ui"
     compile "org.apache.commons:commons-csv"
     compile "com.google.guava:guava"
+    compile "org.postgresql:postgresql"
 
     // Test dependencies
     testCompile "org.springframework.kafka:spring-kafka-test"
@@ -185,7 +186,6 @@ dependencies {
     // Runtime deps that will be included in the result package but not on the compile classpath.  I.e.
     // implementations of APIs we are using.
     runtime "org.hsqldb:hsqldb"
-    runtime "org.postgresql:postgresql"
     runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
         exclude group: 'org.hibernate' // exclude older hibernate validator
     }

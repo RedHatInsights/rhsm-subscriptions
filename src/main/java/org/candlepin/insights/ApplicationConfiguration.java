@@ -26,6 +26,7 @@ import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
@@ -38,7 +39,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
@@ -121,15 +121,16 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     // Override the annotations on the DataSourceProperties class itself so that we can read from a custom
     // prefix
-    @Primary
+    @Qualifier("quartz-ds-props")
     @ConfigurationProperties(prefix = "rhsm-conduit.datasource")
     public DataSourceProperties dataSourceProperties() {
         return new DataSourceProperties();
     }
 
     @Bean
+    @Qualifier("quartz-ds")
     @QuartzDataSource
-    public DataSource dataSource(DataSourceProperties dataSourceProperties) {
+    public DataSource dataSource(@Qualifier("quartz-ds-props") DataSourceProperties dataSourceProperties) {
         DataSourceBuilder builder = dataSourceProperties.initializeDataSourceBuilder();
         return builder.build();
     }

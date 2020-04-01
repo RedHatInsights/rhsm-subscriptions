@@ -18,17 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.orgsync.db;
+package org.candlepin.insights;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.candlepin.insights.util.ApplicationClock;
 
-import java.util.List;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
-/**
- * Repository for fetching the list of orgs to sync with rhsm-conduit.
- */
-public interface OrganizationRepository extends JpaRepository<Organization, String> {
-    @Query(value = "select org_id from org_sync_list", nativeQuery = true)
-    List<String> getOrgIdList();
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+
+@TestConfiguration
+public class FixedClockConfiguration {
+
+    @Bean
+    @Primary
+    public ApplicationClock fixedClock() {
+        return new ApplicationClock(Clock.fixed(
+            Instant.from(OffsetDateTime.of(2019, 5, 24, 12, 35, 0, 0, ZoneOffset.UTC)),
+            ZoneId.of("UTC"))
+        );
+    }
+
 }

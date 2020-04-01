@@ -20,25 +20,24 @@
  */
 package org.candlepin.insights.orgsync.db;
 
-import org.candlepin.insights.orgsync.OrgListStrategy;
+import org.candlepin.insights.orgsync.db.model.OrgConfig;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Pulls the list of orgs to sync from a database table.
  *
- * See {@link Organization}.
+ * See {@link OrgConfig}.
  */
-public class DatabaseOrgListStrategy implements OrgListStrategy {
+public class DatabaseOrgListStrategy {
 
-    private final OrganizationRepository repo;
+    private final OrgConfigRepository repo;
 
-    public DatabaseOrgListStrategy(OrganizationRepository repo) {
+    public DatabaseOrgListStrategy(OrgConfigRepository repo) {
         this.repo = repo;
     }
 
-    @Override
-    public List<String> getOrgsToSync() {
-        return repo.getOrgIdList();
+    public Stream<String> getOrgsToSync() {
+        return repo.findSyncEnabledOrgs();
     }
 }

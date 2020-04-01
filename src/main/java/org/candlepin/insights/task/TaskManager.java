@@ -20,8 +20,8 @@
  */
 package org.candlepin.insights.task;
 
-import org.candlepin.insights.orgsync.OrgListStrategy;
 import org.candlepin.insights.orgsync.OrgSyncProperties;
+import org.candlepin.insights.orgsync.db.DatabaseOrgListStrategy;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.quartz.JobExecutionException;
@@ -29,9 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * A TaskManager is an injectable component that is responsible for putting tasks into
@@ -50,7 +50,7 @@ public class TaskManager {
     OrgSyncProperties orgSyncProperties;
 
     @Autowired
-    OrgListStrategy orgListStrategy;
+    DatabaseOrgListStrategy orgListStrategy;
 
     @Autowired
     TaskQueue queue;
@@ -74,28 +74,26 @@ public class TaskManager {
      *
      * @throws JobExecutionException if the org list can't be fetched
      */
-    public void syncFullOrgList() throws IOException {
-        List<String> orgsToSync;
+    @Transactional
+    public void syncFullOrgList() {
+        Stream<String> orgsToSync;
 
         orgsToSync = orgListStrategy.getOrgsToSync();
 
         if (orgSyncProperties.getLimit() != null) {
-            Integer size = orgsToSync.size();
             Integer limit = orgSyncProperties.getLimit();
-            log.info("Fetched {} orgs to sync, but limiting to {}", size, limit);
-            if (limit < size) {
-                orgsToSync = orgsToSync.subList(0, limit);
-            }
+            orgsToSync = orgsToSync.limit(limit);
+            log.info("Limiting orgs to sync to {}", limit);
         }
-        log.info("Starting inventory update for {} orgs", orgsToSync.size());
-        orgsToSync.forEach(org -> {
+        long count = orgsToSync.map(org -> {
             try {
                 updateOrgInventory(org);
             }
             catch (Exception e) {
                 log.error("Could not update inventory for org: {}", org, e);
             }
-        });
-        log.info("Inventory update complete.");
+            return null;
+        }).count();
+        log.info("Inventory update complete, synced {} orgs.", count);
     }
 }
