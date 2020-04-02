@@ -22,5 +22,6 @@
     <include file="liquibase/202003021107-make-tally-sla-non-null.xml"/>
     <include file="liquibase/202003261146-add-table-for-account-config.xml"/>
     <include file="liquibase/202003271146-add-table-for-org-config.xml"/>
+    <include file="liquibase/202004011513-load-org-account-config.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
