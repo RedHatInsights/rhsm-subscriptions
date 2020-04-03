@@ -27,6 +27,7 @@ import org.candlepin.insights.inventory.client.ApiException;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
+import org.candlepin.insights.inventory.client.model.SystemProfileIn;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,7 @@ public class DefaultInventoryServiceTest {
         conduitFacts.setAccountNumber("1234-account");
         conduitFacts.setArchitecture("x86_64");
         conduitFacts.setBiosUuid("9d9f7927-1f42-4827-bbb8-1791b2b0a1b4");
+        conduitFacts.setCloudProvider("cloud");
         conduitFacts.setCpuCores(8);
         conduitFacts.setCpuSockets(4);
         conduitFacts.setFqdn("test.example.com");
@@ -109,7 +111,8 @@ public class DefaultInventoryServiceTest {
             .insightsId("0be977bc-46e9-4d9b-a798-65cd1ed98710")
             .fqdn("test.example.com")
             .facts(Collections.singletonList(expectedFacts))
-            .reporter("rhsm-conduit");
+            .reporter("rhsm-conduit")
+            .systemProfile(new SystemProfileIn().cloudProvider("cloud"));
 
         ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
         Mockito.verify(api).apiHostAddHostList(argument.capture());

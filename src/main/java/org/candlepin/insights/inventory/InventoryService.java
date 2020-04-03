@@ -25,6 +25,7 @@ import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
+import org.candlepin.insights.inventory.client.model.SystemProfileIn;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +118,15 @@ public abstract class InventoryService {
         host.setMacAddresses(facts.getMacAddresses());
         host.setInsightsId(facts.getInsightsId());
 
+        host.setSystemProfile(createSystemProfile(facts));
+
         return host;
+    }
+
+    private SystemProfileIn createSystemProfile(ConduitFacts facts) {
+        SystemProfileIn systemProfile = new SystemProfileIn();
+        systemProfile.setCloudProvider(facts.getCloudProvider());
+        return systemProfile;
     }
 
     public OrgInventory getInventoryForOrgConsumers(List<ConduitFacts> conduitFactsForOrg) {
