@@ -29,11 +29,11 @@ import java.util.stream.Stream;
  *
  * See {@link OrgConfig}.
  */
-public class DatabaseOrgListStrategy {
+public class DatabaseOrgList {
 
     private final OrgConfigRepository repo;
 
-    public DatabaseOrgListStrategy(OrgConfigRepository repo) {
+    public DatabaseOrgList(OrgConfigRepository repo) {
         this.repo = repo;
     }
 

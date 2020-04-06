@@ -21,7 +21,7 @@
 package org.candlepin.insights.task;
 
 import org.candlepin.insights.orgsync.OrgSyncProperties;
-import org.candlepin.insights.orgsync.db.DatabaseOrgListStrategy;
+import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.quartz.JobExecutionException;
@@ -50,7 +50,7 @@ public class TaskManager {
     OrgSyncProperties orgSyncProperties;
 
     @Autowired
-    DatabaseOrgListStrategy orgListStrategy;
+    DatabaseOrgList orgList;
 
     @Autowired
     TaskQueue queue;
@@ -78,7 +78,7 @@ public class TaskManager {
     public void syncFullOrgList() {
         Stream<String> orgsToSync;
 
-        orgsToSync = orgListStrategy.getOrgsToSync();
+        orgsToSync = orgList.getOrgsToSync();
 
         if (orgSyncProperties.getLimit() != null) {
             Integer limit = orgSyncProperties.getLimit();

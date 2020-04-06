@@ -23,7 +23,7 @@ package org.candlepin.insights.task;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
-import org.candlepin.insights.orgsync.db.DatabaseOrgListStrategy;
+import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ public class TaskManagerTest {
     private TaskManager manager;
 
     @MockBean
-    private DatabaseOrgListStrategy orgListStrategy;
+    private DatabaseOrgList orgList;
 
     @Autowired
     private TaskQueueProperties taskQueueProperties;
@@ -61,7 +61,7 @@ public class TaskManagerTest {
     @Test
     public void ensureUpdateIsRunForEachOrg() throws Exception {
         Stream<String> expectedOrgs = Stream.of("org_a", "org_b");
-        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+        when(orgList.getOrgsToSync()).thenReturn(expectedOrgs);
 
         manager.syncFullOrgList();
 
@@ -72,7 +72,7 @@ public class TaskManagerTest {
     @Test
     public void ensureOrgLimitIsEnforced() throws Exception {
         Stream<String> expectedOrgs = Stream.of("org_a", "org_b", "org_c");
-        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+        when(orgList.getOrgsToSync()).thenReturn(expectedOrgs);
 
         manager.syncFullOrgList();
 
@@ -84,7 +84,7 @@ public class TaskManagerTest {
     @Test
     public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
         Stream<String> expectedOrgs = Stream.of("org_a", "org_b");
-        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+        when(orgList.getOrgsToSync()).thenReturn(expectedOrgs);
 
         doThrow(new RuntimeException("Forced!")).when(queue).enqueue(eq(createDescriptor("org_a")));
 
@@ -96,7 +96,7 @@ public class TaskManagerTest {
 
     @Test
     public void ensureNoUpdatesWhenOrgListCanNotBeRetreived() throws Exception {
-        doThrow(new RuntimeException("Forced!")).when(orgListStrategy).getOrgsToSync();
+        doThrow(new RuntimeException("Forced!")).when(orgList).getOrgsToSync();
 
         assertThrows(RuntimeException.class, () -> {
             manager.syncFullOrgList();

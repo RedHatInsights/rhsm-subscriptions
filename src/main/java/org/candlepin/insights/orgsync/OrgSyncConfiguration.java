@@ -20,7 +20,7 @@
  */
 package org.candlepin.insights.orgsync;
 
-import org.candlepin.insights.orgsync.db.DatabaseOrgListStrategy;
+import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.orgsync.db.OrgConfigRepository;
 
 import org.quartz.JobDetail;
@@ -42,8 +42,8 @@ import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 public class OrgSyncConfiguration {
 
     @Bean
-    public DatabaseOrgListStrategy databaseOrgListStrategy(OrgConfigRepository repo) {
-        return new DatabaseOrgListStrategy(repo);
+    public DatabaseOrgList databaseOrgListStrategy(OrgConfigRepository repo) {
+        return new DatabaseOrgList(repo);
     }
 
     @Bean
