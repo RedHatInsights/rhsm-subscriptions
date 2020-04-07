@@ -22,19 +22,21 @@ package org.candlepin.subscriptions.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-
-import com.google.common.collect.Iterables;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * A TaskManager is an injectable component that is responsible for putting tasks into
@@ -81,36 +83,76 @@ public class TaskManager {
      *
      * @throws TaskManagerException
      */
+    @Transactional
     public void updateSnapshotsForAllAccounts() {
-        List<String> accountList;
-        try {
-            accountList = accountListSource.list();
-        }
-        catch (IOException ioe) {
-            throw new TaskManagerException("Could not list accounts for update snapshot task generation",
-                ioe);
-        }
-
         int accountBatchSize = appProperties.getAccountBatchSize();
-        log.info("Queuing snapshot production for {} accounts in batches of {}.", accountList.size(),
-            accountBatchSize);
+        AccountUpdateQueue updateQueue = new AccountUpdateQueue(queue, accountBatchSize);
 
-        for (List<String> accounts : Iterables.partition(accountList, accountBatchSize)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Queuing snapshot updates for accounts: {}", String.join(",", accounts));
+        try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
+            log.info("Queuing snapshot production in batches of {}.", accountBatchSize);
+
+            long count =
+                accountStream.map(account -> {
+                    updateQueue.queue(account);
+                    return 1;
+                }).count();
+
+            // The final group of accounts might have be less than the batch size
+            // and need to be flushed.
+            if (!updateQueue.isEmpty()) {
+                updateQueue.flush();
             }
 
+            log.info("Done queuing snapshot production for {} accounts.", count);
+        }
+        catch (AccountListSourceException e) {
+            throw new TaskManagerException("Could not list accounts for update snapshot task generation", e);
+        }
+    }
+
+    /**
+     * A class that is used to queue up account numbers as they are streamed from the DB
+     * so that they can be sent for updates in the configured batches.
+     */
+    private class AccountUpdateQueue {
+        private int batchSize;
+        private TaskQueue taskQueue;
+        private List<String> queuedAccounts;
+
+        public AccountUpdateQueue(TaskQueue taskQueue, int batchSize) {
+            this.taskQueue = taskQueue;
+            this.batchSize = batchSize;
+            this.queuedAccounts = new LinkedList<>();
+        }
+
+        public void queue(String account) {
+            queuedAccounts.add(account);
+            if (queuedAccounts.size() == batchSize) {
+                flush();
+            }
+        }
+
+        public void flush() {
             try {
-                queue.enqueue(
-                    TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
-                    .setArg("accounts", accounts)
+                taskQueue.enqueue(
+                    TaskDescriptor
+                    .builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
+                    // clone the list so that we can be sure that we don't clear references
+                    // out from under the task queue should delivery be delayed for any reason.
+                    .setArg("accounts", new ArrayList<>(queuedAccounts))
                     .build()
                 );
             }
             catch (Exception e) {
-                log.error("Could not queue snapshot updates for accounts: {}", String.join(",", accounts), e);
+                log.error("Could not queue snapshot updates for accounts: {}",
+                    String.join(",", queuedAccounts), e);
             }
+            queuedAccounts.clear();
         }
-        log.info("Done queuing snapshot production for accounts.");
+
+        public boolean isEmpty() {
+            return queuedAccounts.isEmpty();
+        }
+
     }
 }

@@ -74,7 +74,7 @@ class TallyRetentionControllerTest {
         when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
 
         List<String> testList = Arrays.asList("1", "2", "3", "4");
-        when(accountListSource.list()).thenReturn(testList);
+        when(accountListSource.purgeReportAccounts()).thenReturn(testList.stream());
 
         controller.purgeSnapshots();
 

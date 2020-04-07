@@ -27,9 +27,10 @@ import static org.mockito.Mockito.when;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 
@@ -42,7 +43,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.TestPropertySource;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -66,14 +66,14 @@ class CapacityResourceTest {
     PageLinkCreator pageLinkCreator;
 
     @MockBean
-    ReportingAccountWhitelist accountWhitelist;
+    AccountListSource accountListSource;
 
     @Autowired
     CapacityResource resource;
 
     @BeforeEach
-    public void setupTests() throws IOException {
-        when(accountWhitelist.hasAccount(eq("account123456"))).thenReturn(true);
+    public void setupTests() throws AccountListSourceException {
+        when(accountListSource.containsReportingAccount(eq("account123456"))).thenReturn(true);
     }
 
     @Test

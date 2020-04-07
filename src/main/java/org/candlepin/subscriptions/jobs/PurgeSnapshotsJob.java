@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.jobs;
 
 import org.candlepin.subscriptions.controller.TallyRetentionController;
 import org.candlepin.subscriptions.exception.JobFailureException;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -29,8 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
-
-import java.io.IOException;
 
 /**
  * A quartz job that purges usage snapshots on a configured schedule.
@@ -52,8 +51,8 @@ public class PurgeSnapshotsJob extends QuartzJobBean {
             retentionController.purgeSnapshots();
             log.info("Snapshot purge complete.");
         }
-        catch (IOException e) {
-            throw new JobFailureException("Could not purge snapshots", e);
+        catch (AccountListSourceException e) {
+            throw new JobFailureException("Could not purge snapshots.", e);
         }
     }
 }

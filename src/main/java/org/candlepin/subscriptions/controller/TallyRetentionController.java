@@ -24,12 +24,13 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
-import java.util.List;
+import java.util.stream.Stream;
 
 
 /**
@@ -50,9 +51,11 @@ public class TallyRetentionController {
         this.accountListSource = accountListSource;
     }
 
-    public void purgeSnapshots() throws IOException {
-        List<String> accountList = accountListSource.list();
-        accountList.forEach(this::cleanStaleSnapshotsForAccount);
+    @Transactional
+    public void purgeSnapshots() throws AccountListSourceException {
+        try (Stream<String> accountList = accountListSource.purgeReportAccounts()) {
+            accountList.forEach(this::cleanStaleSnapshotsForAccount);
+        }
     }
 
     public void cleanStaleSnapshotsForAccount(String accountNumber) {

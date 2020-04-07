@@ -20,13 +20,12 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.security.auth.ReportingAdminOnly;
+import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
 
 /**
  * Provides a means to validate that an authentication token has a whitelisted account associated with it.
@@ -37,15 +36,15 @@ import java.io.IOException;
 @Service("reportAccessService")
 public class WhitelistedAccountReportAccessService {
 
-    private ReportingAccountWhitelist whitelistSource;
+    private AccountListSource accountSource;
 
-    public WhitelistedAccountReportAccessService(ReportingAccountWhitelist whitelistSource) {
-        this.whitelistSource = whitelistSource;
+    public WhitelistedAccountReportAccessService(AccountListSource accountSource) {
+        this.accountSource = accountSource;
     }
 
-    public boolean providesAccessTo(Authentication auth) throws IOException {
+    public boolean providesAccessTo(Authentication auth) throws AccountListSourceException {
         InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-        return whitelistSource.hasAccount(principal.getAccountNumber());
+        return this.accountSource.containsReportingAccount(principal.getAccountNumber());
     }
 
 }

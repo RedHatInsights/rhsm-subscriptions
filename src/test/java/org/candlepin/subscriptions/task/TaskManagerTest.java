@@ -30,6 +30,7 @@ import static org.mockito.BDDMockito.verify;
 import static org.mockito.BDDMockito.when;
 
 import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -70,7 +70,7 @@ public class TaskManagerTest {
     @Test
     public void ensureUpdateIsRunForEachAccount() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2");
-        when(accountListSource.list()).thenReturn(expectedAccounts);
+        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
         manager.updateSnapshotsForAllAccounts();
 
@@ -80,7 +80,7 @@ public class TaskManagerTest {
     @Test
     public void ensureAccountListIsPartitionedWhenSendingTaskMessages() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4");
-        when(accountListSource.list()).thenReturn(expectedAccounts);
+        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
         manager.updateSnapshotsForAllAccounts();
 
@@ -90,9 +90,22 @@ public class TaskManagerTest {
     }
 
     @Test
+    public void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
+        List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5");
+        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+
+        manager.updateSnapshotsForAllAccounts();
+
+        // NOTE: Partition size is defined in test.properties
+        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
+        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5"))));
+    }
+
+    @Test
     public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5", "a6");
-        when(accountListSource.list()).thenReturn(expectedAccounts);
+        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
         doThrow(new RuntimeException("Forced!"))
             .when(queue).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
@@ -107,7 +120,8 @@ public class TaskManagerTest {
 
     @Test
     public void ensureNoUpdatesWhenAccountListCanNotBeRetreived() throws Exception {
-        doThrow(new IOException("Forced!")).when(accountListSource).list();
+        doThrow(new AccountListSourceException("Forced!", new RuntimeException()))
+            .when(accountListSource).syncableAccounts();
 
         assertThrows(TaskManagerException.class, () -> {
             manager.updateSnapshotsForAllAccounts();
