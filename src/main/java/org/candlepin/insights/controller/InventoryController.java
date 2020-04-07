@@ -78,6 +78,8 @@ public class InventoryController {
     private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
 
     public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
+    public static final String DMI_BIOS_VERSION = "dmi.bios.version";
+    public static final String DMI_BIOS_VENDOR = "dmi.bios.vendor";
     public static final String MAC_PREFIX = "net.interface.";
     public static final String MAC_SUFFIX = ".mac_address";
 
@@ -156,8 +158,8 @@ public class InventoryController {
 
     private String extractCloudProvider(Map<String, String> pinheadFacts) {
         String assetTag = pinheadFacts.getOrDefault("dmi.chassis.asset_tag", "");
-        String biosVendor = pinheadFacts.getOrDefault("dmi.bios.vendor", "");
-        String biosVersion = pinheadFacts.getOrDefault("dmi.bios.version", "");
+        String biosVendor = pinheadFacts.getOrDefault(DMI_BIOS_VENDOR, "");
+        String biosVersion = pinheadFacts.getOrDefault(DMI_BIOS_VERSION, "");
         String systemManufacturer = pinheadFacts.getOrDefault("dmi.system.manufacturer", "");
         if (assetTag.equals("7783-7084-3265-9085-8269-3286-77")) {
             return "azure";
@@ -186,6 +188,9 @@ public class InventoryController {
             }
         }
 
+        facts.setBiosVersion(pinheadFacts.get(DMI_BIOS_VERSION));
+        facts.setBiosVendor(pinheadFacts.get(DMI_BIOS_VENDOR));
+
         String cpuSockets = pinheadFacts.get(CPU_SOCKETS);
         String coresPerSocket = pinheadFacts.get(CPU_CORES_PER_SOCKET);
         if (!isEmpty(cpuSockets)) {
@@ -196,6 +201,9 @@ public class InventoryController {
                 facts.setCpuCores(numCoresPerSocket * numCpuSockets);
             }
         }
+        if (!isEmpty(coresPerSocket)) {
+            facts.setCoresPerSocket(Integer.parseInt(coresPerSocket));
+        }
 
         String memoryTotal = pinheadFacts.get(MEMORY_MEMTOTAL);
         if (!isEmpty(memoryTotal)) {
@@ -205,6 +213,7 @@ public class InventoryController {
                 long memoryGigabytes = memoryBytes.divide(KIBIBYTES_PER_GIBIBYTE, RoundingMode.CEILING)
                     .longValue();
                 facts.setMemory(memoryGigabytes);
+                facts.setSystemMemoryBytes(memoryBytes.multiply(BYTES_PER_KIBIBYTE).longValue());
             }
             catch (NumberFormatException e) {
                 log.info("Bad memory.memtotal value: {}", memoryTotal);

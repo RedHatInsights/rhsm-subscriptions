@@ -254,6 +254,7 @@ public class InventoryControllerTest {
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
         assertEquals(new Integer(8), conduitFacts.getCpuCores());
+        assertEquals(new Integer(4), conduitFacts.getCoresPerSocket());
     }
 
     @Test
@@ -266,6 +267,7 @@ public class InventoryControllerTest {
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
         assertEquals(new Long(32), conduitFacts.getMemory());
+        assertEquals(new Long(33543999488L), conduitFacts.getSystemMemoryBytes());
     }
 
     @Test
@@ -285,11 +287,12 @@ public class InventoryControllerTest {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
-        consumer.getFacts().put("memory.memtotal", "9223372036854775807.00B");
+        consumer.getFacts().put("memory.memtotal", "33489100800.00B");
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-        assertEquals(new Long(8589934592L), conduitFacts.getMemory());
+        assertEquals(new Long(31L), conduitFacts.getMemory());
+        assertEquals(new Long(33489100800L), conduitFacts.getSystemMemoryBytes());
     }
 
     @Test
@@ -546,6 +549,17 @@ public class InventoryControllerTest {
         cfacts.setSysPurposeSla("Premium");
         verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts));
         verify(inventoryService, times(1)).flushHostUpdates();
+    }
+
+    @Test
+    void testExtractsBiosIdentifiers() {
+        Consumer consumer = new Consumer();
+        consumer.getFacts().put("dmi.bios.version", "1.0.0");
+        consumer.getFacts().put("dmi.bios.vendor", "foobar");
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("1.0.0", conduitFacts.getBiosVersion());
+        assertEquals("foobar", conduitFacts.getBiosVendor());
     }
 
     @Test

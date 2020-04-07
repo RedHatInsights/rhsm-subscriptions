@@ -53,14 +53,18 @@ public class DefaultInventoryServiceTest {
         ConduitFacts conduitFacts = new ConduitFacts();
         conduitFacts.setAccountNumber("1234-account");
         conduitFacts.setArchitecture("x86_64");
+        conduitFacts.setBiosVendor("bios_vendor");
+        conduitFacts.setBiosVersion("bios_version");
         conduitFacts.setBiosUuid("9d9f7927-1f42-4827-bbb8-1791b2b0a1b4");
         conduitFacts.setCloudProvider("cloud");
         conduitFacts.setCpuCores(8);
         conduitFacts.setCpuSockets(4);
+        conduitFacts.setCoresPerSocket(2);
         conduitFacts.setFqdn("test.example.com");
         conduitFacts.setIpAddresses(Collections.singletonList("127.0.0.1"));
         conduitFacts.setMacAddresses(Collections.singletonList("de:ad:be:ef:fe:ed"));
         conduitFacts.setMemory(32757752L);
+        conduitFacts.setSystemMemoryBytes(1024L);
         conduitFacts.setOrgId("1234-org");
         conduitFacts.setRhProd(Collections.singletonList("72"));
         conduitFacts.setSubscriptionManagerId("108152b1-6b41-4e1b-b908-922c943e7950");
@@ -102,6 +106,16 @@ public class DefaultInventoryServiceTest {
         expectedFactMap.put("SYSPURPOSE_UNITS", "Sockets");
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
 
+        SystemProfileIn systemProfile = new SystemProfileIn()
+            .arch("x86_64")
+            .biosVendor("bios_vendor")
+            .biosVersion("bios_version")
+            .cloudProvider("cloud")
+            .coresPerSocket(2)
+            .infrastructureType("virtual")
+            .systemMemoryBytes(1024L)
+            .numberOfSockets(4);
+
         CreateHostIn expectedHostEntry = new CreateHostIn()
             .account("1234-account")
             .biosUuid("9d9f7927-1f42-4827-bbb8-1791b2b0a1b4")
@@ -112,7 +126,7 @@ public class DefaultInventoryServiceTest {
             .fqdn("test.example.com")
             .facts(Collections.singletonList(expectedFacts))
             .reporter("rhsm-conduit")
-            .systemProfile(new SystemProfileIn().cloudProvider("cloud"));
+            .systemProfile(systemProfile);
 
         ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
         Mockito.verify(api).apiHostAddHostList(argument.capture());

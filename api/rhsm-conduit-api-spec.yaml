@@ -141,6 +141,10 @@ components:
           type: string
         account_number:
           type: string
+        bios_vendor:
+          type: string
+        bios_version:
+          type: string
         bios_uuid:
           type: string
         ip_addresses:
@@ -157,10 +161,15 @@ components:
           type: integer
         cpu_cores:
           type: integer
+        cores_per_socket:
+          type: integer
         last_checkin:
           type: string
           format: date-time
         memory:
+          type: integer
+          format: int64
+        system_memory_bytes:
           type: integer
           format: int64
         architecture:
