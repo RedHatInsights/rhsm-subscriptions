@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.controller.OptInController;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.auth.AdminOnly;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.resources.OptInApi;
@@ -67,6 +68,7 @@ public class OptInResource implements OptInApi {
         return controller.optIn(
             validateAccountNumber(),
             validateOrgId(),
+            OptInType.API,
             trueIfNull(enableTallySync),
             trueIfNull(enableTallyReporting),
             trueIfNull(enableConduitSync)
