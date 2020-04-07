@@ -90,6 +90,19 @@ public class TaskManagerTest {
     }
 
     @Test
+    public void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
+        List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5");
+        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+
+        manager.updateSnapshotsForAllAccounts();
+
+        // NOTE: Partition size is defined in test.properties
+        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
+        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5"))));
+    }
+
+    @Test
     public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5", "a6");
         when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());

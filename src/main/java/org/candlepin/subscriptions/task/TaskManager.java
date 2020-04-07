@@ -33,8 +33,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -84,36 +85,74 @@ public class TaskManager {
      */
     @Transactional
     public void updateSnapshotsForAllAccounts() {
-        final AtomicInteger count = new AtomicInteger();
-        try (Stream<String> accountList = accountListSource.syncableAccounts()) {
-            int accountBatchSize = appProperties.getAccountBatchSize();
+        int accountBatchSize = appProperties.getAccountBatchSize();
+        AccountUpdateQueue updateQueue = new AccountUpdateQueue(queue, accountBatchSize);
+
+        try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
             log.info("Queuing snapshot production in batches of {}.", accountBatchSize);
 
-            accountList
-                .collect(Collectors.groupingBy(a -> count.getAndIncrement() / accountBatchSize))
-                .values()
-                .forEach(accounts -> {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Queuing snapshot updates for accounts: {}", String.join(",", accounts));
-                    }
+            long count =
+                accountStream.map(account -> {
+                    updateQueue.queue(account);
+                    return 1;
+                }).count();
 
-                    try {
-                        queue.enqueue(
-                            TaskDescriptor
-                            .builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
-                            .setArg("accounts", accounts)
-                            .build()
-                        );
-                    }
-                    catch (Exception e) {
-                        log.error("Could not queue snapshot updates for accounts: {}",
-                            String.join(",", accounts), e);
-                    }
-                });
+            // The final group of accounts might have be less than the batch size
+            // and need to be flushed.
+            if (!updateQueue.isEmpty()) {
+                updateQueue.flush();
+            }
+
             log.info("Done queuing snapshot production for {} accounts.", count);
         }
         catch (AccountListSourceException e) {
             throw new TaskManagerException("Could not list accounts for update snapshot task generation", e);
         }
+    }
+
+    /**
+     * A class that is used to queue up account numbers as they are streamed from the DB
+     * so that they can be sent for updates in the configured batches.
+     */
+    private class AccountUpdateQueue {
+        private int batchSize;
+        private TaskQueue taskQueue;
+        private List<String> queuedAccounts;
+
+        public AccountUpdateQueue(TaskQueue taskQueue, int batchSize) {
+            this.taskQueue = taskQueue;
+            this.batchSize = batchSize;
+            this.queuedAccounts = new LinkedList<>();
+        }
+
+        public void queue(String account) {
+            queuedAccounts.add(account);
+            if (queuedAccounts.size() == batchSize) {
+                flush();
+            }
+        }
+
+        public void flush() {
+            try {
+                taskQueue.enqueue(
+                    TaskDescriptor
+                    .builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
+                    // clone the list so that we can be sure that we don't clear references
+                    // out from under the task queue should delivery be delayed for any reason.
+                    .setArg("accounts", new ArrayList<>(queuedAccounts))
+                    .build()
+                );
+            }
+            catch (Exception e) {
+                log.error("Could not queue snapshot updates for accounts: {}",
+                    String.join(",", queuedAccounts), e);
+            }
+            queuedAccounts.clear();
+        }
+
+        public boolean isEmpty() {
+            return queuedAccounts.isEmpty();
+        }
+
     }
 }
