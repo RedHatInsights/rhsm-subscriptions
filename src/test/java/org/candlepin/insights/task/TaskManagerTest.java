@@ -23,7 +23,7 @@ package org.candlepin.insights.task;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
-import org.candlepin.insights.orgsync.OrgListStrategy;
+import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.junit.jupiter.api.Test;
@@ -32,9 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.stream.Stream;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -47,7 +45,7 @@ public class TaskManagerTest {
     private TaskManager manager;
 
     @MockBean
-    private OrgListStrategy orgListStrategy;
+    private DatabaseOrgList orgList;
 
     @Autowired
     private TaskQueueProperties taskQueueProperties;
@@ -62,8 +60,8 @@ public class TaskManagerTest {
 
     @Test
     public void ensureUpdateIsRunForEachOrg() throws Exception {
-        List<String> expectedOrgs = Arrays.asList("org_a", "org_b");
-        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+        Stream<String> expectedOrgs = Stream.of("org_a", "org_b");
+        when(orgList.getOrgsToSync()).thenReturn(expectedOrgs);
 
         manager.syncFullOrgList();
 
@@ -73,8 +71,8 @@ public class TaskManagerTest {
 
     @Test
     public void ensureOrgLimitIsEnforced() throws Exception {
-        List<String> expectedOrgs = Arrays.asList("org_a", "org_b", "org_c");
-        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+        Stream<String> expectedOrgs = Stream.of("org_a", "org_b", "org_c");
+        when(orgList.getOrgsToSync()).thenReturn(expectedOrgs);
 
         manager.syncFullOrgList();
 
@@ -85,8 +83,8 @@ public class TaskManagerTest {
 
     @Test
     public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
-        List<String> expectedOrgs = Arrays.asList("org_a", "org_b");
-        when(orgListStrategy.getOrgsToSync()).thenReturn(expectedOrgs);
+        Stream<String> expectedOrgs = Stream.of("org_a", "org_b");
+        when(orgList.getOrgsToSync()).thenReturn(expectedOrgs);
 
         doThrow(new RuntimeException("Forced!")).when(queue).enqueue(eq(createDescriptor("org_a")));
 
@@ -98,9 +96,9 @@ public class TaskManagerTest {
 
     @Test
     public void ensureNoUpdatesWhenOrgListCanNotBeRetreived() throws Exception {
-        doThrow(new IOException("Forced!")).when(orgListStrategy).getOrgsToSync();
+        doThrow(new RuntimeException("Forced!")).when(orgList).getOrgsToSync();
 
-        assertThrows(IOException.class, () -> {
+        assertThrows(RuntimeException.class, () -> {
             manager.syncFullOrgList();
         });
 

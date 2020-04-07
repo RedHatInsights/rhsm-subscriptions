@@ -21,9 +21,10 @@
 package org.candlepin.insights.jmx;
 
 import org.candlepin.insights.controller.InventoryController;
-import org.candlepin.insights.orgsync.db.Organization;
-import org.candlepin.insights.orgsync.db.OrganizationRepository;
+import org.candlepin.insights.orgsync.db.OrgConfigRepository;
+import org.candlepin.insights.orgsync.db.model.OrgConfig;
 import org.candlepin.insights.task.TaskManager;
+import org.candlepin.insights.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,13 +47,16 @@ public class RhsmConduitJmxBean {
     private static final Logger log = LoggerFactory.getLogger(RhsmConduitJmxBean.class);
 
     private final InventoryController controller;
-    private final OrganizationRepository repo;
+    private final OrgConfigRepository repo;
     private final TaskManager tasks;
+    private final ApplicationClock clock;
 
-    RhsmConduitJmxBean(InventoryController controller, OrganizationRepository repo, TaskManager tasks) {
+    RhsmConduitJmxBean(InventoryController controller, OrgConfigRepository repo, TaskManager tasks,
+        ApplicationClock clock) {
         this.controller = controller;
         this.repo = repo;
         this.tasks = tasks;
+        this.clock = clock;
     }
 
     @ManagedOperation(description = "Trigger a sync for a given Org ID")
@@ -80,7 +84,7 @@ public class RhsmConduitJmxBean {
     @ManagedOperation(description = "Add some orgs to the database sync list")
     @ManagedOperationParameter(name = "orgs", description = "comma-separated org list (whitespace ignored)")
     public void addOrgsToSyncList(String orgs) {
-        List<Organization> orgList = extractOrgList(orgs);
+        List<OrgConfig> orgList = extractOrgList(orgs);
 
         log.info("Adding {} orgs to DB sync list", orgList.size());
 
@@ -90,7 +94,7 @@ public class RhsmConduitJmxBean {
     @ManagedOperation(description = "Remove some orgs from the database sync list")
     @ManagedOperationParameter(name = "orgs", description = "comma-separated org list (whitespace ignored)")
     public void removeOrgsFromSyncList(String orgs) {
-        List<Organization> orgList = extractOrgList(orgs);
+        List<OrgConfig> orgList = extractOrgList(orgs);
 
         log.info("Removing {} orgs from DB sync list", orgList.size());
 
@@ -102,11 +106,11 @@ public class RhsmConduitJmxBean {
         return repo.existsById(orgId);
     }
 
-    private List<Organization> extractOrgList(String orgs) {
+    private List<OrgConfig> extractOrgList(String orgs) {
         return Arrays.stream(orgs.split("[, \n]"))
             .map(String::trim)
             .filter(orgId -> !orgId.isEmpty())
-            .map(Organization::new)
+            .map(orgId -> OrgConfig.fromJmx(orgId, clock.now()))
             .collect(Collectors.toList());
     }
 }

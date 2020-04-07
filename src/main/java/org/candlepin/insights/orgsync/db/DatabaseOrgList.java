@@ -20,15 +20,24 @@
  */
 package org.candlepin.insights.orgsync.db;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.candlepin.insights.orgsync.db.model.OrgConfig;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
- * Repository for fetching the list of orgs to sync with rhsm-conduit.
+ * Pulls the list of orgs to sync from a database table.
+ *
+ * See {@link OrgConfig}.
  */
-public interface OrganizationRepository extends JpaRepository<Organization, String> {
-    @Query(value = "select org_id from org_sync_list", nativeQuery = true)
-    List<String> getOrgIdList();
+public class DatabaseOrgList {
+
+    private final OrgConfigRepository repo;
+
+    public DatabaseOrgList(OrgConfigRepository repo) {
+        this.repo = repo;
+    }
+
+    public Stream<String> getOrgsToSync() {
+        return repo.findSyncEnabledOrgs();
+    }
 }

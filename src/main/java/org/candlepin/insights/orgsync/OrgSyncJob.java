@@ -27,8 +27,6 @@ import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
-import java.io.IOException;
-
 /**
  * A job to sync orgs from Pinhead to RHSM Conduit.
  */
@@ -45,8 +43,8 @@ public class OrgSyncJob extends QuartzJobBean {
         try {
             tasks.syncFullOrgList();
         }
-        catch (IOException e) {
-            throw new JobExecutionException("Failed to get the list of orgs to update.", e);
+        catch (Exception e) {
+            throw new JobExecutionException("Failed to sync org list.", e);
         }
     }
 

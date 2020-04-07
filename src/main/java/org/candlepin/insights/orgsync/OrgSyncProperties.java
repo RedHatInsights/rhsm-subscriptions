@@ -31,7 +31,6 @@ import org.springframework.stereotype.Component;
 public class OrgSyncProperties {
     // Default to every 5 minutes
     private String schedule = "0 5 * * * ?";
-    private String strategy = FileBasedOrgListStrategy.class.getSimpleName();
     /** Artificial limit to number of orgs */
     private Integer limit = null;
 
@@ -41,14 +40,6 @@ public class OrgSyncProperties {
 
     public void setSchedule(String schedule) {
         this.schedule = schedule;
-    }
-
-    public String getStrategy() {
-        return strategy;
-    }
-
-    public void setStrategy(String strategy) {
-        this.strategy = strategy;
     }
 
     public Integer getLimit() {

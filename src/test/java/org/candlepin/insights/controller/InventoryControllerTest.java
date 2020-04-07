@@ -26,7 +26,7 @@ import static org.mockito.BDDMockito.*;
 
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
-import org.candlepin.insights.orgsync.OrgListStrategy;
+import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
@@ -59,7 +59,7 @@ public class InventoryControllerTest {
     PinheadService pinheadService;
 
     @MockBean
-    OrgListStrategy orgListStrategy;
+    DatabaseOrgList orgList;
 
     @Autowired
     InventoryController controller;

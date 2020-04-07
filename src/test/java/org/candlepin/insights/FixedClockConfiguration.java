@@ -18,27 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.orgsync.db;
+package org.candlepin.insights;
 
-import org.candlepin.insights.orgsync.OrgListStrategy;
+import org.candlepin.insights.util.ApplicationClock;
 
-import java.util.List;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
-/**
- * Pulls the list of orgs to sync from a database table.
- *
- * See {@link Organization}.
- */
-public class DatabaseOrgListStrategy implements OrgListStrategy {
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
-    private final OrganizationRepository repo;
+@TestConfiguration
+public class FixedClockConfiguration {
 
-    public DatabaseOrgListStrategy(OrganizationRepository repo) {
-        this.repo = repo;
+    @Bean
+    @Primary
+    public ApplicationClock fixedClock() {
+        return new ApplicationClock(Clock.fixed(
+            Instant.from(OffsetDateTime.of(2019, 5, 24, 12, 35, 0, 0, ZoneOffset.UTC)),
+            ZoneId.of("UTC"))
+        );
     }
 
-    @Override
-    public List<String> getOrgsToSync() {
-        return repo.getOrgIdList();
-    }
 }

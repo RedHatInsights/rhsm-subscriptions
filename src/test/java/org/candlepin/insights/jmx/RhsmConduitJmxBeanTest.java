@@ -24,10 +24,12 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.*;
 
+import org.candlepin.insights.FixedClockConfiguration;
 import org.candlepin.insights.controller.InventoryController;
-import org.candlepin.insights.orgsync.db.Organization;
-import org.candlepin.insights.orgsync.db.OrganizationRepository;
+import org.candlepin.insights.orgsync.db.OrgConfigRepository;
+import org.candlepin.insights.orgsync.db.model.OrgConfig;
 import org.candlepin.insights.task.TaskManager;
+import org.candlepin.insights.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,47 +40,51 @@ import java.util.Arrays;
 
 @ExtendWith(MockitoExtension.class)
 class RhsmConduitJmxBeanTest {
+    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+
     @Mock
     InventoryController controller;
 
     @Mock
-    OrganizationRepository repo;
+    OrgConfigRepository repo;
 
     @Mock
     TaskManager tasks;
 
     @Test
     void testHandlesCommas() {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks);
+        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1,2,3");
         verify(repo).saveAll(matchOrgs("1", "2", "3"));
     }
 
     @Test
     void testHandlesWhitespace() {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks);
+        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1 2\n3");
         verify(repo).saveAll(matchOrgs("1", "2", "3"));
     }
 
     @Test
     void testHandlesAllDelimitersTogether() {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks);
+        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1,2 3\n4");
         verify(repo).saveAll(matchOrgs("1", "2", "3", "4"));
     }
 
     @Test
     void testHandlesAllDelimitersTogetherInCombination() {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks);
+        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1,\n2 ,3 \n4 ,\n5");
         verify(repo).saveAll(matchOrgs("1", "2", "3", "4", "5"));
     }
 
-    private Iterable<? extends Organization> matchOrgs(String... orgId) {
+    private Iterable<? extends OrgConfig> matchOrgs(String... orgIds) {
         return argThat(
             containsInAnyOrder(
-                Arrays.stream(orgId).map(Organization::new).toArray(Organization[]::new)
+                Arrays.stream(orgIds)
+                    .map(orgId -> OrgConfig.fromJmx(orgId, clock.now()))
+                    .toArray(OrgConfig[]::new)
             )
         );
     }

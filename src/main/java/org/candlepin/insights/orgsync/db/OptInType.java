@@ -18,20 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.orgsync;
 
 /**
- * Settings particular to the FileBasedOrgListStrategy: primarily the file name to use.  Populated via the
- * ConfigurationProperties annotation
+ * Represents how a reporting config entry was created.
  */
-public class FileBasedOrgListStrategyProperties {
-    private String orgResourceLocation;
+package org.candlepin.insights.orgsync.db;
 
-    public String getOrgResourceLocation() {
-        return orgResourceLocation;
-    }
+/**
+ * How the particular account was opted in.
+ */
+public enum OptInType {
+    /**
+     * Manually via the DB itself.
+     */
+    DB,
 
-    public void setOrgResourceLocation(String orgResourceLocation) {
-        this.orgResourceLocation = orgResourceLocation;
-    }
+    /**
+     * Configured via the JMX bean.
+     */
+    JMX,
+
+    /**
+     * Configured by an admin via the API.
+     */
+    API
 }
