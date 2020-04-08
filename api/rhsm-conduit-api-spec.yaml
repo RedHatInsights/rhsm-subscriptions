@@ -33,6 +33,12 @@ paths:
       operationId: getInventoryForOrg
       tags:
         - inventory
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: string
+          description: pinhead pagination offset
       responses:
         '200':
           description: 'The request for inventory data was successful.'

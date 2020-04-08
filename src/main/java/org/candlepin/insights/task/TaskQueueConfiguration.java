@@ -20,8 +20,8 @@
  */
 package org.candlepin.insights.task;
 
+import org.candlepin.insights.task.queue.ExecutorTaskProcessor;
 import org.candlepin.insights.task.queue.ExecutorTaskQueue;
-import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,11 +65,19 @@ public class TaskQueueConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "in-memory",
         matchIfMissing = true)
-    TaskQueue inMemoryQueue(TaskFactory taskFactory) {
+    ExecutorTaskQueue inMemoryQueue() {
         log.info("Configuring an in-memory task queue.");
-        return new ExecutorTaskQueue(
+        return new ExecutorTaskQueue();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "in-memory",
+        matchIfMissing = true)
+    ExecutorTaskProcessor inMemoryQueueProcessor(ExecutorTaskQueue queue, TaskFactory taskFactory) {
+        return new ExecutorTaskProcessor(
             Executors.newFixedThreadPool(taskQueueProperties().getExecutorTaskQueueThreadLimit()),
-            taskFactory
+            taskFactory,
+            queue
         );
     }
 

@@ -21,19 +21,16 @@
 package org.candlepin.insights.controller;
 
 import org.candlepin.insights.api.model.OrgInventory;
+import org.candlepin.insights.exception.MissingAccountNumberException;
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.pinhead.PinheadService;
-import org.candlepin.insights.pinhead.client.PinheadApiProperties;
+import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.pinhead.client.model.Consumer;
+import org.candlepin.insights.task.TaskManager;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Streams;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,10 +46,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -61,6 +56,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
@@ -109,18 +105,17 @@ public class InventoryController {
     private InventoryService inventoryService;
     private PinheadService pinheadService;
     private Validator validator;
-    private PinheadApiProperties pinheadApiProperties;
     private InventoryServiceProperties inventoryServiceProperties;
+    private TaskManager taskManager;
 
     @Autowired
     public InventoryController(InventoryService inventoryService, PinheadService pinheadService,
-        Validator validator, PinheadApiProperties pinheadApiProperties,
-        InventoryServiceProperties inventoryServiceProperties) {
+        Validator validator, InventoryServiceProperties inventoryServiceProperties, TaskManager taskManager) {
         this.inventoryService = inventoryService;
         this.pinheadService = pinheadService;
         this.validator = validator;
-        this.pinheadApiProperties = pinheadApiProperties;
         this.inventoryServiceProperties = inventoryServiceProperties;
+        this.taskManager = taskManager;
     }
 
     private static boolean isEmpty(String value) {
@@ -338,29 +333,64 @@ public class InventoryController {
         }
     }
 
-    public void updateInventoryForOrg(String orgId) {
-        Iterable<List<ConduitFacts>> factsPartitions = Iterables.partition(
-            () -> validateConduitFactsForOrg(orgId), pinheadApiProperties.getRequestBatchSize());
-
-        long total = 0;
-        for (List<ConduitFacts> partition : factsPartitions) {
-            long batch = partition.stream()
-                .filter(this::isHostActive)
-                .map(hostFacts -> {
-                    inventoryService.scheduleHostUpdate(hostFacts);
-                    return 1;
-                })
-                .count();
-            inventoryService.flushHostUpdates();
-            total += batch;
-            log.debug("Finished batch of {} inventory updates for org {}", batch, orgId);
-        }
-        log.info("Host inventory update completed for org {}. Updates: {}", orgId, total);
+    public void updateInventoryForOrg(String orgId) throws MissingAccountNumberException, ApiException {
+        updateInventoryForOrg(orgId, null);
     }
 
-    public OrgInventory getInventoryForOrg(String orgId) {
+    public void updateInventoryForOrg(String orgId, String offset)
+        throws ApiException, MissingAccountNumberException {
+
+        org.candlepin.insights.pinhead.client.model.OrgInventory feedPage = pinheadService.getPageOfConsumers(
+            orgId, offset
+        );
+        Stream<ConduitFacts> facts = validateConduitFactsForOrg(feedPage);
+
+        long updateSize = facts
+            .filter(this::isHostActive)
+            .map(hostFacts -> {
+                inventoryService.scheduleHostUpdate(hostFacts);
+                return 1;
+            })
+            .count();
+        if (updateSize > 0) {
+            inventoryService.flushHostUpdates();
+        }
+        log.debug(
+            "Finished page w/ offset {} of inventory updates for org {}, producing {} updates",
+            offset,
+            orgId,
+            updateSize
+        );
+        Optional<String> nextOffset = getNextOffset(feedPage);
+        if (nextOffset.isPresent()) {
+            log.debug("Queueing up task for next page of org {}", orgId);
+            taskManager.updateOrgInventory(orgId, nextOffset.get());
+        }
+        else {
+            log.info("Host inventory update completed for org {}.", orgId);
+        }
+    }
+
+    private Optional<String> getNextOffset(
+        org.candlepin.insights.pinhead.client.model.OrgInventory feedPage
+    ) {
+        if (feedPage == null ||
+            feedPage.getStatus() == null ||
+            feedPage.getStatus().getPagination() == null ||
+            feedPage.getStatus().getPagination().getNextOffset() == null ||
+            feedPage.getStatus().getPagination().getNextOffset().isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(feedPage.getStatus().getPagination().getNextOffset());
+    }
+
+    public OrgInventory getInventoryForOrg(String orgId, String offset) throws MissingAccountNumberException,
+        ApiException {
+
+        org.candlepin.insights.pinhead.client.model.OrgInventory feedPage = pinheadService
+            .getPageOfConsumers(orgId, offset);
         return inventoryService.getInventoryForOrgConsumers(
-            Lists.newArrayList(validateConduitFactsForOrg(orgId))
+            validateConduitFactsForOrg(feedPage).collect(Collectors.toList())
         );
     }
 
@@ -379,26 +409,29 @@ public class InventoryController {
         return sinceLastCheckin.compareTo(inventoryServiceProperties.getHostLastSyncThreshold()) <= 0;
     }
 
-    private Iterator<ConduitFacts> validateConduitFactsForOrg(String orgId) {
-        PeekingIterator<Consumer> consumerIterator =
-            Iterators.peekingIterator(pinheadService.getOrganizationConsumers(orgId).iterator());
+    private Stream<ConduitFacts> validateConduitFactsForOrg(
+        org.candlepin.insights.pinhead.client.model.OrgInventory feedPage)
+        throws MissingAccountNumberException {
+
+        if (feedPage.getFeeds().isEmpty()) {
+            return Stream.empty();
+        }
 
         // Peek at the first consumer.  If it is missing an account number, that means they all are.  Abort
         // and return an empty stream.  No sense in wasting time looping through everything.
         try {
-            if (StringUtils.isEmpty(consumerIterator.peek().getAccountNumber())) {
-                return Collections.emptyIterator();
+            if (StringUtils.isEmpty(feedPage.getFeeds().get(0).getAccountNumber())) {
+                throw new MissingAccountNumberException();
             }
         }
         catch (NoSuchElementException e) {
-            return Collections.emptyIterator();
+            throw new MissingAccountNumberException();
         }
 
-        return Streams.stream(consumerIterator)
+        return feedPage.getFeeds().stream()
             .map(this::validateConsumer)
             .filter(Optional::isPresent)
-            .map(Optional::get)
-            .iterator();
+            .map(Optional::get);
     }
 
     @SuppressWarnings("indentation")

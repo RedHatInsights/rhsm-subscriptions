@@ -23,6 +23,8 @@ package org.candlepin.insights.pinhead.client;
 import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
 import org.candlepin.insights.pinhead.client.model.OrgInventory;
+import org.candlepin.insights.pinhead.client.model.Pagination;
+import org.candlepin.insights.pinhead.client.model.Status;
 import org.candlepin.insights.pinhead.client.resources.PinheadApi;
 
 import org.slf4j.Logger;
@@ -66,8 +68,13 @@ public class StubPinheadApi extends PinheadApi {
         consumer2.setAccountNumber("ACCOUNT_1");
         consumer2.getFacts().put("network.fqdn", "host2.test.com");
 
-        inventory.getFeeds().add(consumer1);
-        inventory.getFeeds().add(consumer2);
+        if (offset == null) {
+            inventory.getFeeds().add(consumer1);
+            inventory.status(new Status().pagination(new Pagination().nextOffset("next-offset")));
+        }
+        else {
+            inventory.getFeeds().add(consumer2);
+        }
         log.info("Returning canned pinhead response: {}", inventory);
         return inventory;
     }

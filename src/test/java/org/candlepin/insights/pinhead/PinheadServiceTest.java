@@ -26,9 +26,6 @@ import static org.mockito.Mockito.*;
 import org.candlepin.insights.pinhead.client.ApiException;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 import org.candlepin.insights.pinhead.client.model.Consumer;
-import org.candlepin.insights.pinhead.client.model.OrgInventory;
-import org.candlepin.insights.pinhead.client.model.Pagination;
-import org.candlepin.insights.pinhead.client.model.Status;
 import org.candlepin.insights.pinhead.client.resources.PinheadApi;
 
 import org.junit.jupiter.api.Test;
@@ -55,51 +52,6 @@ public class PinheadServiceTest {
     }
 
     @Test
-    public void testPinheadServicePagesConsumers() {
-        Consumer consumer1 = generateConsumer("1");
-        Consumer consumer2 = generateConsumer("2");
-        Consumer consumer3 = generateConsumer("3");
-        Consumer consumer4 = generateConsumer("4");
-        PinheadApi testApi = new PinheadApi() {
-
-            @Override
-            public OrgInventory getConsumersForOrg(String orgId, Integer perPage, String offset)
-                throws ApiException {
-                if (offset == null) {
-                    OrgInventory inventory = new OrgInventory();
-                    inventory.getFeeds().add(consumer1);
-                    inventory.getFeeds().add(consumer2);
-                    Status status = new Status();
-                    Pagination pagination = new Pagination();
-                    pagination.setNextOffset("next");
-                    status.setPagination(pagination);
-                    inventory.setStatus(status);
-                    return inventory;
-                }
-                else {
-                    OrgInventory inventory = new OrgInventory();
-                    inventory.getFeeds().add(consumer3);
-                    inventory.getFeeds().add(consumer4);
-                    Status status = new Status();
-                    Pagination pagination = new Pagination();
-                    pagination.setNextOffset(null);
-                    status.setPagination(pagination);
-                    inventory.setStatus(status);
-                    return inventory;
-                }
-            }
-        };
-        PinheadService service = new PinheadService(new PinheadApiProperties(), testApi, retryTemplate);
-        List<Consumer> consumers = new ArrayList<>();
-        service.getOrganizationConsumers("123").forEach(consumers::add);
-        assertEquals(4, consumers.size());
-        assertEquals(consumer1, consumers.get(0));
-        assertEquals(consumer2, consumers.get(1));
-        assertEquals(consumer3, consumers.get(2));
-        assertEquals(consumer4, consumers.get(3));
-    }
-
-    @Test
     public void testPinheadServiceRetry() throws Exception {
         PinheadApi testApi = Mockito.mock(PinheadApi.class);
         when(
@@ -110,8 +62,8 @@ public class PinheadServiceTest {
         retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
         PinheadService service = new PinheadService(new PinheadApiProperties(), testApi, retryTemplate);
         List<Consumer> consumers = new ArrayList<>();
-        assertThrows(RuntimeException.class,
-            () -> service.getOrganizationConsumers("123").forEach(consumers::add)
+        assertThrows(ApiException.class,
+            () -> consumers.addAll(service.getPageOfConsumers("123", null).getFeeds())
         );
 
         verify(testApi, times(4)).getConsumersForOrg(anyString(), any(Integer.class), nullable(String.class));

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
 import org.candlepin.insights.orgsync.db.DatabaseOrgList;
+import org.candlepin.insights.task.queue.ExecutorTaskProcessor;
 import org.candlepin.insights.task.queue.TaskQueue;
 
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,9 @@ public class TaskManagerTest {
     @MockBean
     private TaskQueue queue;
 
+    @MockBean
+    private ExecutorTaskProcessor processor;
+
     @Autowired
     private TaskManager manager;
 
@@ -53,7 +57,7 @@ public class TaskManagerTest {
     @Test
     public void testUpdateOrgInventory() {
         String expectedOrg = "my-org";
-        manager.updateOrgInventory(expectedOrg);
+        manager.updateOrgInventory(expectedOrg, null);
 
         verify(queue).enqueue(eq(createDescriptor(expectedOrg)));
     }
