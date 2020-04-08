@@ -164,6 +164,7 @@ dependencies {
 
     compile project(":api")
     compile project(":insights-inventory-client")
+    compile project(":rbac-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -286,6 +287,15 @@ project(":insights-inventory-client") {
     }
 }
 
+project(":rbac-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-rbac/stable/docs/source/specs/openapi.json"
+        config_file = "${projectDir}/rbac-client-config.json"
+    }
+}
+
 project(":cloudigrade-client") {
     apply plugin: "org.openapi.generator"
 
@@ -295,7 +305,7 @@ project(":cloudigrade-client") {
     }
 }
 
-configure(subprojects.findAll { it.name == "insights-inventory-client" || it.name == "cloudigrade-client"}) {
+configure(subprojects.findAll { it.name == "insights-inventory-client" || it.name == "cloudigrade-client" || it.name == 'rbac-client'}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 

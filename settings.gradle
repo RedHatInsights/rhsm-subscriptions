@@ -1,2 +1,2 @@
 rootProject.name = 'rhsm-subscriptions'
-include ':api', ':insights-inventory-client', ':cloudigrade-client', 'kafka-schema'
+include ':api', ':insights-inventory-client', ':cloudigrade-client', 'kafka-schema', ':rbac-client'
