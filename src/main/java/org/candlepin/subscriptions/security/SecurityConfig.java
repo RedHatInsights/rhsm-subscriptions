@@ -41,8 +41,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesUserDetailsService;
 
-import java.util.Arrays;
-
 /**
  * Configuration class for Spring Security
  */
@@ -123,6 +121,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http
             .addFilter(identityHeaderAuthenticationFilter(appProps))
             .authenticationProvider(preAuthenticatedAuthenticationProvider())
+            .csrf().disable()
             .exceptionHandling()
                 .accessDeniedHandler(restAccessDeniedHandler())
                 .authenticationEntryPoint(restAuthenticationEntryPoint())
@@ -136,16 +135,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 // ingress security is done via server settings (require ssl cert auth), so permit all here
                 .antMatchers(String.format("/%s/ingress/**", apiPath)).permitAll()
                 .anyRequest().authenticated();
-        if (appProps.isDevMode() || Arrays.asList(env.getActiveProfiles()).contains("capacity-ingress")) {
-            disableCSRF(http);
-        }
     }
-
-    @SuppressWarnings("squid:S4502")
-    private void disableCSRF(HttpSecurity http) throws Exception {
-        // CSRF isn't helpful for the machine-to-machine ingress endpoint
-        http.csrf().disable();
-    }
-
 
 }
