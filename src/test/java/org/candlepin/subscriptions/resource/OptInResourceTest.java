@@ -20,12 +20,13 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.controller.OptInController;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -81,15 +82,25 @@ public class OptInResourceTest {
     @Test
     public void testPut() {
         resource.putOptInConfig(false, false, false);
-        Mockito.verify(controller).optIn(eq("account123456"), eq("owner123456"), eq(Boolean.FALSE),
-            eq(Boolean.FALSE), eq(Boolean.FALSE));
+        Mockito.verify(controller).optIn(
+            eq("account123456"),
+            eq("owner123456"),
+            eq(OptInType.API),
+            eq(Boolean.FALSE),
+            eq(Boolean.FALSE),
+            eq(Boolean.FALSE));
     }
 
     @Test
     public void testPutDefaultsToTrue() {
         resource.putOptInConfig(null, null, null);
-        Mockito.verify(controller).optIn(eq("account123456"), eq("owner123456"), eq(Boolean.TRUE),
-            eq(Boolean.TRUE), eq(Boolean.TRUE));
+        Mockito.verify(controller).optIn(
+            eq("account123456"),
+            eq("owner123456"),
+            eq(OptInType.API),
+            eq(Boolean.TRUE),
+            eq(Boolean.TRUE),
+            eq(Boolean.TRUE));
     }
 
     @Test

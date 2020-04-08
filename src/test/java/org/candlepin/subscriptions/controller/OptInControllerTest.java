@@ -74,7 +74,8 @@ public class OptInControllerTest {
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
         when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        OptInConfig saved = controller.optIn("my-account", "my-org", true, true, true);
+        OptInConfig saved = controller.optIn(
+            "my-account", "my-org", OptInType.API, true, true, true);
         assertNotNull(saved);
         assertNotNull(saved.getData());
         assertNotNull(saved.getMeta());
@@ -111,8 +112,13 @@ public class OptInControllerTest {
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
         when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        OptInConfig modified = controller.optIn(existingAccountConfig.getAccountNumber(),
-            existingOrgConfig.getOrgId(), false, false, false);
+        OptInConfig modified = controller.optIn(
+            existingAccountConfig.getAccountNumber(),
+            existingOrgConfig.getOrgId(),
+            OptInType.API,
+            false,
+            false,
+            false);
 
         assertNotNull(modified);
         assertNotNull(modified.getData());
@@ -152,8 +158,13 @@ public class OptInControllerTest {
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
         when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        OptInConfig saved = controller.optIn(existingAccountConfig.getAccountNumber(), "my-org",
-            false, false, false);
+        OptInConfig saved = controller.optIn(
+            existingAccountConfig.getAccountNumber(),
+            "my-org",
+            OptInType.API,
+            false,
+            false,
+            false);
 
         assertNotNull(saved);
         assertNotNull(saved.getData());
@@ -192,7 +203,13 @@ public class OptInControllerTest {
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
         when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        OptInConfig saved = controller.optIn("my-account", existingOrgConfig.getOrgId(), false, false, false);
+        OptInConfig saved = controller.optIn(
+            "my-account",
+            existingOrgConfig.getOrgId(),
+            OptInType.API,
+            false,
+            false,
+            false);
 
         assertNotNull(saved);
         assertNotNull(saved.getData());

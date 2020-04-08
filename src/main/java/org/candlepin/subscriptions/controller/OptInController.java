@@ -61,11 +61,8 @@ public class OptInController {
     }
 
     @Transactional
-    public OptInConfig optIn(String accountNumber, String orgId, boolean enableTallySync,
+    public OptInConfig optIn(String accountNumber, String orgId, OptInType optInType, boolean enableTallySync,
         boolean enableTallyReporting, boolean enableConduitSync) {
-        // We only set the opt-in type when creating from the API
-        // so we can track how many accounts opted in via the API.
-        OptInType optInType = OptInType.API;
         OffsetDateTime now = clock.now();
 
         Optional<AccountConfig> accountData =
