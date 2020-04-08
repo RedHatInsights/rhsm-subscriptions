@@ -26,6 +26,7 @@ import static org.mockito.BDDMockito.*;
 
 import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
+import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.pinhead.PinheadService;
 import org.candlepin.insights.pinhead.client.PinheadApiProperties;
@@ -33,6 +34,7 @@ import org.candlepin.insights.pinhead.client.model.Consumer;
 import org.candlepin.insights.pinhead.client.model.InstalledProducts;
 
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -66,6 +69,14 @@ public class InventoryControllerTest {
 
     @Autowired
     PinheadApiProperties pinheadApiProperties;
+
+    @MockBean
+    InventoryServiceProperties inventoryServiceProperties;
+
+    @BeforeEach
+    void setup() {
+        when(inventoryServiceProperties.getHostLastSyncThreshold()).thenReturn(Duration.ofHours(24));
+    }
 
     @Test
     public void testHostAddedForEachConsumer() {
@@ -382,6 +393,32 @@ public class InventoryControllerTest {
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
         assertEquals(insightsId, conduitFacts.getInsightsId());
+    }
+
+    @Test
+    void testInsightsIdIsNormalized() {
+        String uuid = UUID.randomUUID().toString();
+        String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("40819041673b443b98765b0a1c2cc1b1", conduitFacts.getInsightsId());
+    }
+
+    @Test
+    void testInsightsIdIsNormalizedWithHyphens() {
+        String uuid = UUID.randomUUID().toString();
+        String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
+        Consumer consumer = new Consumer();
+        consumer.setUuid(uuid);
+        consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
+
+        when(inventoryServiceProperties.isAddUuidHyphens()).thenReturn(true);
+
+        ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+        assertEquals("40819041-673b-443b-9876-5b0a1c2cc1b1", conduitFacts.getInsightsId());
     }
 
     @Test

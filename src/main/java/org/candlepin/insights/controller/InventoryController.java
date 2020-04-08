@@ -110,7 +110,7 @@ public class InventoryController {
     private PinheadService pinheadService;
     private Validator validator;
     private PinheadApiProperties pinheadApiProperties;
-    private Duration hostLastSyncThreshold;
+    private InventoryServiceProperties inventoryServiceProperties;
 
     @Autowired
     public InventoryController(InventoryService inventoryService, PinheadService pinheadService,
@@ -120,7 +120,7 @@ public class InventoryController {
         this.pinheadService = pinheadService;
         this.validator = validator;
         this.pinheadApiProperties = pinheadApiProperties;
-        this.hostLastSyncThreshold = inventoryServiceProperties.getHostLastSyncThreshold();
+        this.inventoryServiceProperties = inventoryServiceProperties;
     }
 
     private static boolean isEmpty(String value) {
@@ -132,7 +132,7 @@ public class InventoryController {
         ConduitFacts facts = new ConduitFacts();
         facts.setOrgId(consumer.getOrgId());
         facts.setSubscriptionManagerId(consumer.getUuid());
-        facts.setInsightsId(pinheadFacts.get(INSIGHTS_ID));
+        facts.setInsightsId(normalizeUuid(pinheadFacts.get(INSIGHTS_ID)));
 
         if (consumer.getLastCheckin() != null) {
             facts.setLastCheckin(Date.from(consumer.getLastCheckin().toInstant()));
@@ -174,6 +174,26 @@ public class InventoryController {
             return "alibaba";
         }
         return null;
+    }
+
+    private String normalizeUuid(String uuid) {
+        if (uuid == null) {
+            return null;
+        }
+        String trimmed = uuid.trim();
+        if (trimmed.contains("-") || !inventoryServiceProperties.isAddUuidHyphens()) {
+            return trimmed;
+        }
+        else {
+            return String.join(
+                "-",
+                trimmed.substring(0,  8),
+                trimmed.substring(8,  12),
+                trimmed.substring(12, 16),
+                trimmed.substring(16, 20),
+                trimmed.substring(20)
+            );
+        }
     }
 
     private void extractHardwareFacts(Map<String, String> pinheadFacts, ConduitFacts facts) {
@@ -356,7 +376,7 @@ public class InventoryController {
         }
 
         Duration sinceLastCheckin = Duration.between(zonedLastCheckin, now);
-        return sinceLastCheckin.compareTo(hostLastSyncThreshold) <= 0;
+        return sinceLastCheckin.compareTo(inventoryServiceProperties.getHostLastSyncThreshold()) <= 0;
     }
 
     private Iterator<ConduitFacts> validateConduitFactsForOrg(String orgId) {

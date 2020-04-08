@@ -36,6 +36,7 @@ public class InventoryServiceProperties {
     private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
     private int apiHostUpdateBatchSize = 50;
     private int staleHostOffsetInDays = 0;
+    private boolean addUuidHyphens = false;
 
     @DurationUnit(ChronoUnit.HOURS)
     private Duration hostLastSyncThreshold = Duration.ofHours(24);
@@ -102,5 +103,13 @@ public class InventoryServiceProperties {
 
     public void setHostLastSyncThreshold(Duration hostLastSyncThreshold) {
         this.hostLastSyncThreshold = hostLastSyncThreshold;
+    }
+
+    public boolean isAddUuidHyphens() {
+        return addUuidHyphens;
+    }
+
+    public void setAddUuidHyphens(boolean addUuidHyphens) {
+        this.addUuidHyphens = addUuidHyphens;
     }
 }
