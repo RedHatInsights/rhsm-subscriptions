@@ -136,7 +136,9 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public SchedulerFactoryBeanCustomizer schedulerFactoryBeanCustomizer(DataSourceProperties properties) {
+    public SchedulerFactoryBeanCustomizer schedulerFactoryBeanCustomizer(
+        @Qualifier("quartz-ds-props") DataSourceProperties properties
+    ) {
         String driverDelegate = "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
         if (properties.getPlatform().startsWith("postgres")) {
             driverDelegate = "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate";
