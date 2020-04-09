@@ -51,9 +51,15 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
     private static Logger log = LoggerFactory.getLogger(AntiCsrfFilter.class);
 
     private final boolean disabled;
+    private final int port;
+    private final String domainSuffix;
+    private final String domainAndPortSuffix;
 
     AntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
         disabled = props.isDevMode() || Arrays.asList(env.getActiveProfiles()).contains("capacity-ingress");
+        port = props.getAntiCsrfPort();
+        domainSuffix = props.getAntiCsrfDomainSuffix();
+        domainAndPortSuffix = String.join(":", domainSuffix, Integer.toString(port));
         if (disabled) {
             log.info("Origin & Referer checking (anti-csrf) disabled.");
         }
@@ -84,11 +90,11 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
             return false;
         }
         URI uri = URI.create(referer);
-        return uri.getHost().endsWith(".redhat.com") && (uri.getPort() == -1 || uri.getPort() == 443);
+        return uri.getHost().endsWith(domainSuffix) && (uri.getPort() == -1 || uri.getPort() == port);
     }
 
     private boolean originMatches(HttpServletRequest request) {
         String origin = request.getHeader("origin");
-        return origin != null && (origin.endsWith(".redhat.com") || origin.endsWith(".redhat.com:443"));
+        return origin != null && (origin.endsWith(domainSuffix) || origin.endsWith(domainAndPortSuffix));
     }
 }

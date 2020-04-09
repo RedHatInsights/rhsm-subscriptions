@@ -110,6 +110,20 @@ public class ApplicationProperties {
      */
     private int cullingOffsetDays = 14;
 
+    /**
+     * Expected domain suffix for origin or referer headers.
+     *
+     * @see org.candlepin.subscriptions.security.AntiCsrfFilter
+     */
+    private String antiCsrfDomainSuffix = ".redhat.com";
+
+    /**
+     * Expected port for origin or referer headers.
+     *
+     * @see org.candlepin.subscriptions.security.AntiCsrfFilter
+     */
+    private int antiCsrfPort = 443;
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
@@ -232,5 +246,21 @@ public class ApplicationProperties {
 
     public void setCullingOffsetDays(int cullingOffsetDays) {
         this.cullingOffsetDays = cullingOffsetDays;
+    }
+
+    public String getAntiCsrfDomainSuffix() {
+        return antiCsrfDomainSuffix;
+    }
+
+    public void setAntiCsrfDomainSuffix(String antiCsrfDomainSuffix) {
+        this.antiCsrfDomainSuffix = antiCsrfDomainSuffix;
+    }
+
+    public int getAntiCsrfPort() {
+        return antiCsrfPort;
+    }
+
+    public void setAntiCsrfPort(int antiCsrfPort) {
+        this.antiCsrfPort = antiCsrfPort;
     }
 }
