@@ -21,3 +21,5 @@
 12:
   - RHEL
   - Satellite 6 Capsule
+6789:
+  - RHEL for x86
