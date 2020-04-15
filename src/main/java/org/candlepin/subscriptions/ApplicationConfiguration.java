@@ -38,7 +38,6 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -65,7 +64,6 @@ import javax.validation.Validator;
 @Configuration
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableRetry
-@EnableConfigurationProperties(ApplicationProperties.class)
 @EnableAspectJAutoProxy
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-subscriptions.properties")

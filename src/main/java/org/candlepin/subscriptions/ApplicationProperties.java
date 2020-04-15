@@ -23,18 +23,36 @@ package org.candlepin.subscriptions;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
+ *
+ * NB: This class must be labeled as a component, not loaded via the EnableConfigurationProperties annotation.
+ * Loading this class as a component gives the bean a formal name.  Using EnableConfigurationProperties
+ * uses a generated name with a hyphen in it.  From the Spring Boot Docs (section 4.2.8 Type-safe
+ * Configuration):
+ *
+ *     When the @ConfigurationProperties bean is registered using configuration property scanning or via
+ *     @EnableConfigurationProperties, the bean has a conventional name: <prefix>-<fqn>, where <prefix> is
+ *     the environment key prefix specified in the @ConfigurationProperties annotation and <fqn> is the fully
+ *     qualified name of the bean. If the annotation does not provide any prefix, only the fully qualified
+ *     name of the bean is used.
+ *
+ * Unfortunately, "<prefix>-<fqn>" has a hyphen in it which means we can't use the bean name in a SpEL
+ * expression: the hyphen is interpreted as a subtraction operator.
  */
+@Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
 
     private boolean prettyPrintJson = false;
 
     private boolean devMode = false;
+
+    private boolean orgAdminRequired = false;
 
     private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
 
@@ -262,5 +280,17 @@ public class ApplicationProperties {
 
     public void setAntiCsrfPort(int antiCsrfPort) {
         this.antiCsrfPort = antiCsrfPort;
+    }
+
+    public boolean isOrgAdminRequired() {
+        return orgAdminRequired;
+    }
+
+    public boolean isOrgAdminOptional() {
+        return !orgAdminRequired;
+    }
+
+    public void setOrgAdminRequired(boolean orgAdminRequired) {
+        this.orgAdminRequired = orgAdminRequired;
     }
 }

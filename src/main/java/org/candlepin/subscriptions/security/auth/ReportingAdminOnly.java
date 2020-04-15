@@ -35,7 +35,8 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole('" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE + "') and " +
+@PreAuthorize("@applicationProperties.isOrgAdminOptional() or " +
+    "hasRole('" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE + "') and " +
     "@reportAccessService.providesAccessTo(authentication)")
 public @interface ReportingAdminOnly {
 }
