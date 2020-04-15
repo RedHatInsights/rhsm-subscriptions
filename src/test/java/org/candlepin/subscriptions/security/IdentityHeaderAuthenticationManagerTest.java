@@ -24,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -43,8 +41,7 @@ class IdentityHeaderAuthenticationManagerTest {
     @MockBean
     PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
-    private IdentityHeaderAuthenticationManager manager =
-        new IdentityHeaderAuthenticationManager(new ObjectMapper());
+    private IdentityHeaderAuthenticationManager manager = new IdentityHeaderAuthenticationManager();
 
     @Test
     public void testMissingOrgId() {

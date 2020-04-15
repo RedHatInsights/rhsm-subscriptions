@@ -21,7 +21,7 @@
 
 package org.candlepin.subscriptions.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -31,19 +31,12 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedC
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.util.StringUtils;
 
-import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
 
 /**
- * This class is in charge of deserializing the bytes from the x-rh-identity header and extracting the
- * account number from them.
+ * This class is responsible for validating the principal. If a valid principal was
+ * found, the request is considered authenticated.
  */
 public class IdentityHeaderAuthenticationManager implements AuthenticationManager {
-
-    private final ObjectMapper mapper;
-
-    public IdentityHeaderAuthenticationManager(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
 
     /**
      * Validates the incoming principal that was extracted from the x-rh-identity header by
@@ -64,7 +57,7 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
         }
         if (StringUtils.isEmpty(principal.getAccountNumber())) {
             throw new PreAuthenticatedCredentialsNotFoundException(
-                RH_IDENTITY_HEADER + " contains no owner ID for the principal"
+                RH_IDENTITY_HEADER + " contains no account number for the principal"
             );
         }
 

@@ -53,6 +53,11 @@ public enum ErrorCode {
     REQUEST_DENIED_ERROR(1003, "Request was denied due to lack of roles/permissions."),
 
     /**
+     * The client's request was denied because opt-in has not yet occurred.
+     */
+    OPT_IN_REQUIRED(1004, "Request was denied since opt-in has not yet occurred."),
+
+    /**
      * An unexpected exception was thrown by the inventory service client.
      */
     INVENTORY_SERVICE_ERROR(2000, "Inventory Service Error"),

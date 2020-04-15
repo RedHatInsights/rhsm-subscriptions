@@ -18,23 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.exception.mapper;
+package org.candlepin.subscriptions.exception;
 
-import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
-import org.springframework.stereotype.Component;
+import org.springframework.security.access.AccessDeniedException;
 
-import javax.ws.rs.ext.Provider;
+import javax.ws.rs.core.Response.Status;
 
 /**
- * An exception mapper used to map all SubscriptionsException to an error repsonse.
+ * An exception that represents an access denied exception in cases where
+ * opt-in is required to access an end-point.
  */
-@Component
-@Provider
-public class SubscriptionsExceptionMapper extends BaseExceptionMapper<SubscriptionsException> {
-    @Override
-    protected Error buildError(SubscriptionsException exception) {
-        return exception.error();
+public class OptInRequiredException extends AccessDeniedException {
+    public OptInRequiredException() {
+        super("Opt-in required.");
+    }
+
+    public Error getError() {
+        return new Error()
+           .code(ErrorCode.OPT_IN_REQUIRED.getCode())
+           .status(String.valueOf(Status.FORBIDDEN.getStatusCode()))
+           .title("Access Denied")
+           .detail(this.getMessage());
     }
 }

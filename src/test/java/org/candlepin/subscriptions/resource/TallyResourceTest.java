@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
@@ -256,7 +257,7 @@ public class TallyResourceTest {
     }
 
     @Test
-    public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() throws IOException {
+    public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
                  Mockito.eq("account123456"),
@@ -313,6 +314,31 @@ public class TallyResourceTest {
                 "foo_sla"
             );
         });
+    }
+
+    @Test
+    @WithMockRedHatPrincipal(value = "123456", roles = {"ROLE_" + RoleProvider.REPORTING_ROLE})
+    public void canReportWithOnlyReportingRole() {
+        Mockito.when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
+                 Mockito.eq("account123456"),
+                 Mockito.eq("product1"),
+                 Mockito.eq(Granularity.DAILY),
+                 Mockito.eq(ServiceLevel.ANY.getValue()),
+                 Mockito.eq(min),
+                 Mockito.eq(max),
+                 Mockito.eq(null)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        resource.getTallyReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            null,
+            null,
+            null
+        );
     }
 
     @Test

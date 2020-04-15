@@ -21,12 +21,16 @@
 
 package org.candlepin.subscriptions.security;
 
+import org.candlepin.insights.rbac.client.RbacApi;
+import org.candlepin.insights.rbac.client.RbacServiceProperties;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.controller.OptInController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -40,6 +44,8 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesUserDetailsService;
+
+import java.util.Arrays;
 
 /**
  * Configuration class for Spring Security
@@ -56,6 +62,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     ConfigurableEnvironment env;
+
+    @Autowired
+    private RbacServiceProperties rbacProps;
+
+    @Autowired
+    private RbacApi rbacApi;
 
     @Override
     public void configure(AuthenticationManagerBuilder auth) {
@@ -76,13 +88,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Bean
     public AuthenticationManager identityHeaderAuthenticationManager() {
-        return new IdentityHeaderAuthenticationManager(mapper);
+        return new IdentityHeaderAuthenticationManager();
     }
 
     @Bean
-    public IdentityHeaderAuthenticationDetailsSource detailsSource(ApplicationProperties appProps) {
+    public IdentityHeaderAuthenticationDetailsSource detailsSource(ApplicationProperties appProps,
+        RbacApi rbackApi, String rbacApplicationName) {
         return new IdentityHeaderAuthenticationDetailsSource(
-            appProps, mapper, identityHeaderAuthoritiesMapper()
+            appProps,
+            identityHeaderAuthoritiesMapper(),
+            rbackApi,
+            rbacApplicationName
         );
     }
 
@@ -93,7 +109,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         filter.setCheckForPrincipalChanges(true);
         filter.setAuthenticationManager(identityHeaderAuthenticationManager());
-        filter.setAuthenticationDetailsSource(detailsSource(appProps));
+        filter.setAuthenticationDetailsSource(
+            detailsSource(appProps, rbacApi, rbacProps.getApplicationName())
+        );
         filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
         filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
         return filter;
@@ -112,6 +130,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public AuthenticationEntryPoint restAuthenticationEntryPoint() {
         return new RestAuthenticationEntryPoint(new IdentityHeaderAuthenticationFailureHandler(mapper));
+    }
+
+    @Bean
+    public FilterRegistrationBean<OptInFilter> optInFilterRegistration(OptInController optInController) {
+        String apiPath = env.getRequiredProperty(
+            "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
+
+        FilterRegistrationBean<OptInFilter> frb = new FilterRegistrationBean<>();
+        frb.setFilter(new OptInFilter(optInController));
+        frb.setUrlPatterns(Arrays.asList(
+            String.format("/%s/capacity/*", apiPath),
+            String.format("/%s/tally/*", apiPath)
+        ));
+        return frb;
     }
 
     @Override

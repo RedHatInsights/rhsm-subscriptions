@@ -33,7 +33,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 
 /**
- * The base class for all rhsm-conduit exception mappers. Its intent is to build the same
+ * The base class for all rhsm-subscription exception mappers. Its intent is to build the same
  * response no matter the exception.
  * @param <T> the throwable that is to be mapped
  */

@@ -22,67 +22,60 @@ package org.candlepin.subscriptions.security;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import org.candlepin.insights.rbac.client.RbacApi;
+import org.candlepin.insights.rbac.client.RbacServiceProperties;
+import org.candlepin.insights.rbac.client.model.Access;
 import org.candlepin.subscriptions.ApplicationProperties;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
 import java.util.Collection;
 
-import javax.servlet.http.HttpServletRequest;
-
-
+@ExtendWith(MockitoExtension.class)
 public class IdentityHeaderAuthenticationDetailsSourceTest {
 
-    // {"identity":{"account_number":"TEST_ACCOUNT", "user":{"is_org_admin":true}}}
-    private final String ADMIN_ONLY =
-        "eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6IlRFU1RfQUNDT1VOVCIsICJ1c2VyIjp7Imlz" +
-        "X29yZ19hZG1pbiI6dHJ1ZX19fQo=";
-
-    // {"identity":{"account_number":"TEST_ACCOUNT", "user":{"is_internal":true}}}
-    private static final String INTERNAL_ONLY =
-        "eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6IlRFU1RfQUNDT1VOVCIsICJ1c2VyIjp7Imlz" +
-        "X2ludGVybmFsIjp0cnVlfX19Cg==";
-
-    // {"identity":{"account_number":"TEST_ACCOUNT"}}
-    public static final String ACCOUNT_ONLY =
-        "eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6IlRFU1RfQUNDT1VOVCJ9fQo=";
+    @Mock
+    private RbacApi rbacApi;
 
     @Test
-    public void testAdminRoleGranted() {
-        assertRoles(ADMIN_ONLY, false, IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE);
-    }
-
-    @Test
-    public void testInternalRoleGranted() {
-        assertRoles(INTERNAL_ONLY, false, IdentityHeaderAuthenticationDetailsSource.INTERNAL_ROLE);
+    public void testAdminRoleGranted() throws Exception {
+        when(rbacApi.getCurrentUserAccess(eq("subscriptions"))).thenReturn(
+            Arrays.asList(new Access().permission("subscriptions:*:*"))
+        );
+        assertRoles(false,
+            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.REPORTING_ROLE);
     }
 
     @Test
     public void testDevModeGrantsAllRoles() {
-        assertRoles(ADMIN_ONLY, true, IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE,
-            IdentityHeaderAuthenticationDetailsSource.INTERNAL_ROLE);
-        assertRoles(INTERNAL_ONLY, true, IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE,
-            IdentityHeaderAuthenticationDetailsSource.INTERNAL_ROLE);
-        assertRoles(ACCOUNT_ONLY, true, IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE,
-            IdentityHeaderAuthenticationDetailsSource.INTERNAL_ROLE);
+        assertRoles(true,
+            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.REPORTING_ROLE);
+        assertRoles(true,
+            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.REPORTING_ROLE);
+        assertRoles(true,
+            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.REPORTING_ROLE);
     }
 
-    private void assertRoles(String identity, boolean devMode, String ... expectedRoles) {
-        HttpServletRequest context = mock(HttpServletRequest.class);
-        when(context.getHeader(IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER)).thenReturn(identity);
-
+    private void assertRoles(boolean devMode, String ... expectedRoles) {
         ApplicationProperties props = new ApplicationProperties();
         props.setDevMode(devMode);
         IdentityHeaderAuthenticationDetailsSource source = new IdentityHeaderAuthenticationDetailsSource(
-            props, new ObjectMapper(), new IdentityHeaderAuthoritiesMapper()
+            props, new IdentityHeaderAuthoritiesMapper(), rbacApi,
+            new RbacServiceProperties().getApplicationName()
         );
-        Collection<String> roles = source.getUserRoles(context);
+        Collection<String> roles = source.getUserRoles();
         assertEquals(expectedRoles.length, roles.size());
         assertThat(roles, Matchers.containsInAnyOrder(expectedRoles));
     }

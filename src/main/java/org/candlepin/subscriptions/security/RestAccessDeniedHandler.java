@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExceptionUtil;
+import org.candlepin.subscriptions.exception.OptInRequiredException;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,6 +57,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
         AccessDeniedException accessDeniedException) throws IOException, ServletException {
+
         Error error = RestAccessDeniedHandler.buildError(accessDeniedException);
         log.error(error.getTitle(), accessDeniedException);
 
@@ -69,6 +71,10 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
     }
 
     public static Error buildError(AccessDeniedException exception) {
+        if (exception instanceof OptInRequiredException) {
+            return ((OptInRequiredException) exception).getError();
+        }
+
         return new Error()
             .code(ErrorCode.REQUEST_DENIED_ERROR.getCode())
             .status(String.valueOf(Status.FORBIDDEN.getStatusCode()))

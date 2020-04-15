@@ -44,5 +44,5 @@ public @interface WithMockRedHatPrincipal {
     boolean nullifyAccount() default false;
     boolean nullifyOwner() default false;
 
-    String[] roles() default {"ROLE_" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE};
+    String[] roles() default {"ROLE_" + RoleProvider.ORG_ADMIN_ROLE};
 }

@@ -32,7 +32,7 @@ public class StubRbacApi implements RbacApi {
 
     @Override
     public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-        return Arrays.asList(new Access().permission("subscriptions:*.*"));
+        return Arrays.asList(new Access().permission("subscriptions:*:*"));
     }
 
 }
