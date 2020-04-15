@@ -133,7 +133,7 @@ public class FactNormalizer {
         if (hasSatellite) {
             normalizedFacts.setProducts(
                 normalizedFacts.getProducts().stream()
-                    .filter(prod -> !"RHEL".equalsIgnoreCase(prod) && !isRhelVariant(prod))
+                    .filter(prod -> !prod.startsWith("RHEL"))
                     .collect(Collectors.toSet())
             );
         }
