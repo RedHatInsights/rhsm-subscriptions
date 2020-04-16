@@ -32,11 +32,13 @@ import java.lang.annotation.Target;
 /**
  * A security annotation ensuring that the user must have an admin role in order to execute
  * the method.
+ *
+ * Should be the logic (isOrgAdminOptional or isOrgAdmin) and isWhitelisted
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("@applicationProperties.isOrgAdminOptional() or " +
-    "hasRole('" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE + "') and " +
+@PreAuthorize("(@applicationProperties.isOrgAdminOptional() or " +
+    "hasRole('" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE + "')) and " +
     "@reportAccessService.providesAccessTo(authentication)")
 public @interface ReportingAdminOnly {
 }
