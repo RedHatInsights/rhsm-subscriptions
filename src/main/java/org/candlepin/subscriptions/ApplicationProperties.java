@@ -52,7 +52,7 @@ public class ApplicationProperties {
 
     private boolean devMode = false;
 
-    private boolean orgAdminRequired = false;
+    private boolean orgAdminOptional = true;
 
     private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
 
@@ -282,15 +282,12 @@ public class ApplicationProperties {
         this.antiCsrfPort = antiCsrfPort;
     }
 
-    public boolean isOrgAdminRequired() {
-        return orgAdminRequired;
+    public void setOrgAdminOptional(boolean orgAdminOptional) {
+        this.orgAdminOptional = orgAdminOptional;
     }
 
     public boolean isOrgAdminOptional() {
-        return !orgAdminRequired;
+        return orgAdminOptional;
     }
 
-    public void setOrgAdminRequired(boolean orgAdminRequired) {
-        this.orgAdminRequired = orgAdminRequired;
-    }
 }
