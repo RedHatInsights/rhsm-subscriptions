@@ -40,10 +40,6 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -341,12 +337,11 @@ public class InventoryController {
         throws ApiException, MissingAccountNumberException {
 
         org.candlepin.insights.pinhead.client.model.OrgInventory feedPage = pinheadService.getPageOfConsumers(
-            orgId, offset
+            orgId, offset, pinheadService.formattedTime()
         );
         Stream<ConduitFacts> facts = validateConduitFactsForOrg(feedPage);
 
         long updateSize = facts
-            .filter(this::isHostActive)
             .map(hostFacts -> {
                 inventoryService.scheduleHostUpdate(hostFacts);
                 return 1;
@@ -388,25 +383,10 @@ public class InventoryController {
         ApiException {
 
         org.candlepin.insights.pinhead.client.model.OrgInventory feedPage = pinheadService
-            .getPageOfConsumers(orgId, offset);
+            .getPageOfConsumers(orgId, offset, pinheadService.formattedTime());
         return inventoryService.getInventoryForOrgConsumers(
             validateConduitFactsForOrg(feedPage).collect(Collectors.toList())
         );
-    }
-
-    private boolean isHostActive(ConduitFacts facts) {
-        Instant lastCheckin = (facts.getLastCheckin() == null) ?
-            Instant.now() : facts.getLastCheckin().toInstant();
-        ZonedDateTime zonedLastCheckin = ZonedDateTime.ofInstant(lastCheckin, ZoneId.systemDefault());
-        ZonedDateTime now = ZonedDateTime.now();
-
-        // If a system is from the future, let's just trust they have come back to save us from a cyborg.
-        if (now.isBefore(zonedLastCheckin)) {
-            return true;
-        }
-
-        Duration sinceLastCheckin = Duration.between(zonedLastCheckin, now);
-        return sinceLastCheckin.compareTo(inventoryServiceProperties.getHostLastSyncThreshold()) <= 0;
     }
 
     private Stream<ConduitFacts> validateConduitFactsForOrg(
@@ -475,5 +455,6 @@ public class InventoryController {
         }
         return false;
     }
+
 
 }

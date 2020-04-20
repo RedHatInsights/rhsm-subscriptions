@@ -39,7 +39,8 @@ public class StubPinheadApi extends PinheadApi {
     private static Logger log = LoggerFactory.getLogger(StubPinheadApi.class);
 
     @Override
-    public OrgInventory getConsumersForOrg(String orgId, Integer perPage, String offset) throws ApiException {
+    public OrgInventory getConsumersForOrg(String orgId, Integer perPage, String offset,
+        String lastCheckinAfter) throws ApiException {
         OrgInventory inventory = new OrgInventory();
 
         Consumer consumer1 = new Consumer();
