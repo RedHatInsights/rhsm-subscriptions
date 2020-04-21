@@ -52,6 +52,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
     private final Counter failedMessageCounter;
     private final Counter messageSizeCounter;
 
+    @SuppressWarnings("java:S3740")
     public KafkaEnabledInventoryService(InventoryServiceProperties serviceProperties,
         KafkaTemplate<String, HostOperationMessage> producer, MeterRegistry meterRegistry) {
         // Flush updates as soon as they get scheduled.
@@ -101,6 +102,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
         failedMessageCounter.increment();
     }
 
+    @SuppressWarnings("java:S3740")
     private void recordSuccess(SendResult<String, HostOperationMessage> result) {
         sentMessageCounter.increment();
         RecordMetadata metadata = result.getRecordMetadata();
