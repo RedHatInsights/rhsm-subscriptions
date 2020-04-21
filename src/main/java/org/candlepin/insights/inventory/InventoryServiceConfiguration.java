@@ -40,6 +40,8 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * Configures all beans required to connect to the inventory service's Kafka instance.
  */
@@ -116,7 +118,8 @@ public class InventoryServiceConfiguration {
     public InventoryService kafkaInventoryService(
         @Qualifier("inventoryServiceKafkaProducerTemplate")
         KafkaTemplate<String, HostOperationMessage> producer,
-        InventoryServiceProperties serviceProperties) {
-        return new KafkaEnabledInventoryService(serviceProperties, producer);
+        InventoryServiceProperties serviceProperties,
+        MeterRegistry meterRegistry) {
+        return new KafkaEnabledInventoryService(serviceProperties, producer, meterRegistry);
     }
 }
