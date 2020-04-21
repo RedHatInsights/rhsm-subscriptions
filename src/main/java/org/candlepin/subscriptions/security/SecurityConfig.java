@@ -90,7 +90,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
         ApplicationProperties appProps) {
 
-        IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter();
+        IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         filter.setCheckForPrincipalChanges(true);
         filter.setAuthenticationManager(identityHeaderAuthenticationManager());
         filter.setAuthenticationDetailsSource(detailsSource(appProps));
