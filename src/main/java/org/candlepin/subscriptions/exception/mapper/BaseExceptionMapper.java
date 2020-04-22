@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.utilization.api.model.Error;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.util.StringUtils;
 
 import javax.ws.rs.core.Response;
@@ -42,7 +43,15 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
     @Override
     public Response toResponse(T exception) {
         Error error = buildError(exception);
-        logError(error, exception);
+        String message = StringUtils.hasText(error.getCode()) ?
+            String.format("%s: %s", error.getCode(), error.getTitle()) :
+            error.getTitle();
+        if (exception instanceof AccessDeniedException) {
+            log.debug(message, exception);
+        }
+        else {
+            log.error(message, exception);
+        }
         return ExceptionUtil.toResponse(error);
     }
 
@@ -55,11 +64,5 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
      *         as deduced from the passed exception.
      */
     protected abstract Error buildError(T exception);
-
-    private void logError(Error error, Throwable exception) {
-        String message = StringUtils.hasText(error.getCode()) ?
-            String.format("%s: %s", error.getCode(), error.getTitle()) : error.getTitle();
-        log.error(message, exception);
-    }
 
 }
