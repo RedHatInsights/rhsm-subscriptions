@@ -33,12 +33,16 @@ import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.FactSet;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -49,6 +53,17 @@ public class KafkaEnabledInventoryServiceTest {
 
     @Mock
     private KafkaTemplate producer;
+
+    @Mock
+    MeterRegistry meterRegistry;
+
+    @Mock
+    Counter mockCounter;
+
+    @BeforeEach
+    void setup() {
+        when(meterRegistry.counter(any())).thenReturn(mockCounter);
+    }
 
     @Test
     public void ensureKafkaProducerSendsHostMessage() {
@@ -66,7 +81,8 @@ public class KafkaEnabledInventoryServiceTest {
         expectedFacts.setCpuSockets(45);
 
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
+            meterRegistry);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
@@ -96,7 +112,8 @@ public class KafkaEnabledInventoryServiceTest {
     @Test
     public void ensureNoMessageWithEmptyFactList() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
+            meterRegistry);
         service.sendHostUpdate(Arrays.asList());
 
         verifyZeroInteractions(producer);
@@ -105,7 +122,8 @@ public class KafkaEnabledInventoryServiceTest {
     @Test
     public void ensureMessageSentWhenHostUpdateScheduled() {
         InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
+            meterRegistry);
         service.scheduleHostUpdate(new ConduitFacts());
         service.scheduleHostUpdate(new ConduitFacts());
 
@@ -126,7 +144,8 @@ public class KafkaEnabledInventoryServiceTest {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setStaleHostOffsetInDays(24);
 
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer);
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
+            meterRegistry);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         CreateUpdateHostMessage message = messageCaptor.getValue();

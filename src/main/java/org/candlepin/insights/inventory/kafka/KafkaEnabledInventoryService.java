@@ -24,9 +24,14 @@ import org.candlepin.insights.inventory.ConduitFacts;
 import org.candlepin.insights.inventory.InventoryService;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -43,13 +48,20 @@ public class KafkaEnabledInventoryService extends InventoryService {
 
     private final KafkaTemplate<String, HostOperationMessage> producer;
     private final String hostIngressTopic;
+    private final Counter sentMessageCounter;
+    private final Counter failedMessageCounter;
+    private final Counter messageSizeCounter;
 
+    @SuppressWarnings("java:S3740")
     public KafkaEnabledInventoryService(InventoryServiceProperties serviceProperties,
-        KafkaTemplate<String, HostOperationMessage> producer) {
+        KafkaTemplate<String, HostOperationMessage> producer, MeterRegistry meterRegistry) {
         // Flush updates as soon as they get scheduled.
         super(serviceProperties, 1);
         this.producer = producer;
         this.hostIngressTopic = serviceProperties.getKafkaHostIngressTopic();
+        this.sentMessageCounter = meterRegistry.counter("rhsm-conduit.send.inventory-message");
+        this.failedMessageCounter = meterRegistry.counter("rhsm.conduit.send.inventory-message.failed");
+        this.messageSizeCounter = meterRegistry.counter("rhsm-conduit.inventory-message.size.bytes");
     }
 
     @Override
@@ -76,12 +88,26 @@ public class KafkaEnabledInventoryService extends InventoryService {
             try {
                 log.debug("Sending host inventory message: {}:{}:{}", factSet.getAccountNumber(),
                     factSet.getOrgId(), factSet.getSubscriptionManagerId());
-                producer.send(hostIngressTopic, new CreateUpdateHostMessage(createHost(factSet, now)));
+                producer.send(hostIngressTopic, new CreateUpdateHostMessage(createHost(factSet, now)))
+                    .addCallback(this::recordSuccess, this::recordFailure);
             }
             catch (Exception e) {
-                log.error("Unable to send host create/update message.", e);
+                recordFailure(e);
             }
         }
+    }
+
+    private void recordFailure(Throwable throwable) {
+        log.error("Unable to send host create/update message.", throwable);
+        failedMessageCounter.increment();
+    }
+
+    @SuppressWarnings("java:S3740")
+    private void recordSuccess(SendResult<String, HostOperationMessage> result) {
+        sentMessageCounter.increment();
+        RecordMetadata metadata = result.getRecordMetadata();
+        double messageSize = (double) metadata.serializedKeySize() + metadata.serializedValueSize();
+        messageSizeCounter.increment(messageSize);
     }
 
 }

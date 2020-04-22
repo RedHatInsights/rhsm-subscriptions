@@ -38,6 +38,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -103,15 +108,24 @@ public class InventoryController {
     private Validator validator;
     private InventoryServiceProperties inventoryServiceProperties;
     private TaskManager taskManager;
+    private Counter queueNextPageCounter;
+    private Counter finalizeOrgCounter;
+    private Timer transformHostTimer;
+    private Timer validateHostTimer;
 
     @Autowired
     public InventoryController(InventoryService inventoryService, PinheadService pinheadService,
-        Validator validator, InventoryServiceProperties inventoryServiceProperties, TaskManager taskManager) {
+        Validator validator, InventoryServiceProperties inventoryServiceProperties, TaskManager taskManager,
+        MeterRegistry meterRegistry) {
         this.inventoryService = inventoryService;
         this.pinheadService = pinheadService;
         this.validator = validator;
         this.inventoryServiceProperties = inventoryServiceProperties;
         this.taskManager = taskManager;
+        this.queueNextPageCounter = meterRegistry.counter("rhsm-conduit.queue.next-page");
+        this.finalizeOrgCounter = meterRegistry.counter("rhsm-conduit.finalize.org");
+        this.transformHostTimer = meterRegistry.timer("rhsm-conduit.transform.host");
+        this.validateHostTimer = meterRegistry.timer("rhsm-conduit.validate.host");
     }
 
     private static boolean isEmpty(String value) {
@@ -333,6 +347,7 @@ public class InventoryController {
         updateInventoryForOrg(orgId, null);
     }
 
+    @Timed("rhsm-conduit.sync.org-page")
     public void updateInventoryForOrg(String orgId, String offset)
         throws ApiException, MissingAccountNumberException {
 
@@ -360,9 +375,11 @@ public class InventoryController {
         if (nextOffset.isPresent()) {
             log.debug("Queueing up task for next page of org {}", orgId);
             taskManager.updateOrgInventory(orgId, nextOffset.get());
+            queueNextPageCounter.increment();
         }
         else {
             log.info("Host inventory update completed for org {}.", orgId);
+            finalizeOrgCounter.increment();
         }
     }
 
@@ -420,10 +437,11 @@ public class InventoryController {
             if (IGNORED_CONSUMER_TYPES.contains(consumer.getType())) {
                 return Optional.empty();
             }
-            ConduitFacts facts = getFactsFromConsumer(consumer);
+            ConduitFacts facts = transformHostTimer.recordCallable(() -> getFactsFromConsumer(consumer));
             facts.setAccountNumber(consumer.getAccountNumber());
 
-            Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
+            Set<ConstraintViolation<ConduitFacts>> violations =
+                validateHostTimer.recordCallable(() -> validator.validate(facts));
             if (violations.isEmpty()) {
                 return Optional.of(facts);
             }
