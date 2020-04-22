@@ -22,6 +22,8 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
+import org.candlepin.insights.rbac.client.RbacServiceProperties;
+import org.candlepin.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.files.FileAccountListSource;
 import org.candlepin.subscriptions.files.FileAccountSyncListSource;
@@ -95,6 +97,17 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
         return new HostsApiFactory(properties);
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
+    public RbacServiceProperties rbacServiceProperties() {
+        return new RbacServiceProperties();
+    }
+
+    @Bean
+    public RbacApiFactory rbacApiFactory(RbacServiceProperties props) {
+        return new RbacApiFactory(props);
     }
 
     /**

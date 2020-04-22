@@ -107,8 +107,11 @@ public class IdentityHeaderAuthenticationManager implements AuthenticationManage
                     " contains no principal");
             }
 
-            token = new PreAuthenticatedAuthenticationToken(new InsightsUserPrincipal(orgId, accountNumber),
-                token.getCredentials(), details.getGrantedAuthorities());
+            token = new PreAuthenticatedAuthenticationToken(
+                new InsightsUserPrincipal(orgId, accountNumber),
+                token.getCredentials(),
+                details.getGrantedAuthorities()
+            );
             token.setAuthenticated(true);
             return token;
 

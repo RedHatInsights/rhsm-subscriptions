@@ -22,13 +22,17 @@ package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter;
 import org.candlepin.subscriptions.security.InsightsUserPrincipal;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Response;
 
@@ -63,6 +67,18 @@ public class ResourceUtils {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
         return principal.getAccountNumber();
+    }
+
+    /**
+     * Gets the identity header passed when the request was made. Useful
+     * when it has to be forwarded to other APIs.
+     *
+     * @return the encoded identity header.
+     */
+    public static String getIdentityHeader() {
+        HttpServletRequest request =
+            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        return request.getHeader(IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER);
     }
 
     /**

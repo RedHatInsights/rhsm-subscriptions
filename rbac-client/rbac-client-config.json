@@ -1,0 +1,8 @@
+{
+  "modelPackage": "org.candlepin.insights.rbac.client.model",
+  "apiPackage": "org.candlepin.insights.rbac.client.resources",
+  "invokerPackage": "org.candlepin.insights.rbac.client",
+  "groupId": "org.candlepin",
+  "artifactId": "rbac-client",
+  "java8": true
+}
