@@ -59,6 +59,7 @@ public class CandlepinPoolCapacityMapper {
 
         Set<String> products = productExtractor.getProducts(productIds);
         Set<String> derivedProducts = productExtractor.getProducts(derivedProductIds);
+        boolean isVirtUnlimited = isVirtUnlimited(pool);
 
         HashSet<String> allProducts = new HashSet<>(products);
         allProducts.addAll(derivedProducts);
@@ -73,20 +74,34 @@ public class CandlepinPoolCapacityMapper {
             capacity.setEndDate(pool.getEndDate());
             capacity.setServiceLevel(getSla(pool));
             Long socketCapacity = getCapacityUnit("sockets", pool);
-            if (products.contains(product) && socketCapacity != null) {
+            if (products.contains(product) && socketCapacity != null && socketCapacity > 0) {
                 capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
             }
-            if (derivedProducts.contains(product) && socketCapacity != null) {
-                capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
+            if (derivedProducts.contains(product)) {
+                if (isVirtUnlimited) {
+                    capacity.setHasUnlimitedGuestSockets(true);
+                }
+                else if (socketCapacity != null && socketCapacity > 0) {
+                    capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
+                }
             }
 
             Long coresCapacity = getCapacityUnit("cores", pool);
-            if (products.contains(product) && coresCapacity != null) {
+            if (products.contains(product) && coresCapacity != null && coresCapacity > 0) {
                 capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
             }
 
-            if (derivedProducts.contains(product) && coresCapacity != null) {
+            if (derivedProducts.contains(product) && coresCapacity != null && coresCapacity > 0
+                && !isVirtUnlimited) {
+
                 capacity.setVirtualCores(Math.toIntExact(coresCapacity));
+            }
+            if (capacity.getPhysicalSockets() == null && capacity.getPhysicalCores() == null &&
+                capacity.getVirtualCores() == null && capacity.getVirtualSockets() == null &&
+                !capacity.getHasUnlimitedGuestSockets()) {
+
+                log.warn("SKU {} appears to not provide any capacity. Bad SKU definition?",
+                    pool.getProductId());
             }
             return capacity;
         }).collect(Collectors.toList());
@@ -125,6 +140,11 @@ public class CandlepinPoolCapacityMapper {
         }
 
         return null;
+    }
+
+    private boolean isVirtUnlimited(CandlepinPool pool) {
+        return pool.getProductAttributes().stream()
+            .anyMatch(a -> a.getName().equals("virt_limit") && a.getValue().equalsIgnoreCase("unlimited"));
     }
 
     private List<String> extractProductIds(Collection<CandlepinProvidedProduct> providedProducts) {

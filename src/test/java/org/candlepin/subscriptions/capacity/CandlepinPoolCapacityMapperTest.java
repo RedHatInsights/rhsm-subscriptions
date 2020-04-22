@@ -40,6 +40,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -258,6 +259,84 @@ class CandlepinPoolCapacityMapperTest {
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
             expectedServerCapacity,
+            expectedWorkstationCapacity
+        ));
+    }
+
+    @Test
+    void testPoolWithBadlyDefinedSkuGivesNoCapacity() {
+        CandlepinPool pool = createTestPool(physicalProductIds, virtualProductIds);
+        pool.setQuantity(-1L);
+
+        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
+            pool);
+
+        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+        expectedRhelCapacity.setProductId("RHEL");
+        expectedRhelCapacity.setAccountNumber("account");
+        expectedRhelCapacity.setBeginDate(LONG_AGO);
+        expectedRhelCapacity.setEndDate(NOWISH);
+        expectedRhelCapacity.setSubscriptionId("subId");
+        expectedRhelCapacity.setOwnerId("ownerId");
+        expectedRhelCapacity.setServiceLevel("Premium");
+
+        SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
+        expectedWorkstationCapacity.setProductId("RHEL Workstation");
+        expectedWorkstationCapacity.setAccountNumber("account");
+        expectedWorkstationCapacity.setBeginDate(LONG_AGO);
+        expectedWorkstationCapacity.setEndDate(NOWISH);
+        expectedWorkstationCapacity.setSubscriptionId("subId");
+        expectedWorkstationCapacity.setOwnerId("ownerId");
+        expectedWorkstationCapacity.setServiceLevel("Premium");
+
+        SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
+        expectedServerCapacity.setProductId("RHEL Server");
+        expectedServerCapacity.setAccountNumber("account");
+        expectedServerCapacity.setBeginDate(LONG_AGO);
+        expectedServerCapacity.setEndDate(NOWISH);
+        expectedServerCapacity.setSubscriptionId("subId");
+        expectedServerCapacity.setOwnerId("ownerId");
+        expectedServerCapacity.setServiceLevel("Premium");
+
+        assertThat(capacities, Matchers.containsInAnyOrder(
+            expectedRhelCapacity,
+            expectedServerCapacity,
+            expectedWorkstationCapacity
+        ));
+    }
+
+    @Test
+    void testPoolWithVdcStyleSkuGivesUnlimitedGuestCapacity() {
+        CandlepinPool pool = createTestPool(Collections.emptyList(), virtualProductIds);
+        pool.getProductAttributes().add(
+            new CandlepinProductAttribute().name("virt_limit").value("unlimited")
+        );
+
+        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
+            pool);
+
+        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+        expectedRhelCapacity.setProductId("RHEL");
+        expectedRhelCapacity.setHasUnlimitedGuestSockets(true);
+        expectedRhelCapacity.setAccountNumber("account");
+        expectedRhelCapacity.setBeginDate(LONG_AGO);
+        expectedRhelCapacity.setEndDate(NOWISH);
+        expectedRhelCapacity.setSubscriptionId("subId");
+        expectedRhelCapacity.setOwnerId("ownerId");
+        expectedRhelCapacity.setServiceLevel("Premium");
+
+        SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
+        expectedWorkstationCapacity.setProductId("RHEL Workstation");
+        expectedWorkstationCapacity.setHasUnlimitedGuestSockets(true);
+        expectedWorkstationCapacity.setAccountNumber("account");
+        expectedWorkstationCapacity.setBeginDate(LONG_AGO);
+        expectedWorkstationCapacity.setEndDate(NOWISH);
+        expectedWorkstationCapacity.setSubscriptionId("subId");
+        expectedWorkstationCapacity.setOwnerId("ownerId");
+        expectedWorkstationCapacity.setServiceLevel("Premium");
+
+        assertThat(capacities, Matchers.containsInAnyOrder(
+            expectedRhelCapacity,
             expectedWorkstationCapacity
         ));
     }
