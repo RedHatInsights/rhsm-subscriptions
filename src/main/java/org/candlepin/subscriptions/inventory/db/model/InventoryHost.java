@@ -64,6 +64,7 @@ import javax.persistence.Table;
                 @ColumnResult(name = "syspurpose_units"),
                 @ColumnResult(name = "is_virtual"),
                 @ColumnResult(name = "hypervisor_uuid"),
+                @ColumnResult(name = "satellite_hypervisor_uuid"),
                 @ColumnResult(name = "guest_id"),
                 @ColumnResult(name = "subscription_manager_id"),
                 @ColumnResult(name = "cloud_provider"),
@@ -83,6 +84,7 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
         "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, " +
         "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, " +
+        "h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid, " +
         "h.facts->'rhsm'->>'GUEST_ID' as guest_id, " +
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, " +

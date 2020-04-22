@@ -55,6 +55,14 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
                 "from hosts h " +
                     "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' " +
                 "where h.facts->'rhsm'->'VM_HOST_UUID' is not null " +
+                    "and h.account IN (:accounts)" +
+                "union all " +
+                "select " +
+                    "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, " +
+                    "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
+                "from hosts h " +
+                    "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' " +
+                "where h.facts->'satellite'->'virtual_host_uuid' is not null " +
                     "and h.account IN (:accounts)")
     Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
 }

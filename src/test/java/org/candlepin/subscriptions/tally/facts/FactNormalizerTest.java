@@ -421,6 +421,19 @@ public class FactNormalizerTest {
     }
 
     @Test
+    public void testGuestWithUnmappedHypervisorClassificationUsingSatelliteMapping() {
+        InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1, 12, 3);
+        guestWithMappedHypervisor.setHypervisorUuid(null);
+        guestWithMappedHypervisor.setSatelliteHypervisorUuid("mapped-hyp-id");
+
+        Map<String, String> mappedHypervisors = new HashMap<>();
+        mappedHypervisors.put(guestWithMappedHypervisor.getSatelliteHypervisorUuid(), null);
+
+        NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, mappedHypervisors);
+        assertClassification(facts, false, true, true);
+    }
+
+    @Test
     public void testGuestWithNullHypIdIsUnmappedHypervisorClassification() {
         InventoryHostFacts guestWithMappedHypervisor = createGuest(null, "A1", "O1", 1, 12, 3);
 
