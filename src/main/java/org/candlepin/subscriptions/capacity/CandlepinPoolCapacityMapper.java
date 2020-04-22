@@ -74,25 +74,24 @@ public class CandlepinPoolCapacityMapper {
             capacity.setEndDate(pool.getEndDate());
             capacity.setServiceLevel(getSla(pool));
             Long socketCapacity = getCapacityUnit("sockets", pool);
-            if (products.contains(product) && socketCapacity != null && socketCapacity > 0) {
+            if (products.contains(product) && isPositive(socketCapacity)) {
                 capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
             }
             if (derivedProducts.contains(product)) {
                 if (isVirtUnlimited) {
                     capacity.setHasUnlimitedGuestSockets(true);
                 }
-                else if (socketCapacity != null && socketCapacity > 0) {
+                else if (isPositive(socketCapacity)) {
                     capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
                 }
             }
 
             Long coresCapacity = getCapacityUnit("cores", pool);
-            if (products.contains(product) && coresCapacity != null && coresCapacity > 0) {
+            if (products.contains(product) && isPositive(coresCapacity)) {
                 capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
             }
 
-            if (derivedProducts.contains(product) && coresCapacity != null && coresCapacity > 0
-                && !isVirtUnlimited) {
+            if (derivedProducts.contains(product) && isPositive(coresCapacity) && !isVirtUnlimited) {
 
                 capacity.setVirtualCores(Math.toIntExact(coresCapacity));
             }
@@ -105,6 +104,10 @@ public class CandlepinPoolCapacityMapper {
             }
             return capacity;
         }).collect(Collectors.toList());
+    }
+
+    private boolean isPositive(Long value) {
+        return value != null && value > 0;
     }
 
     private Long getCapacityUnit(String unitProperty, CandlepinPool pool) {
