@@ -63,6 +63,12 @@ public class CandlepinPoolCapacityMapper {
         HashSet<String> allProducts = new HashSet<>(products);
         allProducts.addAll(derivedProducts);
 
+        Long socketCapacity = getCapacityUnit("sockets", pool);
+        Long coresCapacity = getCapacityUnit("cores", pool);
+        boolean isVirtUnlimited = isVirtUnlimited(pool);
+
+        String sla = getSla(pool);
+
         return allProducts.stream().map(product -> {
             SubscriptionCapacity capacity = new SubscriptionCapacity();
             capacity.setAccountNumber(pool.getAccountNumber());
@@ -71,25 +77,52 @@ public class CandlepinPoolCapacityMapper {
             capacity.setSubscriptionId(pool.getSubscriptionId());
             capacity.setBeginDate(pool.getStartDate());
             capacity.setEndDate(pool.getEndDate());
-            capacity.setServiceLevel(getSla(pool));
-            Long socketCapacity = getCapacityUnit("sockets", pool);
-            if (products.contains(product) && socketCapacity != null) {
-                capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
-            }
-            if (derivedProducts.contains(product) && socketCapacity != null) {
-                capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
-            }
+            capacity.setServiceLevel(sla);
 
-            Long coresCapacity = getCapacityUnit("cores", pool);
-            if (products.contains(product) && coresCapacity != null) {
-                capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
-            }
+            handleSockets(products, derivedProducts, socketCapacity, isVirtUnlimited, product, capacity);
+            handleCores(products, derivedProducts, coresCapacity, isVirtUnlimited, product, capacity);
 
-            if (derivedProducts.contains(product) && coresCapacity != null) {
-                capacity.setVirtualCores(Math.toIntExact(coresCapacity));
+            if (capacity.getPhysicalSockets() == null && capacity.getPhysicalCores() == null &&
+                capacity.getVirtualCores() == null && capacity.getVirtualSockets() == null &&
+                !capacity.getHasUnlimitedGuestSockets()) {
+
+                log.warn("SKU {} appears to not provide any capacity. Bad SKU definition?",
+                    pool.getProductId());
             }
             return capacity;
         }).collect(Collectors.toList());
+    }
+
+    private void handleSockets(Set<String> products, Set<String> derivedProducts, Long socketCapacity,
+        boolean isVirtUnlimited, String product, SubscriptionCapacity capacity) {
+
+        if (products.contains(product) && isPositive(socketCapacity)) {
+            capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
+        }
+        if (derivedProducts.contains(product)) {
+            if (isVirtUnlimited) {
+                capacity.setHasUnlimitedGuestSockets(true);
+            }
+            else if (isPositive(socketCapacity)) {
+                capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
+            }
+        }
+    }
+
+    private void handleCores(Set<String> products, Set<String> derivedProducts, Long coresCapacity,
+        boolean isVirtUnlimited, String product, SubscriptionCapacity capacity) {
+
+        if (products.contains(product) && isPositive(coresCapacity)) {
+            capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
+        }
+
+        if (derivedProducts.contains(product) && isPositive(coresCapacity) && !isVirtUnlimited) {
+            capacity.setVirtualCores(Math.toIntExact(coresCapacity));
+        }
+    }
+
+    private boolean isPositive(Long value) {
+        return value != null && value > 0;
     }
 
     private Long getCapacityUnit(String unitProperty, CandlepinPool pool) {
@@ -125,6 +158,11 @@ public class CandlepinPoolCapacityMapper {
         }
 
         return null;
+    }
+
+    private boolean isVirtUnlimited(CandlepinPool pool) {
+        return pool.getProductAttributes().stream()
+            .anyMatch(a -> a.getName().equals("virt_limit") && a.getValue().equalsIgnoreCase("unlimited"));
     }
 
     private List<String> extractProductIds(Collection<CandlepinProvidedProduct> providedProducts) {
