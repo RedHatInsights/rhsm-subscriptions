@@ -47,10 +47,10 @@ public class RHELProductUsageCollectorTest {
         UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
         assertTotalsCalculation(calc, 4, 12, 1);
-        assertHypervisorTotalsCalculation(calc, 4, 12, 1);
+        assertPhysicalTotalsCalculation(calc, 4, 12, 1);
 
-        // Expects no physical totals in this case.
-        assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
+        // Expects no hypervisor totals in this case.
+        assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
     }
 
     @Test
@@ -97,8 +97,11 @@ public class RHELProductUsageCollectorTest {
     @Test
     public void hypervisorReportedWithNoSocketsWillRaiseException() {
         NormalizedFacts facts = hypervisorFacts(0, 0);
+        NormalizedFacts guestFacts = guestFacts(4, 1, false);
         UsageCalculation calc = new UsageCalculation(createUsageKey());
-        assertThrows(IllegalStateException.class, () -> collector.collect(calc, facts));
+        collector.collect(calc, facts);
+        collector.collect(calc, guestFacts);
+        assertThrows(IllegalStateException.class, () -> collector.collectForHypervisor(calc, facts));
     }
 
     @Test

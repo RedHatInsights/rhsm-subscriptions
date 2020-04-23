@@ -59,9 +59,10 @@ public class DefaultProductUsageCollectorTest {
         collector.collect(calc, facts);
 
         // A guest with a known hypervisor contributes to the overall totals,
-        // but does not contribute to the hypervisor or physical totals.
         assertTotalsCalculation(calc, 3, 12, 1);
-        assertNullExcept(calc, HardwareMeasurementType.TOTAL);
+        // For non-RHEL, a guest with a known hypervisor contributes to "virtual" capacity (no-VDC-style
+        // products outside of RHEL)
+        assertHypervisorTotalsCalculation(calc, 3, 12, 1);
     }
 
     @Test
@@ -74,7 +75,8 @@ public class DefaultProductUsageCollectorTest {
         // A guest with an unknown hypervisor contributes to the overall totals
         // but does not contribute to the hypervisor or physical totals.
         assertTotalsCalculation(calc, 3, 12, 1);
-        assertNullExcept(calc, HardwareMeasurementType.TOTAL);
+        assertHypervisorTotalsCalculation(calc, 3, 12, 1);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.HYPERVISOR);
     }
 
     @Test

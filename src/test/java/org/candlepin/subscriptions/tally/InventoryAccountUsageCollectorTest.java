@@ -153,9 +153,11 @@ public class InventoryAccountUsageCollectorTest {
         AccountUsageCalculation calc = calcs.get("A1");
         // odd sockets are rounded up.
         checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-        checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        // no guests running RHEL means no hypervisor total...
         assertNull(calc.getCalculation(createUsageKey(TEST_PRODUCT))
-            .getTotals(HardwareMeasurementType.PHYSICAL));
+            .getTotals(HardwareMeasurementType.HYPERVISOR));
+        // hypervisor itself gets counted
+        checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
     }
 
     @Test
@@ -402,12 +404,12 @@ public class InventoryAccountUsageCollectorTest {
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
         checkTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
-        checkPhysicalTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 4, 4, 1);
+        checkPhysicalTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
 
         AccountUsageCalculation a2Calc = calcs.get("A2");
         assertEquals(1, a2Calc.getProducts().size());
         checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 5, 10, 2);
-        checkPhysicalTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 2, 6, 1);
+        checkPhysicalTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 5, 10, 2);
     }
 
     @Test
@@ -415,6 +417,41 @@ public class InventoryAccountUsageCollectorTest {
         List<String> targetAccounts = Arrays.asList("A1");
 
         InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
+
+        // Guests should not end up in the total since only the hypervisor should be counted.
+        InventoryHostFacts guest1 = createGuest(hypervisor.getSubscriptionManagerId(),
+            "A1", "O1", TEST_PRODUCT_ID, 12, 3);
+
+        InventoryHostFacts guest2 = createGuest(hypervisor.getSubscriptionManagerId(),
+            "A1", "O1", TEST_PRODUCT_ID, 8, 2);
+
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(hypervisor.getSubscriptionManagerId(),
+            hypervisor.getSubscriptionManagerId());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
+            .thenReturn(Stream.of(hypervisor, guest1, guest2));
+
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
+            .stream()
+            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        assertEquals(1, calcs.size());
+        assertThat(calcs, Matchers.hasKey("A1"));
+
+        AccountUsageCalculation calc = calcs.get("A1");
+        // odd sockets are rounded up for hypervisor.
+        // hypervisor gets counted twice - once for itself, once for the guests
+        checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 24, 8, 2);
+        checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    }
+
+    @Test
+    public void testHypervisorCalculationsWhenMappedWithNoProductsOnHypervisor() {
+        List<String> targetAccounts = Arrays.asList("A1");
+
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", null, 12, 3);
 
         // Guests should not end up in the total since only the hypervisor should be counted.
         InventoryHostFacts guest1 = createGuest(hypervisor.getSubscriptionManagerId(),

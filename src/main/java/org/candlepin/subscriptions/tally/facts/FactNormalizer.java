@@ -118,6 +118,9 @@ public class FactNormalizer {
         if (!StringUtils.hasText(hypervisorUuid)) {
             hypervisorUuid = hostFacts.getHypervisorUuid();
         }
+        if (StringUtils.hasText(hypervisorUuid)) {
+            normalizedFacts.setHypervisorUuid(hypervisorUuid);
+        }
 
         boolean isHypervisorUnknown = (isVirtual && !StringUtils.hasText(hypervisorUuid)) ||
             mappedHypervisors.getOrDefault(hypervisorUuid, null) == null;

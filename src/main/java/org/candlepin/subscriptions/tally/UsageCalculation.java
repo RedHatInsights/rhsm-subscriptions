@@ -50,6 +50,10 @@ public class UsageCalculation {
             this.sla = sla;
         }
 
+        public String getProductId() {
+            return productId;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) {

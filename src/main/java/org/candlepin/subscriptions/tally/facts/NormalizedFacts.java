@@ -43,6 +43,7 @@ public class NormalizedFacts {
     private Integer cores;
     private Integer sockets;
     private String owner;
+    private String hypervisorUuid;
     private boolean isVirtual;
     private boolean isHypervisor;
     private boolean isHypervisorUnknown;
@@ -78,6 +79,14 @@ public class NormalizedFacts {
 
     public void setOwner(String owner) {
         this.owner = owner;
+    }
+
+    public String getHypervisorUuid() {
+        return hypervisorUuid;
+    }
+
+    public void setHypervisorUuid(String hypervisorUuid) {
+        this.hypervisorUuid = hypervisorUuid;
     }
 
     public Integer getSockets() {

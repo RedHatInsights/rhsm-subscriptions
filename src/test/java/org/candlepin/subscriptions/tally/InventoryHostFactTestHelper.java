@@ -41,7 +41,9 @@ public class InventoryHostFactTestHelper {
     public static InventoryHostFacts createHypervisor(String account, String orgId, Integer product,
         int cores, int sockets) {
         InventoryHostFacts baseFacts = createBaseHost(account, orgId);
-        baseFacts.setProducts(product.toString());
+        if (product != null) {
+            baseFacts.setProducts(product.toString());
+        }
         baseFacts.setCores(cores);
         baseFacts.setSockets(sockets);
         return baseFacts;

@@ -41,10 +41,15 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
         else if (!normalizedFacts.isVirtual()) {
             prodCalc.addPhysical(cores, sockets, 1);
         }
-        // Any other system is simply added to the overall total
+        // Any other system should be considered virtual
         else {
-            prodCalc.addToTotal(cores, sockets, 1);
+            prodCalc.addHypervisor(cores, sockets, 1);
         }
+    }
+
+    @Override
+    public void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
+        /* do nothing for hypervisor-guest mappings by default */
     }
 
 }
