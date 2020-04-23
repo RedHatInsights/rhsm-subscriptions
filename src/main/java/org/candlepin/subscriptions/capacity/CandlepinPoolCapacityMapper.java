@@ -65,7 +65,6 @@ public class CandlepinPoolCapacityMapper {
 
         Long socketCapacity = getCapacityUnit("sockets", pool);
         Long coresCapacity = getCapacityUnit("cores", pool);
-        boolean isVirtUnlimited = isVirtUnlimited(pool);
 
         String sla = getSla(pool);
 
@@ -79,8 +78,8 @@ public class CandlepinPoolCapacityMapper {
             capacity.setEndDate(pool.getEndDate());
             capacity.setServiceLevel(sla);
 
-            handleSockets(products, derivedProducts, socketCapacity, isVirtUnlimited, product, capacity);
-            handleCores(products, derivedProducts, coresCapacity, isVirtUnlimited, product, capacity);
+            handleSockets(products, derivedProducts, socketCapacity, product, capacity);
+            handleCores(products, derivedProducts, coresCapacity, product, capacity);
 
             if (capacity.getPhysicalSockets() == null && capacity.getPhysicalCores() == null &&
                 capacity.getVirtualCores() == null && capacity.getVirtualSockets() == null &&
@@ -94,29 +93,24 @@ public class CandlepinPoolCapacityMapper {
     }
 
     private void handleSockets(Set<String> products, Set<String> derivedProducts, Long socketCapacity,
-        boolean isVirtUnlimited, String product, SubscriptionCapacity capacity) {
+        String product, SubscriptionCapacity capacity) {
 
         if (products.contains(product) && isPositive(socketCapacity)) {
             capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
         }
-        if (derivedProducts.contains(product)) {
-            if (isVirtUnlimited) {
-                capacity.setHasUnlimitedGuestSockets(true);
-            }
-            else if (isPositive(socketCapacity)) {
-                capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
-            }
+        if (derivedProducts.contains(product) && isPositive(socketCapacity)) {
+            capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
         }
     }
 
     private void handleCores(Set<String> products, Set<String> derivedProducts, Long coresCapacity,
-        boolean isVirtUnlimited, String product, SubscriptionCapacity capacity) {
+        String product, SubscriptionCapacity capacity) {
 
         if (products.contains(product) && isPositive(coresCapacity)) {
             capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
         }
 
-        if (derivedProducts.contains(product) && isPositive(coresCapacity) && !isVirtUnlimited) {
+        if (derivedProducts.contains(product) && isPositive(coresCapacity)) {
             capacity.setVirtualCores(Math.toIntExact(coresCapacity));
         }
     }
@@ -158,11 +152,6 @@ public class CandlepinPoolCapacityMapper {
         }
 
         return null;
-    }
-
-    private boolean isVirtUnlimited(CandlepinPool pool) {
-        return pool.getProductAttributes().stream()
-            .anyMatch(a -> a.getName().equals("virt_limit") && a.getValue().equalsIgnoreCase("unlimited"));
     }
 
     private List<String> extractProductIds(Collection<CandlepinProvidedProduct> providedProducts) {
