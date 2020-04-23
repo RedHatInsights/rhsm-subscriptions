@@ -85,8 +85,8 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
 
         // Bump the max connections so that we don't block on multiple async requests
         // to the RBAC service.
-        apacheBuilder.setMaxConnPerRoute(Integer.MAX_VALUE);
-        apacheBuilder.setMaxConnTotal(Integer.MAX_VALUE);
+        apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
+        apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
         HttpClient httpClient = apacheBuilder.build();
 
         ClientHttpEngine engine = ApacheHttpClient4EngineFactory.create(httpClient);

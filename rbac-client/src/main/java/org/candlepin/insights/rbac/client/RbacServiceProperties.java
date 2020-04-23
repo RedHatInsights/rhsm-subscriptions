@@ -40,6 +40,11 @@ public class RbacServiceProperties {
      */
     private String applicationName = "subscriptions";
 
+    /**
+     * Maximum number of simultaneous connections to the rbac service.
+     */
+    private int maxConnections = 100;
+
     public boolean isUseStub() {
         return useStub;
     }
@@ -64,4 +69,11 @@ public class RbacServiceProperties {
         this.applicationName = applicationName;
     }
 
+    public int getMaxConnections() {
+        return maxConnections;
+    }
+
+    public void setMaxConnections(int maxConnections) {
+        this.maxConnections = maxConnections;
+    }
 }
