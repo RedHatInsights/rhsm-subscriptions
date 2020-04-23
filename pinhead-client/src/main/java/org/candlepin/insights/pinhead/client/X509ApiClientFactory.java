@@ -108,8 +108,10 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
         apacheBuilder.setDefaultRequestConfig(cookieConfig);
         // Bump the max connections so that our task processors do not
         // block waiting to connect to Pinhead.
-        apacheBuilder.setMaxConnPerRoute(Integer.MAX_VALUE);
-        apacheBuilder.setMaxConnTotal(Integer.MAX_VALUE);
+
+        // note that these are essentially the same, since we're only hitting a single hostname
+        apacheBuilder.setMaxConnPerRoute(x509Config.getMaxConnections());
+        apacheBuilder.setMaxConnTotal(x509Config.getMaxConnections());
         HttpClient httpClient = apacheBuilder.build();
 
         // We've now constructed a basic Apache HttpClient.  Now we wire that in to RestEasy.  There is a

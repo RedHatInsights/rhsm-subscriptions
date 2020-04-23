@@ -39,6 +39,7 @@ public class X509ApiClientFactoryConfiguration {
     private String keystoreFile;
     private String truststoreFile;
     private String truststorePassword;
+    private int maxConnections = 100;
 
     private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
 
@@ -117,4 +118,11 @@ public class X509ApiClientFactoryConfiguration {
             truststoreFile, keystoreFile);
     }
 
+    public int getMaxConnections() {
+        return maxConnections;
+    }
+
+    public void setMaxConnections(int maxConnections) {
+        this.maxConnections = maxConnections;
+    }
 }
