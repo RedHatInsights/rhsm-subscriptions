@@ -77,6 +77,7 @@ public class CandlepinPoolCapacityMapper {
             capacity.setBeginDate(pool.getStartDate());
             capacity.setEndDate(pool.getEndDate());
             capacity.setServiceLevel(sla);
+            capacity.setSku(pool.getProductId());
 
             handleSockets(products, derivedProducts, socketCapacity, product, capacity);
             handleCores(products, derivedProducts, coresCapacity, product, capacity);
