@@ -42,6 +42,7 @@ public class InventoryHostFacts {
     private Integer systemProfileSockets;
     private boolean isVirtual;
     private String hypervisorUuid;
+    private String satelliteHypervisorUuid;
     private String guestId;
     private String subscriptionManagerId;
     private Set<String> qpcProducts;
@@ -62,8 +63,8 @@ public class InventoryHostFacts {
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
         String systemProfileProductIds, String syspurposeRole, String syspurposeSla, String syspurposeUnits,
-        String isVirtual, String hypervisorUuid, String guestId, String subscriptionManagerId,
-        String cloudProvider, OffsetDateTime staleTimestamp) {
+        String isVirtual, String hypervisorUuid, String satelliteHypervisorUuid, String guestId,
+        String subscriptionManagerId, String cloudProvider, OffsetDateTime staleTimestamp) {
 
         this.account = account;
         this.displayName = displayName;
@@ -83,6 +84,7 @@ public class InventoryHostFacts {
         this.syspurposeUnits = syspurposeUnits;
         this.isVirtual = asBoolean(isVirtual);
         this.hypervisorUuid = hypervisorUuid;
+        this.satelliteHypervisorUuid = satelliteHypervisorUuid;
         this.guestId = guestId;
         this.subscriptionManagerId = subscriptionManagerId;
         this.cloudProvider = cloudProvider;
@@ -287,5 +289,13 @@ public class InventoryHostFacts {
 
     public void setSyspurposeUnits(String syspurposeUnits) {
         this.syspurposeUnits = syspurposeUnits;
+    }
+
+    public String getSatelliteHypervisorUuid() {
+        return satelliteHypervisorUuid;
+    }
+
+    public void setSatelliteHypervisorUuid(String satelliteHypervisorUuid) {
+        this.satelliteHypervisorUuid = satelliteHypervisorUuid;
     }
 }

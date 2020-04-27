@@ -114,8 +114,13 @@ public class FactNormalizer {
         InventoryHostFacts hostFacts, Map<String, String> mappedHypervisors) {
         boolean isVirtual = isVirtual(hostFacts);
 
-        boolean isHypervisorUnknown = (isVirtual && !StringUtils.hasText(hostFacts.getHypervisorUuid())) ||
-            mappedHypervisors.getOrDefault(hostFacts.getHypervisorUuid(), null) == null;
+        String hypervisorUuid = hostFacts.getSatelliteHypervisorUuid();
+        if (!StringUtils.hasText(hypervisorUuid)) {
+            hypervisorUuid = hostFacts.getHypervisorUuid();
+        }
+
+        boolean isHypervisorUnknown = (isVirtual && !StringUtils.hasText(hypervisorUuid)) ||
+            mappedHypervisors.getOrDefault(hypervisorUuid, null) == null;
 
         boolean isHypervisor = StringUtils.hasText(hostFacts.getSubscriptionManagerId()) &&
             mappedHypervisors.containsKey(hostFacts.getSubscriptionManagerId());
