@@ -31,7 +31,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -41,21 +44,34 @@ import javax.annotation.PostConstruct;
  */
 public class PerLineFileSource implements ResourceLoaderAware {
 
-    private final Cache<List<String>> cache;
+    private final Cache<List<String>> listCache;
+    private final Cache<Set<String>> setCache;
     private ResourceLoader resourceLoader;
     private Resource fileResource;
     private String resourceLocation;
 
     public PerLineFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
         this.resourceLocation = resourceLocation;
-        this.cache = new Cache<>(clock, cacheTtl);
+        this.listCache = new Cache<>(clock, cacheTtl);
+        this.setCache = new Cache<>(clock, cacheTtl);
     }
 
     public List<String> list() throws IOException {
+        return getCachedValue(listCache, Collectors.toList());
+    }
+
+    public Set<String> set() throws IOException {
+        return getCachedValue(setCache, Collectors.toSet());
+    }
+
+    private <T extends Collection<String>> T getCachedValue(Cache<T> cache,
+        Collector<String, ?, T> collector) throws IOException {
+
         if (cache.isExpired()) {
             try (InputStream s = fileResource.getInputStream()) {
-                cache.setValue(new BufferedReader(new InputStreamReader(s, Charset.defaultCharset())).lines()
-                    .filter(line -> line != null && !line.isEmpty()).collect(Collectors.toList()));
+                cache.setValue(new BufferedReader(
+                    new InputStreamReader(s, Charset.defaultCharset())).lines()
+                    .filter(line -> line != null && !line.isEmpty()).collect(collector));
             }
         }
         return cache.getValue();

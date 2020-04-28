@@ -29,10 +29,6 @@ import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
 import javax.annotation.PostConstruct;
 
 /**
@@ -43,7 +39,6 @@ public class ProductWhitelist implements ResourceLoaderAware {
 
     private static Logger log = LoggerFactory.getLogger(ProductWhitelist.class);
 
-    private final Set<String> whitelistProducts = new HashSet<>();
     private final PerLineFileSource source;
 
     public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
@@ -61,11 +56,17 @@ public class ProductWhitelist implements ResourceLoaderAware {
         if (source == null) {
             return true;
         }
-        boolean whitelisted = whitelistProducts.contains(productId);
-        if (!whitelisted && log.isDebugEnabled()) {
-            log.debug("Product ID {} not in whitelist", productId);
+        try {
+            boolean whitelisted = source.set().contains(productId);
+            if (!whitelisted && log.isDebugEnabled()) {
+                log.debug("Product ID {} not in whitelist", productId);
+            }
+            return whitelisted;
         }
-        return whitelisted;
+        catch (Exception e) {
+            log.error("Error reading whitelist", e);
+            return false;
+        }
     }
 
     @Override
@@ -76,10 +77,9 @@ public class ProductWhitelist implements ResourceLoaderAware {
     }
 
     @PostConstruct
-    public void init() throws IOException {
+    public void init() {
         if (source != null) {
             source.init();
-            whitelistProducts.addAll(source.list());
         }
     }
 }
