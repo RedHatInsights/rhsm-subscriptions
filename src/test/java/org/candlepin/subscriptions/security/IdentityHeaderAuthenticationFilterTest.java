@@ -33,6 +33,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Base64;
+
 import javax.servlet.http.HttpServletRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,7 +62,7 @@ public class IdentityHeaderAuthenticationFilterTest {
     @Test
     public void missingIdentityResultsInEmptyOrgAndAccount() {
         // {}
-        String emptyJson = "e30=";
+        String emptyJson = Base64.getEncoder().encodeToString("{}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(emptyJson);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "", "");
@@ -68,8 +70,8 @@ public class IdentityHeaderAuthenticationFilterTest {
 
     @Test
     public void testMissingInternalProperty() {
-        // {"identity":{"account_number":"myaccount"}}
-        String missingInternal = "eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6Im15YWNjb3VudCJ9fQ==";
+        String missingInternal = Base64.getEncoder().encodeToString(
+            "{\"identity\":{\"account_number\":\"myaccount\"}}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingInternal);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", "");
@@ -77,9 +79,8 @@ public class IdentityHeaderAuthenticationFilterTest {
 
     @Test
     public void missingOrgInHeaderResultsInEmptyValueInPrincipal() {
-        // {"identity":{"account_number":"myaccount", "internal":{"org_id":""}}}
-        String missingOrgId =
-            "eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6Im15YWNjb3VudCIsICJpbnRlcm5hbCI6eyJvcmdfaWQiOiIifX19";
+        String missingOrgId = Base64.getEncoder().encodeToString(
+            "{\"identity\":{\"account_number\":\"myaccount\", \"internal\":{\"org_id\":\"\"}}}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingOrgId);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", "");
@@ -88,7 +89,8 @@ public class IdentityHeaderAuthenticationFilterTest {
     @Test
     public void missingAccountInHeaderResultsInEmptyValueInPrincipal() {
         //
-        String missingAccount = "eyJpZGVudGl0eSI6eyJpbnRlcm5hbCI6eyJvcmdfaWQiOiJteW9yZyJ9fX0=";
+        String missingAccount = Base64.getEncoder().encodeToString(
+            "{\"identity\":{\"internal\":{\"org_id\":\"myorg\"}}}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingAccount);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "", "myorg");

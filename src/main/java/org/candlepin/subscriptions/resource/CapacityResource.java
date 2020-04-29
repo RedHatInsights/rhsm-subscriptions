@@ -25,7 +25,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.security.auth.ReportingAdminOnly;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
@@ -71,7 +71,7 @@ public class CapacityResource implements CapacityApi {
     }
 
     @Override
-    @ReportingAdminOnly
+    @ReportingAccessRequired
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
         @Min(1) Integer limit, String sla) {

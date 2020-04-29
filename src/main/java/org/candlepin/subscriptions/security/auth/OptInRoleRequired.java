@@ -36,6 +36,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @PreAuthorize("@applicationProperties.isOrgAdminOptional() or " +
-    "hasRole('" + RoleProvider.ORG_ADMIN_ROLE + "')")
-public @interface AdminOnly {
+    "hasRole('" + RoleProvider.OPT_IN_ROLE + "')")
+public @interface OptInRoleRequired {
 }

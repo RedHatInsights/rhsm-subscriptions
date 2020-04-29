@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.security.auth.ReportingAdminOnly;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -70,7 +70,7 @@ public class TallyResource implements TallyApi {
 
     @SuppressWarnings("linelength")
     @Override
-    @ReportingAdminOnly
+    @ReportingAccessRequired
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
         @Min(1) Integer limit, String sla) {

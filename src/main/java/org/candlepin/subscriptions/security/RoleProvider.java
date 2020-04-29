@@ -32,7 +32,7 @@ import java.util.List;
  */
 public class RoleProvider {
 
-    public static final String ORG_ADMIN_ROLE = "ORG_ADMIN";
+    public static final String OPT_IN_ROLE = "OPT_IN";
     public static final String REPORTING_ROLE = "REPORTING";
 
     private String rulePrefix;
@@ -45,18 +45,20 @@ public class RoleProvider {
 
     public List<String> getRoles(Collection<String> permissions) {
         if (permissions == null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
+        // By default, we look for the subscriptions:*:* permission (unless
+        // configured otherwise).
         if (devModeEnabled || permissions.contains(rulePrefix + ":*:*")) {
-            return adminRoles();
+            return all();
         }
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
-    private List<String> adminRoles() {
+    private List<String> all() {
         return Arrays.asList(
-            ORG_ADMIN_ROLE,
+            OPT_IN_ROLE,
             REPORTING_ROLE
         );
     }

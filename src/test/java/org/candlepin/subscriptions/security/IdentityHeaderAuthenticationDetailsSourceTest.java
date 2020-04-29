@@ -51,20 +51,20 @@ public class IdentityHeaderAuthenticationDetailsSourceTest {
             Arrays.asList(new Access().permission("subscriptions:*:*"))
         );
         assertRoles(false,
-            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.OPT_IN_ROLE,
             RoleProvider.REPORTING_ROLE);
     }
 
     @Test
     public void testDevModeGrantsAllRoles() {
         assertRoles(true,
-            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.OPT_IN_ROLE,
             RoleProvider.REPORTING_ROLE);
         assertRoles(true,
-            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.OPT_IN_ROLE,
             RoleProvider.REPORTING_ROLE);
         assertRoles(true,
-            RoleProvider.ORG_ADMIN_ROLE,
+            RoleProvider.OPT_IN_ROLE,
             RoleProvider.REPORTING_ROLE);
     }
 

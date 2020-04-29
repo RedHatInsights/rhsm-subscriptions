@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
@@ -68,8 +69,8 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
 
     }
 
-    private InsightsUserPrincipal createPrincipal(byte[] decodedHeader) throws Exception {
-        // TODO The identity header should eventually get deserialized into an Object.
+    private InsightsUserPrincipal createPrincipal(byte[] decodedHeader) throws IOException {
+        // In the future, the identity header could be deserialized into an Object.
         Map authObject = mapper.readValue(decodedHeader, Map.class);
         Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
         String accountNumber = (String) identity.getOrDefault("account_number", "");

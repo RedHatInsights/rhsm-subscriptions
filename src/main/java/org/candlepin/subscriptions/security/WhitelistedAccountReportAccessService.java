@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.security.auth.ReportingAdminOnly;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
  * Provides a means to validate that an authentication token has a whitelisted account associated with it.
  * The primary use of this class is to provide a check for expression based security annotations.
  *
- * @see ReportingAdminOnly
+ * @see ReportingAccessRequired
  */
 @Service("reportAccessService")
 public class WhitelistedAccountReportAccessService {

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.security.WhitelistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.security.auth.ReportingAdminOnlyTest.ReportingAdminOnlyConfiguration;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequiredTest.ReportingAdminOnlyConfiguration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 @SpringJUnitConfig(classes = ReportingAdminOnlyConfiguration.class)
-public class ReportingAdminOnlyTest {
+public class ReportingAccessRequiredTest {
 
     @Autowired ApplicationContext context;
 
@@ -61,7 +61,7 @@ public class ReportingAdminOnlyTest {
     }
 
     protected static class StubResource {
-        @ReportingAdminOnly
+        @ReportingAccessRequired
         public void reportingAdminOnlyCall() {
             // Does nothing
         }

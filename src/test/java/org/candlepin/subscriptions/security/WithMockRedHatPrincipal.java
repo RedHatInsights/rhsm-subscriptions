@@ -29,7 +29,7 @@ import java.lang.annotation.RetentionPolicy;
  * Creates a mock Red Hat principal for testing, with account$value and owner$value as account number and
  * owner ID.
  *
- * Defaults to granting ROLE_ORG_ADMIN, but can be overridden.
+ * Defaults to granting ROLE_OPT_IN, but can be overridden.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @WithSecurityContext(factory = WithMockInsightsUserSecurityContextFactory.class)
@@ -44,5 +44,5 @@ public @interface WithMockRedHatPrincipal {
     boolean nullifyAccount() default false;
     boolean nullifyOwner() default false;
 
-    String[] roles() default {"ROLE_" + RoleProvider.ORG_ADMIN_ROLE};
+    String[] roles() default {"ROLE_" + RoleProvider.OPT_IN_ROLE};
 }

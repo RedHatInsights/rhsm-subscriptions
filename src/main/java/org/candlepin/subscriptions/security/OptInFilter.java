@@ -24,8 +24,6 @@ import org.candlepin.subscriptions.controller.OptInController;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -42,8 +40,6 @@ import javax.servlet.http.HttpServletResponse;
  * opted in.
  */
 public class OptInFilter extends OncePerRequestFilter {
-    private static final Logger log = LoggerFactory.getLogger(OptInFilter.class);
-
     private OptInController optInController;
 
     public OptInFilter(OptInController optInController) {
@@ -60,7 +56,7 @@ public class OptInFilter extends OncePerRequestFilter {
             principal.getAccountNumber(), principal.getOwnerId()
         );
 
-        if (!optin.getData().getOptInComplete()) {
+        if (Boolean.FALSE.equals(optin.getData().getOptInComplete())) {
             throw new OptInRequiredException();
         }
         filterChain.doFilter(request, response);
