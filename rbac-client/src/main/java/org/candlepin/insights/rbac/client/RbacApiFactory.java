@@ -18,13 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.rbac;
-
-import org.candlepin.insights.rbac.client.ApiClient;
-import org.candlepin.insights.rbac.client.RbacApi;
-import org.candlepin.insights.rbac.client.RbacApiImpl;
-import org.candlepin.insights.rbac.client.RbacServiceProperties;
-import org.candlepin.insights.rbac.client.StubRbacApi;
+package org.candlepin.insights.rbac.client;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -61,7 +55,7 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
             log.info("Using stub RBAC client");
             return new StubRbacApi();
         }
-        ApiClient apiClient = new RBACApiClient();
+        ApiClient apiClient = new RbacApiClient();
         apiClient.setHttpClient(buildHttpClient(apiClient));
         if (serviceProperties.getUrl() != null) {
             log.info("RBAC service URL: {}", serviceProperties.getUrl());
