@@ -24,10 +24,12 @@ import java.io.Serializable;
 import java.util.Objects;
 
 import javax.persistence.Column;
+import javax.persistence.Embeddable;
 
 /**
  * Primary key for record of capacity provided by a subscription for a given product.
  */
+@Embeddable
 public class SubscriptionCapacityKey implements Serializable {
 
     @Column(name = "owner_id")

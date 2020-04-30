@@ -65,7 +65,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -93,7 +93,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -121,7 +121,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -149,7 +149,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -177,7 +177,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -193,7 +193,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -209,7 +209,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             NOWISH,
@@ -224,7 +224,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             "Standard",
@@ -240,7 +240,7 @@ class SubscriptionCapacityRepositoryTest {
         repository.flush();
 
         List<SubscriptionCapacity> found = repository
-            .findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
             "Premium",

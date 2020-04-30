@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.capacity;
 
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProductAttribute;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProvidedProduct;
@@ -33,6 +34,7 @@ import org.springframework.stereotype.Component;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,8 +53,19 @@ public class CandlepinPoolCapacityMapper {
         this.productExtractor = productExtractor;
     }
 
-    public Collection<SubscriptionCapacity> mapPoolToSubscriptionCapacity(String ownerId,
-        CandlepinPool pool) {
+    /**
+     * Transforms candlepin pool records into capacity records.
+     *
+     * If existing capacity records are passed, then they are updated, otherwise new SubscriptionCapacity
+     * instances are created.
+     *
+     * @param ownerId Candlepin org ID to operate against
+     * @param pool Candlepin pool to map to capacity records
+     * @param existingCapacityMap map of existing capacity records for this subscription
+     * @return list of capacities to save
+     */
+    public Collection<SubscriptionCapacity> mapPoolToSubscriptionCapacity(String ownerId, CandlepinPool pool,
+        Map<SubscriptionCapacityKey, SubscriptionCapacity> existingCapacityMap) {
 
         List<String> productIds = extractProductIds(pool.getProvidedProducts());
         List<String> derivedProductIds = extractProductIds(pool.getDerivedProvidedProducts());
@@ -69,11 +82,16 @@ public class CandlepinPoolCapacityMapper {
         String sla = getSla(pool);
 
         return allProducts.stream().map(product -> {
-            SubscriptionCapacity capacity = new SubscriptionCapacity();
+            SubscriptionCapacityKey key = new SubscriptionCapacityKey();
+            key.setOwnerId(ownerId);
+            key.setSubscriptionId(pool.getSubscriptionId());
+            key.setProductId(product);
+            SubscriptionCapacity capacity = existingCapacityMap.get(key);
+            if (capacity == null) {
+                capacity = new SubscriptionCapacity();
+            }
+            capacity.setKey(key);
             capacity.setAccountNumber(pool.getAccountNumber());
-            capacity.setOwnerId(ownerId);
-            capacity.setProductId(product);
-            capacity.setSubscriptionId(pool.getSubscriptionId());
             capacity.setBeginDate(pool.getStartDate());
             capacity.setEndDate(pool.getEndDate());
             capacity.setServiceLevel(sla);
@@ -99,8 +117,14 @@ public class CandlepinPoolCapacityMapper {
         if (products.contains(product) && isPositive(socketCapacity)) {
             capacity.setPhysicalSockets(Math.toIntExact(socketCapacity));
         }
+        else {
+            capacity.setPhysicalSockets(null);
+        }
         if (derivedProducts.contains(product) && isPositive(socketCapacity)) {
             capacity.setVirtualSockets(Math.toIntExact(socketCapacity));
+        }
+        else {
+            capacity.setVirtualSockets(null);
         }
     }
 
@@ -110,9 +134,15 @@ public class CandlepinPoolCapacityMapper {
         if (products.contains(product) && isPositive(coresCapacity)) {
             capacity.setPhysicalCores(Math.toIntExact(coresCapacity));
         }
+        else {
+            capacity.setPhysicalCores(null);
+        }
 
         if (derivedProducts.contains(product) && isPositive(coresCapacity)) {
             capacity.setVirtualCores(Math.toIntExact(coresCapacity));
+        }
+        else {
+            capacity.setVirtualCores(null);
         }
     }
 

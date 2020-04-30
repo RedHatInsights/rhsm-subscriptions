@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.controller;
 import org.candlepin.subscriptions.capacity.CandlepinPoolCapacityMapper;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.files.ProductWhitelist;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 
@@ -30,9 +31,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.transaction.Transactional;
 
 /**
  * Controller for ingesting subscription information from Candlepin pools.
@@ -45,32 +56,94 @@ public class PoolIngressController {
     private final SubscriptionCapacityRepository repository;
     private final CandlepinPoolCapacityMapper capacityMapper;
     private final ProductWhitelist productWhitelist;
+    private final Counter poolsProcessed;
+    private final Counter poolsWhitelisted;
+    private final Counter capacityRecordsCreated;
+    private final Counter capacityRecordsUpdated;
+    private final Counter capacityRecordsDeleted;
 
     public PoolIngressController(SubscriptionCapacityRepository repository,
-        CandlepinPoolCapacityMapper capacityMapper, ProductWhitelist productWhitelist) {
+        CandlepinPoolCapacityMapper capacityMapper, ProductWhitelist productWhitelist,
+        MeterRegistry meterRegistry) {
 
         this.repository = repository;
         this.capacityMapper = capacityMapper;
         this.productWhitelist = productWhitelist;
+        poolsProcessed = meterRegistry.counter("rhsm-subscriptions.capacity.pools");
+        poolsWhitelisted = meterRegistry.counter("rhsm-subscriptions.capacity.whitelisted_pools");
+        capacityRecordsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.records_created");
+        capacityRecordsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.records_updated");
+        capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
     }
 
+    @Transactional
+    @Timed("rhsm-subscriptions.capacity.ingress")
     public void updateCapacityForOrg(String orgId, List<CandlepinPool> pools) {
-        List<CandlepinPool> whitelistedPools = pools.stream()
-            .filter(pool -> productWhitelist.productIdMatches(pool.getProductId()))
+        List<String> subscriptionIds = pools.stream().map(CandlepinPool::getSubscriptionId)
             .collect(Collectors.toList());
 
-        List<SubscriptionCapacity> capacities = whitelistedPools.stream()
-            .map(pool -> capacityMapper.mapPoolToSubscriptionCapacity(orgId, pool))
-            .flatMap(Collection::stream).collect(Collectors.toList());
+        Collection<SubscriptionCapacity> existingCapacityRecords = repository
+            .findByKeyOwnerIdAndKeySubscriptionIdIn(orgId, subscriptionIds);
 
-        capacities.forEach(repository::save);
+        // used to lookup existing capacity records by key, per subscription ID
+        Map<String, Map<SubscriptionCapacityKey, SubscriptionCapacity>> subscriptionCapacityMaps =
+            new HashMap<>();
+
+        for (SubscriptionCapacity capacity : existingCapacityRecords) {
+            String subscriptionId = capacity.getSubscriptionId();
+            Map<SubscriptionCapacityKey, SubscriptionCapacity> subscriptionCapacityMap =
+                subscriptionCapacityMaps.computeIfAbsent(subscriptionId, s -> new HashMap<>());
+            subscriptionCapacityMap.put(capacity.getKey(), capacity);
+        }
+
+        Collection<SubscriptionCapacity> needsSave = new ArrayList<>();
+        Collection<SubscriptionCapacity> needsDelete = new ArrayList<>();
+        int whiteListedPoolCount = 0;
+        for (CandlepinPool pool : pools) {
+            Map<SubscriptionCapacityKey, SubscriptionCapacity> subscriptionCapacityMap =
+                subscriptionCapacityMaps.getOrDefault(pool.getSubscriptionId(), Collections.emptyMap());
+            if (productWhitelist.productIdMatches(pool.getProductId())) {
+                whiteListedPoolCount++;
+
+                Collection<SubscriptionCapacity> modifiedPoolCapacity = capacityMapper
+                    .mapPoolToSubscriptionCapacity(orgId, pool, subscriptionCapacityMap);
+
+                modifiedPoolCapacity.forEach(capacity -> {
+                    needsSave.add(capacity);
+                    SubscriptionCapacityKey key = capacity.getKey();
+                    SubscriptionCapacity oldVersion = subscriptionCapacityMap.remove(key);
+                    if (oldVersion != null) {
+                        capacityRecordsUpdated.increment();
+                    }
+                    else {
+                        capacityRecordsCreated.increment();
+                    }
+                });
+            }
+            // at this point anything left in the subscription capacity map must be stale; needs deletion
+            needsDelete.addAll(subscriptionCapacityMap.values());
+        }
+
+        repository.saveAll(needsSave);
+        repository.deleteAll(needsDelete);
 
         log.info(
             "Update for org {} processed {} of {} posted pools, resulting in {} capacity records.",
             orgId,
-            whitelistedPools.size(),
+            whiteListedPoolCount,
             pools.size(),
-            capacities.size()
+            needsSave.size()
         );
+        poolsWhitelisted.increment(whiteListedPoolCount);
+        poolsProcessed.increment(pools.size());
+
+        if (!needsDelete.isEmpty()) {
+            log.info(
+                "Update for org {} removed {} incorrect capacity records.",
+                orgId,
+                needsDelete.size()
+            );
+        }
+        capacityRecordsDeleted.increment(needsDelete.size());
     }
 }

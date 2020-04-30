@@ -132,10 +132,10 @@ public class FactNormalizer {
 
     @SuppressWarnings("indentation")
     private void pruneProducts(NormalizedFacts normalizedFacts) {
-        // If a Satellite product was found, do not include RHEL or its variants.
-        boolean hasSatellite = normalizedFacts.getProducts().stream()
-            .anyMatch(s -> s.startsWith("Satellite"));
-        if (hasSatellite) {
+        // If a Satellite or OpenShift product was found, do not include RHEL or its variants.
+        boolean hasRhelIncludedProduct = normalizedFacts.getProducts().stream()
+            .anyMatch(s -> s.startsWith("Satellite") || s.startsWith("OpenShift"));
+        if (hasRhelIncludedProduct) {
             normalizedFacts.setProducts(
                 normalizedFacts.getProducts().stream()
                     .filter(prod -> !prod.startsWith("RHEL"))

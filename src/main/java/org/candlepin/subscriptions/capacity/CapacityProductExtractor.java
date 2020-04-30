@@ -62,7 +62,7 @@ public class CapacityProductExtractor {
             .collect(Collectors.toSet());
 
         if (setIsInvalid(products)) {
-            // Kick out the RHEL products since it's implicit with the Satellite product being there.
+            // Kick out the RHEL products since it's implicit with the RHEL-included product being there.
             products = products.stream().filter(matchesRhel().negate()).collect(Collectors.toSet());
         }
 
@@ -85,15 +85,16 @@ public class CapacityProductExtractor {
      * @return true if the set is invalid for capacity calculations
      */
     public boolean setIsInvalid(Set<String> products) {
-        return products.stream().anyMatch(matchesRhel()) && products.stream().anyMatch((matchesSatellite()));
+        return products.stream().anyMatch(matchesRhel()) && products.stream()
+            .anyMatch(matchesRhelIncludedProduct());
     }
 
     private Predicate<String> matchesRhel() {
         return x -> x.startsWith("RHEL");
     }
 
-    private Predicate<String> matchesSatellite() {
-        return x -> x.startsWith("Satellite");
+    private Predicate<String> matchesRhelIncludedProduct() {
+        return x -> x.startsWith("Satellite") || x.startsWith("OpenShift");
     }
 
 }

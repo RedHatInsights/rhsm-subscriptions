@@ -21,5 +21,7 @@
 12:
   - RHEL
   - Satellite 6 Capsule
+13:
+  - OpenShift Container Platform
 6789:
   - RHEL for x86
