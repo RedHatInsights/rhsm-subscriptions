@@ -22,8 +22,8 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.insights.inventory.client.HostsApiFactory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
+import org.candlepin.insights.rbac.client.RbacApiFactory;
 import org.candlepin.insights.rbac.client.RbacServiceProperties;
-import org.candlepin.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.files.FileAccountListSource;
 import org.candlepin.subscriptions.files.FileAccountSyncListSource;

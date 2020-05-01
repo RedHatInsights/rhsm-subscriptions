@@ -294,6 +294,11 @@ project(":rbac-client") {
         api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-rbac/stable/docs/source/specs/openapi.json"
         config_file = "${projectDir}/rbac-client-config.json"
     }
+
+    dependencies {
+        compileOnly "org.springframework:spring-web"
+        compileOnly "javax.servlet:javax.servlet-api"
+    }
 }
 
 project(":cloudigrade-client") {

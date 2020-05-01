@@ -18,16 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.rbac;
+package org.candlepin.insights.rbac.client;
 
-import org.candlepin.insights.rbac.client.ApiClient;
-import org.candlepin.insights.rbac.client.ApiException;
-import org.candlepin.insights.rbac.client.Pair;
-import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.GenericType;
 
@@ -35,7 +34,8 @@ import javax.ws.rs.core.GenericType;
  * An extension of the generated RBAC ApiClient that ensures that the appropriate
  * identity header is appended to each request.
  */
-public class RBACApiClient extends ApiClient {
+public class RbacApiClient extends ApiClient {
+    public static final String RH_IDENTITY_HEADER = "x-rh-identity";
 
     @Override
     public <T> T invokeAPI(
@@ -50,15 +50,21 @@ public class RBACApiClient extends ApiClient {
         String[] authNames,
         GenericType<T> returnType) throws ApiException {
 
-        String idHeader = ResourceUtils.getIdentityHeader();
+        String idHeader = getIdentityHeader();
         if (idHeader == null || idHeader.isEmpty()) {
             throw new BadRequestException("Missing identity header while accessing RBAC service.");
         }
 
-        headerParams.put("x-rh-identity", idHeader);
+        headerParams.put(RH_IDENTITY_HEADER, idHeader);
 
         return super.invokeAPI(path, method, queryParams, body, headerParams, formParams, accept,
             contentType, authNames, returnType);
+    }
+
+    protected static String getIdentityHeader() {
+        HttpServletRequest request =
+            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        return request.getHeader(RH_IDENTITY_HEADER);
     }
 
 }
