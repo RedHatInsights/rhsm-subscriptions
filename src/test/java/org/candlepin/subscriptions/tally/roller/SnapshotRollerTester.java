@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
@@ -69,8 +70,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> currentSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), Usage.UNSPECIFIED.getValue(),
+                startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
         assertSnapshot(currentSnaps.get(0), a1ProductCalc, granularity);
@@ -84,8 +86,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> currentSnaps = repository
-             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                 TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
+             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                 TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), Usage.UNSPECIFIED.getValue(),
+                 startOfGranularPeriod, endOfGranularPeriod,
                  PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
         TallySnapshot toBeUpdated = currentSnaps.get(0);
@@ -98,8 +101,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1Calc));
 
         List<TallySnapshot> updatedSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), Usage.UNSPECIFIED.getValue(),
+                startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
 
@@ -131,8 +135,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1HighCalc));
 
         List<TallySnapshot> currentSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(),  Usage.UNSPECIFIED.getValue(),
+                startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
 
@@ -144,8 +149,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Arrays.asList(account), Arrays.asList(a1LowCalc));
 
         List<TallySnapshot> updatedSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(),  Usage.UNSPECIFIED.getValue(),
+                startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
 
@@ -165,14 +171,15 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         roller.rollSnapshots(Collections.singletonList("12345678"), Collections.singletonList(calc));
 
         List<TallySnapshot> currentSnaps = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), startOfGranularPeriod, endOfGranularPeriod,
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate("A1",
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(),  Usage.UNSPECIFIED.getValue(),
+                startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(0, currentSnaps.size());
     }
 
     private UsageCalculation.Key createUsageKey(String product) {
-        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED);
+        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
     }
 
     private AccountUsageCalculation createTestData() {

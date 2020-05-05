@@ -176,6 +176,11 @@ paths:
           schema:
             type: string
           description: "Include only snapshots matching the specified service level."
+        - name: usage
+          in: query
+          schema:
+            type: string
+          description: "Include only snapshots matching the specified usage."
         - name: beginning
           in: query
           required: true
@@ -244,6 +249,7 @@ paths:
                   product: RHEL
                   granularity: DAILY
                   service_level: Premium
+                  usage: Production
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':
@@ -596,6 +602,10 @@ components:
             service_level:
               description: "Describes the service level that the report was made against. Not set if it wasn't
                 specified as a query parameter."
+              type: string
+            usage:
+              description: "Describes the usage that the report was made against. Not set if it wasn't
+                            specified as a query parameter."
               type: string
             granularity:
               description: "Describes the significance of each date in the TallySnapshot list. For example if the

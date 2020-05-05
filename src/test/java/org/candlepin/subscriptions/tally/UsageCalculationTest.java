@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +65,7 @@ public class UsageCalculationTest {
     }
 
     private UsageCalculation.Key createUsageKey(String product) {
-        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED);
+        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
     }
 
     @Test

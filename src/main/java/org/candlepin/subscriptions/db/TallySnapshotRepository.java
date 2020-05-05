@@ -40,9 +40,10 @@ import java.util.stream.Stream;
  */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
 
-    @SuppressWarnings("linelength")
-    Page<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
-        String accountNumber, String productId, Granularity granularity, String serviceLevel,
+    // suppress line length and params arguments, can't help either easily b/c this is a spring data method
+    @SuppressWarnings({"linelength", "java:S107"})
+    Page<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+        String accountNumber, String productId, Granularity granularity, String serviceLevel, String usage,
         OffsetDateTime beginning, OffsetDateTime ending, Pageable pageable);
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

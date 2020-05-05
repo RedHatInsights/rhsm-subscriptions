@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.resource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -73,7 +74,7 @@ public class TallyResource implements TallyApi {
     @ReportingAccessRequired
     public TallyReport getTallyReport(String productId, @NotNull String granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit, String sla) {
+        @Min(1) Integer limit, String sla, String usage) {
         // When limit and offset are not specified, we will fill the report with dummy
         // records from beginning to ending dates. Otherwise we page as usual.
         Pageable pageable = null;
@@ -84,13 +85,15 @@ public class TallyResource implements TallyApi {
 
         String accountNumber = ResourceUtils.getAccountNumber();
         String serviceLevel = getSnapshotQueryValue(sla);
+        String effectiveUsage = getEffectiveUsage(usage);
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,
             productId,
             granularityValue,
             serviceLevel,
+            effectiveUsage,
             beginning,
             ending,
             pageable
@@ -107,6 +110,7 @@ public class TallyResource implements TallyApi {
         report.getMeta().setGranularity(granularityValue.name());
         report.getMeta().setProduct(productId);
         report.getMeta().setServiceLevel(sla == null ? null : serviceLevel);
+        report.getMeta().setUsage(usage == null ? null : effectiveUsage);
 
         // Only set page links if we are paging (not filling).
         if (pageable != null) {
@@ -123,6 +127,21 @@ public class TallyResource implements TallyApi {
         report.getMeta().setCount(report.getData().size());
 
         return report;
+    }
+
+    private String getEffectiveUsage(String usage) {
+        // If the sla parameter was not specified, we assume the query param represents ANY.
+        if (usage == null) {
+            return Usage.ANY.getValue();
+        }
+
+        // If the usage parameter is not one that we support, then throw an exception.
+        // If we don't, the query would default to UNSPECIFIED, which would be confusing.
+        Usage sanitized = Usage.fromString(usage);
+        if (!usage.isEmpty() && Usage.UNSPECIFIED.equals(sanitized)) {
+            throw new BadRequestException("Invalid usage parameter specified.");
+        }
+        return sanitized.getValue();
     }
 
     private String getSnapshotQueryValue(String sla) {

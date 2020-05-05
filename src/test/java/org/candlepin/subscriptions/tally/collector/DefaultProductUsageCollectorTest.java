@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -105,7 +106,7 @@ public class DefaultProductUsageCollectorTest {
     }
 
     private UsageCalculation.Key createUsageKey() {
-        return new UsageCalculation.Key("NON_RHEL", ServiceLevel.UNSPECIFIED);
+        return new UsageCalculation.Key("NON_RHEL", ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
     }
 
 }

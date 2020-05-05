@@ -76,6 +76,7 @@ public abstract class BaseSnapshotRoller {
         TallySnapshot snapshot = new TallySnapshot();
         snapshot.setProductId(productCalc.getProductId());
         snapshot.setServiceLevel(productCalc.getSla().getValue());
+        snapshot.setUsage(productCalc.getUsage().getValue());
         snapshot.setGranularity(granularity);
         snapshot.setOwnerId(owner);
         snapshot.setAccountNumber(account);
