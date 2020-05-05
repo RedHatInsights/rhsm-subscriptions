@@ -68,6 +68,9 @@ public class TallySnapshot implements Serializable {
     @Column(name = "sla")
     private String serviceLevel = "_ANY";
 
+    @Column(name = "usage")
+    private String usage = "_ANY";
+
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")
     private Granularity granularity;
@@ -146,6 +149,14 @@ public class TallySnapshot implements Serializable {
         this.serviceLevel = serviceLevel;
     }
 
+    public String getUsage() {
+        return usage;
+    }
+
+    public void setUsage(String usage) {
+        this.usage = usage;
+    }
+
     public org.candlepin.subscriptions.utilization.api.model.TallySnapshot asApiSnapshot() {
         org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
             new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
@@ -202,6 +213,7 @@ public class TallySnapshot implements Serializable {
             ", granularity=" + granularity +
             ", accountNumber='" + accountNumber + '\'' +
             ", productId='" + productId + '\'' +
-            ", serviceLevel='" + serviceLevel + '\'' + '}';
+            ", serviceLevel='" + serviceLevel + '\'' +
+            ", usage='" + usage + '\'' + '}';
     }
 }
