@@ -21,9 +21,8 @@
 
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.insights.rbac.client.RbacApi;
 import org.candlepin.insights.rbac.client.RbacApiException;
-import org.candlepin.insights.rbac.client.model.Access;
+import org.candlepin.insights.rbac.client.RbacService;
 import org.candlepin.subscriptions.ApplicationProperties;
 
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -54,41 +53,23 @@ public class IdentityHeaderAuthenticationDetailsSource implements
 
     private Attributes2GrantedAuthoritiesMapper authMapper;
     private ApplicationProperties props;
-    private RbacApi rbac;
-    private String rbacApplicationName;
     private RoleProvider roleProvider;
+    private RbacService rbacController;
 
     public IdentityHeaderAuthenticationDetailsSource(ApplicationProperties props,
-        Attributes2GrantedAuthoritiesMapper authMapper,
-        RbacApi rbac, String rbacApplicationName) {
+        Attributes2GrantedAuthoritiesMapper authMapper, RbacService rbacController) {
         this.authMapper = authMapper;
         this.props = props;
-        this.rbac = rbac;
-        this.rbacApplicationName = rbacApplicationName;
+        this.rbacController = rbacController;
 
         if (props.isDevMode()) {
             log.info("Running in DEV mode. Security will be disabled.");
         }
-        this.roleProvider = new RoleProvider(rbacApplicationName, props.isDevMode());
+        this.roleProvider = new RoleProvider(props.getRbacApplicationName(), props.isDevMode());
     }
 
     protected Collection<String> getUserRoles() {
-        List<String> permissions = new LinkedList<>();
-        if (!props.isDevMode()) {
-            try {
-                // Get all permissions for the configured application name.
-                List<Access> accessList = rbac.getCurrentUserAccess(rbacApplicationName);
-                for (Access access : accessList) {
-                    if (access.getPermission() != null) {
-                        permissions.add(access.getPermission());
-                    }
-                }
-            }
-            catch (RbacApiException e) {
-                log.warn("Unable to determine roles from RBAC service.", e);
-            }
-        }
-        return roleProvider.getRoles(permissions);
+        return roleProvider.getRoles(props.isDevMode() ? Collections.emptyList() : getPermissions());
     }
 
     @Override
@@ -112,6 +93,16 @@ public class IdentityHeaderAuthenticationDetailsSource implements
     public void setUserRoles2GrantedAuthoritiesMapper(
         Attributes2GrantedAuthoritiesMapper authMapper) {
         this.authMapper = authMapper;
+    }
+
+    private List<String> getPermissions() {
+        try {
+            return rbacController.getPermissions(props.getRbacApplicationName());
+        }
+        catch (RbacApiException e) {
+            log.warn("Unable to determine roles from RBAC service.", e);
+            return Collections.emptyList();
+        }
     }
 
 }

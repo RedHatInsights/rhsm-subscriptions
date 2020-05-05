@@ -26,24 +26,29 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.insights.rbac.client.RbacApi;
-import org.candlepin.insights.rbac.client.RbacServiceProperties;
+import org.candlepin.insights.rbac.client.RbacService;
 import org.candlepin.insights.rbac.client.model.Access;
 import org.candlepin.subscriptions.ApplicationProperties;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@TestPropertySource("classpath:/test.properties")
 public class IdentityHeaderAuthenticationDetailsSourceTest {
 
-    @Mock
+    @MockBean
     private RbacApi rbacApi;
+
+    @Autowired
+    private RbacService rbacService;
 
     @Test
     public void testAdminRoleGranted() throws Exception {
@@ -72,8 +77,7 @@ public class IdentityHeaderAuthenticationDetailsSourceTest {
         ApplicationProperties props = new ApplicationProperties();
         props.setDevMode(devMode);
         IdentityHeaderAuthenticationDetailsSource source = new IdentityHeaderAuthenticationDetailsSource(
-            props, new IdentityHeaderAuthoritiesMapper(), rbacApi,
-            new RbacServiceProperties().getApplicationName()
+            props, new IdentityHeaderAuthoritiesMapper(), rbacService
         );
         Collection<String> roles = source.getUserRoles();
         assertEquals(expectedRoles.length, roles.size());

@@ -71,11 +71,13 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
 
     private InsightsUserPrincipal createPrincipal(byte[] decodedHeader) throws IOException {
         // In the future, the identity header could be deserialized into an Object.
-        Map authObject = mapper.readValue(decodedHeader, Map.class);
-        Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
+        Map<String, Object> authObject = mapper.readValue(decodedHeader, Map.class);
+        Map<String, Object> identity =
+            (Map<String, Object>) authObject.getOrDefault("identity", Collections.emptyMap());
         String accountNumber = (String) identity.getOrDefault("account_number", "");
 
-        Map internal = (Map) identity.getOrDefault("internal", Collections.emptyMap());
+        Map<String, Object> internal =
+            (Map<String, Object>) identity.getOrDefault("internal", Collections.emptyMap());
         String orgId = (String) internal.getOrDefault("org_id", "");
 
         return new InsightsUserPrincipal(orgId, accountNumber);

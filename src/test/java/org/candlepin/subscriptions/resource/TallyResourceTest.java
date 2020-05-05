@@ -330,7 +330,7 @@ public class TallyResourceTest {
                  Mockito.eq(null)))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        resource.getTallyReport(
+        TallyReport report = resource.getTallyReport(
             "product1",
             "daily",
             min,
@@ -339,6 +339,7 @@ public class TallyResourceTest {
             null,
             null
         );
+        assertNotNull(report);
     }
 
     @Test

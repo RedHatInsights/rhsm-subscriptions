@@ -20,47 +20,31 @@
  */
 package org.candlepin.insights.rbac.client;
 
+import org.candlepin.insights.rbac.client.model.Access;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
- * Sub-class for RBAC service properties
+ * Provides RBAC functionality.
  */
-public class RbacServiceProperties {
+public class RbacService {
 
-    /**
-     * Use the stub RBAC API implementation.
-     */
-    private boolean useStub;
+    @Autowired
+    private RbacApi api;
 
-    /**
-     * The URL of the RBAC API.
-     */
-    private String url;
-
-    /**
-     * Maximum number of simultaneous connections to the rbac service.
-     */
-    private int maxConnections = 100;
-
-    public boolean isUseStub() {
-        return useStub;
+    public List<String> getPermissions(String rbacAppName) throws RbacApiException {
+        // Get all permissions for the configured application name.
+        try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
+            return accessStream
+                .filter(access -> access != null && !StringUtils.isEmpty(access.getPermission()))
+                .map(Access::getPermission)
+                .collect(Collectors.toList());
+        }
     }
 
-    public void setUseStub(boolean useStub) {
-        this.useStub = useStub;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public int getMaxConnections() {
-        return maxConnections;
-    }
-
-    public void setMaxConnections(int maxConnections) {
-        this.maxConnections = maxConnections;
-    }
 }

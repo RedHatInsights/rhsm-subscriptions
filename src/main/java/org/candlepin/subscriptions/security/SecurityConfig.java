@@ -21,8 +21,7 @@
 
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.insights.rbac.client.RbacApi;
-import org.candlepin.insights.rbac.client.RbacServiceProperties;
+import org.candlepin.insights.rbac.client.RbacService;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.controller.OptInController;
 
@@ -63,12 +62,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     ConfigurableEnvironment env;
 
-    @Autowired
-    private RbacServiceProperties rbacProps;
-
-    @Autowired
-    private RbacApi rbacApi;
-
     @Override
     public void configure(AuthenticationManagerBuilder auth) {
         auth.authenticationProvider(preAuthenticatedAuthenticationProvider());
@@ -92,13 +85,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public IdentityHeaderAuthenticationDetailsSource detailsSource(ApplicationProperties appProps,
-        RbacApi rbackApi, String rbacApplicationName) {
+    public RbacService rbacService() {
+        return new RbacService();
+    }
+
+    @Bean
+    public IdentityHeaderAuthenticationDetailsSource detailsSource(ApplicationProperties appProps) {
         return new IdentityHeaderAuthenticationDetailsSource(
             appProps,
             identityHeaderAuthoritiesMapper(),
-            rbackApi,
-            rbacApplicationName
+            rbacService()
         );
     }
 
@@ -109,9 +105,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         filter.setCheckForPrincipalChanges(true);
         filter.setAuthenticationManager(identityHeaderAuthenticationManager());
-        filter.setAuthenticationDetailsSource(
-            detailsSource(appProps, rbacApi, rbacProps.getApplicationName())
-        );
+        filter.setAuthenticationDetailsSource(detailsSource(appProps));
         filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
         filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
         return filter;
