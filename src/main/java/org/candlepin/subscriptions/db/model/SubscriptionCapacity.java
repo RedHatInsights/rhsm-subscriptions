@@ -79,6 +79,9 @@ public class SubscriptionCapacity implements Serializable {
     @Column(name = "sla")
     private String serviceLevel;
 
+    @Column(name = "usage")
+    private String usage;
+
     public String getAccountNumber() {
         return accountNumber;
     }
@@ -183,6 +186,14 @@ public class SubscriptionCapacity implements Serializable {
         this.serviceLevel = serviceLevel;
     }
 
+    public String getUsage() {
+        return usage;
+    }
+
+    public void setUsage(String usage) {
+        this.usage = usage;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(
@@ -198,7 +209,8 @@ public class SubscriptionCapacity implements Serializable {
             getVirtualSockets(),
             getPhysicalCores(),
             getVirtualCores(),
-            getServiceLevel()
+            getServiceLevel(),
+            getUsage()
         );
     }
 
@@ -223,16 +235,17 @@ public class SubscriptionCapacity implements Serializable {
             Objects.equals(getEndDate(), that.getEndDate()) &&
             Objects.equals(getPhysicalCores(), that.getPhysicalCores()) &&
             Objects.equals(getVirtualCores(), that.getVirtualCores()) &&
-            Objects.equals(getServiceLevel(), that.getServiceLevel());
+            Objects.equals(getServiceLevel(), that.getServiceLevel()) &&
+            Objects.equals(getUsage(), that.getUsage());
     }
 
     @Override
     public String toString() {
         return String.format("SubscriptionCapacity{accountNumber=%s, sku=%s, productId=%s, " +
             "subscriptionId=%s, ownerId=%s, physicalSockets=%s, virtualSockets=%s, " +
-            "hasUnlimitedGuestSockets=%s, physicalCores=%s, virtualCores=%s, serviceLevel=%s, " +
+            "hasUnlimitedGuestSockets=%s, physicalCores=%s, virtualCores=%s, serviceLevel=%s, usage=%s, " +
             "beginDate=%s, endDate=%s}",
             accountNumber, sku, productId, subscriptionId, ownerId, physicalSockets, virtualSockets,
-            hasUnlimitedGuestSockets, physicalCores, virtualCores, serviceLevel, beginDate, endDate);
+            hasUnlimitedGuestSockets, physicalCores, virtualCores, serviceLevel, usage, beginDate, endDate);
     }
 }

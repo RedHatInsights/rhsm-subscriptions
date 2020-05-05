@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202005041611-1" author="khowell">
+        <comment>Add column for usage level to snapshot table</comment>
+        <addColumn tableName="tally_snapshots">
+            <column name="usage" type="VARCHAR(255)" defaultValue="_ANY">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202005041611-2" author="khowell">
+        <comment>Add column for usage to capacity table</comment>
+        <addColumn tableName="subscription_capacity">
+            <column name="usage" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202005041611-3" author="khowell">
+        <comment>Create an index on account, product_id, sla, granularity</comment>
+        <createIndex indexName="acct_prod_sla_gran_usage_idx" tableName="tally_snapshots"
+                     unique="false">
+            <column name="account_number"/>
+            <column name="product_id"/>
+            <column name="sla"/>
+            <column name="usage"/>
+            <column name="granularity"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
