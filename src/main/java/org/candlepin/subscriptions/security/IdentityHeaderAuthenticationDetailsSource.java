@@ -21,27 +21,22 @@
 
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.*;
-
+import org.candlepin.insights.rbac.client.RbacApiException;
+import org.candlepin.insights.rbac.client.RbacService;
 import org.candlepin.subscriptions.ApplicationProperties;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.mapping.Attributes2GrantedAuthoritiesMapper;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
-import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -56,60 +51,38 @@ public class IdentityHeaderAuthenticationDetailsSource implements
     private static final Logger log =
         LoggerFactory.getLogger(IdentityHeaderAuthenticationDetailsSource.class);
 
-    // NB: Right now there are just two roles.  If we expand on that, we should externalize all the
-    //  roles to an enum, serialize the header JSON to an object, and write an actual predicate method
-    //  isUserInRole
-    public static final String ORG_ADMIN_ROLE = "ORG_ADMIN";
-    public static final String INTERNAL_ROLE = "INTERNAL";
-
-    private ObjectMapper objectMapper;
     private Attributes2GrantedAuthoritiesMapper authMapper;
     private ApplicationProperties props;
+    private RoleProvider roleProvider;
+    private RbacService rbacController;
 
-    public IdentityHeaderAuthenticationDetailsSource(ApplicationProperties props, ObjectMapper objectMapper,
-        Attributes2GrantedAuthoritiesMapper authMapper) {
-        this.objectMapper = objectMapper;
+    public IdentityHeaderAuthenticationDetailsSource(ApplicationProperties props,
+        Attributes2GrantedAuthoritiesMapper authMapper, RbacService rbacController) {
         this.authMapper = authMapper;
         this.props = props;
+        this.rbacController = rbacController;
 
         if (props.isDevMode()) {
             log.info("Running in DEV mode. Security will be disabled.");
         }
+        this.roleProvider = new RoleProvider(props.getRbacApplicationName(), props.isDevMode());
     }
 
-    protected Collection<String> getUserRoles(HttpServletRequest context) {
-        ArrayList<String> userRolesList = new ArrayList<>();
-        try {
-            String identityHeader = context.getHeader(RH_IDENTITY_HEADER);
-
-            if (StringUtils.isEmpty(identityHeader)) {
-                return userRolesList;
-            }
-
-            byte[] decodedHeader = Base64.getDecoder().decode(identityHeader);
-            Map authObject = objectMapper.readValue(decodedHeader, Map.class);
-            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
-            Map user = (Map) identity.getOrDefault("user", Collections.emptyMap());
-
-            if (Boolean.TRUE.equals(user.get("is_org_admin")) || props.isDevMode()) {
-                userRolesList.add(ORG_ADMIN_ROLE);
-            }
-
-            if (Boolean.TRUE.equals(user.get("is_internal")) || props.isDevMode()) {
-                userRolesList.add(INTERNAL_ROLE);
-            }
-        }
-        catch (IOException e) {
-            throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER + " is not valid JSON");
-        }
-
-        return userRolesList;
+    protected Collection<String> getUserRoles() {
+        return roleProvider.getRoles(props.isDevMode() ? Collections.emptyList() : getPermissions());
     }
 
     @Override
     public PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails buildDetails(
         HttpServletRequest context) {
-        Collection<String> userRoles = getUserRoles(context);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            // We've already populated the roles if the auth has been set in the context.
+            return (PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails) auth.getDetails();
+        }
+
+        Collection<String> userRoles = getUserRoles();
         Collection<? extends GrantedAuthority> userGAs = authMapper.getGrantedAuthorities(userRoles);
 
         log.debug("Roles {} mapped to Granted Authorities: {}", userRoles, userGAs);
@@ -120,6 +93,16 @@ public class IdentityHeaderAuthenticationDetailsSource implements
     public void setUserRoles2GrantedAuthoritiesMapper(
         Attributes2GrantedAuthoritiesMapper authMapper) {
         this.authMapper = authMapper;
+    }
+
+    private List<String> getPermissions() {
+        try {
+            return rbacController.getPermissions(props.getRbacApplicationName());
+        }
+        catch (RbacApiException e) {
+            log.warn("Unable to determine roles from RBAC service.", e);
+            return Collections.emptyList();
+        }
     }
 
 }

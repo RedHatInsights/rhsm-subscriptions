@@ -21,9 +21,7 @@
 
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.*;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -33,91 +31,47 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedC
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
- * This class is in charge of deserializing the bytes from the x-rh-identity header and extracting the
- * account number from them.
+ * This class is responsible for validating the principal. If a valid principal was
+ * found, the request is considered authenticated.
  */
 public class IdentityHeaderAuthenticationManager implements AuthenticationManager {
 
-    private final ObjectMapper mapper;
-
-    public IdentityHeaderAuthenticationManager(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
-
     /**
-     * This method is a little odd.  Since the value of the x-rh-identity header is JSON, there is the
-     * potential for a JSON parsing error.  However, if we parse the JSON in
-     * {@link IdentityHeaderAuthenticationFilter}, when we throw an exception on a parse error, it is not
-     * handled very nicely.  By handling the parsing in an AuthenticationManager we follow the conventions
-     * that Spring Security is expecting, but at the expense of taking the Authentication instance, reading
-     * from it, and then creating a totally new instance. Example of the decoded header:
+     * Validates the incoming principal that was extracted from the x-rh-identity header by
+     * the {@link IdentityHeaderAuthenticationFilter}. The principal is considered authenticated
+     * if the account_number and org_id are present as this would have come from 3Scale.
      *
-     * <pre><code>
-     * {
-     *   "identity": {
-     *     "account_number": "0369233",
-     *     "type": "User",
-     *     "user" : {
-     *       "username": "jdoe",
-     *       "email": "jdoe@acme.com",
-     *       "first_name": "John",
-     *       "last_name": "Doe",
-     *       "is_active": true,
-     *       "is_org_admin": false,
-     *       "is_internal": false,
-     *       "locale": "en_US"
-     *     },
-     *     "internal" : {
-     *       "org_id": "3340851",
-     *       "auth_type": "basic-auth",
-     *       "auth_time": 6300
-     *      }
-     *   }
-     * }
-     * </code></pre>
-     *
-     * @param authentication a byte[] of base64-decoded data from x-rh-identity
+     * @param authentication contains the pre-authenticated principal created from x-rh-identity
      * @return an approved Authentication object
-     * @throws AuthenticationException if the JSON can not be parsed
+     * @throws AuthenticationException if any part of the principal is invalid.
      */
     @Override
     public Authentication authenticate(Authentication authentication) {
-        PreAuthenticatedAuthenticationToken token = (PreAuthenticatedAuthenticationToken) authentication;
-        byte[] decodedHeader = (byte[]) token.getPrincipal();
+        InsightsUserPrincipal principal = (InsightsUserPrincipal) authentication.getPrincipal();
+        if (StringUtils.isEmpty(principal.getOwnerId())) {
+            throw new PreAuthenticatedCredentialsNotFoundException(
+                RH_IDENTITY_HEADER + " contains no owner ID for the principal"
+            );
+        }
+        if (StringUtils.isEmpty(principal.getAccountNumber())) {
+            throw new PreAuthenticatedCredentialsNotFoundException(
+                RH_IDENTITY_HEADER + " contains no account number for the principal"
+            );
+        }
+
         PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details =
             (PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails) authentication.getDetails();
-        try {
-            Map authObject = mapper.readValue(decodedHeader, Map.class);
-            Map identity = (Map) authObject.getOrDefault("identity", Collections.emptyMap());
-            String accountNumber = (String) identity.get("account_number");
-            Map internal = (Map) identity.getOrDefault("internal", Collections.emptyMap());
-            String orgId = (String) internal.get("org_id");
 
-            if (StringUtils.isEmpty(orgId)) {
-                throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER +
-                    " contains no owner ID for the principal");
-            }
-            if (StringUtils.isEmpty(accountNumber)) {
-                throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER +
-                    " contains no principal");
-            }
-
-            token = new PreAuthenticatedAuthenticationToken(
-                new InsightsUserPrincipal(orgId, accountNumber),
-                token.getCredentials(),
-                details.getGrantedAuthorities()
-            );
-            token.setAuthenticated(true);
-            return token;
-
-        }
-        catch (IOException e) {
-            throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER + " is not valid JSON");
-        }
+        // Create a new token that has been authenticated, and has the granted authorities
+        // that were determined in the details source applied. This is required in order
+        // for the roles to be picked up by the security annotations.
+        Authentication authToken =  new PreAuthenticatedAuthenticationToken(
+            principal,
+            authentication.getCredentials(),
+            details.getGrantedAuthorities());
+        authToken.setAuthenticated(true);
+        return authToken;
     }
 }

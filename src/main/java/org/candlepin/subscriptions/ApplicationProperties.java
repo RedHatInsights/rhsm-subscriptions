@@ -142,6 +142,11 @@ public class ApplicationProperties {
      */
     private int antiCsrfPort = 443;
 
+    /**
+     * The RBAC application name that defines the permissions for this application.
+     */
+    private String rbacApplicationName = "subscriptions";
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
@@ -290,4 +295,11 @@ public class ApplicationProperties {
         return orgAdminOptional;
     }
 
+    public String getRbacApplicationName() {
+        return rbacApplicationName;
+    }
+
+    public void setRbacApplicationName(String rbacApplicationName) {
+        this.rbacApplicationName = rbacApplicationName;
+    }
 }

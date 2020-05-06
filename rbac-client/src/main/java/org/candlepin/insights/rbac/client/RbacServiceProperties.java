@@ -36,11 +36,6 @@ public class RbacServiceProperties {
     private String url;
 
     /**
-     * The RBAC application name that defines the permissions for this application.
-     */
-    private String applicationName = "subscriptions";
-
-    /**
      * Maximum number of simultaneous connections to the rbac service.
      */
     private int maxConnections = 100;
@@ -59,14 +54,6 @@ public class RbacServiceProperties {
 
     public void setUrl(String url) {
         this.url = url;
-    }
-
-    public String getApplicationName() {
-        return applicationName;
-    }
-
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
     }
 
     public int getMaxConnections() {

@@ -18,24 +18,33 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.security.auth;
+package org.candlepin.insights.rbac.client;
 
-import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsSource;
+import org.candlepin.insights.rbac.client.model.Access;
 
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * A security annotation ensuring that the user must have an admin role in order to execute
- * the method.
+ * Provides RBAC functionality.
  */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("@applicationProperties.isOrgAdminOptional() or " +
-    "hasRole('" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE + "')")
-public @interface AdminOnly {
+public class RbacService {
+
+    @Autowired
+    private RbacApi api;
+
+    public List<String> getPermissions(String rbacAppName) throws RbacApiException {
+        // Get all permissions for the configured application name.
+        try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
+            return accessStream
+                .filter(access -> access != null && !StringUtils.isEmpty(access.getPermission()))
+                .map(Access::getPermission)
+                .collect(Collectors.toList());
+        }
+    }
+
 }

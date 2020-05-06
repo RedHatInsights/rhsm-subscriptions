@@ -30,6 +30,10 @@ public class InsightsUserPrincipal {
     private final String ownerId;
     private final String accountNumber;
 
+    public InsightsUserPrincipal() {
+        this(null, null);
+    }
+
     public InsightsUserPrincipal(String ownerId, String accountNumber) {
         this.ownerId = ownerId;
         this.accountNumber = accountNumber;
@@ -64,4 +68,5 @@ public class InsightsUserPrincipal {
     public int hashCode() {
         return Objects.hash(getOwnerId(), getAccountNumber());
     }
+
 }

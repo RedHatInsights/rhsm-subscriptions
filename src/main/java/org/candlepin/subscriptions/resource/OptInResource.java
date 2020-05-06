@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.controller.OptInController;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.security.auth.AdminOnly;
+import org.candlepin.subscriptions.security.auth.OptInRoleRequired;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.resources.OptInApi;
 
@@ -47,19 +47,19 @@ public class OptInResource implements OptInApi {
         this.controller = controller;
     }
 
-    @AdminOnly
+    @OptInRoleRequired
     @Override
     public void deleteOptInConfig() {
         controller.optOut(validateAccountNumber(), validateOrgId());
     }
 
-    @AdminOnly
+    @OptInRoleRequired
     @Override
     public OptInConfig getOptInConfig() {
         return controller.getOptInConfig(validateAccountNumber(), validateOrgId());
     }
 
-    @AdminOnly
+    @OptInRoleRequired
     @Override
     public OptInConfig putOptInConfig(Boolean enableTallySync, Boolean enableTallyReporting,
         Boolean enableConduitSync) {

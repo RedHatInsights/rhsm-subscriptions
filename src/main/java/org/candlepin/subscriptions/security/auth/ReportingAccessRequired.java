@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security.auth;
 
-import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsSource;
+import org.candlepin.subscriptions.security.RoleProvider;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -38,7 +38,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @PreAuthorize("(@applicationProperties.isOrgAdminOptional() or " +
-    "hasRole('" + IdentityHeaderAuthenticationDetailsSource.ORG_ADMIN_ROLE + "')) and " +
+    "hasAnyRole('" + RoleProvider.OPT_IN_ROLE + "', '" + RoleProvider.REPORTING_ROLE + "')) and " +
     "@reportAccessService.providesAccessTo(authentication)")
-public @interface ReportingAdminOnly {
+public @interface ReportingAccessRequired {
 }

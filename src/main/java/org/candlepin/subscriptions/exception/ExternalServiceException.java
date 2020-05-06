@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.exception;
 import javax.ws.rs.core.Response.Status;
 
 /**
- * An exception that is thrown when rhsm-conduit encounters an exception while
+ * An exception that is thrown when rhsm-subscriptions encounters an exception while
  * communicating with an external service such as insights-inventory.
  */
 public class ExternalServiceException extends SubscriptionsException {

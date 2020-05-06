@@ -21,12 +21,17 @@
 
 package org.candlepin.subscriptions.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -37,26 +42,47 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
     private static final Logger log = LoggerFactory.getLogger(IdentityHeaderAuthenticationFilter.class);
     public static final String RH_IDENTITY_HEADER = "x-rh-identity";
 
+    private final ObjectMapper mapper;
+
+    public IdentityHeaderAuthenticationFilter(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
+
     @Override
     protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
         String identityHeader = request.getHeader(RH_IDENTITY_HEADER);
 
+        // If the header is missing it will be passed down the chain.
         if (StringUtils.isEmpty(identityHeader)) {
             log.debug("{} is empty", RH_IDENTITY_HEADER);
-            // Give up and pass responsibility on to the next filter
             return null;
         }
 
         try {
-            return Base64.getDecoder().decode(identityHeader);
+            return createPrincipal(Base64.getDecoder().decode(identityHeader));
         }
-        catch (IllegalArgumentException e) {
-            log.error(RH_IDENTITY_HEADER + " was not valid base64", e);
-            return null;
+        catch (Exception e) {
+            log.error(RH_IDENTITY_HEADER + " was not valid.", e);
+            // Initialize an empty principal. The IdentityHeaderAuthenticationManager will validate it.
+            return new InsightsUserPrincipal();
         }
-
 
     }
+
+    private InsightsUserPrincipal createPrincipal(byte[] decodedHeader) throws IOException {
+        // In the future, the identity header could be deserialized into an Object.
+        Map<String, Object> authObject = mapper.readValue(decodedHeader, Map.class);
+        Map<String, Object> identity =
+            (Map<String, Object>) authObject.getOrDefault("identity", Collections.emptyMap());
+        String accountNumber = (String) identity.getOrDefault("account_number", "");
+
+        Map<String, Object> internal =
+            (Map<String, Object>) identity.getOrDefault("internal", Collections.emptyMap());
+        String orgId = (String) internal.getOrDefault("org_id", "");
+
+        return new InsightsUserPrincipal(orgId, accountNumber);
+    }
+
 
     /**
      * Credentials are not applicable in this case, so we return a dummy value.

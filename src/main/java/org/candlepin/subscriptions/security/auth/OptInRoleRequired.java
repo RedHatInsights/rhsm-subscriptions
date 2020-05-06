@@ -18,23 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.exception.mapper;
+package org.candlepin.subscriptions.security.auth;
 
-import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.security.RoleProvider;
 
-import org.springframework.stereotype.Component;
+import org.springframework.security.access.prepost.PreAuthorize;
 
-import javax.ws.rs.ext.Provider;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * An exception mapper used to map all SubscriptionsException to an error repsonse.
+ * A security annotation ensuring that the user must have an admin role in order to execute
+ * the method.
  */
-@Component
-@Provider
-public class SubscriptionsExceptionMapper extends BaseExceptionMapper<SubscriptionsException> {
-    @Override
-    protected Error buildError(SubscriptionsException exception) {
-        return exception.error();
-    }
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@PreAuthorize("@applicationProperties.isOrgAdminOptional() or " +
+    "hasRole('" + RoleProvider.OPT_IN_ROLE + "')")
+public @interface OptInRoleRequired {
 }

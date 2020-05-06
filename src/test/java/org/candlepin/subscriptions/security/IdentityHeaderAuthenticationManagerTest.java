@@ -21,45 +21,52 @@
 package org.candlepin.subscriptions.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.test.context.TestPropertySource;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
 class IdentityHeaderAuthenticationManagerTest {
 
-    String HEADER_JSON = "{\"identity\":{\"account_number\":\"acct\",\"internal\":{\"org_id\":\"123\"}}}";
-
     @MockBean
     PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
+    private IdentityHeaderAuthenticationManager manager = new IdentityHeaderAuthenticationManager();
+
     @Test
-    void testOrgIdExtractedFromHeader() {
-        IdentityHeaderAuthenticationManager manager =
-            new IdentityHeaderAuthenticationManager(new ObjectMapper());
+    public void testMissingOrgId() {
+        AuthenticationException e =
+            assertThrows(AuthenticationException.class, () -> manager.authenticate(token(null, "account")));
+        assertEquals("x-rh-identity contains no owner ID for the principal", e.getMessage());
+    }
 
-        PreAuthenticatedAuthenticationToken authentication = new PreAuthenticatedAuthenticationToken(
-            HEADER_JSON.getBytes(StandardCharsets.UTF_8), "N/A");
-        authentication.setDetails(details);
+    @Test
+    public void testMissingAccountNumber() {
+        AuthenticationException e =
+            assertThrows(AuthenticationException.class, () -> manager.authenticate(token("123", null)));
+        assertEquals("x-rh-identity contains no account number for the principal", e.getMessage());
+    }
 
-        Authentication result = manager.authenticate(authentication);
+    @Test
+    public void validPrincipalIsAuthenticated() {
+        Authentication result = manager.authenticate(token("123", "acct"));
+        assertTrue(result.isAuthenticated());
+    }
 
-        InsightsUserPrincipal principal = new InsightsUserPrincipal("123", "acct");
-
-        PreAuthenticatedAuthenticationToken expected = new PreAuthenticatedAuthenticationToken(principal,
-            "N/A",
-            Collections.emptyList());
-        assertEquals(expected, result);
+    private PreAuthenticatedAuthenticationToken token(String org, String account) {
+        PreAuthenticatedAuthenticationToken token =
+            new PreAuthenticatedAuthenticationToken(new InsightsUserPrincipal(org, account), "N/A");
+        token.setDetails(details);
+        return token;
     }
 }

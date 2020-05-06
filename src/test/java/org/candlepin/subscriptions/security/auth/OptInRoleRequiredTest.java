@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.security.WhitelistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.security.auth.AdminOnlyTest.AdminOnlyConfiguration;
+import org.candlepin.subscriptions.security.auth.OptInRoleRequiredTest.OptInRoleRequiredConfiguration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,14 +36,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-@SpringJUnitConfig(classes = AdminOnlyConfiguration.class)
-public class AdminOnlyTest {
+@SpringJUnitConfig(classes = OptInRoleRequiredConfiguration.class)
+public class OptInRoleRequiredTest {
 
     @Autowired
     ApplicationContext context;
 
     @EnableGlobalMethodSecurity(prePostEnabled = true)
-    protected static class AdminOnlyConfiguration {
+    protected static class OptInRoleRequiredConfiguration {
         @Bean
         public StubResource stubResource() {
             return new StubResource();
@@ -61,7 +61,7 @@ public class AdminOnlyTest {
     }
 
     protected static class StubResource {
-        @AdminOnly
+        @OptInRoleRequired
         public void adminOnlyCall() {
             // Does nothing
         }
