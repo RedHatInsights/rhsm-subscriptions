@@ -236,8 +236,10 @@ public class FactNormalizer {
 
     private Usage extractRhsmUsage(InventoryHostFacts hostFacts) {
         Usage effectiveUsage = Usage.fromString(hostFacts.getSyspurposeUsage());
-        if (hostFacts.getSyspurposeUsage() != null && effectiveUsage == Usage.UNSPECIFIED) {
-            log.warn(
+        if (hostFacts.getSyspurposeUsage() != null && effectiveUsage == Usage.UNSPECIFIED &&
+            log.isDebugEnabled()) {
+
+            log.debug(
                 "Owner {} host {} has unsupported value for Usage: {}",
                 hostFacts.getOrgId(),
                 hostFacts.getSubscriptionManagerId(),
@@ -249,8 +251,10 @@ public class FactNormalizer {
 
     private ServiceLevel extractRhsmSla(InventoryHostFacts hostFacts) {
         ServiceLevel effectiveSla = ServiceLevel.fromString(hostFacts.getSyspurposeSla());
-        if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.UNSPECIFIED) {
-            log.warn(
+        if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.UNSPECIFIED &&
+            log.isDebugEnabled()) {
+
+            log.debug(
                 "Owner {} host {} has unsupported value for SLA: {}",
                 hostFacts.getOrgId(),
                 hostFacts.getSubscriptionManagerId(),
