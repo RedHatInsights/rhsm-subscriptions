@@ -71,7 +71,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), Usage.UNSPECIFIED.getValue(),
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
@@ -87,7 +87,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
              .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                 TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), Usage.UNSPECIFIED.getValue(),
+                 TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED,
                  startOfGranularPeriod, endOfGranularPeriod,
                  PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
@@ -102,7 +102,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> updatedSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(), Usage.UNSPECIFIED.getValue(),
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
@@ -136,7 +136,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(),  Usage.UNSPECIFIED.getValue(),
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED,  Usage.UNSPECIFIED,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
@@ -150,7 +150,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> updatedSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(),  Usage.UNSPECIFIED.getValue(),
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED,  Usage.UNSPECIFIED,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
@@ -172,7 +172,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED.getValue(),  Usage.UNSPECIFIED.getValue(),
+                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED,  Usage.UNSPECIFIED,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(0, currentSnaps.size());

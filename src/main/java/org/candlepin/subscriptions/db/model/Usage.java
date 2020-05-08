@@ -24,6 +24,9 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
+
 /**
  * System purpose usage
  *
@@ -62,5 +65,24 @@ public enum Usage {
 
     public String getValue() {
         return value;
+    }
+
+    /**
+     * JPA converter for Usage
+     */
+    @Converter(autoApply = true)
+    public static class EnumConverter implements AttributeConverter<Usage, String> {
+        @Override
+        public String convertToDatabaseColumn(Usage attribute) {
+            if (attribute == null) {
+                return null;
+            }
+            return attribute.getValue();
+        }
+
+        @Override
+        public Usage convertToEntityAttribute(String dbData) {
+            return Usage.fromString(dbData);
+        }
     }
 }

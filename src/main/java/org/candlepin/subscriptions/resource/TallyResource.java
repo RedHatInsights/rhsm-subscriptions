@@ -84,8 +84,8 @@ public class TallyResource implements TallyApi {
         }
 
         String accountNumber = ResourceUtils.getAccountNumber();
-        String serviceLevel = getSnapshotQueryValue(sla);
-        String effectiveUsage = getEffectiveUsage(usage);
+        ServiceLevel serviceLevel = getEffectiveSla(sla);
+        Usage effectiveUsage = getEffectiveUsage(usage);
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
@@ -109,8 +109,8 @@ public class TallyResource implements TallyApi {
         report.setMeta(new TallyReportMeta());
         report.getMeta().setGranularity(granularityValue.name());
         report.getMeta().setProduct(productId);
-        report.getMeta().setServiceLevel(sla == null ? null : serviceLevel);
-        report.getMeta().setUsage(usage == null ? null : effectiveUsage);
+        report.getMeta().setServiceLevel(sla == null ? null : serviceLevel.getValue());
+        report.getMeta().setUsage(usage == null ? null : effectiveUsage.getValue());
 
         // Only set page links if we are paging (not filling).
         if (pageable != null) {
@@ -129,10 +129,10 @@ public class TallyResource implements TallyApi {
         return report;
     }
 
-    private String getEffectiveUsage(String usage) {
+    private Usage getEffectiveUsage(String usage) {
         // If the sla parameter was not specified, we assume the query param represents ANY.
         if (usage == null) {
-            return Usage.ANY.getValue();
+            return Usage.ANY;
         }
 
         // If the usage parameter is not one that we support, then throw an exception.
@@ -141,13 +141,13 @@ public class TallyResource implements TallyApi {
         if (!usage.isEmpty() && Usage.UNSPECIFIED.equals(sanitized)) {
             throw new BadRequestException("Invalid usage parameter specified.");
         }
-        return sanitized.getValue();
+        return sanitized;
     }
 
-    private String getSnapshotQueryValue(String sla) {
+    private ServiceLevel getEffectiveSla(String sla) {
         // If the sla parameter was not specified, we assume the query param represents ANY.
         if (sla == null) {
-            return ServiceLevel.ANY.getValue();
+            return ServiceLevel.ANY;
         }
 
         // If the sla parameter is not one that we support, then throw an exception.
@@ -156,7 +156,7 @@ public class TallyResource implements TallyApi {
         if (!sla.isEmpty() && ServiceLevel.UNSPECIFIED.equals(sanitized)) {
             throw new BadRequestException("Invalid sla parameter specified.");
         }
-        return sanitized.getValue();
+        return sanitized;
     }
 
 }

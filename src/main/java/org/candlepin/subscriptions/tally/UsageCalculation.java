@@ -77,17 +77,7 @@ public class UsageCalculation {
         }
 
         public static Key fromTallySnapshot(TallySnapshot snapshot) {
-            ServiceLevel sla = ServiceLevel.ANY;
-            if (!snapshot.getServiceLevel().equals(ServiceLevel.ANY.getValue())) {
-                sla = ServiceLevel.fromString(snapshot.getServiceLevel());
-            }
-
-            Usage usage = Usage.ANY;
-            if (!snapshot.getUsage().equals(Usage.ANY.getValue())) {
-                usage = Usage.fromString(snapshot.getUsage());
-            }
-
-            return new Key(snapshot.getProductId(), sla, usage);
+            return new Key(snapshot.getProductId(), snapshot.getServiceLevel(), snapshot.getUsage());
         }
 
         @Override

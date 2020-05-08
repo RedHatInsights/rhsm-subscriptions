@@ -25,7 +25,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,9 +71,8 @@ public class TallySnapshotRepositoryTest {
     public void findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsage() {
         TallySnapshot t1 = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
         TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
-        TallySnapshot t3 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, "standard", "production",
-            8888, 888, 88,
-            NOWISH);
+        TallySnapshot t3 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, ServiceLevel.STANDARD,
+            Usage.PRODUCTION, 8888, 888, 88, NOWISH);
 
         repository.saveAll(Arrays.asList(t1, t2, t3));
         repository.flush();
@@ -81,8 +82,8 @@ public class TallySnapshotRepositoryTest {
             "Bugs",
             "Bunny",
             Granularity.DAILY,
-            "standard",
-            "production",
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
             LONG_AGO,
             FAR_FUTURE,
             PageRequest.of(0, 10))
@@ -92,7 +93,7 @@ public class TallySnapshotRepositoryTest {
         assertEquals("Bugs", snapshot.getAccountNumber());
         assertEquals("Bunny", snapshot.getProductId());
         assertEquals("N/A", snapshot.getOwnerId());
-        assertEquals("production", snapshot.getUsage());
+        assertEquals(Usage.PRODUCTION, snapshot.getUsage());
         assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
         HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
@@ -102,8 +103,8 @@ public class TallySnapshotRepositoryTest {
     @SuppressWarnings("linelength")
     @Test
     public void testFindByEmptyServiceLevelAndUsage() {
-        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, "", "", 1111, 111, 11,
-            NOWISH);
+        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, ServiceLevel.UNSPECIFIED,
+            Usage.UNSPECIFIED, 1111, 111, 11, NOWISH);
 
         repository.saveAll(Arrays.asList(t1));
         repository.flush();
@@ -113,8 +114,8 @@ public class TallySnapshotRepositoryTest {
             "A1",
             "P1",
             Granularity.DAILY,
-            "",
-            "",
+            ServiceLevel.UNSPECIFIED,
+            Usage.UNSPECIFIED,
             LONG_AGO,
             FAR_FUTURE,
             PageRequest.of(0, 10))
@@ -210,12 +211,12 @@ public class TallySnapshotRepositoryTest {
 
     private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
         int cores, int sockets, int instances, OffsetDateTime date) {
-        return createUnpersisted(account, product, granularity, "premium", "production", cores, sockets,
-            instances, date);
+        return createUnpersisted(account, product, granularity, ServiceLevel.PREMIUM, Usage.PRODUCTION, cores,
+            sockets, instances, date);
     }
 
     private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
-        String serviceLevel, String usage, int cores, int sockets, int instances, OffsetDateTime date) {
+        ServiceLevel serviceLevel, Usage usage, int cores, int sockets, int instances, OffsetDateTime date) {
         TallySnapshot tally = new TallySnapshot();
         tally.setAccountNumber(account);
         tally.setProductId(product);

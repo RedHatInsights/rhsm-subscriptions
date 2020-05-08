@@ -22,7 +22,9 @@
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,8 +45,8 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
     // suppress line length and params arguments, can't help either easily b/c this is a spring data method
     @SuppressWarnings({"linelength", "java:S107"})
     Page<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-        String accountNumber, String productId, Granularity granularity, String serviceLevel, String usage,
-        OffsetDateTime beginning, OffsetDateTime ending, Pageable pageable);
+        String accountNumber, String productId, Granularity granularity, ServiceLevel serviceLevel,
+        Usage usage, OffsetDateTime beginning, OffsetDateTime ending, Pageable pageable);
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,

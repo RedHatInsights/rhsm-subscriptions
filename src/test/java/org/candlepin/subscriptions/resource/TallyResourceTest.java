@@ -94,8 +94,8 @@ public class TallyResourceTest {
                 Mockito.eq("account123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(Granularity.DAILY),
-                Mockito.eq(ServiceLevel.ANY.getValue()),
-                Mockito.eq(Usage.PRODUCTION.getValue()),
+                Mockito.eq(ServiceLevel.ANY),
+                Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -118,8 +118,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.ANY.getValue()),
-            Mockito.eq(Usage.PRODUCTION.getValue()),
+            Mockito.eq(ServiceLevel.ANY),
+            Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
@@ -140,8 +140,8 @@ public class TallyResourceTest {
                 Mockito.eq("account123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(Granularity.DAILY),
-                Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-                Mockito.eq(Usage.ANY.getValue()),
+                Mockito.eq(ServiceLevel.PREMIUM),
+                Mockito.eq(Usage.ANY),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -164,8 +164,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-            Mockito.eq(Usage.ANY.getValue()),
+            Mockito.eq(ServiceLevel.PREMIUM),
+            Mockito.eq(Usage.ANY),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
@@ -185,8 +185,8 @@ public class TallyResourceTest {
                  Mockito.eq("account123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.UNSPECIFIED.getValue()),
-                 Mockito.eq(Usage.PRODUCTION.getValue()),
+                 Mockito.eq(ServiceLevel.UNSPECIFIED),
+                 Mockito.eq(Usage.PRODUCTION),
                  Mockito.eq(min),
                  Mockito.eq(max),
                  Mockito.any(Pageable.class)))
@@ -209,8 +209,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.UNSPECIFIED.getValue()),
-            Mockito.eq(Usage.PRODUCTION.getValue()),
+            Mockito.eq(ServiceLevel.UNSPECIFIED),
+            Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
@@ -229,8 +229,8 @@ public class TallyResourceTest {
                 Mockito.eq("account123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(Granularity.DAILY),
-                Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-                Mockito.eq(Usage.UNSPECIFIED.getValue()),
+                Mockito.eq(ServiceLevel.PREMIUM),
+                Mockito.eq(Usage.UNSPECIFIED),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -253,8 +253,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-            Mockito.eq(Usage.UNSPECIFIED.getValue()),
+            Mockito.eq(ServiceLevel.PREMIUM),
+            Mockito.eq(Usage.UNSPECIFIED),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
@@ -273,8 +273,8 @@ public class TallyResourceTest {
                  Mockito.eq("account123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-                 Mockito.eq(Usage.PRODUCTION.getValue()),
+                 Mockito.eq(ServiceLevel.PREMIUM),
+                 Mockito.eq(Usage.PRODUCTION),
                  Mockito.eq(min),
                  Mockito.eq(max),
                  Mockito.any(Pageable.class)))
@@ -296,8 +296,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-            Mockito.eq(Usage.PRODUCTION.getValue()),
+            Mockito.eq(ServiceLevel.PREMIUM),
+            Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
@@ -316,8 +316,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-            Mockito.eq(Usage.PRODUCTION.getValue()),
+            Mockito.eq(ServiceLevel.PREMIUM),
+            Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.any(Pageable.class)))
@@ -340,8 +340,8 @@ public class TallyResourceTest {
             Mockito.eq("account123456"),
             Mockito.eq("product1"),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM.getValue()),
-            Mockito.eq(Usage.PRODUCTION.getValue()),
+            Mockito.eq(ServiceLevel.PREMIUM),
+            Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable));
@@ -369,8 +369,8 @@ public class TallyResourceTest {
                  Mockito.eq("account123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.ANY.getValue()),
-                 Mockito.eq(Usage.ANY.getValue()),
+                 Mockito.eq(ServiceLevel.ANY),
+                 Mockito.eq(Usage.ANY),
                  Mockito.eq(min),
                  Mockito.eq(max),
                  Mockito.eq(null)))
@@ -429,11 +429,12 @@ public class TallyResourceTest {
     @WithMockRedHatPrincipal(value = "123456", roles = {"ROLE_" + RoleProvider.REPORTING_ROLE})
     public void canReportWithOnlyReportingRole() {
         Mockito.when(repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
                  Mockito.eq("account123456"),
                  Mockito.eq("product1"),
                  Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.ANY.getValue()),
+                 Mockito.eq(ServiceLevel.ANY),
+                 Mockito.eq(Usage.ANY),
                  Mockito.eq(min),
                  Mockito.eq(max),
                  Mockito.eq(null)))
@@ -444,6 +445,7 @@ public class TallyResourceTest {
             "daily",
             min,
             max,
+            null,
             null,
             null,
             null
