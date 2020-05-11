@@ -101,7 +101,7 @@ public class RHELProductUsageCollectorTest {
         UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
         collector.collect(calc, guestFacts);
-        assertThrows(IllegalStateException.class, () -> collector.collectForHypervisor(calc, facts));
+        assertThrows(IllegalStateException.class, () -> collector.collectForHypervisor("foo", calc, facts));
     }
 
     @Test

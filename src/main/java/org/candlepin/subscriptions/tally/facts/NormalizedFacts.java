@@ -43,6 +43,7 @@ public class NormalizedFacts {
     private Integer cores;
     private Integer sockets;
     private String owner;
+    /** Subscription-manager ID (UUID) of the hypervisor for this system */
     private String hypervisorUuid;
     private boolean isVirtual;
     private boolean isHypervisor;
@@ -81,10 +82,20 @@ public class NormalizedFacts {
         this.owner = owner;
     }
 
+    /**
+     * Get the Subscription-manager ID (UUID) of the hypervisor for this system, if it's a guest and
+     * its hypervisor is known.
+     *
+     * @return hypervisor UUID if known; otherwise, null
+     */
     public String getHypervisorUuid() {
         return hypervisorUuid;
     }
 
+    /**
+     * Set the Subscription-manager ID (UUID) of the hypervisor for this system, if it's a guest and
+     * its hypervisor is known.
+     */
     public void setHypervisorUuid(String hypervisorUuid) {
         this.hypervisorUuid = hypervisorUuid;
     }

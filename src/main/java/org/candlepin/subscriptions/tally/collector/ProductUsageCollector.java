@@ -40,8 +40,9 @@ public interface ProductUsageCollector {
     /**
      * Collect and append usage data based on hypervisor-guest mappings.
      *
+     * @param account the account number
      * @param prodCalc which usage key's calculation to update
      * @param hypervisorFacts facts about the hypervisor
      */
-    void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts);
+    void collectForHypervisor(String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts);
 }

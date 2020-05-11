@@ -142,7 +142,7 @@ public class InventoryAccountUsageCollector {
                     UsageCalculation usageCalc = getOrCreateCalculation(accountCalc, key);
                     ProductUsageCollector productUsageCollector = ProductUsageCollectorFactory
                         .get(key.getProductId());
-                    productUsageCollector.collectForHypervisor(usageCalc, hypervisor);
+                    productUsageCollector.collectForHypervisor(account, usageCalc, hypervisor);
                 });
             });
         });
