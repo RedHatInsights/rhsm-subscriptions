@@ -114,4 +114,12 @@ public class PinheadApiProperties {
     public void setRequestBatchSize(int requestBatchSize) {
         this.requestBatchSize = requestBatchSize;
     }
+
+    public int getMaxConnections() {
+        return x509Config.getMaxConnections();
+    }
+
+    public void setMaxConnections(int maxConnections) {
+        x509Config.setMaxConnections(maxConnections);
+    }
 }
