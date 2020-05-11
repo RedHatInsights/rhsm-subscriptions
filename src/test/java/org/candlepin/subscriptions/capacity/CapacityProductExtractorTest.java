@@ -83,6 +83,14 @@ class CapacityProductExtractorTest {
     }
 
     @Test
+    void productSetIsInvalidWithOpenShift() {
+        Set<String> products = new HashSet<>();
+        products.add("RHEL Workstation");
+        products.add("OpenShift Container Platform");
+        assertThat(extractor.setIsInvalid(products), Matchers.is(true));
+    }
+
+    @Test
     void productSetIsValid() {
         Set<String> products = new HashSet<>();
         products.add("RHEL Workstation");
@@ -93,7 +101,13 @@ class CapacityProductExtractorTest {
 
     @Test
     void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
-        Set<String> products = extractor.getProducts(Arrays.asList("12"));
+        Set<String> products = extractor.getProducts(Arrays.asList("1", "12"));
         assertThat(products, Matchers.containsInAnyOrder("Satellite 6 Capsule"));
+    }
+
+    @Test
+    void productExtractorReturnsExpectedProductsWhenOpenShiftPresent() {
+        Set<String> products = extractor.getProducts(Arrays.asList("1", "13"));
+        assertThat(products, Matchers.containsInAnyOrder("OpenShift Container Platform"));
     }
 }

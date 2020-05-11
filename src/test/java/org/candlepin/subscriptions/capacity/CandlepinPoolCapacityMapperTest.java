@@ -40,6 +40,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,7 +81,7 @@ class CandlepinPoolCapacityMapperTest {
         CandlepinPool pool = createTestPool(physicalProductIds, null);
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool);
+            pool, Collections.emptyMap());
 
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
@@ -115,7 +116,7 @@ class CandlepinPoolCapacityMapperTest {
         CandlepinPool pool = createTestPool(physicalProductIds, null, null, "badSLA");
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool);
+            pool, Collections.emptyMap());
 
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
@@ -148,7 +149,7 @@ class CandlepinPoolCapacityMapperTest {
         CandlepinPool pool = createTestPool(physicalProductIds, null, 2);
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool);
+            pool, Collections.emptyMap());
 
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
@@ -183,7 +184,7 @@ class CandlepinPoolCapacityMapperTest {
         CandlepinPool pool = createTestPool(null, virtualProductIds);
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool);
+            pool, Collections.emptyMap());
 
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
@@ -218,7 +219,7 @@ class CandlepinPoolCapacityMapperTest {
         CandlepinPool pool = createTestPool(physicalProductIds, virtualProductIds);
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool);
+            pool, Collections.emptyMap());
 
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");
@@ -268,7 +269,7 @@ class CandlepinPoolCapacityMapperTest {
         pool.setQuantity(-1L);
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool);
+            pool, Collections.emptyMap());
 
         SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
         expectedRhelCapacity.setProductId("RHEL");

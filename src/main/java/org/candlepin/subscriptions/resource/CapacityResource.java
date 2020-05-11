@@ -129,7 +129,7 @@ public class CapacityResource implements CapacityApi {
 
         List<SubscriptionCapacity> matches;
         if (sla == ServiceLevel.UNSPECIFIED) {
-            matches = repository.findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            matches = repository.findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
                 ownerId,
                 productId,
                 beginning,
@@ -137,7 +137,8 @@ public class CapacityResource implements CapacityApi {
             );
         }
         else {
-            matches = repository.findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+            matches = repository
+                .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
                 ownerId,
                 productId,
                 sla.getValue(),

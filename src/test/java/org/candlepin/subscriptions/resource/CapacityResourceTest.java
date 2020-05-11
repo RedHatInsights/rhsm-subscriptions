@@ -83,7 +83,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
             Mockito.eq("owner123456"),
             Mockito.eq("product1"),
             Mockito.eq(min),
@@ -110,7 +110,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository
-            .findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq("Premium"),
@@ -138,7 +138,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),
@@ -177,7 +177,7 @@ class CapacityResourceTest {
         capacity2.setEndDate(max);
 
         when(repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),
@@ -237,7 +237,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository
-            .findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
                 Mockito.eq(min),

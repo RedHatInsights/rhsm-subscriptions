@@ -36,7 +36,7 @@ public interface SubscriptionCapacityRepository extends
     JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey> {
 
     @Transactional
-    List<SubscriptionCapacity> findByOwnerIdAndProductIdAndEndDateAfterAndBeginDateBefore(
+    List<SubscriptionCapacity> findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
         String ownerId,
         String productId,
         OffsetDateTime begin,
@@ -44,11 +44,15 @@ public interface SubscriptionCapacityRepository extends
     );
 
     @Transactional
-    List<SubscriptionCapacity> findByOwnerIdAndProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+    List<SubscriptionCapacity>
+        findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
         String ownerId,
         String productId,
         String serviceLevel,
         OffsetDateTime begin,
         OffsetDateTime end
     );
+
+    List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(String ownerId,
+        List<String> subscriptionIds);
 }

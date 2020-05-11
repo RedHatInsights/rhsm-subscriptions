@@ -264,6 +264,16 @@ public class FactNormalizerTest {
     }
 
     @Test
+    public void testNormalizationDiscardsRHELWhenOpenShiftExists() {
+        NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(2, 13), 12, 2, null,
+            clock.now()), new HashMap<>());
+        assertEquals(1, normalized.getProducts().size());
+        assertThat(normalized.getProducts(), Matchers.hasItem("OpenShift Container Platform"));
+        assertEquals(Integer.valueOf(12), normalized.getCores());
+        assertEquals(Integer.valueOf(2), normalized.getSockets());
+    }
+
+    @Test
     void testNormalizationDiscardsRHELForArchWhenSatelliteExists() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(2, 11, 6789), 12, 2,
             null, clock.now()), new HashMap<>());

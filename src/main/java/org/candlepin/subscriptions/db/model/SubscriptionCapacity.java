@@ -25,29 +25,18 @@ import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
 import javax.persistence.Table;
 
 /**
  * Capacity provided by a subscription for a given product.
  */
-@IdClass(SubscriptionCapacityKey.class)
 @Entity
 @Table(name = "subscription_capacity")
 public class SubscriptionCapacity implements Serializable {
-    @Id
-    @Column(name = "product_id")
-    private String productId;
-
-    @Id
-    @Column(name = "subscription_id")
-    private String subscriptionId;
-
-    @Id
-    @Column(name = "owner_id")
-    private String ownerId;
+    @EmbeddedId
+    private SubscriptionCapacityKey key;
 
     @Column(name = "account_number")
     private String accountNumber;
@@ -82,6 +71,18 @@ public class SubscriptionCapacity implements Serializable {
     @Column(name = "usage")
     private String usage;
 
+    public SubscriptionCapacity() {
+        key = new SubscriptionCapacityKey();
+    }
+
+    public SubscriptionCapacityKey getKey() {
+        return key;
+    }
+
+    public void setKey(SubscriptionCapacityKey key) {
+        this.key = key;
+    }
+
     public String getAccountNumber() {
         return accountNumber;
     }
@@ -91,27 +92,27 @@ public class SubscriptionCapacity implements Serializable {
     }
 
     public String getProductId() {
-        return productId;
+        return key.getProductId();
     }
 
     public void setProductId(String productId) {
-        this.productId = productId;
+        key.setProductId(productId);
     }
 
     public String getSubscriptionId() {
-        return subscriptionId;
+        return key.getSubscriptionId();
     }
 
     public void setSubscriptionId(String subscriptionId) {
-        this.subscriptionId = subscriptionId;
+        key.setSubscriptionId(subscriptionId);
     }
 
     public String getOwnerId() {
-        return ownerId;
+        return key.getOwnerId();
     }
 
     public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
+        key.setOwnerId(ownerId);
     }
 
     public Integer getPhysicalSockets() {
@@ -245,7 +246,8 @@ public class SubscriptionCapacity implements Serializable {
             "subscriptionId=%s, ownerId=%s, physicalSockets=%s, virtualSockets=%s, " +
             "hasUnlimitedGuestSockets=%s, physicalCores=%s, virtualCores=%s, serviceLevel=%s, usage=%s, " +
             "beginDate=%s, endDate=%s}",
-            accountNumber, sku, productId, subscriptionId, ownerId, physicalSockets, virtualSockets,
-            hasUnlimitedGuestSockets, physicalCores, virtualCores, serviceLevel, usage, beginDate, endDate);
+            accountNumber, sku, key.getProductId(), key.getSubscriptionId(), key.getOwnerId(),
+            physicalSockets, virtualSockets, hasUnlimitedGuestSockets, physicalCores, virtualCores,
+            serviceLevel, usage, beginDate, endDate);
     }
 }
