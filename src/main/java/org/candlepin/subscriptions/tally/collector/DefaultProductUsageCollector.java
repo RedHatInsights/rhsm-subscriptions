@@ -47,4 +47,11 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
         }
     }
 
+    @Override
+    public void collectForHypervisor(String account, UsageCalculation prodCalc,
+        NormalizedFacts hypervisorFacts) {
+
+        /* do nothing for hypervisor-guest mappings by default */
+    }
+
 }

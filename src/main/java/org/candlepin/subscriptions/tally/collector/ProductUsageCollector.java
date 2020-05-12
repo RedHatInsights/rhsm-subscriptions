@@ -36,4 +36,13 @@ public interface ProductUsageCollector {
      * @param normalizedHostFacts the normalized view of the facts from inventory.
      */
     void collect(UsageCalculation prodCalc, NormalizedFacts normalizedHostFacts);
+
+    /**
+     * Collect and append usage data based on hypervisor-guest mappings.
+     *
+     * @param account the account number
+     * @param prodCalc which usage key's calculation to update
+     * @param hypervisorFacts facts about the hypervisor
+     */
+    void collectForHypervisor(String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts);
 }

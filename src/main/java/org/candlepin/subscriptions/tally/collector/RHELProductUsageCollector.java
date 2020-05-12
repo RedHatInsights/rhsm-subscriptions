@@ -43,14 +43,6 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         if (normalizedFacts.getCloudProviderType() != null) {
             prodCalc.addCloudProvider(normalizedFacts.getCloudProviderType(), cores, 1, 1);
         }
-        else if (normalizedFacts.isHypervisor()) {
-            if (sockets == 0) {
-                throw new IllegalStateException("Hypervisor has no sockets and will not contribute to the " +
-                    "totals. The tally for the RHEL product will not be accurate since all associated " +
-                    "guests will not contribute to the tally.");
-            }
-            prodCalc.addHypervisor(cores, sockets, 1);
-        }
         else if (guestWithUnknownHypervisor) {
             // If the hypervisor is unknown for a guest, we consider it as having a
             // unique hypervisor instance contributing to the hypervisor counts.
@@ -64,4 +56,19 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         }
     }
 
+    @Override
+    public void collectForHypervisor(String account, UsageCalculation prodCalc,
+        NormalizedFacts hypervisorFacts) {
+
+        int cores = hypervisorFacts.getCores() != null ? hypervisorFacts.getCores() : 0;
+        int sockets = hypervisorFacts.getSockets() != null ? hypervisorFacts.getSockets() : 0;
+
+        if (sockets == 0) {
+            throw new IllegalStateException(String.format("Hypervisor in account %s has no sockets and will" +
+                " not contribute to the totals. The tally for the RHEL product will not be accurate since" +
+                "all associated guests will not contribute to the tally.", account));
+        }
+
+        prodCalc.addHypervisor(cores, sockets, 1);
+    }
 }

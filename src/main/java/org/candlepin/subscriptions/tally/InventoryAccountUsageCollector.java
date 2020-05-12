@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -34,8 +35,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -63,6 +67,8 @@ public class InventoryAccountUsageCollector {
         Collection<String> accounts) {
 
         Map<String, String> hypMapping = new HashMap<>();
+        Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
+        Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts = new HashMap<>();
         try (Stream<Object[]> stream = inventoryRepository.getReportedHypervisors(accounts)) {
             stream.forEach(res -> hypMapping.put((String) res[0], (String) res[1]));
         }
@@ -94,19 +100,26 @@ public class InventoryAccountUsageCollector {
                     accountCalc.setOwner(owner);
                 }
 
+                if (facts.isHypervisor()) {
+                    Map<String, NormalizedFacts> idToHypervisorMap = accountHypervisorFacts
+                        .computeIfAbsent(account, a -> new HashMap<>());
+                    idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
+                }
+
                 // Calculate for each product.
                 products.forEach(product -> {
                     ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel.ANY};
                     for (ServiceLevel sla : slas) {
                         UsageCalculation.Key key = new UsageCalculation.Key(product, sla);
-                        UsageCalculation calc = accountCalc.getCalculation(key);
-                        if (calc == null) {
-                            calc = new UsageCalculation(key);
-                            accountCalc.addCalculation(calc);
-                        }
-
+                        UsageCalculation calc = getOrCreateCalculation(accountCalc, key);
                         if (facts.getProducts().contains(product)) {
                             try {
+                                String hypervisorUuid = facts.getHypervisorUuid();
+                                if (hypervisorUuid != null) {
+                                    Set<UsageCalculation.Key> keys = hypervisorUsageKeys
+                                        .computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>());
+                                    keys.add(key);
+                                }
                                 ProductUsageCollectorFactory.get(product).collect(calc, facts);
                             }
                             catch (Exception e) {
@@ -119,6 +132,21 @@ public class InventoryAccountUsageCollector {
             });
         }
 
+        accountHypervisorFacts.forEach((account, accountHypervisors) -> {
+            AccountUsageCalculation accountCalc = calcsByAccount.get(account);
+            accountHypervisors.forEach((hypervisorUuid, hypervisor) -> {
+                Set<UsageCalculation.Key> usageKeys = hypervisorUsageKeys.getOrDefault(hypervisorUuid,
+                    Collections.emptySet());
+
+                usageKeys.forEach(key -> {
+                    UsageCalculation usageCalc = getOrCreateCalculation(accountCalc, key);
+                    ProductUsageCollector productUsageCollector = ProductUsageCollectorFactory
+                        .get(key.getProductId());
+                    productUsageCollector.collectForHypervisor(account, usageCalc, hypervisor);
+                });
+            });
+        });
+
         if (log.isDebugEnabled()) {
             calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
         }
@@ -126,4 +154,14 @@ public class InventoryAccountUsageCollector {
         return calcsByAccount.values();
     }
 
+    private UsageCalculation getOrCreateCalculation(AccountUsageCalculation accountCalc,
+        UsageCalculation.Key key) {
+
+        UsageCalculation calc = accountCalc.getCalculation(key);
+        if (calc == null) {
+            calc = new UsageCalculation(key);
+            accountCalc.addCalculation(calc);
+        }
+        return calc;
+    }
 }
