@@ -41,9 +41,9 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
         else if (!normalizedFacts.isVirtual()) {
             prodCalc.addPhysical(cores, sockets, 1);
         }
-        // Any other system should be considered virtual
+        // Any other system is simply added to the overall total
         else {
-            prodCalc.addHypervisor(cores, sockets, 1);
+            prodCalc.addToTotal(cores, sockets, 1);
         }
     }
 
