@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.*;
 
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProductAttribute;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProvidedProduct;
@@ -94,6 +95,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setSubscriptionId("subId");
         expectedRhelCapacity.setOwnerId("ownerId");
         expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
         expectedServerCapacity.setProductId("RHEL Server");
@@ -105,6 +107,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedServerCapacity.setSubscriptionId("subId");
         expectedServerCapacity.setOwnerId("ownerId");
         expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedServerCapacity.setUsage(Usage.PRODUCTION);
 
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
@@ -113,8 +116,8 @@ class CandlepinPoolCapacityMapperTest {
     }
 
     @Test
-    void testBadSlaIsWrittenAsNull() {
-        CandlepinPool pool = createTestPool(physicalProductIds, null, null, "badSLA");
+    void testBadSlaAndUsageAreWrittenAsNull() {
+        CandlepinPool pool = createTestPool(physicalProductIds, null, null, "badSLA", "badUsage");
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
             pool, Collections.emptyMap());
@@ -162,6 +165,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setSubscriptionId("subId");
         expectedRhelCapacity.setOwnerId("ownerId");
         expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
         expectedServerCapacity.setProductId("RHEL Server");
@@ -173,6 +177,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedServerCapacity.setSubscriptionId("subId");
         expectedServerCapacity.setOwnerId("ownerId");
         expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedServerCapacity.setUsage(Usage.PRODUCTION);
 
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
@@ -197,6 +202,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setSubscriptionId("subId");
         expectedRhelCapacity.setOwnerId("ownerId");
         expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
         expectedWorkstationCapacity.setProductId("RHEL Workstation");
@@ -208,6 +214,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedWorkstationCapacity.setSubscriptionId("subId");
         expectedWorkstationCapacity.setOwnerId("ownerId");
         expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
 
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
@@ -234,6 +241,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setSubscriptionId("subId");
         expectedRhelCapacity.setOwnerId("ownerId");
         expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
         expectedWorkstationCapacity.setProductId("RHEL Workstation");
@@ -245,6 +253,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedWorkstationCapacity.setSubscriptionId("subId");
         expectedWorkstationCapacity.setOwnerId("ownerId");
         expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
         expectedServerCapacity.setProductId("RHEL Server");
@@ -256,6 +265,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedServerCapacity.setSubscriptionId("subId");
         expectedServerCapacity.setOwnerId("ownerId");
         expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedServerCapacity.setUsage(Usage.PRODUCTION);
 
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
@@ -280,6 +290,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setSubscriptionId("subId");
         expectedRhelCapacity.setOwnerId("ownerId");
         expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
         expectedWorkstationCapacity.setProductId("RHEL Workstation");
@@ -289,6 +300,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedWorkstationCapacity.setSubscriptionId("subId");
         expectedWorkstationCapacity.setOwnerId("ownerId");
         expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
 
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
         expectedServerCapacity.setProductId("RHEL Server");
@@ -298,6 +310,7 @@ class CandlepinPoolCapacityMapperTest {
         expectedServerCapacity.setSubscriptionId("subId");
         expectedServerCapacity.setOwnerId("ownerId");
         expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+        expectedServerCapacity.setUsage(Usage.PRODUCTION);
 
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
@@ -313,11 +326,11 @@ class CandlepinPoolCapacityMapperTest {
     private CandlepinPool createTestPool(List<String> physicalProductIds, List<String> derivedProductIds,
         Integer instanceMultiplier) {
         return createTestPool(physicalProductIds, derivedProductIds, instanceMultiplier,
-            ServiceLevel.PREMIUM.getValue());
+            ServiceLevel.PREMIUM.getValue(), Usage.PRODUCTION.getValue());
     }
 
     private CandlepinPool createTestPool(List<String> physicalProductIds, List<String> derivedProductIds,
-        Integer instanceMultiplier, String sla) {
+        Integer instanceMultiplier, String sla, String usage) {
         CandlepinPool pool = new CandlepinPool();
         pool.setAccountNumber("account");
         pool.setStartDate(LONG_AGO);
@@ -348,6 +361,10 @@ class CandlepinPoolCapacityMapperTest {
         attributes.add(new CandlepinProductAttribute()
             .name("support_level")
             .value(sla)
+        );
+        attributes.add(new CandlepinProductAttribute()
+            .name("usage")
+            .value(usage)
         );
         pool.setProductAttributes(attributes);
         return pool;
