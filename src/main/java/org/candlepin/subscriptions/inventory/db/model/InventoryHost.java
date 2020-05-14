@@ -61,6 +61,7 @@ import javax.persistence.Table;
                 @ColumnResult(name = "system_profile_product_ids"),
                 @ColumnResult(name = "syspurpose_role"),
                 @ColumnResult(name = "syspurpose_sla"),
+                @ColumnResult(name = "syspurpose_usage"),
                 @ColumnResult(name = "syspurpose_units"),
                 @ColumnResult(name = "is_virtual"),
                 @ColumnResult(name = "hypervisor_uuid"),
@@ -89,6 +90,7 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla, " +
+        "h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units, " +
         "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
         "h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type, " +

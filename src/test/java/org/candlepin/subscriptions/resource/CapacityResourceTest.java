@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -113,7 +114,7 @@ class CapacityResourceTest {
             .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
                 Mockito.eq("owner123456"),
                 Mockito.eq("product1"),
-                Mockito.eq("Premium"),
+                Mockito.eq(ServiceLevel.PREMIUM),
                 Mockito.eq(min),
                 Mockito.eq(max)))
             .thenReturn(Collections.singletonList(capacity));

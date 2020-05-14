@@ -79,7 +79,7 @@ public class CandlepinPoolCapacityMapper {
         Long socketCapacity = getCapacityUnit("sockets", pool);
         Long coresCapacity = getCapacityUnit("cores", pool);
 
-        String sla = getSla(pool);
+        ServiceLevel sla = getSla(pool);
 
         return allProducts.stream().map(product -> {
             SubscriptionCapacityKey key = new SubscriptionCapacityKey();
@@ -168,7 +168,7 @@ public class CandlepinPoolCapacityMapper {
             .orElse(1);
     }
 
-    private String getSla(CandlepinPool pool) {
+    private ServiceLevel getSla(CandlepinPool pool) {
         Optional<String> sla = pool.getProductAttributes().stream()
             .filter(attr -> attr.getName().equals("support_level")).map(CandlepinProductAttribute::getValue)
             .findFirst();
@@ -179,7 +179,7 @@ public class CandlepinPoolCapacityMapper {
                 log.warn("Product {} has unsupported service level {}", pool.getProductId(), sla.get());
                 return null;
             }
-            return slaValue.getValue();
+            return slaValue;
         }
 
         return null;

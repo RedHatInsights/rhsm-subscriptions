@@ -66,10 +66,10 @@ public class TallySnapshot implements Serializable {
     private String accountNumber;
 
     @Column(name = "sla")
-    private String serviceLevel = "_ANY";
+    private ServiceLevel serviceLevel = ServiceLevel.ANY;
 
     @Column(name = "usage")
-    private String usage = "_ANY";
+    private Usage usage = Usage.ANY;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")
@@ -141,19 +141,19 @@ public class TallySnapshot implements Serializable {
         hardwareMeasurements.put(type, measurement);
     }
 
-    public String getServiceLevel() {
+    public ServiceLevel getServiceLevel() {
         return serviceLevel;
     }
 
-    public void setServiceLevel(String serviceLevel) {
+    public void setServiceLevel(ServiceLevel serviceLevel) {
         this.serviceLevel = serviceLevel;
     }
 
-    public String getUsage() {
+    public Usage getUsage() {
         return usage;
     }
 
-    public void setUsage(String usage) {
+    public void setUsage(Usage usage) {
         this.usage = usage;
     }
 

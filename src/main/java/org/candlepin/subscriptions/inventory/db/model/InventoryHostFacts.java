@@ -50,6 +50,7 @@ public class InventoryHostFacts {
     private Set<String> systemProfileProductIds;
     private String syspurposeRole;
     private String syspurposeSla;
+    private String syspurposeUsage;
     private String syspurposeUnits;
     private String cloudProvider;
     private OffsetDateTime staleTimestamp;
@@ -62,9 +63,10 @@ public class InventoryHostFacts {
     public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
-        String systemProfileProductIds, String syspurposeRole, String syspurposeSla, String syspurposeUnits,
-        String isVirtual, String hypervisorUuid, String satelliteHypervisorUuid, String guestId,
-        String subscriptionManagerId, String cloudProvider, OffsetDateTime staleTimestamp) {
+        String systemProfileProductIds, String syspurposeRole, String syspurposeSla,
+        String syspurposeUsage, String syspurposeUnits, String isVirtual, String hypervisorUuid,
+        String satelliteHypervisorUuid, String guestId, String subscriptionManagerId, String cloudProvider,
+        OffsetDateTime staleTimestamp) {
 
         this.account = account;
         this.displayName = displayName;
@@ -81,6 +83,7 @@ public class InventoryHostFacts {
         this.systemProfileProductIds = asStringSet(systemProfileProductIds);
         this.syspurposeRole = syspurposeRole;
         this.syspurposeSla = syspurposeSla;
+        this.syspurposeUsage = syspurposeUsage;
         this.syspurposeUnits = syspurposeUnits;
         this.isVirtual = asBoolean(isVirtual);
         this.hypervisorUuid = hypervisorUuid;
@@ -281,6 +284,14 @@ public class InventoryHostFacts {
 
     public void setSyspurposeSla(String syspurposeSla) {
         this.syspurposeSla = syspurposeSla;
+    }
+
+    public String getSyspurposeUsage() {
+        return syspurposeUsage;
+    }
+
+    public void setSyspurposeUsage(String syspurposeUsage) {
+        this.syspurposeUsage = syspurposeUsage;
     }
 
     public String getSyspurposeUnits() {

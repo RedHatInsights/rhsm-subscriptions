@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ public class NormalizedFacts {
 
     private Set<String> products;
     private ServiceLevel sla = ServiceLevel.UNSPECIFIED;
+    private Usage usage = Usage.UNSPECIFIED;
     private Integer cores;
     private Integer sockets;
     private String owner;
@@ -146,6 +148,14 @@ public class NormalizedFacts {
 
     public void setSla(ServiceLevel sla) {
         this.sla = sla;
+    }
+
+    public Usage getUsage() {
+        return usage;
+    }
+
+    public void setUsage(Usage usage) {
+        this.usage = usage;
     }
 
     public Map<String, Object> toInventoryPayload() {

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
@@ -106,25 +107,29 @@ public class InventoryAccountUsageCollector {
                     idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
                 }
 
-                // Calculate for each product.
+                ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel.ANY};
+                Usage[] usages = new Usage[]{facts.getUsage(), Usage.ANY};
+
+                // Calculate for each UsageKey
                 products.forEach(product -> {
-                    ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel.ANY};
                     for (ServiceLevel sla : slas) {
-                        UsageCalculation.Key key = new UsageCalculation.Key(product, sla);
-                        UsageCalculation calc = getOrCreateCalculation(accountCalc, key);
-                        if (facts.getProducts().contains(product)) {
-                            try {
-                                String hypervisorUuid = facts.getHypervisorUuid();
-                                if (hypervisorUuid != null) {
-                                    Set<UsageCalculation.Key> keys = hypervisorUsageKeys
-                                        .computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>());
-                                    keys.add(key);
+                        for (Usage usage : usages) {
+                            UsageCalculation.Key key = new UsageCalculation.Key(product, sla, usage);
+                            UsageCalculation calc = getOrCreateCalculation(accountCalc, key);
+                            if (facts.getProducts().contains(product)) {
+                                try {
+                                    String hypervisorUuid = facts.getHypervisorUuid();
+                                    if (hypervisorUuid != null) {
+                                        Set<UsageCalculation.Key> keys = hypervisorUsageKeys
+                                            .computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>());
+                                        keys.add(key);
+                                    }
+                                    ProductUsageCollectorFactory.get(product).collect(calc, facts);
                                 }
-                                ProductUsageCollectorFactory.get(product).collect(calc, facts);
-                            }
-                            catch (Exception e) {
-                                log.error("Unable to collect usage data for host: {} product: {}",
-                                    hostFacts.getSubscriptionManagerId(), product, e);
+                                catch (Exception e) {
+                                    log.error("Unable to collect usage data for host: {} product: {}",
+                                        hostFacts.getSubscriptionManagerId(), product, e);
+                                }
                             }
                         }
                     }

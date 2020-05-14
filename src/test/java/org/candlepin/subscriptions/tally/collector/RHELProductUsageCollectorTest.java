@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
@@ -120,7 +121,7 @@ public class RHELProductUsageCollectorTest {
     }
 
     private UsageCalculation.Key createUsageKey() {
-        return new UsageCalculation.Key("RHEL", ServiceLevel.UNSPECIFIED);
+        return new UsageCalculation.Key("RHEL", ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
     }
 
 }

@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,6 @@ public class AccountUsageCalculationTest {
     }
 
     private UsageCalculation.Key createUsageKey(String productId) {
-        return new UsageCalculation.Key(productId, ServiceLevel.UNSPECIFIED);
+        return new UsageCalculation.Key(productId, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
     }
 }

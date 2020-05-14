@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 
@@ -48,7 +49,7 @@ public interface SubscriptionCapacityRepository extends
         findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
         String ownerId,
         String productId,
-        String serviceLevel,
+        ServiceLevel serviceLevel,
         OffsetDateTime begin,
         OffsetDateTime end
     );

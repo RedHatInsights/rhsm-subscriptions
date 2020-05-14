@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 
 import org.junit.jupiter.api.Test;
@@ -227,7 +228,7 @@ class SubscriptionCapacityRepositoryTest {
             .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
-            "Standard",
+            ServiceLevel.STANDARD,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -243,7 +244,7 @@ class SubscriptionCapacityRepositoryTest {
             .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
             "ownerId",
             "product",
-            "Premium",
+            ServiceLevel.PREMIUM,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -262,7 +263,7 @@ class SubscriptionCapacityRepositoryTest {
         capacity.setVirtualSockets(20);
         capacity.setPhysicalCores(8);
         capacity.setVirtualCores(40);
-        capacity.setServiceLevel("Premium");
+        capacity.setServiceLevel(ServiceLevel.PREMIUM);
         return capacity;
     }
 }

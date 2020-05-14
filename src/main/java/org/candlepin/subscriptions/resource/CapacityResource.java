@@ -141,7 +141,7 @@ public class CapacityResource implements CapacityApi {
                 .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
                 ownerId,
                 productId,
-                sla.getValue(),
+                sla,
                 beginning,
                 ending
             );

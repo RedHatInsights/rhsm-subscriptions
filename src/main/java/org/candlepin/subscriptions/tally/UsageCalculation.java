@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -44,10 +45,12 @@ public class UsageCalculation {
     public static class Key {
         private final String productId;
         private final ServiceLevel sla;
+        private final Usage usage;
 
-        public Key(String productId, ServiceLevel sla) {
+        public Key(String productId, ServiceLevel sla, Usage usage) {
             this.productId = productId;
             this.sla = sla;
+            this.usage = usage;
         }
 
         public String getProductId() {
@@ -64,28 +67,25 @@ public class UsageCalculation {
             }
             Key that = (Key) o;
             return Objects.equals(productId, that.productId) &&
-                    Objects.equals(sla, that.sla);
+                Objects.equals(sla, that.sla) &&
+                Objects.equals(usage, that.usage);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(productId, sla);
+            return Objects.hash(productId, sla, usage);
         }
 
         public static Key fromTallySnapshot(TallySnapshot snapshot) {
-            ServiceLevel sla;
-            if (snapshot.getServiceLevel().equals(ServiceLevel.ANY.getValue())) {
-                sla = ServiceLevel.ANY;
-            }
-            else {
-                sla = ServiceLevel.fromString(snapshot.getServiceLevel());
-            }
-            return new Key(snapshot.getProductId(), sla);
+            return new Key(snapshot.getProductId(), snapshot.getServiceLevel(), snapshot.getUsage());
         }
 
         @Override
         public String toString() {
-            return "Key{" + "productId='" + productId + '\'' + ", sla=" + sla + '}';
+            return "Key{" +
+                "productId='" + productId + '\'' +
+                ", sla=" + sla +
+                ", usage=" + usage + '}';
         }
     }
 
@@ -135,6 +135,10 @@ public class UsageCalculation {
         return key.sla;
     }
 
+    public Usage getUsage() {
+        return key.usage;
+    }
+
     public Totals getTotals(HardwareMeasurementType type) {
         return mappedTotals.get(type);
     }
@@ -182,7 +186,7 @@ public class UsageCalculation {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append(String.format("[Product: %s, sla: %s", key.productId, key.sla));
+        builder.append(String.format("[Product: %s, sla: %s, usage: %s", key.productId, key.sla, key.usage));
         for (Entry<HardwareMeasurementType, Totals> entry : mappedTotals.entrySet()) {
             builder.append(String.format(", %s: %s", entry.getKey(), entry.getValue()));
         }

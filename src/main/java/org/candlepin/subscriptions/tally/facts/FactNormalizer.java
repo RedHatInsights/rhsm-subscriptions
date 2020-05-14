@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.facts;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -227,17 +228,40 @@ public class FactNormalizer {
                 normalizedFacts.getProducts().addAll(
                     roleToProductsMap.getOrDefault(hostFacts.getSyspurposeRole(), Collections.emptyList()));
             }
-            ServiceLevel effectiveSla = ServiceLevel.fromString(hostFacts.getSyspurposeSla());
-            normalizedFacts.setSla(effectiveSla);
-            if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.UNSPECIFIED) {
-                log.warn(
-                    "Owner {} host {} has unsupported value for SLA: {}",
-                    hostFacts.getOrgId(),
-                    hostFacts.getSubscriptionManagerId(),
-                    hostFacts.getSyspurposeSla()
-                );
-            }
+
+            normalizedFacts.setSla(extractRhsmSla(hostFacts));
+            normalizedFacts.setUsage(extractRhsmUsage(hostFacts));
         }
+    }
+
+    private Usage extractRhsmUsage(InventoryHostFacts hostFacts) {
+        Usage effectiveUsage = Usage.fromString(hostFacts.getSyspurposeUsage());
+        if (hostFacts.getSyspurposeUsage() != null && effectiveUsage == Usage.UNSPECIFIED &&
+            log.isDebugEnabled()) {
+
+            log.debug(
+                "Owner {} host {} has unsupported value for Usage: {}",
+                hostFacts.getOrgId(),
+                hostFacts.getSubscriptionManagerId(),
+                hostFacts.getSyspurposeUsage()
+            );
+        }
+        return effectiveUsage;
+    }
+
+    private ServiceLevel extractRhsmSla(InventoryHostFacts hostFacts) {
+        ServiceLevel effectiveSla = ServiceLevel.fromString(hostFacts.getSyspurposeSla());
+        if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.UNSPECIFIED &&
+            log.isDebugEnabled()) {
+
+            log.debug(
+                "Owner {} host {} has unsupported value for SLA: {}",
+                hostFacts.getOrgId(),
+                hostFacts.getSubscriptionManagerId(),
+                hostFacts.getSyspurposeSla()
+            );
+        }
+        return effectiveSla;
     }
 
     private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {

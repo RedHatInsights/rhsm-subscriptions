@@ -66,10 +66,10 @@ public class SubscriptionCapacity implements Serializable {
     private String sku;
 
     @Column(name = "sla")
-    private String serviceLevel;
+    private ServiceLevel serviceLevel;
 
     @Column(name = "usage")
-    private String usage;
+    private Usage usage;
 
     public SubscriptionCapacity() {
         key = new SubscriptionCapacityKey();
@@ -179,19 +179,19 @@ public class SubscriptionCapacity implements Serializable {
         this.sku = sku;
     }
 
-    public String getServiceLevel() {
+    public ServiceLevel getServiceLevel() {
         return serviceLevel;
     }
 
-    public void setServiceLevel(String serviceLevel) {
+    public void setServiceLevel(ServiceLevel serviceLevel) {
         this.serviceLevel = serviceLevel;
     }
 
-    public String getUsage() {
+    public Usage getUsage() {
         return usage;
     }
 
-    public void setUsage(String usage) {
+    public void setUsage(Usage usage) {
         this.usage = usage;
     }
 

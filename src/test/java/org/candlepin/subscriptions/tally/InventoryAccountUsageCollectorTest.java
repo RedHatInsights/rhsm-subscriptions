@@ -28,6 +28,7 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
@@ -298,6 +299,38 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     @Test
+    void testTallyForMultipleUsages() {
+        List<String> targetAccounts = Collections.singletonList("A1");
+
+        InventoryHostFacts host1 = createRhsmHost("A1", "O1",
+            TEST_PRODUCT_ID.toString(), ServiceLevel.UNSPECIFIED, Usage.DEVELOPMENT_TEST, 6, 6, "",
+            OffsetDateTime.now());
+
+        InventoryHostFacts host2 = createRhsmHost("A1", "O1",
+            TEST_PRODUCT_ID.toString(), ServiceLevel.UNSPECIFIED, Usage.PRODUCTION, 10, 10, "",
+            OffsetDateTime.now());
+
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
+            .thenReturn(Stream.of(host1, host2));
+
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
+            .stream()
+            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        assertEquals(1, calcs.size());
+        assertThat(calcs, Matchers.hasKey("A1"));
+
+        AccountUsageCalculation a1Calc = calcs.get("A1");
+        assertEquals(1, a1Calc.getProducts().size());
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.UNSPECIFIED, Usage.ANY, 16, 16, 2);
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.UNSPECIFIED, Usage.DEVELOPMENT_TEST,
+            6, 6, 1);
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.UNSPECIFIED, Usage.PRODUCTION,
+            10, 10, 1);
+    }
+
+    @Test
     void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
         List<String> targetAccounts = Arrays.asList("A1", "A2");
 
@@ -489,11 +522,18 @@ public class InventoryAccountUsageCollectorTest {
 
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, ServiceLevel serviceLevel, int cores, int sockets, int instances) {
+
+        checkTotalsCalculation(calc, account, owner, product, serviceLevel, Usage.ANY, cores, sockets,
+            instances);
+    }
+
+    private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
+        String product, ServiceLevel serviceLevel, Usage usage, int cores, int sockets, int instances) {
         assertEquals(account, calc.getAccount());
         assertEquals(owner, calc.getOwner());
-        assertTrue(calc.containsCalculation(createUsageKey(product, serviceLevel)));
+        assertTrue(calc.containsCalculation(createUsageKey(product, serviceLevel, usage)));
 
-        UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product, serviceLevel));
+        UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product, serviceLevel, usage));
 
         assertEquals(product, prodCalc.getProductId());
         assertEquals(serviceLevel, prodCalc.getSla());
@@ -527,7 +567,11 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla) {
-        return new UsageCalculation.Key(product, sla);
+        return new UsageCalculation.Key(product, sla, Usage.ANY);
+    }
+
+    private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla, Usage usage) {
+        return new UsageCalculation.Key(product, sla, usage);
     }
 
     private void mockReportedHypervisors(List<String> accounts, Map<String, String> expectedHypervisorMap) {
