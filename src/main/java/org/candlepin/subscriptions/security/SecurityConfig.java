@@ -39,6 +39,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
@@ -98,7 +99,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         );
     }
 
-    @Bean
+    // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
     public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
         ApplicationProperties appProps) {
 
@@ -151,6 +152,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .exceptionHandling()
                 .accessDeniedHandler(restAccessDeniedHandler())
                 .authenticationEntryPoint(restAuthenticationEntryPoint())
+            .and()
+            // disable sessions, our API is stateless, and sessions cause RBAC information to be cached
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .anonymous()  // Creates an anonymous user if no header is present at all. Prevents NPEs basically
             .and()
