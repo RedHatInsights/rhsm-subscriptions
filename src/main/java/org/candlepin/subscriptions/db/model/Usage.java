@@ -51,7 +51,8 @@ public enum Usage {
         this.value = value;
     }
 
-    /** Parse the usage from its string representation.
+    /**
+     * Parse the usage from its string representation (excluding special value _ANY)
      *
      * NOTE: this method will not return the special value ANY, and gives UNSPECIFIED for any invalid value.
      *
@@ -61,6 +62,23 @@ public enum Usage {
     public static Usage fromString(String value) {
         String key = value == null ? "" : value.toUpperCase();
         return VALUE_ENUM_MAP.getOrDefault(key, UNSPECIFIED);
+    }
+
+    /**
+     * Parse the usage from its string representation.
+     *
+     * NOTE: this method will return UNSPECIFIED for any invalid value.
+     *
+     * @param value String representation of the Usage, as seen in the DB
+     * @return the Usage enum; UNSPECIFIED if unparseable.
+     */
+    public static Usage fromDbString(String value) {
+        if ("_ANY".equals(value)) {
+            return Usage.ANY;
+        }
+        else {
+            return fromString(value);
+        }
     }
 
     public String getValue() {
@@ -82,7 +100,7 @@ public enum Usage {
 
         @Override
         public Usage convertToEntityAttribute(String dbData) {
-            return Usage.fromString(dbData);
+            return Usage.fromDbString(dbData);
         }
     }
 }

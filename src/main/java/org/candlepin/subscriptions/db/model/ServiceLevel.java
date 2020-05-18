@@ -52,7 +52,8 @@ public enum ServiceLevel {
         this.value = value;
     }
 
-    /** Parse the service level from its string representation.
+    /**
+     * Parse the service level from its string representation (excluding special value _ANY).
      *
      * NOTE: this method will not return the special value ANY, and gives UNSPECIFIED for any invalid value.
      *
@@ -62,6 +63,23 @@ public enum ServiceLevel {
     public static ServiceLevel fromString(String value) {
         String key = value == null ? "" : value.toUpperCase();
         return VALUE_ENUM_MAP.getOrDefault(key, UNSPECIFIED);
+    }
+
+    /**
+     * Parse the service level from its string representation
+     *
+     * NOTE: this method will return UNSPECIFIED for any invalid value.
+     *
+     * @param value String representation of the service level, as seen in the DB.
+     * @return the ServiceLevel enum; UNSPECIFIED if unparseable.
+     */
+    public static ServiceLevel fromDbString(String value) {
+        if (ServiceLevel.ANY.value.equals(value)) {
+            return ServiceLevel.ANY;
+        }
+        else {
+            return fromString(value);
+        }
     }
 
     public String getValue() {
@@ -83,7 +101,7 @@ public enum ServiceLevel {
 
         @Override
         public ServiceLevel convertToEntityAttribute(String dbData) {
-            return ServiceLevel.fromString(dbData);
+            return ServiceLevel.fromDbString(dbData);
         }
     }
 }
