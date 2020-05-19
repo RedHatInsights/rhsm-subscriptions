@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.capacity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProductAttribute;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinProvidedProduct;
@@ -80,6 +81,7 @@ public class CandlepinPoolCapacityMapper {
         Long coresCapacity = getCapacityUnit("cores", pool);
 
         ServiceLevel sla = getSla(pool);
+        Usage usage = getUsage(pool);
 
         return allProducts.stream().map(product -> {
             SubscriptionCapacityKey key = new SubscriptionCapacityKey();
@@ -95,6 +97,7 @@ public class CandlepinPoolCapacityMapper {
             capacity.setBeginDate(pool.getStartDate());
             capacity.setEndDate(pool.getEndDate());
             capacity.setServiceLevel(sla);
+            capacity.setUsage(usage);
             capacity.setSku(pool.getProductId());
 
             handleSockets(products, derivedProducts, socketCapacity, product, capacity);
@@ -180,6 +183,23 @@ public class CandlepinPoolCapacityMapper {
                 return null;
             }
             return slaValue;
+        }
+
+        return null;
+    }
+
+    private Usage getUsage(CandlepinPool pool) {
+        Optional<String> usage = pool.getProductAttributes().stream()
+            .filter(attr -> attr.getName().equals("usage")).map(CandlepinProductAttribute::getValue)
+            .findFirst();
+
+        if (usage.isPresent()) {
+            Usage usageValue = Usage.fromString(usage.get());
+            if (usageValue == Usage.UNSPECIFIED) {
+                log.warn("Product {} has unsupported usage {}", pool.getProductId(), usage.get());
+                return null;
+            }
+            return usageValue;
         }
 
         return null;
