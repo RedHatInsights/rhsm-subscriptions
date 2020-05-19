@@ -36,7 +36,11 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * Spring Security filter responsible for pulling the principal out of the x-rh-identity header
+ * Spring Security filter responsible for pulling the principal out of the x-rh-identity header.
+ *
+ * Note that we don't register the filter as a bean anywhere, because if we did it would be registered as a
+ * an extraneous ServletFilter in addition to its use in our SpringSecurity config. See
+ * https://stackoverflow.com/a/31571715
  */
 public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
     private static final Logger log = LoggerFactory.getLogger(IdentityHeaderAuthenticationFilter.class);
