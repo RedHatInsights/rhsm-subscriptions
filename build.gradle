@@ -154,6 +154,7 @@ release {
     tagCommitMessage = '[Subscriptions Release] - creating tag: '
     newVersionCommitMessage = '[Subscriptions Release] - version bump: '
     git {
+        requireBranch = /master|stable/
         pushToRemote = false
     }
 }
