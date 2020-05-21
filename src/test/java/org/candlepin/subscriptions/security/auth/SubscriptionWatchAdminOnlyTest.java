@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.security.WhitelistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.security.auth.OptInRoleRequiredTest.OptInRoleRequiredConfiguration;
+import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnlyTest.SubscriptionWatchRequiredConfiguration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,14 +36,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-@SpringJUnitConfig(classes = OptInRoleRequiredConfiguration.class)
-public class OptInRoleRequiredTest {
+@SpringJUnitConfig(classes = SubscriptionWatchRequiredConfiguration.class)
+class SubscriptionWatchAdminOnlyTest {
 
     @Autowired
     ApplicationContext context;
 
     @EnableGlobalMethodSecurity(prePostEnabled = true)
-    protected static class OptInRoleRequiredConfiguration {
+    protected static class SubscriptionWatchRequiredConfiguration {
         @Bean
         public StubResource stubResource() {
             return new StubResource();
@@ -61,7 +61,7 @@ public class OptInRoleRequiredTest {
     }
 
     protected static class StubResource {
-        @OptInRoleRequired
+        @SubscriptionWatchAdminOnly
         public void adminOnlyCall() {
             // Does nothing
         }
@@ -69,25 +69,17 @@ public class OptInRoleRequiredTest {
 
     @Test
     @WithMockRedHatPrincipal(value = "NotAnAdmin", roles = {})
-    void testAdminOnlyCallWithNonAdmin() throws Exception {
+    void testAdminOnlyCallWithNonAdmin() {
         StubResource stub = context.getBean(StubResource.class);
 
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(false);
         assertThrows(AccessDeniedException.class, stub::adminOnlyCall);
-
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(true);
-        assertDoesNotThrow(stub::adminOnlyCall);
     }
 
     @Test
     @WithMockRedHatPrincipal("Admin")
-    void testAdminOnlyCallWithOrgAdmin() throws Exception {
+    void testAdminOnlyCallWithOrgAdmin() {
         StubResource stub = context.getBean(StubResource.class);
 
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(false);
-        assertDoesNotThrow(stub::adminOnlyCall);
-
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(true);
         assertDoesNotThrow(stub::adminOnlyCall);
     }
 

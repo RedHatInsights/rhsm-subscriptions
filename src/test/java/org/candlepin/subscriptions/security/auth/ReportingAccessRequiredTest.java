@@ -69,93 +69,45 @@ public class ReportingAccessRequiredTest {
 
     /* The reporting admin expression in pseudo-code:
      *
-     *     isOrgAdminOptional or (isOrgAdmin and isWhitelisted).
+     *     isOrgAdmin and isWhitelisted.
      *
      * I've marked the tests with the true/false values for these conditions.
      */
 
-    /** (F || F) && F == F */
+    /** F && F == F */
     @Test
     @WithMockRedHatPrincipal(value = "NotAdmin", roles = {})
     void testFalseOrFalseAndFalseIsFalse() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(false);
         whitelistOrg(false);
         StubResource stub = context.getBean(StubResource.class);
 
         assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
     }
 
-    /** (F || F) && T) == F */
+    /** F && T == F */
     @Test
     @WithMockRedHatPrincipal(value = "NotAdmin", roles = {})
     void testFalseOrFalseAndTrueIsFalse() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(false);
         whitelistOrg(true);
         StubResource stub = context.getBean(StubResource.class);
 
         assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
     }
 
-    /** (F || T) && F == F */
+    /** T && F == F */
     @Test
     @WithMockRedHatPrincipal("Admin")
     void testFalseOrTrueAndFalseIsFalse() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(false);
         whitelistOrg(false);
         StubResource stub = context.getBean(StubResource.class);
 
         assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
     }
 
-    /** (T || F) && F == F */
-    @Test
-    @WithMockRedHatPrincipal(value = "NotAdmin", roles = {})
-    void testTrueOrFalseAndFalseIsTrue() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(true);
-        whitelistOrg(false);
-        StubResource stub = context.getBean(StubResource.class);
-
-        assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
-    }
-
-    /** (F || T) && T == T */
+    /** T && T == T */
     @Test
     @WithMockRedHatPrincipal("Admin")
     void testFalseOrTrueAndTrueIsTrue() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(false);
-        whitelistOrg(true);
-        StubResource stub = context.getBean(StubResource.class);
-
-        assertDoesNotThrow(stub::reportingAdminOnlyCall);
-    }
-
-    /** (T || F) && T == T */
-    @Test
-    @WithMockRedHatPrincipal(value = "NotAdmin", roles = {})
-    void testTrueOrFalseAndTrueIsTrue() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(true);
-        whitelistOrg(true);
-        StubResource stub = context.getBean(StubResource.class);
-
-        assertDoesNotThrow(stub::reportingAdminOnlyCall);
-    }
-
-    /** (T || T) && F == F */
-    @Test
-    @WithMockRedHatPrincipal("Admin")
-    void testTrueOrTrueAndFalseIsTrue() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(true);
-        whitelistOrg(false);
-        StubResource stub = context.getBean(StubResource.class);
-
-        assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
-    }
-
-    /** (T || T) && T == T */
-    @Test
-    @WithMockRedHatPrincipal("Admin")
-    void testTrueOrTrueAndTrueIsTrue() throws Exception {
-        context.getBean(ApplicationProperties.class).setOrgAdminOptional(true);
         whitelistOrg(true);
         StubResource stub = context.getBean(StubResource.class);
 

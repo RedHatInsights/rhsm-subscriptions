@@ -55,22 +55,12 @@ public class IdentityHeaderAuthenticationDetailsSourceTest {
         when(rbacApi.getCurrentUserAccess(eq("subscriptions"))).thenReturn(
             Arrays.asList(new Access().permission("subscriptions:*:*"))
         );
-        assertRoles(false,
-            RoleProvider.OPT_IN_ROLE,
-            RoleProvider.REPORTING_ROLE);
+        assertRoles(false, RoleProvider.SWATCH_ADMIN_ROLE);
     }
 
     @Test
     public void testDevModeGrantsAllRoles() {
-        assertRoles(true,
-            RoleProvider.OPT_IN_ROLE,
-            RoleProvider.REPORTING_ROLE);
-        assertRoles(true,
-            RoleProvider.OPT_IN_ROLE,
-            RoleProvider.REPORTING_ROLE);
-        assertRoles(true,
-            RoleProvider.OPT_IN_ROLE,
-            RoleProvider.REPORTING_ROLE);
+        assertRoles(true, RoleProvider.SWATCH_ADMIN_ROLE);
     }
 
     private void assertRoles(boolean devMode, String ... expectedRoles) {
