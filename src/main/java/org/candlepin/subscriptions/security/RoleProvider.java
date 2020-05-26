@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -32,8 +31,7 @@ import java.util.List;
  */
 public class RoleProvider {
 
-    public static final String OPT_IN_ROLE = "OPT_IN";
-    public static final String REPORTING_ROLE = "REPORTING";
+    public static final String SWATCH_ADMIN_ROLE = "SUBSCRIPTION_WATCH_ADMIN";
 
     private String rulePrefix;
     private boolean devModeEnabled;
@@ -44,22 +42,17 @@ public class RoleProvider {
     }
 
     public List<String> getRoles(Collection<String> permissions) {
+        List<String> roles  = new ArrayList<>();
         if (permissions == null) {
-            return Collections.emptyList();
+            return roles;
         }
 
         // By default, we look for the subscriptions:*:* permission (unless
         // configured otherwise).
         if (devModeEnabled || permissions.contains(rulePrefix + ":*:*")) {
-            return all();
+            roles.add(SWATCH_ADMIN_ROLE);
         }
-        return Collections.emptyList();
+        return roles;
     }
 
-    private List<String> all() {
-        return Arrays.asList(
-            OPT_IN_ROLE,
-            REPORTING_ROLE
-        );
-    }
 }

@@ -30,15 +30,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * A security annotation ensuring that the user must have an admin role in order to execute
- * the method.
+ * Must have the SWATCH_ADMIN_ROLE and account must be whitelisted for reporting.
  *
- * Should be the logic (isOrgAdminOptional or isOrgAdmin) and isWhitelisted
+ * @see RoleProvider
+ *
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("(@applicationProperties.isOrgAdminOptional() or " +
-    "hasAnyRole('" + RoleProvider.OPT_IN_ROLE + "', '" + RoleProvider.REPORTING_ROLE + "')) and " +
+@PreAuthorize("hasRole('" + RoleProvider.SWATCH_ADMIN_ROLE + "') and " +
     "@reportAccessService.providesAccessTo(authentication)")
 public @interface ReportingAccessRequired {
 }

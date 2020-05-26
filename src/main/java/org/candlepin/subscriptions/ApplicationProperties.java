@@ -52,8 +52,6 @@ public class ApplicationProperties {
 
     private boolean devMode = false;
 
-    private boolean orgAdminOptional = true;
-
     private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
 
     /**
@@ -285,14 +283,6 @@ public class ApplicationProperties {
 
     public void setAntiCsrfPort(int antiCsrfPort) {
         this.antiCsrfPort = antiCsrfPort;
-    }
-
-    public void setOrgAdminOptional(boolean orgAdminOptional) {
-        this.orgAdminOptional = orgAdminOptional;
-    }
-
-    public boolean isOrgAdminOptional() {
-        return orgAdminOptional;
     }
 
     public String getRbacApplicationName() {

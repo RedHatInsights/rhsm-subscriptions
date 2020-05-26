@@ -426,7 +426,7 @@ public class TallyResourceTest {
     }
 
     @Test
-    @WithMockRedHatPrincipal(value = "123456", roles = {"ROLE_" + RoleProvider.REPORTING_ROLE})
+    @WithMockRedHatPrincipal(value = "123456", roles = {"ROLE_" + RoleProvider.SWATCH_ADMIN_ROLE})
     public void canReportWithOnlyReportingRole() {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
