@@ -72,6 +72,29 @@ extended. Please see the
 [documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html)
 for a discussion of extension points.
 
+### RBAC
+
+rhsm-subscriptions uses an RBAC service to determine application authorization. The
+RBAC service connection details is configured in _`rhsm-subscriptions.conf`_ as follows:
+
+```properties
+# The name of the RBAC permission application name (<APP_NAME>:*:*)
+# By default this property is set to 'subscriptions'.
+rhsm-subscriptions.rbacApplicationName=insights
+
+# The path to the RBAC service's API.
+rhsm-subscriptions.rbac-service.url=http://localhost:8819/api/rbac/v1
+
+```
+
+For development purposes, the RBAC service can be stubbed out so that the connection
+to the RBAC service is bypassed and all users recieve the 'subscriptions:*:*' role. This
+can be enabled by setting the following property:
+
+```properties
+rhsm-subscriptions.rbac-service.useStub=true
+```
+
 ## Release Notes
 
 You can perform a release using `./gradlew release` **on the master
