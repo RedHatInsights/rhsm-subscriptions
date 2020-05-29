@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright (c) 2009 - 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,20 +20,24 @@
  */
 package org.candlepin.subscriptions.db;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.db.model.Usage;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Repository for subscription-provided product capacities.
+ * Fragment interface defining methods for queries not handled well by Spring JPA's
+ * query methods DSL.
+ *
+ * See
+ * https://docs.spring.io/spring-data/jpa/docs/2.3.0.RELEASE/reference/html/#repositories.custom-implementations
  */
-public interface SubscriptionCapacityRepository extends
-    JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
-    CustomizedSubscriptionCapacityRepository {
-
-    List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(String ownerId,
-        List<String> subscriptionIds);
+public interface CustomizedSubscriptionCapacityRepository {
+    @Transactional
+    List<SubscriptionCapacity> findByOwnerAndProductId(String ownerId, String productId,
+        ServiceLevel serviceLevel, Usage usage, OffsetDateTime reportBegin, OffsetDateTime reportEnd);
 }

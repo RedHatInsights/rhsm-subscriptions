@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -38,6 +39,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
@@ -73,20 +75,24 @@ public class CapacityResource implements CapacityApi {
     @Override
     @ReportingAccessRequired
     public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit, String sla) {
-
-        ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
-        if (sla != null && !sla.isEmpty() && sanitizedSla == ServiceLevel.UNSPECIFIED) {
-            throw new BadRequestException("Invalid sla parameter specified.");
-        }
+        @NotNull OffsetDateTime reportBegin, @NotNull OffsetDateTime reportEnd, Integer offset,
+        @Min(1) Integer limit, String sla, String usage) {
 
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
-
         String ownerId = ResourceUtils.getOwnerId();
 
-        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, sanitizedSla, granularityValue,
-            beginning, ending);
+        ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
+        Usage sanitizedUsage = sanitizeUsage(usage);
+
+        List<CapacitySnapshot> capacities = getCapacities(
+            ownerId,
+            productId,
+            sanitizedServiceLevel,
+            sanitizedUsage,
+            granularityValue,
+            reportBegin,
+            reportEnd
+        );
 
         List<CapacitySnapshot> data;
         TallyReportLinks links;
@@ -107,12 +113,34 @@ public class CapacityResource implements CapacityApi {
         report.getMeta().setGranularity(granularity);
         report.getMeta().setProduct(productId);
         report.getMeta().setCount(report.getData().size());
-        if (sanitizedSla != ServiceLevel.UNSPECIFIED) {
-            report.getMeta().setServiceLevel(sanitizedSla.getValue());
+
+        if (sanitizedServiceLevel != ServiceLevel.UNSPECIFIED) {
+            report.getMeta().setServiceLevel(sanitizedServiceLevel.getValue());
         }
+
+        if (sanitizedUsage != Usage.UNSPECIFIED) {
+            report.getMeta().setUsage(sanitizedUsage.getValue());
+        }
+
         report.setLinks(links);
 
         return report;
+    }
+
+    private Usage sanitizeUsage(String usage) {
+        Usage sanitizedUsage = Usage.fromString(usage);
+        if (StringUtils.hasLength(usage) && sanitizedUsage == Usage.UNSPECIFIED) {
+            throw new BadRequestException("Invalid usage parameter specified.");
+        }
+        return sanitizedUsage;
+    }
+
+    private ServiceLevel sanitizeServiceLevel(String sla) {
+        ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
+        if (StringUtils.hasLength(sla) && sanitizedSla == ServiceLevel.UNSPECIFIED) {
+            throw new BadRequestException("Invalid sla parameter specified.");
+        }
+        return sanitizedSla;
     }
 
     private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
@@ -125,32 +153,22 @@ public class CapacityResource implements CapacityApi {
     }
 
     private List<CapacitySnapshot> getCapacities(String ownerId, String productId, ServiceLevel sla,
-        Granularity granularity, @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending) {
+        Usage usage, Granularity granularity, @NotNull OffsetDateTime reportBegin,
+        @NotNull OffsetDateTime reportEnd) {
 
-        List<SubscriptionCapacity> matches;
-        if (sla == ServiceLevel.UNSPECIFIED) {
-            matches = repository.findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
-                ownerId,
-                productId,
-                beginning,
-                ending
-            );
-        }
-        else {
-            matches = repository
-                .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
-                ownerId,
-                productId,
-                sla,
-                beginning,
-                ending
-            );
-        }
+        List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(
+            ownerId,
+            productId,
+            sla,
+            usage,
+            reportBegin,
+            reportEnd
+        );
 
         SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
-        OffsetDateTime start = timeAdjuster.adjustToPeriodStart(beginning);
-        OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(ending);
+        OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportBegin);
+        OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
         TemporalAmount offset = timeAdjuster.getSnapshotOffset();
 
         List<CapacitySnapshot> result = new ArrayList<>();
@@ -206,5 +224,6 @@ public class CapacityResource implements CapacityApi {
     private int sanitize(Integer value) {
         return value != null ? value : 0;
     }
+
 
 }
