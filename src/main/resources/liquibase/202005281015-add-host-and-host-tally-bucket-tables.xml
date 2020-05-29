@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202005281015-1" author="mstead">
+        <comment>Add table for host facts.</comment>
+        <createTable tableName="hosts">
+            <column name="insights_id" type="VARCHAR(255)"/>
+            <column name="account_number" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="org_id" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="display_name" type="VARCHAR(255)"/>
+            <column name="subscription_manager_id" type="VARCHAR(255)"/>
+            <column name="cores" type="INTEGER"/>
+            <column name="sockets" type="INTEGER"/>
+            <column name="is_guest" type="BOOLEAN"/>
+            <column name="hypervisor_uuid" type="VARCHAR(255)"/>
+            <column name="hardware_type" type="VARCHAR(32)" />
+            <column name="num_of_guests" type="INTEGER"/>
+            <column name="last_seen" type="TIMESTAMP WITH TIME ZONE" />
+        </createTable>
+    </changeSet>
+
+    <changeSet id="202005281015-2" author="mstead">
+        <addPrimaryKey constraintName="insights_id_pkey" tableName="hosts" columnNames="insights_id" />
+    </changeSet>
+
+    <changeSet id="202005281015-3" author="mstead">
+        <createIndex indexName="account_num_idx" tableName="hosts" unique="false">
+            <column name="account_number"/>
+        </createIndex>
+        <createIndex indexName="org_id_idx" tableName="hosts" unique="false">
+            <column name="org_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="202005281015-4" author="mstead">
+        <comment>Add table for host facts.</comment>
+        <createTable tableName="host_tally_buckets">
+            <column name="host_insights_id" type="VARCHAR(255)">
+                <constraints referencedTableName="hosts" referencedColumnNames="insights_id"
+                    nullable="false" foreignKeyName="host_fk" deleteCascade="true"/>
+            </column>
+            <column name="product_id" type="VARCHAR(255)"/>
+            <column name="sla" type="VARCHAR(255)"/>
+            <column name="as_hypervisor" type="BOOLEAN"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="202005281015-5" author="mstead">
+        <addPrimaryKey constraintName="host_tally_bucket_pkey"
+                       tableName="host_tally_buckets"
+                       columnNames="host_insights_id,product_id,sla,as_hypervisor"/>
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
