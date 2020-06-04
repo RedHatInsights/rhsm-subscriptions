@@ -36,29 +36,31 @@ import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
-class IdentityHeaderAuthenticationManagerTest {
+class IdentityHeaderAuthenticationProviderTest {
 
     @MockBean
     PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
-    private IdentityHeaderAuthenticationManager manager = new IdentityHeaderAuthenticationManager();
+    private IdentityHeaderAuthenticationProvider manager = new IdentityHeaderAuthenticationProvider();
 
     @Test
-    public void testMissingOrgId() {
+    void testMissingOrgId() {
+        Authentication auth = token(null, "account");
         AuthenticationException e =
-            assertThrows(AuthenticationException.class, () -> manager.authenticate(token(null, "account")));
-        assertEquals("x-rh-identity contains no owner ID for the principal", e.getMessage());
+            assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
+        assertEquals("x-rh-identity contains no owner ID for the principal", e.getCause().getMessage());
     }
 
     @Test
-    public void testMissingAccountNumber() {
+    void testMissingAccountNumber() {
+        Authentication auth = token("123", null);
         AuthenticationException e =
-            assertThrows(AuthenticationException.class, () -> manager.authenticate(token("123", null)));
-        assertEquals("x-rh-identity contains no account number for the principal", e.getMessage());
+            assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
+        assertEquals("x-rh-identity contains no account number for the principal", e.getCause().getMessage());
     }
 
     @Test
-    public void validPrincipalIsAuthenticated() {
+    void validPrincipalIsAuthenticated() {
         Authentication result = manager.authenticate(token("123", "acct"));
         assertTrue(result.isAuthenticated());
     }
