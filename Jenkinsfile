@@ -61,8 +61,18 @@ pipeline {
                 withSonarQubeEnv('sonarcloud.io') {
                     echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/dashboard?id=rhsm-subscriptions"
                 }
-                timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
+                retry(4) {
+                    script {
+                        try {
+                            timeout(time: 5, unit: 'MINUTES') {
+                                waitForQualityGate abortPipeline: true
+                            }
+                        }
+                        catch (org.jenkinsci.plugins.workflow.steps.TimeoutStepExecution$ExceededTimeout e) {
+                            // "rethrow" as something retry will actually retry, see https://issues.jenkins-ci.org/browse/JENKINS-51454
+                            error("Timeout waiting for SonarQube results")
+                        }
+                    }
                 }
             }
         }
