@@ -289,7 +289,7 @@
        #######################################################################
      -->
     <module name="LineLength">
-      <property name="ignorePattern" value="import"/>
+      <property name="ignorePattern" value="^ *\* *[^ ]+$"/>
       <property name="max" value="110"/>
     </module>
     <module name="MethodLength">

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,10 +66,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -93,10 +95,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -121,10 +124,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -149,10 +153,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -177,10 +182,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -193,10 +199,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -209,10 +216,11 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -224,11 +232,27 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
             ServiceLevel.STANDARD,
+            Usage.ANY,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(0, found.size());
+    }
+
+    @Test
+    void testShouldFilterOutUsageIfDifferent() {
+        SubscriptionCapacity c = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        repository.save(c);
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.ANY,
+            Usage.DEVELOPMENT_TEST,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -240,11 +264,27 @@ class SubscriptionCapacityRepositoryTest {
         repository.save(c);
         repository.flush();
 
-        List<SubscriptionCapacity> found = repository
-            .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
             ServiceLevel.PREMIUM,
+            Usage.ANY,
+            NOWISH,
+            FAR_FUTURE);
+
+        assertEquals(1, found.size());
+    }
+    @Test
+    void testShouldMatchUsageIfSame() {
+        SubscriptionCapacity c = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        repository.save(c);
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.ANY,
+            Usage.PRODUCTION,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -264,6 +304,7 @@ class SubscriptionCapacityRepositoryTest {
         capacity.setPhysicalCores(8);
         capacity.setVirtualCores(40);
         capacity.setServiceLevel(ServiceLevel.PREMIUM);
+        capacity.setUsage(Usage.PRODUCTION);
         return capacity;
     }
 }

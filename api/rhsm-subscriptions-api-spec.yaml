@@ -295,6 +295,11 @@ paths:
           schema:
             type: string
           description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            type: string
+          description: "Include only capacity for the specified usage level."
         - name: beginning
           in: query
           required: true
@@ -741,6 +746,10 @@ components:
             service_level:
               description: "Describes the service level that the report was made against. Not set if it wasn't
                 specified as a query parameter."
+              type: string
+            usage:
+              description: "Describes the usages that the report was made against. Not set if it wasn't
+               specified as a query parameter."
               type: string
           required:
             - count

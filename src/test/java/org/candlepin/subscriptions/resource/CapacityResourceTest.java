@@ -21,12 +21,12 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -37,7 +37,6 @@ import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -83,12 +82,13 @@ class CapacityResourceTest {
         capacity.setBeginDate(min);
         capacity.setEndDate(max);
 
-        when(repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
-            Mockito.eq("owner123456"),
-            Mockito.eq("product1"),
-            Mockito.eq(min),
-            Mockito.eq(max)))
+        when(repository.findByOwnerAndProductId(
+                eq("owner123456"),
+                eq("product1"),
+                eq(ServiceLevel.ANY),
+                eq(Usage.ANY),
+                eq(min),
+                eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
         CapacityReport report = resource.getCapacityReport(
@@ -96,6 +96,7 @@ class CapacityResourceTest {
             "daily",
             min,
             max,
+            null,
             null,
             null,
             null
@@ -110,13 +111,13 @@ class CapacityResourceTest {
         capacity.setBeginDate(min);
         capacity.setEndDate(max);
 
-        when(repository
-            .findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndEndDateAfterAndBeginDateBefore(
-                Mockito.eq("owner123456"),
-                Mockito.eq("product1"),
-                Mockito.eq(ServiceLevel.PREMIUM),
-                Mockito.eq(min),
-                Mockito.eq(max)))
+        when(repository.findByOwnerAndProductId(
+                eq("owner123456"),
+                eq("product1"),
+                eq(ServiceLevel.PREMIUM),
+                eq(Usage.ANY),
+                eq(min),
+                eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
         CapacityReport report = resource.getCapacityReport(
@@ -126,7 +127,37 @@ class CapacityResourceTest {
             max,
             null,
             null,
-            "Premium"
+            "Premium",
+            null
+        );
+
+        assertEquals(9, report.getData().size());
+    }
+
+    @Test
+    void testShouldUseUsageQueryParam() {
+        SubscriptionCapacity capacity = new SubscriptionCapacity();
+        capacity.setBeginDate(min);
+        capacity.setEndDate(max);
+
+        when(repository.findByOwnerAndProductId(
+            eq("owner123456"),
+            eq("product1"),
+            eq(ServiceLevel.ANY),
+            eq(Usage.PRODUCTION),
+            eq(min),
+            eq(max)))
+            .thenReturn(Collections.singletonList(capacity));
+
+        CapacityReport report = resource.getCapacityReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            null,
+            null,
+            null,
+            "Production"
         );
 
         assertEquals(9, report.getData().size());
@@ -138,12 +169,13 @@ class CapacityResourceTest {
         capacity.setBeginDate(min);
         capacity.setEndDate(max);
 
-        when(repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
-                Mockito.eq("owner123456"),
-                Mockito.eq("product1"),
-                Mockito.eq(min),
-                Mockito.eq(max)))
+        when(repository.findByOwnerAndProductId(
+                eq("owner123456"),
+                eq("product1"),
+                eq(ServiceLevel.ANY),
+                eq(Usage.ANY),
+                eq(min),
+                eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
         CapacityReport report = resource.getCapacityReport(
@@ -151,6 +183,36 @@ class CapacityResourceTest {
             "daily",
             min,
             max,
+            null,
+            null,
+            "",
+            null
+        );
+
+        assertEquals(9, report.getData().size());
+    }
+
+    @Test
+    void testShouldTreatEmptyUsageAsNull() {
+        SubscriptionCapacity capacity = new SubscriptionCapacity();
+        capacity.setBeginDate(min);
+        capacity.setEndDate(max);
+
+        when(repository.findByOwnerAndProductId(
+            eq("owner123456"),
+            eq("product1"),
+            eq(ServiceLevel.ANY),
+            eq(Usage.ANY),
+            eq(min),
+            eq(max)))
+            .thenReturn(Collections.singletonList(capacity));
+
+        CapacityReport report = resource.getCapacityReport(
+            "product1",
+            "daily",
+            min,
+            max,
+            null,
             null,
             null,
             ""
@@ -177,12 +239,13 @@ class CapacityResourceTest {
         capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
         capacity2.setEndDate(max);
 
-        when(repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
-                Mockito.eq("owner123456"),
-                Mockito.eq("product1"),
-                Mockito.eq(min),
-                Mockito.eq(max)))
+        when(repository.findByOwnerAndProductId(
+                eq("owner123456"),
+                eq("product1"),
+                eq(ServiceLevel.UNSPECIFIED),
+                eq(Usage.UNSPECIFIED),
+                eq(min),
+                eq(max)))
             .thenReturn(Arrays.asList(capacity, capacity2));
 
         CapacityReport report = resource.getCapacityReport(
@@ -190,6 +253,7 @@ class CapacityResourceTest {
             "daily",
             min,
             max,
+            null,
             null,
             null,
             null
@@ -212,6 +276,7 @@ class CapacityResourceTest {
             max,
             11,
             10,
+            null,
             null)
         );
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
@@ -227,7 +292,8 @@ class CapacityResourceTest {
             max,
             0,
             10,
-            "badSla")
+            "badSla",
+            null)
         );
     }
 
@@ -237,12 +303,13 @@ class CapacityResourceTest {
         capacity.setBeginDate(min);
         capacity.setEndDate(max);
 
-        when(repository
-            .findByKeyOwnerIdAndKeyProductIdAndEndDateAfterAndBeginDateBefore(
-                Mockito.eq("owner123456"),
-                Mockito.eq("product1"),
-                Mockito.eq(min),
-                Mockito.eq(max)))
+        when(repository.findByOwnerAndProductId(
+                eq("owner123456"),
+                eq("product1"),
+                eq(ServiceLevel.ANY),
+                eq(Usage.ANY),
+                eq(min),
+                eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
         CapacityReport report = resource.getCapacityReport(
@@ -252,6 +319,7 @@ class CapacityResourceTest {
             max,
             1,
             1,
+            null,
             null
         );
 
@@ -271,6 +339,7 @@ class CapacityResourceTest {
                 max,
                 null,
                 null,
+                null,
                 null
             );
         });
@@ -285,6 +354,7 @@ class CapacityResourceTest {
                 "daily",
                 min,
                 max,
+                null,
                 null,
                 null,
                 null
