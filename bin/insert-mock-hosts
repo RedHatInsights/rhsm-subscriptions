@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+import argparse
+import uuid
+import os
+import subprocess
+import sys
+
+output = sys.stdout
+
+
+def generate_host(insights_id=None, account_number=None, org_id=None, display_name=None,
+                  subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
+                  hardware_type=None, num_of_guests=None, last_seen=None, product=None, sla=None, usage=None):
+    insights_id=insights_id or uuid.uuid4()
+    if not is_guest:
+        hypervisor_uuid = None
+    host_fields = {
+        'insights_id': insights_id,
+        'account_number': account_number or 'account123',
+        'org_id': org_id or 'org123',
+        'display_name': display_name or insights_id,
+        'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
+        'cores': cores or 4,
+        'sockets': sockets or 1,
+        'is_guest': is_guest or False,
+        'hypervisor_uuid': hypervisor_uuid or None,
+        'hardware_type': hardware_type or 'PHYSICAL',
+        'num_of_guests': num_of_guests or 0,
+        'last_seen': last_seen or '1993-03-26',
+    }
+    bucket_fields = {
+        'host_insights_id': insights_id,
+        'product_id': product or 'RHEL',
+        'sla': sla or 'Premium',
+        'usage': usage or 'Production'
+    }
+    _generate_insert('hosts', **host_fields)
+    _generate_insert('host_tally_buckets', as_hypervisor=False, **bucket_fields)
+    if hardware_type == 'HYPERVISOR':
+        _generate_insert('host_tally_buckets', as_hypervisor=True, **bucket_fields)
+    return {**host_fields, **bucket_fields}
+
+
+def db_repr(value):
+    if value is None:
+        return 'null'
+    return repr(value)
+
+
+def _generate_insert(table, **host_fields):
+    fields = []
+    values = []
+    for key, value in host_fields.items():
+        fields.append(key)
+        values.append(value)
+    fields = ','.join(fields)
+    values = ','.join(db_repr(value) for value in values)
+    output.write(f'insert into {table}({fields}) values ({values});\n')
+
+
+parser = argparse.ArgumentParser(description='Insert mock hosts into the a local DB')
+parser.add_argument('--db-host',
+                    default='localhost',
+                    help='Database host')
+parser.add_argument('--db-user',
+                    default='rhsm-subscriptions',
+                    help='Database user')
+parser.add_argument('--db-password',
+                    default='',
+                    help='Database password')
+parser.add_argument('--db-name',
+                    default='rhsm-subscriptions',
+                    help='Database name')
+parser.add_argument('--num-physical',
+                    type=int,
+                    default=0,
+                    help='Insert a number of mock physical machines')
+parser.add_argument('--num-hypervisors',
+                    type=int,
+                    default=0,
+                    help='Insert a number of mock hypervisors')
+parser.add_argument('--num-guests',
+                    type=int,
+                    default=0,
+                    help='Insert a number of mock guests, running on a single hypervisor')
+parser.add_argument('--account',
+                    help='Set the account for the inserted records')
+parser.add_argument('--hypervisor-id',
+                    help='Set the hypervisor id for any hypervisors or guests inserted')
+parser.add_argument('--product',
+                    help='Set the product for the inserted hosts')
+parser.add_argument('--sla',
+                    help='Set the sla for the inserted hosts')
+parser.add_argument('--usage',
+                    help='Set the usage for the inserted hosts')
+parser.add_argument('--output-sql', action='store_true')
+
+args = parser.parse_args()
+os.environ['PGHOST'] = args.db_host
+os.environ['PGDATABASE'] = args.db_name
+os.environ['PGUSER'] = args.db_user
+os.environ['PGPASSWORD'] = args.db_password
+
+psql = None
+if not args.output_sql:
+    psql = subprocess.Popen('psql', stdin=subprocess.PIPE, shell=True, text=True)
+    output = psql.stdin
+
+for i in range(args.num_physical):
+    generate_host(account_number=args.account, hardware_type='PHYSICAL', product=args.product, sla=args.sla,
+                  usage=args.usage)
+
+hypervisor = None
+for i in range(args.num_hypervisors):
+    hypervisor = generate_host(account_number=args.account, hardware_type='HYPERVISOR', product=args.product,
+                               sla=args.sla, usage=args.usage)
+for i in range(args.num_guests):
+    if args.hypervisor_id:
+        hypervisor_uuid = args.hypervisor_id
+    elif hypervisor is not None:
+        hypervisor_uuid = hypervisor['subscription_manager_id']
+    else:
+        hypervisor_uuid = None
+    generate_host(account_number=args.account, hardware_type='HYPERVISOR', is_guest=True,
+                  product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid)
+
+if psql:
+    psql.stdin.close()
+    psql.wait()

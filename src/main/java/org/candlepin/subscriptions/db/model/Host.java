@@ -213,4 +213,14 @@ public class Host implements Serializable {
         this.buckets.remove(bucket);
     }
 
+    public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
+        return new org.candlepin.subscriptions.utilization.api.model.Host()
+            .cores(cores)
+            .sockets(sockets)
+            .displayName(displayName)
+            .hardwareType(hardwareMeasurementType.toString())
+            .insightsId(insightsId)
+            .subscriptionManagerId(subscriptionManagerId)
+            .numberOfGuests(numOfGuests);
+    }
 }

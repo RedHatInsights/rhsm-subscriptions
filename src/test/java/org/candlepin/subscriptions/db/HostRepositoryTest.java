@@ -91,7 +91,15 @@ class HostRepositoryTest {
         // ACCOUNT 4 HOSTS
         Host host8 = createHost("insights8", "account4", "org4");
 
-        List<Host> toSave = Arrays.asList(host1, host2, host3, host4, host5, host6, host7, host8);
+        // ACCOUNT 5 HOSTS
+        Host hypervisor = createHost("hypervisor", "account5", "org5");
+        addBucketToHost(hypervisor, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true);
+        Host guest = createHost("guest", "account5", "org5");
+        guest.setGuest(true);
+        addBucketToHost(guest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
+
+        List<Host> toSave = Arrays.asList(host1, host2, host3, host4, host5, host6, host7, host8,
+            hypervisor, guest);
         repo.saveAll(toSave);
         repo.flush();
     }
@@ -145,7 +153,7 @@ class HostRepositoryTest {
     @Test
     void findHostsByBucketCriteria() {
         Page<Host> hosts = repo.getHostsByBucketCriteria("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, true, PageRequest.of(0, 10));
+            Usage.PRODUCTION, true, null, PageRequest.of(0, 10));
         List<Host> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -156,7 +164,7 @@ class HostRepositoryTest {
     @Test
     void findHostsByAnyBucketProduct() {
         Page<Host> hosts = repo.getHostsByBucketCriteria("account2", null, ServiceLevel.SELF_SUPPORT,
-            Usage.DEVELOPMENT_TEST, false, PageRequest.of(0, 10));
+            Usage.DEVELOPMENT_TEST, false, null, PageRequest.of(0, 10));
         Map<String, Host> found = hosts.stream().collect(
             Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -169,7 +177,7 @@ class HostRepositoryTest {
     @Test
     void findHostsByAnyBucketSlaAndUsage() {
         Page<Host> hosts = repo.getHostsByBucketCriteria("account1", "RHEL", null, null, false,
-            PageRequest.of(0, 10));
+            null, PageRequest.of(0, 10));
         Map<String, Host> found = hosts.stream().collect(
             Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -182,7 +190,7 @@ class HostRepositoryTest {
     @Test
     void findHostsByAnyBucketAsHypervisor() {
         Page<Host> hosts = repo.getHostsByBucketCriteria("account3", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, PageRequest.of(0, 10));
+            Usage.PRODUCTION, null, null, PageRequest.of(0, 10));
         Map<String, Host> found = hosts.stream().collect(
             Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -195,7 +203,7 @@ class HostRepositoryTest {
     @Test
     void findHostsWithoutBucketCriterial() {
         Page<Host> hosts = repo.getHostsByBucketCriteria("account2", null, null, null, null,
-            PageRequest.of(0, 10));
+            null, PageRequest.of(0, 10));
         Map<String, Host> found =
             hosts.stream().collect(Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -214,8 +222,34 @@ class HostRepositoryTest {
 
         // When a host has no buckets, it will not be returned.
         Page<Host> hosts = repo.getHostsByBucketCriteria("account4", null, null, null, null,
-            PageRequest.of(0, 10));
+            null, PageRequest.of(0, 10));
         assertEquals(0, hosts.stream().count());
+    }
+
+    @Transactional
+    @Test
+    void testHypervisorFoundWhenGuestFalse() {
+        Page<Host> existing = repo.getHostsByBucketCriteria("account5", "RHEL", null, null, null,
+            false, PageRequest.of(0, 10));
+        assertEquals(1, existing.getTotalElements());
+        assertEquals("hypervisor", existing.getContent().get(0).getInsightsId());
+    }
+
+    @Transactional
+    @Test
+    void testHypervisorFoundWhenGuestTrue() {
+        Page<Host> existing = repo.getHostsByBucketCriteria("account5", "RHEL", null, null, null,
+            true, PageRequest.of(0, 10));
+        assertEquals(1, existing.getTotalElements());
+        assertEquals("guest", existing.getContent().get(0).getInsightsId());
+    }
+
+    @Transactional
+    @Test
+    void testHypervisorAndGuestFoundWhenGuestNull() {
+        Page<Host> existing = repo.getHostsByBucketCriteria("account5", "RHEL", null, null, null,
+            null, PageRequest.of(0, 10));
+        assertEquals(2, existing.getTotalElements());
     }
 
     private Host createHost(String insightsId, String account, String orgId) {
