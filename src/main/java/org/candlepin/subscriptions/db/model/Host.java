@@ -28,6 +28,8 @@ import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -66,6 +68,7 @@ public class Host implements Serializable {
     @Column(name = "hypervisor_uuid")
     private String hypervisorUuid;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "hardware_type")
     private HardwareMeasurementType hardwareMeasurementType;
 
