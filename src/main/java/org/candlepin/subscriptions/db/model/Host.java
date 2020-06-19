@@ -196,12 +196,12 @@ public class Host implements Serializable {
         this.buckets = buckets;
     }
 
-    public HostTallyBucket addBucket(String productId, ServiceLevel sla, Boolean asHypervisor) {
+    public HostTallyBucket addBucket(String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
         if (this.buckets == null) {
             this.buckets = new ArrayList<>();
         }
 
-        HostTallyBucket bucket = new HostTallyBucket(this, productId, sla, asHypervisor);
+        HostTallyBucket bucket = new HostTallyBucket(this, productId, sla, usage, asHypervisor);
         this.buckets.add(bucket);
         return bucket;
     }

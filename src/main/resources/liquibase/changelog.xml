@@ -25,5 +25,6 @@
     <include file="liquibase/202004011513-load-org-account-config.xml"/>
     <include file="liquibase/202005041611-add-usage-column-to-snapshot-and-capacity-tables.xml"/>
     <include file="liquibase/202005281015-add-host-and-host-tally-bucket-tables.xml" />
+    <include file="liquibase/202006180903-add-usage-to-host.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

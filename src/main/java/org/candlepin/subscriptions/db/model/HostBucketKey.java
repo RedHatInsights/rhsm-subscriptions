@@ -39,6 +39,8 @@ public class HostBucketKey implements Serializable {
 
     private ServiceLevel sla;
 
+    private Usage usage;
+
     @Column(name = "as_hypervisor")
     private Boolean asHypervisor;
 
@@ -48,10 +50,11 @@ public class HostBucketKey implements Serializable {
     public HostBucketKey() {
     }
 
-    public HostBucketKey(Host host, String productId, ServiceLevel sla, Boolean asHypervisor) {
+    public HostBucketKey(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
         this.host = host;
         this.productId = productId;
         this.sla = sla;
+        this.usage = usage;
         this.asHypervisor = asHypervisor;
     }
 
@@ -69,6 +72,14 @@ public class HostBucketKey implements Serializable {
 
     public void setSla(ServiceLevel sla) {
         this.sla = sla;
+    }
+
+    public Usage getUsage() {
+        return usage;
+    }
+
+    public void setUsage(Usage usage) {
+        this.usage = usage;
     }
 
     public Boolean getAsHypervisor() {
@@ -100,6 +111,7 @@ public class HostBucketKey implements Serializable {
         HostBucketKey that = (HostBucketKey) o;
         return productId.equals(that.productId) &&
             sla == that.sla &&
+            usage == that.usage &&
             asHypervisor.equals(that.asHypervisor) &&
             host.equals(that.host);
     }

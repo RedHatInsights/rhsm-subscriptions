@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,12 +52,14 @@ public interface HostRepository extends JpaRepository<Host, String> {
         "h.accountNumber = :account and " +
         "(:product is null or b.key.productId = :product) and " +
         "(:sla is null or b.key.sla = :sla) and " +
+        "(:usage is null or b.key.usage = :usage) and " +
         "(:as_hypervisor is null or b.key.asHypervisor = :as_hypervisor)"
     )
     Page<Host> getHostsByBucketCriteria(
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
+        @Param("usage") Usage usage,
         @Param("as_hypervisor") Boolean asHypervisor,
         Pageable pageable
     );

@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -61,31 +62,31 @@ class HostRepositoryTest {
 
         // ACCOUNT 1 HOSTS
         Host host1 = createHost("insights1", "account1", "org1");
-        addBucketToHost(host1, "RHEL", ServiceLevel.PREMIUM, false);
-        addBucketToHost(host1, "Satellite", ServiceLevel.PREMIUM, false);
+        addBucketToHost(host1, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
+        addBucketToHost(host1, "Satellite", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
 
         Host host2 = createHost("insights2", "account1", "org1");
-        addBucketToHost(host2, "RHEL", ServiceLevel.SELF_SUPPORT, false);
-        addBucketToHost(host2, "Satellite", ServiceLevel.SELF_SUPPORT, false);
+        addBucketToHost(host2, "RHEL", ServiceLevel.SELF_SUPPORT, Usage.DEVELOPMENT_TEST, false);
+        addBucketToHost(host2, "Satellite", ServiceLevel.SELF_SUPPORT, Usage.DEVELOPMENT_TEST, false);
 
         // ACCOUNT 2 HOSTS
         Host host3 = createHost("insights3", "account2", "org2");
-        addBucketToHost(host3, "RHEL", ServiceLevel.PREMIUM, true);
-        addBucketToHost(host3, "Satellite", ServiceLevel.PREMIUM, false);
+        addBucketToHost(host3, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true);
+        addBucketToHost(host3, "Satellite", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
 
         Host host4 = createHost("insights4", "account2", "org2");
-        addBucketToHost(host4, "RHEL", ServiceLevel.SELF_SUPPORT, false);
-        addBucketToHost(host4, "SUPER_COOL_PRODUCT", ServiceLevel.ANY, true);
+        addBucketToHost(host4, "RHEL", ServiceLevel.SELF_SUPPORT, Usage.DEVELOPMENT_TEST, false);
+        addBucketToHost(host4, "SUPER_COOL_PRODUCT", ServiceLevel.ANY, Usage.ANY, true);
 
         Host host5 = createHost("insights5", "account2", "org2");
-        addBucketToHost(host5, "Satellite", ServiceLevel.SELF_SUPPORT, false);
+        addBucketToHost(host5, "Satellite", ServiceLevel.SELF_SUPPORT, Usage.DEVELOPMENT_TEST, false);
 
         // ACCOUNT 3 HOSTS
         Host host6 = createHost("insights6", "account3", "org3");
-        addBucketToHost(host6, "RHEL", ServiceLevel.PREMIUM, false);
+        addBucketToHost(host6, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
 
         Host host7 = createHost("insights7", "account3", "org3");
-        addBucketToHost(host7, "RHEL", ServiceLevel.PREMIUM, true);
+        addBucketToHost(host7, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true);
 
         // ACCOUNT 4 HOSTS
         Host host8 = createHost("insights8", "account4", "org4");
@@ -99,7 +100,7 @@ class HostRepositoryTest {
     @Test
     void testCreate() {
         Host host = new Host("HOST1", "my_acct", "my_org");
-        host.addBucket("RHEL", ServiceLevel.PREMIUM, false);
+        host.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
         repo.saveAndFlush(host);
 
         Optional<Host> result = repo.findById(host.getInsightsId());
@@ -114,8 +115,8 @@ class HostRepositoryTest {
         Host host = new Host("HOST1", "my_acct", "my_org");
         host.setSockets(1);
         host.setCores(1);
-        host.addBucket("RHEL", ServiceLevel.PREMIUM, false);
-        host.addBucket("Satellite", ServiceLevel.PREMIUM, true);
+        host.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
+        host.addBucket("Satellite", ServiceLevel.PREMIUM, Usage.PRODUCTION, true);
         repo.saveAndFlush(host);
 
         Optional<Host> result = repo.findById(host.getInsightsId());
@@ -143,8 +144,8 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void findHostsByBucketCriteria() {
-        Page<Host> hosts = repo.getHostsByBucketCriteria("account2", "RHEL", ServiceLevel.PREMIUM, true,
-            PageRequest.of(0, 10));
+        Page<Host> hosts = repo.getHostsByBucketCriteria("account2", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, true, PageRequest.of(0, 10));
         List<Host> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -154,8 +155,8 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void findHostsByAnyBucketProduct() {
-        Page<Host> hosts = repo.getHostsByBucketCriteria("account2", null, ServiceLevel.SELF_SUPPORT, false,
-            PageRequest.of(0, 10));
+        Page<Host> hosts = repo.getHostsByBucketCriteria("account2", null, ServiceLevel.SELF_SUPPORT,
+            Usage.DEVELOPMENT_TEST, false, PageRequest.of(0, 10));
         Map<String, Host> found = hosts.stream().collect(
             Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -166,8 +167,8 @@ class HostRepositoryTest {
 
     @Transactional
     @Test
-    void findHostsByAnyBucketSla() {
-        Page<Host> hosts = repo.getHostsByBucketCriteria("account1", "RHEL", null, false,
+    void findHostsByAnyBucketSlaAndUsage() {
+        Page<Host> hosts = repo.getHostsByBucketCriteria("account1", "RHEL", null, null, false,
             PageRequest.of(0, 10));
         Map<String, Host> found = hosts.stream().collect(
             Collectors.toMap(Host::getInsightsId, Function.identity()));
@@ -180,8 +181,8 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void findHostsByAnyBucketAsHypervisor() {
-        Page<Host> hosts = repo.getHostsByBucketCriteria("account3", "RHEL", ServiceLevel.PREMIUM, null,
-            PageRequest.of(0, 10));
+        Page<Host> hosts = repo.getHostsByBucketCriteria("account3", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, null, PageRequest.of(0, 10));
         Map<String, Host> found = hosts.stream().collect(
             Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -193,7 +194,8 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void findHostsWithoutBucketCriterial() {
-        Page<Host> hosts = repo.getHostsByBucketCriteria("account2", null, null, null, PageRequest.of(0, 10));
+        Page<Host> hosts = repo.getHostsByBucketCriteria("account2", null, null, null, null,
+            PageRequest.of(0, 10));
         Map<String, Host> found =
             hosts.stream().collect(Collectors.toMap(Host::getInsightsId, Function.identity()));
 
@@ -211,7 +213,8 @@ class HostRepositoryTest {
         assertEquals("account4", existing.get().getAccountNumber());
 
         // When a host has no buckets, it will not be returned.
-        Page<Host> hosts = repo.getHostsByBucketCriteria("account4", null, null, null, PageRequest.of(0, 10));
+        Page<Host> hosts = repo.getHostsByBucketCriteria("account4", null, null, null, null,
+            PageRequest.of(0, 10));
         assertEquals(0, hosts.stream().count());
     }
 
@@ -222,9 +225,9 @@ class HostRepositoryTest {
         return host;
     }
 
-    private HostTallyBucket addBucketToHost(Host host, String productId, ServiceLevel sla,
+    private HostTallyBucket addBucketToHost(Host host, String productId, ServiceLevel sla, Usage usage,
         Boolean asHypervisor) {
-        return host.addBucket(productId, sla, asHypervisor);
+        return host.addBucket(productId, sla, usage, asHypervisor);
     }
 
     private void assertHost(Host host, String insightsId, String accountNumber, String orgId) {
