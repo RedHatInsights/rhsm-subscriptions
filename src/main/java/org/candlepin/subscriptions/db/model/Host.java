@@ -63,7 +63,7 @@ public class Host implements Serializable {
     private Integer sockets;
 
     @Column(name = "is_guest")
-    private Boolean guest;
+    private boolean guest;
 
     @Column(name = "hypervisor_uuid")
     private String hypervisorUuid;
