@@ -28,6 +28,8 @@ import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -61,11 +63,12 @@ public class Host implements Serializable {
     private Integer sockets;
 
     @Column(name = "is_guest")
-    private Boolean guest;
+    private boolean guest;
 
     @Column(name = "hypervisor_uuid")
     private String hypervisorUuid;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "hardware_type")
     private HardwareMeasurementType hardwareMeasurementType;
 
@@ -196,12 +199,12 @@ public class Host implements Serializable {
         this.buckets = buckets;
     }
 
-    public HostTallyBucket addBucket(String productId, ServiceLevel sla, Boolean asHypervisor) {
+    public HostTallyBucket addBucket(String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
         if (this.buckets == null) {
             this.buckets = new ArrayList<>();
         }
 
-        HostTallyBucket bucket = new HostTallyBucket(this, productId, sla, asHypervisor);
+        HostTallyBucket bucket = new HostTallyBucket(this, productId, sla, usage, asHypervisor);
         this.buckets.add(bucket);
         return bucket;
     }
@@ -210,4 +213,14 @@ public class Host implements Serializable {
         this.buckets.remove(bucket);
     }
 
+    public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
+        return new org.candlepin.subscriptions.utilization.api.model.Host()
+            .cores(cores)
+            .sockets(sockets)
+            .displayName(displayName)
+            .hardwareType(hardwareMeasurementType.toString())
+            .insightsId(insightsId)
+            .subscriptionManagerId(subscriptionManagerId)
+            .numberOfGuests(numOfGuests);
+    }
 }

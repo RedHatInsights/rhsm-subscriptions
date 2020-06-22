@@ -41,8 +41,8 @@ public class HostTallyBucket implements Serializable {
     public HostTallyBucket() {
     }
 
-    public HostTallyBucket(Host host, String productId, ServiceLevel sla, Boolean asHypervisor) {
-        setKey(new HostBucketKey(host, productId, sla, asHypervisor));
+    public HostTallyBucket(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
+        setKey(new HostBucketKey(host, productId, sla, usage, asHypervisor));
     }
 
     public HostBucketKey getKey() {

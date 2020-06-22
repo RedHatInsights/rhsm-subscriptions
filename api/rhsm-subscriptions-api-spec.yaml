@@ -370,6 +370,142 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       tags:
         - capacity
+  /hosts/products/{product_id}:
+    description: 'Operations for hosts for a given account and product'
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch hosts matching report criteria."
+      operationId: getHosts
+      parameters:
+        - name: sla
+          in: query
+          schema:
+            type: string
+          description: "Include only hosts for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            type: string
+          description: "Include only hosts for the specified usage level."
+      responses:
+        '200':
+          description: 'The request for hosts was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/HostReport"
+              example:
+                data:
+                  - insights_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+                    display_name: rhv.example.com
+                    subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
+                    cores: 4
+                    sockets: 2
+                    hardware_type: hypervisor
+                    number_of_guests: 4
+                    last_seen: 2020-01-01T00:00:00Z
+                  - insights_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+                    display_name: db.example.com
+                    subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
+                    cores: 4
+                    sockets: 2
+                    hardware_type: physical
+                    last_seen: 2020-01-01T00:00:00Z
+                links:
+                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL?granularity=DAILY&sla=Premium&usage=Production&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL?granularity=DAILY&sla=Premium&usage=Production&offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL?granularity=DAILY&sla=Premium&usage=Production&offset=5&limit=5'
+                meta:
+                  count: 10
+                  product: RHEL
+                  granularity: DAILY
+                  service_level: Premium
+                  usage: Production
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - hosts
+  /hosts/{hypervisor_uuid}/guests:
+    description: 'Operations for hypervisor-guest mappings.'
+    parameters:
+      - name: hypervisor_uuid
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The subscription-manager ID for the hypervisor we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch guests for this hypervisor."
+      operationId: getHypervisorGuests
+      responses:
+        '200':
+          description: 'The request for a capacity report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/HypervisorGuestReport"
+              example:
+                data:
+                  - insights_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+                    display_name: guest01.example.com
+                    subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
+                    last_seen: 2020-01-01T00:00:00Z
+                  - insights_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+                    display_name: guest02.example.com
+                    subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
+                    last_seen: 2020-01-01T00:00:00Z
+                links:
+                  first: '/api/rhsm-subscriptions/v1/hosts/a283ffb6-e0f3-4dbe-9732-ccfdb297ba07/guests?offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/hosts/a283ffb6-e0f3-4dbe-9732-ccfdb297ba07/guests?offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/hosts/a283ffb6-e0f3-4dbe-9732-ccfdb297ba07/guests?offset=5&limit=5'
+                meta:
+                  count: 10
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - hosts
   /ingress/candlepin_pools/{org_id}:
     description: "Integration endpoint for updating an account's subscription capacity from
       Candlepin pool data."
@@ -801,6 +937,117 @@ components:
             If there is an infinite quantity subscription involved, there is no meaningful number for
             capacity."
           type: boolean
+    HostReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Host"
+        links:
+          type: object
+          properties:
+            first:
+              type: string
+            last:
+              type: string
+            previous:
+              type: string
+            next:
+              type: string
+          required:
+            - first
+            - previous
+            - last
+            - next
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            granularity:
+              description: "Describes the date that the report is made against. Not set if it wasn't
+                    specified as a query parameter."
+              type: string
+            service_level:
+              description: "Describes the service level that the report was made against. Not set if it wasn't
+                    specified as a query parameter."
+              type: string
+            usage:
+              description: "Describes the usages that the report was made against. Not set if it wasn't
+                   specified as a query parameter."
+              type: string
+          required:
+            - count
+            - product
+            - granularity
+    HypervisorGuestReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Host"
+        links:
+          type: object
+          properties:
+            first:
+              type: string
+            last:
+              type: string
+            previous:
+              type: string
+            next:
+              type: string
+          required:
+            - first
+            - previous
+            - last
+            - next
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+          required:
+            - count
+    Host:
+      required:
+        - insights_id
+        - display_name
+        - hardware_type
+        - last_seen
+      properties:
+        insights_id:
+          description: The insights identifier for this host, used as ID on cloud.redhat.com.
+          type: string
+        display_name:
+          description: The display name for this host on cloud.redhat.com.
+          type: string
+        subscription_manager_id:
+          description: The subscription-manager ID for this host, from `subscription-manager identity`.
+          type: string
+        sockets:
+          description: Number of effective sockets counted for this host by Subscription Watch.
+          type: integer
+          format: int32
+          minimum: 0
+        cores:
+          description: Number of effective cores counted for this host by Subscription Watch.
+          type: integer
+          format: int32
+          minimum: 0
+        hardware_type:
+          description: What the type of the host is (e.g. hypervisor, physical, etc.).
+          type: string
+        number_of_guests:
+          description: Number of guests if this host is a hypervisor.
+          type: integer
+          format: int32
+        last_seen:
+          description: Latest timestamp that Subscription Watch has for this host.
+          type: string
+          format: date-time
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.
       properties:

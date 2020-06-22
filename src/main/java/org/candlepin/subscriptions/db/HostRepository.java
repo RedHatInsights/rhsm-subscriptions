@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,7 @@ public interface HostRepository extends JpaRepository<Host, String> {
      * @param sla The bucket service level to filter Hosts by (pass null to ignore).
      * @param asHypervisor Was the host treated as a hypervisor when tallying for this bucket
      *                     (pass null to ignore)?
+     * @param isGuest Is the host a guest? If specified, filters to guest/non-guest status.
      * @param pageable the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
@@ -51,13 +53,17 @@ public interface HostRepository extends JpaRepository<Host, String> {
         "h.accountNumber = :account and " +
         "(:product is null or b.key.productId = :product) and " +
         "(:sla is null or b.key.sla = :sla) and " +
+        "(:usage is null or b.key.usage = :usage) and " +
+        "(:is_guest is null or h.guest = :is_guest) and " +
         "(:as_hypervisor is null or b.key.asHypervisor = :as_hypervisor)"
     )
     Page<Host> getHostsByBucketCriteria(
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
+        @Param("usage") Usage usage,
         @Param("as_hypervisor") Boolean asHypervisor,
+        @Param("is_guest") Boolean isGuest,
         Pageable pageable
     );
 }
