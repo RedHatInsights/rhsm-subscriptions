@@ -33,7 +33,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -42,13 +42,33 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesUserDetailsService;
 
 import java.util.Arrays;
 
 /**
- * Configuration class for Spring Security
+ * Configuration class for Spring Security.
+ *
+ * The architecture here can be confusing due to our use of a custom filter.  Here is a discussion of the
+ * Spring Security architecture: https://spring.io/guides/topicals/spring-security-architecture  In our
+ * case, requests are pre-authenticated and the relevant information is stored in a custom header.
+ *
+ * We add the IdentityHeaderAuthenticationFilter as a filter to the Spring Security FilterChainProxy that
+ * sits in the standard servlet filter chain and delegates out to all the various Spring Security filters.
+ * <ol>
+ *   <li>IdentityHeaderAuthenticationFilter parses the servlet request to create the InsightsUserPrincipal
+ *       and places it in an Authentication object.</li>
+ *   <li>IdentityHeaderAuthenticationFilter's superclass invokes the IdentityHeaderAuthenticationDetailsSource
+ *       to populate the Authentication object with the
+ *       PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails which contain the roles.</li>
+ *   <li>The Authentication object is passed to the Spring Security AuthenticationManager.  In this case,
+ *       we're using a ProviderManager with one AuthenticationProvider, IdentityHeaderAuthenticationProvider,
+ *       installed.</li>
+ *   <li>
+ *       The IdentityHeaderAuthenticationProvider is invoked to build a blessed Authentication object.  We
+ *       examine the current Authentication and make sure everything we expect is there.  Then we take the
+ *       granted authorities provided from the IdentityHeaderAuthenticationDetailsSource and push them and
+ *       the InsightsUserPrincipal into a new, blessed Authentication object and return it.</li>
+ * </ol>
  */
 @Configuration
 @EnableWebSecurity
@@ -65,24 +85,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(AuthenticationManagerBuilder auth) {
-        auth.authenticationProvider(preAuthenticatedAuthenticationProvider());
+        // Add our AuthenticationProvider to the Provider Manager's list
+        auth.authenticationProvider(identityHeaderAuthenticationProvider());
     }
 
     @Bean
-    public PreAuthenticatedAuthenticationProvider preAuthenticatedAuthenticationProvider() {
-        PreAuthenticatedAuthenticationProvider provider = new PreAuthenticatedAuthenticationProvider();
-        provider.setPreAuthenticatedUserDetailsService(preAuthenticatedUserDetailsService());
-        return provider;
-    }
-
-    @Bean
-    public PreAuthenticatedGrantedAuthoritiesUserDetailsService preAuthenticatedUserDetailsService() {
-        return new PreAuthenticatedGrantedAuthoritiesUserDetailsService();
-    }
-
-    @Bean
-    public AuthenticationManager identityHeaderAuthenticationManager() {
-        return new IdentityHeaderAuthenticationManager();
+    public AuthenticationProvider identityHeaderAuthenticationProvider() {
+        return new IdentityHeaderAuthenticationProvider();
     }
 
     @Bean
@@ -101,11 +110,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
     public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
-        ApplicationProperties appProps) {
+        ApplicationProperties appProps) throws Exception {
 
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         filter.setCheckForPrincipalChanges(true);
-        filter.setAuthenticationManager(identityHeaderAuthenticationManager());
+        filter.setAuthenticationManager(authenticationManager());
         filter.setAuthenticationDetailsSource(detailsSource(appProps));
         filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
         filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
@@ -147,7 +156,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
         http
             .addFilter(identityHeaderAuthenticationFilter(appProps))
-            .authenticationProvider(preAuthenticatedAuthenticationProvider())
             .csrf().disable()
             .exceptionHandling()
                 .accessDeniedHandler(restAccessDeniedHandler())
