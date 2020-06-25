@@ -1,3 +1,5 @@
+import groovy.json.JsonOutput
+
 buildscript {
     repositories {
         mavenLocal()
@@ -190,6 +192,33 @@ dependencies {
         exclude group: 'org.hibernate' // exclude older hibernate validator
     }
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
+}
+
+// Add a custom task to output dependency info in a machine parseable format. Used to generate dependency
+// reports for Product Security.
+// adapted from https://stackoverflow.com/a/34641632
+// easiest to use via `./gradlew -q dependencyJson`
+tasks.register('dependencyJson') {
+    println JsonOutput.toJson(project.configurations.runtime.incoming.resolutionResult.allDependencies.collect { dependency ->
+        ModuleVersionIdentifier artifact = dependency.selected.moduleVersion
+        ComponentIdentifier dependent = dependency.from.id
+        [
+            group: artifact.group,
+            name: artifact.name,
+            version: artifact.version,
+            dependent: dependent.displayName, // by collecting dependents, we can determine transitivity.
+        ]
+    }.groupBy {
+        [
+            group: it.group,
+            name: it.name,
+            version: it.version,
+        ]
+    }.collect { artifactId, artifactInstances ->
+        artifactId + [
+            dependents: artifactInstances.collect { it.dependent }
+        ]
+    }.sort { "${it.group}:${it.name}:${it.version}" })
 }
 
 compileJava.dependsOn(processResources)
