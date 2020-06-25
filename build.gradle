@@ -221,6 +221,7 @@ tasks.register('dependencyJson') {
             name: artifact.name,
             version: artifact.version,
             dependent: dependent.displayName, // by collecting dependents, we can determine transitivity.
+            displayName: dependency.requested.displayName, // displayName starts with "project " for subprojects
         ]
     }.groupBy {
         [
@@ -230,7 +231,8 @@ tasks.register('dependencyJson') {
         ]
     }.collect { artifactId, artifactInstances ->
         artifactId + [
-            dependents: artifactInstances.collect { it.dependent }
+            displayNames: artifactInstances.collect { it.displayName }.unique().sort(),
+            dependents: artifactInstances.collect { it.dependent },
         ]
     }.sort { "${it.group}:${it.name}:${it.version}" })
 }
