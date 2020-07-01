@@ -42,7 +42,7 @@ public class ProductWhitelist implements ResourceLoaderAware {
     private final PerLineFileSource source;
 
     public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
-        if (properties.getProductWhitelistResourceLocation() != null) {
+        if (!properties.getProductWhitelistResourceLocation().isEmpty()) {
             source = new PerLineFileSource(
                 properties.getProductWhitelistResourceLocation(), clock.getClock(),
                 properties.getProductWhiteListCacheTtl());

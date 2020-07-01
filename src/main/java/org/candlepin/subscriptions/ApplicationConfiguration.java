@@ -133,7 +133,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public AccountListSource accountListSource(ApplicationProperties applicationProperties,
         AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
-        if (applicationProperties.getAccountListResourceLocation() != null) {
+        if (!applicationProperties.getAccountListResourceLocation().isEmpty()) {
             return new FileAccountListSource(
                 new FileAccountSyncListSource(applicationProperties, clock),
                 new ReportingAccountWhitelist(applicationProperties, clock)
