@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.security.InsightsUserPrincipal;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -94,6 +95,19 @@ public class ResourceUtils {
      */
     @NotNull
     static Pageable getPageable(Integer offset, Integer limit) {
+        return getPageable(offset, limit, Sort.unsorted());
+    }
+
+    /**
+     * Validates offset, limit, and sort parameters and produces a {@link Pageable} for them.
+     *
+     * @param offset 0-based offset, can be null.
+     * @param limit max number of items per-page, should be non-zero.
+     * @param sort sorting parameters.
+     * @return Pageable holding paging and sorting information.
+     */
+    @NotNull
+    static Pageable getPageable(Integer offset, Integer limit, Sort sort) {
         if (limit == null) {
             limit = DEFAULT_LIMIT;
         }
@@ -110,7 +124,7 @@ public class ResourceUtils {
                 "Arbitrary offsets are not currently supported by this API"
             );
         }
-        return PageRequest.of(offset / limit, limit);
+        return PageRequest.of(offset / limit, limit, sort);
     }
 
     /**

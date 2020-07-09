@@ -29,15 +29,21 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.resources.HostsApi;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.validation.constraints.Min;
@@ -50,6 +56,14 @@ import javax.ws.rs.core.UriInfo;
 @Component
 public class HostsResource implements HostsApi {
 
+    public static final Map<HostReportSort, String> SORT_PARAM_MAPPING = ImmutableMap.of(
+        HostReportSort.DISPLAY_NAME, "key.host.displayName",
+        HostReportSort.CORES, "cores",
+        HostReportSort.HARDWARE_TYPE, "key.host.hardwareType",
+        HostReportSort.SOCKETS, "sockets",
+        HostReportSort.LAST_SEEN, "key.host.lastSeen"
+    );
+
     @Context
     UriInfo uriInfo;
 
@@ -61,15 +75,26 @@ public class HostsResource implements HostsApi {
         this.pageLinkCreator = pageLinkCreator;
     }
 
-
     @Override
     @ReportingAccessRequired
     public HostReport getHosts(String productId, Integer offset,
-        @Min(1) Integer limit, String sla, String usage) {
+        @Min(1) Integer limit, String sla, String usage,
+        HostReportSort sort, SortDirection dir) {
+
+        Sort sortValue = Sort.unsorted();
+        Sort.Direction dirValue = Sort.Direction.ASC;
+
+        if (dir == SortDirection.DESC) {
+            dirValue = Sort.Direction.DESC;
+        }
+        if (sort != null) {
+            sortValue = Sort.by(dirValue, SORT_PARAM_MAPPING.get(sort));
+        }
+
         String accountNumber = ResourceUtils.getAccountNumber();
         ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
         Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-        Pageable page = ResourceUtils.getPageable(offset, limit);
+        Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
         Page<TallyHostView> hosts = repository.getTallyHostViews(
             accountNumber,
             productId,
