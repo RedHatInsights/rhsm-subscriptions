@@ -88,6 +88,7 @@ public class HostsResource implements HostsApi {
                     .count((int) hosts.getTotalElements())
                     .product(productId)
                     .serviceLevel(sla)
+                    .usage(usage)
             )
             .data(hosts.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
     }
