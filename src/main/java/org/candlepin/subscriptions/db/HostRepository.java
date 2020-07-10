@@ -66,4 +66,15 @@ public interface HostRepository extends JpaRepository<Host, String> {
         @Param("is_guest") Boolean isGuest,
         Pageable pageable
     );
+
+    @Query(
+        "select distinct h from Host h where " +
+        "h.accountNumber = :account and " +
+        "h.hypervisorUuid = :hypervisor_id"
+    )
+    Page<Host> getHostsByHypervisor(
+        @Param("account") String accountNumber,
+        @Param("hypervisor_id") String hypervisorId,
+        Pageable pageable
+    );
 }

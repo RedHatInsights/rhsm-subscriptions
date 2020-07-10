@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
+import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.resources.HostsApi;
 
@@ -94,6 +95,23 @@ public class HostsResource implements HostsApi {
 
     @Override
     public HypervisorGuestReport getHypervisorGuests(String hypervisorUuid, Integer offset, Integer limit) {
-        return null;
+        String accountNumber = ResourceUtils.getAccountNumber();
+        Pageable page = ResourceUtils.getPageable(offset, limit);
+        Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
+        TallyReportLinks links;
+        if (offset != null || limit != null) {
+            links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
+        }
+        else {
+            links = null;
+        }
+
+        return new HypervisorGuestReport()
+            .links(links)
+            .meta(
+                new HypervisorGuestReportMeta()
+                    .count((int) guests.getTotalElements())
+            )
+            .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
     }
 }

@@ -20,9 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
@@ -44,6 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -250,6 +249,35 @@ class HostRepositoryTest {
         Page<Host> existing = repo.getHostsByBucketCriteria("account5", "RHEL", null, null, null,
             null, PageRequest.of(0, 10));
         assertEquals(2, existing.getTotalElements());
+    }
+
+    @Transactional
+    @Test
+    void testReturnsGuestsOfHypervisor() {
+        String account = "hostGuestTest";
+        String uuid = UUID.randomUUID().toString();
+
+        Host hypervisor = createHost("hypervisor", account, "org");
+        hypervisor.setSubscriptionManagerId(uuid);
+        addBucketToHost(hypervisor, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true);
+
+        Host guest = createHost("guest", account, "org");
+        guest.setGuest(true);
+        guest.setHypervisorUuid(uuid);
+        addBucketToHost(guest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
+
+        Host unmappedGuest = createHost("unmappedGuest", account, "org");
+        unmappedGuest.setGuest(true);
+        addBucketToHost(unmappedGuest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
+
+        List<Host> toSave = Arrays.asList(hypervisor, guest, unmappedGuest);
+        repo.saveAll(toSave);
+        repo.flush();
+
+        Page<Host> guests = repo.getHostsByHypervisor(account, uuid, PageRequest.of(0, 10));
+        assertEquals(1, guests.getTotalElements());
+        assertEquals(uuid, guests.getContent().get(0).getHypervisorUuid());
+        assertEquals("guest", guests.getContent().get(0).getInsightsId());
     }
 
     private Host createHost(String insightsId, String account, String orgId) {
