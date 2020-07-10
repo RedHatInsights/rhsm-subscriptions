@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter;
@@ -29,11 +31,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 /**
@@ -107,5 +111,41 @@ public class ResourceUtils {
             );
         }
         return PageRequest.of(offset / limit, limit);
+    }
+
+    /**
+     * Validate and reject bad usage.
+     *
+     * throws a BadRequestException if the usage value is bad.
+     *
+     * @param usage string form of usage
+     * @return Usage enum
+     */
+    public static Usage sanitizeUsage(String usage) {
+        Usage sanitizedUsage = Usage.fromString(usage);
+        // If the usage parameter is not one that we support, then throw an exception.
+        // If we don't, the query would default to UNSPECIFIED, which would be confusing.
+        if (StringUtils.hasLength(usage) && sanitizedUsage == Usage.UNSPECIFIED) {
+            throw new BadRequestException("Invalid usage parameter specified.");
+        }
+        return sanitizedUsage;
+    }
+
+    /**
+     * Validate and reject bad sla.
+     *
+     * throws a BadRequestException if the sla value is bad.
+     *
+     * @param sla string form of sla
+     * @return ServiceLevel enum
+     */
+    public static ServiceLevel sanitizeServiceLevel(String sla) {
+        ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
+        // If the sla parameter is not one that we support, then throw an exception.
+        // If we don't, the query would default to UNSPECIFIED, which would be confusing.
+        if (StringUtils.hasLength(sla) && sanitizedSla == ServiceLevel.UNSPECIFIED) {
+            throw new BadRequestException("Invalid sla parameter specified.");
+        }
+        return sanitizedSla;
     }
 }

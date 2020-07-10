@@ -62,12 +62,14 @@ public class HostsResource implements HostsApi {
     public HostReport getHosts(String productId, Integer offset,
         @Min(1) Integer limit, String sla, String usage) {
         String accountNumber = ResourceUtils.getAccountNumber();
+        ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
+        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
         Pageable page = ResourceUtils.getPageable(offset, limit);
         Page<Host> hosts = repository.getHostsByBucketCriteria(
             accountNumber,
             productId,
-            sla == null ? null : ServiceLevel.fromString(sla),
-            usage == null ? null : Usage.fromString(usage),
+            sanitizedSla,
+            sanitizedUsage,
             null,
             false,
             page

@@ -39,7 +39,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
@@ -48,7 +47,6 @@ import java.util.List;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -81,8 +79,8 @@ public class CapacityResource implements CapacityApi {
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         String ownerId = ResourceUtils.getOwnerId();
 
-        ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
-        Usage sanitizedUsage = sanitizeUsage(usage);
+        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
+        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
 
         List<CapacitySnapshot> capacities = getCapacities(
             ownerId,
@@ -125,22 +123,6 @@ public class CapacityResource implements CapacityApi {
         report.setLinks(links);
 
         return report;
-    }
-
-    private Usage sanitizeUsage(String usage) {
-        Usage sanitizedUsage = Usage.fromString(usage);
-        if (StringUtils.hasLength(usage) && sanitizedUsage == Usage.UNSPECIFIED) {
-            throw new BadRequestException("Invalid usage parameter specified.");
-        }
-        return sanitizedUsage;
-    }
-
-    private ServiceLevel sanitizeServiceLevel(String sla) {
-        ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
-        if (StringUtils.hasLength(sla) && sanitizedSla == ServiceLevel.UNSPECIFIED) {
-            throw new BadRequestException("Invalid sla parameter specified.");
-        }
-        return sanitizedSla;
     }
 
     private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
