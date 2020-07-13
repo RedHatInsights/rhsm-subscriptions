@@ -150,13 +150,7 @@ public class TallyResource implements TallyApi {
             return ServiceLevel.ANY;
         }
 
-        // If the sla parameter is not one that we support, then throw an exception.
-        // If we don't, the query would default to UNSPECIFIED, which would be confusing.
-        ServiceLevel sanitized = ServiceLevel.fromString(sla);
-        if (!sla.isEmpty() && ServiceLevel.UNSPECIFIED.equals(sanitized)) {
-            throw new BadRequestException("Invalid sla parameter specified.");
-        }
-        return sanitized;
+        return ResourceUtils.sanitizeServiceLevel(sla);
     }
 
 }

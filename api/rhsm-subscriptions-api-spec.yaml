@@ -429,14 +429,13 @@ paths:
                     hardware_type: physical
                     last_seen: 2020-01-01T00:00:00Z
                 links:
-                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL?granularity=DAILY&sla=Premium&usage=Production&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL?granularity=DAILY&sla=Premium&usage=Production&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL?granularity=DAILY&sla=Premium&usage=Production&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
                 meta:
                   count: 10
                   product: RHEL
-                  granularity: DAILY
                   service_level: Premium
                   usage: Production
         '400':
@@ -966,10 +965,6 @@ components:
               type: integer
             product:
               type: string
-            granularity:
-              description: "Describes the date that the report is made against. Not set if it wasn't
-                    specified as a query parameter."
-              type: string
             service_level:
               description: "Describes the service level that the report was made against. Not set if it wasn't
                     specified as a query parameter."
@@ -981,7 +976,6 @@ components:
           required:
             - count
             - product
-            - granularity
     HypervisorGuestReport:
       properties:
         data:
