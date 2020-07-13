@@ -18,33 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.tasks;
+package org.candlepin.subscriptions.db.model;
 
-import static org.mockito.BDDMockito.eq;
-
-import org.candlepin.subscriptions.controller.TallySnapshotController;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Arrays;
-import java.util.List;
-
-
-@ExtendWith(MockitoExtension.class)
-public class UpdateAccountSnapshotsTaskTest {
-
-    @Mock
-    private TallySnapshotController snapshotController;
-
-    @Test
-    public void testExecute() {
-        List<String> accounts = Arrays.asList("a1", "a2");
-        UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
-        task.execute();
-        Mockito.verify(snapshotController).produceSnapshotsForAccounts(eq(accounts));
-    }
+/**
+ * The hardware type of a Host.
+ */
+public enum HostHardwareType {
+    PHYSICAL,
+    HYPERVISOR,
+    VIRTUAL
 }

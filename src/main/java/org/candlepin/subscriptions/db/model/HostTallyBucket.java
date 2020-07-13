@@ -23,8 +23,11 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Table;
 
 
@@ -38,11 +41,23 @@ public class HostTallyBucket implements Serializable {
     @EmbeddedId
     private HostBucketKey key;
 
+    private int cores;
+    private int sockets;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "measurement_type")
+    private HardwareMeasurementType measurementType;
+
     public HostTallyBucket() {
     }
 
-    public HostTallyBucket(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
+    @SuppressWarnings("java:S107")
+    public HostTallyBucket(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor,
+        int cores, int sockets, HardwareMeasurementType type) {
         setKey(new HostBucketKey(host, productId, sla, usage, asHypervisor));
+        this.cores = cores;
+        this.sockets = sockets;
+        this.measurementType = type;
     }
 
     public HostBucketKey getKey() {
@@ -51,6 +66,30 @@ public class HostTallyBucket implements Serializable {
 
     public void setKey(HostBucketKey key) {
         this.key = key;
+    }
+
+    public int getCores() {
+        return cores;
+    }
+
+    public void setCores(int cores) {
+        this.cores = cores;
+    }
+
+    public int getSockets() {
+        return sockets;
+    }
+
+    public void setSockets(int sockets) {
+        this.sockets = sockets;
+    }
+
+    public HardwareMeasurementType getMeasurementType() {
+        return measurementType;
+    }
+
+    public void setMeasurementType(HardwareMeasurementType measurementType) {
+        this.measurementType = measurementType;
     }
 
     @Override
@@ -63,13 +102,16 @@ public class HostTallyBucket implements Serializable {
             return false;
         }
 
-        HostTallyBucket that = (HostTallyBucket) o;
-        return getKey().equals(that.getKey());
+        HostTallyBucket bucket = (HostTallyBucket) o;
+        return cores == bucket.cores &&
+            sockets == bucket.sockets &&
+            Objects.equals(key, bucket.key) &&
+                measurementType == bucket.measurementType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getKey());
+        return Objects.hash(key, cores, sockets, measurementType);
     }
 
 }

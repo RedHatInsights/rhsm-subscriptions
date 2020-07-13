@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.task.tasks;
 
-import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
+import org.candlepin.subscriptions.controller.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
 
 import org.slf4j.Logger;
@@ -35,16 +35,17 @@ public class UpdateAccountSnapshotsTask implements Task {
     private static final Logger log = LoggerFactory.getLogger(UpdateAccountSnapshotsTask.class);
 
     private final List<String> accountNumbers;
-    private final UsageSnapshotProducer snapshotProducer;
+    private final TallySnapshotController snapshotController;
 
-    public UpdateAccountSnapshotsTask(UsageSnapshotProducer snapshotProducer, List<String> accountNumbers) {
-        this.snapshotProducer = snapshotProducer;
+    public UpdateAccountSnapshotsTask(TallySnapshotController snapshotController,
+        List<String> accountNumbers) {
+        this.snapshotController = snapshotController;
         this.accountNumbers = accountNumbers;
     }
 
     @Override
     public void execute() {
         log.info("Updating snapshots for {} accounts.", accountNumbers.size());
-        snapshotProducer.produceSnapshotsForAccounts(accountNumbers);
+        snapshotController.produceSnapshotsForAccounts(accountNumbers);
     }
 }

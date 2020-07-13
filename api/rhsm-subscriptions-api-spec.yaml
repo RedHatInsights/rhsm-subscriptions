@@ -1007,11 +1007,15 @@ components:
             - count
     Host:
       required:
+        - inventory_id
         - insights_id
         - display_name
         - hardware_type
         - last_seen
       properties:
+        inventory_id:
+          description: The HBI identifier for this host.
+          type: string
         insights_id:
           description: The insights identifier for this host, used as ID on cloud.redhat.com.
           type: string
@@ -1033,6 +1037,9 @@ components:
           minimum: 0
         hardware_type:
           description: What the type of the host is (e.g. hypervisor, physical, etc.).
+          type: string
+        measurement_type:
+          description: What was the applied measurement type (e.g. hypervisor, physical, aws, etc ).
           type: string
         number_of_guests:
           description: Number of guests if this host is a hypervisor.

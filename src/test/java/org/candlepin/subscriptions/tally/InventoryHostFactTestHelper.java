@@ -130,6 +130,7 @@ public class InventoryHostFactTestHelper {
 
     public static InventoryHostFacts createBaseHost(String account, String orgId) {
         InventoryHostFacts baseFacts = new InventoryHostFacts();
+        baseFacts.setInventoryId(UUID.randomUUID());
         baseFacts.setAccount(account);
         baseFacts.setDisplayName("Test System");
         baseFacts.setOrgId(orgId);

@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
+import org.candlepin.subscriptions.db.model.AppliedHost;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -27,43 +28,47 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
 
 /**
  * Provides access to Host database entities.
  */
+@SuppressWarnings({"linelength", "indentation"})
 public interface HostRepository extends JpaRepository<Host, String> {
 
     /**
-     * Find all Hosts by bucket criteria. The 'accountNumber parameter is mandatory,
-     * however, passing null for any bucket property will be ignored in the query.
+     * Find all AppliedHosts by bucket criteria. An AppliedHost is a Host representation
+     * detailing what 'bucket' was applied to the current daily snapshots.
      *
      * @param accountNumber The account number of the hosts to query (required).
      * @param productId The bucket product ID to filter Host by (pass null to ignore).
      * @param sla The bucket service level to filter Hosts by (pass null to ignore).
-     * @param asHypervisor Was the host treated as a hypervisor when tallying for this bucket
-     *                     (pass null to ignore)?
-     * @param isGuest Is the host a guest? If specified, filters to guest/non-guest status.
      * @param pageable the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
     @Query(
-        "select distinct h from Host h join h.buckets b where " +
-        "h.accountNumber = :account and " +
-        "(:product is null or b.key.productId = :product) and " +
-        "(:sla is null or b.key.sla = :sla) and " +
-        "(:usage is null or b.key.usage = :usage) and " +
-        "(:is_guest is null or h.guest = :is_guest) and " +
-        "(:as_hypervisor is null or b.key.asHypervisor = :as_hypervisor)"
+        value = "select b from HostTallyBucket b join fetch b.key.host h where " +
+                "h.accountNumber = :account and " +
+                "b.key.productId = :product and " +
+                "b.key.sla = :sla and b.key.usage = :usage",
+        // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
+        // we need to specify how the Page should gets it's count when the 'limit' parameter
+        // is used.
+        countQuery = "select count(b) from HostTallyBucket b join b.key.host h where " +
+                     "h.accountNumber = :account and " +
+                     "b.key.productId = :product and " +
+                     "b.key.sla = :sla and b.key.usage = :usage"
     )
-    Page<Host> getHostsByBucketCriteria(
+    Page<AppliedHost> getAppliedHosts(
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
         @Param("usage") Usage usage,
-        @Param("as_hypervisor") Boolean asHypervisor,
-        @Param("is_guest") Boolean isGuest,
         Pageable pageable
     );
 
@@ -77,4 +82,9 @@ public interface HostRepository extends JpaRepository<Host, String> {
         @Param("hypervisor_id") String hypervisorId,
         Pageable pageable
     );
+
+    @Transactional
+    @Modifying
+    int deleteByAccountNumberIn(Collection<String> accounts);
+
 }
