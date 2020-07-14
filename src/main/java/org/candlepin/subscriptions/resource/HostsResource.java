@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
@@ -60,6 +61,7 @@ public class HostsResource implements HostsApi {
     }
 
     @Override
+    @ReportingAccessRequired
     public HostReport getHosts(String productId, Integer offset,
         @Min(1) Integer limit, String sla, String usage) {
         String accountNumber = ResourceUtils.getAccountNumber();
@@ -97,6 +99,7 @@ public class HostsResource implements HostsApi {
     }
 
     @Override
+    @ReportingAccessRequired
     public HypervisorGuestReport getHypervisorGuests(String hypervisorUuid, Integer offset, Integer limit) {
         String accountNumber = ResourceUtils.getAccountNumber();
         Pageable page = ResourceUtils.getPageable(offset, limit);
