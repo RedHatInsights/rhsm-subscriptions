@@ -20,16 +20,26 @@
  */
 package org.candlepin.insights.orgsync;
 
+import org.candlepin.insights.ApplicationProperties;
 import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.orgsync.db.OrgConfigRepository;
 
-import org.quartz.JobDetail;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.scheduling.quartz.CronTriggerFactoryBean;
-import org.springframework.scheduling.quartz.JobDetailFactoryBean;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.scheduling.support.CronTrigger;
+
+import java.time.Instant;
+import java.util.Arrays;
 
 /**
  * Configuration class for beans related to the OrgSyncJob.  Includes several conditional beans which are
@@ -39,27 +49,53 @@ import org.springframework.scheduling.quartz.JobDetailFactoryBean;
 @EnableConfigurationProperties(OrgSyncProperties.class)
 @Configuration
 @PropertySource("classpath:/rhsm-conduit.properties")
-public class OrgSyncConfiguration {
+public class OrgSyncConfiguration implements SchedulingConfigurer {
+    private static final Logger log = LoggerFactory.getLogger(OrgSyncConfiguration.class);
+
+    @Autowired
+    private OrgSyncJob orgSyncJob;
+
+    @Autowired
+    private OrgSyncProperties orgSyncProperties;
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
+    @Autowired
+    private Environment environment;
 
     @Bean
     public DatabaseOrgList databaseOrgListStrategy(OrgConfigRepository repo) {
         return new DatabaseOrgList(repo);
     }
 
-    @Bean
-    public JobDetailFactoryBean orgSyncJobDetail() {
-        JobDetailFactoryBean jobDetail = new JobDetailFactoryBean();
-        jobDetail.setDurability(true);
-        jobDetail.setName("OrgSyncJob");
-        jobDetail.setJobClass(OrgSyncJob.class);
-        return jobDetail;
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+        TaskScheduler scheduler = poolScheduler();
+        // In dev mode, we want to run this job with an internal cron trigger.  In production, the cron
+        // sceduling is managed by openshift.
+        if (applicationProperties.isDevMode()) {
+            String cronExpression = orgSyncProperties.getSchedule();
+            scheduler.schedule(orgSyncJob, new CronTrigger(cronExpression));
+            log.info("OrgSync job scheduled to run at {}", cronExpression);
+        }
+        else if (Arrays.binarySearch(environment.getActiveProfiles(), "orgsync") >= 0) {
+            scheduler.schedule(orgSyncJob, Instant.now());
+            log.info("OrgSync job scheduled to run now");
+        }
+        else {
+            // If we're not in dev mode and not running with the "orgsync" profile, do nothing.
+            log.info("OrgSync job is not enabled");
+        }
+        taskRegistrar.setScheduler(poolScheduler());
     }
 
     @Bean
-    public CronTriggerFactoryBean trigger(JobDetail job, OrgSyncProperties orgSyncProperties) {
-        CronTriggerFactoryBean trigger = new CronTriggerFactoryBean();
-        trigger.setJobDetail(job);
-        trigger.setCronExpression(orgSyncProperties.getSchedule());
-        return trigger;
+    public TaskScheduler poolScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler");
+        scheduler.setPoolSize(4);
+        scheduler.initialize();
+        return scheduler;
     }
 }
