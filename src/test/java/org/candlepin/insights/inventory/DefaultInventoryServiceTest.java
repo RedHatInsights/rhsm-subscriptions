@@ -27,7 +27,7 @@ import org.candlepin.insights.inventory.client.ApiException;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.model.SystemProfileIn;
+import org.candlepin.insights.inventory.client.model.SystemProfile;
 import org.candlepin.insights.inventory.client.resources.HostsApi;
 
 import org.junit.jupiter.api.Test;
@@ -106,7 +106,7 @@ public class DefaultInventoryServiceTest {
         expectedFactMap.put("SYSPURPOSE_UNITS", "Sockets");
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
 
-        SystemProfileIn systemProfile = new SystemProfileIn()
+        SystemProfile systemProfile = new SystemProfile()
             .arch("x86_64")
             .biosVendor("bios_vendor")
             .biosVersion("bios_version")
