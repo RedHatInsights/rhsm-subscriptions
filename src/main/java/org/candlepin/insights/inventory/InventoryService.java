@@ -25,7 +25,7 @@ import org.candlepin.insights.api.model.OrgInventory;
 import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.inventory.client.model.CreateHostIn;
 import org.candlepin.insights.inventory.client.model.FactSet;
-import org.candlepin.insights.inventory.client.model.SystemProfileIn;
+import org.candlepin.insights.inventory.client.model.SystemProfile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,8 +123,8 @@ public abstract class InventoryService {
         return host;
     }
 
-    private SystemProfileIn createSystemProfile(ConduitFacts facts) {
-        SystemProfileIn systemProfile = new SystemProfileIn();
+    private SystemProfile createSystemProfile(ConduitFacts facts) {
+        SystemProfile systemProfile = new SystemProfile();
         systemProfile.setArch(facts.getArchitecture());
         systemProfile.setBiosVendor(facts.getBiosVendor());
         systemProfile.setBiosVersion(facts.getBiosVersion());
