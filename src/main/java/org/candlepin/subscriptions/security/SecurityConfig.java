@@ -145,7 +145,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         frb.setFilter(new OptInFilter(optInController));
         frb.setUrlPatterns(Arrays.asList(
             String.format("/%s/capacity/*", apiPath),
-            String.format("/%s/tally/*", apiPath)
+            String.format("/%s/tally/*", apiPath),
+            String.format("/%s/hosts/*", apiPath)
         ));
         return frb;
     }
