@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 
@@ -42,7 +43,7 @@ public class ProductWhitelist implements ResourceLoaderAware {
     private final PerLineFileSource source;
 
     public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
-        if (!properties.getProductWhitelistResourceLocation().isEmpty()) {
+        if (StringUtils.hasText(properties.getProductWhitelistResourceLocation())) {
             source = new PerLineFileSource(
                 properties.getProductWhitelistResourceLocation(), clock.getClock(),
                 properties.getProductWhiteListCacheTtl());

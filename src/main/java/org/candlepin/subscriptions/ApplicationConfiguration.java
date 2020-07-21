@@ -49,6 +49,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -133,7 +134,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public AccountListSource accountListSource(ApplicationProperties applicationProperties,
         AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
-        if (!applicationProperties.getAccountListResourceLocation().isEmpty()) {
+        if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
             return new FileAccountListSource(
                 new FileAccountSyncListSource(applicationProperties, clock),
                 new ReportingAccountWhitelist(applicationProperties, clock)
