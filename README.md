@@ -75,25 +75,57 @@ for a discussion of extension points.
 ### RBAC
 
 rhsm-subscriptions uses an RBAC service to determine application authorization. The
-RBAC service connection details is configured in _`rhsm-subscriptions.conf`_ as follows:
-
-```properties
-# The name of the RBAC permission application name (<APP_NAME>:*:*)
-# By default this property is set to 'subscriptions'.
-rhsm-subscriptions.rbacApplicationName=insights
-
-# The path to the RBAC service's API.
-rhsm-subscriptions.rbac-service.url=http://localhost:8819/api/rbac/v1
-
-```
+RBAC service can via configured by environment variables (see below).
 
 For development purposes, the RBAC service can be stubbed out so that the connection
 to the RBAC service is bypassed and all users recieve the 'subscriptions:*:*' role. This
-can be enabled by setting the following property:
+can be enabled by setting `RBAC_USE_STUB=true`
 
-```properties
-rhsm-subscriptions.rbac-service.useStub=true
+```sh
+RBAC_USE_STUB=true ./gradlew bootRun
 ```
+
+### Environment Variables
+
+* `DEV_MODE`: disable anti-CSRF, account filtering, and RBAC role check
+* `PRETTY_PRINT_JSON`: configure Jackson to indent outputted JSON
+* `APP_NAME`: application name for URLs (default: rhsm-subscriptions)
+* `PATH_PREFIX`: path prefix in the URLs (default: api)
+* `INVENTORY_DATABASE_HOST`: inventory DB host
+* `INVENTORY_DATABASE_DATABASE`: inventory DB database
+* `INVENTORY_DATABASE_USERNAME`: inventory DB user
+* `INVENTORY_DATABASE_PASSWORD`: inventory DB password
+* `PRODUCT_WHITELIST_RESOURCE_LOCATION`: location of the product whitelist
+* `ACCOUNT_LIST_RESOURCE_LOCATION`: location of the account list (opt-in used otherwise)
+* `DATABASE_HOST`: DB host
+* `DATABASE_PORT`: DB port
+* `DATABASE_DATABASE`: DB database
+* `DATABASE_USERNAME`: DB username
+* `DATABASE_PASSWORD`: DB password
+* `CAPTURE_SNAPSHOT_SCHEDULE`: cron schedule for capturing tally snapshots
+* `ACCOUNT_BATCH_SIZE`: number of accounts to tally at once
+* `TALLY_RETENTION_DAILY`: number of daily tallies to keep
+* `TALLY_RETENTION_WEEKLY`: number of weekly tallies to keep
+* `TALLY_RETENTION_MONTHLY`: number of monthly tallies to keep
+* `TALLY_RETENTION_QUARTERLY`: number of quarterly tallies to keep
+* `TALLY_RETENTION_YEARLY`: number of yearly tallies to keep
+* `KAFKA_TASK_GROUP`: kafka task group
+* `KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS`: kafka max poll interval in milliseconds
+* `KAFKA_MESSAGE_THREADS`: number of consumer threads
+* `KAFKA_BOOTSTRAP_HOST`: kafka bootstrap host
+* `KAFKA_BOOTSTRAP_PORT`: kafka boostrap port
+* `KAFKA_CONSUMER_RECONNECT_BACKOFF_MS`: kafka consumer reconnect backoff in milliseconds
+* `KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS`: kafka consumer reconnect max backoff in milliseconds
+* `KAFKA_API_RECONNECT_TIMEOUT_MS`: kafka connection timeout in milliseconds
+* `KAFKA_SCHEMA_REGISTRY_SCHEME`: avro schema server scheme (http or https)
+* `KAFKA_SCHEMA_REGISTRY_HOST`: kafka schema server host
+* `KAFKA_SCHEMA_REGISTRY_PORT`: kafka schema server port
+* `KAFKA_AUTO_REGISTER_SCHEMAS`: enable auto registration of schemas
+* `RBAC_USE_STUB`: stub out the rbac service
+* `RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`), by default this property is set to 'subscriptions'.
+* `RBAC_HOST`: RBAC service hostname
+* `RBAC_PORT`: RBAC service port
+* `RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
 
 ## Release Notes
 
