@@ -242,8 +242,8 @@ class CapacityResourceTest {
         when(repository.findByOwnerAndProductId(
                 eq("owner123456"),
                 eq("product1"),
-                eq(ServiceLevel.UNSPECIFIED),
-                eq(Usage.UNSPECIFIED),
+                eq(null),
+                eq(null),
                 eq(min),
                 eq(max)))
             .thenReturn(Arrays.asList(capacity, capacity2));

@@ -82,6 +82,14 @@ public class CapacityResource implements CapacityApi {
         ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
         Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
 
+        // capacity records do not include _ANY rows
+        if (sanitizedServiceLevel == ServiceLevel.ANY) {
+            sanitizedServiceLevel = null;
+        }
+        if (sanitizedUsage == Usage.ANY) {
+            sanitizedUsage = null;
+        }
+
         List<CapacitySnapshot> capacities = getCapacities(
             ownerId,
             productId,
@@ -112,11 +120,11 @@ public class CapacityResource implements CapacityApi {
         report.getMeta().setProduct(productId);
         report.getMeta().setCount(report.getData().size());
 
-        if (sanitizedServiceLevel != ServiceLevel.UNSPECIFIED) {
+        if (sanitizedServiceLevel != null) {
             report.getMeta().setServiceLevel(sanitizedServiceLevel.getValue());
         }
 
-        if (sanitizedUsage != Usage.UNSPECIFIED) {
+        if (sanitizedUsage != null) {
             report.getMeta().setUsage(sanitizedUsage.getValue());
         }
 

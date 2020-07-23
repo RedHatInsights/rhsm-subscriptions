@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -84,8 +83,8 @@ public class TallyResource implements TallyApi {
         }
 
         String accountNumber = ResourceUtils.getAccountNumber();
-        ServiceLevel serviceLevel = getEffectiveSla(sla);
-        Usage effectiveUsage = getEffectiveUsage(usage);
+        ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
+        Usage effectiveUsage = ResourceUtils.sanitizeUsage(usage);
         Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
@@ -127,30 +126,6 @@ public class TallyResource implements TallyApi {
         report.getMeta().setCount(report.getData().size());
 
         return report;
-    }
-
-    private Usage getEffectiveUsage(String usage) {
-        // If the sla parameter was not specified, we assume the query param represents ANY.
-        if (usage == null) {
-            return Usage.ANY;
-        }
-
-        // If the usage parameter is not one that we support, then throw an exception.
-        // If we don't, the query would default to UNSPECIFIED, which would be confusing.
-        Usage sanitized = Usage.fromString(usage);
-        if (!usage.isEmpty() && Usage.UNSPECIFIED.equals(sanitized)) {
-            throw new BadRequestException("Invalid usage parameter specified.");
-        }
-        return sanitized;
-    }
-
-    private ServiceLevel getEffectiveSla(String sla) {
-        // If the sla parameter was not specified, we assume the query param represents ANY.
-        if (sla == null) {
-            return ServiceLevel.ANY;
-        }
-
-        return ResourceUtils.sanitizeServiceLevel(sla);
     }
 
 }

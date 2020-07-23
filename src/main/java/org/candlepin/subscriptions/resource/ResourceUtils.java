@@ -122,6 +122,9 @@ public class ResourceUtils {
      * @return Usage enum
      */
     public static Usage sanitizeUsage(String usage) {
+        if (usage == null) {
+            return Usage.ANY;
+        }
         Usage sanitizedUsage = Usage.fromString(usage);
         // If the usage parameter is not one that we support, then throw an exception.
         // If we don't, the query would default to UNSPECIFIED, which would be confusing.
@@ -140,6 +143,9 @@ public class ResourceUtils {
      * @return ServiceLevel enum
      */
     public static ServiceLevel sanitizeServiceLevel(String sla) {
+        if (sla == null) {
+            return ServiceLevel.ANY;
+        }
         ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
         // If the sla parameter is not one that we support, then throw an exception.
         // If we don't, the query would default to UNSPECIFIED, which would be confusing.
