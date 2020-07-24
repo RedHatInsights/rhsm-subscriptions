@@ -146,6 +146,7 @@ release {
     tagCommitMessage = '[RHSM Conduit Release] - creating tag: '
     newVersionCommitMessage = '[RHSM Conduit Release] - version bump: '
     git {
+        requireBranch = /master|stable/
         pushToRemote = false
     }
 }
