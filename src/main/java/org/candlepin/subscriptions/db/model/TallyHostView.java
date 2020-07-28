@@ -27,9 +27,10 @@ import org.springframework.beans.factory.annotation.Value;
 import java.time.OffsetDateTime;
 
 /**
- * A data projection around Host and TallyHostBuckets.
+ * A data projection around Host and TallyHostBuckets necessary to give us a view of the data to
+ * be returned in the Hosts API.
  */
-public interface AppliedHost {
+public interface TallyHostView {
 
     @Value("#{target.key.host.inventoryId}")
     String getInventoryId();

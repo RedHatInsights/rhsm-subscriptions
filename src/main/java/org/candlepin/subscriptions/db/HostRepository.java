@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.AppliedHost;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 
 import org.springframework.data.domain.Page;
@@ -42,8 +42,9 @@ import java.util.Collection;
 public interface HostRepository extends JpaRepository<Host, String> {
 
     /**
-     * Find all AppliedHosts by bucket criteria. An AppliedHost is a Host representation
-     * detailing what 'bucket' was applied to the current daily snapshots.
+     * Find all Hosts by bucket criteria and return a page of TallyHostView objects.
+     * A TallyHostView is a Host representation detailing what 'bucket' was applied
+     * to the current daily snapshots.
      *
      * @param accountNumber The account number of the hosts to query (required).
      * @param productId The bucket product ID to filter Host by (pass null to ignore).
@@ -57,14 +58,14 @@ public interface HostRepository extends JpaRepository<Host, String> {
                 "b.key.productId = :product and " +
                 "b.key.sla = :sla and b.key.usage = :usage",
         // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
-        // we need to specify how the Page should gets it's count when the 'limit' parameter
+        // we need to specify how the Page should gets its count when the 'limit' parameter
         // is used.
         countQuery = "select count(b) from HostTallyBucket b join b.key.host h where " +
                      "h.accountNumber = :account and " +
                      "b.key.productId = :product and " +
                      "b.key.sla = :sla and b.key.usage = :usage"
     )
-    Page<AppliedHost> getAppliedHosts(
+    Page<TallyHostView> getTallyHostViews(
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
