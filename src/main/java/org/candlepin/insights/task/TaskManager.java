@@ -24,7 +24,6 @@ import org.candlepin.insights.orgsync.OrgSyncProperties;
 import org.candlepin.insights.orgsync.db.DatabaseOrgList;
 import org.candlepin.insights.task.queue.TaskQueue;
 
-import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,8 +82,6 @@ public class TaskManager {
 
     /**
      * Queue up tasks for each configured org.
-     *
-     * @throws JobExecutionException if the org list can't be fetched
      */
     @Transactional
     public void syncFullOrgList() {

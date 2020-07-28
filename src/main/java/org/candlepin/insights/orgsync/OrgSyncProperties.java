@@ -21,12 +21,14 @@
 package org.candlepin.insights.orgsync;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
  * Properties related to the OrgSyncJob
  */
 @Component
+@Profile("orgsync")
 @ConfigurationProperties(prefix = "rhsm-conduit.org-sync")
 public class OrgSyncProperties {
     // Default to every 5 minutes

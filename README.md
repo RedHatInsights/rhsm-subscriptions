@@ -213,6 +213,9 @@ for a discussion of extension points.
 * `KAFKA_SCHEMA_REGISTRY_HOST`: kafka schema server host
 * `KAFKA_SCHEMA_REGISTRY_PORT`: kafka schema server port
 * `KAFKA_AUTO_REGISTER_SCHEMAS`: enable auto registration of schemas
+* `DEV_MODE`: turning this on enables developer-centric features.
+  * The OrgSyncJob will be run on a cron schedule defined by
+    rhsm-conduit.org-sync.schedule
 
 ## Release Notes
 
