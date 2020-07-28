@@ -25,11 +25,14 @@ import org.springframework.util.StringUtils;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Represents an inventory host's facts.
  */
 public class InventoryHostFacts {
+    private UUID inventoryId;
+    private OffsetDateTime modifiedOn;
     private String account;
     private String displayName;
     private String orgId;
@@ -45,6 +48,7 @@ public class InventoryHostFacts {
     private String satelliteHypervisorUuid;
     private String guestId;
     private String subscriptionManagerId;
+    private String insightsId;
     private Set<String> qpcProducts;
     private Set<String> qpcProductIds;
     private Set<String> systemProfileProductIds;
@@ -60,14 +64,16 @@ public class InventoryHostFacts {
     }
 
     @SuppressWarnings("squid:S00107")
-    public InventoryHostFacts(String account, String displayName, String orgId, String cores, String sockets,
+    public InventoryHostFacts(UUID inventoryId, OffsetDateTime modifiedOn, String account,
+        String displayName, String orgId, String cores, String sockets,
         String products, String syncTimestamp, String systemProfileInfrastructureType,
         String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
         String systemProfileProductIds, String syspurposeRole, String syspurposeSla,
         String syspurposeUsage, String syspurposeUnits, String isVirtual, String hypervisorUuid,
-        String satelliteHypervisorUuid, String guestId, String subscriptionManagerId, String cloudProvider,
-        OffsetDateTime staleTimestamp) {
-
+        String satelliteHypervisorUuid, String guestId, String subscriptionManagerId, String insightsId,
+        String cloudProvider, OffsetDateTime staleTimestamp) {
+        this.inventoryId = inventoryId;
+        this.modifiedOn = modifiedOn;
         this.account = account;
         this.displayName = displayName;
         this.orgId = orgId;
@@ -90,8 +96,25 @@ public class InventoryHostFacts {
         this.satelliteHypervisorUuid = satelliteHypervisorUuid;
         this.guestId = guestId;
         this.subscriptionManagerId = subscriptionManagerId;
+        this.insightsId = insightsId;
         this.cloudProvider = cloudProvider;
         this.staleTimestamp = staleTimestamp;
+    }
+
+    public UUID getInventoryId() {
+        return inventoryId;
+    }
+
+    public void setInventoryId(UUID inventoryId) {
+        this.inventoryId = inventoryId;
+    }
+
+    public OffsetDateTime getModifiedOn() {
+        return modifiedOn;
+    }
+
+    public void setModifiedOn(OffsetDateTime modifiedOn) {
+        this.modifiedOn = modifiedOn;
     }
 
     public String getAccount() {
@@ -260,6 +283,14 @@ public class InventoryHostFacts {
 
     public void setSubscriptionManagerId(String subscriptionManagerId) {
         this.subscriptionManagerId = subscriptionManagerId;
+    }
+
+    public String getInsightsId() {
+        return insightsId;
+    }
+
+    public void setInsightsId(String insightsId) {
+        this.insightsId = insightsId;
     }
 
     public String getCloudProvider() {

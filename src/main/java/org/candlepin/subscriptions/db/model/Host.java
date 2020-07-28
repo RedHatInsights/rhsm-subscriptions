@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -43,6 +46,9 @@ import javax.persistence.Table;
 public class Host implements Serializable {
 
     @Id
+    @Column(name = "inventory_id")
+    private String inventoryId;
+
     @Column(name = "insights_id")
     private String insightsId;
 
@@ -70,7 +76,7 @@ public class Host implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "hardware_type")
-    private HardwareMeasurementType hardwareMeasurementType;
+    private HostHardwareType hardwareType;
 
     @Column(name = "num_of_guests")
     private Integer numOfGuests;
@@ -89,10 +95,36 @@ public class Host implements Serializable {
 
     }
 
-    public Host(String insightsId, String accountNumber, String orgId) {
+    public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
+        this.inventoryId = inventoryId;
         this.insightsId = insightsId;
         this.accountNumber = accountNumber;
         this.orgId = orgId;
+        this.subscriptionManagerId = subManId;
+    }
+
+    public Host(InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
+        this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+        this.insightsId = inventoryHostFacts.getInsightsId();
+        this.accountNumber = inventoryHostFacts.getAccount();
+        this.orgId = inventoryHostFacts.getOrgId();
+        this.displayName = inventoryHostFacts.getDisplayName();
+        this.subscriptionManagerId = inventoryHostFacts.getSubscriptionManagerId();
+        this.guest = normalizedFacts.isVirtual();
+        this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
+        this.cores = normalizedFacts.getCores();
+        this.sockets = normalizedFacts.getSockets();
+
+        this.lastSeen = inventoryHostFacts.getModifiedOn();
+        this.hardwareType = normalizedFacts.getHardwareType();
+    }
+
+    public String getInventoryId() {
+        return inventoryId;
+    }
+
+    public void setInventoryId(String inventoryId) {
+        this.inventoryId = inventoryId;
     }
 
     public String getInsightsId() {
@@ -167,12 +199,12 @@ public class Host implements Serializable {
         this.hypervisorUuid = hypervisorUuid;
     }
 
-    public HardwareMeasurementType getHardwareMeasurementType() {
-        return hardwareMeasurementType;
+    public HostHardwareType getHardwareType() {
+        return hardwareType;
     }
 
-    public void setHardwareMeasurementType(HardwareMeasurementType hardwareType) {
-        this.hardwareMeasurementType = hardwareType;
+    public void setHardwareType(HostHardwareType hardwareType) {
+        this.hardwareType = hardwareType;
     }
 
     public Integer getNumOfGuests() {
@@ -192,6 +224,10 @@ public class Host implements Serializable {
     }
 
     public List<HostTallyBucket> getBuckets() {
+        if (this.buckets == null) {
+            this.buckets = new ArrayList<>();
+        }
+
         return buckets;
     }
 
@@ -199,28 +235,33 @@ public class Host implements Serializable {
         this.buckets = buckets;
     }
 
-    public HostTallyBucket addBucket(String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
-        if (this.buckets == null) {
-            this.buckets = new ArrayList<>();
-        }
+    public HostTallyBucket addBucket(String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor,
+        int sockets, int cores, HardwareMeasurementType measurementType) {
 
-        HostTallyBucket bucket = new HostTallyBucket(this, productId, sla, usage, asHypervisor);
-        this.buckets.add(bucket);
+        HostTallyBucket bucket = new HostTallyBucket(this, productId, sla, usage, asHypervisor, cores,
+            sockets, measurementType);
+        addBucket(bucket);
         return bucket;
     }
 
+    public void addBucket(HostTallyBucket bucket) {
+        bucket.getKey().setHost(this);
+        getBuckets().add(bucket);
+    }
+
     public void removeBucket(HostTallyBucket bucket) {
-        this.buckets.remove(bucket);
+        getBuckets().remove(bucket);
     }
 
     public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
         return new org.candlepin.subscriptions.utilization.api.model.Host()
-            .cores(cores)
-            .sockets(sockets)
-            .displayName(displayName)
-            .hardwareType(hardwareMeasurementType.toString())
-            .insightsId(insightsId)
-            .subscriptionManagerId(subscriptionManagerId)
-            .numberOfGuests(numOfGuests);
+                   .cores(cores)
+                   .sockets(sockets)
+                   .displayName(displayName)
+                   .hardwareType(hardwareType.toString())
+                   .insightsId(insightsId)
+                   .subscriptionManagerId(subscriptionManagerId)
+                   .numberOfGuests(numOfGuests);
     }
+
 }
