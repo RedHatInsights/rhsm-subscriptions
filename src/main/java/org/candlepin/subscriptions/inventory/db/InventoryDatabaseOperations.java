@@ -33,11 +33,11 @@ import java.util.stream.Stream;
  * Isolates readonly transaction for inventory database operations.
  */
 @Component
-public class InventoryTransactionWrapper {
+public class InventoryDatabaseOperations {
 
     private final InventoryRepository repo;
 
-    public InventoryTransactionWrapper(InventoryRepository inventoryRepository) {
+    public InventoryDatabaseOperations(InventoryRepository inventoryRepository) {
         this.repo = inventoryRepository;
     }
 

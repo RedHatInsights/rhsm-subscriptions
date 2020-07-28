@@ -26,7 +26,7 @@ import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.inventory.db.InventoryTransactionWrapper;
+import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -56,12 +56,12 @@ public class InventoryAccountUsageCollector {
     private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
 
     private final FactNormalizer factNormalizer;
-    private final InventoryTransactionWrapper inventory;
+    private final InventoryDatabaseOperations inventory;
     private final HostRepository hostRepository;
     private final int culledOffsetDays;
 
     public InventoryAccountUsageCollector(FactNormalizer factNormalizer,
-        InventoryTransactionWrapper inventory, HostRepository hostRepository,
+        InventoryDatabaseOperations inventory, HostRepository hostRepository,
         ApplicationProperties props) {
         this.factNormalizer = factNormalizer;
         this.inventory = inventory;

@@ -61,7 +61,7 @@ public class UsageSnapshotProducer {
     }
 
     @Transactional
-    public void produceSnapshotsForAccounts(Collection<String> accounts,
+    public void produceSnapshotsFromCalculations(Collection<String> accounts,
         Collection<AccountUsageCalculation> accountCalcs) {
         dailyRoller.rollSnapshots(accounts, accountCalcs);
         weeklyRoller.rollSnapshots(accounts, accountCalcs);

@@ -95,7 +95,7 @@ public class TallySnapshotController {
             return;
         }
 
-        snapshotProducer.produceSnapshotsForAccounts(accounts, accountCalcs);
+        snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs);
     }
 
 }
