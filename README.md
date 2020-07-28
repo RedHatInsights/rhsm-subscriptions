@@ -123,26 +123,17 @@ curl http://<your_route_address>/metrics
 First, log in to an openshift instance. Make sure the project has been
 set up (see previous section).
 
-```
-# add a template for deploying rhsm-conduit
-oc create -f openshift/template_rhsm-conduit.yaml
-oc new-app --template=rhsm-conduit  # deploy an instance of rhsm-conduit using the template
-```
+Prerequisite secrets:
 
-By default, the template deploys the master branch of rhsm-conduit. If
-it's more appropriate to deploy a different branch (e.g. production),
-then use:
+- `rhsm-db-rds`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
+- `pinhead`: secret with `keystore.jks` - keystore for HTTPS communication with Pinhead.
+- `tls`: having `keystore.password`, the password used for pinhead keystore.
+
+Adjust as desired:
 
 ```
-oc new-app --template=rhsm-conduit -p SOURCE_REPOSITORY_REF=production
-```
-
-If, for debugging on a local machine, for convenience, you need a route
-to test rhsm-conduit,
-
-```
-oc create -f openshift/template_rhsm-conduit-route.yaml
-oc new-app --template=rhsm-conduit-route
+oc apply -f templates/rhsm-conduit.yaml
+oc new-app --template=rhsm-conduit --param=KAFKA_BOOTSTRAP_HOST=localhost --param=PINHEAD_URL=https://localhost --param=KAFKA_SCHEMA_REGISTRY_HOST=localhost  # deploy an instance of rhsm-conduit using the template
 ```
 
 ## Deployment Notes
