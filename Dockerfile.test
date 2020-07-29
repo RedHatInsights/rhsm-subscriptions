@@ -1,4 +1,5 @@
 FROM registry.redhat.io/openjdk/openjdk-8-rhel8
+USER root
 WORKDIR /tmp/src
 ADD . /tmp/src
 RUN ./gradlew assemble
