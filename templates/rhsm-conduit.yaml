@@ -242,6 +242,8 @@ objects:
               secretName: pinhead
         restartPolicy: Always
         terminationGracePeriodSeconds: 75
+        imagePullSecrets:
+          - name: quay-cloudservices-pull
     triggers:
       - type: ConfigChange
 
