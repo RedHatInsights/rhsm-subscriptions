@@ -121,15 +121,19 @@ objects:
                     secretKeyRef:
                       name: inventory-rds-db
                       key: password
+                - name: KEYSTORE
+                  value: /ssl/keystore.jks
                 - name: KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
+                      name: rhsm-subscriptions-ssl
                       key: keystore-password
+                - name: TRUSTSTORE
+                  value: /ssl/truststore.jks
                 - name: TRUSTSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
+                      name: rhsm-subscriptions-ssl
                       key: truststore-password
               livenessProbe:
                 failureThreshold: 3
@@ -167,16 +171,16 @@ objects:
               volumeMounts:
                 - name: config
                   mountPath: /config
-                - name: secrets
-                  mountPath: /secrets
+                - name: ssl
+                  mountPath: /ssl
               workingDir: /
           volumes:
             - name: config
               configMap:
                 name: rhsm-subscriptions-config
-            - name: secrets
-              secret:
-                secretName: rhsm-subscriptions
+            - name: ssl
+                secret:
+                  secretName: rhsm-subscriptions-ssl
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
       triggers:

@@ -136,10 +136,10 @@ objects:
         server.ssl.client-auth=NEED
         server.ssl.enabled=true
 
-        server.ssl.key-store=/secrets/{{ keystore_filename }}
+        server.ssl.key-store=${KEYSTORE}
         server.ssl.key-store-password=${KEYSTORE_PASSWORD}
 
-        server.ssl.trust-store=/secrets/{{ ingress_trust_filename }}
+        server.ssl.trust-store=${TRUSTSTORE}
         server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
 
         # put /actuator calls on 8080
@@ -242,15 +242,19 @@ objects:
                     secretKeyRef:
                       name: inventory-rds-db
                       key: password
+                - name: KEYSTORE
+                  value: /ssl/keystore.jks
                 - name: KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
+                      name: rhsm-subscriptions-ssl
                       key: keystore-password
+                - name: TRUSTSTORE
+                  value: /ssl/truststore.jks
                 - name: TRUSTSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
+                      name: rhsm-subscriptions-ssl
                       key: truststore-password
               livenessProbe:
                 failureThreshold: 3
@@ -288,16 +292,16 @@ objects:
               volumeMounts:
                 - name: config
                   mountPath: /config
-                - name: secrets
-                  mountPath: /secrets
+                - name: ssl
+                  mountPath: /ssl
               workingDir: /
           volumes:
             - name: config
               configMap:
                 name: rhsm-subscriptions-config
-            - name: secrets
-              secret:
-                secretName: rhsm-subscriptions
+            - name: ssl
+                secret:
+                  secretName: rhsm-subscriptions-ssl
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
       triggers:
