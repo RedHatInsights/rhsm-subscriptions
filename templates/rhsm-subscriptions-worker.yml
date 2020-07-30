@@ -110,7 +110,7 @@ objects:
                   valueFrom:
                     secretKeyRef:
                       name: host-inventory-db-readonly-rds
-                      key: db.database
+                      key: db.name
                 - name: INVENTORY_DATABASE_USERNAME
                   valueFrom:
                     secretKeyRef:
