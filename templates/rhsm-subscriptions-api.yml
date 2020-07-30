@@ -1,0 +1,275 @@
+apiVersion: v1
+kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: rhsm-subscriptions-api
+metadata:
+  annotations:
+    description: Request-serving components for Subscription Watch.
+  name: rhsm-subscriptions-api
+
+parameters:
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: RBAC_HOST
+    required: true
+  - name: KAFKA_BOOTSTRAP_HOST
+    required: true
+  - name: KAFKA_SCHEMA_REGISTRY_HOST
+    required: true
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE_TAG
+    value: latest
+  - name: MEMORY_REQUEST
+    value: 100Mi
+  - name: MEMORY_LIMIT
+    value: 500Mi
+  - name: CPU_REQUEST
+    value: 200m
+  - name: CPU_LIMIT
+    value: 300m
+
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: rhsm-subscriptions-config
+    data:
+      subscriptions.properties: |-
+        rhsm-subscriptions.dev-mode=${DEV_MODE:false}
+        rhsm-subscriptions.prettyPrintJson=${PRETTY_PRINT_JSON:false}
+        rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions=${PATH_PREFIX:api}/${APP_NAME:rhsm-subscriptions}/v1
+
+        rhsm-subscriptions.inventory-service.datasource.url=jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:inventory}
+        rhsm-subscriptions.inventory-service.datasource.username=${INVENTORY_DATABASE_USERNAME:insights}
+        rhsm-subscriptions.inventory-service.datasource.password=${INVENTORY_DATABASE_PASSWORD:insights}
+        rhsm-subscriptions.inventory-service.datasource.driver-class-name=org.postgresql.Driver
+        rhsm-subscriptions.inventory-service.datasource.platform=postgresql
+
+        # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
+        rhsm-subscriptions.product_id_to_products_map_resource_location=classpath:product_id_to_products_map.yaml
+        rhsm-subscriptions.role_to_products_map_resource_location=classpath:role_to_products_map.yaml
+        rhsm-subscriptions.product_whitelist_resource_location=${PRODUCT_WHITELIST_RESOURCE_LOCATION:}
+        rhsm-subscriptions.account_list_resource_location=${ACCOUNT_LIST_RESOURCE_LOCATION:}
+
+        rhsm-subscriptions.datasource.url=jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}
+        rhsm-subscriptions.datasource.username=${DATABASE_USERNAME:rhsm-subscriptions}
+        rhsm-subscriptions.datasource.password=${DATABASE_PASSWORD:rhsm-subscriptions}
+        rhsm-subscriptions.datasource.driver-class-name=org.postgresql.Driver
+        rhsm-subscriptions.datasource.platform=postgresql
+
+        # Capture snapshot schedule
+        rhsm-subscriptions.jobs.captureSnapshotSchedule=${CAPTURE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
+        rhsm-subscriptions.account-batch-size=${ACCOUNT_BATCH_SIZE:1}
+
+        # Tally retention policy
+        rhsm-subscriptions.tally-retention-policy.daily=${TALLY_RETENTION_DAILY:37}
+        rhsm-subscriptions.tally-retention-policy.weekly=${TALLY_RETENTION_WEEKLY:12}
+        rhsm-subscriptions.tally-retention-policy.monthly=${TALLY_RETENTION_MONTHLY:12}
+        rhsm-subscriptions.tally-retention-policy.quarterly=${TALLY_RETENTION_QUARTERLY:16}
+        rhsm-subscriptions.tally-retention-policy.yearly=${TALLY_RETENTION_YEARLY:5}
+
+        # Default Quartz datasource.  Override by pulling in another rhsm-subscriptions.properties file via an
+        # -Dspring.config.additional-location argument
+        rhsm-subscriptions.quartz.datasource.platform=hsqldb
+
+        ##########################
+        # kafka configuration
+        ##########################
+
+        # Use profile "kafka-queue" to enable Kafka integration
+        # Use profile "worker" to enable Kafka listeners
+        rhsm-subscriptions.tasks.task-group=${KAFKA_TASK_GROUP:platform.rhsm-subscriptions.tasks}
+
+        # if no offset commit exists yet, set to earliest
+        spring.kafka.consumer.properties.auto.offset.reset=earliest
+
+        # Required kafka defaults
+        spring.kafka.consumer.properties.max.poll.records=1
+        spring.kafka.consumer.properties.max.poll.interval.ms=${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:1800000}
+
+        # The number of threads that will be processing messages (should match
+        # the number of partitions on the queue)
+        spring.kafka.listener.concurrency=${KAFKA_MESSAGE_THREADS:1}
+        spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
+        spring.kafka.consumer.properties.reconnect.backoff.ms=${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:2000}
+        spring.kafka.consumer.properties.reconnect.backoff.max.ms=${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:10000}
+        spring.kafka.consumer.properties.default.api.timeout.ms=${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
+
+        ###################################
+        # Schema Registry configuration
+        ###################################
+
+        spring.kafka.properties.schema.registry.url=${KAFKA_SCHEMA_REGISTRY_SCHEME:http}://${KAFKA_SCHEMA_REGISTRY_HOST:localhost}:${KAFKA_SCHEMA_REGISTRY_PORT:8081}
+        spring.kafka.properties.auto.register.schemas=${KAFKA_AUTO_REGISTER_SCHEMAS:false}
+
+        ###################################
+        # RBAC Configuration
+        ###################################
+        rhsm-subscriptions.rbacApplicationName=${RBAC_APPLICATION_NAME:subscriptions}
+        rhsm-subscriptions.rbac-service.useStub=${RBAC_USE_STUB:false}
+        rhsm-subscriptions.rbac-service.url=http://${RBAC_HOST:localhost}:${RBAC_PORT:8819}/api/rbac/v1
+        rhsm-subscriptions.rbac-service.maxConnections=${RBAC_MAX_CONNECTIONS:100}
+
+      ssl.properties: |-
+        # force client cert auth for ingress endpoints
+        server.port=8443
+        server.ssl.client-auth=NEED
+        server.ssl.enabled=true
+
+        server.ssl.key-store=${KEYSTORE}
+        server.ssl.key-store-password=${KEYSTORE_PASSWORD}
+
+        server.ssl.trust-store=${TRUSTSTORE}
+        server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
+
+        # put /actuator calls on 8080
+        management.server.port=8080
+        management.server.ssl.enabled=false
+
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: rhsm-subscriptions-api
+    spec:
+      replicas: ${REPLICAS}
+      selector:
+        deploymentconfig: rhsm-subscriptions-api
+      strategy:
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            deploymentconfig: rhsm-subscriptions-api
+          annotations:
+            prometheus.io/path: /actuator/prometheus
+            prometheus.io/port: '8080'
+            prometheus.io/scrape: 'true'
+        spec:
+          containers:
+            - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+              name: rhsm-subscriptions-api
+              env:
+                - name: JAVA_OPTIONS
+                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=api
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: LOGGING_LEVEL_ROOT
+                  value: ${LOGGING_LEVEL_ROOT}
+                - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                  value: ${LOGGING_LEVEL}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: KAFKA_SCHEMA_REGISTRY_HOST
+                  value: ${KAFKA_SCHEMA_REGISTRY_HOST}
+                - name: RBAC_HOST
+                  value: ${RBAC_HOST}
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.host
+                - name: INVENTORY_DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.user
+                - name: INVENTORY_DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.password
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 90
+                periodSeconds: 20
+                successThreshold: 1
+                timeoutSeconds: 3
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 90
+                periodSeconds: 20
+                successThreshold: 1
+                timeoutSeconds: 3
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+                - containerPort: 8778
+                  name: jolokia
+                  protocol: TCP
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+              workingDir: /
+          volumes:
+            - name: config
+              configMap:
+                name: rhsm-subscriptions-config
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 75
+          imagePullSecrets:
+          - name: quay-cloudservices-pull
+      triggers:
+        - type: ConfigChange
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: rhsm-subscriptions
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: rhsm-subscriptions-api

@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: rhsm-subscriptions-worker
+metadata:
+  annotations:
+    description: Request-serving components for Subscription Watch.
+  name: rhsm-subscriptions-worker
+
+parameters:
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_BOOTSTRAP_HOST
+    required: true
+  - name: KAFKA_SCHEMA_REGISTRY_HOST
+    required: true
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE_TAG
+    value: latest
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 2000Mi
+  - name: CPU_REQUEST
+    value: 500m
+  - name: CPU_LIMIT
+    value: '2'
+
+objects:
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: rhsm-subscriptions-worker
+    spec:
+      replicas: ${REPLICAS}
+      selector:
+        deploymentconfig: rhsm-subscriptions-worker
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            deploymentconfig: rhsm-subscriptions-worker
+          annotations:
+            prometheus.io/path: /actuator/prometheus
+            prometheus.io/port: '8080'
+            prometheus.io/scrape: 'true'
+        spec:
+          containers:
+            - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+              name: rhsm-subscriptions-worker
+              env:
+                - name: JAVA_OPTIONS
+                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=scheduler,worker
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: LOGGING_LEVEL_ROOT
+                  value: ${LOGGING_LEVEL_ROOT}
+                - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                  value: ${LOGGING_LEVEL}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: KAFKA_SCHEMA_REGISTRY_HOST
+                  value: ${KAFKA_SCHEMA_REGISTRY_HOST}
+                - name: KAFKA_MESSAGE_THREADS
+                  value: ${KAFKA_MESSAGE_THREADS}
+                - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                  value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.host
+                - name: INVENTORY_DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.user
+                - name: INVENTORY_DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.password
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 90
+                periodSeconds: 20
+                successThreshold: 1
+                timeoutSeconds: 3
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+                - containerPort: 8778
+                  name: jolokia
+                  protocol: TCP
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+              workingDir: /
+          volumes:
+            - name: config
+              configMap:
+                name: rhsm-subscriptions-config
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 75
+          imagePullSecrets:
+          - name: quay-cloudservices-pull
+      triggers:
+        - type: ConfigChange
