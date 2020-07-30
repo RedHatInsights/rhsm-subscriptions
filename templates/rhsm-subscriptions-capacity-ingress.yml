@@ -34,7 +34,7 @@ objects:
   - apiVersion: v1
     kind: DeploymentConfig
     metadata:
-      name: rhsm-subscriptions-
+      name: rhsm-subscriptions-capacity-ingress
     spec:
       replicas: ${REPLICAS}
       selector:
