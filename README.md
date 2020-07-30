@@ -99,8 +99,8 @@ rhsm-subscriptions.rbac-service.useStub=true
 
 Prerequisite secrets:
 
-- `rhsm-db-rds`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
-- `host-inventory-db-readonly-rds`: inventory read-only clone DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
+- `rhsm-db`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
+- `host-inventory-db-readonly`: inventory read-only clone DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
 - `ingress`: secret with `keystore.jks` and `truststore.jks` - keystores for mTLS communication with subscription-conduit.
 - `tls`: having `keystore.password`, the password used for capacity ingress.
 

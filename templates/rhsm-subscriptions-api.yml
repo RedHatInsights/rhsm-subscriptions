@@ -172,47 +172,47 @@ objects:
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-db-rds
+                      name: rhsm-db
                       key: db.host
                 - name: DATABASE_PORT
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-db-rds
+                      name: rhsm-db
                       key: db.port
                 - name: DATABASE_USERNAME
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-db-rds
+                      name: rhsm-db
                       key: db.user
                 - name: DATABASE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-db-rds
+                      name: rhsm-db
                       key: db.password
                 - name: DATABASE_DATABASE
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-db-rds
+                      name: rhsm-db
                       key: db.name
                 - name: INVENTORY_DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: host-inventory-db-readonly-rds
+                      name: host-inventory-db-readonly
                       key: db.host
                 - name: INVENTORY_DATABASE_DATABASE
                   valueFrom:
                     secretKeyRef:
-                      name: host-inventory-db-readonly-rds
+                      name: host-inventory-db-readonly
                       key: db.name
                 - name: INVENTORY_DATABASE_USERNAME
                   valueFrom:
                     secretKeyRef:
-                      name: host-inventory-db-readonly-rds
+                      name: host-inventory-db-readonly
                       key: db.user
                 - name: INVENTORY_DATABASE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: host-inventory-db-readonly-rds
+                      name: host-inventory-db-readonly
                       key: db.password
               livenessProbe:
                 failureThreshold: 3
