@@ -1,0 +1,213 @@
+apiVersion: v1
+kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: rhsm-subscriptions-capacity-ingress
+metadata:
+  annotations:
+    description: Components for ingesting capacity information for Subscription Watch.
+  name: rhsm-subscriptions-capacity-ingress
+
+parameters:
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_BOOTSTRAP_HOST
+    required: true
+  - name: KAFKA_SCHEMA_REGISTRY_HOST
+    required: true
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE_TAG
+    value: latest
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 2000Mi
+  - name: CPU_REQUEST
+    value: 500m
+  - name: CPU_LIMIT
+    value: '1'
+
+objects:
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: rhsm-subscriptions-
+    spec:
+      replicas: ${REPLICAS}
+      selector:
+        deploymentconfig: rhsm-subscriptions-capacity-ingress
+      strategy:
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            deploymentconfig: rhsm-subscriptions-capacity-ingress
+          annotations:
+            prometheus.io/path: /actuator/prometheus
+            prometheus.io/port: '8080'
+            prometheus.io/scrape: 'true'
+        spec:
+          containers:
+            - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+              name: rhsm-subscriptions-capacity-ingress
+              env:
+                - name: JAVA_OPTIONS
+                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties,file:/config/ssl.properties -Dspring.profiles.active=capacity-ingress
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: LOGGING_LEVEL_ROOT
+                  value: ${LOGGING_LEVEL_ROOT}
+                - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                  value: ${LOGGING_LEVEL}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: KAFKA_SCHEMA_REGISTRY_HOST
+                  value: ${KAFKA_SCHEMA_REGISTRY_HOST}
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.host
+                - name: INVENTORY_DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.database
+                - name: INVENTORY_DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.user
+                - name: INVENTORY_DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.password
+                - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+                  value: /capacity-allowlist/product-allowlist.txt
+                - name: KEYSTORE
+                  value: /ingress/keystore.jks
+                - name: KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
+                - name: TRUSTSTORE
+                  value: /ingress/truststore.jks
+                - name: TRUSTSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 90
+                periodSeconds: 20
+                successThreshold: 1
+                timeoutSeconds: 3
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 90
+                periodSeconds: 20
+                successThreshold: 1
+                timeoutSeconds: 3
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+              ports:
+                - containerPort: 8443
+                  protocol: TCP
+                - containerPort: 8080
+                  protocol: TCP
+                - containerPort: 8778
+                  name: jolokia
+                  protocol: TCP
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                - name: ingress
+                  mountPath: /ingress
+                - name: capacity-allowlist
+                  mountPath: /capacity-allowlist
+              workingDir: /
+          volumes:
+            - name: config
+              configMap:
+                name: rhsm-subscriptions-config
+            - name: ingress
+              secret:
+                secretName: ingress
+            - name: config
+              configMap:
+                name: capacity-allowlist
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 75
+          imagePullSecrets:
+          - name: quay-cloudservices-pull
+      triggers:
+        - type: ConfigChange
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: rhsm-subscriptions-capacity-ingress
+    spec:
+      ports:
+        - port: 8443
+          protocol: TCP
+          targetPort: 8443
+      selector:
+        deploymentconfig: rhsm-subscriptions-capacity-ingress
+
+  - apiVersion: v1
+    kind: Route
+    metadata:
+      name: rhsm-subscriptions-capacity-ingress
+    spec:
+      to:
+        kind: Service
+        name: rhsm-subscriptions-capacity-ingress
+      tls:
+        termination: passthrough

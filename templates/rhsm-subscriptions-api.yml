@@ -1,7 +1,12 @@
 apiVersion: v1
 kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: rhsm-subscriptions-api
 metadata:
-  name: rhsm-subscriptions
+  annotations:
+    description: Request-serving components for Subscription Watch.
+  name: rhsm-subscriptions-api
 
 parameters:
   - name: LOGGING_LEVEL_ROOT
@@ -14,10 +19,6 @@ parameters:
     required: true
   - name: KAFKA_SCHEMA_REGISTRY_HOST
     required: true
-  - name: KAFKA_MESSAGE_THREADS
-    value: '24'
-  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
-    value: '3600000'
   - name: REPLICAS
     value: '1'
   - name: IMAGE_TAG
@@ -25,35 +26,18 @@ parameters:
   - name: MEMORY_REQUEST
     value: 100Mi
   - name: MEMORY_LIMIT
-    value: 2Gi
+    value: 500Mi
   - name: CPU_REQUEST
     value: 200m
   - name: CPU_LIMIT
-    value: '1'
+    value: 300m
 
 objects:
   - apiVersion: v1
     kind: ConfigMap
     metadata:
       name: rhsm-subscriptions-config
-      labels:
-        app: rhsm-subscriptions
     data:
-      logback.xml: |-
-        <?xml version="1.0" encoding="UTF-8"?>
-        <configuration scan="true" scanPeriod="60 seconds">
-          <contextName>rhsm-subscriptions</contextName>
-          <appender name="ConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-          </appender>
-
-          <logger name="org.candlepin" level="{{ log_level }}"/>
-
-          <root level="WARN">
-            <appender-ref ref="ConsoleAppender" />
-          </root>
-        </configuration>
-
       subscriptions.properties: |-
         rhsm-subscriptions.dev-mode=${DEV_MODE:false}
         rhsm-subscriptions.prettyPrintJson=${PRETTY_PRINT_JSON:false}
@@ -71,9 +55,9 @@ objects:
         rhsm-subscriptions.product_whitelist_resource_location=${PRODUCT_WHITELIST_RESOURCE_LOCATION:}
         rhsm-subscriptions.account_list_resource_location=${ACCOUNT_LIST_RESOURCE_LOCATION:}
 
-        rhsm-subscriptions.datasource.url=jdbc:postgresql://${RHSM_SUBSCRIPTIONS_DATABASE_HOSTNAME:localhost}:${RHSM_SUBSCRIPTIONS_DATABASE_PORT:5432}/${RHSM_SUBSCRIPTIONS_DATABASE_NAME:rhsm-subscriptions}
-        rhsm-subscriptions.datasource.username=${RHSM_SUBSCRIPTIONS_DATABASE_USER:rhsm-subscriptions}
-        rhsm-subscriptions.datasource.password=${RHSM_SUBSCRIPTIONS_DATABASE_PASSWORD:rhsm-subscriptions}
+        rhsm-subscriptions.datasource.url=jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}
+        rhsm-subscriptions.datasource.username=${DATABASE_USERNAME:rhsm-subscriptions}
+        rhsm-subscriptions.datasource.password=${DATABASE_PASSWORD:rhsm-subscriptions}
         rhsm-subscriptions.datasource.driver-class-name=org.postgresql.Driver
         rhsm-subscriptions.datasource.platform=postgresql
 
@@ -146,31 +130,20 @@ objects:
         management.server.port=8080
         management.server.ssl.enabled=false
 
-      rhel-product-list.txt: |-
-        {% for product in rhel_product_list %}{{ product }}
-        {% endfor %}
-
-      product-whitelist.txt: |-
-        {% for product in whitelisted_products %}{{ product }}
-        {% endfor %}
-
   - apiVersion: v1
     kind: DeploymentConfig
     metadata:
-      labels:
-        app: rhsm-subscriptions
-      name: rhsm-subscriptions
+      name: rhsm-subscriptions-api
     spec:
       replicas: ${REPLICAS}
       selector:
-        deploymentconfig: rhsm-subscriptions
+        deploymentconfig: rhsm-subscriptions-api
       strategy:
         type: Rolling
       template:
         metadata:
           labels:
-            app: rhsm-subscriptions
-            deploymentconfig: rhsm-subscriptions
+            deploymentconfig: rhsm-subscriptions-api
           annotations:
             prometheus.io/path: /actuator/prometheus
             prometheus.io/port: '8080'
@@ -178,10 +151,10 @@ objects:
         spec:
           containers:
             - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
-              name: rhsm-subscriptions
+              name: rhsm-subscriptions-api
               env:
                 - name: JAVA_OPTIONS
-                  value: -Dlogging.config=/config/logback.xml -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=api
+                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=api
                 - name: JAVA_MAX_MEM_RATIO
                   value: '85'
                 - name: GC_MAX_METASPACE_SIZE
@@ -194,68 +167,53 @@ objects:
                   value: ${KAFKA_BOOTSTRAP_HOST}
                 - name: KAFKA_SCHEMA_REGISTRY_HOST
                   value: ${KAFKA_SCHEMA_REGISTRY_HOST}
-                - name: KAFKA_MESSAGE_THREADS
-                  value: ${KAFKA_MESSAGE_THREADS}
-                - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
-                  value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
                 - name: RBAC_HOST
                   value: ${RBAC_HOST}
-                - name: RBAC_PORT
-                  value: ${RBAC_PORT}
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_HOSTNAME
+                - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-host
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_NAME
+                      name: rhsm-db-rds
+                      key: db.host
+                - name: DATABASE_PORT
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-name
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_USER
+                      name: rhsm-db-rds
+                      key: db.port
+                - name: DATABASE_USERNAME
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-user
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_PASSWORD
+                      name: rhsm-db-rds
+                      key: db.user
+                - name: DATABASE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-password
-                - name: INVENTORY_DATABASE_HOSTNAME
+                      name: rhsm-db-rds
+                      key: db.password
+                - name: DATABASE_DATABASE
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: hostname
-                - name: INVENTORY_DATABASE_NAME
+                      name: rhsm-db-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: database-name
-                - name: INVENTORY_DATABASE_USER
+                      name: host-inventory-db-readonly-rds
+                      key: db.host
+                - name: INVENTORY_DATABASE_DATABASE
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: username
+                      name: host-inventory-db-readonly-rds
+                      key: db.database
+                - name: INVENTORY_DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.user
                 - name: INVENTORY_DATABASE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: password
-                - name: KEYSTORE
-                  value: /ssl/keystore.jks
-                - name: KEYSTORE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-subscriptions-ssl
-                      key: keystore-password
-                - name: TRUSTSTORE
-                  value: /ssl/truststore.jks
-                - name: TRUSTSTORE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-subscriptions-ssl
-                      key: truststore-password
+                      name: host-inventory-db-readonly-rds
+                      key: db.password
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
@@ -292,26 +250,21 @@ objects:
               volumeMounts:
                 - name: config
                   mountPath: /config
-                - name: ssl
-                  mountPath: /ssl
               workingDir: /
           volumes:
             - name: config
               configMap:
                 name: rhsm-subscriptions-config
-            - name: ssl
-                secret:
-                  secretName: rhsm-subscriptions-ssl
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
+          imagePullSecrets:
+          - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange
 
   - apiVersion: v1
     kind: Service
     metadata:
-      labels:
-        app: rhsm-subscriptions
       name: rhsm-subscriptions
     spec:
       ports:
@@ -319,4 +272,4 @@ objects:
           protocol: TCP
           targetPort: 8080
       selector:
-        deploymentconfig: rhsm-subscriptions
+        deploymentconfig: rhsm-subscriptions-api

@@ -1,15 +1,18 @@
 apiVersion: v1
 kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: rhsm-subscriptions-worker
 metadata:
-  name: rhsm-subscriptions-jobs
+  annotations:
+    description: Request-serving components for Subscription Watch.
+  name: rhsm-subscriptions-worker
 
 parameters:
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: RBAC_HOST
-    required: true
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: KAFKA_SCHEMA_REGISTRY_HOST
@@ -23,33 +26,29 @@ parameters:
   - name: IMAGE_TAG
     value: latest
   - name: MEMORY_REQUEST
-    value: 100Mi
+    value: 1000Mi
   - name: MEMORY_LIMIT
-    value: 2Gi
+    value: 2000Mi
   - name: CPU_REQUEST
-    value: 200m
+    value: 500m
   - name: CPU_LIMIT
-    value: '1'
-
+    value: '2'
 
 objects:
   - apiVersion: v1
     kind: DeploymentConfig
     metadata:
-      labels:
-        app: rhsm-subscriptions
-      name: rhsm-subscriptions-jobs
+      name: rhsm-subscriptions-worker
     spec:
       replicas: ${REPLICAS}
       selector:
-        deploymentconfig: rhsm-subscriptions-jobs
+        deploymentconfig: rhsm-subscriptions-worker
       strategy:
-        type: Rolling
+        type: Recreate
       template:
         metadata:
           labels:
-            app: rhsm-subscriptions
-            deploymentconfig: rhsm-subscriptions-jobs
+            deploymentconfig: rhsm-subscriptions-worker
           annotations:
             prometheus.io/path: /actuator/prometheus
             prometheus.io/port: '8080'
@@ -57,10 +56,10 @@ objects:
         spec:
           containers:
             - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
-              name: rhsm-subscriptions
+              name: rhsm-subscriptions-worker
               env:
                 - name: JAVA_OPTIONS
-                  value: -Dlogging.config=/config/logback.xml -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=scheduler,worker
+                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=scheduler,worker
                 - name: JAVA_MAX_MEM_RATIO
                   value: '85'
                 - name: GC_MAX_METASPACE_SIZE
@@ -77,75 +76,52 @@ objects:
                   value: ${KAFKA_MESSAGE_THREADS}
                 - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
                   value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
-                - name: RBAC_HOST
-                  value: ${RBAC_HOST}
-                - name: RBAC_PORT
-                  value: ${RBAC_PORT}
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_HOSTNAME
+                - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-host
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_NAME
+                      name: rhsm-db-rds
+                      key: db.host
+                - name: DATABASE_PORT
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-name
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_USER
+                      name: rhsm-db-rds
+                      key: db.port
+                - name: DATABASE_USERNAME
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-user
-                - name: RHSM_SUBSCRIPTIONS_DATABASE_PASSWORD
+                      name: rhsm-db-rds
+                      key: db.user
+                - name: DATABASE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: rhsm-subscriptions
-                      key: database-password
-                - name: INVENTORY_DATABASE_HOSTNAME
+                      name: rhsm-db-rds
+                      key: db.password
+                - name: DATABASE_DATABASE
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: hostname
-                - name: INVENTORY_DATABASE_NAME
+                      name: rhsm-db-rds
+                      key: db.name
+                - name: INVENTORY_DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: database-name
-                - name: INVENTORY_DATABASE_USER
+                      name: host-inventory-db-readonly-rds
+                      key: db.host
+                - name: INVENTORY_DATABASE_DATABASE
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: username
+                      name: host-inventory-db-readonly-rds
+                      key: db.database
+                - name: INVENTORY_DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-inventory-db-readonly-rds
+                      key: db.user
                 - name: INVENTORY_DATABASE_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: inventory-rds-db
-                      key: password
-                - name: KEYSTORE
-                  value: /ssl/keystore.jks
-                - name: KEYSTORE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-subscriptions-ssl
-                      key: keystore-password
-                - name: TRUSTSTORE
-                  value: /ssl/truststore.jks
-                - name: TRUSTSTORE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-subscriptions-ssl
-                      key: truststore-password
+                      name: host-inventory-db-readonly-rds
+                      key: db.password
               livenessProbe:
-                failureThreshold: 3
-                httpGet:
-                  path: /actuator/health
-                  port: 8080
-                  scheme: HTTP
-                initialDelaySeconds: 90
-                periodSeconds: 20
-                successThreshold: 1
-                timeoutSeconds: 3
-              readinessProbe:
                 failureThreshold: 3
                 httpGet:
                   path: /actuator/health
@@ -171,17 +147,14 @@ objects:
               volumeMounts:
                 - name: config
                   mountPath: /config
-                - name: ssl
-                  mountPath: /ssl
               workingDir: /
           volumes:
             - name: config
               configMap:
                 name: rhsm-subscriptions-config
-            - name: ssl
-                secret:
-                  secretName: rhsm-subscriptions-ssl
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
+          imagePullSecrets:
+          - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange

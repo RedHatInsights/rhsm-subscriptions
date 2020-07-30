@@ -95,6 +95,27 @@ can be enabled by setting the following property:
 rhsm-subscriptions.rbac-service.useStub=true
 ```
 
+## Deploy to Openshift
+
+Prerequisite secrets:
+
+- `rhsm-db-rds`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
+- `host-inventory-db-readonly-rds`: inventory read-only clone DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
+- `ingress`: secret with `keystore.jks` and `truststore.jks` - keystores for mTLS communication with subscription-conduit.
+- `tls`: having `keystore.password`, the password used for capacity ingress.
+
+Prequisite configmaps:
+- `capacity-allowlist` having `product-allowlist.txt` which is a newline-separated list of which SKUs have been approved for capacity ingress.
+
+Adjust as desired:
+
+```
+oc process -f templates/rhsm-subscriptions-api.yml | oc create -f -
+oc process -f templates/rhsm-subscriptions-capacity-ingress.yml | oc create -f -
+oc process -f templates/rhsm-subscriptions-scheduler.yml | oc create -f -
+oc process -f templates/rhsm-subscriptions-worker.yml | oc create -f -
+```
+
 ## Release Notes
 
 You can perform a release using `./gradlew release` **on the master
