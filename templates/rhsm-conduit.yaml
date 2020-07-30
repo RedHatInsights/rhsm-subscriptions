@@ -165,27 +165,27 @@ objects:
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db-rds
+                    name: rhsm-db
                     key: db.host
               - name: DATABASE_PORT
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db-rds
+                    name: rhsm-db
                     key: db.port
               - name: DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db-rds
+                    name: rhsm-db
                     key: db.user
               - name: DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db-rds
+                    name: rhsm-db
                     key: db.password
               - name: DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db-rds
+                    name: rhsm-db
                     key: db.name
               - name: PINHEAD_KEYSTORE_PASSWORD
                 valueFrom:
