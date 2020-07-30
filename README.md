@@ -125,7 +125,7 @@ set up (see previous section).
 
 Prerequisite secrets:
 
-- `rhsm-db-rds`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
+- `rhsm-db`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
 - `pinhead`: secret with `keystore.jks` - keystore for HTTPS communication with Pinhead.
 - `tls`: having `keystore.password`, the password used for pinhead keystore.
 
