@@ -191,7 +191,7 @@ objects:
                 valueFrom:
                   secretKeyRef:
                     name: tls
-                    key: keystore.password
+                    key: keystore_password
               - name: PINHEAD_KEYSTORE
                 value: /pinhead/keystore.jks
             livenessProbe:
