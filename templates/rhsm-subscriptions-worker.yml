@@ -15,8 +15,6 @@ parameters:
     value: INFO
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
-  - name: KAFKA_SCHEMA_REGISTRY_HOST
-    required: true
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -70,8 +68,6 @@ objects:
                   value: ${LOGGING_LEVEL}
                 - name: KAFKA_BOOTSTRAP_HOST
                   value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: KAFKA_SCHEMA_REGISTRY_HOST
-                  value: ${KAFKA_SCHEMA_REGISTRY_HOST}
                 - name: KAFKA_MESSAGE_THREADS
                   value: ${KAFKA_MESSAGE_THREADS}
                 - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS

@@ -17,8 +17,6 @@ parameters:
     required: true
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
-  - name: KAFKA_SCHEMA_REGISTRY_HOST
-    required: true
   - name: REPLICAS
     value: '1'
   - name: IMAGE_TAG
@@ -100,13 +98,6 @@ objects:
         spring.kafka.consumer.properties.default.api.timeout.ms=${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
 
         ###################################
-        # Schema Registry configuration
-        ###################################
-
-        spring.kafka.properties.schema.registry.url=${KAFKA_SCHEMA_REGISTRY_SCHEME:http}://${KAFKA_SCHEMA_REGISTRY_HOST:localhost}:${KAFKA_SCHEMA_REGISTRY_PORT:8081}
-        spring.kafka.properties.auto.register.schemas=${KAFKA_AUTO_REGISTER_SCHEMAS:false}
-
-        ###################################
         # RBAC Configuration
         ###################################
         rhsm-subscriptions.rbacApplicationName=${RBAC_APPLICATION_NAME:subscriptions}
@@ -165,8 +156,6 @@ objects:
                   value: ${LOGGING_LEVEL}
                 - name: KAFKA_BOOTSTRAP_HOST
                   value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: KAFKA_SCHEMA_REGISTRY_HOST
-                  value: ${KAFKA_SCHEMA_REGISTRY_HOST}
                 - name: RBAC_HOST
                   value: ${RBAC_HOST}
                 - name: DATABASE_HOST

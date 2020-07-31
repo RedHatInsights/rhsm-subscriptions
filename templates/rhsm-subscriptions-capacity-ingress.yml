@@ -15,8 +15,6 @@ parameters:
     value: INFO
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
-  - name: KAFKA_SCHEMA_REGISTRY_HOST
-    required: true
   - name: REPLICAS
     value: '1'
   - name: IMAGE_TAG
@@ -66,8 +64,6 @@ objects:
                   value: ${LOGGING_LEVEL}
                 - name: KAFKA_BOOTSTRAP_HOST
                   value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: KAFKA_SCHEMA_REGISTRY_HOST
-                  value: ${KAFKA_SCHEMA_REGISTRY_HOST}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
