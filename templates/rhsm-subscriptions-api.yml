@@ -16,7 +16,7 @@ parameters:
   - name: RBAC_HOST
     required: true
   - name: RBAC_PORT
-    value: 8080
+    value: '8080'
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: REPLICAS
