@@ -21,6 +21,8 @@ parameters:
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
     value: '3600000'
+  - name: ORG_SYNC_SCHEDULE
+    value: 0 0 0 * * ?
   - name: REPLICAS
     value: '1'
   - name: IMAGE_TAG
