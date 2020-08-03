@@ -19,6 +19,8 @@ parameters:
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
     value: '3600000'
+  - name: CAPTURE_SNAPSHOT_SCHEDULE
+    value: 0 0 1 * * ?
   - name: IMAGE_TAG
     value: latest
   - name: MEMORY_REQUEST
