@@ -110,7 +110,7 @@ objects:
                       name: host-inventory-db-readonly
                       key: db.password
                 - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
-                  value: /capacity-allowlist/product-allowlist.txt
+                  value: file:/capacity-allowlist/product-allowlist.txt
                 - name: KEYSTORE
                   value: /ingress/keystore.jks
                 - name: KEYSTORE_PASSWORD
