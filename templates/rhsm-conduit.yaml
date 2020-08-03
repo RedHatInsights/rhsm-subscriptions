@@ -147,6 +147,8 @@ objects:
                 value: ${LOGGING_LEVEL}
               - name: PINHEAD_URL
                 value: ${PINHEAD_URL}
+              - name: ORG_SYNC_SCHEDULE
+                value: ${ORG_SYNC_SCHEDULE}
               - name: KAFKA_BOOTSTRAP_HOST
                 value: ${KAFKA_BOOTSTRAP_HOST}
               - name: KAFKA_MESSAGE_THREADS
