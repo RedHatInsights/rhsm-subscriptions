@@ -136,6 +136,7 @@ objects:
         metadata:
           labels:
             deploymentconfig: rhsm-subscriptions-api
+            prometheus: rhsm
           annotations:
             prometheus.io/path: /actuator/prometheus
             prometheus.io/port: '8080'
