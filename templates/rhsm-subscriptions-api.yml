@@ -51,7 +51,6 @@ objects:
         rhsm-subscriptions.product_id_to_products_map_resource_location=classpath:product_id_to_products_map.yaml
         rhsm-subscriptions.role_to_products_map_resource_location=classpath:role_to_products_map.yaml
         rhsm-subscriptions.product_whitelist_resource_location=${PRODUCT_WHITELIST_RESOURCE_LOCATION:}
-        rhsm-subscriptions.account_list_resource_location=${ACCOUNT_LIST_RESOURCE_LOCATION:}
 
         rhsm-subscriptions.datasource.url=jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}
         rhsm-subscriptions.datasource.username=${DATABASE_USERNAME:rhsm-subscriptions}
