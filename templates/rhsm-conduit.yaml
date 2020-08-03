@@ -115,7 +115,7 @@ objects:
   metadata:
     name: rhsm-conduit
   spec:
-    replicas: ${REPLICAS}
+    replicas: ${{REPLICAS}}
     selector:
       deploymentconfig: rhsm-conduit
     strategy:
