@@ -72,6 +72,8 @@ objects:
                   value: ${KAFKA_MESSAGE_THREADS}
                 - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
                   value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+                - name: CAPTURE_SNAPSHOT_SCHEDULE
+                  value: ${CAPTURE_SNAPSHOT_SCHEDULE}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
