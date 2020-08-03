@@ -34,7 +34,7 @@ objects:
     metadata:
       name: rhsm-subscriptions-capacity-ingress
     spec:
-      replicas: ${REPLICAS}
+      replicas: ${{REPLICAS}}
       selector:
         deploymentconfig: rhsm-subscriptions-capacity-ingress
       strategy:

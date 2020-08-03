@@ -126,7 +126,7 @@ objects:
     metadata:
       name: rhsm-subscriptions-api
     spec:
-      replicas: ${REPLICAS}
+      replicas: ${{REPLICAS}}
       selector:
         deploymentconfig: rhsm-subscriptions-api
       strategy:

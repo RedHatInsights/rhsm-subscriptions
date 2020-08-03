@@ -38,7 +38,7 @@ objects:
     metadata:
       name: rhsm-subscriptions-worker
     spec:
-      replicas: ${REPLICAS}
+      replicas: ${{REPLICAS}}
       selector:
         deploymentconfig: rhsm-subscriptions-worker
       strategy:
