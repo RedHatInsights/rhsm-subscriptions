@@ -157,6 +157,7 @@ objects:
                 - containerPort: 8443
                   protocol: TCP
                 - containerPort: 8080
+                  name: "8080"
                   protocol: TCP
                 - containerPort: 8778
                   name: jolokia
@@ -218,6 +219,7 @@ objects:
     spec:
       ports:
         - port: 8080
+          name: "8080"
           protocol: TCP
           targetPort: 8080
       selector:

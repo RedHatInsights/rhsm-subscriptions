@@ -138,6 +138,7 @@ objects:
               ports:
                 - containerPort: 8080
                   protocol: TCP
+                  name: "8080"
                 - containerPort: 8778
                   name: jolokia
                   protocol: TCP
@@ -165,6 +166,7 @@ objects:
     spec:
       ports:
         - port: 8080
+          name: "8080"
           protocol: TCP
           targetPort: 8080
       selector:
