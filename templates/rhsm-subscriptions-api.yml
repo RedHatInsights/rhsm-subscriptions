@@ -259,6 +259,8 @@ objects:
     kind: Service
     metadata:
       name: rhsm-subscriptions
+      labels:
+        prometheus: rhsm
     spec:
       ports:
         - port: 8080

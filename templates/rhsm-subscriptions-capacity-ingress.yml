@@ -208,3 +208,17 @@ objects:
         name: rhsm-subscriptions-capacity-ingress
       tls:
         termination: passthrough
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: rhsm-subscriptions-capacity-ingress-monitoring
+      labels:
+        prometheus: rhsm
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: rhsm-subscriptions-capacity-ingress

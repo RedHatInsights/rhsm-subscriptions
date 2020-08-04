@@ -155,3 +155,17 @@ objects:
           - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: rhsm-subscriptions-worker-monitoring
+      labels:
+        prometheus: rhsm
+    spec:
+      ports:
+        - port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: rhsm-subscriptions-worker
