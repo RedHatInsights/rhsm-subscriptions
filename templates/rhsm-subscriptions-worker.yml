@@ -58,7 +58,7 @@ objects:
               name: rhsm-subscriptions-worker
               env:
                 - name: JAVA_OPTIONS
-                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=scheduler,worker
+                  value: -Dspring.config.additional-location=file:/config/subscriptions.properties -Dspring.profiles.active=worker
                 - name: JAVA_MAX_MEM_RATIO
                   value: '85'
                 - name: GC_MAX_METASPACE_SIZE
