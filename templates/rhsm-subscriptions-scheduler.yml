@@ -125,7 +125,6 @@ objects:
                 httpGet:
                   path: /actuator/health
                   port: 8080
-                  name: "8080"
                   scheme: HTTP
                 initialDelaySeconds: 90
                 periodSeconds: 20
