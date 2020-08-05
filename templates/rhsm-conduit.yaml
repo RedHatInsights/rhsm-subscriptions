@@ -142,6 +142,8 @@ objects:
                 value: '85'
               - name: GC_MAX_METASPACE_SIZE
                 value: '256'
+              - name: TASK_QUEUE_TYPE
+                value: kafka
               - name: LOGGING_LEVEL_ROOT
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
