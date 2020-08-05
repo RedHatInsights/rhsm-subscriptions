@@ -138,7 +138,6 @@ objects:
               ports:
                 - containerPort: 8080
                   protocol: TCP
-                  name: "8080"
                 - containerPort: 8778
                   name: jolokia
                   protocol: TCP
