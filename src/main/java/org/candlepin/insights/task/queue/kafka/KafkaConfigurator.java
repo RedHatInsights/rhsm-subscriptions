@@ -107,6 +107,7 @@ public class KafkaConfigurator {
     }
 
     private boolean bypassSchemaRegistry(Map<String, Object> config) {
-        return !config.containsKey(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG);
+        return ((String) config.getOrDefault(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""))
+            .isEmpty();
     }
 }

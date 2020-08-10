@@ -20,18 +20,25 @@
  */
 package org.candlepin.insights.orgsync;
 
+import org.candlepin.insights.spring.JobCompleteEvent;
 import org.candlepin.insights.task.TaskManager;
 
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.scheduling.SchedulingException;
+import org.springframework.stereotype.Component;
 
 /**
  * A job to sync orgs from Pinhead to RHSM Conduit.
  */
-public class OrgSyncJob extends QuartzJobBean {
+@Component
+public class OrgSyncJob implements Runnable, ApplicationEventPublisherAware {
+    private static final Logger log = LoggerFactory.getLogger(OrgSyncJob.class);
     private TaskManager tasks;
+    private ApplicationEventPublisher publisher;
 
     @Autowired
     public OrgSyncJob(TaskManager tasks) {
@@ -39,13 +46,19 @@ public class OrgSyncJob extends QuartzJobBean {
     }
 
     @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
+    public void run() {
         try {
+            log.info("Firing OrgSync job");
             tasks.syncFullOrgList();
+            publisher.publishEvent(new JobCompleteEvent(this));
         }
         catch (Exception e) {
-            throw new JobExecutionException("Failed to sync org list.", e);
+            throw new SchedulingException("Failed to sync org list.", e);
         }
     }
 
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
 }

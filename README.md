@@ -73,6 +73,12 @@ Build and run using the following line:
 ./gradlew assemble && java -jar build/libs/rhsm-conduit-1.0.0.jar
 ```
 
+Because setting up the Pinhead keystore can be difficult, consider starting with:
+
+```sh
+PINHEAD_USE_STUB=true ./gradlew bootRun
+```
+
 # Remote Deployment
 
 ## OpenShift Project Set Up
@@ -159,6 +165,48 @@ Both the health actuator and info actuator can be modified, expanded, or
 extended. Please see the
 [documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html)
 for a discussion of extension points.
+
+### Environment Variables
+
+* `PRETTY_PRINT_JSON`: configure Jackson to indent outputted JSON
+* `APP_NAME`: application name for URLs (default: rhsm-conduit)
+* `PATH_PREFIX`: path prefix in the URLs (default: api)
+* `TASK_QUEUE_TYPE`: `in-memory` or `kafka`
+* `ORG_SYNC_SCHEDULE`: cron schedule for syncing hosts
+* `ORG_SYNC_STRATEGY`: file-based or DB-based sync strategy
+* `ORG_SYNC_RESOURCE_LOCATION`: location of resource with org sync list (if using file-based sync strategy)
+* `PINHEAD_USE_STUB`: Use pinhead stub
+* `PINHEAD_URL`: Pinhead service URL
+* `PINHEAD_KEYSTORE`: path to keystore with client cert
+* `PINHEAD_KEYSTORE_PASSWORD`: pinhead client cert keystore password
+* `PINHEAD_BATCH_SIZE`: host sync batch size
+* `PINHEAD_MAX_CONNECTIONS`: maximum concurrent connections to pinhead
+* `INVENTORY_USE_STUB`: Use stubbed inventory REST API
+* `INVENTORY_API_KEY`: API key for inventory service
+* `INVENTORY_HOST_LAST_SYNC_THRESHOLD`: reject hosts that haven't checked in since this duration (e.g. 24h)
+* `INVENTORY_ENABLE_KAFKA`: whether kafka should be used (inventory API otherwise)
+* `INVENTORY_HOST_INGRESS_TOPIC`: kafka topic to emit host records
+* `INVENTORY_ADD_UUID_HYPHENS`: whether to add missing UUID hyphens to the Insights ID
+* `DATABASE_HOST`: DB host
+* `DATABASE_PORT`: DB port
+* `DATABASE_DATABASE`: DB database
+* `DATABASE_USERNAME`: DB username
+* `DATABASE_PASSWORD`: DB password
+* `KAFKA_TASK_GROUP`: kafka task group
+* `KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS`: kafka max poll interval in milliseconds
+* `KAFKA_MESSAGE_THREADS`: number of consumer threads
+* `KAFKA_BOOTSTRAP_HOST`: kafka bootstrap host
+* `KAFKA_BOOTSTRAP_PORT`: kafka boostrap port
+* `KAFKA_CONSUMER_RECONNECT_BACKOFF_MS`: kafka consumer reconnect backoff in milliseconds
+* `KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS`: kafka consumer reconnect max backoff in milliseconds
+* `KAFKA_API_RECONNECT_TIMEOUT_MS`: kafka connection timeout
+* `KAFKA_SCHEMA_REGISTRY_SCHEME`: avro schema server scheme (http or https)
+* `KAFKA_SCHEMA_REGISTRY_HOST`: kafka schema server host
+* `KAFKA_SCHEMA_REGISTRY_PORT`: kafka schema server port
+* `KAFKA_AUTO_REGISTER_SCHEMAS`: enable auto registration of schemas
+* `DEV_MODE`: turning this on enables developer-centric features.
+  * The OrgSyncJob will be run on a cron schedule defined by
+    rhsm-conduit.org-sync.schedule
 
 ## Release Notes
 
