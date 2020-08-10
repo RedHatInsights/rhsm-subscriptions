@@ -20,19 +20,23 @@
  */
 package org.candlepin.subscriptions.jobs;
 
+import org.candlepin.subscriptions.exception.JobFailureException;
+import org.candlepin.subscriptions.spring.JobCompleteEvent;
 import org.candlepin.subscriptions.task.TaskManager;
 
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.stereotype.Component;
 
 /**
- * A quartz job that captures all usage snapshots on a configured schedule.
+ * A cron job that captures all usage snapshots on a configured schedule.
  */
-public class CaptureSnapshotsJob extends QuartzJobBean {
+@Component
+public class CaptureSnapshotsJob implements Runnable, ApplicationEventPublisherAware {
 
     private TaskManager tasks;
+    private ApplicationEventPublisher publisher;
 
     @Autowired
     public CaptureSnapshotsJob(TaskManager taskManager) {
@@ -40,8 +44,18 @@ public class CaptureSnapshotsJob extends QuartzJobBean {
     }
 
     @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
-        tasks.updateSnapshotsForAllAccounts();
+    public void run() {
+        try {
+            tasks.updateSnapshotsForAllAccounts();
+            publisher.publishEvent(new JobCompleteEvent(this));
+        }
+        catch (Exception e) {
+            throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
+        }
     }
 
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
 }

@@ -22,22 +22,25 @@ package org.candlepin.subscriptions.jobs;
 
 import org.candlepin.subscriptions.controller.TallyRetentionController;
 import org.candlepin.subscriptions.exception.JobFailureException;
+import org.candlepin.subscriptions.spring.JobCompleteEvent;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.quartz.QuartzJobBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.stereotype.Component;
 
 /**
- * A quartz job that purges usage snapshots on a configured schedule.
+ * A cron job that purges usage snapshots on a configured schedule.
  */
-public class PurgeSnapshotsJob extends QuartzJobBean {
+@Component
+public class PurgeSnapshotsJob implements Runnable, ApplicationEventPublisherAware {
 
     private static final Logger log = LoggerFactory.getLogger(PurgeSnapshotsJob.class);
     private final TallyRetentionController retentionController;
+    private ApplicationEventPublisher publisher;
 
     @Autowired
     public PurgeSnapshotsJob(TallyRetentionController retentionController) {
@@ -45,14 +48,20 @@ public class PurgeSnapshotsJob extends QuartzJobBean {
     }
 
     @Override
-    protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
+    public void run() {
         log.info("Starting snapshot purge.");
         try {
             retentionController.purgeSnapshots();
+            publisher.publishEvent(new JobCompleteEvent(this));
             log.info("Snapshot purge complete.");
         }
         catch (AccountListSourceException e) {
             throw new JobFailureException("Could not purge snapshots.", e);
         }
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
     }
 }

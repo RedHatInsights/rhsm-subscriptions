@@ -31,20 +31,3 @@ spring:
       - capacity-ingress
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
-  quartz:
-    # On startup, overwrite any existing jobs so that the schedule is updated when changed.
-    overwrite-existing-jobs: true
-    job-store-type: jdbc
-    jdbc:
-      # There is an issue with the hsqldb schema file that is shipped with Quartz, so we need to carry our own
-      # See https://stackoverflow.com/questions/34784328/quartz-jobpersistenceexception-with-hsqldb
-      # We also carry our own postgresql schema file so that we can run the create statements in an
-      # idempotent way. There are no drop statements and every "create" is partnered with an "if not exists".
-      schema: classpath:tables_${rhsm-subscriptions.quartz.datasource.platform}.sql
-      initialize-schema: always
-    properties:
-      org:
-        quartz:
-          scheduler:
-            instanceName: RhsmSubscriptionsScheduler
-            instanceId: AUTO

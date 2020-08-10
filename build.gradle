@@ -192,7 +192,6 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
     compile "org.webjars:swagger-ui"
-    compile "org.springframework.boot:spring-boot-starter-quartz"
     compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
 

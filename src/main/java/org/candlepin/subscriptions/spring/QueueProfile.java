@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright (c) 2009 - 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.exception;
+package org.candlepin.subscriptions.spring;
+
+import org.springframework.context.annotation.Profile;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * An exception thrown when an error occurs during a cron job.
+ * Composed annotation for all profiles that should have the TaskManager enabled.
+ *
+ * @see org.candlepin.subscriptions.ProfileSettingRunListener
  */
-public class JobFailureException extends RuntimeException {
-    public JobFailureException(String message, Throwable cause) {
-        super(message, cause);
-    }
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Profile({"in-memory-queue", "kafka-queue", "worker"})
+public @interface QueueProfile {
+
 }
