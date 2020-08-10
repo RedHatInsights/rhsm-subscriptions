@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 public class ApplicationProperties {
     private String version;
     private boolean prettyPrintJson = false;
+    private boolean devMode = false;
 
     public String getVersion() {
         return version;
@@ -48,4 +49,11 @@ public class ApplicationProperties {
         this.prettyPrintJson = prettyPrintJson;
     }
 
+    public boolean isDevMode() {
+        return devMode;
+    }
+
+    public void setDevMode(boolean devMode) {
+        this.devMode = devMode;
+    }
 }

@@ -106,7 +106,7 @@ public class X509ApiClientFactoryConfiguration {
     }
 
     public boolean usesClientAuth() {
-        return (getKeystoreFile() != null && getKeystorePassword() != null);
+        return (getKeystoreFile() != null && !getKeystoreFile().isEmpty() && getKeystorePassword() != null);
     }
 
     public boolean usesDefaultTruststore() {

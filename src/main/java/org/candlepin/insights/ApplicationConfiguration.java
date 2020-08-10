@@ -26,14 +26,9 @@ import org.candlepin.insights.pinhead.client.PinheadApiProperties;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
-import org.springframework.boot.autoconfigure.quartz.SchedulerFactoryBeanCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +39,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -53,17 +49,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 
-import java.util.Properties;
-
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.sql.DataSource;
 import javax.validation.Validator;
 
 /** Class to hold configuration beans */
 @Configuration
 @EnableRetry
 @EnableAspectJAutoProxy
+@EnableScheduling
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableConfigurationProperties(ApplicationProperties.class)
 // The values in application.yaml should already be loaded by default
@@ -116,40 +110,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     public PinheadApiFactory pinheadApiFactory(PinheadApiProperties properties) {
         return new PinheadApiFactory(properties);
-    }
-
-    @Bean
-    // Override the annotations on the DataSourceProperties class itself so that we can read from a custom
-    // prefix
-    @Qualifier("quartz-ds-props")
-    @ConfigurationProperties(prefix = "rhsm-conduit.datasource")
-    public DataSourceProperties dataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    @Bean
-    @Qualifier("quartz-ds")
-    @QuartzDataSource
-    public DataSource dataSource(@Qualifier("quartz-ds-props") DataSourceProperties dataSourceProperties) {
-        DataSourceBuilder builder = dataSourceProperties.initializeDataSourceBuilder();
-        return builder.build();
-    }
-
-    @Bean
-    public SchedulerFactoryBeanCustomizer schedulerFactoryBeanCustomizer(
-        @Qualifier("quartz-ds-props") DataSourceProperties properties
-    ) {
-        String driverDelegate = "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
-        if (properties.getPlatform().startsWith("postgres")) {
-            driverDelegate = "org.quartz.impl.jdbcjobstore.PostgreSQLDelegate";
-        }
-
-        final String finalDriverDelegate = driverDelegate;
-        return schedulerFactoryBean -> {
-            Properties props = new Properties();
-            props.put("org.quartz.jobStore.driverDelegateClass", finalDriverDelegate);
-            schedulerFactoryBean.setQuartzProperties(props);
-        };
     }
 
     /**

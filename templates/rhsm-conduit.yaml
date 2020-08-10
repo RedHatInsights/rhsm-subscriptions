@@ -38,81 +38,6 @@ parameters:
 
 objects:
 - apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: rhsm-conduit-config
-  data:
-    rhsm-conduit.properties: |-
-      # Place application related defaults here.  This file is loaded via the @PropertySource annotation on the
-      # ApplicationConfiguration class.  Prefix properties in this file appropriately (e.g. "rhsm-conduit") so the
-      # classes annotated with @ConfigurationProperties will ingest them.
-
-      # Pretty print the response JSON returned by the API.
-      rhsm-conduit.prettyPrintJson=${PRETTY_PRINT_JSON:false}
-
-      # We're keeping the context-path as "/" so that the actuators we use for OKD liveness/readiness probes have a
-      # fixed path.  The actual conduit resources will be configured to hang off of the path below.
-      rhsm-conduit.package_uri_mappings.org.candlepin.insights=${PATH_PREFIX:api}/${APP_NAME:rhsm-conduit}/v1
-      rhsm-conduit.org-sync.schedule=${ORG_SYNC_SCHEDULE:0 */2 * * * ?}
-      rhsm-conduit.org-sync.strategy = ${ORG_SYNC_STRATEGY:fileBasedOrgListStrategy}
-
-      # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
-      rhsm-conduit.org-sync.fileBasedOrgListStrategy.org-resource-location=${ORG_SYNC_RESOURCE_LOCATION:classpath:empty-org-list.txt}
-
-      # Pinhead service default properties
-      rhsm-conduit.pinhead.useStub=${PINHEAD_USE_STUB:false}
-      rhsm-conduit.pinhead.url=${PINHEAD_URL:http://localhost:9090}
-      rhsm-conduit.pinhead.keystore_file=${PINHEAD_KEYSTORE:}
-      rhsm-conduit.pinhead.keystore_password=${PINHEAD_KEYSTORE_PASSWORD:changeit}
-      rhsm-conduit.pinhead.requestBatchSize=${PINHEAD_BATCH_SIZE:1000}
-      rhsm-conduit.pinhead.maxConnections=${PINHEAD_MAX_CONNECTIONS:100}
-
-      # The API key configured by the inventory service.
-      rhsm-conduit.inventory-service.useStub=${INVENTORY_USE_STUB:true}
-      rhsm-conduit.inventory-service.apiKey=${INVENTORY_API_KEY:changeit}
-      rhsm-conduit.inventory-service.host-last-sync-threshold=${INVENTORY_HOST_LAST_SYNC_THRESHOLD:24h}
-      rhsm-conduit.inventory-service.add-uuid-hyphens=${INVENTORY_ADD_UUID_HYPHENS:false}
-      # FIXME: misnamed, it's actually in hours
-      rhsm-conduit.inventory-service.staleHostOffsetInDays=${INVENTORY_STALE_HOST_OFFSET_HOURS:48}
-
-      # Inventory service kafka configuration
-      rhsm-conduit.inventory-service.enableKafka=${INVENTORY_ENABLE_KAFKA:true}
-      rhsm-conduit.inventory-service.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
-      rhsm-conduit.inventory-service.kafkaHostIngressTopic=${INVENTORY_HOST_INGRESS_TOPIC:platform.inventory.host-ingress}
-
-      # Default Quartz datasource.  Override by pulling in another rhsm-conduit.properties file via an
-      # -Dspring.config.additional-location argument
-      rhsm-conduit.datasource.platform=hsqldb
-      rhsm-conduit.datasource.url=jdbc:hsqldb:mem:quartz
-      rhsm-conduit.datasource.driver-class-name=org.hsqldb.jdbc.JDBCDriver
-
-      #
-      # kafka configuration
-      #
-
-      rhsm-conduit.tasks.queue=${TASK_QUEUE_TYPE:in-memory}
-      rhsm-conduit.tasks.task-group=${KAFKA_TASK_GROUP:platform.rhsm-conduit.tasks}
-
-      # Required kafka defaults
-      spring.kafka.consumer.properties.max.poll.records=1
-      spring.kafka.consumer.properties.max.poll.interval.ms=${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:1800000}
-
-      # The number of threads that will be processing messages (should match
-      # the number of partitions on the queue)
-      spring.kafka.listener.concurrency=${KAFKA_MESSAGE_THREADS:1}
-      spring.kafka.bootstrap-servers=${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
-      spring.kafka.consumer.properties.reconnect.backoff.ms=${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:2000}
-      spring.kafka.consumer.properties.reconnect.backoff.max.ms=${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:10000}
-      spring.kafka.consumer.properties.default.api.timeout.ms=${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
-
-      # OrgConfig DB
-      rhsm-subscriptions.datasource.url=jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}
-      rhsm-subscriptions.datasource.username=${DATABASE_USERNAME:rhsm-subscriptions}
-      rhsm-subscriptions.datasource.password=${DATABASE_PASSWORD:rhsm-subscriptions}
-      rhsm-subscriptions.datasource.driver-class-name=org.postgresql.Driver
-      rhsm-subscriptions.datasource.platform=postgresql
-
-- apiVersion: v1
   kind: DeploymentConfig
   metadata:
     name: rhsm-conduit
@@ -136,8 +61,6 @@ objects:
           - image: quay.io/cloudservices/rhsm-conduit:${IMAGE_TAG}
             name: rhsm-conduit
             env:
-              - name: JAVA_OPTIONS
-                value: -Dspring.config.additional-location=file:/config/rhsm-conduit.properties
               - name: JAVA_MAX_MEM_RATIO
                 value: '85'
               - name: GC_MAX_METASPACE_SIZE
