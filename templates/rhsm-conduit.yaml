@@ -147,15 +147,10 @@ objects:
                 name: jolokia
                 protocol: TCP
             volumeMounts:
-              - name: config
-                mountPath: /config
               - name: pinhead
                 mountPath: /pinhead
             workingDir: /
         volumes:
-          - name: config
-            configMap:
-              name: rhsm-conduit-config
           - name: pinhead
             secret:
               secretName: pinhead
