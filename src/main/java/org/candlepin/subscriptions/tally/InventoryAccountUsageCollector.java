@@ -21,10 +21,12 @@
 package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -34,14 +36,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
+
 
 /**
  * Collects the max values from all accounts in the inventory.
@@ -52,33 +56,43 @@ public class InventoryAccountUsageCollector {
     private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
 
     private final FactNormalizer factNormalizer;
-    private final InventoryRepository inventoryRepository;
+    private final InventoryDatabaseOperations inventory;
+    private final HostRepository hostRepository;
     private final int culledOffsetDays;
 
     public InventoryAccountUsageCollector(FactNormalizer factNormalizer,
-        InventoryRepository inventoryRepository, ApplicationProperties props) {
+        InventoryDatabaseOperations inventory, HostRepository hostRepository,
+        ApplicationProperties props) {
         this.factNormalizer = factNormalizer;
-        this.inventoryRepository = inventoryRepository;
+        this.inventory = inventory;
+        this.hostRepository = hostRepository;
         this.culledOffsetDays = props.getCullingOffsetDays();
     }
 
     @SuppressWarnings("squid:S3776")
-    @Transactional(value = "inventoryTransactionManager", readOnly = true)
+    @Transactional
     public Collection<AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
+
+        // Delete all of the host records for the specified accounts before starting the
+        // calculation. Applicable hosts will be recreated as usage is calculated.
+        log.info("Deleting existing Hosts: {}", accounts);
+        int deleted = hostRepository.deleteByAccountNumberIn(accounts);
+        log.info("Deleted {} existing Host records.", deleted);
 
         Map<String, String> hypMapping = new HashMap<>();
         Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
         Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts = new HashMap<>();
-        try (Stream<Object[]> stream = inventoryRepository.getReportedHypervisors(accounts)) {
-            stream.forEach(res -> hypMapping.put((String) res[0], (String) res[1]));
-        }
+        Map<String, Host> hypervisorHosts = new HashMap<>();
+        Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
+
+        inventory.reportedHypervisors(accounts,
+            reported -> hypMapping.put((String) reported[0], (String) reported[1]));
         log.info("Found {} reported hypervisors.", hypMapping.size());
 
         Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
-        try (Stream<InventoryHostFacts> hostFactStream =
-            inventoryRepository.getFacts(accounts, culledOffsetDays)) {
-            hostFactStream.forEach(hostFacts -> {
+        inventory.processHostFacts(accounts, culledOffsetDays,
+            hostFacts -> {
                 String account = hostFacts.getAccount();
 
                 calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
@@ -101,10 +115,16 @@ public class InventoryAccountUsageCollector {
                     accountCalc.setOwner(owner);
                 }
 
+                Host host = new Host(hostFacts, facts);
                 if (facts.isHypervisor()) {
                     Map<String, NormalizedFacts> idToHypervisorMap = accountHypervisorFacts
                         .computeIfAbsent(account, a -> new HashMap<>());
                     idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
+                    hypervisorHosts.put(hostFacts.getSubscriptionManagerId(), host);
+                }
+                else if (facts.isVirtual() && !StringUtils.isEmpty(facts.getHypervisorUuid())) {
+                    Integer guests = hypervisorGuestCounts.getOrDefault(host.getHypervisorUuid(), 0);
+                    hypervisorGuestCounts.put(host.getHypervisorUuid(), ++guests);
                 }
 
                 ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel.ANY};
@@ -124,7 +144,9 @@ public class InventoryAccountUsageCollector {
                                             .computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>());
                                         keys.add(key);
                                     }
-                                    ProductUsageCollectorFactory.get(product).collect(calc, facts);
+                                    Optional<HostTallyBucket> appliedBucket =
+                                        ProductUsageCollectorFactory.get(product).collect(calc, facts);
+                                    appliedBucket.ifPresent(host::addBucket);
                                 }
                                 catch (Exception e) {
                                     log.error("Unable to collect usage data for host: {} product: {}",
@@ -134,12 +156,20 @@ public class InventoryAccountUsageCollector {
                         }
                     }
                 });
-            });
-        }
+
+                // Save the host now that the buckets have been determined. Hypervisor hosts will
+                // be persisted once all potential guests have been processed.
+                if (!facts.isHypervisor()) {
+                    hostRepository.save(host);
+                }
+            }
+        );
 
         accountHypervisorFacts.forEach((account, accountHypervisors) -> {
             AccountUsageCalculation accountCalc = calcsByAccount.get(account);
             accountHypervisors.forEach((hypervisorUuid, hypervisor) -> {
+                Host hypHost = hypervisorHosts.get(hypervisorUuid);
+                hypHost.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
                 Set<UsageCalculation.Key> usageKeys = hypervisorUsageKeys.getOrDefault(hypervisorUuid,
                     Collections.emptySet());
 
@@ -147,10 +177,17 @@ public class InventoryAccountUsageCollector {
                     UsageCalculation usageCalc = getOrCreateCalculation(accountCalc, key);
                     ProductUsageCollector productUsageCollector = ProductUsageCollectorFactory
                         .get(key.getProductId());
-                    productUsageCollector.collectForHypervisor(account, usageCalc, hypervisor);
+                    Optional<HostTallyBucket> appliedBucket =
+                        productUsageCollector.collectForHypervisor(account, usageCalc, hypervisor);
+                    appliedBucket.ifPresent(hypHost::addBucket);
                 });
             });
         });
+
+        if (hypervisorHosts.size() > 0) {
+            log.info("Pesisting {} hypervisor hosts.", hypervisorHosts.size());
+            hostRepository.saveAll(hypervisorHosts.values());
+        }
 
         if (log.isDebugEnabled()) {
             calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));

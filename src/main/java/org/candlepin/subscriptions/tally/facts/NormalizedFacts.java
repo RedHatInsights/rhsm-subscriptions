@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 
@@ -50,6 +51,7 @@ public class NormalizedFacts {
     private boolean isVirtual;
     private boolean isHypervisor;
     private boolean isHypervisorUnknown;
+    private HostHardwareType hardwareType;
     private HardwareMeasurementType cloudProviderType;
 
     public NormalizedFacts() {
@@ -156,6 +158,14 @@ public class NormalizedFacts {
 
     public void setUsage(Usage usage) {
         this.usage = usage;
+    }
+
+    public HostHardwareType getHardwareType() {
+        return hardwareType;
+    }
+
+    public void setHardwareType(HostHardwareType hardwareType) {
+        this.hardwareType = hardwareType;
     }
 
     public Map<String, Object> toInventoryPayload() {

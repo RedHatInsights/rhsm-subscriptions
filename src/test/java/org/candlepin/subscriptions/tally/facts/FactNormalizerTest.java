@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -44,6 +45,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.FileSystemResourceLoader;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -330,6 +332,19 @@ public class FactNormalizerTest {
     }
 
     @Test
+    void testPhysicalNormalization() {
+        InventoryHostFacts hostFacts = createBaseHost("A1", "O1");
+        assertFalse(hostFacts.isVirtual());
+        assertTrue(StringUtils.isEmpty(hostFacts.getHypervisorUuid()));
+        assertTrue(StringUtils.isEmpty(hostFacts.getSatelliteHypervisorUuid()));
+
+        NormalizedFacts normalized = normalizer.normalize(hostFacts, new HashMap<>());
+        assertFalse(normalized.isHypervisor());
+        assertFalse(normalized.isVirtual());
+        assertEquals(HostHardwareType.PHYSICAL, normalized.getHardwareType());
+    }
+
+    @Test
     public void testIsHypervisorNormalization() {
         InventoryHostFacts facts = createHypervisor("A1", "O1", 1, 12, 3);
         assertFalse(facts.isVirtual());
@@ -339,6 +354,7 @@ public class FactNormalizerTest {
 
         NormalizedFacts normalized = normalizer.normalize(facts, mappedHypervisors);
         assertTrue(normalized.isHypervisor());
+        assertEquals(HostHardwareType.HYPERVISOR, normalized.getHardwareType());
         assertFalse(normalized.isVirtual());
     }
 
@@ -360,6 +376,7 @@ public class FactNormalizerTest {
 
         normalized = normalizer.normalize(facts, new HashMap<>());
         assertTrue(normalized.isVirtual());
+        assertEquals(HostHardwareType.VIRTUAL, normalized.getHardwareType());
         assertTrue(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
     }

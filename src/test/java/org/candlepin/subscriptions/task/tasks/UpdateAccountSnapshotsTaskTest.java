@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.task.tasks;
 
 import static org.mockito.BDDMockito.eq;
 
-import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
+import org.candlepin.subscriptions.controller.TallySnapshotController;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,13 +38,13 @@ import java.util.List;
 public class UpdateAccountSnapshotsTaskTest {
 
     @Mock
-    private UsageSnapshotProducer snapshotProducer;
+    private TallySnapshotController snapshotController;
 
     @Test
     public void testExecute() {
         List<String> accounts = Arrays.asList("a1", "a2");
-        UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotProducer, accounts);
+        UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
         task.execute();
-        Mockito.verify(snapshotProducer).produceSnapshotsForAccounts(eq(accounts));
+        Mockito.verify(snapshotController).produceSnapshotsForAccounts(eq(accounts));
     }
 }

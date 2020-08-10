@@ -20,8 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+
+import java.util.Optional;
 
 /**
  * Given a host's facts, collects the usage tally for a product.
@@ -34,8 +37,10 @@ public interface ProductUsageCollector {
      *
      * @param prodCalc the existing calculations for this product.
      * @param normalizedHostFacts the normalized view of the facts from inventory.
+     *
+     * @return HostTallyBucket the bucket representing the counts applied by the specified host
      */
-    void collect(UsageCalculation prodCalc, NormalizedFacts normalizedHostFacts);
+    Optional<HostTallyBucket> collect(UsageCalculation prodCalc, NormalizedFacts normalizedHostFacts);
 
     /**
      * Collect and append usage data based on hypervisor-guest mappings.
@@ -43,6 +48,9 @@ public interface ProductUsageCollector {
      * @param account the account number
      * @param prodCalc which usage key's calculation to update
      * @param hypervisorFacts facts about the hypervisor
+     *
+     * @return HostTallyBucket the bucket representing the counts applied by the specified host
      */
-    void collectForHypervisor(String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts);
+    Optional<HostTallyBucket> collectForHypervisor(String account, UsageCalculation prodCalc,
+        NormalizedFacts hypervisorFacts);
 }

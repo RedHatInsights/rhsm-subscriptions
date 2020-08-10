@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.task;
 
-import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
+import org.candlepin.subscriptions.controller.TallySnapshotController;
 import org.candlepin.subscriptions.task.tasks.UpdateAccountSnapshotsTask;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 public class TaskFactory {
 
     @Autowired
-    private UsageSnapshotProducer usageSnapshotProducer;
+    private TallySnapshotController snapshotController;
 
     /**
      * Builds a Task instance based on the specified TaskDescriptor.
@@ -47,7 +47,7 @@ public class TaskFactory {
      */
     public Task build(TaskDescriptor taskDescriptor) {
         if (TaskType.UPDATE_SNAPSHOTS.equals(taskDescriptor.getTaskType())) {
-            return new UpdateAccountSnapshotsTask(usageSnapshotProducer, taskDescriptor.getArg("accounts"));
+            return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
         }
         throw new IllegalArgumentException("Could not build task. Unknown task type: " +
             taskDescriptor.getTaskType());
