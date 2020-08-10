@@ -413,7 +413,7 @@ paths:
                 $ref: "#/components/schemas/HostReport"
               example:
                 data:
-                  - insights_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+                  - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
                     display_name: rhv.example.com
                     subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
                     cores: 4
@@ -421,7 +421,7 @@ paths:
                     hardware_type: hypervisor
                     number_of_guests: 4
                     last_seen: 2020-01-01T00:00:00Z
-                  - insights_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+                  - inventory_id: 9358e312-1c9f-42f4-8910-dcef6e970852
                     display_name: db.example.com
                     subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
                     cores: 4
@@ -480,11 +480,11 @@ paths:
                 $ref: "#/components/schemas/HypervisorGuestReport"
               example:
                 data:
-                  - insights_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+                  - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
                     display_name: guest01.example.com
                     subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
                     last_seen: 2020-01-01T00:00:00Z
-                  - insights_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+                  - inventory_id: 9358e312-1c9f-42f4-8910-dcef6e970852
                     display_name: guest02.example.com
                     subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
                     last_seen: 2020-01-01T00:00:00Z
@@ -1007,11 +1007,14 @@ components:
             - count
     Host:
       required:
-        - insights_id
+        - inventory_id
         - display_name
         - hardware_type
         - last_seen
       properties:
+        inventory_id:
+          description: The HBI identifier for this host.
+          type: string
         insights_id:
           description: The insights identifier for this host, used as ID on cloud.redhat.com.
           type: string
@@ -1033,6 +1036,9 @@ components:
           minimum: 0
         hardware_type:
           description: What the type of the host is (e.g. hypervisor, physical, etc.).
+          type: string
+        measurement_type:
+          description: What was the applied measurement type (e.g. hypervisor, physical, aws, etc ).
           type: string
         number_of_guests:
           description: Number of guests if this host is a hypervisor.

@@ -34,7 +34,7 @@ class ProductWhitelistTest {
 
     @Test
     void testUnspecifiedLocationAllowsArbitraryProducts() throws IOException {
-        ProductWhitelist whitelist = initProductWhitelist(null);
+        ProductWhitelist whitelist = initProductWhitelist("");
         assertTrue(whitelist.productIdMatches("whee!"));
     }
 

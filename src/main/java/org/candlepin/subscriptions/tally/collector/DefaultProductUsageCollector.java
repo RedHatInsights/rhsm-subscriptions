@@ -20,8 +20,12 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+
+import java.util.Optional;
 
 /**
  * The default product usage collection rules.
@@ -29,29 +33,49 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 public class DefaultProductUsageCollector implements ProductUsageCollector {
 
     @Override
-    public void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
-        int cores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
-        int sockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
+    public Optional<HostTallyBucket> collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
+        int appliedCores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
+        int appliedSockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
 
+        HardwareMeasurementType appliedType = null;
         // Cloud provider hosts only account for a single socket.
         if (normalizedFacts.getCloudProviderType() != null) {
-            prodCalc.addCloudProvider(normalizedFacts.getCloudProviderType(), cores, 1, 1);
+            appliedSockets = 1;
+            appliedType = normalizedFacts.getCloudProviderType();
+            prodCalc.addCloudProvider(normalizedFacts.getCloudProviderType(), appliedCores,
+                appliedSockets, 1);
         }
         // Accumulate for physical systems.
         else if (!normalizedFacts.isVirtual()) {
-            prodCalc.addPhysical(cores, sockets, 1);
+            appliedType = HardwareMeasurementType.PHYSICAL;
+            prodCalc.addPhysical(appliedCores, appliedSockets, 1);
         }
         // Any other system is simply added to the overall total
         else {
-            prodCalc.addToTotal(cores, sockets, 1);
+            appliedType = HardwareMeasurementType.TOTAL;
+            prodCalc.addToTotal(appliedCores, appliedSockets, 1);
         }
+
+        HostTallyBucket appliedBucket = new HostTallyBucket(
+            null,
+            prodCalc.getProductId(),
+            prodCalc.getSla(),
+            prodCalc.getUsage(),
+            true,
+            appliedCores,
+            appliedSockets,
+            appliedType
+        );
+
+        return Optional.of(appliedBucket);
     }
 
     @Override
-    public void collectForHypervisor(String account, UsageCalculation prodCalc,
+    public Optional<HostTallyBucket> collectForHypervisor(String account, UsageCalculation prodCalc,
         NormalizedFacts hypervisorFacts) {
 
         /* do nothing for hypervisor-guest mappings by default */
+        return Optional.empty();
     }
 
 }

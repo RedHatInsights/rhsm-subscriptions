@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.resource;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
@@ -60,6 +61,7 @@ public class HostsResource implements HostsApi {
         this.pageLinkCreator = pageLinkCreator;
     }
 
+
     @Override
     @ReportingAccessRequired
     public HostReport getHosts(String productId, Integer offset,
@@ -68,13 +70,11 @@ public class HostsResource implements HostsApi {
         ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
         Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
         Pageable page = ResourceUtils.getPageable(offset, limit);
-        Page<Host> hosts = repository.getHostsByBucketCriteria(
+        Page<TallyHostView> hosts = repository.getTallyHostViews(
             accountNumber,
             productId,
             sanitizedSla,
             sanitizedUsage,
-            null,
-            false,
             page
         );
 
@@ -95,7 +95,7 @@ public class HostsResource implements HostsApi {
                     .serviceLevel(sla)
                     .usage(usage)
             )
-            .data(hosts.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
+            .data(hosts.getContent().stream().map(TallyHostView::asApiHost).collect(Collectors.toList()));
     }
 
     @Override

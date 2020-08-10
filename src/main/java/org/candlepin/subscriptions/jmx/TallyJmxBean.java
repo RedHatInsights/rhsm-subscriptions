@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.jmx;
 
-import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
+import org.candlepin.subscriptions.controller.TallySnapshotController;
 import org.candlepin.subscriptions.task.TaskManager;
 
 import org.springframework.context.annotation.Profile;
@@ -36,17 +36,17 @@ import org.springframework.stereotype.Component;
 @ManagedResource
 public class TallyJmxBean {
 
-    private final UsageSnapshotProducer snapshotProducer;
+    private final TallySnapshotController snapshotController;
     private final TaskManager tasks;
 
-    public TallyJmxBean(UsageSnapshotProducer snapshotProducer, TaskManager taskManager) {
-        this.snapshotProducer = snapshotProducer;
+    public TallyJmxBean(TallySnapshotController snapshotController, TaskManager taskManager) {
+        this.snapshotController = snapshotController;
         this.tasks = taskManager;
     }
 
     @ManagedOperation(description = "Trigger a tally for an account")
     public void tallyAccount(String accountNumber) {
-        snapshotProducer.produceSnapshotsForAccount(accountNumber);
+        snapshotController.produceSnapshotsForAccount(accountNumber);
     }
 
     @ManagedOperation(description = "Trigger tally for all configured accounts")

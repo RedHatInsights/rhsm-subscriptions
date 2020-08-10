@@ -26,7 +26,9 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
@@ -36,6 +38,7 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -72,6 +75,7 @@ public class InventoryAccountUsageCollectorTest {
 
     @MockBean private BuildProperties buildProperties;
     @MockBean private InventoryRepository inventoryRepo;
+    @MockBean private HostRepository hostRepo;
     @Autowired private InventoryAccountUsageCollector collector;
 
     /**
@@ -513,6 +517,50 @@ public class InventoryAccountUsageCollectorTest {
         checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
         assertNull(calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.PHYSICAL));
+    }
+
+    @Test
+    void testGuestCountIsTrackedOnHost() {
+        List<String> targetAccounts = Arrays.asList("A1");
+
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
+
+        // Guests should not end up in the total since only the hypervisor should be counted.
+        InventoryHostFacts guest1 = createGuest(hypervisor.getSubscriptionManagerId(),
+            "A1", "O1", TEST_PRODUCT_ID, 12, 3);
+
+        InventoryHostFacts guest2 = createGuest(hypervisor.getSubscriptionManagerId(),
+            "A1", "O1", TEST_PRODUCT_ID, 8, 2);
+
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(hypervisor.getSubscriptionManagerId(),
+            hypervisor.getSubscriptionManagerId());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
+            .thenReturn(Stream.of(hypervisor, guest1, guest2));
+
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
+            .stream()
+            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        assertEquals(1, calcs.size());
+        assertThat(calcs, Matchers.hasKey("A1"));
+
+        ArgumentCaptor<Host> guestSaves = ArgumentCaptor.forClass(Host.class);
+        verify(hostRepo, times(2)).save(guestSaves.capture());
+
+        Map<String, Host> savedGuests = guestSaves.getAllValues().stream()
+            .collect(Collectors.toMap(Host::getInventoryId, host -> host));
+        assertEquals(2, savedGuests.size());
+        assertTrue(savedGuests.containsKey(guest1.getInventoryId().toString()));
+        assertTrue(savedGuests.containsKey(guest2.getInventoryId().toString()));
+
+        ArgumentCaptor<Iterable<Host>> hypervisorSaves = ArgumentCaptor.forClass(Iterable.class);
+        verify(hostRepo).saveAll(hypervisorSaves.capture());
+
+        Host savedHypervisor = hypervisorSaves.getValue().iterator().next();
+        assertEquals(hypervisor.getSubscriptionManagerId(), savedHypervisor.getSubscriptionManagerId());
+        assertEquals(2, savedHypervisor.getNumOfGuests().intValue());
     }
 
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,

@@ -46,6 +46,8 @@ import javax.persistence.Table;
         @ConstructorResult(
             targetClass = InventoryHostFacts.class,
             columns = {
+                @ColumnResult(name = "inventory_id", type = UUID.class),
+                @ColumnResult(name = "modified_on", type = OffsetDateTime.class),
                 @ColumnResult(name = "account"),
                 @ColumnResult(name = "display_name"),
                 @ColumnResult(name = "org_id"),
@@ -68,6 +70,7 @@ import javax.persistence.Table;
                 @ColumnResult(name = "satellite_hypervisor_uuid"),
                 @ColumnResult(name = "guest_id"),
                 @ColumnResult(name = "subscription_manager_id"),
+                @ColumnResult(name = "insights_id"),
                 @ColumnResult(name = "cloud_provider"),
                 @ColumnResult(name = "stale_timestamp", type = OffsetDateTime.class)
             }
@@ -79,7 +82,7 @@ import javax.persistence.Table;
  * https://stackoverflow.com/a/28557803/6124862
  */
 @NamedNativeQuery(name = "InventoryHost.getFacts",
-    query = "select h.account, h.display_name, " +
+    query = "select h.id as inventory_id, h.modified_on, h.account, h.display_name, " +
         "h.facts->'rhsm'->>'orgId' as org_id, " +
         "h.facts->'rhsm'->>'CPU_CORES' as cores, " +
         "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
@@ -98,6 +101,7 @@ import javax.persistence.Table;
         "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
         "h.system_profile_facts->>'cloud_provider' as cloud_provider, " +
         "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, " +
+        "h.canonical_facts->>'insights_id' as insights_id, " +
         "rhsm_products.products, " +
         "qpc_prods.qpc_products, " +
         "qpc_certs.qpc_product_ids, " +
