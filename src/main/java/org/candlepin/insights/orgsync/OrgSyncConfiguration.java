@@ -79,7 +79,7 @@ public class OrgSyncConfiguration implements SchedulingConfigurer {
             scheduler.schedule(orgSyncJob, new CronTrigger(cronExpression));
             log.info("OrgSync job scheduled to run at {}", cronExpression);
         }
-        else if (Arrays.binarySearch(environment.getActiveProfiles(), "orgsync") >= 0) {
+        else if (Arrays.asList(environment.getActiveProfiles()).contains("orgsync")) {
             scheduler.schedule(orgSyncJob, Instant.now());
             log.info("OrgSync job scheduled to run now");
         }
