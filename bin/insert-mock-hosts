@@ -25,7 +25,7 @@ def generate_host(insights_id=None, account_number=None, org_id=None, display_na
         'is_guest': is_guest or False,
         'hypervisor_uuid': hypervisor_uuid or None,
         'hardware_type': hardware_type or 'PHYSICAL',
-        'num_of_guests': num_of_guests or 0,
+        'num_of_guests': num_of_guests,
         'last_seen': last_seen or '1993-03-26',
     }
     bucket_fields = {

@@ -41,6 +41,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -279,7 +280,7 @@ class HostRepositoryTest {
         TallyHostView physical = hosts.get(HardwareMeasurementType.PHYSICAL.toString());
         assertEquals(host1.getInventoryId(), physical.getInventoryId());
         assertEquals(host1.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
-        assertEquals(host1.getNumOfGuests().intValue(), physical.getNumberOfGuests());
+        assertEquals(host1.getNumOfGuests(), physical.getNumberOfGuests());
         assertEquals(4, physical.getSockets());
         assertEquals(2, physical.getCores());
 
@@ -287,9 +288,38 @@ class HostRepositoryTest {
         TallyHostView hypervisor = hosts.get(HardwareMeasurementType.HYPERVISOR.toString());
         assertEquals(host1.getInventoryId(), hypervisor.getInventoryId());
         assertEquals(host1.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-        assertEquals(host1.getNumOfGuests().intValue(), hypervisor.getNumberOfGuests());
+        assertEquals(host1.getNumOfGuests(), hypervisor.getNumberOfGuests());
         assertEquals(10, hypervisor.getSockets());
         assertEquals(5, hypervisor.getCores());
+    }
+
+    @Transactional
+    @Test
+    void testNullNumGuests() {
+        Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+        host.setSockets(1);
+        host.setCores(1);
+
+        host.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 4, 2,
+            HardwareMeasurementType.PHYSICAL);
+
+        List<Host> toPersist = Collections.singletonList(host);
+        repo.saveAll(toPersist);
+        repo.flush();
+
+        Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, PageRequest.of(0, 10));
+        Map<String, TallyHostView> hosts = results.getContent().stream()
+            .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
+        assertEquals(1, hosts.size());
+
+        assertTrue(hosts.containsKey(HardwareMeasurementType.PHYSICAL.toString()));
+        TallyHostView physical = hosts.get(HardwareMeasurementType.PHYSICAL.toString());
+        assertEquals(host.getInventoryId(), physical.getInventoryId());
+        assertEquals(host.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
+        assertEquals(null, physical.getNumberOfGuests());
+        assertEquals(4, physical.getSockets());
+        assertEquals(2, physical.getCores());
     }
 
     private Host createHost(String inventoryId, String account) {
