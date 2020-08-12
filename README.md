@@ -134,12 +134,16 @@ Prerequisite secrets:
 - `rhsm-db`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
 - `pinhead`: secret with `keystore.jks` - keystore for HTTPS communication with Pinhead.
 - `tls`: having `keystore.password`, the password used for pinhead keystore.
+- `splunk`: having `splunk.pem` a client cert for splunk integration.
 
 Adjust as desired:
 
 ```
-oc apply -f templates/rhsm-conduit.yaml
-oc new-app --template=rhsm-conduit --param=KAFKA_BOOTSTRAP_HOST=localhost --param=PINHEAD_URL=https://localhost --param=KAFKA_SCHEMA_REGISTRY_HOST=localhost  # deploy an instance of rhsm-conduit using the template
+oc process -f templates/rhsm-conduit.yaml \
+--param=KAFKA_BOOTSTRAP_HOST=localhost \
+--param=PINHEAD_URL=https://localhost \
+--param=IMAGE_TAG=b12510c \
+| oc apply -f -
 ```
 
 ## Deployment Notes
