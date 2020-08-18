@@ -8,13 +8,15 @@ import sys
 output = sys.stdout
 
 
-def generate_host(insights_id=None, account_number=None, org_id=None, display_name=None,
+def generate_host(inventory_id=None, insights_id=None, account_number=None, org_id=None, display_name=None,
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
                   hardware_type=None, num_of_guests=None, last_seen=None, product=None, sla=None, usage=None):
+    inventory_id=inventory_id or uuid.uuid4()
     insights_id=insights_id or uuid.uuid4()
     if not is_guest:
         hypervisor_uuid = None
     host_fields = {
+        'inventory_id': inventory_id,
         'insights_id': insights_id,
         'account_number': account_number or 'account123',
         'org_id': org_id or 'org123',
@@ -29,7 +31,7 @@ def generate_host(insights_id=None, account_number=None, org_id=None, display_na
         'last_seen': last_seen or '1993-03-26',
     }
     bucket_fields = {
-        'host_insights_id': insights_id,
+        'host_inventory_id': inventory_id,
         'product_id': product or 'RHEL',
         'sla': sla or 'Premium',
         'usage': usage or 'Production'
