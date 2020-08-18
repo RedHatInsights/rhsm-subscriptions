@@ -54,7 +54,7 @@ public interface TallyHostView {
     int getSockets();
 
     @Value("#{target.key.host.numOfGuests}")
-    int getNumberOfGuests();
+    Integer getNumberOfGuests();
 
     @Value("#{target.key.host.subscriptionManagerId}")
     String getSubscriptionManagerId();
