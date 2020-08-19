@@ -30,17 +30,12 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         'num_of_guests': num_of_guests,
         'last_seen': last_seen or '1993-03-26',
     }
-    bucket_fields = {
-        'host_inventory_id': inventory_id,
-        'product_id': product or 'RHEL',
-        'sla': sla or 'Premium',
-        'usage': usage or 'Production'
-    }
+
     _generate_insert('hosts', **host_fields)
-    _generate_insert('host_tally_buckets', as_hypervisor=False, **bucket_fields)
+    _generate_buckets(inventory_id, product, sla, usage)
     if hardware_type == 'HYPERVISOR':
-        _generate_insert('host_tally_buckets', as_hypervisor=True, **bucket_fields)
-    return {**host_fields, **bucket_fields}
+        _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=True)
+    return host_fields
 
 
 def db_repr(value):
@@ -59,6 +54,20 @@ def _generate_insert(table, **host_fields):
     values = ','.join(db_repr(value) for value in values)
     output.write(f'insert into {table}({fields}) values ({values});\n')
 
+def _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=False):
+  sla = sla or 'Premium'
+  usage = usage or 'Production'
+  bucket_fields = {
+    'host_inventory_id': inventory_id,
+    'product_id': product or 'RHEL',
+    'as_hypervisor': as_hypervisor
+  }
+  
+  sla_vals = ["_ANY", sla]
+  usage_vals = ["_ANY", usage]
+  for next_sla in sla_vals:
+    for next_usage in usage_vals:
+      _generate_insert("host_tally_buckets", sla=next_sla, usage=next_usage, **bucket_fields)
 
 parser = argparse.ArgumentParser(description='Insert mock hosts into the a local DB')
 parser.add_argument('--db-host',
