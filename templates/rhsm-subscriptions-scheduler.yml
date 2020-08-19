@@ -5,7 +5,7 @@ labels:
   template: rhsm-subscriptions-scheduler
 metadata:
   annotations:
-    description: Request-serving components for Subscription Watch.
+    description: Scheduled tasks for Subscription Watch
   name: rhsm-subscriptions-scheduler
 
 parameters:
@@ -15,160 +15,186 @@ parameters:
     value: INFO
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
-  - name: KAFKA_MESSAGE_THREADS
-    value: '24'
-  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
-    value: '3600000'
+  - name: PURGE_SNAPSHOT_SCHEDULE
+    value: 0 3 * * *
   - name: CAPTURE_SNAPSHOT_SCHEDULE
-    value: 0 0 1 * * ?
+    value: 0 1 * * *
   - name: IMAGE_TAG
     value: latest
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
-    value: 2000Mi
+    value: 1744Mi
   - name: CPU_REQUEST
     value: 500m
   - name: CPU_LIMIT
-    value: '2'
+    value: 1900m
 
 objects:
-  - apiVersion: v1
-    kind: DeploymentConfig
+  - apiVersion: batch/v1beta1
+    kind: CronJob
     metadata:
-      name: rhsm-subscriptions-scheduler
+      name: rhsm-subscriptions-cron-tally
     spec:
-      replicas: 1
-      selector:
-        deploymentconfig: rhsm-subscriptions-scheduler
-      strategy:
-        type: Recreate
-      template:
-        metadata:
-          labels:
-            deploymentconfig: rhsm-subscriptions-scheduler
-            prometheus: rhsm
-          annotations:
-            prometheus.io/path: /actuator/prometheus
-            prometheus.io/port: '8080'
-            prometheus.io/scrape: 'true'
+      schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
+      jobTemplate:
         spec:
-          containers:
-            - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
-              name: rhsm-subscriptions-scheduler
-              env:
-                - name: JAVA_OPTIONS
-                  value: -Dspring.profiles.active=scheduler,worker
-                - name: JAVA_MAX_MEM_RATIO
-                  value: '85'
-                - name: GC_MAX_METASPACE_SIZE
-                  value: '256'
-                - name: LOGGING_LEVEL_ROOT
-                  value: ${LOGGING_LEVEL_ROOT}
-                - name: LOGGING_LEVEL_ORG_CANDLEPIN
-                  value: ${LOGGING_LEVEL}
-                - name: KAFKA_BOOTSTRAP_HOST
-                  value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: KAFKA_MESSAGE_THREADS
-                  value: ${KAFKA_MESSAGE_THREADS}
-                - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
-                  value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
-                - name: CAPTURE_SNAPSHOT_SCHEDULE
-                  value: ${CAPTURE_SNAPSHOT_SCHEDULE}
-                - name: DATABASE_HOST
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.host
-                - name: DATABASE_PORT
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.port
-                - name: DATABASE_USERNAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.user
-                - name: DATABASE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.password
-                - name: DATABASE_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.name
-                - name: INVENTORY_DATABASE_HOST
-                  valueFrom:
-                    secretKeyRef:
-                      name: host-inventory-db-readonly
-                      key: db.host
-                - name: INVENTORY_DATABASE_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      name: host-inventory-db-readonly
-                      key: db.name
-                - name: INVENTORY_DATABASE_USERNAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: host-inventory-db-readonly
-                      key: db.user
-                - name: INVENTORY_DATABASE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: host-inventory-db-readonly
-                      key: db.password
-              livenessProbe:
-                failureThreshold: 3
-                httpGet:
-                  path: /actuator/health
-                  port: 8080
-                  scheme: HTTP
-                initialDelaySeconds: 90
-                periodSeconds: 20
-                successThreshold: 1
-                timeoutSeconds: 3
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
-              ports:
-                - containerPort: 8080
-                  protocol: TCP
-                - containerPort: 8778
-                  name: jolokia
-                  protocol: TCP
-              volumeMounts:
-                - name: config
-                  mountPath: /config
-              workingDir: /
-          volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
-          restartPolicy: Always
-          terminationGracePeriodSeconds: 75
-          imagePullSecrets:
-          - name: quay-cloudservices-pull
-      triggers:
-        - type: ConfigChange
+          activeDeadlineSeconds: 1800
+          template:
+            spec:
+              activeDeadlineSeconds: 1800
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: quay-cloudservices-pull
+              containers:
+                - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+                  name: rhsm-subscriptions-cron-tally
+                  env:
+                    - name: JAVA_OPTIONS
+                      value: -Dspring.profiles.active=capture-snapshots,kafka-queue
+                    - name: JAVA_MAX_MEM_RATIO
+                      value: '85'
+                    - name: GC_MAX_METASPACE_SIZE
+                      value: '256'
+                    - name: LOGGING_LEVEL_ROOT
+                      value: ${LOGGING_LEVEL_ROOT}
+                    - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                      value: ${LOGGING_LEVEL}
+                    - name: KAFKA_BOOTSTRAP_HOST
+                      value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.host
+                    - name: DATABASE_PORT
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.port
+                    - name: DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.user
+                    - name: DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.password
+                    - name: DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.name
+                    - name: INVENTORY_DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.host
+                    - name: INVENTORY_DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.name
+                    - name: INVENTORY_DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.user
+                    - name: INVENTORY_DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.password
+                  resources:
+                    requests:
+                      cpu: ${CPU_REQUEST}
+                      memory: ${MEMORY_REQUEST}
+                    limits:
+                      cpu: ${CPU_LIMIT}
+                      memory: ${MEMORY_LIMIT}
 
-  - apiVersion: v1
-    kind: Service
+  - apiVersion: batch/v1beta1
+    kind: CronJob
     metadata:
-      name: rhsm-subscriptions-scheduler-monitoring
-      labels:
-        prometheus: rhsm
+      name: rhsm-subscriptions-cron-purge
     spec:
-      ports:
-        - port: 8080
-          name: "8080"
-          protocol: TCP
-          targetPort: 8080
-      selector:
-        deploymentconfig: rhsm-subscriptions-scheduler
+      schedule: ${PURGE_SNAPSHOT_SCHEDULE}
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 1800
+          template:
+            spec:
+              activeDeadlineSeconds: 1800
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: quay-cloudservices-pull
+              containers:
+                - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+                  name: rhsm-subscriptions-cron-purge
+                  env:
+                    - name: JAVA_OPTIONS
+                      value: -Dspring.profiles.active=purge-snapshots,kafka-queue
+                    - name: JAVA_MAX_MEM_RATIO
+                      value: '85'
+                    - name: GC_MAX_METASPACE_SIZE
+                      value: '256'
+                    - name: LOGGING_LEVEL_ROOT
+                      value: ${LOGGING_LEVEL_ROOT}
+                    - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                      value: ${LOGGING_LEVEL}
+                    - name: KAFKA_BOOTSTRAP_HOST
+                      value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.host
+                    - name: DATABASE_PORT
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.port
+                    - name: DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.user
+                    - name: DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.password
+                    - name: DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.name
+                    - name: INVENTORY_DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.host
+                    - name: INVENTORY_DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.name
+                    - name: INVENTORY_DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.user
+                    - name: INVENTORY_DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.password
+                  resources:
+                    requests:
+                      cpu: ${CPU_REQUEST}
+                      memory: ${MEMORY_REQUEST}
+                    limits:
+                      cpu: ${CPU_LIMIT}
+                      memory: ${MEMORY_LIMIT}
