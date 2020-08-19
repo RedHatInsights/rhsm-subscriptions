@@ -28,6 +28,8 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.resource.HostsResource;
+import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -225,6 +228,66 @@ class HostRepositoryTest {
         assertEquals(uuid, guests.getContent().get(0).getHypervisorUuid());
         assertEquals("guest", guests.getContent().get(0).getInventoryId());
         assertEquals("INSIGHTS_guest", guests.getContent().get(0).getInsightsId());
+    }
+
+    @Transactional
+    @Test
+    void testCanSortByDisplayName() {
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+
+        assertEquals(1, found.size());
+        assertTallyHostView(found.get(0), "inventory3");
+    }
+
+    @Transactional
+    @Test
+    void testCanSortByCores() {
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+
+        assertEquals(1, found.size());
+        assertTallyHostView(found.get(0), "inventory3");
+    }
+
+    @Transactional
+    @Test
+    void testCanSortBySockets() {
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+
+        assertEquals(1, found.size());
+        assertTallyHostView(found.get(0), "inventory3");
+    }
+
+    @Transactional
+    @Test
+    void testCanSortByLastSeen() {
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+
+        assertEquals(1, found.size());
+        assertTallyHostView(found.get(0), "inventory3");
+    }
+
+    @Transactional
+    @Test
+    void testCanSortByHardwareType() {
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+
+        assertEquals(1, found.size());
+        assertTallyHostView(found.get(0), "inventory3");
     }
 
     @Transactional

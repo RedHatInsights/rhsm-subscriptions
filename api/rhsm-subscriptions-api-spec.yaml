@@ -404,6 +404,16 @@ paths:
           schema:
             type: string
           description: "Include only hosts for the specified usage level."
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/HostReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
       responses:
         '200':
           description: 'The request for hosts was successful.'
@@ -623,6 +633,11 @@ components:
           schema:
             $ref: "#/components/schemas/Errors"
   schemas:
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
     VersionInfo:
       properties:
         build:
@@ -936,6 +951,14 @@ components:
             If there is an infinite quantity subscription involved, there is no meaningful number for
             capacity."
           type: boolean
+    HostReportSort:
+      type: string
+      enum:
+        - display_name
+        - hardware_type
+        - cores
+        - sockets
+        - last_seen
     HostReport:
       properties:
         data:
