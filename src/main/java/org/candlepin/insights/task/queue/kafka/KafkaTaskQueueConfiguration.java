@@ -30,6 +30,7 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
@@ -97,12 +98,14 @@ public class KafkaTaskQueueConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
+    @Profile("worker")
     public ConsumerFactory<String, TaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
+    @Profile("worker")
     KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
         kafkaListenerContainerFactory(ConsumerFactory<String, TaskMessage> consumerFactory,
         KafkaProperties kafkaProperties) {
@@ -121,6 +124,7 @@ public class KafkaTaskQueueConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
+    @Profile("worker")
     public KafkaTaskProcessor taskProcessor(TaskFactory taskFactory) {
         return new KafkaTaskProcessor(taskFactory);
     }
