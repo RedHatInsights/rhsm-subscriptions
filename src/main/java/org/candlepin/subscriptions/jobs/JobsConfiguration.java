@@ -29,7 +29,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -37,7 +36,6 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.scheduling.support.CronTrigger;
 
 import java.time.Instant;
-import java.util.Arrays;
 
 /**
  * A class to hold all job related configuration.
@@ -52,15 +50,12 @@ public class JobsConfiguration implements SchedulingConfigurer {
     private ApplicationProperties applicationProperties;
 
     @Autowired
-    private Environment environment;
-
-    @Autowired
     private JobProperties jobProperties;
 
-    @Autowired
+    @Autowired(required = false)
     private PurgeSnapshotsJob purgeSnapshotsJob;
 
-    @Autowired
+    @Autowired(required = false)
     private CaptureSnapshotsJob captureSnapshotsJob;
 
     @Override
@@ -71,21 +66,25 @@ public class JobsConfiguration implements SchedulingConfigurer {
         // scheduling is managed by openshift.
         if (applicationProperties.isDevMode()) {
             String purgeCronExpression = jobProperties.getPurgeSnapshotSchedule();
-            scheduler.schedule(purgeSnapshotsJob, new CronTrigger(purgeCronExpression));
+            if (purgeSnapshotsJob != null) {
+                scheduler.schedule(purgeSnapshotsJob, new CronTrigger(purgeCronExpression));
+            }
 
             String captureCronExpression = jobProperties.getCaptureSnapshotSchedule();
-            scheduler.schedule(captureSnapshotsJob, new CronTrigger(captureCronExpression));
+            if (captureSnapshotsJob != null) {
+                scheduler.schedule(captureSnapshotsJob, new CronTrigger(captureCronExpression));
+            }
             return;
         }
 
         boolean jobless = true;
-        if (Arrays.asList(environment.getActiveProfiles()).contains("purge-snapshots")) {
+        if (purgeSnapshotsJob != null) {
             scheduler.schedule(purgeSnapshotsJob, Instant.now());
             log.info("Purge Snapshots job scheduled to run now");
             jobless = false;
         }
 
-        if (Arrays.asList(environment.getActiveProfiles()).contains("capture-snapshots")) {
+        if (captureSnapshotsJob != null) {
             scheduler.schedule(captureSnapshotsJob, Instant.now());
             log.info("Capture Snapshots job scheduled to run now");
             jobless = false;

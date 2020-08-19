@@ -27,12 +27,14 @@ import org.candlepin.subscriptions.task.TaskManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
  * A cron job that captures all usage snapshots on a configured schedule.
  */
 @Component
+@Profile("capture-snapshots")
 public class CaptureSnapshotsJob implements Runnable, ApplicationEventPublisherAware {
 
     private TaskManager tasks;

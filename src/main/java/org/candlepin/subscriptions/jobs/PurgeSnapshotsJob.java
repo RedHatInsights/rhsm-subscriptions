@@ -30,12 +30,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
  * A cron job that purges usage snapshots on a configured schedule.
  */
 @Component
+@Profile("purge-snapshots")
 public class PurgeSnapshotsJob implements Runnable, ApplicationEventPublisherAware {
 
     private static final Logger log = LoggerFactory.getLogger(PurgeSnapshotsJob.class);
