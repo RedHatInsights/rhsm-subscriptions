@@ -29,6 +29,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
@@ -80,6 +81,7 @@ public class KafkaTaskQueueConfiguration {
     //
 
     @Bean
+    @DependsOn("poolScheduler") // this ensures the producer can shut down cleanly when used in a job
     @ConditionalOnProperty(prefix = "rhsm-conduit.tasks", name = "queue", havingValue = "kafka")
     public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
         return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
