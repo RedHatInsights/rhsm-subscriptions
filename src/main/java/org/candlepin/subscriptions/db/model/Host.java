@@ -260,7 +260,9 @@ public class Host implements Serializable {
                    .displayName(displayName)
                    .hardwareType(hardwareType.toString())
                    .insightsId(insightsId)
+                   .inventoryId(inventoryId)
                    .subscriptionManagerId(subscriptionManagerId)
+                   .lastSeen(lastSeen)
                    .numberOfGuests(numOfGuests);
     }
 
