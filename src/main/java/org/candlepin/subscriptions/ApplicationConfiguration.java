@@ -49,6 +49,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
@@ -68,6 +69,7 @@ import javax.validation.Validator;
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
 @EnableRetry
 @EnableAspectJAutoProxy
+@EnableScheduling
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-subscriptions.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {

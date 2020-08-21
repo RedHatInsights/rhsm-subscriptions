@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.spring.QueueProfile;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
@@ -29,7 +30,6 @@ import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +45,7 @@ import java.util.stream.Stream;
  * method.
  */
 @Component
-@Profile({"in-memory-queue", "kafka-queue", "worker"})
+@QueueProfile
 public class TaskManager {
     private static final Logger log = LoggerFactory.getLogger(TaskManager.class);
 
