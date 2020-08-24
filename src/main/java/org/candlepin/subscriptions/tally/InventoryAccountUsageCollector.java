@@ -71,7 +71,7 @@ public class InventoryAccountUsageCollector {
 
     @SuppressWarnings("squid:S3776")
     @Transactional
-    public Collection<AccountUsageCalculation> collect(Collection<String> products,
+    public Map<String, AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
 
         // Delete all of the host records for the specified accounts before starting the
@@ -135,7 +135,7 @@ public class InventoryAccountUsageCollector {
                     for (ServiceLevel sla : slas) {
                         for (Usage usage : usages) {
                             UsageCalculation.Key key = new UsageCalculation.Key(product, sla, usage);
-                            UsageCalculation calc = getOrCreateCalculation(accountCalc, key);
+                            UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
                             if (facts.getProducts().contains(product)) {
                                 try {
                                     String hypervisorUuid = facts.getHypervisorUuid();
@@ -174,7 +174,7 @@ public class InventoryAccountUsageCollector {
                     Collections.emptySet());
 
                 usageKeys.forEach(key -> {
-                    UsageCalculation usageCalc = getOrCreateCalculation(accountCalc, key);
+                    UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
                     ProductUsageCollector productUsageCollector = ProductUsageCollectorFactory
                         .get(key.getProductId());
                     Optional<HostTallyBucket> appliedBucket =
@@ -193,17 +193,7 @@ public class InventoryAccountUsageCollector {
             calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
         }
 
-        return calcsByAccount.values();
+        return calcsByAccount;
     }
 
-    private UsageCalculation getOrCreateCalculation(AccountUsageCalculation accountCalc,
-        UsageCalculation.Key key) {
-
-        UsageCalculation calc = accountCalc.getCalculation(key);
-        if (calc == null) {
-            calc = new UsageCalculation(key);
-            accountCalc.addCalculation(calc);
-        }
-        return calc;
-    }
 }

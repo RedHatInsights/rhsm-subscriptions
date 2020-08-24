@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import org.candlepin.insights.rbac.client.RbacApi;
-import org.candlepin.insights.rbac.client.RbacService;
-import org.candlepin.insights.rbac.client.model.Access;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.rbac.RbacApi;
+import org.candlepin.subscriptions.rbac.RbacService;
+import org.candlepin.subscriptions.rbac.model.Access;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;

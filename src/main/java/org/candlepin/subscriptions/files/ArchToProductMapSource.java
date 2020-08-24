@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright (c) 2009 - 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.rbac.client;
+package org.candlepin.subscriptions.files;
+
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
+
+import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
- * Thrown when an error occurs making an RBAC API call.
+ * Loads the product ID to list of Tally products mapping from a YAML file.
  */
-public class RbacApiException extends Exception {
+@Component
+public class ArchToProductMapSource extends YamlFileSource<Map<String, String>> {
 
-    public RbacApiException(String message, Throwable t) {
-        super(message, t);
+    public ArchToProductMapSource(ApplicationProperties properties, ApplicationClock clock) {
+        super(properties.getArchToProductMapResourceLocation(), clock.getClock(),
+            properties.getArchToProductMapCacheTtl());
+    }
+
+    @Override
+    protected Map<String, String> getDefault() {
+        return Collections.emptyMap();
     }
 }

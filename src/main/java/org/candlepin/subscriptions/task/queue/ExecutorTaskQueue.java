@@ -32,6 +32,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.PreDestroy;
+
 /**
  * An TaskQueue implementation that uses an {@link ExecutorService} to queue/execute tasks.
  *
@@ -70,6 +72,11 @@ public class ExecutorTaskQueue implements TaskQueue {
         catch (TaskExecutionException e) {
             log.error("An error occurred running a task.", e);
         }
+    }
+
+    @PreDestroy
+    protected void destroy() throws InterruptedException {
+        shutdown(Integer.MAX_VALUE, TimeUnit.DAYS);
     }
 
     /**

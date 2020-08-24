@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -345,6 +347,25 @@ public class TallyResourceTest {
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable));
+    }
+
+    @Test
+    void testShouldIgnoreHbiAwsWhenCloudigradeAwsPresent() {
+        TallySnapshot snapshot = new TallySnapshot();
+        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
+        hbiMeasurement.setSockets(3);
+        hbiMeasurement.setInstanceCount(3);
+        HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
+        cloudigradeMeasurement.setSockets(7);
+        cloudigradeMeasurement.setInstanceCount(7);
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
+            .asApiSnapshot();
+
+        assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
+        assertEquals(7, apiSnapshot.getCloudSockets().intValue());
     }
 
     @Test

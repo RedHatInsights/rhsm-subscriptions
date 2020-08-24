@@ -21,9 +21,9 @@
 
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.insights.rbac.client.RbacApiException;
-import org.candlepin.insights.rbac.client.RbacService;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.rbac.RbacApiException;
+import org.candlepin.subscriptions.rbac.RbacService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -56,7 +56,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
@@ -121,9 +120,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(nonRhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(nonRhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -149,9 +146,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -176,9 +171,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -200,9 +193,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -225,9 +216,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(host).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -255,9 +244,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(2, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
         assertThat(calcs, Matchers.hasKey("A2"));
@@ -288,9 +275,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(host1, host2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -318,9 +303,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(host1, host2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -349,9 +332,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(2, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
         assertThat(calcs, Matchers.hasKey("A2"));
@@ -378,9 +359,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -431,9 +410,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3, host4).stream());
 
-        Map<String, AccountUsageCalculation> calcs =
-            collector.collect(rhelProducts, targetAccounts).stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(2, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
         assertThat(calcs, Matchers.hasKey("A2"));
@@ -470,9 +447,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -505,9 +480,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor, guest1, guest2).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -540,9 +513,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
-            .stream()
-            .collect(Collectors.toMap(AccountUsageCalculation::getAccount, Function.identity()));
+        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 

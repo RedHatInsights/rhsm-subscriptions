@@ -21,9 +21,9 @@
 
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.insights.rbac.client.RbacService;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.controller.OptInController;
+import org.candlepin.subscriptions.rbac.RbacService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

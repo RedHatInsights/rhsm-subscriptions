@@ -82,6 +82,11 @@ public class ApplicationProperties {
     private String reportingAccountWhitelistResourceLocation;
 
     /**
+     * Resource location of a file containing the map of arch to product.
+     */
+    private String archToProductMapResourceLocation;
+
+    /**
      * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
      * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
      */
@@ -120,6 +125,11 @@ public class ApplicationProperties {
     private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
 
     /**
+     * Amount of time to cache the arch to product map, before allowing a re-read from the filesystem.
+     */
+    private Duration archToProductMapCacheTtl = Duration.ofMinutes(5);
+
+    /**
      * The number of days after the inventory's stale_timestamp that the record will be culled.
      * Currently HBI is calculating this value and setting it on messages. Right now the
      * default is: stale_timestamp + 14 days. Adding this as a configuration setting since
@@ -150,6 +160,16 @@ public class ApplicationProperties {
      * The base path for hawtio. Needed to serve hawtio behind a reverse proxy.
      */
     private String hawtioBasePath;
+
+    /**
+     * Enable or disable cloudigrade integration.
+     */
+    private boolean cloudigradeEnabled = false;
+
+    /**
+     * Number of times to attempt query against cloudigrade for Tally integration.
+     */
+    private int cloudigradeMaxAttempts = 2;
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
@@ -305,5 +325,37 @@ public class ApplicationProperties {
 
     public void setHawtioBasePath(String hawtioBasePath) {
         this.hawtioBasePath = hawtioBasePath;
+    }
+
+    public boolean isCloudigradeEnabled() {
+        return cloudigradeEnabled;
+    }
+
+    public void setCloudigradeEnabled(boolean cloudigradeEnabled) {
+        this.cloudigradeEnabled = cloudigradeEnabled;
+    }
+
+    public String getArchToProductMapResourceLocation() {
+        return archToProductMapResourceLocation;
+    }
+
+    public void setArchToProductMapResourceLocation(String archToProductMapResourceLocation) {
+        this.archToProductMapResourceLocation = archToProductMapResourceLocation;
+    }
+
+    public Duration getArchToProductMapCacheTtl() {
+        return archToProductMapCacheTtl;
+    }
+
+    public void setArchToProductMapCacheTtl(Duration archToProductMapCacheTtl) {
+        this.archToProductMapCacheTtl = archToProductMapCacheTtl;
+    }
+
+    public int getCloudigradeMaxAttempts() {
+        return cloudigradeMaxAttempts;
+    }
+
+    public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
+        this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
     }
 }

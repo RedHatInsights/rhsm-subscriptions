@@ -31,7 +31,8 @@ public enum HardwareMeasurementType {
     PHYSICAL,
     HYPERVISOR,
     TOTAL,
-    AWS,
+    AWS, // AWS measured by HBI data
+    AWS_CLOUDIGRADE, // AWS, measured by cloudigrade
     GOOGLE,
     ALIBABA,
     AZURE;
@@ -51,7 +52,7 @@ public enum HardwareMeasurementType {
     }
 
     public static List<HardwareMeasurementType> getCloudProviderTypes() {
-        return Arrays.asList(AWS, GOOGLE, AZURE, ALIBABA);
+        return Arrays.asList(AWS, AWS_CLOUDIGRADE, GOOGLE, AZURE, ALIBABA);
     }
 }
 

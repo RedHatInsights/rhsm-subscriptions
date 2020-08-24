@@ -20,15 +20,16 @@
  */
 package org.candlepin.subscriptions;
 
-import org.candlepin.insights.rbac.client.RbacApiFactory;
-import org.candlepin.insights.rbac.client.RbacServiceProperties;
+import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.files.FileAccountListSource;
 import org.candlepin.subscriptions.files.FileAccountSyncListSource;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
+import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.DatabaseAccountListSource;
@@ -36,6 +37,7 @@ import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -59,6 +61,8 @@ import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.validation.Validator;
 
@@ -90,14 +94,27 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
+    @Qualifier("rbac")
     @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
-    public RbacServiceProperties rbacServiceProperties() {
-        return new RbacServiceProperties();
+    public HttpClientProperties rbacServiceProperties() {
+        return new HttpClientProperties();
     }
 
     @Bean
-    public RbacApiFactory rbacApiFactory(RbacServiceProperties props) {
+    public RbacApiFactory rbacApiFactory(@Qualifier("rbac") HttpClientProperties props) {
         return new RbacApiFactory(props);
+    }
+
+    @Bean
+    @Qualifier("cloudigrade")
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.cloudigrade")
+    public HttpClientProperties cloudigradeServiceProperties() {
+        return new HttpClientProperties();
+    }
+
+    @Bean
+    public ConcurrentApiFactory concurrentApiFactory(@Qualifier("cloudigrade") HttpClientProperties props) {
+        return new ConcurrentApiFactory(props);
     }
 
     /**
@@ -174,5 +191,28 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         retryTemplate.setRetryPolicy(retryPolicy);
         retryTemplate.setBackOffPolicy(backOffPolicy);
         return retryTemplate;
+    }
+
+    @Bean(name = "cloudigradeRetryTemplate")
+    public RetryTemplate cloudigradeRetryTemplate(ApplicationProperties applicationProperties) {
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(applicationProperties.getCloudigradeMaxAttempts());
+
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        backOffPolicy.setBackOffPeriod(2000L);
+
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setRetryPolicy(retryPolicy);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
+    }
+
+    @Bean(name = "applicableProducts")
+    public Set<String> applicableProducts(ProductIdToProductsMapSource productIdToProductsMapSource,
+        RoleToProductsMapSource roleToProductsMapSource) throws IOException {
+        Set<String> products = new HashSet<>();
+        productIdToProductsMapSource.getValue().values().forEach(products::addAll);
+        roleToProductsMapSource.getValue().values().forEach(products::addAll);
+        return products;
     }
 }

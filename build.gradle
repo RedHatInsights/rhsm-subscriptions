@@ -167,6 +167,7 @@ dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
     compile project(":api")
+    compile project(":cloudigrade-client")
     compile project(":rbac-client")
     compile project(":kafka-schema")
 

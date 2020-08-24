@@ -18,33 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.rbac.client;
+package org.candlepin.subscriptions.rbac;
 
-import org.candlepin.insights.rbac.client.model.Access;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
+import org.candlepin.subscriptions.rbac.model.Access;
+import org.candlepin.subscriptions.rbac.resources.AccessApi;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
- * Provides RBAC functionality.
+ * A wrapper around the RBAC API.
  */
-public class RbacService {
+public class RbacApiImpl implements RbacApi {
 
-    @Autowired
-    private RbacApi api;
+    private AccessApi accessApi;
 
-    public List<String> getPermissions(String rbacAppName) throws RbacApiException {
-        // Get all permissions for the configured application name.
-        try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
-            return accessStream
-                .filter(access -> access != null && !StringUtils.isEmpty(access.getPermission()))
-                .map(Access::getPermission)
-                .collect(Collectors.toList());
-        }
+    public RbacApiImpl(ApiClient client) {
+        accessApi = new AccessApi(client);
     }
 
+    @Override
+    public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
+        try {
+            return accessApi.getPrincipalAccess(applicationName, null, null, null).getData();
+        }
+        catch (ApiException apie) {
+            throw new RbacApiException("Unable to get current user access.", apie);
+        }
+    }
 }
