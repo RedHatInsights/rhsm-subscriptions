@@ -47,6 +47,19 @@
     </appender>
     -->
 
+    <appender name="SplunkAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE:-/tmp/rhsm-conduit.log}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <!-- daily rollover -->
+        <fileNamePattern>${LOG_FILE:-/tmp/rhsm-conduit.log}.%d{yyyy-MM-dd-HH-mm}.log</fileNamePattern>
+        <maxHistory>1</maxHistory>
+        <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %m%n</pattern>
+        </encoder>
+    </appender>
+
     <logger name="org.candlepin" level="INFO"/>
 
     <root level="WARN">
@@ -55,5 +68,6 @@
         <!--<appender-ref ref="ErrorAppender" />-->
         <!-- The intended usage is to activate *both* CloudWatch appender and ConsoleAppender, so we can see logs in both the application console and CloudWatch -->
         <!--<appender-ref ref="CloudWatchAppender" />-->
+        <appender-ref ref="SplunkAppender" />
     </root>
 </configuration>
