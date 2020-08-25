@@ -22,7 +22,7 @@ parameters:
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
     value: '3600000'
   - name: ORG_SYNC_SCHEDULE
-    value: 0 0 0 * * ?
+    value: 0 0 * * *
   - name: REPLICAS
     value: '1'
   - name: IMAGE_TAG
@@ -71,6 +71,8 @@ objects:
           - image: quay.io/cloudservices/rhsm-conduit:${IMAGE_TAG}
             name: rhsm-conduit
             env:
+              - name: JAVA_OPTIONS
+                value: -Dspring.profiles.active=worker
               - name: LOG_FILE
                 value: /logs/server.log
               - name: JAVA_MAX_MEM_RATIO
@@ -85,8 +87,6 @@ objects:
                 value: ${LOGGING_LEVEL}
               - name: PINHEAD_URL
                 value: ${PINHEAD_URL}
-              - name: ORG_SYNC_SCHEDULE
-                value: ${ORG_SYNC_SCHEDULE}
               - name: KAFKA_BOOTSTRAP_HOST
                 value: ${KAFKA_BOOTSTRAP_HOST}
               - name: KAFKA_MESSAGE_THREADS
@@ -218,3 +218,69 @@ objects:
         targetPort: 8080
     selector:
       deploymentconfig: rhsm-conduit
+
+- apiVersion: batch/v1beta1
+  kind: CronJob
+  metadata:
+    name: rhsm-conduit-cron-sync
+  spec:
+    schedule: ${ORG_SYNC_SCHEDULE}
+    jobTemplate:
+      spec:
+        activeDeadlineSeconds: 1800
+        template:
+          spec:
+            activeDeadlineSeconds: 1800
+            restartPolicy: Never
+            imagePullSecrets:
+              - name: quay-cloudservices-pull
+            containers:
+              - image: quay.io/cloudservices/rhsm-conduit:${IMAGE_TAG}
+                name: rhsm-conduit-cron-sync
+                env:
+                - name: JAVA_OPTIONS
+                  value: -Dspring.profiles.active=orgsync
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: TASK_QUEUE_TYPE
+                  value: kafka
+                - name: LOGGING_LEVEL_ROOT
+                  value: ${LOGGING_LEVEL_ROOT}
+                - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                  value: ${LOGGING_LEVEL}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.name
+                resources:
+                  requests:
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
+                  limits:
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}
