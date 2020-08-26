@@ -34,6 +34,7 @@ import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.candlepin.subscriptions.utilization.api.resources.HostsApi;
 
 import com.google.common.collect.ImmutableMap;
@@ -77,9 +78,8 @@ public class HostsResource implements HostsApi {
 
     @Override
     @ReportingAccessRequired
-    public HostReport getHosts(String productId, Integer offset,
-        @Min(1) Integer limit, String sla, String usage,
-        HostReportSort sort, SortDirection dir) {
+    public HostReport getHosts(String productId, Integer offset, @Min(1) Integer limit, String sla,
+        String usage, Uom uom, HostReportSort sort, SortDirection dir) {
 
         Sort sortValue = Sort.unsorted();
         Sort.Direction dirValue = Sort.Direction.ASC;
@@ -91,6 +91,15 @@ public class HostsResource implements HostsApi {
             sortValue = Sort.by(dirValue, SORT_PARAM_MAPPING.get(sort));
         }
 
+        int minCores = 0;
+        int minSockets = 0;
+        if (uom == Uom.CORES) {
+            minCores = 1;
+        }
+        else if (uom == Uom.SOCKETS) {
+            minSockets = 1;
+        }
+
         String accountNumber = ResourceUtils.getAccountNumber();
         ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
         Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
@@ -100,6 +109,8 @@ public class HostsResource implements HostsApi {
             productId,
             sanitizedSla,
             sanitizedUsage,
+            minCores,
+            minSockets,
             page
         );
 
@@ -119,6 +130,7 @@ public class HostsResource implements HostsApi {
                     .product(productId)
                     .serviceLevel(sla)
                     .usage(usage)
+                    .uom(uom)
             )
             .data(hosts.getContent().stream().map(TallyHostView::asApiHost).collect(Collectors.toList()));
     }

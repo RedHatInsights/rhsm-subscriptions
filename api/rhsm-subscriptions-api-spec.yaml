@@ -404,6 +404,11 @@ paths:
           schema:
             type: string
           description: "Include only hosts for the specified usage level."
+        - name: uom
+          in: query
+          schema:
+            $ref: '#/components/schemas/Uom'
+          description: "Filter hosts to those that contribute to a specific unit of measure"
         - name: sort
           in: query
           schema:
@@ -633,6 +638,11 @@ components:
           schema:
             $ref: "#/components/schemas/Errors"
   schemas:
+    Uom:
+      type: string
+      enum:
+        - cores
+        - sockets
     SortDirection:
       type: string
       enum:
@@ -990,6 +1000,8 @@ components:
               description: "Describes the usages that the report was made against. Not set if it wasn't
                    specified as a query parameter."
               type: string
+            uom:
+              $ref: '#/components/schemas/Uom'
           required:
             - count
             - product

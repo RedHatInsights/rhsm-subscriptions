@@ -147,7 +147,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenAccountIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account1", RHEL, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10));
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -158,7 +158,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenProductIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", COOL_PROD, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10));
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -169,7 +169,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenSLAIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", RHEL, ServiceLevel.SELF_SUPPORT,
-            Usage.PRODUCTION, PageRequest.of(0, 10));
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -180,7 +180,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenUsageIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", RHEL, ServiceLevel.SELF_SUPPORT,
-            Usage.DISASTER_RECOVERY, PageRequest.of(0, 10));
+            Usage.DISASTER_RECOVERY, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -195,7 +195,7 @@ class HostRepositoryTest {
         assertEquals("account3", existing.get().getAccountNumber());
 
         // When a host has no buckets, it will not be returned.
-        Page<TallyHostView> hosts = repo.getTallyHostViews("account4", null, null, null,
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account4", null, null, null, 0, 0,
             PageRequest.of(0, 10));
         assertEquals(0, hosts.stream().count());
     }
@@ -234,7 +234,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByDisplayName() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -246,7 +246,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByCores() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -258,7 +258,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortBySockets() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -270,7 +270,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByLastSeen() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -282,7 +282,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByHardwareType() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -334,7 +334,7 @@ class HostRepositoryTest {
         repo.flush();
 
         Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10));
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10));
         Map<String, TallyHostView> hosts = results.getContent().stream()
             .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
         assertEquals(2, hosts.size());
@@ -371,7 +371,7 @@ class HostRepositoryTest {
         repo.flush();
 
         Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, PageRequest.of(0, 10));
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10));
         Map<String, TallyHostView> hosts = results.getContent().stream()
             .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
         assertEquals(1, hosts.size());
@@ -383,6 +383,72 @@ class HostRepositoryTest {
         assertEquals(null, physical.getNumberOfGuests());
         assertEquals(4, physical.getSockets());
         assertEquals(2, physical.getCores());
+    }
+
+    @Transactional
+    @Test
+    void testShouldFilterSockets() {
+        Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+        coreHost.setSockets(0);
+        coreHost.setCores(1);
+        coreHost.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 0, 1,
+            HardwareMeasurementType.PHYSICAL);
+
+        Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
+        socketHost.setSockets(1);
+        socketHost.setCores(0);
+        socketHost.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 1, 0,
+            HardwareMeasurementType.PHYSICAL);
+
+        List<Host> toPersist = Arrays.asList(coreHost, socketHost);
+        repo.saveAll(toPersist);
+        repo.flush();
+
+        Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, 0, 1, PageRequest.of(0, 10));
+        Map<String, TallyHostView> hosts = results.getContent().stream()
+            .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
+        assertEquals(1, hosts.size());
+
+        assertTrue(hosts.containsKey(HardwareMeasurementType.PHYSICAL.toString()));
+        TallyHostView physical = hosts.get(HardwareMeasurementType.PHYSICAL.toString());
+        assertEquals(socketHost.getInventoryId(), physical.getInventoryId());
+        assertEquals(socketHost.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
+        assertEquals(1, physical.getSockets());
+        assertEquals(0, physical.getCores());
+    }
+
+    @Transactional
+    @Test
+    void testShouldFilterCores() {
+        Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+        coreHost.setSockets(0);
+        coreHost.setCores(1);
+        coreHost.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 0, 1,
+            HardwareMeasurementType.PHYSICAL);
+
+        Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
+        socketHost.setSockets(1);
+        socketHost.setCores(0);
+        socketHost.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 1, 0,
+            HardwareMeasurementType.PHYSICAL);
+
+        List<Host> toPersist = Arrays.asList(coreHost, socketHost);
+        repo.saveAll(toPersist);
+        repo.flush();
+
+        Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, 1, 0, PageRequest.of(0, 10));
+        Map<String, TallyHostView> hosts = results.getContent().stream()
+            .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
+        assertEquals(1, hosts.size());
+
+        assertTrue(hosts.containsKey(HardwareMeasurementType.PHYSICAL.toString()));
+        TallyHostView physical = hosts.get(HardwareMeasurementType.PHYSICAL.toString());
+        assertEquals(coreHost.getInventoryId(), physical.getInventoryId());
+        assertEquals(coreHost.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
+        assertEquals(0, physical.getSockets());
+        assertEquals(1, physical.getCores());
     }
 
     private Host createHost(String inventoryId, String account) {
