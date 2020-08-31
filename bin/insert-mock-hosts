@@ -22,8 +22,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         'org_id': org_id or 'org123',
         'display_name': display_name or insights_id,
         'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
-        'cores': cores or 4,
-        'sockets': sockets or 1,
+        'cores': cores,
+        'sockets': sockets,
         'is_guest': is_guest or False,
         'hypervisor_uuid': hypervisor_uuid or None,
         'hardware_type': hardware_type or 'PHYSICAL',
@@ -32,9 +32,9 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
     }
 
     _generate_insert('hosts', **host_fields)
-    _generate_buckets(inventory_id, product, sla, usage)
+    _generate_buckets(inventory_id, product, sla, usage, cores=cores, sockets=sockets, measurement_type=hardware_type)
     if hardware_type == 'HYPERVISOR':
-        _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=True)
+        _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=True, cores=cores, sockets=sockets, measurement_type=hardware_type)
     return host_fields
 
 
@@ -54,13 +54,16 @@ def _generate_insert(table, **host_fields):
     values = ','.join(db_repr(value) for value in values)
     output.write(f'insert into {table}({fields}) values ({values});\n')
 
-def _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=False):
+def _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None, sockets=None):
   sla = sla or 'Premium'
   usage = usage or 'Production'
   bucket_fields = {
     'host_inventory_id': inventory_id,
     'product_id': product or 'RHEL',
-    'as_hypervisor': as_hypervisor
+    'as_hypervisor': as_hypervisor,
+    'measurement_type': measurement_type,
+    'cores': cores,
+    'sockets': sockets,
   }
   
   sla_vals = ["_ANY", sla]
@@ -104,6 +107,10 @@ parser.add_argument('--sla',
                     help='Set the sla for the inserted hosts')
 parser.add_argument('--usage',
                     help='Set the usage for the inserted hosts')
+parser.add_argument('--cores', default=4,
+                    help='Set the cores for the inserted hosts')
+parser.add_argument('--sockets', default=1,
+                    help='Set the sockets for the inserted hosts')
 parser.add_argument('--output-sql', action='store_true')
 
 args = parser.parse_args()
@@ -119,12 +126,12 @@ if not args.output_sql:
 
 for i in range(args.num_physical):
     generate_host(account_number=args.account, hardware_type='PHYSICAL', product=args.product, sla=args.sla,
-                  usage=args.usage)
+                  usage=args.usage, cores=args.cores, sockets=args.sockets)
 
 hypervisor = None
 for i in range(args.num_hypervisors):
     hypervisor = generate_host(account_number=args.account, hardware_type='HYPERVISOR', product=args.product,
-                               sla=args.sla, usage=args.usage)
+                               sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets)
 for i in range(args.num_guests):
     if args.hypervisor_id:
         hypervisor_uuid = args.hypervisor_id
@@ -133,7 +140,7 @@ for i in range(args.num_guests):
     else:
         hypervisor_uuid = None
     generate_host(account_number=args.account, hardware_type='HYPERVISOR', is_guest=True,
-                  product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid)
+                  product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid, cores=args.cores, sockets=args.sockets)
 
 if psql:
     psql.stdin.close()

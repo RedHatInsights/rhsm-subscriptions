@@ -49,6 +49,9 @@ public interface HostRepository extends JpaRepository<Host, String> {
      * @param accountNumber The account number of the hosts to query (required).
      * @param productId The bucket product ID to filter Host by (pass null to ignore).
      * @param sla The bucket service level to filter Hosts by (pass null to ignore).
+     * @param usage The bucket usage to filter Hosts by (pass null to ignore).
+     * @param minCores Filter to Hosts with at least this number of cores.
+     * @param minSockets Filter to Hosts with at least this number of sockets.
      * @param pageable the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
@@ -56,20 +59,25 @@ public interface HostRepository extends JpaRepository<Host, String> {
         value = "select b from HostTallyBucket b join fetch b.key.host h where " +
                 "h.accountNumber = :account and " +
                 "b.key.productId = :product and " +
-                "b.key.sla = :sla and b.key.usage = :usage",
+                "b.key.sla = :sla and b.key.usage = :usage and " +
+                "b.cores >= :minCores and b.sockets >= :minSockets",
         // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
         // we need to specify how the Page should gets its count when the 'limit' parameter
         // is used.
         countQuery = "select count(b) from HostTallyBucket b join b.key.host h where " +
                      "h.accountNumber = :account and " +
                      "b.key.productId = :product and " +
-                     "b.key.sla = :sla and b.key.usage = :usage"
+                     "b.key.sla = :sla and b.key.usage = :usage and " +
+                     "b.cores >= :minCores and b.sockets >= :minSockets"
+
     )
     Page<TallyHostView> getTallyHostViews(
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
         @Param("usage") Usage usage,
+        @Param("minCores") int minCores,
+        @Param("minSockets") int minSockets,
         Pageable pageable
     );
 
