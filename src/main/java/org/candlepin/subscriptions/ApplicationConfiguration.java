@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions;
 
-import org.candlepin.insights.inventory.client.HostsApiFactory;
-import org.candlepin.insights.inventory.client.InventoryServiceProperties;
 import org.candlepin.insights.rbac.client.RbacApiFactory;
 import org.candlepin.insights.rbac.client.RbacServiceProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -81,12 +79,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service")
-    public InventoryServiceProperties inventoryServiceProperties() {
-        return new InventoryServiceProperties();
-    }
-
-    @Bean
     public ApplicationClock applicationClock() {
         return new ApplicationClock();
     }
@@ -95,11 +87,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     public TallyRetentionPolicy tallyRetentionPolicy(ApplicationProperties applicationProperties,
         ApplicationClock applicationClock) {
         return new TallyRetentionPolicy(applicationClock, applicationProperties.getTallyRetentionPolicy());
-    }
-
-    @Bean
-    public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
-        return new HostsApiFactory(properties);
     }
 
     @Bean
