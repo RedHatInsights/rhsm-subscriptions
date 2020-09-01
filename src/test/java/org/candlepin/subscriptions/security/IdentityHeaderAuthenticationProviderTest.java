@@ -23,16 +23,21 @@ package org.candlepin.subscriptions.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.test.context.TestPropertySource;
 
+import java.util.Collections;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -41,7 +46,11 @@ class IdentityHeaderAuthenticationProviderTest {
     @MockBean
     PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
-    private IdentityHeaderAuthenticationProvider manager = new IdentityHeaderAuthenticationProvider();
+    @MockBean
+    IdentityHeaderAuthenticationDetailsService detailsService;
+
+    @Autowired
+    AuthenticationProvider manager;
 
     @Test
     void testMissingOrgId() {
@@ -61,6 +70,8 @@ class IdentityHeaderAuthenticationProviderTest {
 
     @Test
     void validPrincipalIsAuthenticated() {
+        when(detailsService.loadUserDetails(any())).thenReturn(new User("N/A", "N/A",
+            Collections.emptyList()));
         Authentication result = manager.authenticate(token("123", "acct"));
         assertTrue(result.isAuthenticated());
     }

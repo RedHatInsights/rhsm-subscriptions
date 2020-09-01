@@ -29,7 +29,7 @@ import org.springframework.core.Ordered;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.GrantedAuthoritiesContainer;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
@@ -52,6 +52,13 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
 
     private int order = -1; // default: same as non-ordered
 
+    private final IdentityHeaderAuthenticationDetailsService userDetailsService;
+
+    public IdentityHeaderAuthenticationProvider(
+        IdentityHeaderAuthenticationDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
+
     /**
      * Validates the incoming principal that was extracted from the x-rh-identity header by
      * the {@link IdentityHeaderAuthenticationFilter}. The principal is considered authenticated
@@ -63,16 +70,32 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
      */
     @Override
     public Authentication authenticate(Authentication authentication) {
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) authentication.getPrincipal();
-
         if (!supports(authentication.getClass())) {
             return null;
         }
 
         log.debug("PreAuthenticated authentication request: {}", authentication);
 
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof InsightsUserPrincipal) {
+            validateUserPrincipal(authentication, (InsightsUserPrincipal) principal);
+        }
+
+        // load roles from the header and/or RBAC
+        UserDetails userDetails = userDetailsService.loadUserDetails(authentication);
+
+        PreAuthenticatedAuthenticationToken result = new PreAuthenticatedAuthenticationToken(
+            principal, authentication.getCredentials(), userDetails.getAuthorities());
+        result.setAuthenticated(true);  // this is actually done in the constructor but explicit is good
+        result.setDetails(authentication.getDetails());
+
+        return result;
+    }
+
+    private void validateUserPrincipal(Authentication authentication, InsightsUserPrincipal principal) {
         try {
-            Assert.notNull(authentication.getPrincipal(), "No pre-authenticated principal found in request.");
+            Assert.notNull(authentication.getPrincipal(),
+                "No pre-authenticated principal found in request.");
             Assert.hasText(principal.getOwnerId(),
                 RH_IDENTITY_HEADER + " contains no owner ID for the principal");
             Assert.hasText(principal.getAccountNumber(),
@@ -80,26 +103,9 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
             Assert.notNull(authentication.getDetails(), RH_IDENTITY_HEADER + "contains no roles");
         }
         catch (IllegalArgumentException e) {
-            throw new PreAuthenticatedCredentialsNotFoundException(RH_IDENTITY_HEADER + " is missing " +
-                "required data", e);
+            throw new PreAuthenticatedCredentialsNotFoundException(
+                RH_IDENTITY_HEADER + " is missing " + "required data", e);
         }
-
-        /* NB: normally this is where we would call out to an implementation of
-         * AuthenticationUserDetailsService to load a UserDetails object from the Authentication.
-         * The PreAuthenticatedGrantedAuthoritiesUserDetailsService class for example.  We are not doing
-         * that here.  The UserDetails interface contains a lot of methods that aren't applicable to us
-         * such as isAccountNonExpired() or isCredentialsNonExpired().  Instead, we reuse the
-         * InsightsUserPrincipal which does not implement UserDetails.  In the future, we may wish to
-         * implement a UserDetailsService that can populate a UserDetails object with information like
-         * whether the user has opted-in or not. */
-        GrantedAuthoritiesContainer details = (GrantedAuthoritiesContainer) authentication.getDetails();
-
-        PreAuthenticatedAuthenticationToken result = new PreAuthenticatedAuthenticationToken(
-            principal, authentication.getCredentials(), details.getGrantedAuthorities());
-        result.setAuthenticated(true);  // this is actually done in the constructor but explicit is good
-        result.setDetails(authentication.getDetails());
-
-        return result;
     }
 
     @Override

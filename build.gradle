@@ -194,7 +194,6 @@ dependencies {
     compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
 
-
     testCompile "org.springframework.security:spring-security-test"
     testCompile "org.springframework.kafka:spring-kafka-test"
 
@@ -203,6 +202,7 @@ dependencies {
     }
 
     runtime "org.hsqldb:hsqldb"
+    runtime "org.jolokia:jolokia-core"
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
 }
 

@@ -27,36 +27,34 @@ import org.candlepin.subscriptions.ApplicationProperties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.mapping.Attributes2GrantedAuthoritiesMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
+import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 /**
  * Class in charge of populating the security context with the users roles based on the values in the
  * x-rh-identity header.
  */
-public class IdentityHeaderAuthenticationDetailsSource implements
-    AuthenticationDetailsSource<HttpServletRequest,
-    PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails> {
+public class IdentityHeaderAuthenticationDetailsService implements
+    AuthenticationUserDetailsService<Authentication> {
 
     private static final Logger log =
-        LoggerFactory.getLogger(IdentityHeaderAuthenticationDetailsSource.class);
+        LoggerFactory.getLogger(IdentityHeaderAuthenticationDetailsService.class);
 
     private Attributes2GrantedAuthoritiesMapper authMapper;
     private ApplicationProperties props;
     private RoleProvider roleProvider;
     private RbacService rbacController;
 
-    public IdentityHeaderAuthenticationDetailsSource(ApplicationProperties props,
+    public IdentityHeaderAuthenticationDetailsService(ApplicationProperties props,
         Attributes2GrantedAuthoritiesMapper authMapper, RbacService rbacController) {
         this.authMapper = authMapper;
         this.props = props;
@@ -73,21 +71,26 @@ public class IdentityHeaderAuthenticationDetailsSource implements
     }
 
     @Override
-    public PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails buildDetails(
-        HttpServletRequest context) {
+    public UserDetails loadUserDetails(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null) {
             // We've already populated the roles if the auth has been set in the context.
-            return (PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails) auth.getDetails();
+            return (UserDetails) auth.getDetails();
         }
-
-        Collection<String> userRoles = getUserRoles();
+        Collection<String> userRoles;
+        if (principal instanceof InsightsUserPrincipal) {
+            userRoles = getUserRoles();
+        }
+        else {
+            userRoles = Collections.singleton("RH_INTERNAL");
+        }
         Collection<? extends GrantedAuthority> userGAs = authMapper.getGrantedAuthorities(userRoles);
 
         log.debug("Roles {} mapped to Granted Authorities: {}", userRoles, userGAs);
 
-        return new PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails(context, userGAs);
+        return new User("N/A", "N/A", userGAs);
     }
 
     public void setUserRoles2GrantedAuthoritiesMapper(

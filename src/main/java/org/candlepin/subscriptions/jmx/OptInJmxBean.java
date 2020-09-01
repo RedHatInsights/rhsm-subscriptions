@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -58,6 +59,8 @@ public class OptInJmxBean {
     @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
     @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
     public void optOut(String accountNumber, String orgId) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        log.info("Opt out for {} triggered via JMX by {}", accountNumber, principal);
         controller.optOut(accountNumber, orgId);
     }
 
@@ -69,6 +72,8 @@ public class OptInJmxBean {
     @ManagedOperationParameter(name = "enableConduitSync", description = "Turn on Conduit syncing")
     public String createOrUpdateOptInConfig(String accountNumber, String orgId, boolean enableTallySync,
         boolean enableTallyReporting, boolean enableConduitSync) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        log.info("Opt in for account {}, org {} triggered via JMX by {}", accountNumber, orgId, principal);
         log.debug("Creating OptInConfig over JMX for account {}, org {}", accountNumber, orgId);
         OptInConfig config = controller.optIn(accountNumber, orgId, OptInType.JMX, enableTallySync,
             enableTallyReporting, enableConduitSync);

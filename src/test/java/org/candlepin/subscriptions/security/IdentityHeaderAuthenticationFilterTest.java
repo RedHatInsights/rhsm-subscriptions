@@ -60,13 +60,15 @@ public class IdentityHeaderAuthenticationFilterTest {
     }
 
     @Test
-    public void missingIdentityResultsInEmptyOrgAndAccount() {
+    public void missingIdentityResultsInNullOrgAndAccount() {
         // {}
         String emptyJson = Base64.getEncoder().encodeToString("{}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(emptyJson);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
-        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "", "");
+        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), null, null);
     }
+
+
 
     @Test
     public void testMissingInternalProperty() {
@@ -74,26 +76,50 @@ public class IdentityHeaderAuthenticationFilterTest {
             "{\"identity\":{\"account_number\":\"myaccount\"}}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingInternal);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
-        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", "");
+        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", null);
     }
 
     @Test
-    public void missingOrgInHeaderResultsInEmptyValueInPrincipal() {
+    void missingOrgInHeaderResultsInNullValueInPrincipal() {
         String missingOrgId = Base64.getEncoder().encodeToString(
-            "{\"identity\":{\"account_number\":\"myaccount\", \"internal\":{\"org_id\":\"\"}}}".getBytes());
+            "{\"identity\":{\"account_number\":\"myaccount\", \"internal\":{}}}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingOrgId);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
-        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", "");
+        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", null);
     }
 
     @Test
-    public void missingAccountInHeaderResultsInEmptyValueInPrincipal() {
+    void missingAccountInHeaderResultsInNullValueInPrincipal() {
         //
         String missingAccount = Base64.getEncoder().encodeToString(
             "{\"identity\":{\"internal\":{\"org_id\":\"myorg\"}}}".getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingAccount);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
-        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "", "myorg");
+        assertPrincipal(filter.getPreAuthenticatedPrincipal(request), null, "myorg");
+    }
+
+    @Test
+    void testRhAssociateHeader() {
+        String associate = Base64.getEncoder().encodeToString((
+            "{\"identity\":{\"associate\":{\"urn:oid:0.9.2342.19200300.100.1.3\":\"test@example.com\"}," +
+            "\"auth_type\":\"saml-auth\",\"type\": \"Associate\"}}").getBytes());
+        when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(associate);
+        IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+        Object principal = filter.getPreAuthenticatedPrincipal(request);
+        assertTrue(principal instanceof RhAssociatePrincipal);
+        assertEquals("test@example.com", ((RhAssociatePrincipal) principal).getEmail());
+    }
+
+    @Test
+    void testX509Header() {
+        String associate = Base64.getEncoder().encodeToString((
+            "{\"identity\":{\"auth_type\":\"x509\",\"type\":\"X509\",\"x509\":{\"subject_dn\":" +
+            "\"CN=test.example.com\"}}}").getBytes());
+        when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(associate);
+        IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+        Object principal = filter.getPreAuthenticatedPrincipal(request);
+        assertTrue(principal instanceof X509Principal);
+        assertEquals("CN=test.example.com", ((X509Principal) principal).getSubjectDn());
     }
 
     private void assertPrincipal(Object preAuthPrincipal, String expAccountNumber, String expOrgId) {
