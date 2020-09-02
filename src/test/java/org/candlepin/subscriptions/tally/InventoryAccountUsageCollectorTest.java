@@ -55,11 +55,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.Stream.Builder;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -118,8 +115,8 @@ public class InventoryAccountUsageCollectorTest {
             hypervisor.getSubscriptionManagerId());
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Arrays.asList(hypervisor).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(nonRhelProducts, targetAccounts)
             .stream()
@@ -146,8 +143,8 @@ public class InventoryAccountUsageCollectorTest {
             hypervisor.getSubscriptionManagerId());
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Arrays.asList(hypervisor).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -174,7 +171,8 @@ public class InventoryAccountUsageCollectorTest {
         expectedHypervisorMap.put(guest.getHypervisorUuid(), guest.getHypervisorUuid());
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Collections.singletonList(guest));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -198,7 +196,8 @@ public class InventoryAccountUsageCollectorTest {
         expectedHypervisorMap.put(guest.getHypervisorUuid(), null);
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Collections.singletonList(guest));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -223,7 +222,8 @@ public class InventoryAccountUsageCollectorTest {
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(host).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Collections.singletonList(host));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -252,8 +252,8 @@ public class InventoryAccountUsageCollectorTest {
             OffsetDateTime.now());
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Arrays.asList(host1, host2, host3).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(host1, host2, host3));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -285,8 +285,8 @@ public class InventoryAccountUsageCollectorTest {
             OffsetDateTime.now());
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Stream.of(host1, host2));
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(host1, host2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -315,8 +315,8 @@ public class InventoryAccountUsageCollectorTest {
             OffsetDateTime.now());
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Stream.of(host1, host2));
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(host1, host2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -346,8 +346,8 @@ public class InventoryAccountUsageCollectorTest {
             createSystemProfileHost("A2", "O2", Arrays.asList(TEST_PRODUCT_ID), 2, 6, OffsetDateTime.now());
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Arrays.asList(host1, host2, host3).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(host1, host2, host3));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -376,7 +376,8 @@ public class InventoryAccountUsageCollectorTest {
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(h1, h2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -400,7 +401,8 @@ public class InventoryAccountUsageCollectorTest {
             createRhsmHost("A1", "Owner2", Arrays.asList(TEST_PRODUCT_ID), 1, 2, "", OffsetDateTime.now());
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(h1, h2));
 
         Throwable e = assertThrows(IllegalStateException.class,
             () -> collector.collect(rhelProducts, targetAccounts));
@@ -428,8 +430,8 @@ public class InventoryAccountUsageCollectorTest {
         expectedHypervisorMap.put(host4.getSubscriptionManagerId(), null);
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Arrays.asList(host1, host2, host3, host4).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(host1, host2, host3, host4));
 
         Map<String, AccountUsageCalculation> calcs =
             collector.collect(rhelProducts, targetAccounts).stream()
@@ -467,8 +469,8 @@ public class InventoryAccountUsageCollectorTest {
             hypervisor.getSubscriptionManagerId());
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Stream.of(hypervisor, guest1, guest2));
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor, guest1, guest2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -502,8 +504,8 @@ public class InventoryAccountUsageCollectorTest {
             hypervisor.getSubscriptionManagerId());
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Arrays.asList(hypervisor, guest1, guest2).stream());
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor, guest1, guest2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -537,8 +539,8 @@ public class InventoryAccountUsageCollectorTest {
             hypervisor.getSubscriptionManagerId());
         mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
 
-        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
-            .thenReturn(Stream.of(hypervisor, guest1, guest2));
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt(), isNull(), anyInt()))
+            .thenReturn(Arrays.asList(hypervisor, guest1, guest2));
 
         Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts)
             .stream()
@@ -623,10 +625,12 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     private void mockReportedHypervisors(List<String> accounts, Map<String, String> expectedHypervisorMap) {
-        Builder streamBuilder = Stream.builder();
-        for (Entry<String, String> entry : expectedHypervisorMap.entrySet()) {
-            streamBuilder.accept(new Object[] {entry.getKey(), entry.getValue()});
-        }
-        when(inventoryRepo.getReportedHypervisors(eq(accounts))).thenReturn(streamBuilder.build());
+        List<Object[]> mockedMap = expectedHypervisorMap.entrySet().stream()
+            .filter(entry -> entry.getKey() != null)
+            .map((entry) -> new Object[]{entry.getKey(), entry.getValue()}).collect(Collectors.toList());
+        when(inventoryRepo.getRhsmReportedHypervisors(eq(accounts), isNull(), anyInt()))
+            .thenReturn(mockedMap);
+        when(inventoryRepo.getRhsmReportedHypervisors(eq(accounts), isNotNull(), anyInt()))
+            .thenReturn(Collections.emptyList());
     }
 }

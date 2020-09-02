@@ -93,6 +93,18 @@ public class ApplicationProperties {
     private int accountBatchSize = 500;
 
     /**
+     * The batch size of host records to fetch at a time while processing an account.
+     * Default: 500
+     */
+    private int hostBatchSize = 500;
+
+    /**
+     * The batch size of hypervisor-guest mappings to fetch at a time while processing an account.
+     * Default: 500
+     */
+    private int hypervisorGuestMappingBatchSize = 500;
+
+    /**
      * Amount of time to cache the account list, before allowing a re-read from the filesystem.
      */
     private Duration accountListCacheTtl = Duration.ofMinutes(5);
@@ -291,5 +303,21 @@ public class ApplicationProperties {
 
     public void setRbacApplicationName(String rbacApplicationName) {
         this.rbacApplicationName = rbacApplicationName;
+    }
+
+    public int getHostBatchSize() {
+        return hostBatchSize;
+    }
+
+    public void setHostBatchSize(int hostBatchSize) {
+        this.hostBatchSize = hostBatchSize;
+    }
+
+    public int getHypervisorGuestMappingBatchSize() {
+        return hypervisorGuestMappingBatchSize;
+    }
+
+    public void setHypervisorGuestMappingBatchSize(int hypervisorGuestMappingBatchSize) {
+        this.hypervisorGuestMappingBatchSize = hypervisorGuestMappingBatchSize;
     }
 }

@@ -120,7 +120,11 @@ import javax.persistence.Table;
         "cross join lateral ( " +
         "    select string_agg(items->>'id', ',') as system_profile_product_ids " +
         "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile " +
-        "where account IN (:accounts) and (stale_timestamp is null or (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)))",
+        "where account IN (:accounts) " +
+        "   and (stale_timestamp is null or (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays))) " +
+        "   and (:offsetId is null or cast(h.id as text) > cast(:offsetId as text)) " +
+        "order by h.id " +
+        "limit :limit",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {
 

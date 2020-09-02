@@ -20,39 +20,62 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /**
- * Isolates readonly transaction for inventory database operations.
+ * Encapsulates paging logic for inventory database operations.
  */
 @Component
 public class InventoryDatabaseOperations {
 
+    private final ApplicationProperties properties;
     private final InventoryRepository repo;
 
-    public InventoryDatabaseOperations(InventoryRepository inventoryRepository) {
+    public InventoryDatabaseOperations(ApplicationProperties properties,
+        InventoryRepository inventoryRepository) {
+        this.properties = properties;
         this.repo = inventoryRepository;
     }
 
-    @Transactional(value = "inventoryTransactionManager", readOnly = true)
     public void processHostFacts(Collection<String> accounts, int culledOffsetDays,
         Consumer<InventoryHostFacts> consumer) {
-        try (Stream<InventoryHostFacts> hostFactStream = repo.getFacts(accounts, culledOffsetDays)) {
-            hostFactStream.forEach(consumer::accept);
-        }
+        UUID offset = null;
+        List<InventoryHostFacts> hostBatch;
+        do {
+            hostBatch = repo.getFacts(accounts, culledOffsetDays, offset, properties.getHostBatchSize());
+            for (InventoryHostFacts host : hostBatch) {
+                offset = host.getInventoryId();
+                consumer.accept(host);
+            }
+        } while (!hostBatch.isEmpty());
     }
 
-    @Transactional(value = "inventoryTransactionManager", readOnly = true)
     public void reportedHypervisors(Collection<String> accounts, Consumer<Object[]> consumer) {
-        try (Stream<Object[]> stream = repo.getReportedHypervisors(accounts)) {
-            stream.forEach(consumer::accept);
-        }
+        String offset = null;
+        List<Object[]> mappingBatch;
+        do {
+            mappingBatch = repo.getRhsmReportedHypervisors(accounts, offset,
+                properties.getHypervisorGuestMappingBatchSize());
+            for (Object[] mapping : mappingBatch) {
+                offset = mapping[0].toString();
+                consumer.accept(mapping);
+            }
+        } while (!mappingBatch.isEmpty());
+        do {
+            mappingBatch = repo.getSatelliteReportedHypervisors(accounts, offset,
+                properties.getHypervisorGuestMappingBatchSize());
+            for (Object[] mapping : mappingBatch) {
+                offset = mapping[0].toString();
+                consumer.accept(mapping);
+            }
+        } while (!mappingBatch.isEmpty());
     }
 }

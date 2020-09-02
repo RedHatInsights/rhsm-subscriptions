@@ -28,8 +28,8 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * Interface that Spring Data will turn into a read-only DAO.
@@ -38,11 +38,14 @@ import java.util.stream.Stream;
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
     @Query(nativeQuery = true)
-    Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts,
-        @Param("culledOffsetDays") Integer culledOffsetDays);
+    List<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts,
+        @Param("culledOffsetDays") Integer culledOffsetDays, @Param("offsetId") UUID offsetId,
+        @Param("limit") int limit);
 
     /**
-     * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID.
+     * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID, reported by
+     * Hosted Candlepin.
+     *
      * If the hypervisor hasn't been reported, then the hyp_subman_id value will be null.
      *
      * @param accounts the accounts to filter hosts by.
@@ -55,14 +58,33 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
                 "from hosts h " +
                     "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' " +
                 "where h.facts->'rhsm'->'VM_HOST_UUID' is not null " +
-                    "and h.account IN (:accounts)" +
-                "union all " +
-                "select " +
+                    "and h.account IN (:accounts) " +
+                    "and (:offsetId is null or h.facts->'rhsm'->>'VM_HOST_UUID' > cast(:offsetId as text)) " +
+                "order by h.facts->'rhsm'->>'VM_HOST_UUID' " +
+                "limit :limit")
+    List<Object[]> getRhsmReportedHypervisors(@Param("accounts") Collection<String> accounts,
+        @Param("offsetId") String offsetId, @Param("limit") int limit);
+
+    /**
+     * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID, reported
+     * by Satellite.
+     *
+     * If the hypervisor hasn't been reported, then the hyp_subman_id value will be null.
+     *
+     * @param accounts the accounts to filter hosts by.
+     * @return a stream of Object[] with each entry representing a hypervisor mapping.
+    */
+    @Query(nativeQuery = true,
+        value = "select " +
                     "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, " +
                     "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
                 "from hosts h " +
                     "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' " +
                 "where h.facts->'satellite'->'virtual_host_uuid' is not null " +
-                    "and h.account IN (:accounts)")
-    Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
+                    "and h.account IN (:accounts) " +
+                    "and (:offsetId is null or h.facts->'satellite'->>'virtual_host_uuid' > cast(:offsetId as text)) " +
+                "order by h.facts->'satellite'->>'virtual_host_uuid' " +
+                "limit :limit")
+    List<Object[]> getSatelliteReportedHypervisors(@Param("accounts") Collection<String> accounts,
+        @Param("offsetId") String offsetId, @Param("limit") int limit);
 }
