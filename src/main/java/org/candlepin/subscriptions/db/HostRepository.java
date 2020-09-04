@@ -95,6 +95,7 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
 
     @Transactional
     @Modifying
-    int deleteByAccountNumberIn(Collection<String> accounts);
+    @Query("delete from Host where account_number in (:accounts)")
+    int deleteByAccountNumberIn(@Param("accounts") Collection<String> accounts);
 
 }

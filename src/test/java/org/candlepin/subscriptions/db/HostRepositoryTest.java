@@ -297,20 +297,15 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void testDeleteByAccount() {
-        Host h1 = createHost("h1", "A1");
-        Host h2 = createHost("h2", "A2");
-
-        repo.saveAll(Arrays.asList(h1, h2));
-        repo.flush();
+        Host h1 = repo.saveAndFlush(createHost("h1", "A1"));
+        Host h2 = repo.saveAndFlush(createHost("h2", "A2"));
+        Host h3 = repo.saveAndFlush(createHost("h3", "A3"));
 
         assertTrue(repo.findById(h1.getId()).isPresent());
         assertTrue(repo.findById(h2.getId()).isPresent());
+        assertTrue(repo.findById(h3.getId()).isPresent());
 
-        repo.deleteByAccountNumberIn(Arrays.asList("A1"));
-        repo.flush();
-
-        assertFalse(repo.findById(h1.getId()).isPresent());
-        assertTrue(repo.findById(h2.getId()).isPresent());
+        assertEquals(2, repo.deleteByAccountNumberIn(Arrays.asList("A1", "A2")));
     }
 
     @Transactional
