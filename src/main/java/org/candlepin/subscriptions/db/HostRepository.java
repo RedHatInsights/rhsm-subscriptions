@@ -34,12 +34,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.UUID;
 
 /**
  * Provides access to Host database entities.
  */
 @SuppressWarnings({"linelength", "indentation"})
-public interface HostRepository extends JpaRepository<Host, String> {
+public interface HostRepository extends JpaRepository<Host, UUID> {
 
     /**
      * Find all Hosts by bucket criteria and return a page of TallyHostView objects.
