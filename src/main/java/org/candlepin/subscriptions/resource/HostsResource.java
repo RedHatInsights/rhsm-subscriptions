@@ -47,7 +47,6 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -78,7 +77,7 @@ public class HostsResource implements HostsApi {
 
     @Override
     @ReportingAccessRequired
-    public HostReport getHosts(String productId, Integer offset, @Min(1) Integer limit, String sla,
+    public HostReport getHosts(String productId, Integer offset, Integer limit, String sla,
         String usage, Uom uom, HostReportSort sort, SortDirection dir) {
 
         Sort sortValue = Sort.unsorted();
