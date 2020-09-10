@@ -64,6 +64,8 @@ class HostRepositoryTest {
     @Autowired
     private HostRepository repo;
 
+    private Map<String, Host> existingHostsByInventoryId;
+
     @Transactional
     @BeforeAll
     void setupTestData() {
@@ -90,7 +92,9 @@ class HostRepositoryTest {
         Host host6 = createHost("inventory6", "account3");
 
         List<Host> toSave = Arrays.asList(host1, host2, host3, host4, host5, host6);
-        repo.saveAll(toSave);
+        existingHostsByInventoryId = repo.saveAll(toSave)
+            .stream()
+            .collect(Collectors.toMap(Host::getInventoryId, host -> host));
         repo.flush();
     }
 
@@ -102,7 +106,7 @@ class HostRepositoryTest {
             HardwareMeasurementType.PHYSICAL);
         repo.saveAndFlush(host);
 
-        Optional<Host> result = repo.findById(host.getInventoryId());
+        Optional<Host> result = repo.findById(host.getId());
         assertTrue(result.isPresent());
         Host saved = result.get();
         assertEquals(1, saved.getBuckets().size());
@@ -121,7 +125,7 @@ class HostRepositoryTest {
             HardwareMeasurementType.PHYSICAL);
         repo.saveAndFlush(host);
 
-        Optional<Host> result = repo.findById(host.getInventoryId());
+        Optional<Host> result = repo.findById(host.getId());
         assertTrue(result.isPresent());
         Host toUpdate = result.get();
         assertEquals(2, toUpdate.getBuckets().size());
@@ -133,14 +137,14 @@ class HostRepositoryTest {
 
         repo.saveAndFlush(toUpdate);
 
-        Optional<Host> updateResult = repo.findById(toUpdate.getInventoryId());
+        Optional<Host> updateResult = repo.findById(toUpdate.getId());
         assertTrue(updateResult.isPresent());
         Host updated = updateResult.get();
         assertEquals("updated_acct_num", updated.getAccountNumber());
         assertEquals(4, updated.getSockets().intValue());
         assertEquals(8, updated.getCores().intValue());
         assertEquals(1, updated.getBuckets().size());
-        assertTrue(updated.getBuckets().contains(host.getBuckets().get(1)));
+        assertTrue(updated.getBuckets().contains(host.getBuckets().get(0)));
     }
 
     @Transactional
@@ -190,7 +194,7 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void testNoHostFoundWhenItHasNoBucket() {
-        Optional<Host> existing = repo.findById("inventory6");
+        Optional<Host> existing = repo.findById(existingHostsByInventoryId.get("inventory6").getId());
         assertTrue(existing.isPresent());
         assertEquals("account3", existing.get().getAccountNumber());
 
@@ -293,20 +297,15 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void testDeleteByAccount() {
-        Host h1 = createHost("h1", "A1");
-        Host h2 = createHost("h2", "A2");
+        Host h1 = repo.saveAndFlush(createHost("h1", "A1"));
+        Host h2 = repo.saveAndFlush(createHost("h2", "A2"));
+        Host h3 = repo.saveAndFlush(createHost("h3", "A3"));
 
-        repo.saveAll(Arrays.asList(h1, h2));
-        repo.flush();
+        assertTrue(repo.findById(h1.getId()).isPresent());
+        assertTrue(repo.findById(h2.getId()).isPresent());
+        assertTrue(repo.findById(h3.getId()).isPresent());
 
-        assertTrue(repo.findById(h1.getInventoryId()).isPresent());
-        assertTrue(repo.findById(h2.getInventoryId()).isPresent());
-
-        repo.deleteByAccountNumberIn(Arrays.asList("A1"));
-        repo.flush();
-
-        assertFalse(repo.findById(h1.getInventoryId()).isPresent());
-        assertTrue(repo.findById(h2.getInventoryId()).isPresent());
+        assertEquals(2, repo.deleteByAccountNumberIn(Arrays.asList("A1", "A2")));
     }
 
     @Transactional
