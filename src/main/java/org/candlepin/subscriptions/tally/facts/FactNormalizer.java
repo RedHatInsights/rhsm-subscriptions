@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally.facts;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
@@ -133,21 +132,6 @@ public class FactNormalizer {
         normalizedFacts.setHypervisor(isHypervisor);
         normalizedFacts.setVirtual(isVirtual);
         normalizedFacts.setHypervisorUnknown(isHypervisorUnknown);
-        normalizedFacts.setHardwareType(determineHardwareType(isHypervisor, isVirtual));
-    }
-
-    private HostHardwareType determineHardwareType(boolean isHypervisor, boolean isVirtual) {
-        HostHardwareType hardwareType;
-        if (isHypervisor) {
-            hardwareType = HostHardwareType.HYPERVISOR;
-        }
-        else if (isVirtual) {
-            hardwareType = HostHardwareType.VIRTUAL;
-        }
-        else {
-            hardwareType = HostHardwareType.PHYSICAL;
-        }
-        return hardwareType;
     }
 
     @SuppressWarnings("indentation")

@@ -28,5 +28,6 @@
     <include file="liquibase/202006180903-add-usage-to-host.xml" />
     <include file="liquibase/202007140728-change-id-column-on-hosts-table.xml" />
     <include file="liquibase/202009041415-use-uuid-for-id-on-hosts-table.xml" />
+    <include file="liquibase/202009101410-remove-hardware-type-column-from-hosts-table.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

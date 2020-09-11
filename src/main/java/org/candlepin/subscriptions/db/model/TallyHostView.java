@@ -44,9 +44,6 @@ public interface TallyHostView {
     @Value("#{target.measurementType}")
     String getHardwareMeasurementType();
 
-    @Value("#{target.key.host.hardwareType}")
-    String getHardwareType();
-
     @Value("#{target.cores}")
     int getCores();
 
@@ -66,8 +63,7 @@ public interface TallyHostView {
         return new Host()
             .inventoryId(getInventoryId())
             .insightsId(getInsightsId())
-            .hardwareType(getHardwareType())
-            .measurementType(getHardwareMeasurementType())
+            .hardwareType(getHardwareMeasurementType())
             .cores(getCores())
             .sockets(getSockets())
             .displayName(getDisplayName())

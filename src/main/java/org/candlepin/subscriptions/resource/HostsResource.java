@@ -59,7 +59,7 @@ public class HostsResource implements HostsApi {
     public static final Map<HostReportSort, String> SORT_PARAM_MAPPING = ImmutableMap.of(
         HostReportSort.DISPLAY_NAME, "key.host.displayName",
         HostReportSort.CORES, "cores",
-        HostReportSort.HARDWARE_TYPE, "key.host.hardwareType",
+        HostReportSort.HARDWARE_TYPE, "measurementType",
         HostReportSort.SOCKETS, "sockets",
         HostReportSort.LAST_SEEN, "key.host.lastSeen"
     );

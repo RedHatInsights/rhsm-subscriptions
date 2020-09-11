@@ -32,8 +32,6 @@ import java.util.UUID;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -80,10 +78,6 @@ public class Host implements Serializable {
     @Column(name = "hypervisor_uuid")
     private String hypervisorUuid;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "hardware_type")
-    private HostHardwareType hardwareType;
-
     @Column(name = "num_of_guests")
     private Integer numOfGuests;
 
@@ -122,7 +116,6 @@ public class Host implements Serializable {
         this.sockets = normalizedFacts.getSockets();
 
         this.lastSeen = inventoryHostFacts.getModifiedOn();
-        this.hardwareType = normalizedFacts.getHardwareType();
     }
 
     public UUID getId() {
@@ -213,14 +206,6 @@ public class Host implements Serializable {
         this.hypervisorUuid = hypervisorUuid;
     }
 
-    public HostHardwareType getHardwareType() {
-        return hardwareType;
-    }
-
-    public void setHardwareType(HostHardwareType hardwareType) {
-        this.hardwareType = hardwareType;
-    }
-
     public Integer getNumOfGuests() {
         return numOfGuests;
     }
@@ -272,7 +257,6 @@ public class Host implements Serializable {
                    .cores(cores)
                    .sockets(sockets)
                    .displayName(displayName)
-                   .hardwareType(hardwareType.toString())
                    .insightsId(insightsId)
                    .inventoryId(inventoryId)
                    .subscriptionManagerId(subscriptionManagerId)

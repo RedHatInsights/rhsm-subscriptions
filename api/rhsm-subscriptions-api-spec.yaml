@@ -1066,9 +1066,6 @@ components:
         hardware_type:
           description: What the type of the host is (e.g. hypervisor, physical, etc.).
           type: string
-        measurement_type:
-          description: What was the applied measurement type (e.g. hypervisor, physical, aws, etc ).
-          type: string
         number_of_guests:
           description: Number of guests if this host is a hypervisor.
           type: integer

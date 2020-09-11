@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -341,7 +340,6 @@ public class FactNormalizerTest {
         NormalizedFacts normalized = normalizer.normalize(hostFacts, new HashMap<>());
         assertFalse(normalized.isHypervisor());
         assertFalse(normalized.isVirtual());
-        assertEquals(HostHardwareType.PHYSICAL, normalized.getHardwareType());
     }
 
     @Test
@@ -354,7 +352,6 @@ public class FactNormalizerTest {
 
         NormalizedFacts normalized = normalizer.normalize(facts, mappedHypervisors);
         assertTrue(normalized.isHypervisor());
-        assertEquals(HostHardwareType.HYPERVISOR, normalized.getHardwareType());
         assertFalse(normalized.isVirtual());
     }
 
@@ -376,7 +373,6 @@ public class FactNormalizerTest {
 
         normalized = normalizer.normalize(facts, new HashMap<>());
         assertTrue(normalized.isVirtual());
-        assertEquals(HostHardwareType.VIRTUAL, normalized.getHardwareType());
         assertTrue(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
     }
