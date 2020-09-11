@@ -483,6 +483,7 @@ paths:
         schema:
           type: integer
           minimum: 1
+          maximum: 100
         description: "The numbers of items to return"
     get:
       summary: "Fetch guests for this hypervisor."
