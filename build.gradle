@@ -84,6 +84,7 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
+            dependency "io.hawt:hawtio-springboot:2.10.1"
         }
     }
 
@@ -204,6 +205,7 @@ dependencies {
     runtime "org.hsqldb:hsqldb"
     runtime "org.jolokia:jolokia-core"
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
+    runtime "io.hawt:hawtio-springboot"
 }
 
 // Add a custom task to output dependency info in a machine parseable format. Used to generate dependency

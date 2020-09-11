@@ -173,9 +173,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .and()
             .authorizeRequests()
                 // Allow access to Actuator endpoints here
-                .requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll()
-                // NOTE EndpointRequest.to("jolokia") does not match subpath (e.g. jolokia/list)
-                .antMatchers("/actuator/jolokia/**").hasRole("RH_INTERNAL")
+                .requestMatchers(EndpointRequest.to(
+                    "health", "info", "prometheus", "jolokia", "hawtio"
+                )).permitAll()
                 .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**").permitAll()
                 // ingress security is done via server settings (require ssl cert auth), so permit all here
                 .antMatchers(String.format("/%s/ingress/**", apiPath)).permitAll()
