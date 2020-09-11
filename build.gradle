@@ -92,6 +92,7 @@ allprojects {
             dependency "com.amazonaws:aws-java-sdk-logs:$aws_sdk_version"
             dependency "com.amazonaws:aws-java-sdk-ec2:$aws_sdk_version"
             dependency "com.google.guava:guava:$guava_version"
+            dependency "io.hawt:hawtio-springboot:2.10.1"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
@@ -193,6 +194,7 @@ dependencies {
     }
     runtime "org.jolokia:jolokia-core"
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
+    runtime "io.hawt:hawtio-springboot"
 }
 
 // Add a custom task to output dependency info in a machine parseable format. Used to generate dependency
