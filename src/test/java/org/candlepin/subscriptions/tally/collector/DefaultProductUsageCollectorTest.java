@@ -53,29 +53,25 @@ public class DefaultProductUsageCollectorTest {
     }
 
     @Test
-    public void testCountsForGuestWithUnknownHypervisor() {
+    public void testCountsForGuestWithKnownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, false);
 
         UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
 
-        // A guest with a known hypervisor contributes to the overall totals,
-        // but does not contribute to the hypervisor or physical totals.
         assertTotalsCalculation(calc, 3, 12, 1);
-        assertNullExcept(calc, HardwareMeasurementType.TOTAL);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.VIRTUAL);
     }
 
     @Test
-    public void testCountsForGuestWithKnownHypervisor() {
+    public void testCountsForGuestWithUnknownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, true);
 
         UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
 
-        // A guest with an unknown hypervisor contributes to the overall totals
-        // but does not contribute to the hypervisor or physical totals.
         assertTotalsCalculation(calc, 3, 12, 1);
-        assertNullExcept(calc, HardwareMeasurementType.TOTAL);
+        assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.VIRTUAL);
     }
 
     @Test

@@ -30,6 +30,7 @@ import java.util.List;
 public enum HardwareMeasurementType {
     PHYSICAL,
     HYPERVISOR,
+    VIRTUAL,
     TOTAL,
     AWS,
     GOOGLE,

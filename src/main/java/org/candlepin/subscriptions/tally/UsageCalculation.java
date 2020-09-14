@@ -153,6 +153,11 @@ public class UsageCalculation {
         addToTotal(cores, sockets, instances);
     }
 
+    public void addVirtual(int cores, int sockets, int instances) {
+        increment(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
+        addToTotal(cores, sockets, instances);
+    }
+
     public void addToTotal(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.TOTAL, cores, sockets, instances);
     }

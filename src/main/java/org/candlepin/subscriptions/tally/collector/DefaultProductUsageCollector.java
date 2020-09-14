@@ -52,8 +52,8 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
         }
         // Any other system is simply added to the overall total
         else {
-            appliedType = HardwareMeasurementType.TOTAL;
-            prodCalc.addToTotal(appliedCores, appliedSockets, 1);
+            appliedType = HardwareMeasurementType.VIRTUAL;
+            prodCalc.addVirtual(appliedCores, appliedSockets, 1);
         }
 
         HostTallyBucket appliedBucket = new HostTallyBucket(
