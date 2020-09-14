@@ -101,7 +101,7 @@ public class IdentityHeaderAuthenticationFilterTest {
     @Test
     void testRhAssociateHeader() {
         String associate = Base64.getEncoder().encodeToString((
-            "{\"identity\":{\"associate\":{\"urn:oid:0.9.2342.19200300.100.1.3\":\"test@example.com\"}," +
+            "{\"identity\":{\"associate\":{\"email\":\"test@example.com\"}," +
             "\"auth_type\":\"saml-auth\",\"type\": \"Associate\"}}").getBytes());
         when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(associate);
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);

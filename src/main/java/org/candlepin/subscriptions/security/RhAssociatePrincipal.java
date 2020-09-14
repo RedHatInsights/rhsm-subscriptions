@@ -34,7 +34,6 @@ public class RhAssociatePrincipal implements RhIdentity.Identity {
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SamlAssertions {
-        @JsonProperty("urn:oid:0.9.2342.19200300.100.1.3") // the OID for email
         private String email;
 
         public String getEmail() {
