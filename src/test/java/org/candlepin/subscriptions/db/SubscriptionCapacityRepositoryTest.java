@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
@@ -288,6 +289,152 @@ class SubscriptionCapacityRepositoryTest {
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
+    }
+
+    @Test
+    void testCanQueryBySlaNull() {
+        SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity unset = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        premium.setSubscriptionId("premium");
+        premium.setServiceLevel(ServiceLevel.PREMIUM);
+        standard.setSubscriptionId("standard");
+        standard.setServiceLevel(ServiceLevel.STANDARD);
+        unset.setSubscriptionId("unset");
+        unset.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(premium, standard, unset));
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            null,
+            Usage.PRODUCTION,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(3, found.size());
+    }
+
+    @Test
+    void testCanQueryBySlaUnspecified() {
+        SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity unset = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        premium.setSubscriptionId("premium");
+        premium.setServiceLevel(ServiceLevel.PREMIUM);
+        standard.setSubscriptionId("standard");
+        standard.setServiceLevel(ServiceLevel.STANDARD);
+        unset.setSubscriptionId("unset");
+        unset.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(premium, standard, unset));
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.UNSPECIFIED,
+            Usage.PRODUCTION,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(1, found.size());
+        assertEquals(ServiceLevel.UNSPECIFIED, found.get(0).getServiceLevel());
+    }
+
+    @Test
+    void testCanQueryBySlaAny() {
+        SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity unset = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        premium.setSubscriptionId("premium");
+        premium.setServiceLevel(ServiceLevel.PREMIUM);
+        standard.setSubscriptionId("standard");
+        standard.setServiceLevel(ServiceLevel.STANDARD);
+        unset.setSubscriptionId("unset");
+        unset.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(premium, standard, unset));
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.ANY,
+            Usage.PRODUCTION,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(3, found.size());
+    }
+
+    @Test
+    void testCanQueryByUsageNull() {
+        SubscriptionCapacity production = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity dr = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity unset = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        production.setSubscriptionId("production");
+        production.setUsage(Usage.PRODUCTION);
+        dr.setSubscriptionId("dr");
+        dr.setUsage(Usage.DISASTER_RECOVERY);
+        unset.setSubscriptionId("unset");
+        unset.setUsage(Usage.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(production, dr, unset));
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.ANY,
+            null,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(3, found.size());
+    }
+
+    @Test
+    void testCanQueryByUsageUnspecified() {
+        SubscriptionCapacity production = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity dr = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity unset = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        production.setSubscriptionId("production");
+        production.setUsage(Usage.PRODUCTION);
+        dr.setSubscriptionId("dr");
+        dr.setUsage(Usage.DISASTER_RECOVERY);
+        unset.setSubscriptionId("unset");
+        unset.setUsage(Usage.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(production, dr, unset));
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.ANY,
+            Usage.UNSPECIFIED,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(1, found.size());
+        assertEquals(Usage.UNSPECIFIED, found.get(0).getUsage());
+    }
+
+    @Test
+    void testCanQueryByUsageAny() {
+        SubscriptionCapacity production = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity dr = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity unset = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        production.setSubscriptionId("production");
+        production.setUsage(Usage.PRODUCTION);
+        dr.setSubscriptionId("dr");
+        dr.setUsage(Usage.DISASTER_RECOVERY);
+        unset.setSubscriptionId("unset");
+        unset.setUsage(Usage.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(production, dr, unset));
+        repository.flush();
+
+        List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
+            "ownerId",
+            "product",
+            ServiceLevel.ANY,
+            Usage.ANY,
+            NOWISH,
+            FAR_FUTURE);
+        assertEquals(3, found.size());
     }
 
     private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
