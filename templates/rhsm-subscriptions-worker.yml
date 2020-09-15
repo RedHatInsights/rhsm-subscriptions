@@ -9,6 +9,9 @@ metadata:
   name: rhsm-subscriptions-worker
 
 parameters:
+  # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+  - name: AB_JOLOKIA_OFF
+    value: 'true'
   - name: HAWTIO_BASE_PATH
     value: /rhsm-subscriptions/actuator/hawtio
   - name: LOGGING_LEVEL_ROOT
@@ -151,9 +154,6 @@ objects:
                   memory: ${MEMORY_LIMIT}
               ports:
                 - containerPort: 8080
-                  protocol: TCP
-                - containerPort: 8778
-                  name: jolokia
                   protocol: TCP
               volumeMounts:
                 - name: config
