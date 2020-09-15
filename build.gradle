@@ -182,6 +182,7 @@ dependencies {
     compile "org.apache.commons:commons-csv"
     compile "com.google.guava:guava"
     compile "org.postgresql:postgresql"
+    compile "io.hawt:hawtio-springboot"
 
     // Test dependencies
     testCompile "org.springframework.kafka:spring-kafka-test"
@@ -194,7 +195,6 @@ dependencies {
     }
     runtime "org.jolokia:jolokia-core"
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
-    runtime "io.hawt:hawtio-springboot"
 }
 
 // Add a custom task to output dependency info in a machine parseable format. Used to generate dependency

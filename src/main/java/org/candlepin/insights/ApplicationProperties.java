@@ -32,6 +32,7 @@ public class ApplicationProperties {
     private String version;
     private boolean prettyPrintJson = false;
     private boolean devMode = false;
+    private String hawtioBasePath;
 
     public String getVersion() {
         return version;
@@ -55,5 +56,13 @@ public class ApplicationProperties {
 
     public void setDevMode(boolean devMode) {
         this.devMode = devMode;
+    }
+
+    public String getHawtioBasePath() {
+        return hawtioBasePath;
+    }
+
+    public void setHawtioBasePath(String hawtioBasePath) {
+        this.hawtioBasePath = hawtioBasePath;
     }
 }

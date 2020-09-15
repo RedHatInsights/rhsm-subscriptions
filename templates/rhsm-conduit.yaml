@@ -9,6 +9,8 @@ metadata:
   name: rhsm-conduit
 
 parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /rhsm-conduit/actuator/hawtio
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: PINHEAD_URL
