@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
+import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -129,14 +130,14 @@ public class ApplicationProperties {
     /**
      * Expected domain suffix for origin or referer headers.
      *
-     * @see org.candlepin.subscriptions.security.AntiCsrfFilter
+     * @see AntiCsrfFilter
      */
     private String antiCsrfDomainSuffix = ".redhat.com";
 
     /**
      * Expected port for origin or referer headers.
      *
-     * @see org.candlepin.subscriptions.security.AntiCsrfFilter
+     * @see AntiCsrfFilter
      */
     private int antiCsrfPort = 443;
 
@@ -144,6 +145,11 @@ public class ApplicationProperties {
      * The RBAC application name that defines the permissions for this application.
      */
     private String rbacApplicationName = "subscriptions";
+
+    /**
+     * The base path for hawtio. Needed to serve hawtio behind a reverse proxy.
+     */
+    private String hawtioBasePath;
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
@@ -291,5 +297,13 @@ public class ApplicationProperties {
 
     public void setRbacApplicationName(String rbacApplicationName) {
         this.rbacApplicationName = rbacApplicationName;
+    }
+
+    public String getHawtioBasePath() {
+        return hawtioBasePath;
+    }
+
+    public void setHawtioBasePath(String hawtioBasePath) {
+        this.hawtioBasePath = hawtioBasePath;
     }
 }

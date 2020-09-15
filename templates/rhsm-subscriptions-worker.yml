@@ -9,6 +9,8 @@ metadata:
   name: rhsm-subscriptions-worker
 
 parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /rhsm-subscriptions/actuator/hawtio
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
