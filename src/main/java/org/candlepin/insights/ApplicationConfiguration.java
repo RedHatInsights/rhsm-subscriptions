@@ -28,7 +28,6 @@ import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,7 +58,6 @@ import javax.validation.Validator;
 @EnableAspectJAutoProxy
 @EnableScheduling
 @Import(ResteasyAutoConfiguration.class) // needed to be able to reference ResteasyApplicationBuilder
-@EnableConfigurationProperties(ApplicationProperties.class)
 // The values in application.yaml should already be loaded by default
 @PropertySource("classpath:/rhsm-conduit.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
