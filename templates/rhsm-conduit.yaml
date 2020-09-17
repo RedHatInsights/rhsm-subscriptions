@@ -25,8 +25,12 @@ parameters:
     value: 0 0 * * *
   - name: REPLICAS
     value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-conduit
   - name: IMAGE_TAG
     value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
     value: 100Mi
   - name: MEMORY_LIMIT
@@ -68,7 +72,7 @@ objects:
           prometheus.io/scrape: 'true'
       spec:
         containers:
-          - image: quay.io/cloudservices/rhsm-conduit:${IMAGE_TAG}
+          - image: ${IMAGE}:${IMAGE_TAG}
             name: rhsm-conduit
             env:
               - name: JAVA_OPTIONS
@@ -233,9 +237,10 @@ objects:
             activeDeadlineSeconds: 1800
             restartPolicy: Never
             imagePullSecrets:
+              - name: ${IMAGE_PULL_SECRET}
               - name: quay-cloudservices-pull
             containers:
-              - image: quay.io/cloudservices/rhsm-conduit:${IMAGE_TAG}
+              - image: ${IMAGE}:${IMAGE_TAG}
                 name: rhsm-conduit-cron-sync
                 env:
                 - name: JAVA_OPTIONS
