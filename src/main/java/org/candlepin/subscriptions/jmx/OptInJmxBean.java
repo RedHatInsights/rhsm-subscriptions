@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.jmx;
 
 import org.candlepin.subscriptions.controller.OptInController;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 
 import org.slf4j.Logger;
@@ -30,7 +31,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -59,7 +59,7 @@ public class OptInJmxBean {
     @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
     @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
     public void optOut(String accountNumber, String orgId) {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Object principal = ResourceUtils.getPrincipal();
         log.info("Opt out for {} triggered via JMX by {}", accountNumber, principal);
         controller.optOut(accountNumber, orgId);
     }
@@ -72,7 +72,7 @@ public class OptInJmxBean {
     @ManagedOperationParameter(name = "enableConduitSync", description = "Turn on Conduit syncing")
     public String createOrUpdateOptInConfig(String accountNumber, String orgId, boolean enableTallySync,
         boolean enableTallyReporting, boolean enableConduitSync) {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Object principal = ResourceUtils.getPrincipal();
         log.info("Opt in for account {}, org {} triggered via JMX by {}", accountNumber, orgId, principal);
         log.debug("Creating OptInConfig over JMX for account {}, org {}", accountNumber, orgId);
         OptInConfig config = controller.optIn(accountNumber, orgId, OptInType.JMX, enableTallySync,
@@ -81,4 +81,5 @@ public class OptInJmxBean {
         String text = "Completed opt in for account %s and org %s:\n%s";
         return String.format(text, accountNumber, orgId, config.toString());
     }
+
 }
