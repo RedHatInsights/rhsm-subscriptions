@@ -19,8 +19,12 @@ parameters:
     value: 0 3 * * *
   - name: CAPTURE_SNAPSHOT_SCHEDULE
     value: 0 1 * * *
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
@@ -45,9 +49,10 @@ objects:
               activeDeadlineSeconds: 1800
               restartPolicy: Never
               imagePullSecrets:
+                - name: ${IMAGE_PULL_SECRET}
                 - name: quay-cloudservices-pull
               containers:
-                - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+                - image: ${IMAGE}:${IMAGE_TAG}
                   name: rhsm-subscriptions-cron-tally
                   env:
                     - name: JAVA_OPTIONS
@@ -129,9 +134,10 @@ objects:
               activeDeadlineSeconds: 1800
               restartPolicy: Never
               imagePullSecrets:
+                - name: ${IMAGE_PULL_SECRET}
                 - name: quay-cloudservices-pull
               containers:
-                - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+                - image: ${IMAGE}:${IMAGE_TAG}
                   name: rhsm-subscriptions-cron-purge
                   env:
                     - name: JAVA_OPTIONS
