@@ -21,8 +21,12 @@ parameters:
     value: '3600000'
   - name: REPLICAS
     value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
@@ -64,7 +68,7 @@ objects:
             prometheus.io/scrape: 'true'
         spec:
           containers:
-            - image: quay.io/cloudservices/rhsm-subscriptions:${IMAGE_TAG}
+            - image: ${IMAGE}:${IMAGE_TAG}
               name: rhsm-subscriptions-worker
               env:
                 - name: LOG_FILE
@@ -195,6 +199,7 @@ objects:
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
           imagePullSecrets:
+          - name: ${IMAGE_PULL_SECRET}
           - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange
