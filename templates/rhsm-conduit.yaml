@@ -13,7 +13,7 @@ parameters:
   - name: AB_JOLOKIA_OFF
     value: 'true'
   - name: HAWTIO_BASE_PATH
-    value: /rhsm-conduit/actuator/hawtio
+    value: /app/rhsm-conduit/actuator/hawtio
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: PINHEAD_URL
