@@ -13,8 +13,10 @@ management:
     web:
       exposure:
         include:
+          - hawtio
           - health
           - info
+          - jolokia
           - prometheus
   endpoint:
     shutdown:

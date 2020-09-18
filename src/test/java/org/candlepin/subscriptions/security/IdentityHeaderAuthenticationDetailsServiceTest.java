@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.security;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.insights.rbac.client.RbacApi;
 import org.candlepin.insights.rbac.client.RbacService;
@@ -35,14 +35,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
-public class IdentityHeaderAuthenticationDetailsSourceTest {
+class IdentityHeaderAuthenticationDetailsServiceTest {
 
     @MockBean
     private RbacApi rbacApi;
@@ -50,8 +55,11 @@ public class IdentityHeaderAuthenticationDetailsSourceTest {
     @Autowired
     private RbacService rbacService;
 
+    @Autowired
+    IdentityHeaderAuthenticationDetailsService detailsService;
+
     @Test
-    public void testAdminRoleGranted() throws Exception {
+    void testAdminRoleGranted() throws Exception {
         when(rbacApi.getCurrentUserAccess(eq("subscriptions"))).thenReturn(
             Arrays.asList(new Access().permission("subscriptions:*:*"))
         );
@@ -59,14 +67,32 @@ public class IdentityHeaderAuthenticationDetailsSourceTest {
     }
 
     @Test
-    public void testDevModeGrantsAllRoles() {
+    void testRhAssociateGetsRhInternalRole() {
+        Authentication auth = new PreAuthenticatedAuthenticationToken(new RhAssociatePrincipal(), null);
+        UserDetails userDetails = detailsService.loadUserDetails(auth);
+        assertEquals(Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
+            userDetails.getAuthorities());
+        verifyZeroInteractions(rbacApi);
+    }
+
+    @Test
+    void testX509PrincipalGetsRhInternalRole() {
+        Authentication auth = new PreAuthenticatedAuthenticationToken(new X509Principal(), null);
+        UserDetails userDetails = detailsService.loadUserDetails(auth);
+        assertEquals(Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
+            userDetails.getAuthorities());
+        verifyZeroInteractions(rbacApi);
+    }
+
+    @Test
+    void testDevModeGrantsAllRoles() {
         assertRoles(true, RoleProvider.SWATCH_ADMIN_ROLE);
     }
 
     private void assertRoles(boolean devMode, String ... expectedRoles) {
         ApplicationProperties props = new ApplicationProperties();
         props.setDevMode(devMode);
-        IdentityHeaderAuthenticationDetailsSource source = new IdentityHeaderAuthenticationDetailsSource(
+        IdentityHeaderAuthenticationDetailsService source = new IdentityHeaderAuthenticationDetailsService(
             props, new IdentityHeaderAuthoritiesMapper(), rbacService
         );
         Collection<String> roles = source.getUserRoles();

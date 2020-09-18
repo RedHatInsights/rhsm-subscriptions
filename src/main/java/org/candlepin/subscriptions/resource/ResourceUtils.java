@@ -53,6 +53,19 @@ public class ResourceUtils {
     }
 
     /**
+     * Get the authenicated principal.
+     *
+     * Typically one of {@link InsightsUserPrincipal},
+     * {@link org.candlepin.subscriptions.security.RhAssociatePrincipal}, or
+     * {@link org.candlepin.subscriptions.security.X509Principal}
+     *
+     * @return the principal object
+     */
+    public static Object getPrincipal() {
+        return SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    /**
      * Get the owner ID of the authenticated user.
      *
      * @return ownerId as a String

@@ -84,6 +84,7 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
+            dependency "io.hawt:hawtio-springboot:2.10.1"
         }
     }
 
@@ -193,7 +194,7 @@ dependencies {
     compile "org.webjars:swagger-ui"
     compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
-
+    compile "io.hawt:hawtio-springboot"
 
     testCompile "org.springframework.security:spring-security-test"
     testCompile "org.springframework.kafka:spring-kafka-test"
@@ -203,6 +204,7 @@ dependencies {
     }
 
     runtime "org.hsqldb:hsqldb"
+    runtime "org.jolokia:jolokia-core"
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
 }
 

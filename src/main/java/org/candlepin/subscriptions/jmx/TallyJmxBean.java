@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.jmx;
 
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.spring.QueueProfile;
 import org.candlepin.subscriptions.task.TaskManager;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
@@ -35,6 +38,8 @@ import org.springframework.stereotype.Component;
 @ManagedResource
 public class TallyJmxBean {
 
+    private static final Logger log = LoggerFactory.getLogger(TallyJmxBean.class);
+
     private final TaskManager tasks;
 
     public TallyJmxBean(TaskManager taskManager) {
@@ -43,11 +48,15 @@ public class TallyJmxBean {
 
     @ManagedOperation(description = "Trigger a tally for an account")
     public void tallyAccount(String accountNumber) {
+        Object principal = ResourceUtils.getPrincipal();
+        log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
         tasks.updateAccountSnapshots(accountNumber);
     }
 
     @ManagedOperation(description = "Trigger tally for all configured accounts")
     public void tallyConfiguredAccounts() {
+        Object principal = ResourceUtils.getPrincipal();
+        log.info("Tally for all accounts triggered over JMX by {}", principal);
         tasks.updateSnapshotsForAllAccounts();
     }
 }

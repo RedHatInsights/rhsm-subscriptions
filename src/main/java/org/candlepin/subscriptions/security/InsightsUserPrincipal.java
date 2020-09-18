@@ -20,35 +20,70 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Objects;
 
 /**
- * Represents the subset of data we depend on in the x-rh-identity header.
+ * Represents a normal cloud.redhat.com user authenticated via the x-rh-identity header.
  */
-public class InsightsUserPrincipal {
-
-    private final String ownerId;
-    private final String accountNumber;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class InsightsUserPrincipal implements RhIdentity.Identity {
 
     public InsightsUserPrincipal() {
-        this(null, null);
+        // intentionally left empty
     }
 
-    public InsightsUserPrincipal(String ownerId, String accountNumber) {
-        this.ownerId = ownerId;
-        this.accountNumber = accountNumber;
+    // package-private to be used for testing
+    InsightsUserPrincipal(String org, String account) {
+        internal.orgId = org;
+        accountNumber = account;
     }
+
+    /**
+     * POJO representation of "internal" object inside the x-rh-identity object JSON.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Internal {
+        @JsonProperty("org_id")
+        private String orgId;
+
+        public String getOrgId() {
+            return orgId;
+        }
+
+        public void setOrgId(String orgId) {
+            this.orgId = orgId;
+        }
+    }
+
+    @JsonProperty("account_number")
+    private String accountNumber;
+    private Internal internal = new Internal();
 
     public String getOwnerId() {
-        return ownerId;
+        return internal.getOrgId();
     }
 
     public String getAccountNumber() {
         return accountNumber;
     }
 
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
+    public Internal getInternal() {
+        return internal;
+    }
+
+    public void setInternal(Internal internal) {
+        this.internal = internal;
+    }
+
     public String toString() {
-        return String.format("[Account: %s, Owner: %s]", accountNumber, ownerId);
+        return String.format("[Account: %s, Owner: %s]", accountNumber, getOwnerId());
     }
 
     @Override

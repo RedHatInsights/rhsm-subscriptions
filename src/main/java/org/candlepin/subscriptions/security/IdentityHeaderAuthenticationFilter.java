@@ -21,6 +21,9 @@
 
 package org.candlepin.subscriptions.security;
 
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
@@ -30,10 +33,9 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Base64;
-import java.util.Collections;
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Response;
 
 /**
  * Spring Security filter responsible for pulling the principal out of the x-rh-identity header.
@@ -73,18 +75,17 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
 
     }
 
-    private InsightsUserPrincipal createPrincipal(byte[] decodedHeader) throws IOException {
-        // In the future, the identity header could be deserialized into an Object.
-        Map<String, Object> authObject = mapper.readValue(decodedHeader, Map.class);
-        Map<String, Object> identity =
-            (Map<String, Object>) authObject.getOrDefault("identity", Collections.emptyMap());
-        String accountNumber = (String) identity.getOrDefault("account_number", "");
-
-        Map<String, Object> internal =
-            (Map<String, Object>) identity.getOrDefault("internal", Collections.emptyMap());
-        String orgId = (String) internal.getOrDefault("org_id", "");
-
-        return new InsightsUserPrincipal(orgId, accountNumber);
+    private RhIdentity.Identity createPrincipal(byte[] decodedHeader) throws IOException {
+        RhIdentity.Identity identity = mapper.readValue(decodedHeader, RhIdentity.class).getIdentity();
+        if (identity == null) {
+            throw new SubscriptionsException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                Response.Status.BAD_REQUEST,
+                RH_IDENTITY_HEADER + " parsed, but invalid.",
+                RH_IDENTITY_HEADER + " was missing identity."
+            );
+        }
+        return identity;
     }
 
 

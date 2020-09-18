@@ -83,15 +83,30 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     ConfigurableEnvironment env;
 
+    @Autowired
+    RbacService rbacService;
+
     @Override
     public void configure(AuthenticationManagerBuilder auth) {
         // Add our AuthenticationProvider to the Provider Manager's list
-        auth.authenticationProvider(identityHeaderAuthenticationProvider());
+        auth.authenticationProvider(
+            identityHeaderAuthenticationProvider(identityHeaderAuthenticationDetailsService(appProps,
+            rbacService))
+        );
     }
 
     @Bean
-    public AuthenticationProvider identityHeaderAuthenticationProvider() {
-        return new IdentityHeaderAuthenticationProvider();
+    public IdentityHeaderAuthenticationDetailsService identityHeaderAuthenticationDetailsService(
+        ApplicationProperties appProps, RbacService rbacService) {
+        return new IdentityHeaderAuthenticationDetailsService(appProps, identityHeaderAuthoritiesMapper(),
+            rbacService);
+    }
+
+    @Bean
+    public AuthenticationProvider identityHeaderAuthenticationProvider(
+        IdentityHeaderAuthenticationDetailsService detailsService) {
+
+        return new IdentityHeaderAuthenticationProvider(detailsService);
     }
 
     @Bean
@@ -99,23 +114,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new RbacService();
     }
 
-    @Bean
-    public IdentityHeaderAuthenticationDetailsSource detailsSource(ApplicationProperties appProps) {
-        return new IdentityHeaderAuthenticationDetailsSource(
-            appProps,
-            identityHeaderAuthoritiesMapper(),
-            rbacService()
-        );
-    }
-
     // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
-    public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
-        ApplicationProperties appProps) throws Exception {
+    public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() throws Exception {
 
         IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
         filter.setCheckForPrincipalChanges(true);
         filter.setAuthenticationManager(authenticationManager());
-        filter.setAuthenticationDetailsSource(detailsSource(appProps));
         filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
         filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
         return filter;
@@ -156,7 +160,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         String apiPath = env.getRequiredProperty(
             "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
         http
-            .addFilter(identityHeaderAuthenticationFilter(appProps))
+            .addFilter(identityHeaderAuthenticationFilter())
             .csrf().disable()
             .exceptionHandling()
                 .accessDeniedHandler(restAccessDeniedHandler())
@@ -169,7 +173,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .and()
             .authorizeRequests()
                 // Allow access to Actuator endpoints here
-                .requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll()
+                .requestMatchers(EndpointRequest.to(
+                    "health", "info", "prometheus", "jolokia", "hawtio"
+                )).permitAll()
                 .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**").permitAll()
                 // ingress security is done via server settings (require ssl cert auth), so permit all here
                 .antMatchers(String.format("/%s/ingress/**", apiPath)).permitAll()
