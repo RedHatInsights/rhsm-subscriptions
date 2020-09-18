@@ -9,9 +9,6 @@ metadata:
   name: rhsm-conduit
 
 parameters:
-  # turn off built-in jolokia, so that the spring boot jolokia actuator will work
-  - name: AB_JOLOKIA_OFF
-    value: 'true'
   - name: HAWTIO_BASE_PATH
     value: /app/rhsm-conduit/actuator/hawtio
   - name: KAFKA_BOOTSTRAP_HOST
@@ -76,6 +73,11 @@ objects:
           - image: quay.io/cloudservices/rhsm-conduit:${IMAGE_TAG}
             name: rhsm-conduit
             env:
+              # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+              - name: AB_JOLOKIA_OFF
+                value: 'true'
+              - name: HAWTIO_BASE_PATH
+                value: ${HAWTIO_BASE_PATH}
               - name: JAVA_OPTIONS
                 value: -Dspring.profiles.active=worker
               - name: LOG_FILE
