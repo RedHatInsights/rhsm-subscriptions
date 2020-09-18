@@ -47,6 +47,12 @@ parameters:
     value: 50m
   - name: SPLUNK_FORWARDER_CPU_LIMIT
     value: 100m
+  - name: CLOUDIGRADE_ENABLED
+    value: 'false'
+  - name: CLOUDIGRADE_HOST
+    value: 'localhost'
+  - name: CLOUDIGRADE_PORT
+    value: '8080'
 
 objects:
   - apiVersion: v1
@@ -141,6 +147,12 @@ objects:
                     secretKeyRef:
                       name: host-inventory-db-readonly
                       key: db.password
+                - name: CLOUDIGRADE_ENABLED
+                  value: ${CLOUDIGRADE_ENABLED}
+                - name: CLOUDIGRADE_HOST
+                  value: ${CLOUDIGRADE_HOST}
+                - name: CLOUDIGRADE_PORT
+                  value: ${CLOUDIGRADE_PORT}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
