@@ -92,6 +92,7 @@ allprojects {
             dependency "com.amazonaws:aws-java-sdk-logs:$aws_sdk_version"
             dependency "com.amazonaws:aws-java-sdk-ec2:$aws_sdk_version"
             dependency "com.google.guava:guava:$guava_version"
+            dependency "io.hawt:hawtio-springboot:2.10.1"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
@@ -181,6 +182,7 @@ dependencies {
     compile "org.apache.commons:commons-csv"
     compile "com.google.guava:guava"
     compile "org.postgresql:postgresql"
+    compile "io.hawt:hawtio-springboot"
 
     // Test dependencies
     testCompile "org.springframework.kafka:spring-kafka-test"
@@ -191,6 +193,7 @@ dependencies {
     runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
         exclude group: 'org.hibernate' // exclude older hibernate validator
     }
+    runtime "org.jolokia:jolokia-core"
     runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
 }
 

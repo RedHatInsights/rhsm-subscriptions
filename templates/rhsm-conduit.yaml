@@ -9,6 +9,8 @@ metadata:
   name: rhsm-conduit
 
 parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /app/rhsm-conduit/actuator/hawtio
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: PINHEAD_URL
@@ -75,6 +77,11 @@ objects:
           - image: ${IMAGE}:${IMAGE_TAG}
             name: rhsm-conduit
             env:
+              # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+              - name: AB_JOLOKIA_OFF
+                value: 'true'
+              - name: HAWTIO_BASE_PATH
+                value: ${HAWTIO_BASE_PATH}
               - name: JAVA_OPTIONS
                 value: -Dspring.profiles.active=worker
               - name: LOG_FILE
@@ -158,9 +165,6 @@ objects:
                 memory: ${MEMORY_LIMIT}
             ports:
               - containerPort: 8080
-                protocol: TCP
-              - containerPort: 8778
-                name: jolokia
                 protocol: TCP
             volumeMounts:
               - name: pinhead
