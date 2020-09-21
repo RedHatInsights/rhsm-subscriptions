@@ -25,6 +25,9 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Optional;
 
 // NOTE: If we need to eventually reuse these rules/calculations for other products
@@ -34,6 +37,8 @@ import java.util.Optional;
  * Collects usage data for the RHEL product.
  */
 public class RHELProductUsageCollector implements ProductUsageCollector {
+
+    private static final Logger log = LoggerFactory.getLogger(RHELProductUsageCollector.class);
 
     @Override
     public Optional<HostTallyBucket> collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
@@ -80,9 +85,9 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         int appliedSockets = hypervisorFacts.getSockets() != null ? hypervisorFacts.getSockets() : 0;
 
         if (appliedSockets == 0) {
-            throw new IllegalStateException(String.format("Hypervisor in account %s has no sockets and will" +
+            log.warn("Hypervisor in account {} has no sockets and will" +
                 " not contribute to the totals. The tally for the RHEL product will not be accurate since" +
-                "all associated guests will not contribute to the tally.", account));
+                "all associated guests will not contribute to the tally.", account);
         }
 
         prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
