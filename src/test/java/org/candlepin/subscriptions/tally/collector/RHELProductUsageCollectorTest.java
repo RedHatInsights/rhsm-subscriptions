@@ -22,16 +22,20 @@ package org.candlepin.subscriptions.tally.collector;
 
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
 
 public class RHELProductUsageCollectorTest {
 
@@ -42,7 +46,7 @@ public class RHELProductUsageCollectorTest {
     }
 
     @Test
-    public void testCountsForHypervisor() {
+    void testCountsForHypervisor() {
         NormalizedFacts facts = hypervisorFacts(4, 12);
 
         UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -55,7 +59,7 @@ public class RHELProductUsageCollectorTest {
     }
 
     @Test
-    public void testCountsForGuestWithKnownHypervisor() {
+    void testCountsForGuestWithKnownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, false);
 
         UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -69,7 +73,7 @@ public class RHELProductUsageCollectorTest {
     }
 
     @Test
-    public void testCountsForGuestWithUnkownHypervisor() {
+    void testCountsForGuestWithUnkownHypervisor() {
         NormalizedFacts facts = guestFacts(3, 12, true);
 
         UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -84,7 +88,7 @@ public class RHELProductUsageCollectorTest {
     }
 
     @Test
-    public void testCountsForPhysicalSystem() {
+    void testCountsForPhysicalSystem() {
         NormalizedFacts facts = physicalNonHypervisor(4, 12);
 
         UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -96,17 +100,19 @@ public class RHELProductUsageCollectorTest {
     }
 
     @Test
-    public void hypervisorReportedWithNoSocketsWillRaiseException() {
-        NormalizedFacts facts = hypervisorFacts(0, 0);
-        NormalizedFacts guestFacts = guestFacts(4, 1, false);
+    void hypervisorReportedWithNoSocketsDefaultToZero() {
+        NormalizedFacts facts = new NormalizedFacts();
+        facts.setHypervisor(true);
+
         UsageCalculation calc = new UsageCalculation(createUsageKey());
         collector.collect(calc, facts);
-        collector.collect(calc, guestFacts);
-        assertThrows(IllegalStateException.class, () -> collector.collectForHypervisor("foo", calc, facts));
+        Optional<HostTallyBucket> bucket = collector.collectForHypervisor("foo", calc, facts);
+        assertTrue(bucket.isPresent());
+        assertEquals(0, bucket.get().getSockets());
     }
 
     @Test
-    public void testCountsForCloudProvider() {
+    void testCountsForCloudProvider() {
         // Cloud provider host should contribute to the matched supported cloud provider,
         // as well as the overall total. A cloud host should only ever contribute 1 socket
         // along with its cores.
