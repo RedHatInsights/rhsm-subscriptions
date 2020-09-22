@@ -1077,6 +1077,15 @@ components:
           description: Latest timestamp that Subscription Watch has for this host.
           type: string
           format: date-time
+        is_unmapped_guest:
+          description: Is this host an unmapped guest (not reported by virt-who)?
+          type: boolean
+        is_hypervisor:
+          description: Is this host a hypervisor?
+          type: boolean
+        cloud_provider:
+          description: If applicable, the cloud provider for this host.
+          type: string
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.
       properties:

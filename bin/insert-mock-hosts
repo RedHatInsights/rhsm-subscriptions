@@ -10,12 +10,16 @@ output = sys.stdout
 
 def generate_host(inventory_id=None, insights_id=None, account_number=None, org_id=None, display_name=None,
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
-                  hardware_type=None, num_of_guests=None, last_seen=None, product=None, sla=None, usage=None):
+                  hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
+                  sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
+                  skip_buckets=False):
+    host_id = uuid.uuid4()
     inventory_id=inventory_id or uuid.uuid4()
     insights_id=insights_id or uuid.uuid4()
     if not is_guest:
         hypervisor_uuid = None
     host_fields = {
+        'id': host_id,
         'inventory_id': inventory_id,
         'insights_id': insights_id,
         'account_number': account_number or 'account123',
@@ -29,12 +33,14 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         'hardware_type': hardware_type or 'PHYSICAL',
         'num_of_guests': num_of_guests,
         'last_seen': last_seen or '1993-03-26',
+        'is_unmapped_guest': is_unmapped_guest or False,
+        'is_hypervisor': is_hypervisor or False,
+        'cloud_provider': cloud_provider or None
     }
 
     _generate_insert('hosts', **host_fields)
-    _generate_buckets(inventory_id, product, sla, usage, cores=cores, sockets=sockets, measurement_type=hardware_type)
-    if hardware_type == 'HYPERVISOR':
-        _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=True, cores=cores, sockets=sockets, measurement_type=hardware_type)
+    if not skip_buckets:
+        _generate_buckets(host_id, product, sla, usage, cores=cores, sockets=sockets, measurement_type=measurement_type)
     return host_fields
 
 
@@ -54,11 +60,11 @@ def _generate_insert(table, **host_fields):
     values = ','.join(db_repr(value) for value in values)
     output.write(f'insert into {table}({fields}) values ({values});\n')
 
-def _generate_buckets(inventory_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None, sockets=None):
+def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None, sockets=None):
   sla = sla or 'Premium'
   usage = usage or 'Production'
   bucket_fields = {
-    'host_inventory_id': inventory_id,
+    'host_id': host_id,
     'product_id': product or 'RHEL',
     'as_hypervisor': as_hypervisor,
     'measurement_type': measurement_type,
@@ -97,6 +103,9 @@ parser.add_argument('--num-guests',
                     type=int,
                     default=0,
                     help='Insert a number of mock guests, running on a single hypervisor')
+parser.add_argument('--unmapped-guests',
+                    default=False,
+                    help='Are the guests to be created unmapped?')
 parser.add_argument('--account',
                     help='Set the account for the inserted records')
 parser.add_argument('--hypervisor-id',
@@ -124,23 +133,37 @@ if not args.output_sql:
     psql = subprocess.Popen('psql', stdin=subprocess.PIPE, shell=True, text=True)
     output = psql.stdin
 
+product = args.product or "RHEL"
+
 for i in range(args.num_physical):
-    generate_host(account_number=args.account, hardware_type='PHYSICAL', product=args.product, sla=args.sla,
-                  usage=args.usage, cores=args.cores, sockets=args.sockets)
+    generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
+                  product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets)
 
 hypervisor = None
 for i in range(args.num_hypervisors):
-    hypervisor = generate_host(account_number=args.account, hardware_type='HYPERVISOR', product=args.product,
-                               sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets)
+    hypervisor = generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='HYPERVISOR', product=args.product,
+                               sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
+    # create a physical entry for the host as well.
+    generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='PHYSICAL', product=args.product,
+                  sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
+
+create_unmapped = args.unmapped_guests
 for i in range(args.num_guests):
     if args.hypervisor_id:
         hypervisor_uuid = args.hypervisor_id
     elif hypervisor is not None:
         hypervisor_uuid = hypervisor['subscription_manager_id']
+        # If we are associating the guests with a created hypervisor host, don't allow it to be unmapped
+        # since it was considered as reported.
+        create_unmapped = False
     else:
         hypervisor_uuid = None
-    generate_host(account_number=args.account, hardware_type='HYPERVISOR', is_guest=True,
-                  product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid, cores=args.cores, sockets=args.sockets)
+
+    skip_buckets = "RHEL" in product.upper()
+    generate_host(account_number=args.account, hardware_type='VIRTUALIZED', is_guest=True,
+                  product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
+                  cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
+                  skip_buckets=skip_buckets)
 
 if psql:
     psql.stdin.close()
