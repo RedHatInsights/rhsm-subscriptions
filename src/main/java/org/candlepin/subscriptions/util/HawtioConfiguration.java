@@ -26,10 +26,14 @@ import org.candlepin.subscriptions.ApplicationProperties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.actuate.autoconfigure.web.server.ConditionalOnManagementPort;
+import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
+import io.hawt.springboot.HawtioManagementConfiguration;
 import io.hawt.web.filters.BaseTagHrefFilter;
 
 import java.util.Collections;
@@ -51,6 +55,8 @@ import javax.servlet.ServletException;
  * /rhsm-subscriptions/actuator/hawtio forces the frontend to return the proper URLs for JavaScript/CSS.
  */
 @Configuration
+@ConditionalOnManagementPort(ManagementPortType.SAME)
+@AutoConfigureAfter(HawtioManagementConfiguration.class)
 public class HawtioConfiguration {
     @Autowired
     public void modifyBaseTagHrefFilter(
