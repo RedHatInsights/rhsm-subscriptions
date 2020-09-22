@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.util;
 import static io.hawt.web.filters.BaseTagHrefFilter.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.security.JolokiaRestrictor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -71,6 +72,11 @@ public class HawtioConfiguration {
             filterConfig.setParameter(PARAM_APPLICATION_CONTEXT_PATH, props.getHawtioBasePath());
             baseTagHrefFilter.init(filterConfig);
         }
+    }
+
+    @Autowired
+    public void configureJolokiaRestrictor(ApplicationProperties props) {
+        JolokiaRestrictor.setApplicationProperties(props);
     }
 
     private static class BaseTagHrefFilterConfigOverride implements FilterConfig {
