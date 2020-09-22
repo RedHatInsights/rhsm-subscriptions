@@ -42,6 +42,15 @@ public class AccountUsageCalculation {
         this.products = new HashSet<>();
     }
 
+    public UsageCalculation getOrCreateCalculation(UsageCalculation.Key key) {
+        UsageCalculation calc = getCalculation(key);
+        if (calc == null) {
+            calc = new UsageCalculation(key);
+            addCalculation(calc);
+        }
+        return calc;
+    }
+
     public String getAccount() {
         return account;
     }

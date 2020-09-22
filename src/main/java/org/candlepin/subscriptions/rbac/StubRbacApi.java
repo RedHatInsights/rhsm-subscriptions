@@ -18,31 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.rbac.client;
+package org.candlepin.subscriptions.rbac;
 
-import org.candlepin.insights.rbac.client.model.Access;
-import org.candlepin.insights.rbac.client.resources.AccessApi;
+import org.candlepin.subscriptions.rbac.model.Access;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * A wrapper around the RBAC API.
+ * Stub implementation of the RbacApi.
  */
-public class RbacApiImpl implements RbacApi {
-
-    private AccessApi accessApi;
-
-    public RbacApiImpl(ApiClient client) {
-        accessApi = new AccessApi(client);
-    }
+public class StubRbacApi implements RbacApi {
 
     @Override
     public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-        try {
-            return accessApi.getPrincipalAccess(applicationName, null, null, null).getData();
-        }
-        catch (ApiException apie) {
-            throw new RbacApiException("Unable to get current user access.", apie);
-        }
+        return Arrays.asList(new Access().permission("subscriptions:*:*"));
     }
+
 }

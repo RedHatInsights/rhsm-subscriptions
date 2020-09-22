@@ -25,6 +25,9 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,6 +37,7 @@ import java.util.Objects;
  * The calculated usage for a key where key is (productId, sla).
  */
 public class UsageCalculation {
+    private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
 
     private final Key key;
 
@@ -165,6 +169,22 @@ public class UsageCalculation {
 
         increment(cloudType, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
+    }
+
+    public void addCloudigrade(HardwareMeasurementType cloudType, int count) {
+        increment(cloudType, 0, count, count);
+        Totals awsTotals = getTotals(HardwareMeasurementType.AWS);
+        Totals grandTotal = getTotals(HardwareMeasurementType.TOTAL);
+        if (awsTotals != null) {
+            if (awsTotals.instances != count) {
+                log.warn("AWS totals differ by source; HBI: {} vs. cloudigrade: {}", awsTotals.instances,
+                    count);
+            }
+            grandTotal.instances -= awsTotals.instances;
+            grandTotal.sockets -= awsTotals.sockets;
+            grandTotal.cores -= awsTotals.cores;
+        }
+        addToTotal(0, count, count);
     }
 
     private void increment(HardwareMeasurementType type, int cores, int sockets, int instances) {

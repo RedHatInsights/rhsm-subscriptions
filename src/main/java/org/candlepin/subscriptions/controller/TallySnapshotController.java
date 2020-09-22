@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.controller;
 
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
-import org.candlepin.subscriptions.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.CloudigradeAccountUsageCollector;
 import org.candlepin.subscriptions.tally.InventoryAccountUsageCollector;
 import org.candlepin.subscriptions.tally.UsageSnapshotProducer;
 
@@ -34,11 +36,9 @@ import org.springframework.stereotype.Component;
 
 import io.micrometer.core.annotation.Timed;
 
-import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -49,26 +49,31 @@ public class TallySnapshotController {
 
     private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
+    private final ApplicationProperties props;
     private final InventoryAccountUsageCollector usageCollector;
+    private final CloudigradeAccountUsageCollector cloudigradeCollector;
     private final UsageSnapshotProducer snapshotProducer;
     private final RetryTemplate retryTemplate;
+    private final RetryTemplate cloudigradeRetryTemplate;
 
     private final Set<String> applicableProducts;
 
-
-    public TallySnapshotController(ProductIdToProductsMapSource productIdToProductsMapSource,
-        RoleToProductsMapSource roleToProductsMapSource,
+    public TallySnapshotController(
+        ApplicationProperties props,
+        @Qualifier("applicableProducts") Set<String> applicableProducts,
         InventoryAccountUsageCollector usageCollector,
+        CloudigradeAccountUsageCollector cloudigradeCollector,
         UsageSnapshotProducer snapshotProducer,
-        @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate) throws IOException {
+        @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
+        @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate) {
 
-        this.applicableProducts = new HashSet<>();
-        productIdToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
-        roleToProductsMapSource.getValue().values().forEach(this.applicableProducts::addAll);
-
+        this.props = props;
+        this.applicableProducts = applicableProducts;
         this.usageCollector = usageCollector;
+        this.cloudigradeCollector = cloudigradeCollector;
         this.snapshotProducer = snapshotProducer;
         this.retryTemplate = retryTemplate;
+        this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
     }
 
     @Timed("rhsm-subscriptions.snapshots.single")
@@ -84,18 +89,44 @@ public class TallySnapshotController {
             log.debug("Producing snapshots for accounts: {}", String.join(",", accounts));
         }
 
-        Collection<AccountUsageCalculation> accountCalcs;
+        Map<String, AccountUsageCalculation> accountCalcs;
         try {
             accountCalcs = retryTemplate.execute(context ->
                 usageCollector.collect(this.applicableProducts, accounts)
             );
+            if (props.isCloudigradeEnabled()) {
+                attemptCloudigradeEnrichment(accounts, accountCalcs);
+            }
         }
         catch (Exception e) {
             log.error("Could not collect existing usage snapshots for accounts {}", accounts, e);
             return;
         }
 
-        snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs);
+        snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+    }
+
+    private void attemptCloudigradeEnrichment(List<String> accounts,
+        Map<String, AccountUsageCalculation> accountCalcs) {
+        log.info("Adding cloudigrade reports to calculations.");
+        try {
+            cloudigradeRetryTemplate.execute(context -> {
+                try {
+                    cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, accounts);
+                }
+                catch (Exception e) {
+                    throw new ExternalServiceException(
+                        ErrorCode.REQUEST_PROCESSING_ERROR,
+                        "Error during attempt to integrate cloudigrade report",
+                        e
+                    );
+                }
+                return null; // RetryCallback requires a return
+            });
+        }
+        catch (Exception e) {
+            log.warn("Exception during cloudigrade enrichment, tally will not be enriched.", e);
+        }
     }
 
 }

@@ -18,21 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.rbac.client;
+package org.candlepin.subscriptions.rbac;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFactory;
-import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.candlepin.subscriptions.http.HttpClient;
+import org.candlepin.subscriptions.http.HttpClientProperties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
-
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 
 /**
  * Factory that produces inventory service clients using configuration. An
@@ -43,9 +36,9 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
 
     private static Logger log = LoggerFactory.getLogger(RbacApiFactory.class);
 
-    private final RbacServiceProperties serviceProperties;
+    private final HttpClientProperties serviceProperties;
 
-    public RbacApiFactory(RbacServiceProperties serviceProperties) {
+    public RbacApiFactory(HttpClientProperties serviceProperties) {
         this.serviceProperties = serviceProperties;
     }
 
@@ -56,7 +49,8 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
             return new StubRbacApi();
         }
         ApiClient apiClient = new RbacApiClient();
-        apiClient.setHttpClient(buildHttpClient(apiClient));
+        apiClient.setHttpClient(HttpClient.buildHttpClient(serviceProperties, apiClient.getJSON(),
+            apiClient.isDebugging()));
         if (serviceProperties.getUrl() != null) {
             log.info("RBAC service URL: {}", serviceProperties.getUrl());
             apiClient.setBasePath(serviceProperties.getUrl());
@@ -66,33 +60,6 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
         }
 
         return new RbacApiImpl(apiClient);
-    }
-
-    /**
-     * Customize the creation of the HTTP client the API will be using.
-     *
-     * @param client the associated ApiClient instance
-     * @return a new Http client instance.
-     */
-    private Client buildHttpClient(ApiClient client) {
-        HttpClientBuilder apacheBuilder = HttpClientBuilder.create();
-
-        // Bump the max connections so that we don't block on multiple async requests
-        // to the RBAC service.
-        apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
-        apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
-        HttpClient httpClient = apacheBuilder.build();
-
-        ClientHttpEngine engine = ApacheHttpClient4EngineFactory.create(httpClient);
-
-        ClientConfiguration clientConfig = new ClientConfiguration(ResteasyProviderFactory.getInstance());
-        clientConfig.register(client.getJSON());
-        if (client.isDebugging()) {
-            clientConfig.register(org.jboss.logging.Logger.class);
-        }
-        ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
-
-        return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
     }
 
     @Override

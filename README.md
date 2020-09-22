@@ -126,6 +126,11 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `RBAC_HOST`: RBAC service hostname
 * `RBAC_PORT`: RBAC service port
 * `RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
+* `CLOUDIGRADE_ENABLED`: set to `true` to query cloudigrade for RHEL usage
+* `CLOUDIGRADE_MAX_ATTEMPTS`: maximum number of attempts to query cloudigrade
+* `CLOUDIGRADE_HOST`: cloudigrade service host
+* `CLOUDIGRADE_PORT`: cloudigrade service port
+* `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
 
 ## Deploy to Openshift
 

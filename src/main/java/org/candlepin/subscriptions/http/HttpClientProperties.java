@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright (c) 2009 - 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,25 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.insights.rbac.client;
+package org.candlepin.subscriptions.http;
 
 /**
- * Sub-class for RBAC service properties
+ * HTTP service client configuration.
  */
-public class RbacServiceProperties {
+public class HttpClientProperties {
 
     /**
-     * Use the stub RBAC API implementation.
+     * Use a stub of the service.
      */
     private boolean useStub;
 
     /**
-     * The URL of the RBAC API.
+     * The URL of the service.
      */
     private String url;
 
     /**
-     * Maximum number of simultaneous connections to the rbac service.
+     * Maximum number of simultaneous connections to the service.
      */
     private int maxConnections = 100;
 

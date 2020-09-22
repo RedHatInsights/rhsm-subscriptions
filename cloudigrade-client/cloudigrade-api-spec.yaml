@@ -7,9 +7,15 @@ info:
   version: 1.0.0
 
 paths:
-  /concurrent:
+  /concurrent/:
     description: "Operations on concurrent usages"
     parameters:
+    - name: x-rh-identity
+      required: true
+      in: header
+      description: "Account identity to query"
+      schema:
+        type: string
     - name: limit
       required: false
       in: query
@@ -22,6 +28,18 @@ paths:
       description: "The initial index from which to return the results."
       schema:
         type: integer
+    - name: start_date
+      required: false
+      in: query
+      schema:
+        type: string
+        format: date
+    - name: end_date
+      required: false
+      in: query
+      schema:
+        type: string
+        format: date
     get:
       summary: "List daily concurrent usages"
       operationId: "ListDailyConcurrentUsages"
@@ -67,40 +85,48 @@ components:
     ConcurrentUsage:
       required:
         - date
-        - instances
-        - instances_list
-        - vcpu
-        - memory
+        - maximum_counts
       properties:
         date:
           type: string
           format: date
-        instances:
-          type: integer
-        instances_list:
+        maximum_counts:
           type: array
           items:
-            $ref: "#/components/schemas/CloudInstance"
-        vcpu:
+            $ref: '#/components/schemas/UsageCount'
+    UsageCount:
+      required:
+        - arch
+        - instances_count
+        - role
+        - sla
+      properties:
+        arch:
+          type: string
+        instances_count:
           type: integer
-        memory:
-          type: number
-    CloudInstance:
-      properties:
-        cloud_instance_id:
-          type: string
-        cloud_type:
-          type: string
-        rhel_version:
-          type: string
-        syspurpose:
-          $ref: "#/components/schemas/Syspurpose"
-    Syspurpose:
-      type: object
-      properties:
         role:
           type: string
-        service_level_agreement:
+        sla:
           type: string
         usage:
           type: string
+    IdentityHeader:
+      required:
+        - identity
+      properties:
+        identity:
+          type: object
+          required:
+            - account_number
+            - user
+          properties:
+            account_number:
+              type: string
+            user:
+              type: object
+              required:
+                - is_org_admin
+              properties:
+                is_org_admin:
+                  type: boolean
