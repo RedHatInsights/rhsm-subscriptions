@@ -21,31 +21,41 @@
 package org.candlepin.subscriptions.jmx;
 
 import org.candlepin.subscriptions.controller.OptInController;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
+import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
 /**
  * Exposes the ability to perform OptIn operations.
  */
 @Component
-@Profile({"api"})
 @ManagedResource
 public class OptInJmxBean {
     private static final Logger log = LoggerFactory.getLogger(OptInJmxBean.class);
 
     private final OptInController controller;
+    private final ApplicationClock clock;
+    private final AccountConfigRepository repo;
 
-    public OptInJmxBean(OptInController controller) {
+    public OptInJmxBean(OptInController controller, ApplicationClock clock, AccountConfigRepository repo) {
         this.controller = controller;
+        this.clock = clock;
+        this.repo = repo;
     }
 
     @ManagedOperation(description = "Fetch an opt in configuration")
@@ -80,6 +90,32 @@ public class OptInJmxBean {
 
         String text = "Completed opt in for account %s and org %s:\n%s";
         return String.format(text, accountNumber, orgId, config.toString());
+    }
+
+    @ManagedAttribute(description = "Count of how many orgs opted-in in the previous week.")
+    public int getLastWeekOptInCount() {
+        OffsetDateTime oneWeekAgo = OffsetDateTime.now().minusWeeks(1);
+        OffsetDateTime begin = clock.startOfWeek(oneWeekAgo);
+        OffsetDateTime end = clock.endOfWeek(oneWeekAgo);
+        return repo.getCountOfOptInsForDateRange(begin, end);
+    }
+
+    @ManagedAttribute(description = "Count of how many orgs opted-in in the current week.")
+    public int getCurrentWeekOptInCount() {
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime begin = clock.startOfWeek(now);
+        OffsetDateTime end = clock.endOfWeek(now);
+        return repo.getCountOfOptInsForDateRange(begin, end);
+    }
+
+    @ManagedOperation(description = "Fetch the number of orgs opted-in in a given week.")
+    @ManagedOperationParameter(name = "weekOf", description = "Date in the week to query; YYYY-MM-DD format")
+    public int getOptInCountForWeekOf(String weekOf) throws ParseException {
+        OffsetDateTime dateInWeek = OffsetDateTime
+            .ofInstant(new SimpleDateFormat("yyyy-MM-dd").parse(weekOf).toInstant(), ZoneOffset.UTC);
+        OffsetDateTime begin = clock.startOfWeek(dateInWeek);
+        OffsetDateTime end = clock.endOfWeek(dateInWeek);
+        return repo.getCountOfOptInsForDateRange(begin, end);
     }
 
 }

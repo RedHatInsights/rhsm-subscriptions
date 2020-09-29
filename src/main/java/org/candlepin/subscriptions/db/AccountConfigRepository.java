@@ -26,6 +26,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
 /**
@@ -40,5 +41,9 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
         "select case when count(c) > 0 then true else false end from AccountConfig c " +
         "where c.accountNumber = :account and c.reportingEnabled = TRUE")
     boolean isReportingEnabled(@Param("account") String accountNumber);
+
+    @Query("select count(c) from AccountConfig c " +
+        "where c.optInType='API' and c.created between :startOfWeek and :endOfWeek")
+    int getCountOfOptInsForDateRange(OffsetDateTime startOfWeek, OffsetDateTime endOfWeek);
 
 }

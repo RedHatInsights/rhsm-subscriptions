@@ -36,7 +36,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -123,6 +125,33 @@ public class AccountConfigRepositoryTest {
         assertFalse(repository.isReportingEnabled("A2"));
         assertTrue(repository.isReportingEnabled("A3"));
         assertFalse(repository.isReportingEnabled("A4"));
+    }
+
+    @Test
+    void testOptInCount() {
+        OffsetDateTime begin = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC).minusSeconds(1);
+        OffsetDateTime end = begin.plusDays(1);
+
+        AccountConfig optInBefore = createConfig("A1", true, true);
+        optInBefore.setCreated(begin.minusSeconds(1));
+
+        AccountConfig optInBeginning = createConfig("A2", true, true);
+        optInBeginning.setCreated(begin);
+
+        AccountConfig optInEnd = createConfig("A3", true, true);
+        optInEnd.setCreated(end);
+
+        AccountConfig optInAfter = createConfig("A4", true, true);
+        optInAfter.setCreated(end.plusSeconds(1));
+
+        repository.saveAll(Arrays.asList(optInBefore, optInBeginning, optInEnd, optInAfter));
+        repository.flush();
+
+        int count = repository
+            .getCountOfOptInsForDateRange(OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC),
+            OffsetDateTime.now());
+
+        assertEquals(2, count);
     }
 
     private AccountConfig createConfig(String account, boolean canSync, boolean canReport) {
