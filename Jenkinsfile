@@ -6,17 +6,17 @@ pipeline {
     stages {
         stage('Clean') {
             steps {
-                sh './gradlew --no-daemon clean'
+                sh "./podman_run.sh ./gradlew --no-daemon clean"
             }
         }
         stage('Build') {
             steps {
-                sh './gradlew --no-daemon assemble'
+                sh "./podman_run.sh ./gradlew --no-daemon assemble"
             }
         }
         stage('Unit tests') {
             steps {
-                sh './gradlew --no-daemon test'
+                sh "./podman_run.sh ./gradlew --no-daemon test"
             }
             post {
                 always {
@@ -26,7 +26,7 @@ pipeline {
         }
         stage('Checkstyle') {
             steps {
-                sh './gradlew --no-daemon checkstyleMain checkstyleTest'
+                sh "./podman_run.sh ./gradlew --no-daemon checkstyleMain checkstyleTest"
             }
             post {
                 always {
@@ -40,7 +40,7 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./gradlew --no-daemon sonarqube -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./podman_run.sh ./gradlew --no-daemon sonarqube -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }
@@ -52,7 +52,7 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./gradlew --no-daemon sonarqube -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./podman_run.sh ./gradlew --no-daemon sonarqube -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }
