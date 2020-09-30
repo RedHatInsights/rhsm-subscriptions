@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
@@ -91,11 +92,11 @@ public class TaskManager {
         try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
             log.info("Queuing snapshot production in batches of {}.", accountBatchSize);
 
-            long count =
-                accountStream.map(account -> {
-                    updateQueue.queue(account);
-                    return 1;
-                }).count();
+            AtomicInteger count = new AtomicInteger(0);
+            accountStream.forEach(account -> {
+                updateQueue.queue(account);
+                count.addAndGet(1);
+            });
 
             // The final group of accounts might have be less than the batch size
             // and need to be flushed.
@@ -103,7 +104,7 @@ public class TaskManager {
                 updateQueue.flush();
             }
 
-            log.info("Done queuing snapshot production for {} accounts.", count);
+            log.info("Done queuing snapshot production for {} accounts.", count.intValue());
         }
         catch (AccountListSourceException e) {
             throw new TaskManagerException("Could not list accounts for update snapshot task generation", e);

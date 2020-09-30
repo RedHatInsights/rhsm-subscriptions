@@ -93,6 +93,7 @@ allprojects {
 
     tasks.withType(JavaCompile) {
         options.compilerArgs << '-parameters'
+        options.compilerArgs.addAll(['--release', '8'])
     }
 
     repositories {
