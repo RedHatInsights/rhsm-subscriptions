@@ -1,7 +1,7 @@
 {
-  "modelPackage": "org.candlepin.insights.inventory.client.model",
-  "apiPackage": "org.candlepin.insights.inventory.client.resources",
-  "invokerPackage": "org.candlepin.insights.inventory.client",
+  "modelPackage": "org.candlepin.subscriptions.inventory.client.model",
+  "apiPackage": "org.candlepin.subscriptions.inventory.client.resources",
+  "invokerPackage": "org.candlepin.subscriptions.inventory.client",
   "groupId": "org.candlepin",
   "artifactId": "insights-inventory-client",
   "java8": true

@@ -150,7 +150,7 @@ oc process -f templates/rhsm-conduit.yaml \
 
 RHSM Conduit is meant to be deployed under the context path "/". The
 location of conduit specific resources are then controlled by the
-`rhsm-conduit.package_uri_mappings.org.candlepin.insights` property.
+`rhsm-conduit.package_uri_mappings.org.candlepin.subscriptions` property.
 This unusual configuration is due to external requirements that our
 application base its context path on the value of an environment
 variable. Using "/" as the context path means that we can have certain

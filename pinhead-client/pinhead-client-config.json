@@ -1,7 +1,7 @@
 {
-  "modelPackage": "org.candlepin.insights.pinhead.client.model",
-  "apiPackage": "org.candlepin.insights.pinhead.client.resources",
-  "invokerPackage": "org.candlepin.insights.pinhead.client",
+  "modelPackage": "org.candlepin.subscriptions.pinhead.client.model",
+  "apiPackage": "org.candlepin.subscriptions.pinhead.client.resources",
+  "invokerPackage": "org.candlepin.subscriptions.pinhead.client",
   "groupId": "org.candlepin",
   "artifactId": "pinhead-client",
   "java8": true

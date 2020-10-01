@@ -134,7 +134,7 @@ by rhsm-conduit as follows:
         "schema" : "{
           \"type\": \"record\",
           \"name\": \"TaskMessage\",
-          \"namespace\": \"org.candlepin.insights.task.queue.kafka.message\",
+          \"namespace\": \"org.candlepin.subscriptions.task.queue.kafka.message\",
           \"fields\": [
             {
               \"name\": \"groupId\",

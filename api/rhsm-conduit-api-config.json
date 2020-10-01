@@ -1,7 +1,7 @@
 {
-  "modelPackage": "org.candlepin.insights.api.model",
-  "apiPackage": "org.candlepin.insights.api.resources",
-  "invokerPackage": "org.candlepin.insights",
+  "modelPackage": "org.candlepin.subscriptions.api.model",
+  "apiPackage": "org.candlepin.subscriptions.api.resources",
+  "invokerPackage": "org.candlepin.subscriptions",
   "groupId": "org.candlepin",
   "artifactId": "rhsm-conduit",
   "java8": true
