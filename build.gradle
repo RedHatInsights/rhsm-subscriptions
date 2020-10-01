@@ -302,7 +302,7 @@ project(":insights-inventory-client") {
     apply plugin: "org.openapi.generator"
 
     ext {
-        api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/master/swagger/api.spec.yaml"
+        api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/075f8e4433ecfb2e227e02108096847242e14e19/swagger/api.spec.yaml"
         config_file = "${projectDir}/insights-inventory-client-config.json"
     }
 
