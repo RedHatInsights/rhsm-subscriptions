@@ -93,6 +93,9 @@ public class CloudigradeAccountUsageCollector {
         cloudigradeUsage.getData().stream().findFirst().ifPresent(usage -> {
             for (UsageCount usageCount : usage.getMaximumCounts()) {
                 try {
+                    if (!"_ANY".equals(usageCount.getServiceType())) {
+                        continue; // skip service-type for now, we don't yet support it
+                    }
                     UsageCalculation.Key key = extractKey(usageCount, archToProductMap, roleToProductsMap);
                     UsageCalculation calculation = usageCalc.getOrCreateCalculation(key);
                     Integer count = usageCount.getInstancesCount();
