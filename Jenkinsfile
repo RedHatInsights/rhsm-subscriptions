@@ -79,4 +79,11 @@ pipeline {
             }
         }
     }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'build/reports/checkstyle/*.html'
+            junit 'build/test-results/**/*.xml'
+        }
+    }
 }

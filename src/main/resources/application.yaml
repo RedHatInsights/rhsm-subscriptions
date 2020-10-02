@@ -30,5 +30,6 @@ spring:
       - api
       - in-memory-queue
       - capacity-ingress
+      - rhsm-conduit
   liquibase:
     change-log: classpath:/liquibase/changelog.xml

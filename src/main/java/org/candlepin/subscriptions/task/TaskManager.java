@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.orgsync.OrgSyncProperties;
+import org.candlepin.subscriptions.orgsync.db.DatabaseOrgList;
 import org.candlepin.subscriptions.spring.QueueProfile;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
@@ -55,6 +57,12 @@ public class TaskManager {
 
     @Autowired
     private TaskQueueProperties taskQueueProperties;
+
+    @Autowired
+    OrgSyncProperties orgSyncProperties;
+
+    @Autowired
+    DatabaseOrgList orgList;
 
     @Autowired
     private TaskQueue queue;
@@ -109,6 +117,58 @@ public class TaskManager {
         catch (AccountListSourceException e) {
             throw new TaskManagerException("Could not list accounts for update snapshot task generation", e);
         }
+    }
+
+    /**
+     * Initiates a task that will update the inventory of the specified organization's ID.
+     *
+     * @param orgId the ID of the org in which to update.
+     */
+    @SuppressWarnings("indentation")
+    public void updateOrgInventory(String orgId) {
+        updateOrgInventory(orgId, null);
+    }
+
+    /**
+     * Initiates a task that will update the inventory of the specified organization's ID.
+     *
+     * @param orgId the ID of the org in which to update.
+     * @param offset the offset to start at
+     */
+    @SuppressWarnings("indentation")
+    public void updateOrgInventory(String orgId, String offset) {
+        queue.enqueue(
+            TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTaskGroup())
+                .setSingleValuedArg("org_id", orgId)
+                .setSingleValuedArg("offset", offset)
+                .build()
+        );
+    }
+
+    /**
+     * Queue up tasks for each configured org.
+     */
+    @Transactional
+    public void syncFullOrgList() {
+        Stream<String> orgsToSync;
+
+        orgsToSync = orgList.getOrgsToSync();
+
+        if (orgSyncProperties.getLimit() != null) {
+            Integer limit = orgSyncProperties.getLimit();
+            orgsToSync = orgsToSync.limit(limit);
+            log.info("Limiting orgs to sync to {}", limit);
+        }
+        long count = orgsToSync.map(org -> {
+            try {
+                updateOrgInventory(org);
+            }
+            catch (Exception e) {
+                log.error("Could not update inventory for org: {}", org, e);
+            }
+            return null;
+        }).count();
+        log.info("Inventory update complete, synced {} orgs.", count);
     }
 
     /**

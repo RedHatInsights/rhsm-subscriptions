@@ -32,12 +32,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * This listener shuts down the Boot application after receiving an {@link JobCompleteEvent}.
- * In production, we have a pod running with the "purge-snapshots" and a pod with the "capture-snapshots"
- * profile. We want those pods to start, run the job once, and then shutdown cleanly.  Openshift
+ * In production, we have a pod running with the "purge-snapshots", "capture-snapshots", and "orgsync"
+ * profiles. We want those pods to start, run the job once, and then shutdown cleanly.  Openshift
  * takes care of all the cron scheduling.  In  development mode, we want scheduling to happen internally
  * and for the pod to keep running.
  */
-@Profile({"purge-snapshots", "capture-snapshots"})
+@Profile({"purge-snapshots", "capture-snapshots", "orgsync"})
 @Component
 public class JobCompleteShutdownListener implements ApplicationListener<JobCompleteEvent>,
     ApplicationContextAware {

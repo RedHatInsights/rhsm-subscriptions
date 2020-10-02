@@ -44,6 +44,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
@@ -77,6 +78,7 @@ import javax.validation.Validator;
 public class ApplicationConfiguration implements WebMvcConfigurer {
 
     @Bean
+    @Primary
     public ObjectMapperContextResolver objectMapperContextResolver(
         ApplicationProperties applicationProperties) {
         return new ObjectMapperContextResolver(applicationProperties);

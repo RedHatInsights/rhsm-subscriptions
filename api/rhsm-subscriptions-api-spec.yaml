@@ -5,11 +5,31 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8080/api/rhsm-subscriptions/v1
-  - url: https://ci.cloud.redhat.com/api/rhsm-subscriptions/v1
-  - url: https://qa.cloud.redhat.com/api/rhsm-subscriptions/v1
-  - url: https://stage.cloud.redhat.com/api/rhsm-subscriptions/v1
-  - url: https://cloud.redhat.com/api/rhsm-subscriptions/v1
+  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        enum:
+          - rhsm-subscriptions
+          - rhsm-conduit
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        enum:
+          - rhsm-subscriptions
+          - rhsm-conduit
+        default: rhsm-subscriptions
 
 paths:
   /version:
@@ -524,7 +544,7 @@ paths:
         - hosts
   /ingress/candlepin_pools/{org_id}:
     description: "Integration endpoint for updating an account's subscription capacity from
-      Candlepin pool data."
+      Candlepin pool data. (Internal-only API)"
     parameters:
       - name: org_id
         in: path
@@ -533,7 +553,7 @@ paths:
           type: string
         description: "The org ID of the pool data"
     post:
-      summary: "Update an account's subscription capacity from Candlepin pool data."
+      summary: "Update an account's subscription capacity from Candlepin pool data. (Internal-only API)"
       operationId: updateCapacityFromCandlepinPools
       requestBody:
         required: true
@@ -556,6 +576,65 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       tags:
         - ingress
+  /inventories/{org_id}:
+    description: "All inventory operations related to a specific organization. (Internal-only API)"
+    parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The org_id is the candlepin owner key."
+
+    # TODO Address the following once we start building out the application
+    #  * We probably don't need the ConsumerInventory or OrgInventory objects
+    #    as this GET request could simply return what the IT service returns.
+    #  * Likely temporary and just for testing.
+    get:
+      summary: "Fetch the inventory data for an organization without pushing to the inventory. (Internal-only API)"
+      operationId: getInventoryForOrg
+      tags:
+        - rhsm-conduit
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: string
+          description: pinhead pagination offset
+      responses:
+        '200':
+          description: 'The request for inventory data was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/OrgInventory"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: "Fetch the inventory data for an organization and push into the unified inventory store. (Internal-only API)"
+      operationId: updateInventoryForOrg
+      tags:
+        - rhsm-conduit
+      responses:
+        # Could be 202 Accepted if we go async.
+        '200':
+          description: "The request to update the inventory was successful."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
@@ -1121,6 +1200,85 @@ components:
       properties:
         productId:
           type: string
+    ConsumerInventory:
+      # Container for fields we capture from the IT endpoint for upload to inventory service.
+      required:
+        - subscription_manager_id
+        - org_id
+      properties:
+        subscription_manager_id:
+          type: string
+        insights_id:
+          type: string
+        org_id:
+          type: string
+        account_number:
+          type: string
+        bios_vendor:
+          type: string
+        bios_version:
+          type: string
+        bios_uuid:
+          type: string
+        ip_addresses:
+          type: array
+          items:
+            type: string
+        fqdn:
+          type: string
+        mac_addresses:
+          type: array
+          items:
+            type: string
+        cpu_sockets:
+          type: integer
+        cpu_cores:
+          type: integer
+        cores_per_socket:
+          type: integer
+        last_checkin:
+          type: string
+          format: date-time
+        memory:
+          type: integer
+          format: int64
+        system_memory_bytes:
+          type: integer
+          format: int64
+        architecture:
+          type: string
+        cloud_provider:
+          type: string
+        is_virtual:
+          type: boolean
+        vm_host:
+          type: string
+        vm_host_uuid:
+          type: string
+        guest_id:
+          type: string
+        rh_prod:
+          type: array
+          items:
+            type: string
+        sys_purpose_role:
+          type: string
+        sys_purpose_sla:
+          type: string
+        sys_purpose_usage:
+          type: string
+        sys_purpose_addons:
+          type: array
+          items:
+            type: string
+        sys_purpose_units:
+          type: string
+    OrgInventory:
+      properties:
+        consumer_inventories:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsumerInventory"
     Errors:
       required:
         - errors

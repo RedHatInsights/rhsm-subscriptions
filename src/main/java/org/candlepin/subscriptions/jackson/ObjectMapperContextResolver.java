@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.util.StdDateFormat;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
-
 /**
  * A ContextResolver responsible for customizing the configuration of Jackson's
  * ObjectMapper instance. This is marked as a Provider so that RestEasy will

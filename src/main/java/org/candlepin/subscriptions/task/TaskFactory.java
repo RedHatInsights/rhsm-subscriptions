@@ -20,8 +20,10 @@
  */
 package org.candlepin.subscriptions.task;
 
+import org.candlepin.subscriptions.controller.InventoryController;
 import org.candlepin.subscriptions.controller.TallySnapshotController;
 import org.candlepin.subscriptions.task.tasks.UpdateAccountSnapshotsTask;
+import org.candlepin.subscriptions.task.tasks.UpdateOrgInventoryTask;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -38,6 +40,9 @@ public class TaskFactory {
     @Autowired
     private TallySnapshotController snapshotController;
 
+    @Autowired
+    InventoryController inventoryController;
+
     /**
      * Builds a Task instance based on the specified TaskDescriptor.
      *
@@ -46,8 +51,12 @@ public class TaskFactory {
      * @return the Task defined by the descriptor.
      */
     public Task build(TaskDescriptor taskDescriptor) {
-        if (TaskType.UPDATE_SNAPSHOTS.equals(taskDescriptor.getTaskType())) {
+        if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
             return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
+        }
+        else if (taskDescriptor.getTaskType() == TaskType.UPDATE_ORG_INVENTORY) {
+            return new UpdateOrgInventoryTask(inventoryController, taskDescriptor.getArg("org_id").get(0),
+                taskDescriptor.getArg("offset").get(0));
         }
         throw new IllegalArgumentException("Could not build task. Unknown task type: " +
             taskDescriptor.getTaskType());

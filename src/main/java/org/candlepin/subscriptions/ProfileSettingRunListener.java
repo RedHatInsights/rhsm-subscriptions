@@ -46,7 +46,8 @@ public class ProfileSettingRunListener implements ApplicationListener<Applicatio
         ConfigurableEnvironment env = event.getEnvironment();
         List<String> profiles = Arrays.asList(env.getActiveProfiles());
 
-        boolean isJobProfile = profiles.contains("capture-snapshots") || profiles.contains("purge-snapshots");
+        boolean isJobProfile = profiles.contains("capture-snapshots") ||
+            profiles.contains("purge-snapshots") || profiles.contains("rhsm-conduit");
         boolean isQueueEnabled = profiles.contains("kafka-queue") || profiles.contains("in-memory-queue");
 
         if (isJobProfile && !isQueueEnabled) {

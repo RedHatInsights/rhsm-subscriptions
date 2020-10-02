@@ -179,6 +179,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**").permitAll()
                 // ingress security is done via server settings (require ssl cert auth), so permit all here
                 .antMatchers(String.format("/%s/ingress/**", apiPath)).permitAll()
+                // rhsm-conduit apis are not deployed on a public path, so permit all
+                .antMatchers(String.format("/%s/inventories/**", apiPath)).permitAll()
                 .anyRequest().authenticated();
     }
 

@@ -1,0 +1,298 @@
+apiVersion: v1
+kind: Template
+labels:
+  app: rhsm-conduit
+  template: rhsm-conduit
+metadata:
+  annotations:
+    description: An insights inventory collector for the subscription management service.
+  name: rhsm-conduit
+
+parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /app/rhsm-conduit/actuator/hawtio
+  - name: KAFKA_BOOTSTRAP_HOST
+    required: true
+  - name: PINHEAD_URL
+    required: true
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: ORG_SYNC_SCHEDULE
+    value: 0 0 * * *
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 100Mi
+  - name: MEMORY_LIMIT
+    value: 1744Mi
+  - name: CPU_REQUEST
+    value: 200m
+  - name: CPU_LIMIT
+    value: 900m
+  - name: SPLUNK_FORWARDER_IMAGE
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
+  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
+    value: 128Mi
+  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
+    value: 256Mi
+  - name: SPLUNK_FORWARDER_CPU_REQUEST
+    value: 50m
+  - name: SPLUNK_FORWARDER_CPU_LIMIT
+    value: 100m
+
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: rhsm-conduit
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      deploymentconfig: rhsm-conduit
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          deploymentconfig: rhsm-conduit
+          prometheus: rhsm
+        annotations:
+          prometheus.io/path: /actuator/prometheus
+          prometheus.io/port: '8080'
+          prometheus.io/scrape: 'true'
+      spec:
+        containers:
+          - image: ${IMAGE}:${IMAGE_TAG}
+            name: rhsm-conduit
+            env:
+              # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+              - name: AB_JOLOKIA_OFF
+                value: 'true'
+              - name: HAWTIO_BASE_PATH
+                value: ${HAWTIO_BASE_PATH}
+              - name: JAVA_OPTIONS
+                value: -Dspring.profiles.active=rhsm-conduit,kafka-queue
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: TASK_QUEUE_TYPE
+                value: kafka
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${LOGGING_LEVEL}
+              - name: PINHEAD_URL
+                value: ${PINHEAD_URL}
+              - name: KAFKA_BOOTSTRAP_HOST
+                value: ${KAFKA_BOOTSTRAP_HOST}
+              - name: KAFKA_TASK_GROUP
+                value: platform.rhsm-conduit.tasks
+              - name: KAFKA_MESSAGE_THREADS
+                value: ${KAFKA_MESSAGE_THREADS}
+              - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.name
+              - name: PINHEAD_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: PINHEAD_KEYSTORE
+                value: /pinhead/keystore.jks
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /actuator/health
+                port: 8080
+                scheme: HTTP
+              initialDelaySeconds: 45
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 10
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /actuator/health
+                port: 8080
+                scheme: HTTP
+              initialDelaySeconds: 45
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 10
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            ports:
+              - containerPort: 8080
+                protocol: TCP
+            volumeMounts:
+              - name: pinhead
+                mountPath: /pinhead
+              - name: logs
+                mountPath: /logs
+            workingDir: /
+          - name: splunk
+            env:
+              - name: SPLUNKMETA_namespace
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+            image: ${SPLUNK_FORWARDER_IMAGE}
+            resources:
+              requests:
+                cpu: ${SPLUNK_FORWARDER_CPU_REQUEST}
+                memory: ${SPLUNK_FORWARDER_MEMORY_REQUEST}
+              limits:
+                cpu: ${SPLUNK_FORWARDER_CPU_LIMIT}
+                memory: ${SPLUNK_FORWARDER_MEMORY_LIMIT}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+              - mountPath: /var/log/app
+                name: logs
+                readOnly: true
+              - mountPath: /tls/splunk.pem
+                name: splunk
+                subPath: splunk.pem
+        volumes:
+          - name: pinhead
+            secret:
+              secretName: pinhead
+          - name: splunk
+            secret:
+              secretName: splunk
+          - name: logs
+            emptyDir:
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 75
+        imagePullSecrets:
+          - name: ${IMAGE_PULL_SECRET}
+          - name: quay-cloudservices-pull
+    triggers:
+      - type: ConfigChange
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: rhsm-conduit
+    labels:
+      prometheus: rhsm
+  spec:
+    ports:
+      - port: 8080
+        name: "8080"
+        protocol: TCP
+        targetPort: 8080
+    selector:
+      deploymentconfig: rhsm-conduit
+
+- apiVersion: batch/v1beta1
+  kind: CronJob
+  metadata:
+    name: rhsm-conduit-cron-sync
+  spec:
+    schedule: ${ORG_SYNC_SCHEDULE}
+    jobTemplate:
+      spec:
+        activeDeadlineSeconds: 1800
+        template:
+          spec:
+            activeDeadlineSeconds: 1800
+            restartPolicy: Never
+            imagePullSecrets:
+              - name: ${IMAGE_PULL_SECRET}
+              - name: quay-cloudservices-pull
+            containers:
+              - image: ${IMAGE}:${IMAGE_TAG}
+                name: rhsm-conduit-cron-sync
+                env:
+                - name: JAVA_OPTIONS
+                  value: -Dspring.profiles.active=orgsync
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: TASK_QUEUE_TYPE
+                  value: kafka
+                - name: LOGGING_LEVEL_ROOT
+                  value: ${LOGGING_LEVEL_ROOT}
+                - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                  value: ${LOGGING_LEVEL}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.name
+                resources:
+                  requests:
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
+                  limits:
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}

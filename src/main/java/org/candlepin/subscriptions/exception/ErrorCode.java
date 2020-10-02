@@ -74,7 +74,12 @@ public enum ErrorCode {
      * This typically means that an HTTP client error has occurred (HTTP 4XX)
      * when the request was made.
      */
-    INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error");
+    INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error"),
+
+    /**
+     * An unexpected exception was thrown by the Pinhead service client.
+     */
+    PINHEAD_SERVICE_ERROR(3000, "Pinhead Service Error");
 
     private final String CODE_PREFIX = "SUBSCRIPTIONS";
 

@@ -48,6 +48,9 @@ are happy to run the application off port 8080)
 ./gradlew bootRun --args="--server.port=9166"
 ```
 
+Because setting up the Pinhead keystore can be difficult, for conduit development,
+consider starting with `PINHEAD_USE_STUB=true`
+
 ## Deployment Notes
 
 RHSM Subscriptions is meant to be deployed under the context path "/". The
@@ -91,6 +94,21 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `PRETTY_PRINT_JSON`: configure Jackson to indent outputted JSON
 * `APP_NAME`: application name for URLs (default: rhsm-subscriptions)
 * `PATH_PREFIX`: path prefix in the URLs (default: api)
+* `ORG_SYNC_SCHEDULE`: cron schedule for syncing hosts
+* `ORG_SYNC_STRATEGY`: file-based or DB-based sync strategy
+* `ORG_SYNC_RESOURCE_LOCATION`: location of resource with org sync list (if using file-based sync strategy)
+* `PINHEAD_USE_STUB`: Use pinhead stub
+* `PINHEAD_URL`: Pinhead service URL
+* `PINHEAD_KEYSTORE`: path to keystore with client cert
+* `PINHEAD_KEYSTORE_PASSWORD`: pinhead client cert keystore password
+* `PINHEAD_BATCH_SIZE`: host sync batch size
+* `PINHEAD_MAX_CONNECTIONS`: maximum concurrent connections to pinhead
+* `INVENTORY_USE_STUB`: Use stubbed inventory REST API
+* `INVENTORY_API_KEY`: API key for inventory service
+* `INVENTORY_HOST_LAST_SYNC_THRESHOLD`: reject hosts that haven't checked in since this duration (e.g. 24h)
+* `INVENTORY_ENABLE_KAFKA`: whether kafka should be used (inventory API otherwise)
+* `INVENTORY_HOST_INGRESS_TOPIC`: kafka topic to emit host records
+* `INVENTORY_ADD_UUID_HYPHENS`: whether to add missing UUID hyphens to the Insights ID
 * `INVENTORY_DATABASE_HOST`: inventory DB host
 * `INVENTORY_DATABASE_DATABASE`: inventory DB database
 * `INVENTORY_DATABASE_USERNAME`: inventory DB user
@@ -172,3 +190,7 @@ first question with `1.0.0` and the second question with
 
 The plugin will create the tag and bump the version. You just need to
 push with `git push --follow-tags origin master`.
+
+## Kafka
+
+See the detailed notes [here](README-kafka.md)

@@ -3,21 +3,48 @@
 import argparse
 import logging
 import os
+import shlex
 import shutil
+import subprocess
 import sys
-
-from rhsm_subscriptions import handlers
 
 logging.basicConfig()
 log = logging.getLogger("deploy-insights")
 
 
-class InventoryHandler(handlers.ActionHandler):
+class ActionHandler:
+    def __init__(self, parsed_args):
+        self.args = parsed_args
+        self.err_log_func = err_log_func
+
+    def shell_cmd(self, command):
+        try:
+            log.debug("Running '%s'" % command)
+            completed_process = subprocess.run(
+                shlex.split(command),
+                check=True,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+            if completed_process.stdout:
+                log.debug(completed_process.stdout.decode("utf-8"))
+            return completed_process
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError("Process execution failed: %s" % e.stderr.decode("utf-8")) from e
+
+    def run(self, *args, **kwargs):
+        raise NotImplementedError("Subclasses must define this method")
+
+
+class SubmoduleHandler(ActionHandler):
+    def run(self, *args, **kwargs):
+        command = "git submodule update --init --recursive"
+        self.shell_cmd(command)
+
+
+class InventoryHandler(ActionHandler):
     INSIGHTS_CHECKOUT_DIR = "insights-host-inventory"
     INSIGHTS_PROMETHEUS_DIR = "prometheumultiprocess"
-
-    def __init__(self, args):
-        self.args = args
 
     def verify_pipenv(self):
         pipenv = shutil.which("pipenv")
@@ -58,6 +85,41 @@ class InventoryHandler(handlers.ActionHandler):
         os.execlpe("pipenv", "pipenv", "run", "python", "run.py", os.environ)
 
 
+class PostgresDbHandler(ActionHandler):
+    def __init__(self, args):
+        super().__init__(args)
+        self.auth()
+
+    def connect_options(self):
+        opts_dict = {
+            "host": self.args.insights_db_host,
+            "username": self.args.insights_db_user,
+        }
+        opts = ["--%s=%s" % (flg, arg) for flg, arg in opts_dict.items() if arg is not None]
+        return " ".join(opts)
+
+    def auth(self):
+        if self.args.insights_db_password:
+            os.environ['PGPASSWORD'] = self.args.insights_db_password
+
+    def db_exists(self):
+        command = "psql -tAq %s -c \"select 1 from pg_database where datname='%s'\" postgres" %\
+              (self.connect_options(), self.args.insights_db_name)
+        completed_process = self.shell_cmd(command)
+        output = completed_process.stdout.decode("utf-8")
+        exists = [True for l in output.splitlines() if l.strip() == "1"]
+        return any(exists)
+
+    def run(self, *args, **kwargs):
+        if self.db_exists():
+            log.info("%s database already exists" % self.args.insights_db_name)
+            return
+
+        command = "sudo createdb %s %s" % (self.connect_options(), self.args.insights_db_name)
+        log.debug("Running `%s`" % command)
+        self.shell_cmd(command)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Deploy rhsm-conduit")
     parser.add_argument("--insights-db-password", help="Database password")
@@ -81,16 +143,11 @@ if __name__ == "__main__":
 
     rc = 0
     try:
-        submodule_handler = handlers.SubmoduleHandler()
-        submodule_handler.run()
-
-        db_handler = handlers.PostgresDbHandler(
-            db_name=parsed_args.insights_db_name,
-            db_host=parsed_args.insights_db_host,
-            db_user=parsed_args.insights_db_user,
-            db_password=parsed_args.insights_db_password
-        )
+        db_handler = PostgresDbHandler(parsed_args)
         db_handler.run()
+
+        submodule_handler = SubmoduleHandler(parsed_args)
+        submodule_handler.run()
 
         inventory_handler = InventoryHandler(parsed_args)
         inventory_handler.run()

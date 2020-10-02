@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.task;
 
+import org.candlepin.subscriptions.task.queue.ExecutorTaskProcessor;
 import org.candlepin.subscriptions.task.queue.ExecutorTaskQueue;
-import org.candlepin.subscriptions.task.queue.TaskQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,14 +64,20 @@ public class TaskQueueConfiguration {
      * amount of memory available.
      */
     @Bean
-    @DependsOn("poolScheduler") // ensure work completes before shutting down the in-memory task queue
     @Profile("in-memory-queue")
-    TaskQueue inMemoryQueue(TaskFactory taskFactory) {
+    ExecutorTaskQueue inMemoryQueue() {
         log.info("Configuring an in-memory task queue.");
-        return new ExecutorTaskQueue(
-            Executors.newFixedThreadPool(taskQueueProperties().getExecutorTaskQueueThreadLimit()),
-            taskFactory
-        );
+        return new ExecutorTaskQueue();
     }
 
+    @Bean
+    @DependsOn("poolScheduler") // ensure work completes before shutting down the in-memory task queue
+    @Profile("in-memory-queue")
+    ExecutorTaskProcessor inMemoryQueueProcessor(ExecutorTaskQueue queue, TaskFactory taskFactory) {
+        return new ExecutorTaskProcessor(
+            Executors.newFixedThreadPool(taskQueueProperties().getExecutorTaskQueueThreadLimit()),
+            taskFactory,
+            queue
+        );
+    }
 }

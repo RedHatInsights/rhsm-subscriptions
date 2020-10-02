@@ -20,18 +20,12 @@
  */
 package org.candlepin.subscriptions.task;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.BDDMockito.any;
-import static org.mockito.BDDMockito.doThrow;
-import static org.mockito.BDDMockito.eq;
-import static org.mockito.BDDMockito.never;
-import static org.mockito.BDDMockito.times;
-import static org.mockito.BDDMockito.verify;
-import static org.mockito.BDDMockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
 
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
-import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.task.queue.ExecutorTaskQueue;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,13 +36,12 @@ import org.springframework.test.context.TestPropertySource;
 import java.util.Arrays;
 import java.util.List;
 
-
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
 public class TaskManagerTest {
 
     @MockBean
-    private TaskQueue queue;
+    private ExecutorTaskQueue queue;
 
     @Autowired
     private TaskManager manager;

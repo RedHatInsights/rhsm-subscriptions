@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Profile({"in-memory-queue", "kafka-queue", "worker"})
+@Profile({"in-memory-queue", "kafka-queue", "worker", "rhsm-conduit"})
 public @interface QueueProfile {
 
 }

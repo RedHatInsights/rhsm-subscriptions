@@ -48,6 +48,7 @@ import java.time.Duration;
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
+    private String version;
 
     private boolean prettyPrintJson = false;
 
@@ -170,6 +171,14 @@ public class ApplicationProperties {
      * Number of times to attempt query against cloudigrade for Tally integration.
      */
     private int cloudigradeMaxAttempts = 2;
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;

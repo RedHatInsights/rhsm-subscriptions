@@ -168,6 +168,8 @@ dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
     compile project(":api")
+    compile project(":insights-inventory-client")
+    compile project(":pinhead-client")
     compile project(":cloudigrade-client")
     compile project(":rbac-client")
     compile project(":kafka-schema")
@@ -312,6 +314,32 @@ project(":api") {
     processResources.dependsOn tasks.generateOpenApiJson
 }
 
+project(":insights-inventory-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/075f8e4433ecfb2e227e02108096847242e14e19/swagger/api.spec.yaml"
+        config_file = "${projectDir}/insights-inventory-client-config.json"
+    }
+
+    dependencies {
+        compileOnly 'org.springframework.boot:spring-boot'
+    }
+}
+
+project(":pinhead-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/pinhead-client-spec.yaml"
+        config_file = "${projectDir}/pinhead-client-config.json"
+    }
+
+    dependencies {
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.27.2"
+    }
+}
+
 project(":rbac-client") {
     apply plugin: "org.openapi.generator"
 
@@ -335,7 +363,7 @@ project(":cloudigrade-client") {
     }
 }
 
-configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'rbac-client'}) {
+configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'pinhead-client', 'insights-inventory-client']}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 

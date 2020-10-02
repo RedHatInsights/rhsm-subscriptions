@@ -20,19 +20,20 @@
  */
 package org.candlepin.subscriptions.task.queue;
 
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.task.TaskDescriptor;
-import org.candlepin.subscriptions.task.TaskExecutionException;
-import org.candlepin.subscriptions.task.TaskFactory;
-import org.candlepin.subscriptions.task.TaskWorker;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.SynchronousQueue;
 
-import javax.annotation.PreDestroy;
+import javax.ws.rs.core.Response;
 
 /**
  * An TaskQueue implementation that uses an {@link ExecutorService} to queue/execute tasks.
@@ -56,45 +57,39 @@ import javax.annotation.PreDestroy;
 public class ExecutorTaskQueue implements TaskQueue {
     private static final Logger log = LoggerFactory.getLogger(ExecutorTaskQueue.class);
 
-    private final ExecutorService executor;
-    private final TaskFactory taskFactory;
+    private final BlockingQueue<Optional<TaskDescriptor>> queue;
 
-    public ExecutorTaskQueue(ExecutorService executor, TaskFactory taskFactory) {
-        this.executor = executor;
-        this.taskFactory = taskFactory;
-    }
-
-    private void processTask(TaskDescriptor taskDescriptor) {
-        TaskWorker worker = new TaskWorker(taskFactory);
-        try {
-            worker.executeTask(taskDescriptor);
-        }
-        catch (TaskExecutionException e) {
-            log.error("An error occurred running a task.", e);
-        }
-    }
-
-    @PreDestroy
-    protected void destroy() throws InterruptedException {
-        shutdown(Integer.MAX_VALUE, TimeUnit.DAYS);
-    }
-
-    /**
-     * Shut down the associated executor gracefully, and wait for any pending tasks to complete.
-     *
-     * Used mainly for testing.
-     *
-     * @param timeout the maximum time to wait
-     * @param timeUnit the time unit of the timeout argument
-     * @throws InterruptedException
-     */
-    public void shutdown(long timeout, TimeUnit timeUnit) throws InterruptedException {
-        this.executor.shutdown();
-        this.executor.awaitTermination(timeout, timeUnit);
+    public ExecutorTaskQueue() {
+        queue = new SynchronousQueue<>();
     }
 
     @Override
     public void enqueue(TaskDescriptor taskDescriptor) {
-        this.executor.execute(() -> this.processTask(taskDescriptor));
+        try {
+            queue.put(Optional.of(taskDescriptor));
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SubscriptionsException(
+                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
+                Response.Status.INTERNAL_SERVER_ERROR,
+                "Interrupted while trying to queue a task.",
+                e
+            );
+        }
     }
+
+    Optional<TaskDescriptor> take() throws InterruptedException {
+        return queue.take();
+    }
+
+    void shutdown() {
+        try {
+            queue.put(Optional.empty());
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
 }
