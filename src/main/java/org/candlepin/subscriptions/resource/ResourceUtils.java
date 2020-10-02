@@ -62,7 +62,8 @@ public class ResourceUtils {
      * @return the principal object
      */
     public static Object getPrincipal() {
-        return SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null ? auth.getPrincipal() : null;
     }
 
     /**
