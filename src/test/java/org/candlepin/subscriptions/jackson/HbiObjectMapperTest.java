@@ -32,12 +32,14 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Calendar;
 import java.util.TimeZone;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
+@TestInstance(Lifecycle.PER_CLASS)
+@TestPropertySource("classpath:/test.properties")
 class HbiObjectMapperTest {
 
     @Autowired
