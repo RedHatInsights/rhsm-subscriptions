@@ -39,12 +39,12 @@ import javax.validation.Validator;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
-public class ConduitFactsTest {
+class ConduitFactsTest {
     @Autowired
     private Validator validator;
 
     @Test
-    public void testFactValidation() {
+    void testFactValidation() {
         ConduitFacts facts = new ConduitFacts();
         facts.setFqdn("");
         facts.setIpAddresses(

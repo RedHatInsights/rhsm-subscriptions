@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
-public class DefaultInventoryServiceTest {
+class DefaultInventoryServiceTest {
     @Mock
     HostsApi api;
 
@@ -82,7 +82,7 @@ public class DefaultInventoryServiceTest {
     }
 
     @Test
-    public void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
+    void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiHostUpdateBatchSize(1);
 
@@ -137,7 +137,7 @@ public class DefaultInventoryServiceTest {
     }
 
     @Test
-    public void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
+    void testGetInventoryForOrgConsumersContainsEquivalentConsumerInventory() {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiHostUpdateBatchSize(1);
 
@@ -150,7 +150,7 @@ public class DefaultInventoryServiceTest {
     }
 
     @Test
-    public void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() throws Exception {
+    void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() throws Exception {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiHostUpdateBatchSize(1);
         props.setStaleHostOffsetInDays(24);
@@ -173,7 +173,7 @@ public class DefaultInventoryServiceTest {
     }
 
     @Test
-    public void scheduleHostUpdateAutoFlushesWhenMaxQueueDepthIsReached() throws Exception {
+    void scheduleHostUpdateAutoFlushesWhenMaxQueueDepthIsReached() throws Exception {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiHostUpdateBatchSize(2);
 

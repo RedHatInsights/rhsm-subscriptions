@@ -24,9 +24,6 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -55,8 +52,6 @@ import javax.ws.rs.core.Response;
  * @see Executors
  */
 public class ExecutorTaskQueue implements TaskQueue {
-    private static final Logger log = LoggerFactory.getLogger(ExecutorTaskQueue.class);
-
     private final BlockingQueue<Optional<TaskDescriptor>> queue;
 
     public ExecutorTaskQueue() {

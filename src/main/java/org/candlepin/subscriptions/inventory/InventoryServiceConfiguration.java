@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.inventory.client.HostsApiFactory;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.inventory.client.resources.HostsApi;
-import org.candlepin.subscriptions.inventory.kafka.HostOperationMessage;
+import org.candlepin.subscriptions.inventory.kafka.CreateUpdateHostMessage;
 import org.candlepin.subscriptions.inventory.kafka.InventoryServiceKafkaConfigurator;
 import org.candlepin.subscriptions.inventory.kafka.KafkaEnabledInventoryService;
 
@@ -104,7 +104,7 @@ public class InventoryServiceConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.inventory-service", name = "enableKafka",
         havingValue = "true")
-    public ProducerFactory<String, HostOperationMessage> inventoryServiceKafkaProducerFactory(
+    public ProducerFactory<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerFactory(
         KafkaProperties kafkaProperties,
         @Qualifier("hbiObjectMapper") ObjectMapper mapper) {
         return kafkaConfigurator.defaultProducerFactory(kafkaProperties, mapper);
@@ -113,8 +113,8 @@ public class InventoryServiceConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "rhsm-conduit.inventory-service", name = "enableKafka",
         havingValue = "true")
-    public KafkaTemplate<String, HostOperationMessage> inventoryServiceKafkaProducerTemplate(
-        ProducerFactory<String, HostOperationMessage> factory) {
+    public KafkaTemplate<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerTemplate(
+        ProducerFactory<String, CreateUpdateHostMessage> factory) {
         return kafkaConfigurator.taskMessageKafkaTemplate(factory);
     }
 
@@ -123,7 +123,7 @@ public class InventoryServiceConfiguration {
         havingValue = "true")
     public InventoryService kafkaInventoryService(
         @Qualifier("inventoryServiceKafkaProducerTemplate")
-        KafkaTemplate<String, HostOperationMessage> producer,
+        KafkaTemplate<String, CreateUpdateHostMessage> producer,
         InventoryServiceProperties serviceProperties,
         MeterRegistry meterRegistry) {
         return new KafkaEnabledInventoryService(serviceProperties, producer, meterRegistry);

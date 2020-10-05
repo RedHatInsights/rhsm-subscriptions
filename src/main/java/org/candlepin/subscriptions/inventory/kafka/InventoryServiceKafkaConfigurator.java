@@ -38,12 +38,12 @@ import java.util.Map;
  */
 public class InventoryServiceKafkaConfigurator {
 
-    public DefaultKafkaProducerFactory<String, HostOperationMessage> defaultProducerFactory(
+    public DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> defaultProducerFactory(
         KafkaProperties kafkaProperties, ObjectMapper mapper) {
         Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
         producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
-        DefaultKafkaProducerFactory<String, HostOperationMessage> factory =
+        DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =
             new DefaultKafkaProducerFactory<>(producerConfig);
         // Because inventory requires us to not sent JSON fields that have null values,
         // we need to customize the ObjectMapper used by spring-kafka. There is no way to customize
@@ -53,8 +53,8 @@ public class InventoryServiceKafkaConfigurator {
         return factory;
     }
 
-    public KafkaTemplate<String, HostOperationMessage> taskMessageKafkaTemplate(
-        ProducerFactory<String, HostOperationMessage> factory) {
+    public KafkaTemplate<String, CreateUpdateHostMessage> taskMessageKafkaTemplate(
+        ProducerFactory<String, CreateUpdateHostMessage> factory) {
         return new KafkaTemplate<>(factory);
     }
 }

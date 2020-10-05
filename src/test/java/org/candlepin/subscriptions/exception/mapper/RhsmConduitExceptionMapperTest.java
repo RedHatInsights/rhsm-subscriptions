@@ -36,10 +36,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 
-public class RhsmConduitExceptionMapperTest {
+class RhsmConduitExceptionMapperTest {
 
     @Test
-    public void testMapsRhsmConduitException() {
+    void testMapsRhsmConduitException() {
         ErrorCode expectedCode = ErrorCode.UNHANDLED_EXCEPTION_ERROR;
         String expectedCodeString = expectedCode.getCode();
         Status expectedStatus = Status.INTERNAL_SERVER_ERROR;
@@ -65,7 +65,7 @@ public class RhsmConduitExceptionMapperTest {
     }
 
     @Test
-    public void testMapsNestedException() {
+    void testMapsNestedException() {
         ErrorCode expectedCode = ErrorCode.UNHANDLED_EXCEPTION_ERROR;
         String expectedCodeString = expectedCode.getCode();
         Status expectedStatus = Status.INTERNAL_SERVER_ERROR;

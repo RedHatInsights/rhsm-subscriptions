@@ -49,7 +49,7 @@ import javax.validation.ConstraintViolationException;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
-public class PinheadServiceTest {
+class PinheadServiceTest {
     @Autowired
     @Qualifier("pinheadRetryTemplate")
     private RetryTemplate retryTemplate;
@@ -75,7 +75,7 @@ public class PinheadServiceTest {
     }
 
     @Test
-    public void testPinheadServiceRetry() throws Exception {
+    void testPinheadServiceRetry() throws Exception {
         when(pinheadApi.getConsumersForOrg(
             anyString(), any(Integer.class), nullable(String.class), anyString()
         )).thenThrow(ApiException.class);
@@ -96,14 +96,14 @@ public class PinheadServiceTest {
     }
 
     @Test
-    public void testPinheadServiceLastCheckInValidationBad() throws Exception {
+    void testPinheadServiceLastCheckInValidationBad() throws Exception {
         assertThrows(ConstraintViolationException.class,
             () -> pinheadService.getPageOfConsumers("", "", "Does Not Validate")
         );
     }
 
     @Test
-    public void testPinheadServiceLastCheckInValidationBadWithNanos() throws Exception {
+    void testPinheadServiceLastCheckInValidationBadWithNanos() throws Exception {
         String time = "2020-01-01T13:00:00.725Z";
         assertThrows(ConstraintViolationException.class,
             () -> pinheadService.getPageOfConsumers("org", "offset", time)
@@ -111,7 +111,7 @@ public class PinheadServiceTest {
     }
 
     @Test
-    public void testPinheadServiceLastCheckInValidationGood() throws Exception {
+    void testPinheadServiceLastCheckInValidationGood() throws Exception {
         String time = "2020-01-01T13:00:00Z";
         OrgInventory expected = new OrgInventory();
         when(pinheadApi.getConsumersForOrg(eq("org"), anyInt(), eq("offset"), eq(time))).thenReturn(expected);

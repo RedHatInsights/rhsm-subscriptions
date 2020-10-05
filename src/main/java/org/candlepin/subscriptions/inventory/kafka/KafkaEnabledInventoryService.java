@@ -46,7 +46,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaEnabledInventoryService.class);
 
-    private final KafkaTemplate<String, HostOperationMessage> producer;
+    private final KafkaTemplate<String, CreateUpdateHostMessage> producer;
     private final String hostIngressTopic;
     private final Counter sentMessageCounter;
     private final Counter failedMessageCounter;
@@ -54,7 +54,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
 
     @SuppressWarnings("java:S3740")
     public KafkaEnabledInventoryService(InventoryServiceProperties serviceProperties,
-        KafkaTemplate<String, HostOperationMessage> producer, MeterRegistry meterRegistry) {
+        KafkaTemplate<String, CreateUpdateHostMessage> producer, MeterRegistry meterRegistry) {
         // Flush updates as soon as they get scheduled.
         super(serviceProperties, 1);
         this.producer = producer;
@@ -103,7 +103,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
     }
 
     @SuppressWarnings("java:S3740")
-    private void recordSuccess(SendResult<String, HostOperationMessage> result) {
+    private void recordSuccess(SendResult<String, CreateUpdateHostMessage> result) {
         sentMessageCounter.increment();
         RecordMetadata metadata = result.getRecordMetadata();
         double messageSize = (double) metadata.serializedKeySize() + metadata.serializedValueSize();

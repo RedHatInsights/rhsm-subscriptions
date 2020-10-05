@@ -41,7 +41,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.GenericType;
 
-public class PinheadApiFactoryTest {
+class PinheadApiFactoryTest {
     public static final String STORE_PASSWORD = "password";
 
     private WireMockServer server;
@@ -67,20 +67,20 @@ public class PinheadApiFactoryTest {
     }
 
     @Test
-    public void testStubClientConfiguration() throws Exception {
+    void testStubClientConfiguration() throws Exception {
         config.setUseStub(true);
         PinheadApiFactory factory = new PinheadApiFactory(config);
         assertEquals(StubPinheadApi.class, factory.getObject().getClass());
     }
 
     @Test
-    public void testNoAuthClientConfiguration() throws Exception {
+    void testNoAuthClientConfiguration() throws Exception {
         PinheadApiFactory factory = new PinheadApiFactory(config);
         assertEquals(null, factory.getObject().getApiClient().getHttpClient().getSslContext());
     }
 
     @Test
-    public void testTlsClientAuth() throws Exception {
+    void testTlsClientAuth() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
         server.stubFor(stubHelloWorld());
@@ -99,7 +99,7 @@ public class PinheadApiFactoryTest {
     }
 
     @Test
-    public void testTlsClientAuthFailsWithNoClientCert() throws Exception {
+    void testTlsClientAuthFailsWithNoClientCert() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
         server.stubFor(stubHelloWorld());

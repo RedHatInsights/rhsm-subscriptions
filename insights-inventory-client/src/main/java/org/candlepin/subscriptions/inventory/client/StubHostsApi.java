@@ -38,6 +38,7 @@ public class StubHostsApi extends HostsApi {
     private static Logger log = LoggerFactory.getLogger(StubHostsApi.class);
 
     @Override
+    @SuppressWarnings("java:S1874") // HBI add host API is deprecated for kafka, stub unused in prod
     public BulkHostOut apiHostAddHostList(List<CreateHostIn> hosts) throws ApiException {
         log.info("Adding specified hosts to inventory: {}", hosts);
         BulkHostOut out = new BulkHostOut().total(hosts.size());

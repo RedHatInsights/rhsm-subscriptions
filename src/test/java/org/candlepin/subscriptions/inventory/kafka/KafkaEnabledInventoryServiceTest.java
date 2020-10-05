@@ -49,7 +49,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
-public class KafkaEnabledInventoryServiceTest {
+class KafkaEnabledInventoryServiceTest {
 
     @Mock
     private KafkaTemplate producer;
@@ -66,7 +66,7 @@ public class KafkaEnabledInventoryServiceTest {
     }
 
     @Test
-    public void ensureKafkaProducerSendsHostMessage() {
+    void ensureKafkaProducerSendsHostMessage() {
         ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
             ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
@@ -110,7 +110,7 @@ public class KafkaEnabledInventoryServiceTest {
     }
 
     @Test
-    public void ensureNoMessageWithEmptyFactList() {
+    void ensureNoMessageWithEmptyFactList() {
         InventoryServiceProperties props = new InventoryServiceProperties();
         KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
             meterRegistry);
@@ -120,7 +120,7 @@ public class KafkaEnabledInventoryServiceTest {
     }
 
     @Test
-    public void ensureMessageSentWhenHostUpdateScheduled() {
+    void ensureMessageSentWhenHostUpdateScheduled() {
         InventoryServiceProperties props = new InventoryServiceProperties();
         KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
             meterRegistry);
@@ -131,7 +131,7 @@ public class KafkaEnabledInventoryServiceTest {
     }
 
     @Test
-    public void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() {
+    void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() {
         ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
             ArgumentCaptor.forClass(CreateUpdateHostMessage.class);

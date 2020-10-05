@@ -33,13 +33,13 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class UpdateOrgInventoryTaskTest {
+class UpdateOrgInventoryTaskTest {
 
     @Mock
     private InventoryController controller;
 
     @Test
-    public void testExecute() throws MissingAccountNumberException, ApiException {
+    void testExecute() throws MissingAccountNumberException, ApiException {
         String expectedOrg = "my-org";
         UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg, null);
         task.execute();

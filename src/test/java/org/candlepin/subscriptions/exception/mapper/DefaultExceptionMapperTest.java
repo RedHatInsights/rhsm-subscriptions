@@ -32,10 +32,10 @@ import org.junit.jupiter.api.Test;
 import javax.ws.rs.core.Response;
 
 
-public class DefaultExceptionMapperTest {
+class DefaultExceptionMapperTest {
 
     @Test
-    public void testExceptionMapping() {
+    void testExceptionMapping() {
         String expectedDetail = "FORCED!";
         String expectedTitle =
             "An internal server error has occurred. Check the server logs for further details.";

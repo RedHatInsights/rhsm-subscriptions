@@ -35,10 +35,10 @@ import javax.validation.ConstraintViolationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-public class ConstraintViolationExceptionMapperTest {
+class ConstraintViolationExceptionMapperTest {
 
     @Test
-    public void testMapsWebApplicationException() {
+    void testMapsWebApplicationException() {
         String expectedDetail = "FORCED!";
         ConstraintViolationException exception = new ConstraintViolationException(expectedDetail,
             new HashSet<>());

@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-public class HostsApiFactoryTest {
+class HostsApiFactoryTest {
     @Test
-    public void testStubClientConfiguration() throws Exception {
+    void testStubClientConfiguration() throws Exception {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setUseStub(true);
         HostsApiFactory factory = new HostsApiFactory(props);
@@ -34,7 +34,7 @@ public class HostsApiFactoryTest {
     }
 
     @Test
-    public void testClientGetsUrlFromConfiguration() throws Exception {
+    void testClientGetsUrlFromConfiguration() throws Exception {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiKey("mysecret");
         props.setUrl("http://example.com/foobar");
@@ -43,21 +43,21 @@ public class HostsApiFactoryTest {
     }
 
     @Test
-    public void testNoErrorWhenApiKeyIsSet() throws Exception {
+    void testNoErrorWhenApiKeyIsSet() throws Exception {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiKey("mysecret");
 
         HostsApiFactory factory = new HostsApiFactory(props);
-        factory.getObject();
+        assertNotNull(factory.getObject());
     }
 
     @Test
-    public void throwsIllegalStateWhenApiKeyIsNull() throws Exception {
+    void throwsIllegalStateWhenApiKeyIsNull() throws Exception {
         testApiToken(null);
     }
 
     @Test
-    public void throwsIllegalStateWhenApiKeyIsEmpty() throws Exception {
+    void throwsIllegalStateWhenApiKeyIsEmpty() throws Exception {
         testApiToken("");
     }
 

@@ -47,6 +47,7 @@ public class DefaultInventoryService extends InventoryService {
     }
 
     @Override
+    @SuppressWarnings("java:S1874") // ignore deprecation of host add API (not used in production)
     protected void sendHostUpdate(List<ConduitFacts> facts) {
         // The same timestamp for the whole batch
         OffsetDateTime now = OffsetDateTime.now();

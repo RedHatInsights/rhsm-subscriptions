@@ -34,10 +34,10 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 
-public class WebApplicationExceptionMapperTest {
+class WebApplicationExceptionMapperTest {
 
     @Test
-    public void testMapsWebApplicationException() {
+    void testMapsWebApplicationException() {
         String expectedDetail = "FORCED!";
 
         WebApplicationException exception = new NotFoundException(expectedDetail);

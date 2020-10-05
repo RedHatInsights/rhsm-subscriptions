@@ -20,50 +20,18 @@
  */
 package org.candlepin.subscriptions.exception;
 
-import org.candlepin.subscriptions.utilization.api.model.Error;
-
 import javax.ws.rs.core.Response.Status;
 
 /**
- * Application's base exception class. Provides a means to create an
- * Error object that should be typically return as part of an error
- * response.
+ * Exceptions specific to syncing from RHSM.
  */
-public class RhsmConduitException extends RuntimeException {
-
-    private Status status;
-    private String detail;
-    private ErrorCode code;
+public class RhsmConduitException extends SubscriptionsException {
 
     public RhsmConduitException(ErrorCode code, Status status, String message, String detail) {
-        this(code, status, message, detail, null);
+        super(code, status, message, detail);
     }
 
     public RhsmConduitException(ErrorCode code, Status status, String message, Throwable e) {
-        this(code, status, message, e.getMessage(), e);
+        super(code, status, message, e);
     }
-
-    public RhsmConduitException(ErrorCode code, Status status, String message, String detail, Throwable e) {
-        super(message, e);
-        this.code = code;
-        this.status = status;
-        this.detail = detail;
-    }
-
-    public ErrorCode getCode() {
-        return this.code;
-    }
-
-    public Status getStatus() {
-        return this.status;
-    }
-
-    public Error error() {
-        return new Error()
-            .code(this.code.getCode())
-            .status(String.valueOf(status.getStatusCode()))
-            .title(this.getMessage())
-            .detail(this.detail);
-    }
-
 }

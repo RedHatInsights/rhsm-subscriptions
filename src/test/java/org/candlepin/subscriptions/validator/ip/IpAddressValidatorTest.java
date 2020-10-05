@@ -25,17 +25,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-public class IpAddressValidatorTest {
+class IpAddressValidatorTest {
 
     private IpAddressValidator validator = new IpAddressValidator();
 
     @Test
-    public void testIpV4Validation() {
+    void testIpV4Validation() {
         assertTrue(validator.isValid("192.168.2.1", null));
     }
 
     @Test
-    public void testInvalidIpV4Ip() {
+    void testInvalidIpV4Ip() {
         assertFalse(validator.isValid("a.b.c.d", null));
         assertFalse(validator.isValid("192.168.2.8.4", null));
         assertFalse(validator.isValid("", null));
@@ -50,7 +50,7 @@ public class IpAddressValidatorTest {
     }
 
     @Test
-    public void testIpV6Validation() {
+    void testIpV6Validation() {
         // Standard notation
         assertTrue(validator.isValid("1762:0:0:0:0:B03:1:AF18", null));
 
@@ -71,7 +71,7 @@ public class IpAddressValidatorTest {
     }
 
     @Test
-    public void testInvalidIpV6() {
+    void testInvalidIpV6() {
         // Can only use :: once
         assertFalse(validator.isValid("1200::AB00:1234::2552:7777:1313", null));
 
@@ -87,7 +87,7 @@ public class IpAddressValidatorTest {
     }
 
     @Test
-    public void caseInsensitiveIpV6() {
+    void caseInsensitiveIpV6() {
         assertTrue(validator.isValid("2607:F380:A58:FFFF:0000:0000:0000:0001", null));
         assertTrue(validator.isValid("2607:f380:a58:ffff:0000:0000:0000:0001", null));
         assertTrue(validator.isValid("2607:f380:A58:FFfF:0000:0000:0000:0001", null));

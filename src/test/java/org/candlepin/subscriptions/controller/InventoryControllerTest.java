@@ -59,7 +59,7 @@ import java.util.UUID;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
-public class InventoryControllerTest {
+class InventoryControllerTest {
     @MockBean
     InventoryService inventoryService;
 
@@ -88,7 +88,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testHostAddedForEachConsumer()
+    void testHostAddedForEachConsumer()
         throws ApiException, MissingAccountNumberException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
@@ -224,7 +224,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testShortCircuitsOnMissingAccountNumbers()
+    void testShortCircuitsOnMissingAccountNumbers()
         throws ApiException, MissingAccountNumberException {
         Consumer consumer1 = new Consumer();
         consumer1.setOrgId("123");
@@ -243,7 +243,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testHandleConsumerWithNoAccountNumber()
+    void testHandleConsumerWithNoAccountNumber()
         throws MissingAccountNumberException, ApiException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
@@ -269,7 +269,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testUnmodifiedFieldsTransferred() {
+    void testUnmodifiedFieldsTransferred() {
         String uuid = UUID.randomUUID().toString();
         String systemUuid = UUID.randomUUID().toString();
         String hypervisorUuid = UUID.randomUUID().toString();
@@ -316,7 +316,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testCpuCoresIsCalculated() {
+    void testCpuCoresIsCalculated() {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
@@ -330,7 +330,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testMemoryIsNormalizedToGigabytes() {
+    void testMemoryIsNormalizedToGigabytes() {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
@@ -355,7 +355,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testHandleOpenShiftStyleMemtotal() {
+    void testHandleOpenShiftStyleMemtotal() {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
@@ -368,7 +368,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testInstalledProductsIsMappedToProductId() {
+    void testInstalledProductsIsMappedToProductId() {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
@@ -381,7 +381,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testUnknownMacIsIgnored() {
+    void testUnknownMacIsIgnored() {
         String uuid = UUID.randomUUID().toString();
         String systemUuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
@@ -394,7 +394,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testNoneMacIsIgnored() {
+    void testNoneMacIsIgnored() {
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
@@ -406,7 +406,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testTruncatedMacAddressIsIgnored() {
+    void testTruncatedMacAddressIsIgnored() {
         String truncatedMacFact = "52:54:00:4a:fe:cd,52:54:00:b5:f9:c0,52:54...";
         String uuid = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
@@ -422,7 +422,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testIpAddressesCollected() {
+    void testIpAddressesCollected() {
         Map<String, String> pinheadFacts = new HashMap<>();
         pinheadFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
         pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
@@ -445,7 +445,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testInsightsIdCollected() {
+    void testInsightsIdCollected() {
         String uuid = UUID.randomUUID().toString();
         String insightsId = UUID.randomUUID().toString();
         Consumer consumer = new Consumer();
@@ -483,7 +483,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testUnknownIpsAreIgnored() {
+    void testUnknownIpsAreIgnored() {
         Map<String, String> pinheadFacts = new HashMap<>();
         pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
         pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
@@ -504,7 +504,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testTruncatedIPsAreIgnored() {
+    void testTruncatedIPsAreIgnored() {
         Map<String, String> pinheadFacts = new HashMap<>();
         pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
         pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...");
@@ -521,7 +521,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testUnparseableBiosUuidsAreIgnored()
+    void testUnparseableBiosUuidsAreIgnored()
         throws ApiException, MissingAccountNumberException {
         UUID uuid1 = UUID.randomUUID();
         UUID uuid2 = UUID.randomUUID();
@@ -557,7 +557,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void memtotalFromString() {
+    void memtotalFromString() {
         assertEquals(new BigDecimal("12.06"), controller.memtotalFromString("12345.00B"));
         assertEquals(new BigDecimal("12.06"), controller.memtotalFromString("12345.00b"));
         assertEquals(new BigDecimal("12345.05"), controller.memtotalFromString("12345.05"));
@@ -617,7 +617,7 @@ public class InventoryControllerTest {
     }
 
     @Test
-    public void testServiceLevelIsAdded()
+    void testServiceLevelIsAdded()
         throws ApiException, MissingAccountNumberException {
         UUID uuid = UUID.randomUUID();
         Consumer consumer = new Consumer();

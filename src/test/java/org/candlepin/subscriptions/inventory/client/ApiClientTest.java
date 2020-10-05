@@ -31,12 +31,12 @@ import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @TestPropertySource("classpath:/api_client_test.properties")
-public class ApiClientTest {
+class ApiClientTest {
     @Autowired
     private HostsApi hostsApi;
 
     @Test
-    public void testServiceUrlConfigurableViaProperties() {
+    void testServiceUrlConfigurableViaProperties() {
         assertEquals("https://localhost/api/hostinventory", hostsApi.getApiClient().getBasePath());
     }
 }

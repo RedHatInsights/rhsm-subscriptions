@@ -42,7 +42,7 @@ import javax.net.ssl.SSLException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.GenericType;
 
-public class X509ApiClientFactoryTest {
+class X509ApiClientFactoryTest {
     public static final String STORE_PASSWORD = "password";
 
     private WireMockServer server;
@@ -61,7 +61,7 @@ public class X509ApiClientFactoryTest {
     }
 
     @Test
-    public void testNoCustomTruststoreRequired() throws Exception {
+    void testNoCustomTruststoreRequired() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
         server.stubFor(stubHelloWorld());
@@ -83,7 +83,7 @@ public class X509ApiClientFactoryTest {
     }
 
     @Test
-    public void testTlsClientAuth() throws Exception {
+    void testTlsClientAuth() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
         server.stubFor(stubHelloWorld());
@@ -103,7 +103,7 @@ public class X509ApiClientFactoryTest {
     }
 
     @Test
-    public void testTlsClientAuthFailsWithNoClientCert() throws Exception {
+    void testTlsClientAuthFailsWithNoClientCert() throws Exception {
         server = new WireMockServer(buildWireMockConfig());
         server.start();
         server.stubFor(stubHelloWorld());

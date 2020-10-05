@@ -32,6 +32,7 @@ public class IpAddressValidator implements ConstraintValidator<IpAddress, String
 
     @Override
     public void initialize(IpAddress constraintAnnotation) {
+        /* intentionally empty */
     }
 
     @Override
