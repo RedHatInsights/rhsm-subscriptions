@@ -94,18 +94,12 @@ public class OptInJmxBean {
 
     @ManagedAttribute(description = "Count of how many orgs opted-in in the previous week.")
     public int getLastWeekOptInCount() {
-        OffsetDateTime oneWeekAgo = OffsetDateTime.now().minusWeeks(1);
-        OffsetDateTime begin = clock.startOfWeek(oneWeekAgo);
-        OffsetDateTime end = clock.endOfWeek(oneWeekAgo);
-        return repo.getCountOfOptInsForDateRange(begin, end);
+        return weekCount(OffsetDateTime.now().minusWeeks(1));
     }
 
     @ManagedAttribute(description = "Count of how many orgs opted-in in the current week.")
     public int getCurrentWeekOptInCount() {
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime begin = clock.startOfWeek(now);
-        OffsetDateTime end = clock.endOfWeek(now);
-        return repo.getCountOfOptInsForDateRange(begin, end);
+        return weekCount(OffsetDateTime.now());
     }
 
     @ManagedOperation(description = "Fetch the number of orgs opted-in in a given week.")
@@ -113,8 +107,12 @@ public class OptInJmxBean {
     public int getOptInCountForWeekOf(String weekOf) throws ParseException {
         OffsetDateTime dateInWeek = OffsetDateTime
             .ofInstant(new SimpleDateFormat("yyyy-MM-dd").parse(weekOf).toInstant(), ZoneOffset.UTC);
-        OffsetDateTime begin = clock.startOfWeek(dateInWeek);
-        OffsetDateTime end = clock.endOfWeek(dateInWeek);
+        return weekCount(dateInWeek);
+    }
+
+    protected int weekCount(OffsetDateTime weekDate) {
+        OffsetDateTime begin = clock.startOfWeek(weekDate);
+        OffsetDateTime end = clock.endOfWeek(weekDate);
         return repo.getCountOfOptInsForDateRange(begin, end);
     }
 
