@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.rhsm.RhsmService;
 import org.candlepin.subscriptions.rhsm.client.ApiException;
 import org.candlepin.subscriptions.rhsm.client.model.Consumer;
+import org.candlepin.subscriptions.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.task.TaskManager;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
@@ -157,7 +158,7 @@ public class InventoryController {
         facts.setCloudProvider(extractCloudProvider(rhsmFacts));
 
         List<String> productIds = consumer.getInstalledProducts().stream()
-            .map(installedProduct -> installedProduct.getProductId().toString()).collect(Collectors.toList());
+            .map(InstalledProducts::getProductId).collect(Collectors.toList());
         facts.setRhProd(productIds);
 
         return facts;
