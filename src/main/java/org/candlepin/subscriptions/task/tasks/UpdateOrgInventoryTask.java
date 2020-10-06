@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.task.tasks;
 
 import org.candlepin.subscriptions.controller.InventoryController;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
-import org.candlepin.subscriptions.pinhead.client.ApiException;
+import org.candlepin.subscriptions.rhsm.client.ApiException;
 import org.candlepin.subscriptions.task.Task;
 
 import org.slf4j.Logger;
@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * A task that retrieves the Consumer data associated with an organization from Pinhead, and sends
+ * A task that retrieves the Consumer data associated with an organization from RHSM API, and sends
  * that data into the insights host inventory.
  */
 public class UpdateOrgInventoryTask implements Task {
@@ -57,7 +57,7 @@ public class UpdateOrgInventoryTask implements Task {
             log.warn("Org {} is missing account number", orgId);
         }
         catch (ApiException e) {
-            log.error("Exception calling pinhead", e);
+            log.error("Exception calling RHSM", e);
         }
     }
 }

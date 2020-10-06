@@ -13,7 +13,7 @@ parameters:
     value: /app/rhsm-conduit/actuator/hawtio
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
-  - name: PINHEAD_URL
+  - name: RHSM_URL
     required: true
   - name: LOGGING_LEVEL_ROOT
     value: WARN
@@ -96,8 +96,8 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
                 value: ${LOGGING_LEVEL}
-              - name: PINHEAD_URL
-                value: ${PINHEAD_URL}
+              - name: RHSM_URL
+                value: ${RHSM_URL}
               - name: KAFKA_BOOTSTRAP_HOST
                 value: ${KAFKA_BOOTSTRAP_HOST}
               - name: KAFKA_TASK_GROUP
@@ -131,12 +131,12 @@ objects:
                   secretKeyRef:
                     name: rhsm-db
                     key: db.name
-              - name: PINHEAD_KEYSTORE_PASSWORD
+              - name: RHSM_KEYSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
-              - name: PINHEAD_KEYSTORE
+              - name: RHSM_KEYSTORE
                 value: /pinhead/keystore.jks
             livenessProbe:
               failureThreshold: 3

@@ -18,13 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.pinhead;
+package org.candlepin.subscriptions.rhsm;
 
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-import org.candlepin.subscriptions.pinhead.client.ApiException;
-import org.candlepin.subscriptions.pinhead.client.PinheadApiProperties;
-import org.candlepin.subscriptions.pinhead.client.model.OrgInventory;
-import org.candlepin.subscriptions.pinhead.client.resources.PinheadApi;
+import org.candlepin.subscriptions.rhsm.client.ApiException;
+import org.candlepin.subscriptions.rhsm.client.RhsmApiProperties;
+import org.candlepin.subscriptions.rhsm.client.model.OrgInventory;
+import org.candlepin.subscriptions.rhsm.client.resources.RhsmApi;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,24 +42,24 @@ import java.time.format.DateTimeFormatter;
 import javax.validation.constraints.Pattern;
 
 /**
- * Abstraction around pulling data from pinhead.
+ * Abstraction around pulling data from rhsm.
  */
 @Service
 @Validated
-public class PinheadService {
+public class RhsmService {
 
-    private static final Logger log = LoggerFactory.getLogger(PinheadService.class);
+    private static final Logger log = LoggerFactory.getLogger(RhsmService.class);
     public static final String TIMESTAMP_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";
 
-    private final PinheadApi api;
+    private final RhsmApi api;
     private final int batchSize;
     private final RetryTemplate retryTemplate;
     private final Duration hostCheckinThreshold;
 
     @Autowired
-    public PinheadService(InventoryServiceProperties inventoryServiceProperties,
-        PinheadApiProperties apiProperties, PinheadApi api,
-        @Qualifier("pinheadRetryTemplate") RetryTemplate retryTemplate) {
+    public RhsmService(InventoryServiceProperties inventoryServiceProperties,
+        RhsmApiProperties apiProperties, RhsmApi api,
+        @Qualifier("rhsmRetryTemplate") RetryTemplate retryTemplate) {
         this.hostCheckinThreshold = inventoryServiceProperties.getHostLastSyncThreshold();
         this.batchSize = apiProperties.getRequestBatchSize();
         this.api = api;
@@ -83,9 +83,10 @@ public class PinheadService {
         "(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9]))Z$") String lastCheckinTime) throws ApiException {
         return retryTemplate.execute(context -> {
             log.debug("Fetching page of consumers for org {}.", orgId);
-            OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, batchSize, offset, lastCheckinTime);
-            log.debug("Consumer fetch complete. Found {} for batch of {}.", consumersForOrg.getFeeds().size(),
-                batchSize);
+            OrgInventory consumersForOrg = api.getConsumersForOrg(orgId, batchSize, offset,
+                lastCheckinTime);
+            int count = consumersForOrg.getBody().size();
+            log.debug("Consumer fetch complete. Found {} for batch of {}.", count, batchSize);
             return consumersForOrg;
         });
     }

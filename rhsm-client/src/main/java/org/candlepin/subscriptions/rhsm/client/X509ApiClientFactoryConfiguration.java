@@ -19,7 +19,7 @@
  * in this software or its documentation.
  */
 
-package org.candlepin.subscriptions.pinhead.client;
+package org.candlepin.subscriptions.rhsm.client;
 
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 

@@ -32,7 +32,7 @@ import org.springframework.scheduling.SchedulingException;
 import org.springframework.stereotype.Component;
 
 /**
- * A job to sync orgs from Pinhead to RHSM Conduit.
+ * A job to sync orgs from RHSM API to RHSM Conduit.
  */
 @Component
 public class OrgSyncJob implements Runnable, ApplicationEventPublisherAware {

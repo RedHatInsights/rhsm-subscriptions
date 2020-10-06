@@ -1,23 +1,23 @@
 openapi: "3.0.2"
 info:
-  title: "pinhead-client-api"
-  description: "REST interface for the pinhead client used by rhsm-conduit"
+  title: "rhsm-client-api"
+  description: "REST interface for the rhsm client used by rhsm-conduit"
   version: 1.0.0
 
 servers:
   - url: https://localhost/
 
 paths:
-  /owners/{orgId}/consumers/feed:
+  /candlepin/consumers/feeds:
     description: "Consumer operations based on an owner."
     parameters:
-      - name: orgId
-        in: path
+      - name: X-RhsmApi-AccountID
+        in: header
         required: true
         schema:
           type: string
         description: "The orgId is the candlepin owner key."
-      - name: per_page
+      - name: limit
         in: query
         required: false
         schema:
@@ -29,7 +29,7 @@ paths:
         schema:
           type: string
         description: "Paging offset."
-      - name: last_checkin_after
+      - name: lastCheckinAfter
         in: query
         required: false
         schema:
@@ -40,7 +40,7 @@ paths:
       description: "List consumers on an owner."
       operationId: getConsumersForOrg
       tags:
-        - pinhead
+        - rhsm
       responses:
         '200':
           description: "The request for consumer data was successful."
@@ -88,11 +88,12 @@ components:
 
     Consumer:
       required:
+        - type
+        - id
         - uuid
         - name
         - orgId
         - lastCheckin
-        - consumerType
         - installedProducts
         - sysPurposeRole
         - sysPurposeUsage
@@ -100,6 +101,8 @@ components:
         - facts
       properties:
         type:
+          type: string
+        id:
           type: string
         uuid:
           type: string
@@ -112,12 +115,10 @@ components:
         lastCheckin:
           type: string
           format: date-time
-        consumerType:
-          type: string
         installedProducts:
           type: array
           items:
-            $ref: "#/components/schema/InstalledProducts"
+            $ref: "#/components/schemas/InstalledProducts"
         serviceLevel:
           type: string
         sysPurposeRole:
@@ -146,55 +147,32 @@ components:
         - productVersion
       properties:
         productId:
-          type: integer
-          format: int64
+          type: string
         productName:
           type: string
         productVersion:
           type: string
 
-    Status:
-      required:
-        - code
-        - message
-        - pagination
-      properties:
-        code:
-          type: integer
-          format: int64
-        message:
-          type: string
-        pagination:
-          $ref: "#/components/schemas/Pagination"
-
     Pagination:
       required:
-        - firstId
-        - lastId
-        - nextOffset
-        - totalCount
-        - displayedCount
+        - offset
+        - limit
+        - count
       properties:
-        firstId:
+        offset:
           type: string
-        lastId:
-          type: string
-        nextOffset:
-          type: string
-        currentOffset:
-          type: string
-        totalCount:
+        limit:
           type: integer
           format: int64
-        displayCount:
+        count:
           type: integer
           format: int64
 
     OrgInventory:
       properties:
-        status:
-          $ref: "#/components/schemas/Status"
-        feeds:
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        body:
           type: array
           items:
             $ref: "#/components/schemas/Consumer"

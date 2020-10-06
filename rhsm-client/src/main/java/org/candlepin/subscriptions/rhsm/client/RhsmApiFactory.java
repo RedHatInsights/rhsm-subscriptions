@@ -18,56 +18,56 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.pinhead.client;
+package org.candlepin.subscriptions.rhsm.client;
 
-import org.candlepin.subscriptions.pinhead.client.resources.PinheadApi;
+import org.candlepin.subscriptions.rhsm.client.resources.RhsmApi;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Builds a PinheadApi, which may be a stub, or a normal client, with or without cert auth depending on
+ * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending on
  * properties.
  */
-public class PinheadApiFactory implements FactoryBean<PinheadApi> {
-    private static Logger log = LoggerFactory.getLogger(PinheadApiFactory.class);
+public class RhsmApiFactory implements FactoryBean<RhsmApi> {
+    private static Logger log = LoggerFactory.getLogger(RhsmApiFactory.class);
 
-    private final PinheadApiProperties properties;
+    private final RhsmApiProperties properties;
 
-    public PinheadApiFactory(PinheadApiProperties properties) {
+    public RhsmApiFactory(RhsmApiProperties properties) {
         this.properties = properties;
     }
 
     @Override
-    public PinheadApi getObject() throws Exception {
+    public RhsmApi getObject() throws Exception {
         if (properties.isUseStub()) {
-            log.info("Using stub pinhead client");
-            return new StubPinheadApi();
+            log.info("Using stub RHSM client");
+            return new StubRhsmApi();
         }
 
         ApiClient client;
         if (properties.usesClientAuth()) {
-            log.info("Pinhead client configured with client-cert auth");
+            log.info("RHSM client configured with client-cert auth");
             client = new X509ApiClientFactory(properties.getX509ApiClientFactoryConfiguration()).getObject();
         }
         else {
-            log.info("Pinhead client configured without client-cert auth");
+            log.info("RHSM client configured without client-cert auth");
             client = new ApiClient();
         }
         if (properties.getUrl() != null) {
-            log.info("Pinhead URL: {}", properties.getUrl());
+            log.info("RHSM URL: {}", properties.getUrl());
             client.setBasePath(properties.getUrl());
             client.addDefaultHeader("cp-lookup-permissions", "false");
         }
         else {
-            log.warn("Pinhead URL not set...");
+            log.warn("RHSM URL not set...");
         }
-        return new PinheadApi(client);
+        return new RhsmApi(client);
     }
 
     @Override
     public Class<?> getObjectType() {
-        return PinheadApi.class;
+        return RhsmApi.class;
     }
 }

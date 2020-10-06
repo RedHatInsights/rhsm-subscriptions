@@ -24,7 +24,7 @@ import static org.mockito.BDDMockito.*;
 
 import org.candlepin.subscriptions.controller.InventoryController;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
-import org.candlepin.subscriptions.pinhead.client.ApiException;
+import org.candlepin.subscriptions.rhsm.client.ApiException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

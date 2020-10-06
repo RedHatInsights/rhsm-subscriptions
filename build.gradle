@@ -169,7 +169,7 @@ dependencies {
 
     compile project(":api")
     compile project(":insights-inventory-client")
-    compile project(":pinhead-client")
+    compile project(":rhsm-client")
     compile project(":cloudigrade-client")
     compile project(":rbac-client")
     compile project(":kafka-schema")
@@ -327,12 +327,12 @@ project(":insights-inventory-client") {
     }
 }
 
-project(":pinhead-client") {
+project(":rhsm-client") {
     apply plugin: "org.openapi.generator"
 
     ext {
-        api_spec_path = "${projectDir}/pinhead-client-spec.yaml"
-        config_file = "${projectDir}/pinhead-client-config.json"
+        api_spec_path = "${projectDir}/rhsm-client-spec.yaml"
+        config_file = "${projectDir}/rhsm-client-config.json"
     }
 
     dependencies {
@@ -363,7 +363,7 @@ project(":cloudigrade-client") {
     }
 }
 
-configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'pinhead-client', 'insights-inventory-client']}) {
+configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client', 'insights-inventory-client']}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 

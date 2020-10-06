@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.pinhead.client;
+package org.candlepin.subscriptions.rhsm.client;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
@@ -107,7 +107,7 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient>  {
         RequestConfig cookieConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
         apacheBuilder.setDefaultRequestConfig(cookieConfig);
         // Bump the max connections so that our task processors do not
-        // block waiting to connect to Pinhead.
+        // block waiting to connect to RHSM.
 
         // note that these are essentially the same, since we're only hitting a single hostname
         apacheBuilder.setMaxConnPerRoute(x509Config.getMaxConnections());

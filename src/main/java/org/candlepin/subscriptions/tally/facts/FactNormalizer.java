@@ -294,7 +294,7 @@ public class FactNormalizer {
      *
      * NOTE: If the passed lastSync date is null, it is considered to be registered.
      *
-     * @param lastSync the last known time that a host sync occured from pinhead to conduit.
+     * @param lastSync the last known time that a host sync occurred from RHSM to conduit.
      * @return true if the host is considered unregistered, false otherwise.
      */
     private boolean hostUnregistered(OffsetDateTime lastSync) {

@@ -19,7 +19,7 @@
  * in this software or its documentation.
  */
 
-package org.candlepin.subscriptions.pinhead.client;
+package org.candlepin.subscriptions.rhsm.client;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,9 +27,9 @@ import java.io.InputStream;
 import javax.net.ssl.HostnameVerifier;
 
 /**
- * Class to hold values used to build the ApiClient instance wrapped in an SSLContext for Pinhead.
+ * Class to hold values used to build the ApiClient instance wrapped in an SSLContext for RHSM.
  */
-public class PinheadApiProperties {
+public class RhsmApiProperties {
     private final X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
     private boolean useStub;
     private String url;

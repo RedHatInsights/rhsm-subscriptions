@@ -29,14 +29,13 @@ import org.candlepin.subscriptions.inventory.ConduitFacts;
 import org.candlepin.subscriptions.inventory.InventoryService;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.orgsync.db.DatabaseOrgList;
-import org.candlepin.subscriptions.pinhead.PinheadService;
-import org.candlepin.subscriptions.pinhead.client.ApiException;
-import org.candlepin.subscriptions.pinhead.client.PinheadApiProperties;
-import org.candlepin.subscriptions.pinhead.client.model.Consumer;
-import org.candlepin.subscriptions.pinhead.client.model.InstalledProducts;
-import org.candlepin.subscriptions.pinhead.client.model.OrgInventory;
-import org.candlepin.subscriptions.pinhead.client.model.Pagination;
-import org.candlepin.subscriptions.pinhead.client.model.Status;
+import org.candlepin.subscriptions.rhsm.RhsmService;
+import org.candlepin.subscriptions.rhsm.client.ApiException;
+import org.candlepin.subscriptions.rhsm.client.RhsmApiProperties;
+import org.candlepin.subscriptions.rhsm.client.model.Consumer;
+import org.candlepin.subscriptions.rhsm.client.model.InstalledProducts;
+import org.candlepin.subscriptions.rhsm.client.model.OrgInventory;
+import org.candlepin.subscriptions.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.task.TaskManager;
 
 import org.hamcrest.Matchers;
@@ -56,6 +55,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -64,7 +64,7 @@ class InventoryControllerTest {
     InventoryService inventoryService;
 
     @MockBean
-    PinheadService pinheadService;
+    RhsmService rhsmService;
 
     @MockBean
     DatabaseOrgList orgList;
@@ -76,7 +76,7 @@ class InventoryControllerTest {
     InventoryController controller;
 
     @Autowired
-    PinheadApiProperties pinheadApiProperties;
+    RhsmApiProperties rhsmApiProperties;
 
     @MockBean
     InventoryServiceProperties inventoryServiceProperties;
@@ -84,7 +84,7 @@ class InventoryControllerTest {
     @BeforeEach
     void setup() {
         when(inventoryServiceProperties.getHostLastSyncThreshold()).thenReturn(Duration.ofHours(24));
-        when(pinheadService.formattedTime()).thenReturn("");
+        when(rhsmService.formattedTime()).thenReturn("");
     }
 
     @Test
@@ -112,7 +112,7 @@ class InventoryControllerTest {
         expectedFacts2.setAccountNumber("account");
         expectedFacts2.setSubscriptionManagerId(uuid2.toString());
 
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
@@ -123,28 +123,11 @@ class InventoryControllerTest {
     }
 
     @Test
-    void testHandlesNullNextOffset()
+    void testHandlesEmptyList()
         throws ApiException, MissingAccountNumberException {
-        Pagination pagination = new Pagination().nextOffset(null);
-        when(pinheadService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString())
-        ).thenReturn(
-            new OrgInventory().feeds(Collections.emptyList()).status(new Status().pagination(pagination))
-        );
-
-        controller.updateInventoryForOrg("org123");
-
-        verifyZeroInteractions(taskManager);
-    }
-
-    @Test
-    void testHandlesEmptyNextOffset()
-        throws ApiException, MissingAccountNumberException {
-        Pagination pagination = new Pagination().nextOffset("");
-        when(pinheadService.getPageOfConsumers(
-            eq("org123"), nullable(String.class), anyString())
-        ).thenReturn(
-            new OrgInventory().feeds(Collections.emptyList()).status(new Status().pagination(pagination))
-        );
+        Pagination pagination = new Pagination().count(0L).limit(1L);
+        when(rhsmService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString()))
+            .thenReturn(new OrgInventory().body(Collections.emptyList()).pagination(pagination));
 
         controller.updateInventoryForOrg("org123");
 
@@ -152,14 +135,10 @@ class InventoryControllerTest {
     }
 
     private OrgInventory pageOf(Consumer... consumers) {
-        OrgInventory feeds = new OrgInventory().feeds(Arrays.asList(consumers));
-        if (consumers.length > pinheadApiProperties.getRequestBatchSize()) {
-            feeds.status(new Status().pagination(new Pagination().nextOffset("next-offset")));
-        }
-        else {
-            feeds.status(new Status().pagination(new Pagination().nextOffset("")));
-        }
-        return feeds;
+        int limit = rhsmApiProperties.getRequestBatchSize();
+        return new OrgInventory()
+            .body(Arrays.stream(consumers).limit(limit).collect(Collectors.toList()))
+            .pagination(new Pagination().count(Math.min((long) limit, consumers.length)).limit((long) limit));
     }
 
     @Test
@@ -173,7 +152,7 @@ class InventoryControllerTest {
         consumer2.setOrgId("456");
         when(consumer1.getAccountNumber()).thenReturn("account");
         when(consumer1.getFacts()).thenThrow(new RuntimeException("foobar"));
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("123");
@@ -209,7 +188,7 @@ class InventoryControllerTest {
         samConsumer.setAccountNumber("account");
         samConsumer.setOrgId("456");
         samConsumer.setType("sam");
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1, candlepinConsumer, satelliteConsumer, samConsumer));
         controller.updateInventoryForOrg("123");
@@ -233,7 +212,7 @@ class InventoryControllerTest {
         consumer1.setOrgId("123");
         consumer2.setUuid(UUID.randomUUID().toString());
 
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1, consumer2));
         assertThrows(MissingAccountNumberException.class, () ->
@@ -259,7 +238,7 @@ class InventoryControllerTest {
         expected.setAccountNumber("account");
         expected.setSubscriptionManagerId(uuid1.toString());
 
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1, consumer2));
 
@@ -373,7 +352,7 @@ class InventoryControllerTest {
         Consumer consumer = new Consumer();
         consumer.setUuid(uuid);
         InstalledProducts product = new InstalledProducts();
-        product.setProductId(72L);
+        product.setProductId("72");
         consumer.getInstalledProducts().add(product);
 
         ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
@@ -423,15 +402,15 @@ class InventoryControllerTest {
 
     @Test
     void testIpAddressesCollected() {
-        Map<String, String> pinheadFacts = new HashMap<>();
-        pinheadFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
-        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
-        pinheadFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
-        pinheadFacts.put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
+        Map<String, String> rhsmFacts = new HashMap<>();
+        rhsmFacts.put("net.interface.eth0.ipv4_address_list", "192.168.1.1, 1.2.3.4");
+        rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
+        rhsmFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+        rhsmFacts.put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
 
         ConduitFacts conduitFacts = new ConduitFacts();
-        controller.extractIpAddresses(pinheadFacts, conduitFacts);
+        controller.extractIpAddresses(rhsmFacts, conduitFacts);
 
         assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
             "192.168.1.1",
@@ -484,16 +463,16 @@ class InventoryControllerTest {
 
     @Test
     void testUnknownIpsAreIgnored() {
-        Map<String, String> pinheadFacts = new HashMap<>();
-        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
-        pinheadFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
-        pinheadFacts.put("net.interface.virbr0-nic.ipv4_address", "Unknown");
-        pinheadFacts.put("net.interface.virbr0.ipv4_address", "192.168.122.1");
-        pinheadFacts.put("net.interface.wlan0.ipv4_address", "Unknown");
+        Map<String, String> rhsmFacts = new HashMap<>();
+        rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1");
+        rhsmFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
+        rhsmFacts.put("net.interface.virbr0-nic.ipv4_address", "Unknown");
+        rhsmFacts.put("net.interface.virbr0.ipv4_address", "192.168.122.1");
+        rhsmFacts.put("net.interface.wlan0.ipv4_address", "Unknown");
 
         ConduitFacts conduitFacts = new ConduitFacts();
-        controller.extractIpAddresses(pinheadFacts, conduitFacts);
+        controller.extractIpAddresses(rhsmFacts, conduitFacts);
 
         assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
             "192.168.1.1",
@@ -505,12 +484,12 @@ class InventoryControllerTest {
 
     @Test
     void testTruncatedIPsAreIgnored() {
-        Map<String, String> pinheadFacts = new HashMap<>();
-        pinheadFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-        pinheadFacts.put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...");
+        Map<String, String> rhsmFacts = new HashMap<>();
+        rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
+        rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...");
 
         ConduitFacts conduitFacts = new ConduitFacts();
-        controller.extractIpAddresses(pinheadFacts, conduitFacts);
+        controller.extractIpAddresses(rhsmFacts, conduitFacts);
         assertEquals(4, conduitFacts.getIpAddresses().size());
         assertThat(conduitFacts.getIpAddresses(), Matchers.containsInAnyOrder(
             "192.168.1.1",
@@ -538,7 +517,7 @@ class InventoryControllerTest {
         consumer2.setOrgId("456");
         // consumer2 has not
         consumer2.getFacts().put("dmi.system.uuid", "Not present");
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("456"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1, consumer2));
         controller.updateInventoryForOrg("456");
@@ -572,7 +551,7 @@ class InventoryControllerTest {
     void handlesNoRegisteredSystemsWithoutException()
         throws MissingAccountNumberException, ApiException {
         when(
-            pinheadService.getPageOfConsumers(eq("456"), nullable(String.class), anyString())
+            rhsmService.getPageOfConsumers(eq("456"), nullable(String.class), anyString())
         ).thenReturn(pageOf());
         controller.updateInventoryForOrg("456");
         verify(inventoryService, never()).flushHostUpdates();
@@ -581,18 +560,19 @@ class InventoryControllerTest {
     @Test
     void queuesNextPage() throws ApiException, MissingAccountNumberException {
         // Add one to test for off-by-one bugs
-        int size = pinheadApiProperties.getRequestBatchSize() * 3 + 1;
+        int size = rhsmApiProperties.getRequestBatchSize() * 3 + 1;
         assertThat(size, Matchers.greaterThan(0));
         ArrayList<Consumer> bigCollection = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             Consumer consumer = new Consumer();
+            consumer.setId("next-offset");
             consumer.setUuid(UUID.randomUUID().toString());
             consumer.setAccountNumber("account");
             consumer.setOrgId("123");
             bigCollection.add(consumer);
         }
 
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(bigCollection.toArray(new Consumer[]{})));
 
@@ -609,7 +589,7 @@ class InventoryControllerTest {
         consumer1.setUuid(UUID.randomUUID().toString());
         consumer1.setAccountNumber("account");
 
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("123"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer1));
         controller.updateInventoryForOrg("123");
@@ -627,7 +607,7 @@ class InventoryControllerTest {
 
         consumer.setServiceLevel("Premium");
 
-        when(pinheadService.getPageOfConsumers(
+        when(rhsmService.getPageOfConsumers(
             eq("456"), nullable(String.class), anyString())
         ).thenReturn(pageOf(consumer));
         controller.updateInventoryForOrg("456");

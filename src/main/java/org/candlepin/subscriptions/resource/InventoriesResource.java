@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.controller.InventoryController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.exception.RhsmConduitException;
-import org.candlepin.subscriptions.pinhead.client.ApiException;
+import org.candlepin.subscriptions.rhsm.client.ApiException;
 import org.candlepin.subscriptions.task.TaskManager;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.utilization.api.resources.InventoriesApi;
@@ -61,7 +61,7 @@ public class InventoriesResource implements InventoriesApi {
         }
         catch (ApiException e) {
             throw new RhsmConduitException(
-                ErrorCode.PINHEAD_SERVICE_ERROR,
+                ErrorCode.RHSM_SERVICE_ERROR,
                 Response.Status.INTERNAL_SERVER_ERROR,
                 String.format("Error while fetching inventory report for orgId %s offset %s", orgId, offset),
                 e

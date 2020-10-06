@@ -48,8 +48,8 @@ are happy to run the application off port 8080)
 ./gradlew bootRun --args="--server.port=9166"
 ```
 
-Because setting up the Pinhead keystore can be difficult, for conduit development,
-consider starting with `PINHEAD_USE_STUB=true`
+Because setting up the RHSM keystore can be difficult, for conduit development,
+consider starting with `RHSM_USE_STUB=true`
 
 ## Deployment Notes
 
@@ -97,12 +97,12 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `ORG_SYNC_SCHEDULE`: cron schedule for syncing hosts
 * `ORG_SYNC_STRATEGY`: file-based or DB-based sync strategy
 * `ORG_SYNC_RESOURCE_LOCATION`: location of resource with org sync list (if using file-based sync strategy)
-* `PINHEAD_USE_STUB`: Use pinhead stub
-* `PINHEAD_URL`: Pinhead service URL
-* `PINHEAD_KEYSTORE`: path to keystore with client cert
-* `PINHEAD_KEYSTORE_PASSWORD`: pinhead client cert keystore password
-* `PINHEAD_BATCH_SIZE`: host sync batch size
-* `PINHEAD_MAX_CONNECTIONS`: maximum concurrent connections to pinhead
+* `RHSM_USE_STUB`: Use RHSM API stub
+* `RHSM_URL`: RHSM service URL
+* `RHSM_KEYSTORE`: path to keystore with client cert
+* `RHSM_KEYSTORE_PASSWORD`: RHSM API client cert keystore password
+* `RHSM_BATCH_SIZE`: host sync batch size
+* `RHSM_MAX_CONNECTIONS`: maximum concurrent connections to RHSM API
 * `INVENTORY_USE_STUB`: Use stubbed inventory REST API
 * `INVENTORY_API_KEY`: API key for inventory service
 * `INVENTORY_HOST_LAST_SYNC_THRESHOLD`: reject hosts that haven't checked in since this duration (e.g. 24h)
@@ -154,6 +154,7 @@ RBAC_USE_STUB=true ./gradlew bootRun
 
 Prerequisite secrets:
 
+- `pinhead`: secret with `keystore.jks` - keystore for HTTPS communication with RHSM API (formerly Pinhead).
 - `rhsm-db`: DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
 - `host-inventory-db-readonly`: inventory read-only clone DB connection info, having `db.host`, `db.port`, `db.user`, `db.password`, and `db.name` properties.
 - `ingress`: secret with `keystore.jks` and `truststore.jks` - keystores for mTLS communication with subscription-conduit.

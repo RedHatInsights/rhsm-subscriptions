@@ -77,9 +77,9 @@ public enum ErrorCode {
     INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error"),
 
     /**
-     * An unexpected exception was thrown by the Pinhead service client.
+     * An unexpected exception was thrown by the RHSM service client.
      */
-    PINHEAD_SERVICE_ERROR(3000, "Pinhead Service Error");
+    RHSM_SERVICE_ERROR(3000, "RHSM Service Error");
 
     private final String CODE_PREFIX = "SUBSCRIPTIONS";
 

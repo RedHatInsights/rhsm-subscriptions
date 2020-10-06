@@ -600,7 +600,7 @@ paths:
           in: query
           schema:
             type: string
-          description: pinhead pagination offset
+          description: RHSM pagination offset
       responses:
         '200':
           description: 'The request for inventory data was successful.'
