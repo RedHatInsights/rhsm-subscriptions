@@ -34,7 +34,7 @@ parameters:
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
-    value: 100Mi
+    value: 1000Mi
   - name: MEMORY_LIMIT
     value: 1744Mi
   - name: CPU_REQUEST
