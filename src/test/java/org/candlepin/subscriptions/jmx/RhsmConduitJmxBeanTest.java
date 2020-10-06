@@ -52,28 +52,28 @@ class RhsmConduitJmxBeanTest {
     TaskManager tasks;
 
     @Test
-    void testHandlesCommas() {
+    void testHandlesCommas() throws RhsmJmxException {
         RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1,2,3");
         verify(repo).saveAll(matchOrgs("1", "2", "3"));
     }
 
     @Test
-    void testHandlesWhitespace() {
+    void testHandlesWhitespace() throws RhsmJmxException {
         RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1 2\n3");
         verify(repo).saveAll(matchOrgs("1", "2", "3"));
     }
 
     @Test
-    void testHandlesAllDelimitersTogether() {
+    void testHandlesAllDelimitersTogether() throws RhsmJmxException {
         RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1,2 3\n4");
         verify(repo).saveAll(matchOrgs("1", "2", "3", "4"));
     }
 
     @Test
-    void testHandlesAllDelimitersTogetherInCombination() {
+    void testHandlesAllDelimitersTogetherInCombination() throws RhsmJmxException {
         RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
         jmxBean.addOrgsToSyncList("1,\n2 ,3 \n4 ,\n5");
         verify(repo).saveAll(matchOrgs("1", "2", "3", "4", "5"));
