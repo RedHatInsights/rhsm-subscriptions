@@ -51,7 +51,7 @@ public abstract class InventoryService {
     private int staleHostOffset;
     private List<ConduitFacts> factQueue;
 
-    public InventoryService(InventoryServiceProperties serviceProperties, int maxQueueDepth) {
+    protected InventoryService(InventoryServiceProperties serviceProperties, int maxQueueDepth) {
         this.maxQueueDepth = maxQueueDepth;
         this.staleHostOffset = serviceProperties.getStaleHostOffsetInDays();
         this.factQueue = new LinkedList<>();

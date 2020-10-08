@@ -43,10 +43,10 @@ public abstract class HostOperationMessage<M, D> {
     protected M metadata;
     protected D data;
 
-    public HostOperationMessage() {
+    protected HostOperationMessage() {
     }
 
-    public HostOperationMessage(String operation, M metadata, D data) {
+    protected HostOperationMessage(String operation, M metadata, D data) {
         this.operation = operation;
         this.metadata = metadata;
         this.data = data;
