@@ -116,7 +116,7 @@ class CandlepinPoolCapacityMapperTest {
     }
 
     @Test
-    void testBadSlaAndUsageAreWrittenAsNull() {
+    void testBadSlaAndUsageAreWrittenAsEmptyString() {
         CandlepinPool pool = createTestPool(physicalProductIds, null, null, "badSLA", "badUsage");
 
         Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
@@ -130,6 +130,8 @@ class CandlepinPoolCapacityMapperTest {
         expectedRhelCapacity.setBeginDate(LONG_AGO);
         expectedRhelCapacity.setEndDate(NOWISH);
         expectedRhelCapacity.setSubscriptionId("subId");
+        expectedRhelCapacity.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        expectedRhelCapacity.setUsage(Usage.UNSPECIFIED);
         expectedRhelCapacity.setOwnerId("ownerId");
 
         SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
@@ -141,6 +143,8 @@ class CandlepinPoolCapacityMapperTest {
         expectedServerCapacity.setEndDate(NOWISH);
         expectedServerCapacity.setSubscriptionId("subId");
         expectedServerCapacity.setOwnerId("ownerId");
+        expectedServerCapacity.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        expectedServerCapacity.setUsage(Usage.UNSPECIFIED);
 
         assertThat(capacities, Matchers.containsInAnyOrder(
             expectedRhelCapacity,
