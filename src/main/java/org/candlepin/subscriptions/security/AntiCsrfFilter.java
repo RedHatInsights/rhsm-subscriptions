@@ -25,9 +25,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -43,11 +41,9 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * Filter that prevents CSRF by verifying for a valid Origin or Referer header.
  */
-@Component
-@Order(1)
 public class AntiCsrfFilter extends OncePerRequestFilter {
 
-    private static final List<String> MODIFYING_METHODS = Arrays.asList("POST", "PUT", "DELETE", "PATCH");
+    protected static final List<String> MODIFYING_VERBS = Arrays.asList("POST", "PUT", "DELETE", "PATCH");
     private static Logger log = LoggerFactory.getLogger(AntiCsrfFilter.class);
 
     private final boolean disabled;
@@ -56,6 +52,7 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
     private final String domainAndPortSuffix;
 
     AntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
+        log.info("Dev mode {}", props.isDevMode());
         disabled = props.isDevMode() || Arrays.asList(env.getActiveProfiles()).contains("capacity-ingress");
         port = props.getAntiCsrfPort();
         domainSuffix = props.getAntiCsrfDomainSuffix();
@@ -64,7 +61,7 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
             log.info("Origin & Referer checking (anti-csrf) disabled.");
         }
         else {
-            log.info("Origin & Referer checking (anti-csrf) enabled.");
+            log.info("Origin & Referer checking (anti-csrf) enabled for {}.", domainAndPortSuffix);
         }
     }
 
@@ -72,7 +69,7 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
         /* origin comes first as it is much faster to parse when present */
-        if (disabled || requestTypeOkay(request) || originMatches(request) || refererMatches(request)) {
+        if (disabled || requestVerbAllowed(request) || originMatches(request) || refererMatches(request)) {
             filterChain.doFilter(request, response);
         }
         else {
@@ -80,21 +77,29 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
         }
     }
 
-    private boolean requestTypeOkay(HttpServletRequest request) {
-        return !MODIFYING_METHODS.contains(request.getMethod());
+    protected boolean requestVerbAllowed(HttpServletRequest request) {
+        return !MODIFYING_VERBS.contains(request.getMethod());
     }
 
     private boolean refererMatches(HttpServletRequest request) {
-        String referer = request.getHeader("referer");
-        if (referer == null) {
+        // Note that the official HTTP header is "Referer" which is misspelled.
+        // See https://en.wikipedia.org/wiki/HTTP_referer
+        String referrer = request.getHeader("Referer");
+        if (referrer == null) {
             return false;
         }
-        URI uri = URI.create(referer);
-        return uri.getHost().endsWith(domainSuffix) && (uri.getPort() == -1 || uri.getPort() == port);
+        URI uri = URI.create(referrer);
+        boolean referrerMatch =
+            uri.getHost().endsWith(domainSuffix) && (uri.getPort() == -1 || uri.getPort() == port);
+        log.debug("Referrer {} match: {}", referrer, referrerMatch);
+        return referrerMatch;
     }
 
     private boolean originMatches(HttpServletRequest request) {
-        String origin = request.getHeader("origin");
-        return origin != null && (origin.endsWith(domainSuffix) || origin.endsWith(domainAndPortSuffix));
+        String origin = request.getHeader("Origin");
+        boolean originMatch =
+            origin != null && (origin.endsWith(domainSuffix) || origin.endsWith(domainAndPortSuffix));
+        log.debug("Origin {} match: {}", origin, originMatch);
+        return originMatch;
     }
 }
