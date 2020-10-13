@@ -108,7 +108,7 @@ public class FactNormalizer {
     }
 
     private boolean isVirtual(InventoryHostFacts hostFacts) {
-        return hostFacts.isVirtual() ||
+        return hostFacts.isVirtual() || StringUtils.hasText(hostFacts.getSatelliteHypervisorUuid()) ||
             "virtual".equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType());
     }
 
