@@ -535,6 +535,16 @@ public class FactNormalizerTest {
         assertEquals(4, normalized.getCores().longValue());
     }
 
+    @Test
+    void classifyAsVirtualIfSatelliteReportedHypervisorUuidButNotInfrastructureType() {
+        InventoryHostFacts facts = createBaseHost("A1", "O1");
+        facts.setSatelliteHypervisorUuid("SAT_HYPERVISOR");
+        assertFalse(facts.isVirtual());
+        assertNull(facts.getSystemProfileInfrastructureType());
+
+        assertTrue(normalizer.normalize(facts, Collections.emptyMap()).isVirtual());
+    }
+
     private void assertClassification(NormalizedFacts check, boolean isHypervisor,
         boolean isHypervisorUnknown, boolean isVirtual) {
         assertEquals(isHypervisor, check.isHypervisor());
