@@ -24,7 +24,7 @@ package org.candlepin.subscriptions.db.model;
  * The hardware type of a Host.
  */
 public enum HostHardwareType {
+    CLOUD,
     PHYSICAL,
-    HYPERVISOR,
-    VIRTUAL
+    VIRTUALIZED
 }

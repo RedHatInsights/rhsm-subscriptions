@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
@@ -43,6 +44,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -96,6 +99,63 @@ class HostRepositoryTest {
             .stream()
             .collect(Collectors.toMap(Host::getInventoryId, host -> host));
         repo.flush();
+    }
+
+    @Test
+    void testTallyHostViewProjection() {
+        // Ensure that the TallyHostView is properly projecting values.
+        OffsetDateTime expLastSeen = OffsetDateTime.now();
+        String expInventoryId = "INV";
+        String expInsightsId = "INSIGHTS_ID";
+        String expAccount = "ACCT";
+        String expOrg = "ORG";
+        String expSubId = "SUB_ID";
+        String expDisplayName = "HOST_DISPLAY";
+        HardwareMeasurementType expMeasurementType = HardwareMeasurementType.GOOGLE;
+        HostHardwareType expHardwareType = HostHardwareType.PHYSICAL;
+        int expCores = 8;
+        int expSockets = 4;
+        int expGuests = 10;
+        boolean expUnmappedGuest = true;
+        boolean expIsHypervisor = true;
+        String expCloudProvider = "CLOUD_PROVIDER";
+
+        Host host = new Host(expInventoryId, expInsightsId, expAccount, expOrg, expSubId);
+        host.setNumOfGuests(expGuests);
+        host.setDisplayName(expDisplayName);
+        host.setLastSeen(expLastSeen);
+        host.setCores(12);
+        host.setSockets(12);
+        host.setHypervisor(expIsHypervisor);
+        host.setUnmappedGuest(expUnmappedGuest);
+        host.setCloudProvider(expCloudProvider);
+        host.setHardwareType(expHardwareType);
+
+        host.addBucket(RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, false, expSockets, expCores,
+            expMeasurementType);
+
+        repo.saveAndFlush(host);
+
+        Page<TallyHostView> hosts = repo.getTallyHostViews(expAccount, RHEL, ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+        assertEquals(1, found.size());
+
+        TallyHostView view = found.get(0);
+        assertEquals(expInventoryId, view.getInventoryId());
+        assertEquals(expInsightsId, view.getInsightsId());
+        assertEquals(expDisplayName, view.getDisplayName());
+        assertEquals(expMeasurementType.name(), view.getHardwareMeasurementType());
+        assertEquals(expHardwareType.name(), view.getHardwareType());
+        assertEquals(expCores, view.getCores());
+        assertEquals(expSockets, view.getSockets());
+        assertEquals(expGuests, view.getNumberOfGuests().intValue());
+        assertEquals(expSubId, view.getSubscriptionManagerId());
+        assertEquals(expLastSeen.format(DateTimeFormatter.BASIC_ISO_DATE),
+            view.getLastSeen().format(DateTimeFormatter.BASIC_ISO_DATE));
+        assertEquals(expUnmappedGuest, view.isUnmappedGuest());
+        assertEquals(expIsHypervisor, view.isHypervisor());
+        assertEquals(expCloudProvider, view.getCloudProvider());
     }
 
     @Transactional

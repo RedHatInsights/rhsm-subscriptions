@@ -97,6 +97,15 @@ public class Host implements Serializable {
     )
     private List<HostTallyBucket> buckets;
 
+    @Column(name = "is_unmapped_guest")
+    private boolean isUnmappedGuest;
+
+    @Column(name = "is_hypervisor")
+    private boolean isHypervisor;
+
+    @Column(name = "cloud_provider")
+    private String cloudProvider;
+
     public Host() {
 
     }
@@ -120,6 +129,10 @@ public class Host implements Serializable {
         this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
         this.cores = normalizedFacts.getCores();
         this.sockets = normalizedFacts.getSockets();
+        this.isHypervisor = normalizedFacts.isHypervisor();
+        this.isUnmappedGuest = normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
+        this.cloudProvider = normalizedFacts.getCloudProviderType() == null ?
+            null : normalizedFacts.getCloudProviderType().name();
 
         this.lastSeen = inventoryHostFacts.getModifiedOn();
         this.hardwareType = normalizedFacts.getHardwareType();
@@ -267,6 +280,30 @@ public class Host implements Serializable {
         getBuckets().remove(bucket);
     }
 
+    public boolean isUnmappedGuest() {
+        return isUnmappedGuest;
+    }
+
+    public void setUnmappedGuest(boolean unmappedGuest) {
+        isUnmappedGuest = unmappedGuest;
+    }
+
+    public boolean isHypervisor() {
+        return isHypervisor;
+    }
+
+    public void setHypervisor(boolean hypervisor) {
+        isHypervisor = hypervisor;
+    }
+
+    public String getCloudProvider() {
+        return cloudProvider;
+    }
+
+    public void setCloudProvider(String cloudProvider) {
+        this.cloudProvider = cloudProvider;
+    }
+
     public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
         return new org.candlepin.subscriptions.utilization.api.model.Host()
                    .cores(cores)
@@ -277,7 +314,10 @@ public class Host implements Serializable {
                    .inventoryId(inventoryId)
                    .subscriptionManagerId(subscriptionManagerId)
                    .lastSeen(lastSeen)
-                   .numberOfGuests(numOfGuests);
+                   .numberOfGuests(numOfGuests)
+                   .isUnmappedGuest(isUnmappedGuest)
+                   .isHypervisor(isHypervisor)
+                   .cloudProvider(cloudProvider);
     }
 
 }

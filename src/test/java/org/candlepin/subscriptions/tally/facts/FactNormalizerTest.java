@@ -354,7 +354,7 @@ public class FactNormalizerTest {
 
         NormalizedFacts normalized = normalizer.normalize(facts, mappedHypervisors);
         assertTrue(normalized.isHypervisor());
-        assertEquals(HostHardwareType.HYPERVISOR, normalized.getHardwareType());
+        assertEquals(HostHardwareType.PHYSICAL, normalized.getHardwareType());
         assertFalse(normalized.isVirtual());
     }
 
@@ -376,7 +376,7 @@ public class FactNormalizerTest {
 
         normalized = normalizer.normalize(facts, new HashMap<>());
         assertTrue(normalized.isVirtual());
-        assertEquals(HostHardwareType.VIRTUAL, normalized.getHardwareType());
+        assertEquals(HostHardwareType.VIRTUALIZED, normalized.getHardwareType());
         assertTrue(normalized.isHypervisorUnknown());
         assertFalse(normalized.isHypervisor());
     }

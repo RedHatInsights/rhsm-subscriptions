@@ -62,6 +62,15 @@ public interface TallyHostView {
     @Value("#{target.key.host.lastSeen}")
     OffsetDateTime getLastSeen();
 
+    @Value("#{target.key.host.unmappedGuest}")
+    boolean isUnmappedGuest();
+
+    @Value("#{target.key.host.hypervisor}")
+    boolean isHypervisor();
+
+    @Value("#{target.key.host.cloudProvider}")
+    String getCloudProvider();
+
     default Host asApiHost() {
         return new Host()
             .inventoryId(getInventoryId())
@@ -73,6 +82,9 @@ public interface TallyHostView {
             .displayName(getDisplayName())
             .subscriptionManagerId(getSubscriptionManagerId())
             .numberOfGuests(getNumberOfGuests())
-            .lastSeen(getLastSeen());
+            .lastSeen(getLastSeen())
+            .isHypervisor(isHypervisor())
+            .isUnmappedGuest(isUnmappedGuest())
+            .cloudProvider(getCloudProvider());
     }
 }
