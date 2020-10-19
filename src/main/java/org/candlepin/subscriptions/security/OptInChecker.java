@@ -25,40 +25,39 @@ import org.candlepin.subscriptions.exception.OptInRequiredException;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Component;
 
 /**
- * A request filter that checks to make sure that the authenticated user has
- * opted in.
+ * A simple class to check that the user has opted in.  This class is meant to be used from a SpEL expression
+ * like so "@optInChecker.checkAccess(authentication, request)".  A WebExpressionVoter will then run that
+ * expression and based on the result vote +1 or -1 for granting access.  That vote will got to the
+ * AccessDecisionManager who makes the final access control decision.
  */
-public class OptInFilter extends OncePerRequestFilter {
+@Component
+public class OptInChecker {
     private OptInController optInController;
 
-    public OptInFilter(OptInController optInController) {
+    public OptInChecker(OptInController optInController) {
         this.optInController = optInController;
     }
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-        FilterChain filterChain) throws ServletException, IOException {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+    public boolean checkAccess(Authentication authentication) {
+        InsightsUserPrincipal principal = (InsightsUserPrincipal) authentication.getPrincipal();
 
         OptInConfig optin = optInController.getOptInConfig(
             principal.getAccountNumber(), principal.getOwnerId()
         );
 
+        /* If not opted-in, throw an exception.  Ideally we would just return true/false, but if we return
+         * false the user just gets a generic "Access Denied" message.  By throwing the exception here, we
+         * ensure that they see the message indicating they have not opted in. If we just wanted to return
+         * true/false I think we would need to implement this class as an AccessDecisionVoter that throws
+         * the OptInRequiredException in the AccessDecisionVoter.vote method and then our own
+         * AbstractAccessDecisionManager capable of catching that exception and rethrowing it after all
+         * the other voters had been consulted. */
         if (Boolean.FALSE.equals(optin.getData().getOptInComplete())) {
             throw new OptInRequiredException();
         }
-        filterChain.doFilter(request, response);
+        return true;
     }
 }

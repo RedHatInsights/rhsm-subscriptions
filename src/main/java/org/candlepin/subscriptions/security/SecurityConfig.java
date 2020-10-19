@@ -22,7 +22,6 @@
 package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.controller.OptInController;
 import org.candlepin.subscriptions.rbac.RbacService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +30,6 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -47,8 +45,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
-
-import java.util.Arrays;
 
 /**
  * Holder class for security configurations
@@ -154,21 +150,6 @@ public class SecurityConfig {
             return new MdcFilter();
         }
 
-        @Bean
-        public FilterRegistrationBean<OptInFilter> optInFilterRegistration(OptInController optInController) {
-            String apiPath = env.getRequiredProperty(
-                "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
-
-            FilterRegistrationBean<OptInFilter> frb = new FilterRegistrationBean<>();
-            frb.setFilter(new OptInFilter(optInController));
-            frb.setUrlPatterns(Arrays.asList(
-                String.format("/%s/capacity/*", apiPath),
-                String.format("/%s/tally/*", apiPath),
-                String.format("/%s/hosts/*", apiPath)
-            ));
-            return frb;
-        }
-
         @Override
         protected void configure(HttpSecurity http) throws Exception {
             String apiPath = env.getRequiredProperty(
@@ -194,6 +175,8 @@ public class SecurityConfig {
                     .requestMatchers(EndpointRequest.to(
                         "health", "info", "prometheus", "hawtio"
                     )).permitAll()
+                    .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
+                        .access("@optInChecker.checkAccess(authentication)")
                     .anyRequest().authenticated();
         }
     }
