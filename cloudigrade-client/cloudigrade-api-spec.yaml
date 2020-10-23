@@ -111,6 +111,8 @@ components:
           type: string
         usage:
           type: string
+        service_type:
+          type: string
     IdentityHeader:
       required:
         - identity
