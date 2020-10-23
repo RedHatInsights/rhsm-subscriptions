@@ -21,6 +21,8 @@
 
 package org.candlepin.subscriptions.security;
 
+import static org.candlepin.subscriptions.security.SecurityConfig.*;
+
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 
@@ -68,8 +70,8 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
             return createPrincipal(Base64.getDecoder().decode(identityHeader));
         }
         catch (Exception e) {
-            log.error(RH_IDENTITY_HEADER + " was not valid.", e);
-            // Initialize an empty principal. The IdentityHeaderAuthenticationManager will validate it.
+            log.error(SECURITY_STACKTRACE, RH_IDENTITY_HEADER + " was not valid.", e);
+            // Initialize an empty principal. The IdentityHeaderAuthenticationProvider will validate it.
             return new InsightsUserPrincipal();
         }
 

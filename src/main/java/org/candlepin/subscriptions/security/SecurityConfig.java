@@ -27,6 +27,8 @@ import org.candlepin.subscriptions.rbac.RbacService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -44,7 +46,6 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 
 import java.util.Arrays;
@@ -55,6 +56,7 @@ import java.util.Arrays;
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+    public static final Marker SECURITY_STACKTRACE = MarkerFactory.getMarker("SECURITY_STACKTRACE");
 
     protected SecurityConfig() {
         // Container class only
@@ -109,7 +111,6 @@ public class SecurityConfig {
         @Bean
         public AuthenticationProvider identityHeaderAuthenticationProvider(
             IdentityHeaderAuthenticationDetailsService detailsService) {
-
             return new IdentityHeaderAuthenticationProvider(detailsService);
         }
 
@@ -120,7 +121,6 @@ public class SecurityConfig {
 
         // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
         public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() throws Exception {
-
             IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
             filter.setCheckForPrincipalChanges(true);
             filter.setAuthenticationManager(authenticationManager());

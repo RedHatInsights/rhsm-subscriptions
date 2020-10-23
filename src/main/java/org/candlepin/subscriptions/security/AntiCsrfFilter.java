@@ -51,8 +51,7 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
     private final String domainSuffix;
     private final String domainAndPortSuffix;
 
-    AntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
-        log.info("Dev mode {}", props.isDevMode());
+    public AntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
         disabled = props.isDevMode() || Arrays.asList(env.getActiveProfiles()).contains("capacity-ingress");
         port = props.getAntiCsrfPort();
         domainSuffix = props.getAntiCsrfDomainSuffix();

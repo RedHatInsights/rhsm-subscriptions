@@ -21,6 +21,8 @@
 
 package org.candlepin.subscriptions.security;
 
+import static org.candlepin.subscriptions.security.SecurityConfig.*;
+
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.utilization.api.model.Error;
@@ -41,7 +43,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 /**
- * Entry point to allow returning a JSON response.
+ * AuthenticationFailureHandler that returns a JSON response.
  */
 public class IdentityHeaderAuthenticationFailureHandler
     implements AuthenticationFailureHandler {
@@ -61,7 +63,7 @@ public class IdentityHeaderAuthenticationFailureHandler
         throws IOException {
 
         Error error = buildError(authException);
-        log.debug(error.getTitle(), authException);
+        log.error(SECURITY_STACKTRACE, "{}: {}", error.getTitle(), error.getDetail(), authException);
 
         Response r = ExceptionUtil.toResponse(error);
         servletResponse.setContentType(r.getMediaType().toString());

@@ -40,12 +40,7 @@ import org.springframework.util.Assert;
  * authenticate method will build a new Authentication object that is marked as being successfully
  * authenticated ("blessed") and with the granted authorities from the Authentication.
  *
- * Heavily inspired by {@link PreAuthenticatedAuthenticationProvider}.  The major difference is that we
- * don't call out to a UserDetailsService.  The Authentication object carries a principal, credentials,
- * and details field all of type Object.  The UserDetailsService is meant to take the Authentication and
- * sensibly convert all those Object fields into typed fields (String, String, and
- * Collection<GrantedAuthorities> respectively by default).  We don't need to do that.  The principal and
- * details already in the unblessed Authentication.
+ * Heavily inspired by {@link PreAuthenticatedAuthenticationProvider}.
  */
 public class IdentityHeaderAuthenticationProvider implements AuthenticationProvider, Ordered {
     private static final Logger log = LoggerFactory.getLogger(IdentityHeaderAuthenticationProvider.class);
@@ -104,7 +99,7 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
         }
         catch (IllegalArgumentException e) {
             throw new PreAuthenticatedCredentialsNotFoundException(
-                RH_IDENTITY_HEADER + " is missing " + "required data", e);
+                RH_IDENTITY_HEADER + " is missing required data", e);
         }
     }
 
