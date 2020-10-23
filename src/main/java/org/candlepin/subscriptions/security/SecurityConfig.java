@@ -45,6 +45,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
 
 import java.util.Arrays;
 
@@ -148,6 +149,11 @@ public class SecurityConfig {
             return new AntiCsrfFilter(appProps, env);
         }
 
+        // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
+        public MdcFilter mdcFilter() {
+            return new MdcFilter();
+        }
+
         @Bean
         public FilterRegistrationBean<OptInFilter> optInFilterRegistration(OptInController optInController) {
             String apiPath = env.getRequiredProperty(
@@ -169,7 +175,8 @@ public class SecurityConfig {
                 "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
             http
                 .addFilter(identityHeaderAuthenticationFilter())
-                .addFilterAfter(antiCsrfFilter(appProps, env), IdentityHeaderAuthenticationFilter.class)
+                .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
+                .addFilterAt(antiCsrfFilter(appProps, env), CsrfFilter.class)
                 .csrf().disable()
                 .exceptionHandling()
                     .accessDeniedHandler(restAccessDeniedHandler())
@@ -224,6 +231,11 @@ public class SecurityConfig {
             return filter;
         }
 
+        // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
+        public MdcFilter mdcFilter() {
+            return new MdcFilter();
+        }
+
         @Override
         protected void configure(HttpSecurity http) throws Exception {
             // See https://docs.spring.io/spring-security/site/docs/current/reference/html5/#ns-custom-filters
@@ -233,7 +245,8 @@ public class SecurityConfig {
                     matchers.antMatchers("/actuator/**/jolokia", "/actuator/**/jolokia/**"))
                 .csrf().disable()
                 .addFilter(identityHeaderAuthenticationFilter())
-                .addFilterBefore(getVerbIncludingAntiCsrfFilter(appProps, env), LogoutFilter.class)
+                .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
+                .addFilterAt(getVerbIncludingAntiCsrfFilter(appProps, env), CsrfFilter.class)
                 .authorizeRequests()
                 .requestMatchers(EndpointRequest.to("jolokia")).permitAll();
         }

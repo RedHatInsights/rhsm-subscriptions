@@ -3,7 +3,7 @@
     <contextName>rhsm-subscriptions</contextName>
     <appender name="ConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{ISO8601} [thread=%thread] [%X{requestType}=%X{requestUuid}, org=%X{org}, csid=%X{csid}] %-5p %c - %m%n</pattern>
+            <pattern>%d{ISO8601} [thread=%thread] [%-5p] [%c] %X{user}- %m%n</pattern>
         </encoder>
     </appender>
 
@@ -16,7 +16,7 @@
         <totalSizeCap>100MB</totalSizeCap>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %m%n</pattern>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n</pattern>
         </encoder>
     </appender>
 
