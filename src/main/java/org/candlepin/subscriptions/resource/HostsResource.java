@@ -80,14 +80,16 @@ public class HostsResource implements HostsApi {
     public HostReport getHosts(String productId, Integer offset, Integer limit, String sla,
         String usage, Uom uom, HostReportSort sort, SortDirection dir) {
 
-        Sort sortValue = Sort.unsorted();
         Sort.Direction dirValue = Sort.Direction.ASC;
-
         if (dir == SortDirection.DESC) {
             dirValue = Sort.Direction.DESC;
         }
+        Sort.Order implicitOrder = Sort.Order.by("id");
+        Sort sortValue = Sort.by(implicitOrder);
+
         if (sort != null) {
-            sortValue = Sort.by(dirValue, SORT_PARAM_MAPPING.get(sort));
+            Sort.Order userDefinedOrder = new Sort.Order(dirValue, SORT_PARAM_MAPPING.get(sort));
+            sortValue = Sort.by(userDefinedOrder, implicitOrder);
         }
 
         int minCores = 0;

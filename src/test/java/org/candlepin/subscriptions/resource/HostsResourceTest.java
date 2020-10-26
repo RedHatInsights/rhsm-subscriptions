@@ -63,6 +63,8 @@ class HostsResourceTest {
     @Autowired
     HostsResource resource;
 
+    static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
+
     @BeforeEach
     public void setup() throws AccountListSourceException {
         PageImpl<TallyHostView> mockPage = new PageImpl<>(Collections.emptyList());
@@ -82,8 +84,9 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)))
+            eq(PageRequest.of(0, 1,
+            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
+            IMPLICIT_ORDER)))
         );
     }
 
@@ -98,8 +101,9 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)))
+            eq(PageRequest.of(0, 1,
+            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)),
+            IMPLICIT_ORDER)))
         );
     }
 
@@ -114,8 +118,9 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)))
+            eq(PageRequest.of(0, 1,
+            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)),
+            IMPLICIT_ORDER)))
         );
     }
 
@@ -130,8 +135,9 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)))
+            eq(PageRequest.of(0, 1,
+            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)),
+            IMPLICIT_ORDER)))
         );
     }
 
@@ -146,13 +152,14 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)))
+            eq(PageRequest.of(0, 1,
+            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)),
+            IMPLICIT_ORDER)))
         );
     }
 
     @Test
-    void testShouldDefaultToUnsorted() {
+    void testShouldDefaultToImplicitOrder() {
         resource.getHosts("RHEL", 0, 1, null, null, null, null, null);
 
         verify(repository, only()).getTallyHostViews(
@@ -162,7 +169,7 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1))
+            eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
         );
     }
 
@@ -177,8 +184,9 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)))
+            eq(PageRequest.of(0, 1,
+            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
+            IMPLICIT_ORDER)))
         );
     }
 
@@ -192,7 +200,7 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(1),
             eq(0),
-            eq(PageRequest.of(0, 1))
+            eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
         );
     }
 
@@ -206,7 +214,7 @@ class HostsResourceTest {
             eq(Usage.ANY),
             eq(0),
             eq(1),
-            eq(PageRequest.of(0, 1))
+            eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
         );
     }
 }
