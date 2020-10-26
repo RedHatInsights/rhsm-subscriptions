@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
@@ -227,6 +228,39 @@ class CloudigradeAccountUsageCollectorTest {
         collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage),
             Collections.singletonList(ACCOUNT));
         assertEquals(0, accountUsage.getKeys().size());
+    }
+
+    @Test
+    void testEnrichUsageSkipsServiceTypeForNow() throws IOException, ApiException {
+        UsageCount usageCountAnyServiceType = new UsageCount()
+            .instancesCount(1)
+            .role("_ANY")
+            .sla("_ANY")
+            .usage("_ANY")
+            .serviceType("_ANY")
+            .arch("_ANY");
+        UsageCount usageCountUnsetServiceType = new UsageCount()
+            .instancesCount(2)
+            .role("_ANY")
+            .sla("_ANY")
+            .usage("_ANY")
+            .serviceType("")
+            .arch("_ANY");
+        ConcurrentUsage concurrentUsage = new ConcurrentUsage()
+            .date(LocalDate.now())
+            .maximumCounts(Arrays.asList(usageCountAnyServiceType, usageCountUnsetServiceType));
+        ConcurrencyReport report = new ConcurrencyReport()
+            .data(Collections.singletonList(concurrentUsage));
+        when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
+            .thenReturn(report);
+        AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
+        collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage),
+            Collections.singletonList(ACCOUNT));
+        assertEquals(1, accountUsage.getKeys().size());
+        Optional<UsageCalculation.Key> usageKey = accountUsage.getKeys().stream().findFirst();
+        assertTrue(usageKey.isPresent());
+        assertEquals(1, accountUsage.getCalculation(usageKey.get()).getTotals(HardwareMeasurementType.TOTAL)
+            .getSockets());
     }
 
     private Map<String, AccountUsageCalculation> usageMapOf(String account,

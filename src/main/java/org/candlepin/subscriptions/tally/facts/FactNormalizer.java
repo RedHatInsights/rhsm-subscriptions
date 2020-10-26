@@ -133,16 +133,16 @@ public class FactNormalizer {
         normalizedFacts.setHypervisor(isHypervisor);
         normalizedFacts.setVirtual(isVirtual);
         normalizedFacts.setHypervisorUnknown(isHypervisorUnknown);
-        normalizedFacts.setHardwareType(determineHardwareType(isHypervisor, isVirtual));
+        normalizedFacts.setHardwareType(determineHardwareType(hostFacts));
     }
 
-    private HostHardwareType determineHardwareType(boolean isHypervisor, boolean isVirtual) {
+    private HostHardwareType determineHardwareType(InventoryHostFacts facts) {
         HostHardwareType hardwareType;
-        if (isHypervisor) {
-            hardwareType = HostHardwareType.HYPERVISOR;
+        if (HardwareMeasurementType.isSupportedCloudProvider(facts.getCloudProvider())) {
+            hardwareType = HostHardwareType.CLOUD;
         }
-        else if (isVirtual) {
-            hardwareType = HostHardwareType.VIRTUAL;
+        else if (isVirtual(facts)) {
+            hardwareType = HostHardwareType.VIRTUALIZED;
         }
         else {
             hardwareType = HostHardwareType.PHYSICAL;
