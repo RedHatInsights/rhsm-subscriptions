@@ -56,13 +56,15 @@ import javax.ws.rs.core.UriInfo;
 @Component
 public class HostsResource implements HostsApi {
 
-    public static final Map<HostReportSort, String> SORT_PARAM_MAPPING = ImmutableMap.of(
-        HostReportSort.DISPLAY_NAME, "key.host.displayName",
-        HostReportSort.CORES, "cores",
-        HostReportSort.HARDWARE_TYPE, "key.host.hardwareType",
-        HostReportSort.SOCKETS, "sockets",
-        HostReportSort.LAST_SEEN, "key.host.lastSeen"
-    );
+    public static final Map<HostReportSort, String> SORT_PARAM_MAPPING =
+        ImmutableMap.<HostReportSort, String>builderWithExpectedSize(5)
+        .put(HostReportSort.DISPLAY_NAME, "key.host.displayName")
+        .put(HostReportSort.CORES, "cores")
+        .put(HostReportSort.HARDWARE_TYPE, "key.host.hardwareType")
+        .put(HostReportSort.SOCKETS, "sockets")
+        .put(HostReportSort.LAST_SEEN, "key.host.lastSeen")
+        .put(HostReportSort.MEASUREMENT_TYPE, "measurementType")
+        .build();
 
     @Context
     UriInfo uriInfo;
