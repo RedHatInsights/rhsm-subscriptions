@@ -63,7 +63,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
             appliedSockets = 1;
             prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
             return Optional.of(createBucket(prodCalc, true, appliedCores, appliedSockets,
-                HardwareMeasurementType.HYPERVISOR));
+                HardwareMeasurementType.VIRTUAL));
         }
         // Accumulate for physical systems.
         else if (!normalizedFacts.isVirtual()) {
@@ -92,7 +92,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
 
         prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
         return Optional.of(createBucket(prodCalc, false, appliedCores, appliedSockets,
-            HardwareMeasurementType.HYPERVISOR));
+            HardwareMeasurementType.VIRTUAL));
     }
 
     private HostTallyBucket createBucket(UsageCalculation currentCalc, boolean asHypervisor,

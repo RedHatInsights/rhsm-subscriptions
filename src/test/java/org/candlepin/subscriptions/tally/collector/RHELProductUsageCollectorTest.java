@@ -55,7 +55,7 @@ public class RHELProductUsageCollectorTest {
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
 
         // Expects no hypervisor totals in this case.
-        assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
+        assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class RHELProductUsageCollectorTest {
         // as they are accounted for by the guest's hypervisor.
         assertNull(calc.getTotals(HardwareMeasurementType.TOTAL));
         assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
-        assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
+        assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class RHELProductUsageCollectorTest {
 
         assertTotalsCalculation(calc, 4, 12, 1);
         assertPhysicalTotalsCalculation(calc, 4, 12, 1);
-        assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
+        assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
     @Test
