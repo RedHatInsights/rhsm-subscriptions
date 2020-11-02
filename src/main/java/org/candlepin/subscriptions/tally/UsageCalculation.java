@@ -153,7 +153,7 @@ public class UsageCalculation {
     }
 
     public void addHypervisor(int cores, int sockets, int instances) {
-        increment(HardwareMeasurementType.HYPERVISOR, cores, sockets, instances);
+        increment(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
     }
 

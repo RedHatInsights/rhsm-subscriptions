@@ -73,9 +73,9 @@ public class UsageCalculationTest {
         UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         IntStream.rangeClosed(0, 4).forEach(i -> calculation.addHypervisor(i + 2, i + 1, i));
 
-        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.HYPERVISOR, 15, 20, 10);
+        assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.VIRTUAL, 15, 20, 10);
         assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
-        assertNullExcept(calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.HYPERVISOR);
+        assertNullExcept(calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.VIRTUAL);
     }
 
     @Test
@@ -128,7 +128,7 @@ public class UsageCalculationTest {
     public void invalidCloudTypeThrowsExcpection() {
         UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
         assertThrows(IllegalArgumentException.class, () -> {
-            calculation.addCloudProvider(HardwareMeasurementType.HYPERVISOR, 1, 1, 1);
+            calculation.addCloudProvider(HardwareMeasurementType.VIRTUAL, 1, 1, 1);
         });
     }
 

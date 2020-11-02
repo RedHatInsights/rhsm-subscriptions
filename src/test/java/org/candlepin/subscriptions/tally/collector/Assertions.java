@@ -46,7 +46,7 @@ public class Assertions {
 
     public static void assertHypervisorTotalsCalculation(UsageCalculation calc, int hypSockets,
         int hypCores, int hypInstances) {
-        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.HYPERVISOR, hypSockets, hypCores,
+        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.VIRTUAL, hypSockets, hypCores,
             hypInstances);
     }
 

@@ -390,7 +390,7 @@ class HostRepositoryTest {
         host1.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 4, 2,
             HardwareMeasurementType.PHYSICAL);
         host1.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false, 10, 5,
-            HardwareMeasurementType.HYPERVISOR);
+            HardwareMeasurementType.VIRTUAL);
         host1.addBucket("Satellite", ServiceLevel.PREMIUM, Usage.PRODUCTION, true, 4, 2,
             HardwareMeasurementType.PHYSICAL);
 
@@ -417,8 +417,8 @@ class HostRepositoryTest {
         assertEquals(4, physical.getSockets());
         assertEquals(2, physical.getCores());
 
-        assertTrue(hosts.containsKey(HardwareMeasurementType.HYPERVISOR.toString()));
-        TallyHostView hypervisor = hosts.get(HardwareMeasurementType.HYPERVISOR.toString());
+        assertTrue(hosts.containsKey(HardwareMeasurementType.VIRTUAL.toString()));
+        TallyHostView hypervisor = hosts.get(HardwareMeasurementType.VIRTUAL.toString());
         assertEquals(host1.getInventoryId(), hypervisor.getInventoryId());
         assertEquals(host1.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
         assertEquals(host1.getNumOfGuests(), hypervisor.getNumberOfGuests());

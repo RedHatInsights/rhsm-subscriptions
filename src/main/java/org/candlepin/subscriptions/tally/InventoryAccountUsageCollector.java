@@ -185,7 +185,7 @@ public class InventoryAccountUsageCollector {
         });
 
         if (hypervisorHosts.size() > 0) {
-            log.info("Pesisting {} hypervisor hosts.", hypervisorHosts.size());
+            log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
             hostRepository.saveAll(hypervisorHosts.values());
         }
 

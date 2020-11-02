@@ -177,7 +177,7 @@ public class TallySnapshot implements Serializable {
             snapshot.setPhysicalInstanceCount(physical.getInstanceCount());
         }
 
-        HardwareMeasurement hypervisor = this.hardwareMeasurements.get(HardwareMeasurementType.HYPERVISOR);
+        HardwareMeasurement hypervisor = this.hardwareMeasurements.get(HardwareMeasurementType.VIRTUAL);
         if (hypervisor != null) {
             snapshot.setHypervisorCores(hypervisor.getCores());
             snapshot.setHypervisorSockets(hypervisor.getSockets());

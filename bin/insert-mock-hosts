@@ -71,7 +71,7 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
     'cores': cores,
     'sockets': sockets,
   }
-  
+
   sla_vals = ["_ANY", sla]
   usage_vals = ["_ANY", usage]
   for next_sla in sla_vals:
@@ -141,7 +141,7 @@ for i in range(args.num_physical):
 
 hypervisor = None
 for i in range(args.num_hypervisors):
-    hypervisor = generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='HYPERVISOR', product=args.product,
+    hypervisor = generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='VIRTUAL', product=args.product,
                                sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
     # create a physical entry for the host as well.
     generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='PHYSICAL', product=args.product,
