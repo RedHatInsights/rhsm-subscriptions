@@ -967,6 +967,7 @@ components:
         - cores
         - sockets
         - last_seen
+        - measurement_type
     HostReport:
       properties:
         data:

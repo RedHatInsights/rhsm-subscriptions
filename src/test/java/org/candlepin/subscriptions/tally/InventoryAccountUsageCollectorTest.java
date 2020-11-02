@@ -129,7 +129,7 @@ public class InventoryAccountUsageCollectorTest {
         checkTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
         checkPhysicalTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
         assertNull(calc.getCalculation(createUsageKey(NON_RHEL))
-            .getTotals(HardwareMeasurementType.HYPERVISOR));
+            .getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
     @Test
@@ -155,7 +155,7 @@ public class InventoryAccountUsageCollectorTest {
         checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
         // no guests running RHEL means no hypervisor total...
         assertNull(calc.getCalculation(createUsageKey(TEST_PRODUCT))
-            .getTotals(HardwareMeasurementType.HYPERVISOR));
+            .getTotals(HardwareMeasurementType.VIRTUAL));
         // hypervisor itself gets counted
         checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
     }
@@ -179,7 +179,7 @@ public class InventoryAccountUsageCollectorTest {
         UsageCalculation productCalc = calc.getCalculation(createUsageKey(TEST_PRODUCT));
         assertNull(productCalc.getTotals(HardwareMeasurementType.TOTAL));
         assertNull(productCalc.getTotals(HardwareMeasurementType.PHYSICAL));
-        assertNull(productCalc.getTotals(HardwareMeasurementType.HYPERVISOR));
+        assertNull(productCalc.getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
     @Test
@@ -225,7 +225,7 @@ public class InventoryAccountUsageCollectorTest {
         checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
         checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
         assertNull(calc.getCalculation(createUsageKey(TEST_PRODUCT))
-            .getTotals(HardwareMeasurementType.HYPERVISOR));
+            .getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
     @Test

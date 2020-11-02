@@ -1,51 +1,62 @@
 # Local Deployment
 
-## Deploy insights-inventory
+## Prerequisites
 
-rhsm-subscriptions requires a connection to insights-inventory. First set up a
-postgres user and database.
-
-```
-su - postgres
-createuser --pwprompt -d insights
-```
-
-Run the `bin/deploy-insights` script to install the insights-inventory
-project and begin running it on port 8080 by default. Check the `--help`
-to see all the available options. This script will init the
-git-submodule if it hasn't been already, run the database migration from
-`manage.py` and then start the Flask application with the appropriate
-environment variables.
-
-Once the app has started, check to make sure you can access the API
-(keep in mind that you may need to adjust the port number in the curl
-command if you used a different port for deployment).
+First, ensure you have podman-compose, podman and java 11 installed:
 
 ```
-curl http://localhost:8080/metrics
+sudo dnf install -y podman-compose podman java-11-openjdk-devel
 ```
+
+Ensure the checkout has the HBI submodule initialized:
+
+```
+git submodule update --init --recursive
+```
+
+## Dependent services
+
+Start via:
+
+```
+podman-compose up -d
+```
+
+*NOTE*: if the DB hasn't finished starting up (likely), HBI will fail to
+start, to remedy: `podman start rhsm-subscriptions_inventory_1`.
+
+Stop via (backup data first if desired):
+```
+podman-compose down
+```
+
+For more details about what services are defined, see `container-compose.yml`
+
+Note that the compose assumes that none of the services are already running
+locally (hint: might need to `sudo systemctl stop postgresql`). If you want to
+use only some of the services via podman-compose, then `podman-compose up
+--no-start` can be used to define the services (you can then subsequently
+manually start containers for the services you wish to deploy locally.
+
+If you prefer to use local postgresql service, you can use `init_dbs.sh`.
 
 ## Build and Run rhsm-subscriptions
 
-In order to build rhsm-subscriptions, make sure you have Java SDK 8 installed
-(Java 1.8.x).
-
-Create a PostgreSQL role for the application:
-
 ```
-su - postgres
-createuser --pwprompt -d rhsm-subscriptions
+./gradlew bootRun
 ```
 
-Run the `bin/init-application` script (with appropriate arguments if the
-defaults don't suit you) to make sure the database is created and other
-initialization tasks are handled.
+Spring Boot [defines many properties](https://docs.spring.io/spring-boot/docs/2.3.4.RELEASE/reference/htmlsingle/#common-application-properties)
+that can be overridden via args or environment variables. (We prefer
+environment variables). To determine the environment variable name,
+uppercase, remove dashes and replace `.` with `_` (per
+[Spring docs](https://docs.spring.io/spring-boot/docs/2.3.4.RELEASE/reference/htmlsingle/#boot-features-external-config-relaxed-binding-from-environment-variables))
+We also define a number of service-specific properties (see [Environment Variables](#environment-variables))
 
-Build and run using the following line (you can leave off the `--args` if you
-are happy to run the application off port 8080)
+For example, the `server.port` (or `SERVER_PORT` env var) property changes the listening port:
 
 ```
-./gradlew bootRun --args="--server.port=9166"
+SERVER_PORT=9090 ./gradlew bootRun
 ```
 
 ## Deployment Notes

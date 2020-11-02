@@ -1,0 +1,36 @@
+---
+version: '3.1'
+services:
+  db:
+    image: docker.io/postgres
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - ./init_dbs.sh:/docker-entrypoint-initdb.d/init_dbs.sh:z
+    ports:
+      - "5432"
+  zookeeper:
+    image: docker.io/confluentinc/cp-zookeeper
+    ports:
+      - "32181"
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=32181
+      - ZOOKEEPER_SERVER_ID=1
+  kafka:
+    image: docker.io/confluentinc/cp-kafka
+    ports:
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:29092
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_BROKER_ID=1
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
+  inventory:
+    build:
+      context: insights-host-inventory
+      dockerfile: dev.dockerfile
