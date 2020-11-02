@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions;
 
-import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -52,8 +51,6 @@ public class ApplicationProperties {
     private boolean prettyPrintJson = false;
 
     private boolean devMode = false;
-
-    private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
 
     /**
      * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
@@ -193,10 +190,6 @@ public class ApplicationProperties {
 
     public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
         this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
-    }
-
-    public TallyRetentionPolicyProperties getTallyRetentionPolicy() {
-        return tallyRetentionPolicy;
     }
 
     public String getAccountListResourceLocation() {

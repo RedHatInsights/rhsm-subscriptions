@@ -31,7 +31,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
@@ -49,7 +48,6 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 @EnableKafka
 @Configuration
 @Profile({"kafka-queue", "worker"})
-@PropertySource("classpath:/rhsm-subscriptions.properties")
 public class KafkaTaskQueueConfiguration {
 
     @Autowired
