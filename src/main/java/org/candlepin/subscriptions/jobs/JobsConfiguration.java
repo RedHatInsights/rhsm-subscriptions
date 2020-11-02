@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -42,7 +41,6 @@ import java.time.Instant;
  */
 @EnableConfigurationProperties(JobProperties.class)
 @Configuration
-@PropertySource("classpath:/rhsm-subscriptions.properties")
 public class JobsConfiguration implements SchedulingConfigurer {
     private static final Logger log = LoggerFactory.getLogger(JobsConfiguration.class);
 

@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
+import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.DatabaseAccountListSource;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -44,7 +45,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
@@ -72,8 +72,6 @@ import javax.validation.Validator;
 @EnableRetry
 @EnableAspectJAutoProxy
 @EnableScheduling
-// The values in application.yaml should already be loaded by default
-@PropertySource("classpath:/rhsm-subscriptions.properties")
 public class ApplicationConfiguration implements WebMvcConfigurer {
 
     @Bean
@@ -88,9 +86,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public TallyRetentionPolicy tallyRetentionPolicy(ApplicationProperties applicationProperties,
-        ApplicationClock applicationClock) {
-        return new TallyRetentionPolicy(applicationClock, applicationProperties.getTallyRetentionPolicy());
+    public TallyRetentionPolicy tallyRetentionPolicy(ApplicationClock applicationClock,
+        TallyRetentionPolicyProperties retentionPolicyProperties) {
+
+        return new TallyRetentionPolicy(applicationClock, retentionPolicyProperties);
     }
 
     @Bean
