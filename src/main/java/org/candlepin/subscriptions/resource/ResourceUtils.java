@@ -71,7 +71,7 @@ public class ResourceUtils {
      *
      * @return ownerId as a String
      */
-    static String getOwnerId() {
+    public static String getOwnerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
         return principal.getOwnerId();
@@ -108,7 +108,7 @@ public class ResourceUtils {
      * @return Pageable holding paging information.
      */
     @NotNull
-    static Pageable getPageable(Integer offset, Integer limit) {
+    public static Pageable getPageable(Integer offset, Integer limit) {
         return getPageable(offset, limit, Sort.unsorted());
     }
 

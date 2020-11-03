@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.retention;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.springframework.stereotype.Component;
+
 import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoField;
@@ -36,6 +38,7 @@ import java.time.temporal.TemporalAdjusters;
  * example, if the retention policy is 3 months, then the previous 3 months are retained, in addition to
  * the current incomplete month.
  */
+@Component
 public class TallyRetentionPolicy {
 
     private final ApplicationClock applicationClock;

@@ -20,25 +20,16 @@
  */
 package org.candlepin.subscriptions.task;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 /**
  * Settings particular to the task queue framework.
  */
-@ConfigurationProperties(prefix = "rhsm-subscriptions.tasks")
 public class TaskQueueProperties {
 
-    private String taskGroup;
+    private String kafkaGroupId;
+
+    private String topic;
 
     private int executorTaskQueueThreadLimit = 20;
-
-    public String getTaskGroup() {
-        return taskGroup;
-    }
-
-    public void setTaskGroup(String taskGroup) {
-        this.taskGroup = taskGroup;
-    }
 
     public int getExecutorTaskQueueThreadLimit() {
         return executorTaskQueueThreadLimit;
@@ -46,5 +37,21 @@ public class TaskQueueProperties {
 
     public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
         this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
+    }
+
+    public String getKafkaGroupId() {
+        return kafkaGroupId;
+    }
+
+    public void setKafkaGroupId(String kafkaGroupId) {
+        this.kafkaGroupId = kafkaGroupId;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 }

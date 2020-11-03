@@ -7,7 +7,7 @@ resteasy:
   jaxrs:
     app:
       registration: property
-      classes: org.candlepin.subscriptions.JaxrsApplication
+      classes: org.candlepin.subscriptions.resteasy.JaxrsApplication
 management:
   endpoints:
     web:
@@ -28,7 +28,6 @@ spring:
   profiles:
     active:
       - api
-      - in-memory-queue
       - capacity-ingress
   liquibase:
     change-log: classpath:/liquibase/changelog.xml

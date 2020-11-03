@@ -20,14 +20,13 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import org.candlepin.subscriptions.controller.OptInController;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnly;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.resources.OptInApi;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import javax.ws.rs.BadRequestException;
@@ -37,7 +36,6 @@ import javax.ws.rs.BadRequestException;
  * functionality.
  */
 @Component
-@Profile("api")
 public class OptInResource implements OptInApi {
 
     private OptInController controller;

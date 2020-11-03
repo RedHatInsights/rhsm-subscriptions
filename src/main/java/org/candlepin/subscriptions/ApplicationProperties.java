@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions;
 
+import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -51,6 +52,11 @@ public class ApplicationProperties {
     private boolean prettyPrintJson = false;
 
     private boolean devMode = false;
+
+    /**
+     * Job schedules when running in dev mode.
+     */
+    private JobProperties jobs;
 
     /**
      * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
@@ -350,5 +356,13 @@ public class ApplicationProperties {
 
     public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
         this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
+    }
+
+    public JobProperties getJobs() {
+        return jobs;
+    }
+
+    public void setJobs(JobProperties jobs) {
+        this.jobs = jobs;
     }
 }

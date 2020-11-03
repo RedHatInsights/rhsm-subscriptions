@@ -42,6 +42,7 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer2;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -53,8 +54,9 @@ import java.util.Map;
 
 
 @SpringBootTest
-@TestPropertySource("classpath:/kafka_schema_registry_test.properties")
 @DirtiesContext
+@ActiveProfiles("worker")
+@TestPropertySource("classpath:/kafka_schema_registry_test.properties")
 @EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.task-group}"})
 public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 

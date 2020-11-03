@@ -24,12 +24,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 
 @SpringBootTest
-@TestPropertySource("classpath:/kafka_test.properties")
 @DirtiesContext
+@ActiveProfiles("worker")
+@TestPropertySource("classpath:/kafka_test.properties")
 @EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.task-group}"})
 public class KafkaTaskQueueTest extends KafkaTaskQueueTester {
 

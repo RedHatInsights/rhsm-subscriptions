@@ -26,7 +26,6 @@ import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 
 /**
@@ -37,10 +36,10 @@ public class KafkaTaskQueue implements TaskQueue {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaTaskQueue.class);
 
-    @Autowired
-    private KafkaTemplate<String, TaskMessage> producer;
+    private final KafkaTemplate<String, TaskMessage> producer;
 
-    public KafkaTaskQueue() {
+    public KafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
+        this.producer = producer;
         log.info("Creating Kafka task queue...");
     }
 

@@ -33,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.time.LocalDate;
 import java.util.Base64;
 
 @SpringBootTest
+@ActiveProfiles("worker")
 @TestPropertySource("classpath:/test.properties")
 class CloudigradeServiceTest {
     @MockBean

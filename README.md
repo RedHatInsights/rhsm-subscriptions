@@ -59,6 +59,26 @@ For example, the `server.port` (or `SERVER_PORT` env var) property changes the l
 SERVER_PORT=9090 ./gradlew bootRun
 ```
 
+## Profiles
+
+We have a number of profiles. Each profile activates a subset of components in the codebase.
+
+- `api`: Run the user-facing API
+- `capacity-ingress`: Run the internal only capacity ingress API
+- `purge-snapshots`: Run the retention job and exit
+- `capture-snapshots`: Run the tally job and exit
+- `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
+
+These can be specified most easily via the `SPRING_PROFILES_ACTIVE` environment variable. For example:
+
+```
+SPRING_PROFILES_ACTIVE=capture-snapshots,kafka-queue ./gradlew bootRun
+```
+
+Each profile has a `@Configuration` class that controls which components get activated, See ApplicationConfiguration for more details.
+
+If no profiles are specified, the default profiles list in `application.yaml` is applied.
+
 ## Deployment Notes
 
 RHSM Subscriptions is meant to be deployed under the context path "/". The
@@ -120,7 +140,8 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `TALLY_RETENTION_MONTHLY`: number of monthly tallies to keep
 * `TALLY_RETENTION_QUARTERLY`: number of quarterly tallies to keep
 * `TALLY_RETENTION_YEARLY`: number of yearly tallies to keep
-* `KAFKA_TASK_GROUP`: kafka task group
+* `KAFKA_TOPIC`: topic for rhsm-subscriptions tasks
+* `KAFKA_GROUP_ID` kafka consumer group ID
 * `KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS`: kafka max poll interval in milliseconds
 * `KAFKA_MESSAGE_THREADS`: number of consumer threads
 * `KAFKA_BOOTSTRAP_HOST`: kafka bootstrap host
