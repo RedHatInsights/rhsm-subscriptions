@@ -57,7 +57,7 @@ public abstract class BaseSnapshotRoller {
     protected  TallySnapshotRepository tallyRepo;
     protected ApplicationClock clock;
 
-    public BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    protected BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
         this.tallyRepo = tallyRepo;
         this.clock = clock;
     }
