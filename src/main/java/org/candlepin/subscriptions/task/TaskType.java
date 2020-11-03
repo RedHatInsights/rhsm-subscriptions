@@ -24,5 +24,6 @@ package org.candlepin.subscriptions.task;
  * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
  */
 public enum TaskType {
-    UPDATE_SNAPSHOTS
+    UPDATE_SNAPSHOTS,
+    UPDATE_ORG_INVENTORY
 }

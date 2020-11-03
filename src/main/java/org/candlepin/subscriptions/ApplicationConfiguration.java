@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
+import org.candlepin.subscriptions.conduit.ConduitConfiguration;
+import org.candlepin.subscriptions.conduit.job.OrgSyncConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
@@ -55,8 +57,9 @@ import javax.validation.Validator;
 /** Class to hold configuration beans common to all profiles and import all profile configurations */
 @Configuration
 @Import({
-    ApiConfiguration.class, CapacityIngressConfiguration.class, CaptureSnapshotsConfiguration.class,
-    PurgeSnapshotsConfiguration.class, LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class,
+    ApiConfiguration.class, ConduitConfiguration.class, CapacityIngressConfiguration.class,
+    CaptureSnapshotsConfiguration.class, PurgeSnapshotsConfiguration.class,
+    LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class, OrgSyncConfiguration.class,
     DevModeConfiguration.class, SecurityConfig.class, HawtioConfiguration.class
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {

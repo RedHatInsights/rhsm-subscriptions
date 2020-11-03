@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model.config;
 
+import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import javax.persistence.Column;
@@ -43,6 +44,15 @@ public class OrgConfig extends BaseConfig {
 
     public OrgConfig(String orgId) {
         this.orgId = orgId;
+    }
+
+    public static OrgConfig fromJmx(String orgId, OffsetDateTime timestamp) {
+        OrgConfig orgConfig = new OrgConfig(orgId);
+        orgConfig.setOptInType(OptInType.JMX);
+        orgConfig.setSyncEnabled(true);
+        orgConfig.setCreated(timestamp);
+        orgConfig.setUpdated(timestamp);
+        return orgConfig;
     }
 
     public String getOrgId() {

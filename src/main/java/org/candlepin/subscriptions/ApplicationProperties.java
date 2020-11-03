@@ -24,7 +24,6 @@ import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
@@ -45,9 +44,9 @@ import java.time.Duration;
  * Unfortunately, "<prefix>-<fqn>" has a hyphen in it which means we can't use the bean name in a SpEL
  * expression: the hyphen is interpreted as a subtraction operator.
  */
-@Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
+    private String version;
 
     private boolean prettyPrintJson = false;
 
@@ -173,6 +172,14 @@ public class ApplicationProperties {
      * Number of times to attempt query against cloudigrade for Tally integration.
      */
     private int cloudigradeMaxAttempts = 2;
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
