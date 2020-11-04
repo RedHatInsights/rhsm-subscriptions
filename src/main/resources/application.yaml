@@ -29,5 +29,6 @@ spring:
     active:
       - api
       - capacity-ingress
+      - worker
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
