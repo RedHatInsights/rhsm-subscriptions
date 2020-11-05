@@ -35,13 +35,13 @@ import java.util.List;
 
 
 @ExtendWith(MockitoExtension.class)
-public class UpdateAccountSnapshotsTaskTest {
+class UpdateAccountSnapshotsTaskTest {
 
     @Mock
     private TallySnapshotController snapshotController;
 
     @Test
-    public void testExecute() {
+    void testExecute() {
         List<String> accounts = Arrays.asList("a1", "a2");
         UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
         task.execute();

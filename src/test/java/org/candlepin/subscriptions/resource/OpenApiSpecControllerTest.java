@@ -31,19 +31,19 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest
 @ActiveProfiles("api")
 @TestPropertySource("classpath:/test.properties")
-public class OpenApiSpecControllerTest {
+class OpenApiSpecControllerTest {
     @Autowired
     OpenApiSpecController controller;
 
     @Test
-    public void testOpenApiJson() {
+    void testOpenApiJson() {
         /* Tests that we receive a successful non-empty response */
         String json = controller.getOpenApiJson();
         assertNotEquals(0, json.length());
     }
 
     @Test
-    public void testOpenApiYaml() {
+    void testOpenApiYaml() {
         /* Tests that we receive a successful non-empty response */
         String yaml = controller.getOpenApiYaml();
         assertNotEquals(0, yaml.length());

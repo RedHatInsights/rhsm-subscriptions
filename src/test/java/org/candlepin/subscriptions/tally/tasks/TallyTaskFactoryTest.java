@@ -40,21 +40,22 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest
 @ActiveProfiles("worker")
 @TestPropertySource("classpath:/test.properties")
-public class TallyTaskFactoryTest {
+class TallyTaskFactoryTest {
 
     @Autowired
     private TallyTaskFactory factory;
 
     @Test
-    public void ensureFactoryBuildsUpdateAccountSnapshotTask() {
+    void ensureFactoryBuildsUpdateAccountSnapshotTask() {
         Task task = factory.build(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build());
         assertThat(task, Matchers.instanceOf(UpdateAccountSnapshotsTask.class));
     }
 
     @Test
-    public void ensureIllegalArgumentExceptionWhenTaskTypeIsNull() {
+    void ensureIllegalArgumentExceptionWhenTaskTypeIsNull() {
+        TaskDescriptor task = TaskDescriptor.builder(null, "my-group").build();
         assertThrows(IllegalArgumentException.class, () -> {
-            factory.build(TaskDescriptor.builder(null, "my-group").build());
+            factory.build(task);
         });
     }
 }

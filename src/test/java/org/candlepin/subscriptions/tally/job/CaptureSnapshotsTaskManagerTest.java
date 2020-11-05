@@ -51,7 +51,7 @@ import java.util.List;
 @SpringBootTest
 @ActiveProfiles("worker")
 @TestPropertySource("classpath:/test.properties")
-public class CaptureSnapshotsTaskManagerTest {
+class CaptureSnapshotsTaskManagerTest {
 
     @MockBean
     ExecutorTaskQueue queue;
@@ -69,7 +69,7 @@ public class CaptureSnapshotsTaskManagerTest {
     private TaskQueueProperties taskQueueProperties;
 
     @Test
-    public void testUpdateForSingleAccount() {
+    void testUpdateForSingleAccount() {
         String account = "12345";
         manager.updateAccountSnapshots(account);
 
@@ -77,7 +77,7 @@ public class CaptureSnapshotsTaskManagerTest {
     }
 
     @Test
-    public void ensureUpdateIsRunForEachAccount() throws Exception {
+    void ensureUpdateIsRunForEachAccount() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2");
         when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
@@ -87,7 +87,7 @@ public class CaptureSnapshotsTaskManagerTest {
     }
 
     @Test
-    public void ensureAccountListIsPartitionedWhenSendingTaskMessages() throws Exception {
+    void ensureAccountListIsPartitionedWhenSendingTaskMessages() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4");
         when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
@@ -99,7 +99,7 @@ public class CaptureSnapshotsTaskManagerTest {
     }
 
     @Test
-    public void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
+    void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5");
         when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
@@ -112,7 +112,7 @@ public class CaptureSnapshotsTaskManagerTest {
     }
 
     @Test
-    public void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
+    void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
         List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5", "a6");
         when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
@@ -128,7 +128,7 @@ public class CaptureSnapshotsTaskManagerTest {
     }
 
     @Test
-    public void ensureNoUpdatesWhenAccountListCanNotBeRetreived() throws Exception {
+    void ensureNoUpdatesWhenAccountListCanNotBeRetreived() throws Exception {
         doThrow(new AccountListSourceException("Forced!", new RuntimeException()))
             .when(accountListSource).syncableAccounts();
 

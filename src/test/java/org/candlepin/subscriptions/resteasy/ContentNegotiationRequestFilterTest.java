@@ -41,10 +41,10 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
 
-public class ContentNegotiationRequestFilterTest {
+class ContentNegotiationRequestFilterTest {
 
     @Test
-    public void acceptHeaderMustContainVendorSpecificJsonHeaderWithNoParameters() throws Exception {
+    void acceptHeaderMustContainVendorSpecificJsonHeaderWithNoParameters() throws Exception {
         List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json");
         assertEquals(1, types.size());
 
@@ -61,7 +61,7 @@ public class ContentNegotiationRequestFilterTest {
     }
 
     @Test
-    public void notAcceptableThrownWhenAcceptHeaderContainsJsonMediaTypeWithParams() {
+    void notAcceptableThrownWhenAcceptHeaderContainsJsonMediaTypeWithParams() {
         List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
         assertEquals(1, types.size());
 
@@ -80,7 +80,7 @@ public class ContentNegotiationRequestFilterTest {
     }
 
     @Test
-    public void notAcceptableNotThrownWhenAcceptHeaderOneValidJsonMediaTypeWithoutParams() throws Exception {
+    void notAcceptableNotThrownWhenAcceptHeaderOneValidJsonMediaTypeWithoutParams() throws Exception {
         List<MediaType> types = MediaTypeHelper.parseHeader(
             "application/vnd.api+json;version=1.0,application/vnd.api+json,application/vnd.api+json;v=2");
         assertEquals(3, types.size());
@@ -98,7 +98,7 @@ public class ContentNegotiationRequestFilterTest {
     }
 
     @Test
-    public void contentTypeHeaderCanNotSpecifyAnyMediaTypeParameters() {
+    void contentTypeHeaderCanNotSpecifyAnyMediaTypeParameters() {
         List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
         assertEquals(1, types.size());
 
@@ -117,7 +117,7 @@ public class ContentNegotiationRequestFilterTest {
     }
 
     @Test
-    public void nonMatchingContentTypesCanHaveParamteters() throws Exception {
+    void nonMatchingContentTypesCanHaveParamteters() throws Exception {
         List<MediaType> types = MediaTypeHelper.parseHeader("application/foobar;version=1.0");
         assertEquals(1, types.size());
         assertEquals(1, types.get(0).getParameters().size());

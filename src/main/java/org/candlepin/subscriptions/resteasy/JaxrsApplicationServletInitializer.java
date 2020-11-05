@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.resteasy;
 
 import org.jboss.resteasy.springboot.ResteasyApplicationBuilder;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.ConstructorArgumentValues;
@@ -30,6 +29,7 @@ import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,7 +50,8 @@ import javax.ws.rs.ext.Provider;
  */
 public class JaxrsApplicationServletInitializer implements BeanFactoryPostProcessor {
 
-    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
         BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
         ConfigurableEnvironment env = beanFactory.getBean(ConfigurableEnvironment.class);
         String[] applicationBeanNames = beanFactory.getBeanNamesForType(Application.class);
@@ -63,7 +64,7 @@ public class JaxrsApplicationServletInitializer implements BeanFactoryPostProces
 
         for (String applicationBeanName : applicationBeanNames) {
             Class<?> applicationClass = beanFactory.getType(applicationBeanName);
-            String applicationClassName = applicationClass.getCanonicalName();
+            String applicationClassName = Objects.requireNonNull(applicationClass).getCanonicalName();
             String packageName = applicationClassName.substring(0, applicationClassName.lastIndexOf("."));
             String propertyName = String.format("rhsm-subscriptions.package_uri_mappings.%s", packageName);
             String uri = env.getRequiredProperty(propertyName);

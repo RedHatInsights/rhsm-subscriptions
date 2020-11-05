@@ -30,8 +30,6 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -58,8 +56,6 @@ import javax.validation.Validator;
     DevModeConfiguration.class, SecurityConfig.class, HawtioConfiguration.class
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
-    private static final Logger log = LoggerFactory.getLogger(ApplicationConfiguration.class);
-
     @Bean
     ApplicationProperties applicationProperties() {
         return new ApplicationProperties();

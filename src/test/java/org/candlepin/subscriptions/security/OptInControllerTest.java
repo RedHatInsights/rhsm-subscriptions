@@ -52,7 +52,7 @@ import java.util.Optional;
 
 @SpringBootTest
 @TestPropertySource("classpath:/test.properties")
-public class OptInControllerTest {
+class OptInControllerTest {
 
     @MockBean
     private AccountConfigRepository accountRepo;
@@ -64,13 +64,13 @@ public class OptInControllerTest {
     private ApplicationClock clock;
 
     @BeforeEach
-    public void setupTest() {
+    void setupTest() {
         clock = new FixedClockConfiguration().fixedClock();
         controller = new OptInController(clock, accountRepo, orgRepo);
     }
 
     @Test
-    public void testOptInWithNewEntity() {
+    void testOptInWithNewEntity() {
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
         when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
 
@@ -105,7 +105,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void testOptInWithExistingEntity() {
+    void testOptInWithExistingEntity() {
         AccountConfig existingAccountConfig = setupExistingAccountConfig();
         OrgConfig existingOrgConfig = setupExistingOrgConfig();
 
@@ -152,7 +152,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void testOptInCreatesOrgConfigIfItDoesNotExist() {
+    void testOptInCreatesOrgConfigIfItDoesNotExist() {
         AccountConfig existingAccountConfig = setupExistingAccountConfig();
 
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -197,7 +197,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void testOptInCreatesAccountConfigIfItDoesntExist() {
+    void testOptInCreatesAccountConfigIfItDoesntExist() {
         OrgConfig existingOrgConfig = setupExistingOrgConfig();
 
         when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -242,7 +242,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void testOptOut() {
+    void testOptOut() {
         String expectedAccountNumber = "my-account";
         String expectedOrgId = "my-org";
 
@@ -255,7 +255,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void testGetOptInConfig() {
+    void testGetOptInConfig() {
         String expectedAccount = "account123456";
         String expectedOrg = "owner123456";
         Boolean expectedSyncEnabled = Boolean.TRUE;
@@ -307,7 +307,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void optInConfigNotCompleteWhenOnlyAccountConfigExists() {
+    void optInConfigNotCompleteWhenOnlyAccountConfigExists() {
         String expectedAccountNumber = "account123456";
         String expectedOrgId = "owner123456";
         AccountConfig accountConfig = new AccountConfig(expectedAccountNumber);
@@ -321,7 +321,7 @@ public class OptInControllerTest {
     }
 
     @Test
-    public void optInConfigNotCompleteWhenOnlyOrgConfigExists() {
+    void optInConfigNotCompleteWhenOnlyOrgConfigExists() {
         String expectedAccountNumber = "account123456";
         String expectedOrgId = "owner123456";
 

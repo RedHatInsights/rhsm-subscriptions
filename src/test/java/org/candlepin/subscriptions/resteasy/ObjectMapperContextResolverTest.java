@@ -39,12 +39,12 @@ import java.util.TimeZone;
 
 
 @TestInstance(Lifecycle.PER_CLASS)
-public class ObjectMapperContextResolverTest {
+class ObjectMapperContextResolverTest {
 
     private ObjectMapper mapper;
 
     @BeforeAll
-    public void setupTests() {
+    void setupTests() {
         ApplicationProperties props = new ApplicationProperties();
         ObjectMapperContextResolver resolver = new ObjectMapperContextResolver(props);
         mapper = resolver.getContext(Void.class);
@@ -54,7 +54,7 @@ public class ObjectMapperContextResolverTest {
      * Ensure that dates are in ISO-8601 format.
      */
     @Test
-    public void ensureDatesAreSerializedToISO8601Format() throws Exception {
+    void ensureDatesAreSerializedToISO8601Format() throws Exception {
 
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         cal.set(Calendar.MONTH, Calendar.JANUARY);
@@ -72,7 +72,7 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void serialization() throws Exception {
+    void serialization() throws Exception {
         String expectedVal1 = "foo";
         String expectedVal2 = "bar";
 
@@ -83,7 +83,7 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void ensureSerializedObjectsDoNotIncludePropsWithNullValues() throws Exception {
+    void ensureSerializedObjectsDoNotIncludePropsWithNullValues() throws Exception {
         String v2 = "bar";
         TestPojo pojo = new TestPojo(null, v2);
         String data = mapper.writeValueAsString(pojo);
@@ -92,7 +92,7 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void ensureSerializedObjectsIncludePropsWithEmptyValues() throws Exception {
+    void ensureSerializedObjectsIncludePropsWithEmptyValues() throws Exception {
         String v2 = "bar";
         TestPojo pojo = new TestPojo("", v2);
         String data = mapper.writeValueAsString(pojo);
@@ -101,7 +101,7 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void testDeserialization() throws Exception {
+    void testDeserialization() throws Exception {
         String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\"}";
         TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
         assertNotNull(pojo);
@@ -110,7 +110,7 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void testDeserializationDoesNotFailOnUnknownProperties() throws Exception {
+    void testDeserializationDoesNotFailOnUnknownProperties() throws Exception {
         String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\",\"value3\":\"value3\"}";
         TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
         assertNotNull(pojo);
@@ -119,7 +119,7 @@ public class ObjectMapperContextResolverTest {
     }
 
     @Test
-    public void ensureSerializedObjectsIncludeEmptyList() throws Exception {
+    void ensureSerializedObjectsIncludeEmptyList() throws Exception {
         TestPojo pojo = new TestPojo("foo", "bar");
         String data = mapper.writeValueAsString(pojo);
         assertContainsProperty(data, "value1", "foo");

@@ -38,13 +38,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @ExtendWith(MockitoExtension.class)
-public class ExecutorTaskQueueTest {
+class ExecutorTaskQueueTest {
 
     @Mock
     TallyTaskFactory taskFactory;
 
     @Test
-    public void ensureTaskIsExecutedPriorToShutdown() throws InterruptedException {
+    void ensureTaskIsExecutedPriorToShutdown() throws InterruptedException {
         ExecutorTaskQueue queue = new ExecutorTaskQueue();
         ExecutorTaskProcessor processor = new ExecutorTaskProcessor(Executors.newCachedThreadPool(),
             taskFactory, queue, "my-group");
@@ -60,7 +60,7 @@ public class ExecutorTaskQueueTest {
     }
 
     @Test
-    public void verifyNoExceptionWhenTaskFails() throws InterruptedException {
+    void verifyNoExceptionWhenTaskFails() throws InterruptedException {
         AtomicBoolean failed = new AtomicBoolean();
         ExecutorTaskQueue queue = new ExecutorTaskQueue();
         ExecutorTaskProcessor processor = new ExecutorTaskProcessor(

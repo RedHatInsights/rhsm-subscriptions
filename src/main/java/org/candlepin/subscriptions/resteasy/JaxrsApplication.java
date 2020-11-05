@@ -22,16 +22,10 @@ package org.candlepin.subscriptions.resteasy;
 
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
-
 import javax.ws.rs.core.Application;
 
 /** Bootstrapper for RESTEasy. */
 @Component
 public class JaxrsApplication extends Application {
-
-    @Override
-    public Set<Class<?>> getClasses() {
-        return super.getClasses();
-    }
+    /* Intentionally left empty */
 }
