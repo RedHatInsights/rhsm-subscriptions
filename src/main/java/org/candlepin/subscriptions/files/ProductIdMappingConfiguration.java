@@ -18,27 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.files;
 
-import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.files.ProductIdMappingConfiguration;
-import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
 
 /**
- * Configuration for the "capacity-ingress" profile.
- *
- * This profile is used to receive capacity records from an internal service.
+ * Configuration that provides the product ID to product map.
  */
 @Configuration
-@Profile("capacity-ingress")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class,
-    ProductIdMappingConfiguration.class})
-@ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
-public class CapacityIngressConfiguration {
-    /* Intentionally empty */
+public class ProductIdMappingConfiguration {
+    @Bean
+    ProductIdToProductsMapSource productIdToProductsMapSource(ApplicationProperties properties,
+        ApplicationClock clock) {
+
+        return new ProductIdToProductsMapSource(properties, clock);
+    }
 }

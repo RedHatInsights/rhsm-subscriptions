@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
+import org.candlepin.subscriptions.files.ProductIdMappingConfiguration;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
@@ -59,7 +60,7 @@ import java.util.Set;
 @Configuration
 @Profile("worker")
 @Import({TallyTaskQueueConfiguration.class, TaskConsumerConfiguration.class,
-    InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
+    ProductIdMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
 @ComponentScan(basePackages = {
     "org.candlepin.subscriptions.cloudigrade",
     "org.candlepin.subscriptions.inventory.db",
@@ -67,13 +68,6 @@ import java.util.Set;
     "org.candlepin.subscriptions.tally"
 })
 public class TallyWorkerConfiguration {
-    @Bean
-    ProductIdToProductsMapSource productIdToProductsMapSource(ApplicationProperties properties,
-        ApplicationClock clock) {
-
-        return new ProductIdToProductsMapSource(properties, clock);
-    }
-
     @Bean
     @Qualifier("cloudigrade")
     @ConfigurationProperties(prefix = "rhsm-subscriptions.cloudigrade")
