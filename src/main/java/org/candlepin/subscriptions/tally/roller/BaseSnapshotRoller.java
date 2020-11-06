@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ public abstract class BaseSnapshotRoller {
     protected  TallySnapshotRepository tallyRepo;
     protected ApplicationClock clock;
 
-    public BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    protected BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
         this.tallyRepo = tallyRepo;
         this.clock = clock;
     }

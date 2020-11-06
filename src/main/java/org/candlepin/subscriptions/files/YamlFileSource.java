@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ public abstract class YamlFileSource<T> implements ResourceLoaderAware {
     private ResourceLoader resourceLoader;
     private Resource fileResource;
 
-    public YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
+    protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
         this.resourceLocation = resourceLocation;
         this.cachedValue = new Cache(clock, cacheTtl);
     }
