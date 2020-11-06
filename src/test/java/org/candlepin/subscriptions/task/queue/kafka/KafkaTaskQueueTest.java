@@ -25,18 +25,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 
 @SpringBootTest
 @DirtiesContext
-@ActiveProfiles("worker")
-@TestPropertySource("classpath:/kafka_test.properties")
-@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.task-group}"})
-public class KafkaTaskQueueTest extends KafkaTaskQueueTester {
+@ActiveProfiles("worker,test,kafka-test")
+@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
+class KafkaTaskQueueTest extends KafkaTaskQueueTester {
 
     @Test
-    public void testSendAndReceiveTaskMessage() throws InterruptedException {
+    void testSendAndReceiveTaskMessage() throws InterruptedException {
         runSendAndReceiveTaskMessageTest();
     }
 

@@ -34,11 +34,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Import(StubResourceConfiguration.class)
-@TestPropertySource("classpath:/test.properties")
 class SubscriptionWatchAdminOnlyTest {
 
     @Autowired

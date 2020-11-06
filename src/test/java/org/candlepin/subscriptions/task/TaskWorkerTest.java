@@ -29,11 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("worker,test")
 public class TaskWorkerTest {
 
     @MockBean

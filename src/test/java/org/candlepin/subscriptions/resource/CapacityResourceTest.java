@@ -43,7 +43,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -54,9 +53,8 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 @SpringBootTest
-@ActiveProfiles("capacity-ingress")
-@TestPropertySource("classpath:/test.properties")
 @WithMockRedHatPrincipal("123456")
+@ActiveProfiles("capacity-ingress,test")
 class CapacityResourceTest {
 
     private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);

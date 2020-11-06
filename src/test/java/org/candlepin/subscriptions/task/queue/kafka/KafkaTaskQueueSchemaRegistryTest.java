@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 
@@ -43,7 +43,6 @@ import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer2;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -55,9 +54,8 @@ import java.util.Map;
 
 @SpringBootTest
 @DirtiesContext
-@ActiveProfiles("worker")
-@TestPropertySource("classpath:/kafka_schema_registry_test.properties")
-@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.task-group}"})
+@ActiveProfiles("worker,test,test-kafka,test-kafka-schema")
+@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
 public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 
     @Test

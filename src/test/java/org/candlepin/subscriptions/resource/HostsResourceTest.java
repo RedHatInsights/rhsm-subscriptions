@@ -43,13 +43,11 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Collections;
 
 @SpringBootTest
-@ActiveProfiles("api")
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("api,test")
 @WithMockRedHatPrincipal("123456")
 class HostsResourceTest {
 

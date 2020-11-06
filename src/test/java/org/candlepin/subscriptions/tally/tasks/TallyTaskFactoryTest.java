@@ -33,13 +33,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 
 
 @SpringBootTest
-@ActiveProfiles("worker")
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("worker,test")
 class TallyTaskFactoryTest {
 
     @Autowired

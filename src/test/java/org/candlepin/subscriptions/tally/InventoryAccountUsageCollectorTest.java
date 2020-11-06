@@ -44,7 +44,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -59,9 +58,8 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 @SpringBootTest
-@ActiveProfiles("worker")
+@ActiveProfiles("worker,test")
 @Import(MockProductAndRoleConfiguration.class)
-@TestPropertySource("classpath:/test.properties")
 public class InventoryAccountUsageCollectorTest {
 
     private static final String TEST_PRODUCT = "RHEL";

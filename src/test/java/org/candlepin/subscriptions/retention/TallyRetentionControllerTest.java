@@ -32,7 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 class TallyRetentionControllerTest {
     @TestConfiguration
     @ComponentScan(basePackages = "org.candlepin.subscriptions.retention")

@@ -51,7 +51,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -63,8 +62,7 @@ import javax.ws.rs.core.Response;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
-@ActiveProfiles("api")
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("api,test")
 @WithMockRedHatPrincipal("123456")
 public class TallyResourceTest {
 

@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 public class TallySnapshotRepositoryTest {
     private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
         ZoneId.systemDefault());

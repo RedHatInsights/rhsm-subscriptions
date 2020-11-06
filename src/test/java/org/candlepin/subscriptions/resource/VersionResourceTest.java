@@ -32,11 +32,9 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@ActiveProfiles("api")
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("api,test")
 public class VersionResourceTest {
     @MockBean BuildProperties buildProperties;
 

@@ -36,11 +36,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Import(StubResourceConfiguration.class)
-@TestPropertySource("classpath:/test.properties")
 public class ReportingAccessRequiredTest {
 
     @Autowired ApplicationContext context;
