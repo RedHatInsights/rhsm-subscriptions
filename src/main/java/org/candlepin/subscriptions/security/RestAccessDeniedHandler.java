@@ -21,9 +21,12 @@
 
 package org.candlepin.subscriptions.security;
 
+import static org.candlepin.subscriptions.security.SecurityConfig.*;
+
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
+import org.candlepin.subscriptions.exception.mapper.AccessDeniedExceptionMapper;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,7 +62,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         AccessDeniedException accessDeniedException) throws IOException, ServletException {
 
         Error error = RestAccessDeniedHandler.buildError(accessDeniedException);
-        log.error(error.getTitle(), accessDeniedException);
+        log.error(SECURITY_STACKTRACE, "{}: {}", error.getTitle(), error.getDetail(), accessDeniedException);
 
         Response r = ExceptionUtil.toResponse(error);
         servletResponse.setContentType(r.getMediaType().toString());
@@ -70,6 +73,12 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
         out.flush();
     }
 
+    /**
+     * Static method to construct an Error object.  We actually use this method in the
+     * {@link AccessDeniedExceptionMapper} class as well.
+     * @param exception an AccessDeniedException to build an Error from.
+     * @return a populated Error object.
+     */
     public static Error buildError(AccessDeniedException exception) {
         if (exception instanceof OptInRequiredException) {
             return ((OptInRequiredException) exception).getError();

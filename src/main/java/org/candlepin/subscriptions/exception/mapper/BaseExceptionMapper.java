@@ -20,12 +20,15 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
+import static org.candlepin.subscriptions.security.SecurityConfig.*;
+
 import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.StringUtils;
 
 import javax.ws.rs.core.Response;
@@ -46,8 +49,10 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
         String message = StringUtils.hasText(error.getCode()) ?
             String.format("%s: %s", error.getCode(), error.getTitle()) :
             error.getTitle();
-        if (exception instanceof AccessDeniedException) {
-            log.debug(message, exception);
+        Class<?> exClass = exception.getClass();
+        if (AccessDeniedException.class.isAssignableFrom(exClass) ||
+            AuthenticationException.class.isAssignableFrom(exClass)) {
+            log.error(SECURITY_STACKTRACE, message, exception);
         }
         else {
             log.error(message, exception);
