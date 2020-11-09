@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <changeSet id="202010291320-1" author="awood">
-        <comment>Rename "hypervisor" measurement type to "virtual".</comment>
-        <update tableName="hardware_measurements">
-            <column name="measurement_type" value="VIRTUAL"/>
-            <where>measurement_type='HYPERVISOR'</where>
-        </update>
-    </changeSet>
-
-    <changeSet id="202010291320-2" author="awood" dbms="postgresql">
+    <changeSet id="202011090921-1" author="khowell" dbms="postgresql">
         <createProcedure>
             CREATE OR REPLACE FUNCTION copy_measurement() RETURNS trigger AS $$
             BEGIN
@@ -36,7 +28,7 @@
                         hypervisor_instance_count = NEW.instance_count,
                         hypervisor_sockets = NEW.sockets
                     WHERE id = NEW.snapshot_id;
-                ELSIF (not NEW.measurement_type = ANY('{AWS,GOOGLE,AZURE,ALIBABA}'::text[])) THEN
+                ELSIF (not NEW.measurement_type = ANY('{HYPERVISOR,AWS,GOOGLE,AZURE,ALIBABA,AWS_CLOUDIGRADE}'::text[])) THEN
                     RAISE EXCEPTION 'Unknown measurement_type %', NEW.measurement_type;
                 END IF;
 
@@ -44,6 +36,8 @@
             END;
             $$ LANGUAGE plpgsql;
         </createProcedure>
+
     </changeSet>
+
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
