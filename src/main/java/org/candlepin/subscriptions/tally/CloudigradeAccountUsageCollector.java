@@ -103,7 +103,8 @@ public class CloudigradeAccountUsageCollector {
                     calculation.addCloudigrade(HardwareMeasurementType.AWS_CLOUDIGRADE, count);
                 }
                 catch (IllegalArgumentException e) {
-                    log.warn("Skipping cloudigrade usage: {}", usageCount, e);
+                    log.warn("Skipping cloudigrade usage due to: {}", e.toString());
+                    log.debug("Usage record: {}", usageCount);
                 }
             }
         });
