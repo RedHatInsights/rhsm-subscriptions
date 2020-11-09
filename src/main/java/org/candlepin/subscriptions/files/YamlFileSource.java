@@ -44,7 +44,7 @@ public abstract class YamlFileSource<T> implements ResourceLoaderAware {
     private ResourceLoader resourceLoader;
     private Resource fileResource;
 
-    public YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
+    protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
         this.resourceLocation = resourceLocation;
         this.cachedValue = new Cache(clock, cacheTtl);
     }

@@ -50,7 +50,7 @@ public abstract class LiquibaseCustomTask implements CustomTaskChange, Closeable
 
     private Map<String, PreparedStatement> preparedStatements;
 
-    public LiquibaseCustomTask() {
+    protected LiquibaseCustomTask() {
         this.logger = getLogger();
         this.preparedStatements = new HashMap<>();
     }
