@@ -42,10 +42,16 @@ public class OptInChecker {
     }
 
     public boolean checkAccess(Authentication authentication) {
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        if (!InsightsUserPrincipal.class.isAssignableFrom(principal.getClass())) {
+            // Unrecognized principal.  Allow Spring Security to return Access Denied.
+            return false;
+        }
+
+        InsightsUserPrincipal insightsUserPrincipal = (InsightsUserPrincipal) authentication.getPrincipal();
 
         OptInConfig optin = optInController.getOptInConfig(
-            principal.getAccountNumber(), principal.getOwnerId()
+            insightsUserPrincipal.getAccountNumber(), insightsUserPrincipal.getOwnerId()
         );
 
         /* If not opted-in, throw an exception.  Ideally we would just return true/false, but if we return
