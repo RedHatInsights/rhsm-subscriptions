@@ -29,6 +29,7 @@ import java.util.List;
  */
 public enum HardwareMeasurementType {
     PHYSICAL,
+    HYPERVISOR,
     VIRTUAL,
     TOTAL,
     AWS, // AWS measured by HBI data

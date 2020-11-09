@@ -369,6 +369,25 @@ public class TallyResourceTest {
     }
 
     @Test
+    void testShouldAddHypervisorAndVirtual() {
+        TallySnapshot snapshot = new TallySnapshot();
+        HardwareMeasurement hypervisorMeasurement = new HardwareMeasurement();
+        hypervisorMeasurement.setSockets(3);
+        hypervisorMeasurement.setInstanceCount(3);
+        HardwareMeasurement virtualMeasurement = new HardwareMeasurement();
+        virtualMeasurement.setSockets(7);
+        virtualMeasurement.setInstanceCount(7);
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.HYPERVISOR, hypervisorMeasurement);
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.VIRTUAL, virtualMeasurement);
+
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
+            .asApiSnapshot();
+
+        assertEquals(10, apiSnapshot.getHypervisorInstanceCount().intValue());
+        assertEquals(10, apiSnapshot.getHypervisorSockets().intValue());
+    }
+
+    @Test
     public void testShouldThrowExceptionOnBadOffset() throws IOException {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             "product1",

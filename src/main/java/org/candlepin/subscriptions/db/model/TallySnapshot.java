@@ -177,11 +177,27 @@ public class TallySnapshot implements Serializable {
             snapshot.setPhysicalInstanceCount(physical.getInstanceCount());
         }
 
-        HardwareMeasurement hypervisor = this.hardwareMeasurements.get(HardwareMeasurementType.VIRTUAL);
+        HardwareMeasurement virtual = this.hardwareMeasurements.get(HardwareMeasurementType.VIRTUAL);
+        HardwareMeasurement hypervisor = this.hardwareMeasurements.get(HardwareMeasurementType.HYPERVISOR);
+
+        // Sum "HYPERVISOR" and "VIRTUAL" records in the short term
+        int totalVirtualCores = 0;
+        int totalVirtualSockets = 0;
+        int totalVirtualInstanceCount = 0;
+        if (virtual != null) {
+            totalVirtualCores += virtual.getCores();
+            totalVirtualSockets += virtual.getSockets();
+            totalVirtualInstanceCount += virtual.getSockets();
+        }
         if (hypervisor != null) {
-            snapshot.setHypervisorCores(hypervisor.getCores());
-            snapshot.setHypervisorSockets(hypervisor.getSockets());
-            snapshot.setHypervisorInstanceCount(hypervisor.getInstanceCount());
+            totalVirtualCores += hypervisor.getCores();
+            totalVirtualSockets += hypervisor.getSockets();
+            totalVirtualInstanceCount += hypervisor.getSockets();
+        }
+        if (hypervisor != null || virtual != null) {
+            snapshot.setHypervisorCores(totalVirtualCores);
+            snapshot.setHypervisorSockets(totalVirtualSockets);
+            snapshot.setHypervisorInstanceCount(totalVirtualInstanceCount);
         }
 
         // Tally up all the cloud providers that we support. We count/store them separately in the DB
