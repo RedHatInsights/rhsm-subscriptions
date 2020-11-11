@@ -50,9 +50,9 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
             appliedType = HardwareMeasurementType.PHYSICAL;
             prodCalc.addPhysical(appliedCores, appliedSockets, 1);
         }
-        // Any other system is simply added to the overall total
+        // Any other system is considered virtual
         else {
-            appliedType = HardwareMeasurementType.TOTAL;
+            appliedType = HardwareMeasurementType.VIRTUAL;
             prodCalc.addToTotal(appliedCores, appliedSockets, 1);
         }
 

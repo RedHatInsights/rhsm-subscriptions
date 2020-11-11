@@ -207,9 +207,12 @@ public class TallySnapshot implements Serializable {
         Integer cloudSockets = 0;
         HardwareMeasurement cloudigradeMeasurement =
             this.hardwareMeasurements.get(HardwareMeasurementType.AWS_CLOUDIGRADE);
+        snapshot.setHasCloudigradeData(cloudigradeMeasurement != null);
         for (HardwareMeasurementType type : HardwareMeasurementType.getCloudProviderTypes()) {
             HardwareMeasurement measurement = this.hardwareMeasurements.get(type);
             if (cloudigradeMeasurement != null && type == HardwareMeasurementType.AWS) {
+                snapshot.setHasCloudigradeMismatch(
+                    cloudigradeMeasurement.getInstanceCount() != measurement.getInstanceCount());
                 // if cloudigrade data exists, then HBI-derived AWS data is ignored
                 continue;
             }
