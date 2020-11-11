@@ -30,11 +30,8 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
@@ -47,9 +44,6 @@ import javax.validation.Validator;
 
 /** Class to hold configuration beans common to all profiles and import all profile configurations */
 @Configuration
-@EnableAspectJAutoProxy
-@EnableAutoConfiguration
-@EnableConfigurationProperties
 @Import({
     ApiConfiguration.class, CapacityIngressConfiguration.class, CaptureSnapshotsConfiguration.class,
     PurgeSnapshotsConfiguration.class, LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class,

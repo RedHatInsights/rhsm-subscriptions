@@ -20,21 +20,12 @@
  */
 package org.candlepin.subscriptions.files;
 
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.util.ApplicationClock;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * Configuration that provides the product ID to product map.
  */
-@Configuration
+@ComponentScan(basePackages = "org.candlepin.subscriptions.files")
 public class ProductIdMappingConfiguration {
-    @Bean
-    ProductIdToProductsMapSource productIdToProductsMapSource(ApplicationProperties properties,
-        ApplicationClock clock) {
-
-        return new ProductIdToProductsMapSource(properties, clock);
-    }
+    /* Intentionally empty */
 }

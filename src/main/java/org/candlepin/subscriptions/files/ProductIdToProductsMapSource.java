@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.files;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.springframework.stereotype.Component;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,7 @@ import java.util.Map;
 /**
  * Loads the product ID to list of Tally products mapping from a YAML file.
  */
+@Component
 public class ProductIdToProductsMapSource extends YamlFileSource<Map<Integer, List<String>>> {
 
     public ProductIdToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {

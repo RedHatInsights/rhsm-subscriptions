@@ -22,7 +22,6 @@ package org.candlepin.subscriptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -30,6 +29,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+import javax.annotation.PostConstruct;
 
 /**
  * Contains beans that are specific to dev-mode.
@@ -48,7 +49,7 @@ public class DevModeConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(DevModeConfiguration.class);
 
-    @Autowired
+    @PostConstruct
     void logDevMode() {
         log.info("Dev-mode enabled.");
     }
