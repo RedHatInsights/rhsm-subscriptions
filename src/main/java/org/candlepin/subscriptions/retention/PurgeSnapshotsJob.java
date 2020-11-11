@@ -44,7 +44,7 @@ public class PurgeSnapshotsJob implements Runnable {
     }
 
     @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.purgeSnapshotSchedule}")
+    @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
     public void run() {
         log.info("Starting snapshot purge.");
         try {

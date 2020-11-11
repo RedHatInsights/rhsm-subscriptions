@@ -40,7 +40,7 @@ public class CaptureSnapshotsJob implements Runnable {
     }
 
     @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.captureSnapshotSchedule}")
+    @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-snapshot-schedule}")
     public void run() {
         try {
             tasks.updateSnapshotsForAllAccounts();
