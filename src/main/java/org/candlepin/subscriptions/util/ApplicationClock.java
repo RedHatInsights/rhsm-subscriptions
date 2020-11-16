@@ -62,7 +62,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime startOfDay(OffsetDateTime anyDay) {
-        return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDay));
+        return OffsetDateTime.from(anyDay.with(LocalTime.MIDNIGHT));
     }
 
     public OffsetDateTime endOfToday() {
@@ -70,7 +70,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime endOfDay(OffsetDateTime anyDay) {
-        return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDay));
+        return OffsetDateTime.from(anyDay.with(LocalTime.MAX));
     }
 
     public OffsetDateTime endOfCurrentWeek() {
@@ -94,7 +94,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime endOfMonth(OffsetDateTime anyDayOfMonth) {
-        return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDayOfMonth))
+        return OffsetDateTime.from(anyDayOfMonth.with(LocalTime.MAX))
             .with(TemporalAdjusters.lastDayOfMonth());
     }
 
@@ -103,7 +103,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime startOfMonth(OffsetDateTime anyDayOfMonth) {
-        return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDayOfMonth))
+        return OffsetDateTime.from(anyDayOfMonth.with(LocalTime.MIDNIGHT))
             .with(TemporalAdjusters.firstDayOfMonth());
     }
 
