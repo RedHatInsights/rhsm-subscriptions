@@ -75,7 +75,7 @@ rhsm-subscriptions:
     org.candlepin.subscriptions.resteasy: ${PATH_PREFIX:api}/${APP_NAME:rhsm-subscriptions}/v1
   product-id-to-products-map-resource-location: classpath:product_id_to_products_map.yaml
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true&stringtype=unspecified
     username: ${DATABASE_USERNAME:rhsm-subscriptions}
     password: ${DATABASE_PASSWORD:rhsm-subscriptions}
     driver-class-name: org.postgresql.Driver

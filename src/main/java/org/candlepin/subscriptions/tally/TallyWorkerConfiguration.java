@@ -63,6 +63,7 @@ import java.util.Set;
     ProductIdMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
 @ComponentScan(basePackages = {
     "org.candlepin.subscriptions.cloudigrade",
+    "org.candlepin.subscriptions.event",
     "org.candlepin.subscriptions.inventory.db",
     "org.candlepin.subscriptions.jmx",
     "org.candlepin.subscriptions.tally"
