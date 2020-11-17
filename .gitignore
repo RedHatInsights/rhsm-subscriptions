@@ -21,3 +21,8 @@
 **/out
 
 **/prometheumultiprocess
+
+#VS Code
+.project
+.settings
+bin
