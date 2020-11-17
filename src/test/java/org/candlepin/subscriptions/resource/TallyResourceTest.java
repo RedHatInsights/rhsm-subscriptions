@@ -409,6 +409,26 @@ public class TallyResourceTest {
     }
 
     @Test
+    void testShouldTolerateAccountWithOnlyCloudigrade() {
+        TallySnapshot snapshot = new TallySnapshot();
+        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
+        hbiMeasurement.setSockets(7);
+        hbiMeasurement.setInstanceCount(7);
+        HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
+        cloudigradeMeasurement.setSockets(7);
+        cloudigradeMeasurement.setInstanceCount(7);
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
+            .asApiSnapshot();
+
+        assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
+        assertEquals(7, apiSnapshot.getCloudSockets().intValue());
+        assertTrue(apiSnapshot.getHasCloudigradeData());
+        assertFalse(apiSnapshot.getHasCloudigradeMismatch());
+    }
+
+    @Test
     void testShouldAddHypervisorAndVirtual() {
         TallySnapshot snapshot = new TallySnapshot();
         HardwareMeasurement hypervisorMeasurement = new HardwareMeasurement();
