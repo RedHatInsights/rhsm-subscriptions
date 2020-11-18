@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -67,6 +68,7 @@ public class TallyResource implements TallyApi {
         this.clock = clock;
     }
 
+    @ReportingAccessRequired
     @SuppressWarnings("linelength")
     @Override
     public TallyReport getTallyReport(String productId, @NotNull Granularity granularity,
