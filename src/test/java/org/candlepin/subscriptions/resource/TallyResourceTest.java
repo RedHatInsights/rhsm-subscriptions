@@ -429,7 +429,7 @@ public class TallyResourceTest {
         assertEquals(expectedProd, meta.getProduct());
         assertEquals(expectedSla, meta.getServiceLevel());
         assertEquals(expectedUsage, meta.getUsage());
-        assertEquals(expectedGranularity, meta.getGranularity());
+        assertTrue(expectedGranularity.equalsIgnoreCase(meta.getGranularity().toString()));
         assertEquals(expectedCount, meta.getCount());
 
     }
