@@ -801,7 +801,11 @@ components:
                             specified as a query parameter."
               type: string
             granularity:
-              $ref: '#/components/schemas/Granularity'
+              allOf:
+                - $ref: '#/components/schemas/Granularity'
+              description: "Describes the significance of each date in the TallySnapshot list. For example if the
+                              granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
+                              seven day period."
           required:
             - count
             - product
