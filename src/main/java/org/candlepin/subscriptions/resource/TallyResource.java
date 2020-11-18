@@ -107,7 +107,7 @@ public class TallyResource implements TallyApi {
         TallyReport report = new TallyReport();
         report.setData(snaps);
         report.setMeta(new TallyReportMeta());
-        report.getMeta().setGranularity(granularityValue.name());
+        report.getMeta().setGranularity(granularity);
         report.getMeta().setProduct(productId);
         report.getMeta().setServiceLevel(sla == null ? null : serviceLevel.getValue());
         report.getMeta().setUsage(usage == null ? null : effectiveUsage.getValue());
