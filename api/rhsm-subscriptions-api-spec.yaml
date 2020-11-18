@@ -662,6 +662,12 @@ components:
         - Monthly
         - Quarterly
         - Yearly
+      x-enum-varnames:
+        - Daily
+        - Weekly
+        - Monthly
+        - Quarterly
+        - Yearly
     Uom:
       type: string
       enum:
@@ -795,10 +801,7 @@ components:
                             specified as a query parameter."
               type: string
             granularity:
-              description: "Describes the significance of each date in the TallySnapshot list. For example if the
-                granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
-                seven day period."
-              type: string
+              $ref: '#/components/schemas/Granularity'
           required:
             - count
             - product
