@@ -55,11 +55,11 @@ import javax.ws.rs.core.UriInfo;
 @Profile("api")
 public class TallyResource implements TallyApi {
 
-    @Context UriInfo uriInfo;
-
     private final TallySnapshotRepository repository;
     private final PageLinkCreator pageLinkCreator;
     private final ApplicationClock clock;
+    @Context
+    UriInfo uriInfo;
 
     public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator,
         ApplicationClock clock) {
@@ -91,18 +91,10 @@ public class TallyResource implements TallyApi {
 
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-            accountNumber,
-            productId,
-            granularityValue,
-            serviceLevel,
-            effectiveUsage,
-            beginning,
-            ending,
-            pageable
-        );
+                accountNumber, productId, granularityValue, serviceLevel, effectiveUsage, beginning, ending,
+                pageable);
 
-        List<TallySnapshot> snaps = snapshotPage
-            .stream()
+        List<TallySnapshot> snaps = snapshotPage.stream()
             .map(org.candlepin.subscriptions.db.model.TallySnapshot::asApiSnapshot)
             .collect(Collectors.toList());
 
