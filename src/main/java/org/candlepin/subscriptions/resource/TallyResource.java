@@ -71,7 +71,8 @@ public class TallyResource implements TallyApi {
     @SuppressWarnings("linelength")
     @Override
     @ReportingAccessRequired
-    public TallyReport getTallyReport(String productId, @NotNull String granularity,
+    public TallyReport getTallyReport(String productId,
+        org.candlepin.subscriptions.utilization.api.model.@NotNull Granularity granularity,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
         @Min(1) Integer limit, String sla, String usage) {
         // When limit and offset are not specified, we will fill the report with dummy
@@ -85,7 +86,9 @@ public class TallyResource implements TallyApi {
         String accountNumber = ResourceUtils.getAccountNumber();
         ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
         Usage effectiveUsage = ResourceUtils.sanitizeUsage(usage);
-        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
+
+        Granularity granularityValue = Granularity.valueOf(granularity.toString().toUpperCase());
+
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,

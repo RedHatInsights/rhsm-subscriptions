@@ -183,7 +183,7 @@ paths:
           in: query
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/Granularity'
           description: "The level of granularity to return."
         - name: sla
           in: query
@@ -654,6 +654,14 @@ components:
           schema:
             $ref: "#/components/schemas/Errors"
   schemas:
+    Granularity:
+      type: string
+      enum:
+        - Daily
+        - Weekly
+        - Monthly
+        - Quarterly
+        - Yearly
     Uom:
       type: string
       enum:
