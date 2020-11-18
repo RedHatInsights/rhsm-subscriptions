@@ -4,5 +4,5 @@
   "invokerPackage": "org.candlepin.subscriptions.rbac",
   "groupId": "org.candlepin",
   "artifactId": "rbac-client",
-  "java8": true
+  "java8": "true"
 }

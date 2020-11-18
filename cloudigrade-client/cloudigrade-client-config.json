@@ -4,5 +4,5 @@
   "invokerPackage": "org.candlepin.subscriptions.cloudigrade",
   "groupId": "org.candlepin",
   "artifactId": "cloudigrade-client",
-  "java8": true
+  "java8": "true"
 }

@@ -172,6 +172,7 @@ dependencies {
     compile project(":rbac-client")
     compile project(":subscription-client")
     compile project(":marketplace-client")
+    compile project(":prometheus-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -419,9 +420,18 @@ project(":marketplace-client") {
     }
 }
 
+project(":prometheus-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/prometheus-query-api-spec.yaml"
+        config_file = "${projectDir}/prometheus-client-config.json"
+    }
+}
+
 configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
                                             'insights-inventory-client', 'subscription-client',
-                                            'marketplace-client']}) {
+                                            'marketplace-client', 'prometheus-client']}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 

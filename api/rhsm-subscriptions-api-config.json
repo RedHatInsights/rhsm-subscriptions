@@ -4,5 +4,5 @@
   "invokerPackage": "org.candlepin.subscriptions.utilization",
   "groupId": "org.candlepin",
   "artifactId": "rhsm-subscriptions",
-  "java8": true
+  "java8": "true"
 }
