@@ -29,7 +29,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -42,7 +42,7 @@ import java.util.List;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 class SubscriptionCapacityRepositoryTest {
     private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
         ZoneId.systemDefault());

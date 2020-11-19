@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions;
 
-import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
+import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -53,7 +53,10 @@ public class ApplicationProperties {
 
     private boolean devMode = false;
 
-    private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
+    /**
+     * Job schedules when running in dev mode.
+     */
+    private JobProperties jobs;
 
     /**
      * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
@@ -193,10 +196,6 @@ public class ApplicationProperties {
 
     public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
         this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
-    }
-
-    public TallyRetentionPolicyProperties getTallyRetentionPolicy() {
-        return tallyRetentionPolicy;
     }
 
     public String getAccountListResourceLocation() {
@@ -357,5 +356,13 @@ public class ApplicationProperties {
 
     public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
         this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
+    }
+
+    public JobProperties getJobs() {
+        return jobs;
+    }
+
+    public void setJobs(JobProperties jobs) {
+        this.jobs = jobs;
     }
 }

@@ -20,14 +20,14 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.tally.TallyTaskFactory;
+import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
-import org.candlepin.subscriptions.task.TaskFactory;
-import org.candlepin.subscriptions.task.TaskManager;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 
@@ -45,10 +45,10 @@ import java.util.concurrent.TimeUnit;
 public class KafkaTaskQueueTester {
 
     @MockBean
-    private TaskFactory factory;
+    private TallyTaskFactory factory;
 
     @Autowired
-    private TaskManager manager;
+    private CaptureSnapshotsTaskManager manager;
 
     @Autowired
     private TaskQueueProperties taskQueueProperties;
@@ -56,7 +56,7 @@ public class KafkaTaskQueueTester {
     protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {
         String account = "12345";
         TaskDescriptor taskDescriptor = TaskDescriptor.builder(
-            TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTaskGroup())
+            TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
             .setSingleValuedArg("accounts", account).build();
 
         // Expect the task to be ran once.

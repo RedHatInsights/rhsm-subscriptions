@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import org.candlepin.subscriptions.controller.OpenApiSpecController;
 import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
 
 import org.springframework.beans.factory.annotation.Autowired;

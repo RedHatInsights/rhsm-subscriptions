@@ -21,15 +21,22 @@
 package org.candlepin.subscriptions;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.context.annotation.Import;
 
 /** Bootstrapper for Spring Boot. */
-@SpringBootApplication
+@SpringBootConfiguration
+@EnableAspectJAutoProxy
+@EnableAutoConfiguration
+@EnableConfigurationProperties
+@Import(ApplicationConfiguration.class)
 @SuppressWarnings("checkstyle:hideutilityclassconstructor")
 public class BootApplication {
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(BootApplication.class);
-        app.addListeners(new ProfileSettingRunListener());
         app.run(args);
     }
 }

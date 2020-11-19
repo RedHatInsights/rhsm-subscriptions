@@ -29,8 +29,8 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
-import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
@@ -44,7 +44,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.FileSystemResourceLoader;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -57,7 +57,7 @@ import java.util.Map;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 @Import(FixedClockConfiguration.class)
 public class FactNormalizerTest {
 

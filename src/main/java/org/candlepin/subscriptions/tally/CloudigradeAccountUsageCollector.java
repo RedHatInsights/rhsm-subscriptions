@@ -27,8 +27,8 @@ import org.candlepin.subscriptions.cloudigrade.api.model.UsageCount;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ArchToProductMapSource;
-import org.candlepin.subscriptions.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.tally.files.ArchToProductMapSource;
+import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

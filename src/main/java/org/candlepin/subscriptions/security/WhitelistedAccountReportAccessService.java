@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 
 import org.springframework.security.core.Authentication;

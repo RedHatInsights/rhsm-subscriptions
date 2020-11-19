@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.*;
+import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -31,10 +31,9 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
-import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.util.MockProductAndRoleConfiguration;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -42,11 +41,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -61,50 +58,22 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("worker,test")
+@Import(MockProductAndRoleConfiguration.class)
 public class InventoryAccountUsageCollectorTest {
 
     private static final String TEST_PRODUCT = "RHEL";
-    private static final Integer TEST_PRODUCT_ID = 1;
+    public static final Integer TEST_PRODUCT_ID = 1;
     private static final String NON_RHEL = "OTHER PRODUCT";
-    private static final Integer NON_RHEL_PRODUCT_ID = 2000;
+    public static final Integer NON_RHEL_PRODUCT_ID = 2000;
 
-    private static List<String> rhelProducts = Collections.singletonList(TEST_PRODUCT);
-    private static List<String> nonRhelProducts = Collections.singletonList(NON_RHEL);
+    public static final List<String> RHEL_PRODUCTS = Collections.singletonList(TEST_PRODUCT);
+    public static final List<String> NON_RHEL_PRODUCTS = Collections.singletonList(NON_RHEL);
 
     @MockBean private BuildProperties buildProperties;
     @MockBean private InventoryRepository inventoryRepo;
     @MockBean private HostRepository hostRepo;
     @Autowired private InventoryAccountUsageCollector collector;
-
-    /**
-     * Why are we doing this?  Because when we use a MockBean annotation on the MapSources, we
-     * don't get access to the mock until an @BeforeEach method. However, we need to mock the
-     * getValue() call before that so the FactNormalizer gets a populated list when it is constructed.
-     * The solution is to replace the bean definition of the MapSource with the ones below.
-     */
-    @TestConfiguration
-    static class TestContextConfiguration {
-        @Bean
-        @Primary
-        public ProductIdToProductsMapSource testProductIdToProductsMapSource() throws IOException {
-            Map<Integer, List<String>> productList = new HashMap<>();
-            productList.put(TEST_PRODUCT_ID, rhelProducts);
-            productList.put(NON_RHEL_PRODUCT_ID, nonRhelProducts);
-
-            ProductIdToProductsMapSource source = mock(ProductIdToProductsMapSource.class);
-            when(source.getValue()).thenReturn(productList);
-            return source;
-        }
-
-        @Bean
-        @Primary
-        public RoleToProductsMapSource testRoleToProducsMapSource() throws IOException {
-            RoleToProductsMapSource source = mock(RoleToProductsMapSource.class);
-            when(source.getValue()).thenReturn(Collections.emptyMap());
-            return source;
-        }
-    }
 
     @Test
     public void hypervisorCountsIgnoredForNonRhelProduct() {
@@ -120,7 +89,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(nonRhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(NON_RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -146,7 +115,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -171,7 +140,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -193,7 +162,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(guest).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -216,7 +185,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(host).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -244,7 +213,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(2, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
         assertThat(calcs, Matchers.hasKey("A2"));
@@ -275,7 +244,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(host1, host2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -303,7 +272,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(host1, host2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -332,7 +301,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(2, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
         assertThat(calcs, Matchers.hasKey("A2"));
@@ -359,7 +328,7 @@ public class InventoryAccountUsageCollectorTest {
 
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -382,7 +351,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(h1, h2).stream());
 
         Throwable e = assertThrows(IllegalStateException.class,
-            () -> collector.collect(rhelProducts, targetAccounts));
+            () -> collector.collect(RHEL_PRODUCTS, targetAccounts));
 
         String expectedMessage = String.format("Attempt to set a different owner for an account: %s:%s",
             "Owner1", "Owner2");
@@ -410,7 +379,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(host1, host2, host3, host4).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(2, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
         assertThat(calcs, Matchers.hasKey("A2"));
@@ -447,7 +416,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -480,7 +449,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Arrays.asList(hypervisor, guest1, guest2).stream());
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 
@@ -513,7 +482,7 @@ public class InventoryAccountUsageCollectorTest {
         when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
             .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-        Map<String, AccountUsageCalculation> calcs = collector.collect(rhelProducts, targetAccounts);
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
         assertEquals(1, calcs.size());
         assertThat(calcs, Matchers.hasKey("A1"));
 

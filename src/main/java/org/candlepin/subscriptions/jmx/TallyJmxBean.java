@@ -21,8 +21,7 @@
 package org.candlepin.subscriptions.jmx;
 
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.spring.QueueProfile;
-import org.candlepin.subscriptions.task.TaskManager;
+import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,15 +33,14 @@ import org.springframework.stereotype.Component;
  * Exposes the ability to trigger a tally for an account from JMX.
  */
 @Component
-@QueueProfile
 @ManagedResource
 public class TallyJmxBean {
 
     private static final Logger log = LoggerFactory.getLogger(TallyJmxBean.class);
 
-    private final TaskManager tasks;
+    private final CaptureSnapshotsTaskManager tasks;
 
-    public TallyJmxBean(TaskManager taskManager) {
+    public TallyJmxBean(CaptureSnapshotsTaskManager taskManager) {
         this.tasks = taskManager;
     }
 

@@ -20,9 +20,14 @@
  */
 package org.candlepin.subscriptions.retention;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
 /**
  * Retention policies for supported granularities.
  */
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.tally-retention-policy")
 public class TallyRetentionPolicyProperties {
     /**
      * Number of historic daily snapshots to keep. Actual number kept will include an additional day
