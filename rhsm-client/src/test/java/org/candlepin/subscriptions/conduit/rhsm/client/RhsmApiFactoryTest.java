@@ -124,6 +124,7 @@ class RhsmApiFactoryTest {
             new Object(),
             new HashMap<>(),
             new HashMap<>(),
+            new HashMap<>(),
             "text/plain",
             "text/plain",
             new String[] {},
