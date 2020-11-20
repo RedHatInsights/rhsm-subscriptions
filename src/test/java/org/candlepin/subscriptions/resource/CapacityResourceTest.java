@@ -53,7 +53,7 @@ import javax.ws.rs.core.Response;
 
 @SpringBootTest
 @WithMockRedHatPrincipal("123456")
-@ActiveProfiles("capacity-ingress,test")
+@ActiveProfiles("api,test")
 class CapacityResourceTest {
 
     private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
