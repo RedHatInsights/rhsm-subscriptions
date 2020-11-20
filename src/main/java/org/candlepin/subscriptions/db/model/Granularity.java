@@ -32,6 +32,7 @@ import java.util.Map;
  * tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
 public enum Granularity implements StringValueEnum<GranularityType> {
+    HOURLY("Hourly", GranularityType.HOURLY),
     DAILY("Daily", GranularityType.DAILY),
     WEEKLY("Weekly", GranularityType.WEEKLY),
     MONTHLY("Monthly", GranularityType.MONTHLY),

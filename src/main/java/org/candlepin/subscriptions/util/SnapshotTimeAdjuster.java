@@ -72,6 +72,8 @@ public abstract class SnapshotTimeAdjuster {
      */
     public static SnapshotTimeAdjuster getTimeAdjuster(ApplicationClock clock, Granularity granularity) {
         switch (granularity) {
+            case HOURLY:
+                return new HourlyTimeAdjuster(clock);
             case DAILY:
                 return new DailyTimeAdjuster(clock);
             case WEEKLY:
