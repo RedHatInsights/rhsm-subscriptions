@@ -45,6 +45,7 @@ public class RbacApiClient extends ApiClient {
         List<Pair> queryParams,
         Object body,
         Map<String, String> headerParams,
+        Map<String, String> cookieParams,
         Map<String, Object> formParams,
         String accept,
         String contentType,
@@ -58,8 +59,8 @@ public class RbacApiClient extends ApiClient {
 
         headerParams.put(RH_IDENTITY_HEADER, idHeader);
 
-        return super.invokeAPI(path, method, queryParams, body, headerParams, formParams, accept,
-            contentType, authNames, returnType);
+        return super.invokeAPI(path, method, queryParams, body, headerParams, cookieParams, formParams,
+            accept, contentType, authNames, returnType);
     }
 
     protected static String getIdentityHeader() {
