@@ -167,6 +167,9 @@ release {
 dependencies {
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
+    // code changes
+    compile('org.springframework.boot:spring-boot-devtools')
 
     compile project(":api")
     compile project(":cloudigrade-client")
