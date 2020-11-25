@@ -21,12 +21,18 @@
 package org.candlepin.subscriptions.resteasy;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
+
+import java.util.Arrays;
 
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
@@ -41,7 +47,8 @@ public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper
 
     private final ObjectMapper objectMapper;
 
-    public ObjectMapperContextResolver(ApplicationProperties applicationProperties) {
+    public ObjectMapperContextResolver(ApplicationProperties applicationProperties,
+        TitlecaseSerializer titlecaseSerializer) {
         objectMapper = new ObjectMapper();
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
@@ -52,6 +59,13 @@ public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper
         // Tell the mapper to check the classpath for any serialization/deserialization modules
         // such as the Java8 date/time module (JavaTimeModule).
         objectMapper.findAndRegisterModules();
+
+        SimpleModule module = new SimpleModule();
+
+        Arrays.asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class)
+            .forEach(x -> module.addSerializer(x, titlecaseSerializer));
+
+        objectMapper.registerModule(module);
     }
 
     @Override

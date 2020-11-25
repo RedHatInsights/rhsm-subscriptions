@@ -37,7 +37,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-
 @TestInstance(Lifecycle.PER_CLASS)
 class ObjectMapperContextResolverTest {
 
@@ -46,7 +45,8 @@ class ObjectMapperContextResolverTest {
     @BeforeAll
     void setupTests() {
         ApplicationProperties props = new ApplicationProperties();
-        ObjectMapperContextResolver resolver = new ObjectMapperContextResolver(props);
+        TitlecaseSerializer titlecaseSerializer = new TitlecaseSerializer();
+        ObjectMapperContextResolver resolver = new ObjectMapperContextResolver(props, titlecaseSerializer);
         mapper = resolver.getContext(Void.class);
     }
 
@@ -127,7 +127,7 @@ class ObjectMapperContextResolverTest {
         assertIncludesCollection(data, "valueList", "[]");
     }
 
-    private void assertContainsProperty(String data, String key, String value)  throws Exception {
+    private void assertContainsProperty(String data, String key, String value) throws Exception {
         String toFind = String.format("\"%s\":\"%s\"", key, value);
         assertThat(data, Matchers.containsString(toFind));
     }

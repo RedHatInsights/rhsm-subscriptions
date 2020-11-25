@@ -24,8 +24,13 @@ import org.springframework.stereotype.Component;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
@@ -38,12 +43,17 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class EnumParamConverterProvider implements ParamConverterProvider {
 
+    private static final Collection<Class<?>> caseInsensitiveParams = ResteasyConfiguration.caseInsensitiveDeserialization;
+
     @Override
     public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
         if (!rawType.isEnum()) {
             return null;
         }
-        return new EnumParamConverter<>(rawType);
+
+        return caseInsensitiveParams.contains(rawType) ?
+            new CaseInsensitiveEnumParamConverter<>(rawType) :
+            new EnumParamConverter<>(rawType);
     }
 
     /**
@@ -57,6 +67,7 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
         private final Class<T> clazz;
 
         public EnumParamConverter(Class<T> clazz) {
+
             this.clazz = clazz;
             for (T value : clazz.getEnumConstants()) {
                 String stringValue = value.toString();
@@ -81,6 +92,45 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
                 return null;
             }
             return value.toString();
+        }
+    }
+
+
+    //TODO try extending EnumParamConverter to get rid of duplicate code
+    static class CaseInsensitiveEnumParamConverter<T> implements ParamConverter<T> {
+
+        private final Class<T> className;
+        private Map<String, T> keyValuePairs = new HashMap<>();
+
+        public CaseInsensitiveEnumParamConverter(Class<T> className) {
+            this.className = className;
+
+            if (Objects.nonNull(className.getEnumConstants())) {
+                keyValuePairs = Arrays.stream(className.getEnumConstants())
+                    .collect(Collectors.toMap(T::toString, value -> value));
+            }
+        }
+
+        @Override
+        public T fromString(String value) {
+            if (Objects.isNull(value)) {
+                return null;
+            }
+
+            Optional<Map.Entry<String, T>> result = keyValuePairs.entrySet().stream()
+                .filter(kv -> value.equalsIgnoreCase(kv.getKey())).findFirst();
+
+            if (result.isPresent()) {
+                return result.get().getValue();
+            }
+
+            throw new IllegalArgumentException(
+                String.format("%s is not a valid value for %s", value, className));
+        }
+
+        @Override
+        public String toString(T value) {
+            return Objects.nonNull(value) ? value.toString() : null;
         }
     }
 }

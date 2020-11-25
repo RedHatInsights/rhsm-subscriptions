@@ -21,6 +21,9 @@
 package org.candlepin.subscriptions.resteasy;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -33,6 +36,9 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 /**
  * Configuration of Resteasy.
  *
@@ -43,11 +49,23 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ComponentScan(basePackages = {"org.candlepin.subscriptions.exception.mapper",
     "org.candlepin.subscriptions.resteasy"})
 public class ResteasyConfiguration implements WebMvcConfigurer {
+
+
+    protected static final Collection<Class<?>> caseInsensitiveDeserialization = Arrays
+        .asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class);
+
+    protected static final Collection<Class<?>> titleCaseSerialization = Arrays
+        .asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class);
+
     @Bean
     @Primary
     public ObjectMapperContextResolver objectMapperContextResolver(
-        ApplicationProperties applicationProperties) {
-        return new ObjectMapperContextResolver(applicationProperties);
+        ApplicationProperties applicationProperties, TitlecaseSerializer titlecaseSerializer) {
+
+        //TODO make list of simple modules to pass instead of burrying the titlecase serialization lists in
+        // the object mapper
+
+        return new ObjectMapperContextResolver(applicationProperties, titlecaseSerializer);
     }
 
     @Bean
