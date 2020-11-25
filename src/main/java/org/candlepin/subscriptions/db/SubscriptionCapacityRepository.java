@@ -20,10 +20,16 @@
  */
 package org.candlepin.subscriptions.db;
 
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 
+import org.candlepin.subscriptions.db.model.SubscriptionView;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -36,4 +42,25 @@ public interface SubscriptionCapacityRepository extends
 
     List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(String ownerId,
         List<String> subscriptionIds);
+
+    @Query(
+            value = "SELECT b.sku AS sku," +
+                    " min(b.endDate) AS endDate," +
+                    " max(b.beginDate) AS beginDate," +
+                    " max(b.physicalSockets) AS physicalSockets," +
+                    " max(b.virtualSockets) AS virtualSockets," +
+                    " max(b.physicalCores) AS physicalCores," +
+                    " max(b.virtualCores) AS virtualCores" +
+                    " FROM SubscriptionCapacity b" +
+                    " WHERE b.accountNumber = :account" +
+                    " AND b.key.productId = :product" +
+                    " AND b.usage = :sanitizedUsage" +
+                    " AND b.serviceLevel = :sanitizedSla" +
+                    " AND b.beginDate < current_date" +
+                    " AND b.endDate > current_date" +
+                    " GROUP BY b.sku"
+    )
+    Page<SubscriptionView> getSubscriptionViews(
+            String account, String product, ServiceLevel sanitizedSla, Usage sanitizedUsage, Pageable page);
+
 }

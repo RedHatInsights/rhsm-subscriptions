@@ -596,6 +596,83 @@ paths:
             application/x-yaml:
               schema:
                 type: string
+  /subscriptions/products/{product_id}:
+    description: 'Operations for subscriptions for a given account and product'
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch subscriptions matching report criteria."
+      operationId: getSubscriptions
+      parameters:
+        - name: sla
+          in: query
+          schema:
+            type: string
+          description: "Include only hosts for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            type: string
+          description: "Include only hosts for the specified usage level."
+        - name: uom
+          in: query
+          schema:
+            $ref: '#/components/schemas/Uom'
+          description: "Filter hosts to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SubscriptionReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: 'The request for hosts was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionReport"
+                links:
+                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
+                meta:
+                  count: 10
+                  product: RHEL
+                  service_level: Premium
+                  usage: Production
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - subscriptions
 
 components:
   securitySchemes:
@@ -659,6 +736,23 @@ components:
       enum:
         - cores
         - sockets
+    ServiceLevel:
+      type: string
+      enum:
+        - Standard
+        - Premium
+        - SelfSupport
+    Usage:
+      type: string
+      enum:
+        - DevelopmentTest
+        - Production
+        - DisasterRecovery
+    UpcomingEventType:
+      type: string
+      enum:
+        - SubscriptionBegin
+        - SubscriptionEnd
     SortDirection:
       type: string
       enum:
@@ -992,6 +1086,17 @@ components:
         - sockets
         - last_seen
         - measurement_type
+    SubscriptionReportSort:
+      type: string
+      enum:
+        - sku
+        - service_level
+        - usage
+        - upcoming_event_date
+        - physical_capacity
+        - virtual_capacity
+        - total_capacity
+        - uom
     HostReport:
       properties:
         data:
@@ -1155,6 +1260,82 @@ components:
       properties:
         productId:
           type: string
+    SubscriptionReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscription"
+        links:
+          type: object
+          properties:
+            first:
+              type: string
+            last:
+              type: string
+            previous:
+              type: string
+            next:
+              type: string
+          required:
+            - first
+            - last
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            service_level:
+              description: "Describes the service level that the report was made against. Not set if it wasn't
+                    specified as a query parameter."
+              type: string
+            usage:
+              description: "Describes the usages that the report was made against. Not set if it wasn't
+                   specified as a query parameter."
+              type: string
+            uom:
+              $ref: '#/components/schemas/Uom'
+          required:
+            - count
+            - product
+    Subscription:
+      required:
+        - sku
+        - service_level
+        - uom
+        - upcoming_event_date
+      properties:
+        sku:
+          description: The SKU identifier for this subscription.
+          type: string
+        service_level:
+          $ref: '#/components/schemas/ServiceLevel'
+        usage:
+          $ref: '#/components/schemas/Usage'
+        subscription_numbers:
+          type: array
+          items:
+            type: string
+        upcoming_event_date:
+          description: Nearest upcoming event (minimum of future start date or future end date).
+          type: string
+          format: timestamp
+        upcoming_event_type:
+          $ref: '#/components/schemas/UpcomingEventType'
+        physical_capacity:
+          type: integer
+          format: int32
+        virtual_capacity:
+          type: integer
+          format: int32
+        total_capacity:
+          type: integer
+          format: int32
+        uom:
+          $ref: '#/components/schemas/Uom'
+
     Errors:
       required:
         - errors

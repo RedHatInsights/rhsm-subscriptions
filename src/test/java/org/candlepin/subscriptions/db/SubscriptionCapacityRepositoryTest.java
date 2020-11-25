@@ -24,11 +24,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionView;
 import org.candlepin.subscriptions.db.model.Usage;
 
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -435,6 +441,37 @@ class SubscriptionCapacityRepositoryTest {
             NOWISH,
             FAR_FUTURE);
         assertEquals(3, found.size());
+    }
+
+    @Test
+    void testCanGetSubscriptionViewByUsageAny() {
+        SubscriptionCapacity production = createUnpersisted(NOWISH.plusDays(2), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity production2 = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        SubscriptionCapacity production3 = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+        production.setSubscriptionId("production");
+        production.setSku("sku");
+        production.setUsage(Usage.PRODUCTION);
+        production2.setSubscriptionId("dr");
+        production2.setSku("sku");
+        production2.setUsage(Usage.PRODUCTION);
+        production3.setSubscriptionId("unset");
+        production3.setSku("sku");
+        production3.setUsage(Usage.UNSPECIFIED);
+        repository.saveAll(Arrays.asList(production, production2, production3));
+        repository.flush();
+        Pageable page = PageRequest.of(0, 10, Sort.unsorted());
+        Page<SubscriptionView> views = repository.getSubscriptionViews("account",
+                "product",
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                page);
+        List<SubscriptionView> viewList = views.toList();
+        assertEquals(1, viewList.size());
+        assertEquals(NOWISH.plusDays(2).toInstant().toEpochMilli(),
+                viewList.get(0).getBeginDate().toInstant().toEpochMilli());
+        assertEquals(FAR_FUTURE.plusDays(1).toInstant().toEpochMilli(),
+                viewList.get(0).getEndDate().toInstant().toEpochMilli());
+
     }
 
     private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
