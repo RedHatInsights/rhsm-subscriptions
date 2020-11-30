@@ -84,7 +84,6 @@ class HostRepositoryTest {
         Host host3 = createHost("inventory3", "account2");
         addBucketToHost(host3, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
-
         Host host4 = createHost("inventory4", "account2");
         addBucketToHost(host4, RHEL, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION);
 
@@ -94,7 +93,14 @@ class HostRepositoryTest {
         // ACCOUNT 3 HOSTS
         Host host6 = createHost("inventory6", "account3");
 
-        List<Host> toSave = Arrays.asList(host1, host2, host3, host4, host5, host6);
+        Host host7 = createHost("inventory7", "account3");
+        addBucketToHost(host7, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, HardwareMeasurementType.VIRTUAL);
+
+        persistHosts(host1, host2, host3, host4, host5, host6, host7);
+    }
+
+    private void persistHosts(Host ... hosts) {
+        List<Host> toSave = Arrays.asList(hosts);
         existingHostsByInventoryId = repo.saveAll(toSave)
             .stream()
             .collect(Collectors.toMap(Host::getInventoryId, host -> host));
@@ -319,6 +325,18 @@ class HostRepositoryTest {
 
     @Transactional
     @Test
+    void testCanSortByMeasurementType() {
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account3", RHEL, ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
+            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
+        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+
+        assertEquals(1, found.size());
+        assertTallyHostView(found.get(0), "inventory7");
+    }
+
+    @Transactional
+    @Test
     void testCanSortByCores() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
@@ -530,7 +548,12 @@ class HostRepositoryTest {
     }
 
     private HostTallyBucket addBucketToHost(Host host, String productId, ServiceLevel sla, Usage usage) {
-        return host.addBucket(productId, sla, usage, true, 4, 2, HardwareMeasurementType.PHYSICAL);
+        return addBucketToHost(host, productId, sla, usage, HardwareMeasurementType.PHYSICAL);
+    }
+
+    private HostTallyBucket addBucketToHost(Host host, String productId, ServiceLevel sla, Usage usage,
+        HardwareMeasurementType measurementType) {
+        return host.addBucket(productId, sla, usage, true, 4, 2, measurementType);
     }
 
     private void assertTallyHostView(TallyHostView host, String inventoryId) {
