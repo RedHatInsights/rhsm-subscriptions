@@ -21,3 +21,10 @@
 **/out
 
 **/prometheumultiprocess
+
+#VS Code
+.project
+.settings
+bin
+.vscode
+.editorconfig
