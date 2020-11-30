@@ -183,17 +183,17 @@ paths:
           in: query
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/GranularityGenerated'
           description: "The level of granularity to return."
         - name: sla
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/ServiceLevelGenerated'
           description: "Include only snapshots matching the specified service level."
         - name: usage
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/UsageGenerated'
           description: "Include only snapshots matching the specified usage."
         - name: beginning
           in: query
@@ -261,7 +261,7 @@ paths:
                 meta:
                   count: 10
                   product: RHEL
-                  granularity: DAILY
+                  granularity: Daily
                   service_level: Premium
                   usage: Production
         '400':
@@ -302,17 +302,17 @@ paths:
           in: query
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/GranularityGenerated'
           description: "The level of granularity to return."
         - name: sla
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/ServiceLevelGenerated'
           description: "Include only capacity for the specified service level."
         - name: usage
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/UsageGenerated'
           description: "Include only capacity for the specified usage level."
         - name: beginning
           in: query
@@ -372,7 +372,7 @@ paths:
                 meta:
                   count: 10
                   product: RHEL
-                  granularity: DAILY
+                  granularity: Daily
                   service_level: Premium
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -412,12 +412,12 @@ paths:
         - name: sla
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/ServiceLevelGenerated'
           description: "Include only hosts for the specified service level."
         - name: usage
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/UsageGenerated'
           description: "Include only hosts for the specified usage level."
         - name: uom
           in: query
@@ -654,6 +654,17 @@ components:
           schema:
             $ref: "#/components/schemas/Errors"
   schemas:
+    GranularityGenerated:
+      type: string
+      enum: [ DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY ]
+    ServiceLevelGenerated:
+      type: string
+      enum: [ "", Premium, Standard, Self-Support, _ANY ]
+      x-enum-varnames: [ UNSPECIFIED, PREMIUM, STANDARD, SELF_SUPPORT, ANY ]
+    UsageGenerated:
+      type: string
+      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+      x-enum-varnames: [ UNSPECIFIED, PRODUCTION, DEVELOPMENT_TEST, DISASTER_RECOVERY, ANY ]
     Uom:
       type: string
       enum:
@@ -779,18 +790,21 @@ components:
             product:
               type: string
             service_level:
+              allOf:
+                - $ref: '#/components/schemas/ServiceLevelGenerated'
               description: "Describes the service level that the report was made against. Not set if it wasn't
                 specified as a query parameter."
-              type: string
             usage:
+              allOf:
+                - $ref: '#/components/schemas/UsageGenerated'
               description: "Describes the usage that the report was made against. Not set if it wasn't
                             specified as a query parameter."
-              type: string
             granularity:
+              allOf:
+                - $ref: '#/components/schemas/GranularityGenerated'
               description: "Describes the significance of each date in the TallySnapshot list. For example if the
-                granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
-                seven day period."
-              type: string
+                              granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
+                              seven day period."
           required:
             - count
             - product
@@ -921,18 +935,21 @@ components:
             product:
               type: string
             granularity:
+              allOf:
+                - $ref: '#/components/schemas/GranularityGenerated'
               description: "Describes the significance of each date in the CapacitySnapshot list. For example if the
                 granularity is set to 'weekly', the dates in the CapacitySnapshot list will represent the start of a
                 seven day period."
-              type: string
             service_level:
+              allOf:
+                - $ref: '#/components/schemas/ServiceLevelGenerated'
               description: "Describes the service level that the report was made against. Not set if it wasn't
                 specified as a query parameter."
-              type: string
             usage:
+              allOf:
+                - $ref: '#/components/schemas/UsageGenerated'
               description: "Describes the usages that the report was made against. Not set if it wasn't
                specified as a query parameter."
-              type: string
           required:
             - count
             - product
@@ -1020,13 +1037,16 @@ components:
             product:
               type: string
             service_level:
+              allOf:
+                - $ref: '#/components/schemas/ServiceLevelGenerated'
               description: "Describes the service level that the report was made against. Not set if it wasn't
                     specified as a query parameter."
               type: string
             usage:
+              allOf:
+                - $ref: '#/components/schemas/UsageGenerated'
               description: "Describes the usages that the report was made against. Not set if it wasn't
                    specified as a query parameter."
-              type: string
             uom:
               $ref: '#/components/schemas/Uom'
           required:
@@ -1179,4 +1199,4 @@ components:
           type: string
 
 security:
-  - 3ScaleIdentity: []
+  - 3ScaleIdentity: [ ]

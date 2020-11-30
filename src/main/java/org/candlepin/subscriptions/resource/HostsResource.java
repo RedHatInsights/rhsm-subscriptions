@@ -32,9 +32,11 @@ import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 import org.candlepin.subscriptions.utilization.api.resources.HostsApi;
 
 import com.google.common.collect.ImmutableMap;
@@ -47,6 +49,8 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -77,10 +81,10 @@ public class HostsResource implements HostsApi {
         this.pageLinkCreator = pageLinkCreator;
     }
 
-    @Override
     @ReportingAccessRequired
-    public HostReport getHosts(String productId, Integer offset, Integer limit, String sla,
-        String usage, Uom uom, HostReportSort sort, SortDirection dir) {
+    @Override
+    public HostReport getHosts(String productId, Integer offset, @Min(1) @Max(100) Integer limit,
+        ServiceLevelGenerated sla, UsageGenerated usage, Uom uom, HostReportSort sort, SortDirection dir) {
 
         Sort.Direction dirValue = Sort.Direction.ASC;
         if (dir == SortDirection.DESC) {

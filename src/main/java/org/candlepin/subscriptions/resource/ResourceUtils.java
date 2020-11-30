@@ -26,6 +26,8 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter;
 import org.candlepin.subscriptions.security.InsightsUserPrincipal;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +37,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.Objects;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
@@ -141,6 +145,12 @@ public class ResourceUtils {
         return PageRequest.of(offset / limit, limit, sort);
     }
 
+    public static Usage sanitizeUsage(UsageGenerated usageGenerated) {
+
+        return Objects.nonNull(usageGenerated) ? Usage.fromOpenApi(usageGenerated) : Usage.ANY;
+
+    }
+
     /**
      * Validate and reject bad usage.
      *
@@ -154,12 +164,24 @@ public class ResourceUtils {
             return Usage.ANY;
         }
         Usage sanitizedUsage = Usage.fromString(usage);
+
+
+        //TODO LB take this into consideration.  Should we not enumerate input then?
+
         // If the usage parameter is not one that we support, then throw an exception.
         // If we don't, the query would default to UNSPECIFIED, which would be confusing.
         if (StringUtils.hasLength(usage) && sanitizedUsage == Usage.UNSPECIFIED) {
             throw new BadRequestException("Invalid usage parameter specified.");
         }
         return sanitizedUsage;
+    }
+
+    public static ServiceLevel sanitizeServiceLevel(ServiceLevelGenerated serviceLevelGenerated) {
+
+        return Objects.nonNull(serviceLevelGenerated) ?
+            ServiceLevel.fromOpenApi(serviceLevelGenerated) :
+            ServiceLevel.ANY;
+
     }
 
     /**
@@ -175,6 +197,9 @@ public class ResourceUtils {
             return ServiceLevel.ANY;
         }
         ServiceLevel sanitizedSla = ServiceLevel.fromString(sla);
+
+        //TODO LB take this into consideration.  Should we not enumerate input then?
+
         // If the sla parameter is not one that we support, then throw an exception.
         // If we don't, the query would default to UNSPECIFIED, which would be confusing.
         if (StringUtils.hasLength(sla) && sanitizedSla == ServiceLevel.UNSPECIFIED) {

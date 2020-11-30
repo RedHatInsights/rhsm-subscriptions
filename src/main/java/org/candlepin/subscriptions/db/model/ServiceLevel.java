@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
+
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -80,6 +82,10 @@ public enum ServiceLevel {
         else {
             return fromString(value);
         }
+    }
+
+    public static ServiceLevel fromOpenApi(ServiceLevelGenerated serviceLevelGenerated) {
+        return ServiceLevel.valueOf(serviceLevelGenerated.name());
     }
 
     public String getValue() {

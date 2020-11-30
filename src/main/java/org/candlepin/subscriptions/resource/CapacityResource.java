@@ -32,7 +32,10 @@ import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 
 import org.springframework.data.domain.Page;
@@ -72,15 +75,16 @@ public class CapacityResource implements CapacityApi {
 
     @Override
     @ReportingAccessRequired
-    public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime reportBegin, @NotNull OffsetDateTime reportEnd, Integer offset,
-        @Min(1) Integer limit, String sla, String usage) {
+    public CapacityReport getCapacityReport(String productId,
+        @NotNull GranularityGenerated granularityGenerated, @NotNull OffsetDateTime beginning,
+        @NotNull OffsetDateTime ending, Integer offset, @Min(1) Integer limit,
+        ServiceLevelGenerated serviceLevelGenerated, UsageGenerated usageGenerated) {
 
-        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
+        Granularity granularity = Granularity.fromOpenApi(granularityGenerated);
+        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(serviceLevelGenerated);
         String ownerId = ResourceUtils.getOwnerId();
 
-        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usageGenerated);
 
         // capacity records do not include _ANY rows
         if (sanitizedServiceLevel == ServiceLevel.ANY) {
@@ -90,15 +94,8 @@ public class CapacityResource implements CapacityApi {
             sanitizedUsage = null;
         }
 
-        List<CapacitySnapshot> capacities = getCapacities(
-            ownerId,
-            productId,
-            sanitizedServiceLevel,
-            sanitizedUsage,
-            granularityValue,
-            reportBegin,
-            reportEnd
-        );
+        List<CapacitySnapshot> capacities = getCapacities(ownerId, productId, sanitizedServiceLevel,
+            sanitizedUsage, granularity, beginning, ending);
 
         List<CapacitySnapshot> data;
         TallyReportLinks links;
@@ -116,16 +113,17 @@ public class CapacityResource implements CapacityApi {
         CapacityReport report = new CapacityReport();
         report.setData(data);
         report.setMeta(new CapacityReportMeta());
-        report.getMeta().setGranularity(granularity);
+        report.getMeta().setGranularity(granularityGenerated);
         report.getMeta().setProduct(productId);
         report.getMeta().setCount(report.getData().size());
 
         if (sanitizedServiceLevel != null) {
-            report.getMeta().setServiceLevel(sanitizedServiceLevel.getValue());
+            report.getMeta()
+                .setServiceLevel(ServiceLevelGenerated.fromValue(sanitizedServiceLevel.getValue()));
         }
 
         if (sanitizedUsage != null) {
-            report.getMeta().setUsage(sanitizedUsage.getValue());
+            report.getMeta().setUsage(UsageGenerated.fromValue(sanitizedUsage.getValue()));
         }
 
         report.setLinks(links);

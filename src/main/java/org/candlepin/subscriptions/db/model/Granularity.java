@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+
 /**
  * Granularity of a given snapshot.
  *
@@ -28,9 +30,9 @@ package org.candlepin.subscriptions.db.model;
  * tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
 public enum Granularity {
-    DAILY,
-    WEEKLY,
-    MONTHLY,
-    QUARTERLY,
-    YEARLY
+    DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY;
+
+    public static Granularity fromOpenApi(GranularityGenerated apiParam) {
+        return Granularity.valueOf(apiParam.name());
+    }
 }

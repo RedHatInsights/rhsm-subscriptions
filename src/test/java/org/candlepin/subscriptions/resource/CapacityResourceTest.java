@@ -34,6 +34,9 @@ import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.GranularityGenerated;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelGenerated;
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,7 +51,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 @SpringBootTest
@@ -91,16 +93,8 @@ class CapacityResourceTest {
                 eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            null
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
 
         assertEquals(9, report.getData().size());
     }
@@ -120,16 +114,9 @@ class CapacityResourceTest {
                 eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            "Premium",
-            null
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null,
+                ServiceLevelGenerated.PREMIUM, null);
 
         assertEquals(9, report.getData().size());
     }
@@ -149,16 +136,9 @@ class CapacityResourceTest {
             eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            "Production"
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null, null,
+                UsageGenerated.PRODUCTION);
 
         assertEquals(9, report.getData().size());
     }
@@ -178,16 +158,9 @@ class CapacityResourceTest {
                 eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            "",
-            null
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null,
+                ServiceLevelGenerated.UNSPECIFIED, null);
 
         assertEquals(9, report.getData().size());
     }
@@ -207,16 +180,9 @@ class CapacityResourceTest {
             eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            ""
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null, null,
+                UsageGenerated.UNSPECIFIED);
 
         assertEquals(9, report.getData().size());
     }
@@ -248,16 +214,8 @@ class CapacityResourceTest {
                 eq(max)))
             .thenReturn(Arrays.asList(capacity, capacity2));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            null
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
 
         CapacitySnapshot capacitySnapshot = report.getData().get(0);
         assertEquals(12, capacitySnapshot.getHypervisorSockets().intValue());
@@ -268,33 +226,16 @@ class CapacityResourceTest {
 
     @Test
     void testShouldThrowExceptionOnBadOffset() {
-        SubscriptionsException e = assertThrows(SubscriptionsException.class, () ->
-            resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            11,
-            10,
-            null,
-            null)
-        );
+        SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, 11, 10, null, null));
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
     }
 
     @Test
     void testShouldThrowBadRequestOnBadSla() {
-        BadRequestException e = assertThrows(BadRequestException.class, () ->
-            resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            0,
-            10,
-            "badSla",
-            null)
-        );
+        assertThrows(IllegalArgumentException.class, () -> resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, 0, 10,
+                ServiceLevelGenerated.valueOf("badSla"), null));
     }
 
     @Test
@@ -312,16 +253,8 @@ class CapacityResourceTest {
                 eq(max)))
             .thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            1,
-            1,
-            null,
-            null
-        );
+        CapacityReport report = resource
+            .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, 1, 1, null, null);
 
         assertEquals(1, report.getData().size());
         assertEquals(OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
@@ -332,16 +265,8 @@ class CapacityResourceTest {
     @WithMockRedHatPrincipal("1111")
     public void testAccessDeniedWhenAccountIsNotWhitelisted() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getCapacityReport(
-                "product1",
-                "daily",
-                min,
-                max,
-                null,
-                null,
-                null,
-                null
-            );
+            resource
+                .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
         });
     }
 
@@ -349,16 +274,8 @@ class CapacityResourceTest {
     @WithMockRedHatPrincipal(value = "123456", roles = {})
     public void testAccessDeniedWhenUserIsNotAnAdmin() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getCapacityReport(
-                "product1",
-                "daily",
-                min,
-                max,
-                null,
-                null,
-                null,
-                null
-            );
+            resource
+                .getCapacityReport("product1", GranularityGenerated.DAILY, min, max, null, null, null, null);
         });
     }
 }

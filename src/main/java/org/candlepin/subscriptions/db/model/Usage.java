@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.utilization.api.model.UsageGenerated;
+
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -79,6 +81,10 @@ public enum Usage {
         else {
             return fromString(value);
         }
+    }
+
+    public static Usage fromOpenApi(UsageGenerated usageGenerated) {
+        return Usage.valueOf(usageGenerated.name());
     }
 
     public String getValue() {
