@@ -25,11 +25,11 @@ import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -55,7 +55,7 @@ import javax.ws.rs.core.Response;
  * @see Executors
  */
 public class ExecutorTaskQueue implements TaskQueue {
-    private final Map<String, BlockingQueue<Optional<TaskDescriptor>>> queues = new HashMap<>();
+    private final Map<String, BlockingQueue<Optional<TaskDescriptor>>> queues = new ConcurrentHashMap<>();
 
     @Override
     public void enqueue(TaskDescriptor taskDescriptor) {
