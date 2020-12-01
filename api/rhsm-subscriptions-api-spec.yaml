@@ -648,16 +648,16 @@ paths:
           description: "Which direction to sort by (default: asc)"
       responses:
         '200':
-          description: 'The request for hosts was successful.'
+          description: 'The request for usbscriptions was successful.'
           content:
             application/vnd.api+json:
               schema:
                 $ref: "#/components/schemas/SubscriptionReport"
                 links:
-                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/subscriptions/RHEL?sla=Premium&usage=Production&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/subscriptions/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/subscriptions/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
                 meta:
                   count: 10
                   product: RHEL

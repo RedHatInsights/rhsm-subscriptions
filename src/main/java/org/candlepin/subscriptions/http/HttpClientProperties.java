@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.http;
 
+import java.io.File;
+
 /**
  * HTTP service client configuration.
  */
@@ -39,6 +41,16 @@ public class HttpClientProperties {
      * Maximum number of simultaneous connections to the service.
      */
     private int maxConnections = 100;
+
+    /**
+     * Certificate authenticate file path
+     */
+    private File keystore;
+
+    /**
+     * Certificate authenticate file password
+     */
+    private char[] keystorePassword;
 
     public boolean isUseStub() {
         return useStub;
@@ -62,5 +74,21 @@ public class HttpClientProperties {
 
     public void setMaxConnections(int maxConnections) {
         this.maxConnections = maxConnections;
+    }
+
+    public File getKeystore() {
+        return keystore;
+    }
+
+    public void setKeystore(File keystorePath) {
+        this.keystore = keystorePath;
+    }
+
+    public char[] getKeystorePassword() {
+        return keystorePassword;
+    }
+
+    public void setKeystorePassword(char[] keystorePassword) {
+        this.keystorePassword = keystorePassword;
     }
 }

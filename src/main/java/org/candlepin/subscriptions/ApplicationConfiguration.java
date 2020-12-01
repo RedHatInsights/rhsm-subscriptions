@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions;
 
+import io.micrometer.core.aop.TimedAspect;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.files.FileAccountListSource;
@@ -31,11 +33,11 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.jackson.ObjectMapperContextResolver;
 import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.retention.TallyRetentionPolicy;
+import org.candlepin.subscriptions.subscription.SearchApiFactory;
 import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.DatabaseAccountListSource;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -57,14 +59,10 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import io.micrometer.core.aop.TimedAspect;
-import io.micrometer.core.instrument.MeterRegistry;
-
+import javax.validation.Validator;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.validation.Validator;
 
 /** Class to hold configuration beans */
 @Configuration
@@ -117,12 +115,24 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         return new ConcurrentApiFactory(props);
     }
 
-    /**
+    @Bean
+    @Qualifier("subscription")
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
+    public HttpClientProperties subscriptionServiceProperties() {
+        return new HttpClientProperties();
+    }
+
+    @Bean
+    public SearchApiFactory searchApiFactory(@Qualifier("subscription") HttpClientProperties props) {
+        return new SearchApiFactory(props);
+    }
+
+                                                              /**
      * Tell Spring AOP to run methods in classes marked @Validated through the JSR-303 Validation
      * implementation.  Validations that fail will throw an ConstraintViolationException.
      * @return post-processor used by Spring AOP
      */
-    @Bean
+                                                              @Bean
     public MethodValidationPostProcessor methodValidationPostProcessor() {
         return new MethodValidationPostProcessor();
     }

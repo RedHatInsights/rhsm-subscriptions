@@ -58,6 +58,15 @@ public interface SubscriptionCapacityRepository extends
                     " AND b.serviceLevel = :sanitizedSla" +
                     " AND b.beginDate < current_date" +
                     " AND b.endDate > current_date" +
+                    " GROUP BY b.sku",
+            countQuery = "SELECT count(b.sku)" +
+                    " FROM SubscriptionCapacity b" +
+                    " WHERE b.accountNumber = :account" +
+                    " AND b.key.productId = :product" +
+                    " AND b.usage = :sanitizedUsage" +
+                    " AND b.serviceLevel = :sanitizedSla" +
+                    " AND b.beginDate < current_date" +
+                    " AND b.endDate > current_date" +
                     " GROUP BY b.sku"
     )
     Page<SubscriptionView> getSubscriptionViews(

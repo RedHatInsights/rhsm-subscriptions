@@ -172,6 +172,7 @@ dependencies {
     compile project(":cloudigrade-client")
     compile project(":rbac-client")
     compile project(":kafka-schema")
+    compile project(":subscription-client")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
     // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
@@ -336,7 +337,16 @@ project(":cloudigrade-client") {
     }
 }
 
-configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'rbac-client'}) {
+project(":subscription-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/subscription-api-spec.yaml"
+        config_file = "${projectDir}/subscription-client-config.json"
+    }
+}
+
+configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'rbac-client' || it.name == 'subscription-client'}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 

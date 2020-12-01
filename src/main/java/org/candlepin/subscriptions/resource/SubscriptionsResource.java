@@ -21,14 +21,15 @@
 package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
-import org.candlepin.subscriptions.db.CustomizedSubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionView;
-import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
+import org.candlepin.subscriptions.subscription.ApiException;
+import org.candlepin.subscriptions.subscription.SubscriptionService;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Subscription;
@@ -47,7 +48,12 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -76,10 +82,13 @@ public class SubscriptionsResource implements SubscriptionsApi {
 
     private final SubscriptionCapacityRepository repository;
     private final PageLinkCreator pageLinkCreator;
+    private final SubscriptionService subscriptionService;
 
-    public SubscriptionsResource(SubscriptionCapacityRepository repository, PageLinkCreator pageLinkCreator) {
+    public SubscriptionsResource(SubscriptionCapacityRepository repository, PageLinkCreator pageLinkCreator,
+                                 SubscriptionService subscriptionService) {
         this.repository = repository;
         this.pageLinkCreator = pageLinkCreator;
+        this.subscriptionService = subscriptionService;
     }
 
     @Override
@@ -114,46 +123,82 @@ public class SubscriptionsResource implements SubscriptionsApi {
         TallyReportLinks links;
         if (offset != null || limit != null) {
             links = pageLinkCreator.getPaginationLinks(uriInfo, subscriptionViews);
-        }
-        else {
+        } else {
             links = null;
         }
 
-        return new SubscriptionReport()
-                .links(links)
-                .meta(
-                        new HostReportMeta()
-                                .count((int) subscriptionViews.getTotalElements())
-                                .product(productId)
-                                .serviceLevel(sla)
-                                .usage(usage)
-                                .uom(uom)
-                )
-                .data(subscriptionViews.getContent().stream().map(subscriptionView -> {
-                    final Subscription subscription = new Subscription();
-                    subscription.setSku(subscriptionView.getSku());
-                    subscription.setUsage(org.candlepin.subscriptions.utilization.api.model.Usage.fromValue(usage));
-                    subscription.setUom(uom);
-                    if (Uom.CORES.equals(uom)) {
-                        subscription.setPhysicalCapacity(subscriptionView.getPhysicalCores());
-                        subscription.setVirtualCapacity(subscriptionView.getVirtualCores());
-                        subscription.setTotalCapacity(
-                                subscriptionView.getPhysicalCores() + subscriptionView.getVirtualCores());
-                    } else if (Uom.SOCKETS.equals(uom)) {
-                        subscription.setPhysicalCapacity(subscriptionView.getPhysicalSockets());
-                        subscription.setVirtualCapacity(subscriptionView.getVirtualSockets());
-                        subscription.setTotalCapacity(
-                                subscriptionView.getPhysicalSockets() + subscriptionView.getVirtualSockets());
-                    }
-                    subscription.setUom(uom);
-                    if (subscriptionView.getBeginDate().isBefore(subscriptionView.getEndDate())) {
-                        subscription.setUpcomingEventDate(subscriptionView.getBeginDate().toString());
-                        subscription.setUpcomingEventType(UpcomingEventType.SUBSCRIPTIONBEGIN);
-                    } else {
-                        subscription.setUpcomingEventDate(subscriptionView.getEndDate().toString());
-                        subscription.setUpcomingEventType(UpcomingEventType.SUBSCRIPTIONEND);
-                    }
-                    return subscription;
-                }).collect(Collectors.toList()));
+        // get the subscription numbers and the assoc skus
+        // then build the report
+        try {
+            final int ownerId = Integer.parseInt(ResourceUtils.getOwnerId());
+            final List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptionList =
+                    subscriptionService.getSubscriptions(ownerId);
+            // change the structure from subscription number -> skus to sku -> subscription numbers
+            final Map<String, Set<String>> skusToSubNums = getSkusToSubNumbers(subscriptionList);
+            return new SubscriptionReport()
+                    .links(links)
+                    .meta(
+                            new HostReportMeta()
+                                    .count((int) subscriptionViews.getTotalElements())
+                                    .product(productId)
+                                    .serviceLevel(sla)
+                                    .usage(usage)
+                                    .uom(uom)
+                    )
+                    .data(subscriptionViews.getContent().stream().map(subscriptionView -> {
+                        final Subscription subscription = new Subscription();
+                        subscription.setSku(subscriptionView.getSku());
+                        subscription.setUsage(org.candlepin.subscriptions.utilization.api.model.Usage.fromValue(usage));
+                        subscription.setUom(uom);
+                        if (Uom.CORES.equals(uom)) {
+                            subscription.setPhysicalCapacity(subscriptionView.getPhysicalCores());
+                            subscription.setVirtualCapacity(subscriptionView.getVirtualCores());
+                            subscription.setTotalCapacity(
+                                    subscriptionView.getPhysicalCores() + subscriptionView.getVirtualCores());
+                        } else if (Uom.SOCKETS.equals(uom)) {
+                            subscription.setPhysicalCapacity(subscriptionView.getPhysicalSockets());
+                            subscription.setVirtualCapacity(subscriptionView.getVirtualSockets());
+                            subscription.setTotalCapacity(
+                                    subscriptionView.getPhysicalSockets() + subscriptionView.getVirtualSockets());
+                        }
+                        subscription.setUom(uom);
+                        if (subscriptionView.getBeginDate().isBefore(subscriptionView.getEndDate())) {
+                            subscription.setUpcomingEventDate(subscriptionView.getBeginDate().toString());
+                            subscription.setUpcomingEventType(UpcomingEventType.SUBSCRIPTIONBEGIN);
+                        } else {
+                            subscription.setUpcomingEventDate(subscriptionView.getEndDate().toString());
+                            subscription.setUpcomingEventType(UpcomingEventType.SUBSCRIPTIONEND);
+                        }
+                        final Set<String> subNumbers = skusToSubNums.get(subscription.getSku());
+                        if (subNumbers != null && !subNumbers.isEmpty()) {
+                            subscription.setSubscriptionNumbers(new ArrayList<>(subNumbers));
+                        }
+                        return subscription;
+                    }).collect(Collectors.toList()));
+        } catch (ApiException e) {
+
+        }
+        return null;
+    }
+
+    private static Map<String, Set<String>> getSkusToSubNumbers(
+            List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptions) {
+        final Map<String, Set<String>> map = new HashMap<>();
+        subscriptions.forEach(subscription -> {
+            subscription.getSubscriptionProducts()
+                    .stream()
+                    .map(SubscriptionProduct::getSku)
+                    .forEach(sku -> {
+                        if (map.containsKey(sku)) {
+                            final Set<String> subNumbers = map.get(sku);
+                            subNumbers.add(subscription.getSubscriptionNumber());
+                        } else {
+                            final Set<String> subNumbers = new HashSet<>();
+                            subNumbers.add(subscription.getSubscriptionNumber());
+                            map.put(sku, subNumbers);
+                        }
+                    });
+        });
+        return map;
     }
 }
