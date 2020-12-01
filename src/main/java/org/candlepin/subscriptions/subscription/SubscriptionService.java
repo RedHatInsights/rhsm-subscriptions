@@ -12,7 +12,7 @@ public class SubscriptionService {
 
     private final SearchApi searchApi;
 
-    public SubscriptionService(SearchApi searchApi, ObjectMapper objectMapper) {
+    public SubscriptionService(SearchApi searchApi) {
         this.searchApi = searchApi;
     }
 
