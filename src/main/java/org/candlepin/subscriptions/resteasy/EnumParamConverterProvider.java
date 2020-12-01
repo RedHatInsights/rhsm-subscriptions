@@ -43,7 +43,8 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class EnumParamConverterProvider implements ParamConverterProvider {
 
-    private static final Collection<Class<?>> caseInsensitiveParams = ResteasyConfiguration.caseInsensitiveDeserialization;
+    @SuppressWarnings("linelength")
+    private static final Collection<Class<?>> CASE_INSENSITIVE_PARAMS = ResteasyConfiguration.CASE_INSENSITIVE_DESERIALIZATION;
 
     @Override
     public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
@@ -51,9 +52,9 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
             return null;
         }
 
-        return caseInsensitiveParams.contains(rawType) ?
-            new CaseInsensitiveEnumParamConverter<>(rawType) :
-            new EnumParamConverter<>(rawType);
+        return CASE_INSENSITIVE_PARAMS.contains(rawType) ?
+               new CaseInsensitiveEnumParamConverter<>(rawType) :
+               new EnumParamConverter<>(rawType);
     }
 
     /**
@@ -95,8 +96,13 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
         }
     }
 
+    //TODO extend EnumParamConverterProvider or something to get rid of the duplicate code
 
-    //TODO try extending EnumParamConverter to get rid of duplicate code
+    /**
+     * ParamConverterProvider to enable use of enums in query providers in a case-insensitive manner
+     *
+     * @param <T>
+     */
     static class CaseInsensitiveEnumParamConverter<T> implements ParamConverter<T> {
 
         private final Class<T> className;
@@ -106,7 +112,8 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
             this.className = className;
 
             if (Objects.nonNull(className.getEnumConstants())) {
-                keyValuePairs = Arrays.stream(className.getEnumConstants())
+                keyValuePairs = Arrays
+                    .stream(className.getEnumConstants())
                     .collect(Collectors.toMap(T::toString, value -> value));
             }
         }
@@ -117,15 +124,19 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
                 return null;
             }
 
-            Optional<Map.Entry<String, T>> result = keyValuePairs.entrySet().stream()
-                .filter(kv -> value.equalsIgnoreCase(kv.getKey())).findFirst();
+            Optional<Map.Entry<String, T>> result = keyValuePairs
+                .entrySet()
+                .stream()
+                .filter(kv -> value.equalsIgnoreCase(kv.getKey()))
+                .findFirst();
 
             if (result.isPresent()) {
                 return result.get().getValue();
             }
 
-            throw new IllegalArgumentException(
-                String.format("%s is not a valid value for %s", value, className));
+            throw new IllegalArgumentException(String.format("%s is not a valid value for %s",
+                value,
+                className));
         }
 
         @Override

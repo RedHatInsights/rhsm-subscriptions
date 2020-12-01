@@ -56,11 +56,12 @@ import javax.ws.rs.core.UriInfo;
 @Component
 public class TallyResource implements TallyApi {
 
-    @Context UriInfo uriInfo;
-
     private final TallySnapshotRepository repository;
     private final PageLinkCreator pageLinkCreator;
     private final ApplicationClock clock;
+
+    @Context
+    private UriInfo uriInfo;
 
     public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator,
         ApplicationClock clock) {
@@ -69,6 +70,7 @@ public class TallyResource implements TallyApi {
         this.clock = clock;
     }
 
+    @SuppressWarnings("linelength")
     @Override
     @ReportingAccessRequired
     public TallyReport getTallyReport(String productId, @NotNull GranularityGenerated granularityGenerated,
@@ -86,8 +88,8 @@ public class TallyResource implements TallyApi {
         ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
         Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageGenerated);
         Granularity granularityValue = Granularity.fromOpenApi(granularityGenerated);
-        Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+
+        Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository.findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,
             productId,
             granularityValue,
@@ -95,8 +97,7 @@ public class TallyResource implements TallyApi {
             effectiveUsage,
             beginning,
             ending,
-            pageable
-        );
+            pageable);
 
         List<TallySnapshot> snaps = snapshotPage
             .stream()
@@ -109,7 +110,9 @@ public class TallyResource implements TallyApi {
         report.getMeta().setGranularity(GranularityGenerated.fromValue(granularityValue.toString()));
         report.getMeta().setProduct(productId);
         report.getMeta().setServiceLevel(sla);
-        report.getMeta().setUsage(usageGenerated == null ? null : UsageGenerated.fromValue(effectiveUsage.getValue()));
+        report
+            .getMeta()
+            .setUsage(usageGenerated == null ? null : UsageGenerated.fromValue(effectiveUsage.getValue()));
 
         // Only set page links if we are paging (not filling).
         if (pageable != null) {

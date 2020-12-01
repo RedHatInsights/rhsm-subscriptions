@@ -99,8 +99,9 @@ public class ResourceUtils {
      * @return the encoded identity header.
      */
     public static String getIdentityHeader() {
-        HttpServletRequest request =
-            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+
+        @SuppressWarnings("linelength") HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder
+            .getRequestAttributes()).getRequest();
         return request.getHeader(IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER);
     }
 
@@ -135,12 +136,10 @@ public class ResourceUtils {
         }
 
         if (offset % limit != 0) {
-            throw new SubscriptionsException(
-                ErrorCode.VALIDATION_FAILED_ERROR,
+            throw new SubscriptionsException(ErrorCode.VALIDATION_FAILED_ERROR,
                 Response.Status.BAD_REQUEST,
                 "Offset must be divisible by limit",
-                "Arbitrary offsets are not currently supported by this API"
-            );
+                "Arbitrary offsets are not currently supported by this API");
         }
         return PageRequest.of(offset / limit, limit, sort);
     }

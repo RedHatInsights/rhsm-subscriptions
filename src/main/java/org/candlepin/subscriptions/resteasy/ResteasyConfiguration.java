@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2019 - 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,16 +46,21 @@ import java.util.Collection;
  */
 @Configuration
 @Import(ResteasyAutoConfiguration.class)
-@ComponentScan(basePackages = {"org.candlepin.subscriptions.exception.mapper",
-    "org.candlepin.subscriptions.resteasy"})
+@ComponentScan(basePackages = {
+    "org.candlepin.subscriptions.exception.mapper", "org.candlepin.subscriptions.resteasy"
+})
 public class ResteasyConfiguration implements WebMvcConfigurer {
 
+    protected static final Collection<Class<?>> CASE_INSENSITIVE_DESERIALIZATION =
+        Arrays.asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class);
 
-    protected static final Collection<Class<?>> caseInsensitiveDeserialization = Arrays
-        .asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class);
+    protected static final Collection<Class<?>> TITLE_CASE_SERIALIZATION =
+        Arrays.asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class);
 
-    protected static final Collection<Class<?>> titleCaseSerialization = Arrays
-        .asList(GranularityGenerated.class, ServiceLevelGenerated.class, UsageGenerated.class);
+    @Bean
+    public static BeanFactoryPostProcessor servletInitializer() {
+        return new JaxrsApplicationServletInitializer();
+    }
 
     @Bean
     @Primary
@@ -68,11 +73,6 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
         return new ObjectMapperContextResolver(applicationProperties, titlecaseSerializer);
     }
 
-    @Bean
-    public static BeanFactoryPostProcessor servletInitializer() {
-        return new JaxrsApplicationServletInitializer();
-    }
-
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
@@ -81,9 +81,7 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/api-docs/openapi.*").addResourceLocations(
-            "classpath:openapi.yaml",
-            "classpath:openapi.json"
-        );
+        registry.addResourceHandler("/api-docs/openapi.*")
+            .addResourceLocations("classpath:openapi.yaml", "classpath:openapi.json");
     }
 }
