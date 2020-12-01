@@ -32,23 +32,21 @@ import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.ReportLinks;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
-import java.time.temporal.TemporalAmount;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import java.time.OffsetDateTime;
+import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Capacity API implementation.
@@ -101,7 +99,7 @@ public class CapacityResource implements CapacityApi {
         );
 
         List<CapacitySnapshot> data;
-        TallyReportLinks links;
+        ReportLinks links;
         if (offset != null || limit != null) {
             Pageable pageable = ResourceUtils.getPageable(offset, limit);
             data = paginate(capacities, pageable);

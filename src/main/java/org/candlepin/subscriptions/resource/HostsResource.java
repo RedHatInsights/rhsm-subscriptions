@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.google.common.collect.ImmutableMap;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -31,24 +32,20 @@ import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
-import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.ReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.ReportMetadata;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.candlepin.subscriptions.utilization.api.resources.HostsApi;
-
-import com.google.common.collect.ImmutableMap;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Hosts API implementation.
@@ -117,7 +114,7 @@ public class HostsResource implements HostsApi {
             page
         );
 
-        TallyReportLinks links;
+        ReportLinks links;
         if (offset != null || limit != null) {
             links = pageLinkCreator.getPaginationLinks(uriInfo, hosts);
         }
@@ -144,7 +141,7 @@ public class HostsResource implements HostsApi {
         String accountNumber = ResourceUtils.getAccountNumber();
         Pageable page = ResourceUtils.getPageable(offset, limit);
         Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
-        TallyReportLinks links;
+        ReportLinks links;
         if (offset != null || limit != null) {
             links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
         }
@@ -155,7 +152,7 @@ public class HostsResource implements HostsApi {
         return new HypervisorGuestReport()
             .links(links)
             .meta(
-                new HypervisorGuestReportMeta()
+                new ReportMetadata()
                     .count((int) guests.getTotalElements())
             )
             .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));

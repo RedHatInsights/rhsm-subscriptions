@@ -852,19 +852,7 @@ components:
           items:
             $ref: "#/components/schemas/TallySnapshot"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: "#/components/schemas/ReportLinks"
         meta:
           type: object
           properties:
@@ -994,19 +982,7 @@ components:
           items:
             $ref: "#/components/schemas/CapacitySnapshot"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: '#/components/schemas/ReportLinks'
         meta:
           type: object
           properties:
@@ -1104,39 +1080,9 @@ components:
           items:
             $ref: "#/components/schemas/Host"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: '#/components/schemas/ReportLinks'
         meta:
-          type: object
-          properties:
-            count:
-              type: integer
-            product:
-              type: string
-            service_level:
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                    specified as a query parameter."
-              type: string
-            usage:
-              description: "Describes the usages that the report was made against. Not set if it wasn't
-                   specified as a query parameter."
-              type: string
-            uom:
-              $ref: '#/components/schemas/Uom'
-          required:
-            - count
-            - product
+          $ref: '#/component/schemas/ReportMetadata'
     HypervisorGuestReport:
       properties:
         data:
@@ -1144,26 +1090,9 @@ components:
           items:
             $ref: "#/components/schemas/Host"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: '#/components/schemas/ReportLinks'
         meta:
-          type: object
-          properties:
-            count:
-              type: integer
-          required:
-            - count
+          $ref: '#/components/schemas/ReportMetadata'
     Host:
       required:
         - inventory_id
@@ -1267,39 +1196,9 @@ components:
           items:
             $ref: "#/components/schemas/Subscription"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: '#/components/schemas/ReportLinks'
         meta:
-          type: object
-          properties:
-            count:
-              type: integer
-            product:
-              type: string
-            service_level:
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                    specified as a query parameter."
-              type: string
-            usage:
-              description: "Describes the usages that the report was made against. Not set if it wasn't
-                   specified as a query parameter."
-              type: string
-            uom:
-              $ref: '#/components/schemas/Uom'
-          required:
-            - count
-            - product
+          $ref: '#/components/schemas/ReportMetadata'
     Subscription:
       required:
         - sku
@@ -1335,7 +1234,38 @@ components:
           format: int32
         uom:
           $ref: '#/components/schemas/Uom'
-
+    ReportLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
+    ReportMetadata:
+      properties:
+        count:
+          type: integer
+        product:
+          type: string
+        service_level:
+          description: "Describes the service level that the report was made against. Not set if it wasn't
+                          specified as a query parameter."
+          type: string
+        usage:
+          description: "Describes the usages that the report was made against. Not set if it wasn't
+                         specified as a query parameter."
+          type: string
+        uom:
+          $ref: '#/components/schemas/Uom'
+      required:
+        - count
+        - product
     Errors:
       required:
         - errors

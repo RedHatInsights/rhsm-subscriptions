@@ -30,12 +30,12 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.subscription.ApiException;
 import org.candlepin.subscriptions.subscription.SubscriptionService;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
-import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.ReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.ReportMetadata;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Subscription;
 import org.candlepin.subscriptions.utilization.api.model.SubscriptionReport;
 import org.candlepin.subscriptions.utilization.api.model.SubscriptionReportSort;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.candlepin.subscriptions.utilization.api.model.UpcomingEventType;
 import org.candlepin.subscriptions.utilization.api.resources.SubscriptionsApi;
@@ -120,7 +120,7 @@ public class SubscriptionsResource implements SubscriptionsApi {
                 page
         );
 
-        TallyReportLinks links;
+        ReportLinks links;
         if (offset != null || limit != null) {
             links = pageLinkCreator.getPaginationLinks(uriInfo, subscriptionViews);
         } else {
@@ -138,7 +138,7 @@ public class SubscriptionsResource implements SubscriptionsApi {
             return new SubscriptionReport()
                     .links(links)
                     .meta(
-                            new HostReportMeta()
+                            new ReportMetadata()
                                     .count((int) subscriptionViews.getTotalElements())
                                     .product(productId)
                                     .serviceLevel(sla)

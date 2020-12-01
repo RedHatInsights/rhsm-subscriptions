@@ -22,18 +22,16 @@ package org.candlepin.subscriptions.resteasy;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
-
+import org.candlepin.subscriptions.utilization.api.model.ReportLinks;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Utility to create page links for paginated APIs.
@@ -49,8 +47,8 @@ public class PageLinkCreator {
      *
      * @return a populate TallyReportLinks object
      */
-    public TallyReportLinks getPaginationLinks(UriInfo uriInfo, Page page) {
-        TallyReportLinks links = new TallyReportLinks();
+    public ReportLinks getPaginationLinks(UriInfo uriInfo, Page page) {
+        ReportLinks links = new ReportLinks();
         if (page.previousPageable() != Pageable.unpaged()) {
             links.setPrevious(formatUri(uriWithOffset(uriInfo, page.previousPageable().getOffset())));
         }
