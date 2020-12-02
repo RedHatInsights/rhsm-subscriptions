@@ -54,8 +54,8 @@ class EventRecordRepositoryTest {
         Event event = new Event();
         event.setAccountNumber("account123");
         event.setTimestamp(OffsetDateTime.now(CLOCK));
-        event.setSubjectId("subjectId");
-        event.setSubjectType("RHEL System");
+        event.setInstanceId("instanceId");
+        event.setServiceType("RHEL System");
         UUID eventId = UUID.randomUUID();
         event.setEventId(eventId);
         event.setEventSource("eventSource");

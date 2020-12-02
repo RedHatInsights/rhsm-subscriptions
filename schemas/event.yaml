@@ -19,12 +19,12 @@ properties:
     description: Account identifier for the relevant account.
     type: string
     required: true
-  subject_type:
-    description: Identifier for the type of subject. (E.g. RHEL System, OpenShift Cluster)
+  service_type:
+    description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
     type: string
     required: true
-  subject_id:
-    description: Primary identifier for the subject, according to the source.
+  instance_id:
+    description: Primary identifier for the instance of the service, according to the event producer.
     type: string
     required: true
   timestamp:
@@ -44,17 +44,17 @@ properties:
     existingJavaType: java.util.Optional<String>
     required: false
   inventory_id:
-    description: Host-based inventory ID for the subject.
+    description: Host-based inventory ID for the service, if applicable and known.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
   insights_id:
-    description: Red Hat Insights ID for the subject.
+    description: Red Hat Insights ID for the service, if applicable and known.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
   subscription_manager_id:
-    description: subscription-manager ID for the subject.
+    description: subscription-manager ID for the service, if applicable and known.
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
@@ -65,7 +65,7 @@ properties:
       type: string
     required: false
   measurements:
-    description: Capture measurements for the subject.
+    description: Captures measurements for the service instance.
     type: array
     items:
       type: object
