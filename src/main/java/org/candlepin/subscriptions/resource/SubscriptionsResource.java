@@ -57,7 +57,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Hosts API implementation.
+ * Subscriptions API implementation.
  */
 @Component
 public class SubscriptionsResource implements SubscriptionsApi {
