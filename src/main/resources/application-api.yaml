@@ -6,3 +6,7 @@ rhsm-subscriptions:
     use-stub: ${RBAC_USE_STUB:false}
     url: http://${RBAC_HOST:localhost}:${RBAC_PORT:8819}/api/rbac/v1
     max-connections: ${RBAC_MAX_CONNECTIONS:100}
+  subscription:
+    keystore: file:${SUBSCRIPTION_KEYSTORE:/etc/pki/tls/certs/enterprise_services/nonprod-rhsm-subscriptions.jks}
+    keystorePassword: changeit
+    maxConnections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}

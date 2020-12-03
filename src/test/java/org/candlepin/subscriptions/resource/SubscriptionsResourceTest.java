@@ -1,5 +1,6 @@
 package org.candlepin.subscriptions.resource;
 
+import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionView;
@@ -8,9 +9,7 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.subscription.ApiException;
 import org.candlepin.subscriptions.subscription.SubscriptionService;
-import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
-import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.SubscriptionReportSort;
 import org.junit.jupiter.api.BeforeEach;

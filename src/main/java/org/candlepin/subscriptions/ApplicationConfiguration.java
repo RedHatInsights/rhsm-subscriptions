@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions;
 
+import io.micrometer.core.aop.TimedAspect;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
@@ -29,16 +31,12 @@ import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import io.micrometer.core.aop.TimedAspect;
-import io.micrometer.core.instrument.MeterRegistry;
 
 import javax.validation.Validator;
 

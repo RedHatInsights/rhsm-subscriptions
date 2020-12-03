@@ -21,14 +21,13 @@
 
 package org.candlepin.subscriptions.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacService;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import org.candlepin.subscriptions.subscription.SearchApiFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,6 +133,18 @@ public class SecurityConfig {
         @Bean
         public RbacApiFactory rbacApiFactory(@Qualifier("rbac") HttpClientProperties props) {
             return new RbacApiFactory(props);
+        }
+
+        @Bean
+        @Qualifier("subscription")
+        @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
+        public HttpClientProperties subscriptionServiceProperties() {
+            return new HttpClientProperties();
+        }
+
+        @Bean
+        public SearchApiFactory searchApiFactory(@Qualifier("subscription") HttpClientProperties props) {
+            return new SearchApiFactory(props);
         }
 
         // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
