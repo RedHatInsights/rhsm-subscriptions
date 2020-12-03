@@ -175,7 +175,7 @@ public class SecurityConfig {
                     .requestMatchers(EndpointRequest.to(
                         "health", "info", "prometheus", "hawtio"
                     )).permitAll()
-                    .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
+                    .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**", "/**/subscriptions/**")
                         .access("@optInChecker.checkAccess(authentication)")
                     .anyRequest().authenticated();
         }

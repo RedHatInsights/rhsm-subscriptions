@@ -8,6 +8,8 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.subscription.ApiException;
 import org.candlepin.subscriptions.subscription.SubscriptionService;
+import org.candlepin.subscriptions.tally.AccountListSource;
+import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.SubscriptionReportSort;
@@ -43,17 +45,21 @@ public class SubscriptionsResourceTest {
     @MockBean
     SubscriptionService subscriptionService;
 
+    @MockBean
+    AccountListSource accountListSource;
+
     @Autowired
     SubscriptionsResource subject;
 
     static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
 
     @BeforeEach
-    public void setup() throws ApiException {
+    public void setup() throws ApiException, AccountListSourceException {
         PageImpl<SubscriptionView> mockPage = new PageImpl<>(Collections.emptyList());
         when(repository.getSubscriptionViews(any(), any(), any(), any(), any()))
                 .thenReturn(mockPage);
         when(subscriptionService.getSubscriptions(123456)).thenReturn(Collections.emptyList());
+        when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
     }
 
     @Test
