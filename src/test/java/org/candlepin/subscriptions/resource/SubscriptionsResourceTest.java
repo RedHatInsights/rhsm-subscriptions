@@ -20,7 +20,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Collections;
 
@@ -31,8 +31,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
 @WithMockRedHatPrincipal("123456")
+@ActiveProfiles("api,test")
 public class SubscriptionsResourceTest {
 
     @MockBean
@@ -57,12 +57,12 @@ public class SubscriptionsResourceTest {
         PageImpl<SubscriptionView> mockPage = new PageImpl<>(Collections.emptyList());
         when(repository.getSubscriptionViews(any(), any(), any(), any(), any()))
                 .thenReturn(mockPage);
-        when(subscriptionService.getSubscriptions(123456)).thenReturn(Collections.emptyList());
+        when(subscriptionService.getSubscriptions("owner123456")).thenReturn(Collections.emptyList());
         when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
     }
 
     @Test
-    public void shouldInvokeRepositoryAndService() {
+    public void shouldInvokeRepositoryAndService() throws ApiException {
         subject.getSubscriptions("RHEL", 0, 1, null, null, null,
                 SubscriptionReportSort.PHYSICAL_CAPACITY, SortDirection.ASC);
         verify(repository, only())
@@ -77,5 +77,7 @@ public class SubscriptionsResourceTest {
                                                 SubscriptionReportSort.PHYSICAL_CAPACITY)),
                                         IMPLICIT_ORDER)
                 )));
+        verify(subscriptionService, only())
+                .getSubscriptions("owner123456");
     }
 }

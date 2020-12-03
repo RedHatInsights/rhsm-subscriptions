@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.subscription.ApiException;
@@ -55,6 +56,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.candlepin.subscriptions.exception.ErrorCode.REQUEST_PROCESSING_ERROR;
 
 /**
  * Subscriptions API implementation.
@@ -130,7 +133,7 @@ public class SubscriptionsResource implements SubscriptionsApi {
         // get the subscription numbers and the assoc skus
         // then build the report
         try {
-            final int ownerId = Integer.parseInt(ResourceUtils.getOwnerId());
+            final String ownerId = ResourceUtils.getOwnerId();
             final List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptionList =
                     subscriptionService.getSubscriptions(ownerId);
             // change the structure from subscription number -> skus to sku -> subscription numbers
@@ -176,9 +179,9 @@ public class SubscriptionsResource implements SubscriptionsApi {
                         return subscription;
                     }).collect(Collectors.toList()));
         } catch (ApiException e) {
-
+            throw new ExternalServiceException(REQUEST_PROCESSING_ERROR,
+                    "Communication with the subscription service failed!", e);
         }
-        return null;
     }
 
     private static Map<String, Set<String>> getSkusToSubNumbers(
