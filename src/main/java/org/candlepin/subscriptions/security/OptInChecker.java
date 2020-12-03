@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.controller.OptInController;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 

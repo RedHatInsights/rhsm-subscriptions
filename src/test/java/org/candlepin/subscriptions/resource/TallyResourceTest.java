@@ -21,9 +21,10 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
@@ -35,7 +36,6 @@ import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
@@ -50,7 +50,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -62,7 +62,7 @@ import javax.ws.rs.core.Response;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("api,test")
 @WithMockRedHatPrincipal("123456")
 public class TallyResourceTest {
 
@@ -397,6 +397,26 @@ public class TallyResourceTest {
         cloudigradeMeasurement.setSockets(7);
         cloudigradeMeasurement.setInstanceCount(7);
         snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
+        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
+            .asApiSnapshot();
+
+        assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
+        assertEquals(7, apiSnapshot.getCloudSockets().intValue());
+        assertTrue(apiSnapshot.getHasCloudigradeData());
+        assertFalse(apiSnapshot.getHasCloudigradeMismatch());
+    }
+
+    @Test
+    void testShouldTolerateAccountWithOnlyCloudigrade() {
+        TallySnapshot snapshot = new TallySnapshot();
+        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
+        hbiMeasurement.setSockets(7);
+        hbiMeasurement.setInstanceCount(7);
+        HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
+        cloudigradeMeasurement.setSockets(7);
+        cloudigradeMeasurement.setInstanceCount(7);
         snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
 
         org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot

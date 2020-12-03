@@ -33,14 +33,14 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Base64;
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("worker,test")
 class CloudigradeServiceTest {
     @MockBean
     ConcurrentApi concurrentApi;

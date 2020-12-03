@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.task.TaskExecutionException;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.TaskWorker;
+import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 
 import org.slf4j.Logger;
@@ -37,17 +38,21 @@ import io.micrometer.core.annotation.Timed;
 /**
  * Responsible for receiving task messages from Kafka when they become available.
  */
-public class KafkaTaskProcessor {
+public class KafkaTaskProcessor implements TaskConsumer {
     private static final Logger log = LoggerFactory.getLogger(KafkaTaskProcessor.class);
 
-    private TaskWorker worker;
+    private final TaskWorker worker;
+    private final String groupId;
+    private final String topic;
 
-    public KafkaTaskProcessor(TaskFactory taskFactory) {
+    public KafkaTaskProcessor(TaskFactory taskFactory, String groupId, String topic) {
         worker = new TaskWorker(taskFactory);
+        this.groupId = groupId;
+        this.topic = topic;
     }
 
-    @KafkaListener(id = "rhsm-subscriptions-task-processor",
-        topics = "${rhsm-subscriptions.tasks.task-group}")
+    @KafkaListener(id = "#{__listener.groupId}",
+        topics = "#{__listener.topic}")
     @Timed("rhsm-subscriptions.task.execution")
     public void receive(TaskMessage taskMessage, Acknowledgment acknowledgment) {
         try {
@@ -78,4 +83,11 @@ public class KafkaTaskProcessor {
         }
     }
 
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
 }

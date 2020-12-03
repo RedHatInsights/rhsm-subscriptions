@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:4.0.1"
+        classpath "org.openapitools:openapi-generator-gradle-plugin:4.3.1"
     }
 }
 
@@ -167,6 +167,9 @@ release {
 dependencies {
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
+    // code changes
+    compile('org.springframework.boot:spring-boot-devtools')
 
     compile project(":api")
     compile project(":cloudigrade-client")
@@ -262,8 +265,8 @@ project(":api") {
       configFile = config_file
       outputDir = "$buildDir/generated"
       configOptions = [
-          interfaceOnly: true,
-          generatePom: false,
+          interfaceOnly: "true",
+          generatePom: "false",
           dateLibrary: "java8",
       ]
     }
@@ -307,6 +310,8 @@ project(":api") {
         compile "javax.validation:validation-api"
         compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
         compile "io.swagger:swagger-annotations"
+        compile "com.google.code.findbugs:jsr305:3.0.2"
+        compile "org.openapitools:jackson-databind-nullable:0.2.1"
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
@@ -374,9 +379,9 @@ configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'r
         outputDir = "${buildDir}/generated"
         generatorName = "java"
         configOptions = [
-                generatePom: false,
+                generatePom: "false",
                 library: "resteasy",
-                java8: true,
+                java8: "true",
                 dateLibrary: "java8"
         ]
     }
@@ -392,6 +397,8 @@ configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'r
         compile "org.springframework:spring-context"
         compile "org.slf4j:slf4j-api"
         compile "io.swagger:swagger-annotations"
+        compile "com.google.code.findbugs:jsr305:3.0.2"
+        compile "org.openapitools:jackson-databind-nullable:0.2.1"
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

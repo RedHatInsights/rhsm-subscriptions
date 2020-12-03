@@ -36,6 +36,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -48,7 +49,7 @@ import java.util.List;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 class SubscriptionCapacityRepositoryTest {
     private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
         ZoneId.systemDefault());

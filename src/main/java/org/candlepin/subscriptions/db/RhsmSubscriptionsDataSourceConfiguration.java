@@ -20,21 +20,23 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.jobs.JobProperties;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.tally.files.FileAccountSyncListSource;
+import org.candlepin.subscriptions.tally.files.ReportingAccountWhitelist;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 import javax.persistence.EntityManagerFactory;
@@ -44,8 +46,6 @@ import javax.sql.DataSource;
  * A class to hold the inventory data source configuration.
  */
 @Configuration
-@EnableConfigurationProperties(JobProperties.class)
-@PropertySource("classpath:/rhsm-subscriptions.properties")
 @EnableTransactionManagement
 @EnableJpaRepositories(
     basePackages = "org.candlepin.subscriptions.db",
@@ -90,4 +90,18 @@ public class RhsmSubscriptionsDataSourceConfiguration {
         return new JpaTransactionManager(entityManagerFactory);
     }
 
+    @Bean
+    public AccountListSource accountListSource(ApplicationProperties applicationProperties,
+        AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
+
+        if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
+            return new FileAccountListSource(
+                    new FileAccountSyncListSource(applicationProperties, clock),
+                    new ReportingAccountWhitelist(applicationProperties, clock)
+            );
+        }
+        else {
+            return new DatabaseAccountListSource(accountConfigRepository);
+        }
+    }
 }

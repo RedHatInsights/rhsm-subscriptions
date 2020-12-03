@@ -21,51 +21,31 @@
 package org.candlepin.subscriptions.security.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.security.WhitelistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnlyTest.SubscriptionWatchRequiredConfiguration;
+import org.candlepin.subscriptions.util.StubResource;
+import org.candlepin.subscriptions.util.StubResourceConfiguration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.context.ActiveProfiles;
 
-@SpringJUnitConfig(classes = SubscriptionWatchRequiredConfiguration.class)
+@SpringBootTest
+@ActiveProfiles("test")
+@Import(StubResourceConfiguration.class)
 class SubscriptionWatchAdminOnlyTest {
 
     @Autowired
     ApplicationContext context;
 
-    @EnableGlobalMethodSecurity(prePostEnabled = true)
-    protected static class SubscriptionWatchRequiredConfiguration {
-        @Bean
-        public StubResource stubResource() {
-            return new StubResource();
-        }
-
-        @Bean
-        public ApplicationProperties applicationProperties() {
-            return new ApplicationProperties();
-        }
-
-        @Bean
-        public WhitelistedAccountReportAccessService reportAccessService() {
-            return mock(WhitelistedAccountReportAccessService.class);
-        }
-    }
-
-    protected static class StubResource {
-        @SubscriptionWatchAdminOnly
-        public void adminOnlyCall() {
-            // Does nothing
-        }
-    }
+    @MockBean
+    WhitelistedAccountReportAccessService reportAccessService;
 
     @Test
     @WithMockRedHatPrincipal(value = "NotAnAdmin", roles = {})

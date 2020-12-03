@@ -1,0 +1,7 @@
+rhsm-subscriptions:
+  tally-retention-policy:
+    daily: ${TALLY_RETENTION_DAILY:37}
+    weekly: ${TALLY_RETENTION_WEEKLY:12}
+    monthly: ${TALLY_RETENTION_MONTHLY:12}
+    quarterly: ${TALLY_RETENTION_QUARTERLY:16}
+    yearly: ${TALLY_RETENTION_YEARLY:5}

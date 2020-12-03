@@ -22,6 +22,9 @@
 package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
+import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,8 +32,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.Order;
@@ -49,8 +55,11 @@ import org.springframework.security.web.csrf.CsrfFilter;
 /**
  * Holder class for security configurations
  */
+@Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
+@Import(RhsmSubscriptionsDataSourceConfiguration.class) // for opt-in check
+@ComponentScan(basePackages = "org.candlepin.subscriptions.security")
 public class SecurityConfig {
     public static final Marker SECURITY_STACKTRACE = MarkerFactory.getMarker("SECURITY_STACKTRACE");
 
@@ -115,6 +124,18 @@ public class SecurityConfig {
             return new RbacService();
         }
 
+        @Bean
+        @Qualifier("rbac")
+        @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
+        public HttpClientProperties rbacServiceProperties() {
+            return new HttpClientProperties();
+        }
+
+        @Bean
+        public RbacApiFactory rbacApiFactory(@Qualifier("rbac") HttpClientProperties props) {
+            return new RbacApiFactory(props);
+        }
+
         // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application filter
         public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() throws Exception {
             IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
@@ -153,7 +174,7 @@ public class SecurityConfig {
         @Override
         protected void configure(HttpSecurity http) throws Exception {
             String apiPath = env.getRequiredProperty(
-                "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions");
+                "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions.resteasy");
             http
                 .addFilter(identityHeaderAuthenticationFilter())
                 .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
