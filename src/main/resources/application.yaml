@@ -41,6 +41,7 @@ spring:
       - capacity-ingress
       - rhsm-conduit
       - worker
+      - metering-worker
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
   kafka:

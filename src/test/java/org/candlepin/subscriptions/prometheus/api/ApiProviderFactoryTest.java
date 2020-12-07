@@ -24,12 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.http.HttpClientProperties;
-import org.candlepin.subscriptions.prometheus.api.ApiProvider;
-import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
-import org.candlepin.subscriptions.prometheus.api.ApiProviderImpl;
-import org.candlepin.subscriptions.prometheus.api.StubApiProvider;
 
 import org.junit.jupiter.api.Test;
+
 
 public class ApiProviderFactoryTest {
 

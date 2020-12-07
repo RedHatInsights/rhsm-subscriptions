@@ -51,17 +51,17 @@ paths:
         schema:
           type: string
       - name: start
-        description: "Start timestamp."
+        description: "Start Date (linux timestamp)."
         in: query
         schema:
-          type: string
-          format: date-time
+          type: integer
+          format: int64
       - name: end
-        description: "End timestamp"
+        description: "End Date (linux timestamp)."
         in: query
         schema:
-          type: string
-          format: date-time
+          type: integer
+          format: int64
       - name: step
         description: "Query resolution step width in duration format or float number of seconds."
         in: query
@@ -71,7 +71,7 @@ paths:
         description: "Evaluation timeout. Optional. Defaults to and is capped by the value of the -query.timeout flag."
         in: query
         schema:
-          type: string
+          type: integer
     get:
       summary: "Evaluates an instant query at a single point in time"
       operationId: "QueryRange"

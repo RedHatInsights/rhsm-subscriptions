@@ -23,10 +23,9 @@ package org.candlepin.subscriptions.prometheus.api;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 
-import java.time.OffsetDateTime;
 
 /**
- * A Telemeter API implementation that returns stubbed data.
+ * A prometheus Query API provider that returns stubbed data.
  */
 public class StubApiProvider implements ApiProvider {
 

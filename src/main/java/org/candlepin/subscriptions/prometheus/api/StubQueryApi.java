@@ -22,9 +22,12 @@ package org.candlepin.subscriptions.prometheus.api;
 
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultData;
+import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 
 /**
  * A class that stubs out the QueryAPI endpoint calls.
@@ -33,9 +36,9 @@ public class StubQueryApi extends QueryApi {
 
     @Override
     public QueryResult query(String query, OffsetDateTime time, Integer timeout) throws ApiException {
-        // TODO Fill out with more realistic data once we start using the API.
-        // TODO Consider using a builder pattern here for setting stub response data.
-        return new QueryResult();
+        return new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().result(Arrays.asList()));
     }
 
 }

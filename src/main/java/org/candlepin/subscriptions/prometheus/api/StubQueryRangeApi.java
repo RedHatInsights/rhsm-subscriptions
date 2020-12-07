@@ -22,18 +22,24 @@ package org.candlepin.subscriptions.prometheus.api;
 
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultData;
+import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 
-import java.time.OffsetDateTime;
+import java.util.Arrays;
 
+
+/**
+ * A class that stubs out the QueryRangeAPI endpoint calls.
+ */
 public class StubQueryRangeApi extends QueryRangeApi {
 
     @Override
-    public QueryResult queryRange(String query, OffsetDateTime start, OffsetDateTime end, String step,
-                                  String timeout) throws ApiException {
-        // TODO Fill out with more realistic data once we start using the API.
-        // TODO Consider using a builder pattern here for setting stub response data.
-        return new QueryResult();
+    public QueryResult queryRange(String query, Long start, Long end, String step,
+        Integer timeout) throws ApiException {
+        return new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().result(Arrays.asList()));
     }
 
 }
