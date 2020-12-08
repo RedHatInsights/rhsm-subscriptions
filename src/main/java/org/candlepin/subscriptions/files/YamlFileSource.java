@@ -53,7 +53,7 @@ public abstract class YamlFileSource<T> implements ResourceLoaderAware {
     public T getValue() throws IOException {
         if (cachedValue.isExpired()) {
             try (InputStream s = fileResource.getInputStream()) {
-                T value = new Yaml().load(s);
+                T value = parse(s);
                 if (value == null) {
                     return getDefault();
                 }
@@ -61,6 +61,15 @@ public abstract class YamlFileSource<T> implements ResourceLoaderAware {
             }
         }
         return cachedValue.getValue();
+    }
+
+    /**
+     * Allow subclasses to redefine how the YAML for type T is deserialized
+     * @param s InputStream with the YAML
+     * @return an object of type T constructed from the YAML in InputStream s
+     */
+    protected T parse(InputStream s) {
+        return new Yaml().load(s);
     }
 
     protected abstract T getDefault();

@@ -1,0 +1,17 @@
+name: RHELProducts
+productIds:
+  - 68   # Red Hat Enterprise Linux Desktop
+  - 69   # Red Hat Enterprise Linux Server
+  - 71   # Red Hat Enterprise Linux Workstation
+  - 72   # Red Hat Enterprise Linux for IBM z Systems
+  - 74   # Red Hat Enterprise Linux for Power, big endian
+  - 76   # Red Hat Enterprise Linux for Scientific Computing
+  - 279  # Red Hat Enterprise Linux for Power, little endian
+  - 290  # Red Hat OpenShift Container Platform
+  - 419  # Red Hat Enterprise Linux for ARM 64
+  - 420  # Red Hat Enterprise Linux for Power 9
+  - 479  # Red Hat Enterprise Linux for x86_64 (RHEL8)
+  - 250  # Red Hat Satellite
+  - 269  # Red Hat Satellite Capsule
+finestGranularity: DAILY
+burstable: false
