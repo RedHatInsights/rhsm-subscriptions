@@ -28,3 +28,5 @@
 bin
 .vscode
 .editorconfig
+
+.attach_pid*
