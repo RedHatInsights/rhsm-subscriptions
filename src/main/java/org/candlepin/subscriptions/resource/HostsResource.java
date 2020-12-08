@@ -29,7 +29,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
-import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.ReportLinks;
@@ -125,7 +124,7 @@ public class HostsResource implements HostsApi {
         return new HostReport()
             .links(links)
             .meta(
-                new HostReportMeta()
+                new ReportMetadata()
                     .count((int) hosts.getTotalElements())
                     .product(productId)
                     .serviceLevel(sla)
