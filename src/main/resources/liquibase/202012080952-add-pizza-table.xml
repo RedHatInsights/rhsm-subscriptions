@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202012080952-1" author="lburnett" dbms="postgresql">
+        <comment>Create pizza, topping, and pizza_topping table and relationship</comment>
+        <sql>
+            CREATE TABLE pizza (id UUID NOT NULL, creation_date TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+            customer_name CHARACTER VARYING(255) NOT NULL, CONSTRAINT pk_pizza PRIMARY KEY (id));
+
+            CREATE TABLE pizza_topping (pizza_id UUID NOT NULL, topping_id UUID NOT NULL, CONSTRAINT
+            pizzatopping_ix1 UNIQUE (pizza_id, topping_id));
+
+            CREATE TABLE toppings (id UUID NOT NULL, topping_name CHARACTER VARYING(255) NOT NULL, CONSTRAINT
+            pk_topping PRIMARY KEY (id));
+
+            ALTER TABLE pizza_topping ADD CONSTRAINT pizzatopping_fk1 FOREIGN KEY ("pizza_id") REFERENCES
+            "pizza" ("id");
+
+            ALTER TABLE pizza_topping ADD CONSTRAINT pizzatopping_fk2 FOREIGN KEY ("topping_id") REFERENCES
+            "toppings" ("id");
+        </sql>
+    </changeSet>
+
+    <changeSet id="202012080952-2" author="lburnett" dbms="postgresql">
+        <comment>Insert available pizza toppings</comment>
+        <loadData
+            file="./liquibase/data/toppings.csv"
+            tableName="toppings">
+            <column
+                header="id"
+                name="id"
+                type="UUID"
+            />
+            <column
+                header="topping"
+                name="topping_name"
+                type="STRING"
+            />
+        </loadData>
+    </changeSet>
+
+</databaseChangeLog>
+    <!-- vim: set expandtab sts=4 sw=4 ai: -->

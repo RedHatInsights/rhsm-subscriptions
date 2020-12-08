@@ -32,5 +32,6 @@
     <include file="liquibase/202009211317-add-additional-host-fields.xml" />
     <include file="liquibase/202010080931-fix-capacity-unspecified.xml" />
     <include file="liquibase/202011090921-re-add-hypervisor-type.xml" />
+    <include file="liquibase/202012080952-add-pizza-table.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
