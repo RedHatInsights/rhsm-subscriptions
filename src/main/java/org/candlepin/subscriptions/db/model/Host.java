@@ -39,6 +39,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
 
 /**
  * Represents a reported Host from inventory. This entity stores normalized facts for a
@@ -52,16 +53,19 @@ public class Host implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "inventory_id")
+    @NotNull
+    @Column(name = "inventory_id", nullable = false)
     private String inventoryId;
 
     @Column(name = "insights_id")
     private String insightsId;
 
-    @Column(name = "display_name")
+    @NotNull
+    @Column(name = "display_name", nullable = false)
     private String displayName;
 
-    @Column(name = "account_number")
+    @NotNull
+    @Column(name = "account_number", nullable = false)
     private String accountNumber;
 
     @Column(name = "org_id")

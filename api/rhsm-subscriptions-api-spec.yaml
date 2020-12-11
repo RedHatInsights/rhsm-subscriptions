@@ -424,6 +424,13 @@ paths:
           schema:
             $ref: '#/components/schemas/Uom'
           description: "Filter hosts to those that contribute to a specific unit of measure"
+        - name: display_name_contains
+          description: Include only hosts containing the specified display name. Passing an empty string behaves the same way as passing null
+          schema:
+            type: string
+            #Default to empty string to prevent complex jpql statement later
+            default: ''
+          in: query
         - name: sort
           in: query
           schema:
