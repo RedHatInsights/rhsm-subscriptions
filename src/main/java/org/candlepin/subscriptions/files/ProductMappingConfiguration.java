@@ -26,6 +26,6 @@ import org.springframework.context.annotation.ComponentScan;
  * Configuration that provides the product ID to product map.
  */
 @ComponentScan(basePackages = "org.candlepin.subscriptions.files")
-public class ProductIdMappingConfiguration {
+public class ProductMappingConfiguration {
     /* Intentionally empty */
 }
