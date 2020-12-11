@@ -85,7 +85,7 @@ public abstract class SnapshotTimeAdjuster {
             case QUARTERLY:
                 return new QuarterlyTimeAdjuster(clock);
             default:
+                throw new IllegalArgumentException(String.format("Unsupported granularity: %s", granularity));
         }
-        throw new IllegalArgumentException("Unsupported granularity: " + granularity);
     }
 }

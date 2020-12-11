@@ -60,6 +60,11 @@ public class TallyRetentionPolicy {
     public OffsetDateTime getCutoffDate(Granularity granularity) {
         OffsetDateTime today = OffsetDateTime.now(applicationClock.getClock()).truncatedTo(ChronoUnit.DAYS);
         switch (granularity) {
+            case HOURLY:
+                if (config.getHourly() == null) {
+                    return null;
+                }
+                return applicationClock.startOfCurrentHour().minusHours(config.getHourly());
             case DAILY:
                 if (config.getDaily() == null) {
                     return null;

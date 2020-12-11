@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.FactoryBean;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -33,10 +34,11 @@ import java.io.InputStream;
 /**
  * Class to load product profile registry used to define how capacities and tallies are calculated.
  */
-public class ProductProfileRegistrySource extends YamlFileSource<ProductProfileRegistry> {
+public class ProductProfileRegistrySource extends YamlFileSource<ProductProfileRegistry>
+    implements FactoryBean<ProductProfileRegistry> {
     private static final Logger log = LoggerFactory.getLogger(ProductProfileRegistrySource.class);
 
-    protected ProductProfileRegistrySource(ApplicationProperties properties, ApplicationClock clock) {
+    public ProductProfileRegistrySource(ApplicationProperties properties, ApplicationClock clock) {
         super(properties.getProductProfileRegistryResourceLocation(), clock.getClock(),
             properties.getProductProfileListCacheTtl());
     }
@@ -59,5 +61,20 @@ public class ProductProfileRegistrySource extends YamlFileSource<ProductProfileR
             }
         }
         return registry;
+    }
+
+    @Override
+    public ProductProfileRegistry getObject() throws Exception {
+        return getValue();
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return ProductProfileRegistry.class;
+    }
+
+    @Override
+    public boolean isSingleton() {
+        return false;
     }
 }

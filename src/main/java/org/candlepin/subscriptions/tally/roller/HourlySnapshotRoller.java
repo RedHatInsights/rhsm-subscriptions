@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.candlepin.subscriptions.db.model.Granularity.*;
+
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -44,8 +46,9 @@ import java.util.Map;
 public class HourlySnapshotRoller extends BaseSnapshotRoller {
     private static final Logger log = LoggerFactory.getLogger(HourlySnapshotRoller.class);
 
-    public HourlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        super(tallyRepo, clock);
+    public HourlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ProductProfileRegistry registry) {
+        super(tallyRepo, clock, registry);
     }
 
     @Override
@@ -54,9 +57,9 @@ public class HourlySnapshotRoller extends BaseSnapshotRoller {
         log.debug("Producing hourly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> existingSnapsForTheHour = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), Granularity.HOURLY, clock.startOfCurrentHour(),
+            getApplicableProducts(accountCalcs, HOURLY), HOURLY, clock.startOfCurrentHour(),
             clock.endOfCurrentHour());
 
-        updateSnapshots(accountCalcs, existingSnapsForTheHour, Granularity.HOURLY);
+        updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
     }
 }

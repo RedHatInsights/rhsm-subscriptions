@@ -21,7 +21,9 @@
 package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.HourlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.MonthlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.QuarterlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.WeeklySnapshotRoller;
@@ -44,6 +46,7 @@ public class UsageSnapshotProducer {
 
     private static final Logger log = LoggerFactory.getLogger(UsageSnapshotProducer.class);
 
+    private final HourlySnapshotRoller hourlyRoller;
     private final DailySnapshotRoller dailyRoller;
     private final WeeklySnapshotRoller weeklyRoller;
     private final MonthlySnapshotRoller monthlyRoller;
@@ -52,17 +55,20 @@ public class UsageSnapshotProducer {
 
     @SuppressWarnings("squid:S00107")
     @Autowired
-    public UsageSnapshotProducer(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
-        weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
-        monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);
-        yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock);
-        quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock);
+    public UsageSnapshotProducer(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ProductProfileRegistry registry) {
+        hourlyRoller = new HourlySnapshotRoller(tallyRepo, clock, registry);
+        dailyRoller = new DailySnapshotRoller(tallyRepo, clock, registry);
+        weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock, registry);
+        monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock, registry);
+        yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock, registry);
+        quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock, registry);
     }
 
     @Transactional
     public void produceSnapshotsFromCalculations(Collection<String> accounts,
         Collection<AccountUsageCalculation> accountCalcs) {
+        hourlyRoller.rollSnapshots(accounts, accountCalcs);
         dailyRoller.rollSnapshots(accounts, accountCalcs);
         weeklyRoller.rollSnapshots(accounts, accountCalcs);
         monthlyRoller.rollSnapshots(accounts, accountCalcs);

@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
@@ -54,12 +55,15 @@ public abstract class BaseSnapshotRoller {
 
     private static final Logger log = LoggerFactory.getLogger(BaseSnapshotRoller.class);
 
-    protected  TallySnapshotRepository tallyRepo;
+    protected TallySnapshotRepository tallyRepo;
     protected ApplicationClock clock;
+    protected final ProductProfileRegistry productProfileRegistry;
 
-    protected BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    protected BaseSnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ProductProfileRegistry registry) {
         this.tallyRepo = tallyRepo;
         this.clock = clock;
+        this.productProfileRegistry = registry;
     }
 
     /**
@@ -103,16 +107,20 @@ public abstract class BaseSnapshotRoller {
 
     protected OffsetDateTime getSnapshotDate(Granularity granularity) {
         switch (granularity) {
-            case QUARTERLY:
-                return clock.startOfCurrentQuarter();
+            case HOURLY:
+                return clock.startOfCurrentHour();
+            case DAILY:
+                return clock.startOfToday();
             case WEEKLY:
                 return clock.startOfCurrentWeek();
             case MONTHLY:
                 return clock.startOfCurrentMonth();
+            case QUARTERLY:
+                return clock.startOfCurrentQuarter();
             case YEARLY:
                 return clock.startOfCurrentYear();
             default:
-                return clock.now();
+                throw new IllegalArgumentException(String.format("Unsupported granularity: %s", granularity));
         }
     }
 
@@ -157,15 +165,26 @@ public abstract class BaseSnapshotRoller {
         tallyRepo.saveAll(snaps);
     }
 
-    protected Set<String> getApplicableProducts(Collection<AccountUsageCalculation> accountCalcs) {
+    protected Set<String> getApplicableProducts(Collection<AccountUsageCalculation> accountCalcs,
+        Granularity rollerGranularity) {
         Set<String> prods = new HashSet<>();
-        accountCalcs.forEach(calc -> prods.addAll(calc.getProducts()));
+
+        for (AccountUsageCalculation calc : accountCalcs) {
+            Stream<String> prodStream = calc.getProducts().stream();
+            Set<String> matchingProds = prodStream
+                .filter(p -> productProfileRegistry.findProfile(p).supportsGranularity(rollerGranularity))
+                .collect(Collectors.toSet());
+            prods.addAll(matchingProds);
+        }
+
         return prods;
     }
 
     private boolean updateMaxValues(TallySnapshot snap, UsageCalculation calc) {
         boolean changed = false;
-        boolean overrideMaxCheck = Granularity.DAILY.equals(snap.getGranularity());
+        Granularity finestGranularity =
+            productProfileRegistry.findProfile(snap.getProductId()).getFinestGranularity();
+        boolean overrideMaxCheck = finestGranularity.equals(snap.getGranularity());
 
         for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
             changed |= updateTotals(overrideMaxCheck, snap, type, calc);

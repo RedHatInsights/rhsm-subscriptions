@@ -20,11 +20,13 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -35,7 +37,6 @@ import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
@@ -51,6 +52,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import javax.ws.rs.core.Response;
 
@@ -86,7 +88,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
             eq(min),
@@ -94,7 +96,7 @@ class CapacityResourceTest {
         )).thenReturn(Collections.singletonList(capacity));
 
         CapacityReport report = resource
-            .getCapacityReport(ProductId.RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+            .getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
 
         assertEquals(9, report.getData().size());
     }
@@ -106,14 +108,14 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(ServiceLevel.PREMIUM),
             eq(Usage._ANY),
             eq(min),
             eq(max)
         )).thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(ProductId.RHEL,
+        CapacityReport report = resource.getCapacityReport(RHEL,
             GranularityType.DAILY,
             min,
             max,
@@ -133,14 +135,14 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage.PRODUCTION),
             eq(min),
             eq(max)
         )).thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(ProductId.RHEL,
+        CapacityReport report = resource.getCapacityReport(RHEL,
             GranularityType.DAILY,
             min,
             max,
@@ -160,14 +162,14 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
             eq(min),
             eq(max)
         )).thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(ProductId.RHEL,
+        CapacityReport report = resource.getCapacityReport(RHEL,
             GranularityType.DAILY,
             min,
             max,
@@ -187,14 +189,14 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
             eq(min),
             eq(max)
         )).thenReturn(Collections.singletonList(capacity));
 
-        CapacityReport report = resource.getCapacityReport(ProductId.RHEL,
+        CapacityReport report = resource.getCapacityReport(RHEL,
             GranularityType.DAILY,
             min,
             max,
@@ -226,7 +228,7 @@ class CapacityResourceTest {
         capacity2.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(null),
             eq(null),
             eq(min),
@@ -234,7 +236,7 @@ class CapacityResourceTest {
         )).thenReturn(Arrays.asList(capacity, capacity2));
 
         CapacityReport report = resource
-            .getCapacityReport(ProductId.RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+            .getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
 
         CapacitySnapshot capacitySnapshot = report.getData().get(0);
         assertEquals(12, capacitySnapshot.getHypervisorSockets().intValue());
@@ -247,7 +249,7 @@ class CapacityResourceTest {
     void testShouldThrowExceptionOnBadOffset() {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> {
             resource
-                .getCapacityReport(ProductId.RHEL, GranularityType.DAILY, min, max, 11, 10, null, null);
+                .getCapacityReport(RHEL, GranularityType.DAILY, min, max, 11, 10, null, null);
         });
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
     }
@@ -259,7 +261,7 @@ class CapacityResourceTest {
         capacity.setEndDate(max);
 
         when(repository.findByOwnerAndProductId(eq("owner123456"),
-            eq(ProductId.RHEL.toString()),
+            eq(RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
             eq(min),
@@ -267,7 +269,7 @@ class CapacityResourceTest {
         )).thenReturn(Collections.singletonList(capacity));
 
         CapacityReport report = resource
-            .getCapacityReport(ProductId.RHEL, GranularityType.DAILY, min, max, 1, 1, null, null);
+            .getCapacityReport(RHEL, GranularityType.DAILY, min, max, 1, 1, null, null);
 
         assertEquals(1, report.getData().size());
         assertEquals(OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
@@ -279,7 +281,7 @@ class CapacityResourceTest {
     @WithMockRedHatPrincipal("1111")
     public void testAccessDeniedWhenAccountIsNotWhitelisted() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getCapacityReport(ProductId.RHEL,
+            resource.getCapacityReport(RHEL,
                 GranularityType.DAILY,
                 min,
                 max,
@@ -295,7 +297,7 @@ class CapacityResourceTest {
     @WithMockRedHatPrincipal(value = "123456", roles = {})
     public void testAccessDeniedWhenUserIsNotAnAdmin() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getCapacityReport(ProductId.RHEL,
+            resource.getCapacityReport(RHEL,
                 GranularityType.DAILY,
                 min,
                 max,
@@ -305,5 +307,29 @@ class CapacityResourceTest {
                 null
             );
         });
+    }
+
+    @Test
+    void testGetCapacitiesWeekly() {
+        SubscriptionCapacity capacity = new SubscriptionCapacity();
+        OffsetDateTime begin = OffsetDateTime.parse("2020-12-03T10:15:30+00:00");
+        OffsetDateTime end = OffsetDateTime.parse("2020-12-17T10:15:30+00:00");
+        capacity.setBeginDate(begin);
+        capacity.setEndDate(end);
+
+        when(repository.findByOwnerAndProductId("owner123456",
+            RHEL.toString(),
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            begin,
+            end
+        )).thenReturn(Collections.singletonList(capacity));
+
+        List<CapacitySnapshot> actual = resource.getCapacities("owner123456", RHEL,
+            ServiceLevel.STANDARD, Usage.PRODUCTION, Granularity.WEEKLY, begin, end);
+
+        // Add one because we generate reports including both endpoints on the timeline
+        long expected = ChronoUnit.WEEKS.between(begin, end) + 1;
+        assertEquals(expected, actual.size());
     }
 }

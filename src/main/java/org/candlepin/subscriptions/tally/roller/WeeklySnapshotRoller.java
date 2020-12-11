@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.candlepin.subscriptions.db.model.Granularity.*;
+
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -46,8 +48,9 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
 
     private static final Logger log = LoggerFactory.getLogger(WeeklySnapshotRoller.class);
 
-    public WeeklySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        super(tallyRepo, clock);
+    public WeeklySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ProductProfileRegistry registry) {
+        super(tallyRepo, clock, registry);
     }
 
     @Override
@@ -56,10 +59,10 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
         log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentForWeek = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), Granularity.WEEKLY, clock.startOfCurrentWeek(),
+            getApplicableProducts(accountCalcs, WEEKLY), WEEKLY, clock.startOfCurrentWeek(),
             clock.endOfCurrentWeek());
 
-        updateSnapshots(accountCalcs, currentForWeek, Granularity.WEEKLY);
+        updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
     }
 
 }

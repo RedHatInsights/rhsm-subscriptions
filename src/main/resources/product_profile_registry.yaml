@@ -11,6 +11,11 @@ productIds:
   - 419  # Red Hat Enterprise Linux for ARM 64
   - 420  # Red Hat Enterprise Linux for Power 9
   - 479  # Red Hat Enterprise Linux for x86_64 (RHEL8)
+finestGranularity: DAILY
+burstable: false
+---
+name: SatelliteProducts
+productIds:
   - 250  # Red Hat Satellite
   - 269  # Red Hat Satellite Capsule
 finestGranularity: DAILY

@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 
-public class ApplicationClockTest {
+class ApplicationClockTest {
 
     private ApplicationClock clock;
 
@@ -163,14 +163,14 @@ public class ApplicationClockTest {
     }
 
     @Test
-    public void testStartOfCurrentHour() {
+    void testStartOfCurrentHour() {
         // 2019-5-24 12:35:00 UTC
         assertDate(2019, 5, 24, 12, 0, 0, 0,
             clock.startOfCurrentHour());
     }
 
     @Test
-    public void testEndOfCurrentHour() {
+    void testEndOfCurrentHour() {
         // 2019-5-24 12:35:00 UTC
         assertDate(2019, 5, 24, 12, 59, 59, 999_999_999, clock.endOfCurrentHour());
     }

@@ -31,7 +31,7 @@ import org.springframework.core.io.FileSystemResourceLoader;
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class ProductProfileRegistrySourceTest {
+class ProductProfileRegistrySourceTest {
 
     @Test
     void deserializesYaml() throws Exception {

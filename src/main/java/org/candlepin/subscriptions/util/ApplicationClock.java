@@ -159,7 +159,7 @@ public class ApplicationClock {
      * @return an OffsetDateTime representing the final nanosecond in toAdjust's hour.
      */
     public OffsetDateTime endOfHour(OffsetDateTime toAdjust) {
-        return toAdjust.with((temporal) -> temporal
+        return toAdjust.with(temporal -> temporal
             .with(ChronoField.MINUTE_OF_HOUR, temporal.range(ChronoField.MINUTE_OF_HOUR).getMaximum())
             .with(ChronoField.SECOND_OF_MINUTE, temporal.range(ChronoField.SECOND_OF_MINUTE).getMaximum())
             .with(ChronoField.NANO_OF_SECOND, temporal.range(ChronoField.NANO_OF_SECOND).getMaximum()));

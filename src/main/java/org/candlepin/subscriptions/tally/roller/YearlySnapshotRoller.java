@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.candlepin.subscriptions.db.model.Granularity.*;
+
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -46,8 +48,9 @@ public class YearlySnapshotRoller extends BaseSnapshotRoller {
 
     private static final Logger log = LoggerFactory.getLogger(YearlySnapshotRoller.class);
 
-    public YearlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        super(tallyRepo, clock);
+    public YearlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ProductProfileRegistry registry) {
+        super(tallyRepo, clock, registry);
     }
 
     @Override
@@ -56,10 +59,10 @@ public class YearlySnapshotRoller extends BaseSnapshotRoller {
         log.debug("Producing yearly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentYearlySnaps = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), Granularity.YEARLY, clock.startOfCurrentYear(),
+            getApplicableProducts(accountCalcs, YEARLY), YEARLY, clock.startOfCurrentYear(),
             clock.endOfCurrentYear());
 
-        updateSnapshots(accountCalcs, currentYearlySnaps, Granularity.YEARLY);
+        updateSnapshots(accountCalcs, currentYearlySnaps, YEARLY);
     }
 
 }

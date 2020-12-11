@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
+import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 
 import org.springframework.context.annotation.ComponentScan;
@@ -36,7 +37,8 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("api")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.resource")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
+@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class,
+    ProductMappingConfiguration.class })
 public class ApiConfiguration {
     /* Intentionally empty */
 }

@@ -115,6 +115,10 @@ public class ProductProfile {
         return StringUtils.hasText(prometheusCounterName) || StringUtils.hasText(prometheusMetricName);
     }
 
+    public boolean supportsGranularity(Granularity granularity) {
+        return granularity.compareTo(finestGranularity) < 1;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

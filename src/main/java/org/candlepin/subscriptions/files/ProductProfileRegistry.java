@@ -64,7 +64,11 @@ public class ProductProfileRegistry {
     }
 
     public ProductProfile findProfile(String productId) {
-        return profileMap.getOrDefault(productId, ProductProfile.getDefault());
+        if (profileMap.containsKey(productId)) {
+            return profileMap.get(productId);
+        }
+        log.debug("Product {} not found in product profile registry. Returning default.", productId);
+        return ProductProfile.getDefault();
     }
 
     public Set<String> listProfiles() {

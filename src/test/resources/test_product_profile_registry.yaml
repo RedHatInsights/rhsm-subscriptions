@@ -10,7 +10,7 @@ prometheusCounterName: counterName
 ---
 name: OpenshiftProduct
 productIds:
-  - abc
-  - def
-  - ghi
+  - openshift_hourly_1
+  - openshift_hourly_2
+  - openshift_hourly_3
 finestGranularity: HOURLY
