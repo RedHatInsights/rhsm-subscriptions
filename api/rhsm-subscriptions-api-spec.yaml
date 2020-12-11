@@ -161,7 +161,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/ProductId'
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -183,17 +183,17 @@ paths:
           in: query
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/GranularityType'
           description: "The level of granularity to return."
         - name: sla
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/ServiceLevelType'
           description: "Include only snapshots matching the specified service level."
         - name: usage
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/UsageType'
           description: "Include only snapshots matching the specified usage."
         - name: beginning
           in: query
@@ -261,7 +261,7 @@ paths:
                 meta:
                   count: 10
                   product: RHEL
-                  granularity: DAILY
+                  granularity: Daily
                   service_level: Premium
                   usage: Production
         '400':
@@ -281,7 +281,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/ProductId'
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -302,17 +302,17 @@ paths:
           in: query
           required: true
           schema:
-            type: string
+            $ref: '#/components/schemas/GranularityType'
           description: "The level of granularity to return."
         - name: sla
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/ServiceLevelType'
           description: "Include only capacity for the specified service level."
         - name: usage
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/UsageType'
           description: "Include only capacity for the specified usage level."
         - name: beginning
           in: query
@@ -372,7 +372,7 @@ paths:
                 meta:
                   count: 10
                   product: RHEL
-                  granularity: DAILY
+                  granularity: Daily
                   service_level: Premium
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -391,7 +391,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/ProductId'
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -412,12 +412,12 @@ paths:
         - name: sla
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/ServiceLevelType'
           description: "Include only hosts for the specified service level."
         - name: usage
           in: query
           schema:
-            type: string
+            $ref: '#/components/schemas/UsageType'
           description: "Include only hosts for the specified usage level."
         - name: uom
           in: query
@@ -654,6 +654,31 @@ components:
           schema:
             $ref: "#/components/schemas/Errors"
   schemas:
+    # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
+    GranularityType:
+      type: string
+      enum: [ Daily, Weekly, Monthly, Quarterly, Yearly ]
+    ServiceLevelType:
+      type: string
+      enum: [ "", Premium, Standard, Self-Support, _ANY ]
+    UsageType:
+      type: string
+      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    ProductId:
+      type: string
+      enum:
+        - OpenShift Container Platform
+        - RHEL
+        - RHEL Compute Node
+        - RHEL Desktop
+        - RHEL for ARM
+        - RHEL for IBM Power
+        - RHEL for IBM z
+        - RHEL for x86
+        - RHEL Server
+        - RHEL Workstation
+        - Satellite 6
+        - Satellite 6 Capsule
     Uom:
       type: string
       enum:
@@ -777,20 +802,20 @@ components:
             count:
               type: integer
             product:
-              type: string
+              $ref: '#/components/schemas/ProductId'
             service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
               description: "Describes the service level that the report was made against. Not set if it wasn't
                 specified as a query parameter."
-              type: string
             usage:
+              $ref: '#/components/schemas/UsageType'
               description: "Describes the usage that the report was made against. Not set if it wasn't
                             specified as a query parameter."
-              type: string
             granularity:
+              $ref: '#/components/schemas/GranularityType'
               description: "Describes the significance of each date in the TallySnapshot list. For example if the
-                granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
-                seven day period."
-              type: string
+                              granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
+                              seven day period."
           required:
             - count
             - product
@@ -919,20 +944,20 @@ components:
             count:
               type: integer
             product:
-              type: string
+              $ref: '#/components/schemas/ProductId'
             granularity:
+              $ref: '#/components/schemas/GranularityType'
               description: "Describes the significance of each date in the CapacitySnapshot list. For example if the
                 granularity is set to 'weekly', the dates in the CapacitySnapshot list will represent the start of a
                 seven day period."
-              type: string
             service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
               description: "Describes the service level that the report was made against. Not set if it wasn't
                 specified as a query parameter."
-              type: string
             usage:
+              $ref: '#/components/schemas/UsageType'
               description: "Describes the usages that the report was made against. Not set if it wasn't
                specified as a query parameter."
-              type: string
           required:
             - count
             - product
@@ -1018,15 +1043,16 @@ components:
             count:
               type: integer
             product:
-              type: string
+              $ref: '#/components/schemas/ProductId'
             service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
               description: "Describes the service level that the report was made against. Not set if it wasn't
                     specified as a query parameter."
               type: string
             usage:
+              $ref: '#/components/schemas/UsageType'
               description: "Describes the usages that the report was made against. Not set if it wasn't
                    specified as a query parameter."
-              type: string
             uom:
               $ref: '#/components/schemas/Uom'
           required:

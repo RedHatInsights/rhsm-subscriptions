@@ -103,8 +103,8 @@ public class TallySnapshotRepositoryTest {
     @SuppressWarnings("linelength")
     @Test
     public void testFindByEmptyServiceLevelAndUsage() {
-        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, ServiceLevel.UNSPECIFIED,
-            Usage.UNSPECIFIED, 1111, 111, 11, NOWISH);
+        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, ServiceLevel.EMPTY,
+            Usage.EMPTY, 1111, 111, 11, NOWISH);
 
         repository.saveAll(Arrays.asList(t1));
         repository.flush();
@@ -114,8 +114,8 @@ public class TallySnapshotRepositoryTest {
             "A1",
             "P1",
             Granularity.DAILY,
-            ServiceLevel.UNSPECIFIED,
-            Usage.UNSPECIFIED,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
             LONG_AGO,
             FAR_FUTURE,
             PageRequest.of(0, 10))

@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 
@@ -51,122 +52,142 @@ import java.util.Collections;
 @WithMockRedHatPrincipal("123456")
 class HostsResourceTest {
 
+    static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
     @MockBean
     HostRepository repository;
-
     @MockBean
     PageLinkCreator pageLinkCreator;
-
     @MockBean
     AccountListSource accountListSource;
-
     @Autowired
     HostsResource resource;
-
-    static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
 
     @BeforeEach
     public void setup() throws AccountListSourceException {
         PageImpl<TallyHostView> mockPage = new PageImpl<>(Collections.emptyList());
-        when(repository.getTallyHostViews(any(), any(), any(), any(), anyInt(), anyInt(), any()))
-            .thenReturn(mockPage);
+        when(repository.getTallyHostViews(any(), any(), any(), any(), anyInt(), anyInt(), any())).thenReturn(
+            mockPage);
         when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
     }
 
     @Test
+    @SuppressWarnings("indentation")
     void testShouldMapDisplayNameAppropriately() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, HostReportSort.DISPLAY_NAME, SortDirection.ASC);
+        resource.getHosts(ProductId.RHEL,
+            0,
+            1,
+            null,
+            null,
+            null,
+            HostReportSort.DISPLAY_NAME,
+            SortDirection.ASC
+        );
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
-            IMPLICIT_ORDER)))
+            eq(PageRequest.of(0, 1, Sort.by(
+                Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
+                IMPLICIT_ORDER
+            )))
         );
     }
 
     @Test
     void testShouldMapCoresAppropriately() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, HostReportSort.CORES, SortDirection.ASC);
+        resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, HostReportSort.CORES, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        Sort.Order asc = Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES));
+        PageRequest pageRequest = PageRequest.of(0, 1, Sort.by(asc, IMPLICIT_ORDER));
+
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)),
-            IMPLICIT_ORDER)))
+            eq(pageRequest)
         );
     }
 
     @Test
     void testShouldMapSocketsAppropriately() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, HostReportSort.SOCKETS, SortDirection.ASC);
+        resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, HostReportSort.SOCKETS, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        Sort.Order asc = Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS));
+        PageRequest pageRequest = PageRequest.of(0, 1, Sort.by(asc, IMPLICIT_ORDER));
+
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)),
-            IMPLICIT_ORDER)))
+            eq(pageRequest)
         );
     }
 
     @Test
     void testShouldMapLastSeenAppropriately() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, HostReportSort.LAST_SEEN, SortDirection.ASC);
+        resource.getHosts(ProductId.RHEL,
+            0,
+            1,
+            null,
+            null,
+            null,
+            HostReportSort.LAST_SEEN,
+            SortDirection.ASC
+        );
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        Sort.Order asc = Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN));
+        PageRequest pageRequest = PageRequest.of(0, 1, Sort.by(asc, IMPLICIT_ORDER));
+
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)),
-            IMPLICIT_ORDER)))
+            eq(pageRequest)
         );
     }
 
     @Test
     void testShouldMapHardwareTypeAppropriately() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, HostReportSort.HARDWARE_TYPE, SortDirection.ASC);
+        resource.getHosts(ProductId.RHEL,
+            0,
+            1,
+            null,
+            null,
+            null,
+            HostReportSort.HARDWARE_TYPE,
+            SortDirection.ASC
+        );
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        Sort.Order asc = Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE));
+        PageRequest pageRequest = PageRequest.of(0, 1, Sort.by(asc, IMPLICIT_ORDER));
+
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)),
-            IMPLICIT_ORDER)))
+            eq(pageRequest)
         );
     }
 
     @Test
     void testShouldDefaultToImplicitOrder() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, null, null);
+        resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null, null);
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
@@ -175,29 +196,28 @@ class HostsResourceTest {
 
     @Test
     void testShouldDefaultToAscending() {
-        resource.getHosts("RHEL", 0, 1, null, null, null, HostReportSort.DISPLAY_NAME, null);
+        resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, HostReportSort.DISPLAY_NAME, null);
 
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        Sort.Order asc = Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME));
+        PageRequest pageRequest = PageRequest.of(0, 1, Sort.by(asc, IMPLICIT_ORDER));
+
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(0),
-            eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
-            IMPLICIT_ORDER)))
+            eq(pageRequest)
         );
     }
 
     @Test
     void testShouldUseMinCoresWhenUomIsCores() {
-        resource.getHosts("RHEL", 0, 1, null, null, Uom.CORES, null, null);
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        resource.getHosts(ProductId.RHEL, 0, 1, null, null, Uom.CORES, null, null);
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(1),
             eq(0),
             eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
@@ -206,12 +226,11 @@ class HostsResourceTest {
 
     @Test
     void testShouldUseMinSocketsWhenUomIsSockets() {
-        resource.getHosts("RHEL", 0, 1, null, null, Uom.SOCKETS, null, null);
-        verify(repository, only()).getTallyHostViews(
-            eq("account123456"),
-            eq("RHEL"),
-            eq(ServiceLevel.ANY),
-            eq(Usage.ANY),
+        resource.getHosts(ProductId.RHEL, 0, 1, null, null, Uom.SOCKETS, null, null);
+        verify(repository, only()).getTallyHostViews(eq("account123456"),
+            eq(ProductId.RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
             eq(0),
             eq(1),
             eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))

@@ -251,7 +251,7 @@ public class InventoryAccountUsageCollectorTest {
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
         checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
-        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.ANY, 16, 16, 2);
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel._ANY, 16, 16, 2);
         checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.STANDARD, 6, 6, 1);
         checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.PREMIUM, 10, 10, 1);
     }
@@ -261,11 +261,11 @@ public class InventoryAccountUsageCollectorTest {
         List<String> targetAccounts = Collections.singletonList("A1");
 
         InventoryHostFacts host1 = createRhsmHost("A1", "O1",
-            TEST_PRODUCT_ID.toString(), ServiceLevel.UNSPECIFIED, Usage.DEVELOPMENT_TEST, 6, 6, "",
+            TEST_PRODUCT_ID.toString(), ServiceLevel.EMPTY, Usage.DEVELOPMENT_TEST, 6, 6, "",
             OffsetDateTime.now());
 
         InventoryHostFacts host2 = createRhsmHost("A1", "O1",
-            TEST_PRODUCT_ID.toString(), ServiceLevel.UNSPECIFIED, Usage.PRODUCTION, 10, 10, "",
+            TEST_PRODUCT_ID.toString(), ServiceLevel.EMPTY, Usage.PRODUCTION, 10, 10, "",
             OffsetDateTime.now());
 
         mockReportedHypervisors(targetAccounts, new HashMap<>());
@@ -279,10 +279,10 @@ public class InventoryAccountUsageCollectorTest {
         AccountUsageCalculation a1Calc = calcs.get("A1");
         assertEquals(1, a1Calc.getProducts().size());
         checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
-        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.UNSPECIFIED, Usage.ANY, 16, 16, 2);
-        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.UNSPECIFIED, Usage.DEVELOPMENT_TEST,
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage._ANY, 16, 16, 2);
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage.DEVELOPMENT_TEST,
             6, 6, 1);
-        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.UNSPECIFIED, Usage.PRODUCTION,
+        checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage.PRODUCTION,
             10, 10, 1);
     }
 
@@ -505,13 +505,13 @@ public class InventoryAccountUsageCollectorTest {
 
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, int cores, int sockets, int instances) {
-        checkTotalsCalculation(calc, account, owner, product, ServiceLevel.ANY, cores, sockets, instances);
+        checkTotalsCalculation(calc, account, owner, product, ServiceLevel._ANY, cores, sockets, instances);
     }
 
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, ServiceLevel serviceLevel, int cores, int sockets, int instances) {
 
-        checkTotalsCalculation(calc, account, owner, product, serviceLevel, Usage.ANY, cores, sockets,
+        checkTotalsCalculation(calc, account, owner, product, serviceLevel, Usage._ANY, cores, sockets,
             instances);
     }
 
@@ -551,11 +551,11 @@ public class InventoryAccountUsageCollectorTest {
     }
 
     private UsageCalculation.Key createUsageKey(String product) {
-        return createUsageKey(product, ServiceLevel.ANY);
+        return createUsageKey(product, ServiceLevel._ANY);
     }
 
     private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla) {
-        return new UsageCalculation.Key(product, sla, Usage.ANY);
+        return new UsageCalculation.Key(product, sla, Usage._ANY);
     }
 
     private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla, Usage usage) {

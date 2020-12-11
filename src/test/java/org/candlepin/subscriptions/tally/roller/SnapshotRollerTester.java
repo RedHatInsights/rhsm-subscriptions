@@ -20,9 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -71,7 +69,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED,
+                TEST_PRODUCT, granularity, ServiceLevel.EMPTY, Usage.EMPTY,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
@@ -87,7 +85,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
              .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                 TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED,
+                 TEST_PRODUCT, granularity, ServiceLevel.EMPTY, Usage.EMPTY,
                  startOfGranularPeriod, endOfGranularPeriod,
                  PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
@@ -102,7 +100,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> updatedSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED,
+                TEST_PRODUCT, granularity, ServiceLevel.EMPTY, Usage.EMPTY,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
@@ -136,7 +134,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED,  Usage.UNSPECIFIED,
+                TEST_PRODUCT, granularity, ServiceLevel.EMPTY,  Usage.EMPTY,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, currentSnaps.size());
@@ -150,7 +148,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> updatedSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED,  Usage.UNSPECIFIED,
+                TEST_PRODUCT, granularity, ServiceLevel.EMPTY,  Usage.EMPTY,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(1, updatedSnaps.size());
@@ -172,14 +170,14 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
         List<TallySnapshot> currentSnaps = repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate("A1",
-                TEST_PRODUCT, granularity, ServiceLevel.UNSPECIFIED,  Usage.UNSPECIFIED,
+                TEST_PRODUCT, granularity, ServiceLevel.EMPTY,  Usage.EMPTY,
                 startOfGranularPeriod, endOfGranularPeriod,
                 PageRequest.of(0, 100)).stream().collect(Collectors.toList());
         assertEquals(0, currentSnaps.size());
     }
 
     private UsageCalculation.Key createUsageKey(String product) {
-        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
+        return new UsageCalculation.Key(product, ServiceLevel.EMPTY, Usage.EMPTY);
     }
 
     private AccountUsageCalculation createTestData() {

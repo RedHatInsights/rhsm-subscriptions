@@ -178,13 +178,13 @@ public class CandlepinPoolCapacityMapper {
 
         if (sla.isPresent()) {
             ServiceLevel slaValue = ServiceLevel.fromString(sla.get());
-            if (slaValue == ServiceLevel.UNSPECIFIED) {
+            if (slaValue == ServiceLevel.EMPTY) {
                 log.warn("Product {} has unsupported service level {}", pool.getProductId(), sla.get());
             }
             return slaValue;
         }
 
-        return ServiceLevel.UNSPECIFIED;
+        return ServiceLevel.EMPTY;
     }
 
     private Usage getUsage(CandlepinPool pool) {
@@ -194,13 +194,13 @@ public class CandlepinPoolCapacityMapper {
 
         if (usage.isPresent()) {
             Usage usageValue = Usage.fromString(usage.get());
-            if (usageValue == Usage.UNSPECIFIED) {
+            if (usageValue == Usage.EMPTY) {
                 log.warn("Product {} has unsupported usage {}", pool.getProductId(), usage.get());
             }
             return usageValue;
         }
 
-        return Usage.UNSPECIFIED;
+        return Usage.EMPTY;
     }
 
     private List<String> extractProductIds(Collection<CandlepinProvidedProduct> providedProducts) {

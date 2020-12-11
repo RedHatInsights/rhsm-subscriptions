@@ -24,8 +24,11 @@ import org.springframework.stereotype.Component;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
@@ -38,12 +41,19 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class EnumParamConverterProvider implements ParamConverterProvider {
 
+    public static final String INVALID_VALUE_EXCEPTION_MSG = "%s is not a valid value for %s";
+    private static final String PACKAGE_CONTAINING_SPECIAL_ENUMS =
+        "org.candlepin.subscriptions.utilization.api.model";
+
+    @SuppressWarnings("linelength")
     @Override
     public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
         if (!rawType.isEnum()) {
             return null;
         }
-        return new EnumParamConverter<>(rawType);
+
+        return rawType.getPackage().getName().startsWith(PACKAGE_CONTAINING_SPECIAL_ENUMS) ?
+            new EnumParamConverter<>(rawType, false) : new EnumParamConverter<>(rawType);
     }
 
     /**
@@ -53,34 +63,48 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
      */
     public static class EnumParamConverter<T> implements ParamConverter<T> {
 
-        private final Map<String, T> stringValueMap = new HashMap<>();
-        private final Class<T> clazz;
+        private final Class<T> className;
+        private final Map<String, T> stringToEnumMap;
+        private final boolean isCaseSensitive;
 
-        public EnumParamConverter(Class<T> clazz) {
-            this.clazz = clazz;
-            for (T value : clazz.getEnumConstants()) {
-                String stringValue = value.toString();
-                stringValueMap.put(stringValue, value);
-            }
+        public EnumParamConverter(Class<T> className) {
+            this(className, true);
         }
 
-        @Override
+        public EnumParamConverter(Class<T> className, boolean isCaseSensitive) {
+            this.className = className;
+            this.isCaseSensitive = isCaseSensitive;
+
+            Function<T, String> applyToStringFunction =
+                isCaseSensitive ? T::toString : t -> t.toString().toLowerCase();
+
+            stringToEnumMap = Arrays.stream(className.getEnumConstants()).collect(
+                Collectors.toMap(applyToStringFunction, value -> value));
+
+        }
+
+        public Class<T> getClassName() {
+            return className;
+        }
+
         public T fromString(String value) {
-            if (value == null) {
+            if (Objects.isNull(value)) {
                 return null;
             }
-            if (stringValueMap.containsKey(value)) {
-                return stringValueMap.get(value);
+
+            String lookupValue = isCaseSensitive ? value : value.toLowerCase();
+
+            T result = stringToEnumMap.get(lookupValue);
+            if (result != null) {
+                return result;
             }
-            throw new IllegalArgumentException(String.format("%s is not a valid value for %s", value, clazz));
+
+            throw new IllegalArgumentException(String.format(INVALID_VALUE_EXCEPTION_MSG, value, className));
         }
 
         @Override
         public String toString(T value) {
-            if (value == null) {
-                return null;
-            }
-            return value.toString();
+            return Objects.nonNull(value) ? value.toString() : null;
         }
     }
 }

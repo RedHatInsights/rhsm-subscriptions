@@ -22,9 +22,22 @@ package org.candlepin.subscriptions.db.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+
+import com.google.common.collect.Sets;
+
 import org.junit.jupiter.api.Test;
 
+import net.logstash.logback.encoder.org.apache.commons.lang.StringUtils;
+
+import java.util.Set;
+import java.util.stream.Collectors;
+
 class ServiceLevelTest {
+
+    public static final String PREMIUM_MIXED_CASE = "PreMIUm";
+    public static final String BAD_VALUE = "platinum";
+
     @Test
     void testEachValueSurvivesStringConversion() {
         ServiceLevel.EnumConverter converter = new ServiceLevel.EnumConverter();
@@ -32,5 +45,45 @@ class ServiceLevelTest {
             assertEquals(converter.convertToDatabaseColumn(sla), sla.getValue());
             assertEquals(converter.convertToEntityAttribute(sla.getValue()), sla);
         }
+    }
+
+    @Test
+    void testFromStringEmptyString() {
+        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(StringUtils.EMPTY));
+    }
+
+    @Test
+    void testFromStringInvalidValueDefaultUnspecified() {
+        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(BAD_VALUE));
+    }
+
+    @Test
+    void testFromStringNullDefaultUnspecified() {
+        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(null));
+    }
+
+    @Test
+    void testFromStringUpperCase() {
+        assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE.toUpperCase()));
+    }
+
+    @Test
+    void testFromStringLowerCase() {
+
+        assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE.toLowerCase()));
+    }
+
+    @Test
+    void testFromStringMixedCase() {
+        assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE));
+    }
+
+    @Test
+    void testAsOpenApiEnumValuesMatch() {
+        Set<ServiceLevelType> expected = Sets.newHashSet(ServiceLevelType.class.getEnumConstants());
+        Set<ServiceLevelType> actual = Sets.newHashSet(ServiceLevel.class.getEnumConstants()).stream()
+            .map(ServiceLevel::asOpenApiEnum).collect(Collectors.toSet());
+
+        assertEquals(expected, actual);
     }
 }
