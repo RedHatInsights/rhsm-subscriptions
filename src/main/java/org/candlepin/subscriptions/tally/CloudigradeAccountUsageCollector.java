@@ -113,11 +113,11 @@ public class CloudigradeAccountUsageCollector {
     private UsageCalculation.Key extractKey(UsageCount usageCount, Map<String, String> archToProductMap,
         Map<String, List<String>> roleToProductsMap) {
         String productId = extractProductId(usageCount, archToProductMap, roleToProductsMap);
-        ServiceLevel sla = ServiceLevel.fromDbString(usageCount.getSla());
-        Usage usage = Usage.fromDbString(usageCount.getUsage());
+        ServiceLevel sla = ServiceLevel.fromString(usageCount.getSla());
+        Usage usage = Usage.fromString(usageCount.getUsage());
         // FIXME cloudigrade does report usage yet, workaround below
         if (usageCount.getUsage() == null) {
-            usage = Usage.ANY;
+            usage = Usage._ANY;
         }
         return new UsageCalculation.Key(productId, sla, usage);
     }

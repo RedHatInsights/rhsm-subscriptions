@@ -29,9 +29,13 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 
 import org.springframework.data.domain.Page;
@@ -53,11 +57,12 @@ import javax.ws.rs.core.UriInfo;
 @Component
 public class TallyResource implements TallyApi {
 
-    @Context UriInfo uriInfo;
-
     private final TallySnapshotRepository repository;
     private final PageLinkCreator pageLinkCreator;
     private final ApplicationClock clock;
+
+    @Context
+    private UriInfo uriInfo;
 
     public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator,
         ApplicationClock clock) {
@@ -69,9 +74,9 @@ public class TallyResource implements TallyApi {
     @SuppressWarnings("linelength")
     @Override
     @ReportingAccessRequired
-    public TallyReport getTallyReport(String productId, @NotNull String granularity,
+    public TallyReport getTallyReport(ProductId productId, @NotNull GranularityType granularityType,
         @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit, String sla, String usage) {
+        @Min(1) Integer limit, ServiceLevelType sla, UsageType usageType) {
         // When limit and offset are not specified, we will fill the report with dummy
         // records from beginning to ending dates. Otherwise we page as usual.
         Pageable pageable = null;
@@ -82,32 +87,30 @@ public class TallyResource implements TallyApi {
 
         String accountNumber = ResourceUtils.getAccountNumber();
         ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-        Usage effectiveUsage = ResourceUtils.sanitizeUsage(usage);
-        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
-        Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+        Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
+        Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
+
+        Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository.findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,
-            productId,
-            granularityValue,
+            productId.toString(),
+            granularityFromValue,
             serviceLevel,
             effectiveUsage,
             beginning,
             ending,
-            pageable
-        );
+            pageable);
 
-        List<TallySnapshot> snaps = snapshotPage
-            .stream()
+        List<TallySnapshot> snaps = snapshotPage.stream()
             .map(org.candlepin.subscriptions.db.model.TallySnapshot::asApiSnapshot)
             .collect(Collectors.toList());
 
         TallyReport report = new TallyReport();
         report.setData(snaps);
         report.setMeta(new TallyReportMeta());
-        report.getMeta().setGranularity(granularityValue.name());
+        report.getMeta().setGranularity(granularityFromValue.asOpenApiEnum());
         report.getMeta().setProduct(productId);
-        report.getMeta().setServiceLevel(sla == null ? null : serviceLevel.getValue());
-        report.getMeta().setUsage(usage == null ? null : effectiveUsage.getValue());
+        report.getMeta().setServiceLevel(sla);
+        report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
 
         // Only set page links if we are paging (not filling).
         if (pageable != null) {
@@ -116,7 +119,7 @@ public class TallyResource implements TallyApi {
 
         // Fill the report gaps if no paging was requested.
         if (fill) {
-            ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityValue);
+            ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityFromValue);
             reportFiller.fillGaps(report, beginning, ending);
         }
 

@@ -32,7 +32,11 @@ import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 
 import org.springframework.data.domain.Page;
@@ -56,12 +60,12 @@ import javax.ws.rs.core.UriInfo;
 @Component
 public class CapacityResource implements CapacityApi {
 
-    @Context
-    UriInfo uriInfo;
-
     private final SubscriptionCapacityRepository repository;
     private final PageLinkCreator pageLinkCreator;
     private final ApplicationClock clock;
+
+    @Context
+    UriInfo uriInfo;
 
     public CapacityResource(SubscriptionCapacityRepository repository, PageLinkCreator pageLinkCreator,
         ApplicationClock clock) {
@@ -72,32 +76,30 @@ public class CapacityResource implements CapacityApi {
 
     @Override
     @ReportingAccessRequired
-    public CapacityReport getCapacityReport(String productId, @NotNull String granularity,
-        @NotNull OffsetDateTime reportBegin, @NotNull OffsetDateTime reportEnd, Integer offset,
-        @Min(1) Integer limit, String sla, String usage) {
-
-        Granularity granularityValue = Granularity.valueOf(granularity.toUpperCase());
-        String ownerId = ResourceUtils.getOwnerId();
-
-        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+    public CapacityReport getCapacityReport(ProductId productId, @NotNull GranularityType granularityType,
+        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
+        @Min(1) Integer limit, ServiceLevelType sla, UsageType usage) {
 
         // capacity records do not include _ANY rows
-        if (sanitizedServiceLevel == ServiceLevel.ANY) {
+        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
+        if (sanitizedServiceLevel == ServiceLevel._ANY) {
             sanitizedServiceLevel = null;
         }
-        if (sanitizedUsage == Usage.ANY) {
+
+        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+        if (sanitizedUsage == Usage._ANY) {
             sanitizedUsage = null;
         }
 
-        List<CapacitySnapshot> capacities = getCapacities(
-            ownerId,
+        Granularity granularityValue = Granularity.fromString(granularityType.toString());
+        String ownerId = ResourceUtils.getOwnerId();
+        List<CapacitySnapshot> capacities = getCapacities(ownerId,
             productId,
             sanitizedServiceLevel,
             sanitizedUsage,
             granularityValue,
-            reportBegin,
-            reportEnd
+            beginning,
+            ending
         );
 
         List<CapacitySnapshot> data;
@@ -116,16 +118,18 @@ public class CapacityResource implements CapacityApi {
         CapacityReport report = new CapacityReport();
         report.setData(data);
         report.setMeta(new CapacityReportMeta());
-        report.getMeta().setGranularity(granularity);
+        report.getMeta().setGranularity(granularityType);
         report.getMeta().setProduct(productId);
         report.getMeta().setCount(report.getData().size());
 
         if (sanitizedServiceLevel != null) {
-            report.getMeta().setServiceLevel(sanitizedServiceLevel.getValue());
+            report
+                .getMeta()
+                .setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
         }
 
         if (sanitizedUsage != null) {
-            report.getMeta().setUsage(sanitizedUsage.getValue());
+            report.getMeta().setUsage(sanitizedUsage.asOpenApiEnum());
         }
 
         report.setLinks(links);
@@ -133,27 +137,16 @@ public class CapacityResource implements CapacityApi {
         return report;
     }
 
-    private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
-        if (pageable == null) {
-            return capacities;
-        }
-        int offset = pageable.getPageNumber() * pageable.getPageSize();
-        int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
-        return capacities.subList(offset, lastIndex);
-    }
-
-    private List<CapacitySnapshot> getCapacities(String ownerId, String productId, ServiceLevel sla,
+    private List<CapacitySnapshot> getCapacities(String ownerId, ProductId productId, ServiceLevel sla,
         Usage usage, Granularity granularity, @NotNull OffsetDateTime reportBegin,
         @NotNull OffsetDateTime reportEnd) {
 
-        List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(
-            ownerId,
-            productId,
+        List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(ownerId,
+            productId.toString(),
             sla,
             usage,
             reportBegin,
-            reportEnd
-        );
+            reportEnd);
 
         SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -168,6 +161,15 @@ public class CapacityResource implements CapacityApi {
             next = clock.startOfDay(next.plus(offset));
         }
         return result;
+    }
+
+    private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
+        if (pageable == null) {
+            return capacities;
+        }
+        int offset = pageable.getPageNumber() * pageable.getPageSize();
+        int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
+        return capacities.subList(offset, lastIndex);
     }
 
     private CapacitySnapshot createCapacitySnapshot(OffsetDateTime date, List<SubscriptionCapacity> matches) {
@@ -214,6 +216,5 @@ public class CapacityResource implements CapacityApi {
     private int sanitize(Integer value) {
         return value != null ? value : 0;
     }
-
 
 }

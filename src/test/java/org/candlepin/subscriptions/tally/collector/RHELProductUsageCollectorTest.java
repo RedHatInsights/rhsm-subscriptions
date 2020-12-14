@@ -22,9 +22,7 @@ package org.candlepin.subscriptions.tally.collector;
 
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
@@ -127,7 +125,7 @@ public class RHELProductUsageCollectorTest {
     }
 
     private UsageCalculation.Key createUsageKey() {
-        return new UsageCalculation.Key("RHEL", ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
+        return new UsageCalculation.Key("RHEL", ServiceLevel.EMPTY, Usage.EMPTY);
     }
 
 }
