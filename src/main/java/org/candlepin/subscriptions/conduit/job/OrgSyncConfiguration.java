@@ -32,8 +32,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
 /**
- * Configuration class for beans related to the OrgSyncJob.  Includes several conditional beans which are
- * loaded based on a value set in the application properties.
+ * Configuration class for beans related to the OrgSyncJob.
  */
 @Configuration
 @Profile("orgsync")

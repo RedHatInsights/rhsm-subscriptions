@@ -58,7 +58,6 @@ public class OrgSyncTaskManager {
      *
      * @param orgId the ID of the org in which to update.
      */
-    @SuppressWarnings("indentation")
     public void updateOrgInventory(String orgId) {
         updateOrgInventory(orgId, null);
     }

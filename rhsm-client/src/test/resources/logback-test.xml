@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <contextName>candlepin-test</contextName>
+  <contextName>rhsm-subscriptions</contextName>
   <appender name="RootAppender" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{ISO8601} [%t] %-5p %logger{0}[%L] - %m%n</pattern>

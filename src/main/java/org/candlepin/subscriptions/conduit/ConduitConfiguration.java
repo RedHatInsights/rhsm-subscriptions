@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.conduit;
 
 import org.candlepin.subscriptions.conduit.job.OrgSyncProperties;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.resource.VersionResource;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
@@ -30,9 +29,7 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -62,11 +59,5 @@ public class ConduitConfiguration {
         @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
 
         return taskConsumerFactory.createTaskConsumer(conduitTaskFactory, taskQueueProperties);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(VersionResource.class)
-    VersionResource versionResource(BuildProperties buildProperties) {
-        return new VersionResource(buildProperties);
     }
 }
