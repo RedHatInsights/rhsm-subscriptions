@@ -78,6 +78,7 @@ public class RhsmService {
      * @param lastCheckinTime in the form YYYY-MM-DDTHH-MM-SSZ (e.g. 2012-12-18T23:56:23Z).
      * @return an OrgInventory object with the relevant results
      */
+    @SuppressWarnings("java:S5843") // we don't control this regex
     public OrgInventory getPageOfConsumers(String orgId, String offset,
         @Pattern(regexp = "^([12]\\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T(0[0-9]|1[0-9]|2[1-4]):" +
         "(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9]))Z$") String lastCheckinTime) throws ApiException {
