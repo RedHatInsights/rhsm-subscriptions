@@ -20,15 +20,12 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import org.candlepin.subscriptions.ApplicationProperties;
-
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -43,13 +40,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ComponentScan(basePackages = {"org.candlepin.subscriptions.exception.mapper",
     "org.candlepin.subscriptions.resteasy"})
 public class ResteasyConfiguration implements WebMvcConfigurer {
-    @Bean
-    @Primary
-    public ObjectMapperContextResolver objectMapperContextResolver(
-        ApplicationProperties applicationProperties) {
-        return new ObjectMapperContextResolver(applicationProperties);
-    }
-
     @Bean
     public static BeanFactoryPostProcessor servletInitializer() {
         return new JaxrsApplicationServletInitializer();

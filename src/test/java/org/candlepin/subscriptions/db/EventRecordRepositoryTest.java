@@ -61,7 +61,7 @@ class EventRecordRepositoryTest {
         event.setEventSource("eventSource");
         event.setDisplayName(Optional.empty());
 
-        EventRecord record = EventRecord.fromEvent(event);
+        EventRecord record = new EventRecord(event);
         repository.saveAndFlush(record);
 
         EventRecord found = repository.getOne(eventId);

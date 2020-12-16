@@ -41,6 +41,10 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
      *
      * The events returned include those at begin and up to (but not including) end.
      *
+     * NOTE: this query does not use `between` since between semantics are inclusive. e.g. `select * from
+     * events where timestamp between '2021-01-01T00:00:00Z' and '2021-01-01T01:00:00Z` would match events
+     * at midnight UTC and 1am UTC.
+     *
      * @param accountNumber account number
      * @param begin start of the time range (inclusive)
      * @param end end of the time range (exclusive)

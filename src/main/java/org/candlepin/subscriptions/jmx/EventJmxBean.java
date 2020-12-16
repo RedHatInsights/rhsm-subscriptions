@@ -24,6 +24,8 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.JmxException;
@@ -51,10 +53,13 @@ public class EventJmxBean {
 
     private final ApplicationProperties applicationProperties;
     private final EventController eventController;
+    private final ObjectMapper objectMapper;
 
-    public EventJmxBean(ApplicationProperties applicationProperties, EventController eventController) {
+    public EventJmxBean(ApplicationProperties applicationProperties, EventController eventController,
+        ObjectMapper objectMapper) {
         this.applicationProperties = applicationProperties;
         this.eventController = eventController;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -83,7 +88,7 @@ public class EventJmxBean {
             throw new JmxException("Unsupported outside dev-mode!");
         }
         try {
-            return eventController.saveEvent(json).toString();
+            return eventController.saveEvent(objectMapper.readValue(json, Event.class)).toString();
         }
         catch (Exception e) {
             log.error("Error saving event", e);

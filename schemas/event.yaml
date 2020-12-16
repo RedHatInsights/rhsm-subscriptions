@@ -78,6 +78,10 @@ properties:
           description: UOM for the measurement. (e.g. Cores, Sockets)
           type: string
           required: true
+          enum:
+            - Cores
+            - Sockets
+            - Core-seconds
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.

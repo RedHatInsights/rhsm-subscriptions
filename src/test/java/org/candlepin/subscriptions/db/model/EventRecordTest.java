@@ -25,16 +25,28 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.candlepin.subscriptions.json.Event;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
+@SpringBootTest
+@ActiveProfiles("test")
 class EventRecordTest {
+
+    @Autowired
+    ObjectMapper objectMapper;
+
     @Test
     void testJsonOptionalVsNull() throws JsonProcessingException {
-        String testData = "{\"display_name\":null}";
-        Event event = EventRecord.OBJECT_MAPPER.readValue(testData, Event.class);
+        String testData = "{\"event_id\":\"99f6b275-6031-4967-84b6-147bd0191474\",\"display_name\":null}";
+        EventRecord eventRecord = objectMapper.readValue(testData, EventRecord.class);
+        Event event = eventRecord.getEvent();
         assertNotNull(event.getDisplayName());
         assertFalse(event.getDisplayName().isPresent());
         assertNull(event.getInventoryId());
+        assertEquals(testData, objectMapper.writeValueAsString(eventRecord.getEvent()));
     }
 }

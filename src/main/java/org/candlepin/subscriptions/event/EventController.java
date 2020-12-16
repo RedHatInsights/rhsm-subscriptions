@@ -24,9 +24,7 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -39,7 +37,7 @@ import javax.transaction.Transactional;
 /**
  * Encapsulates interaction with event store.
  */
-@Controller
+@Service
 public class EventController {
     private final EventRecordRepository repo;
 
@@ -65,13 +63,12 @@ public class EventController {
     /**
      * Validates and saves event JSON in the DB.
      *
-     * @param json JSON representation of the event
+     * @param event the event to save
      * @return the event ID
-     * @throws JsonProcessingException if the value can't be deserialized properly
      */
     @Transactional
-    public UUID saveEvent(String json) throws JsonProcessingException {
-        EventRecord eventRecord = EventRecord.fromJson(json);
+    public UUID saveEvent(Event event) {
+        EventRecord eventRecord = new EventRecord(event);
         repo.save(eventRecord);
         return eventRecord.getId();
     }
