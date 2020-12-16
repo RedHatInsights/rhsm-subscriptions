@@ -84,7 +84,8 @@ public class HostsResource implements HostsApi {
     @ReportingAccessRequired
     @Override
     public HostReport getHosts(ProductId productId, Integer offset, @Min(1) @Max(100) Integer limit,
-        ServiceLevelType sla, UsageType usage, Uom uom, HostReportSort sort, SortDirection dir) {
+        ServiceLevelType sla, UsageType usage, Uom uom, String displayNameContains, HostReportSort sort,
+        SortDirection dir) {
 
         Sort.Direction dirValue = Sort.Direction.ASC;
         if (dir == SortDirection.DESC) {
@@ -115,6 +116,7 @@ public class HostsResource implements HostsApi {
             productId.toString(),
             sanitizedSla,
             sanitizedUsage,
+            displayNameContains,
             minCores,
             minSockets,
             page);
