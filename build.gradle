@@ -7,6 +7,7 @@ buildscript {
     }
     dependencies {
         classpath "org.openapitools:openapi-generator-gradle-plugin:4.3.1"
+        classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.0.2"
     }
 }
 
@@ -132,6 +133,20 @@ allprojects {
         testRuntime "org.junit.jupiter:junit-jupiter-engine"
         testRuntime "ch.qos.logback:logback-classic"
     }
+}
+
+apply plugin: 'jsonschema2pojo'
+jsonSchema2Pojo {
+    source = files("${projectDir}/schemas")
+    targetPackage = 'org.candlepin.subscriptions.json'
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
 }
 
 bootJar {

@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.resteasy;
 import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.jackson.TestPojo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,20 +32,26 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Calendar;
 import java.util.TimeZone;
 
 
+@SpringBootTest
+@ActiveProfiles("api,test")
 @TestInstance(Lifecycle.PER_CLASS)
 class ObjectMapperContextResolverTest {
+
+    @Autowired
+    private ObjectMapperContextResolver resolver;
 
     private ObjectMapper mapper;
 
     @BeforeAll
     void setupTests() {
-        ApplicationProperties props = new ApplicationProperties();
-        ObjectMapperContextResolver resolver = new ObjectMapperContextResolver(props);
         mapper = resolver.getContext(Void.class);
     }
 

@@ -20,13 +20,9 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import org.candlepin.subscriptions.ApplicationProperties;
-
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
+
+import org.springframework.stereotype.Component;
 
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
@@ -37,21 +33,13 @@ import javax.ws.rs.ext.Provider;
  * use the configured ObjectMapper provided by this instance.
  */
 @Provider
+@Component
 public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper> {
 
     private final ObjectMapper objectMapper;
 
-    public ObjectMapperContextResolver(ApplicationProperties applicationProperties) {
-        objectMapper = new ObjectMapper();
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-        objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
-        objectMapper.setSerializationInclusion(Include.NON_NULL);
-        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
-        // Tell the mapper to check the classpath for any serialization/deserialization modules
-        // such as the Java8 date/time module (JavaTimeModule).
-        objectMapper.findAndRegisterModules();
+    public ObjectMapperContextResolver(ObjectMapper mapper) {
+        this.objectMapper = mapper;
     }
 
     @Override

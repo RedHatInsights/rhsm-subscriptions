@@ -30,6 +30,16 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -53,6 +63,26 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
     ApplicationProperties applicationProperties() {
         return new ApplicationProperties();
+    }
+
+    @Bean
+    ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+        objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
+
+        // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in order to
+        // avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing deserialization
+        // to ignore @JsonProperty on OpenApi classes.
+        objectMapper.registerModule(new JaxbAnnotationModule());
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.registerModule(new Jdk8Module());
+
+        return objectMapper;
     }
 
     @Bean
