@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.files;
 
 import org.springframework.context.ResourceLoaderAware;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.yaml.snakeyaml.Yaml;
@@ -41,7 +42,7 @@ public abstract class YamlFileSource<T> implements ResourceLoaderAware {
 
     private final Cache<T> cachedValue;
     private String resourceLocation;
-    private ResourceLoader resourceLoader;
+    private ResourceLoader resourceLoader = new DefaultResourceLoader();
     private Resource fileResource;
 
     protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {

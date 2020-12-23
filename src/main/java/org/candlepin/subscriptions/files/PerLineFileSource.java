@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.files;
 
 import org.springframework.context.ResourceLoaderAware;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
@@ -46,7 +47,7 @@ public class PerLineFileSource implements ResourceLoaderAware {
 
     private final Cache<List<String>> listCache;
     private final Cache<Set<String>> setCache;
-    private ResourceLoader resourceLoader;
+    private ResourceLoader resourceLoader = new DefaultResourceLoader();
     private Resource fileResource;
     private String resourceLocation;
 
