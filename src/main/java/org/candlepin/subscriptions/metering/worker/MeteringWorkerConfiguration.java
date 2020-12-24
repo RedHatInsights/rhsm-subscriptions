@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering;
+package org.candlepin.subscriptions.metering.worker;
 
 
 import org.candlepin.subscriptions.db.AccountListSource;
@@ -54,7 +54,7 @@ import org.springframework.context.annotation.Profile;
  */
 @Configuration
 @Profile("metering-worker")
-@Import({TaskProducerConfiguration.class, TaskConsumerConfiguration.class})
+@Import({TaskQueueConfiguration.class, TaskProducerConfiguration.class, TaskConsumerConfiguration.class})
 @ComponentScan(basePackages = {
     "org.candlepin.subscriptions.metering.jmx"
 })
@@ -80,13 +80,6 @@ public class MeteringWorkerConfiguration {
     @Bean
     public PrometheusService prometheusService(PrometheusServicePropeties props, ApiProvider provider) {
         return new PrometheusService(props, provider);
-    }
-
-    @Bean
-    @Qualifier("meteringTaskQueueProperties")
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.tasks")
-    TaskQueueProperties meteringTaskQueueProperties() {
-        return new TaskQueueProperties();
     }
 
     @Bean

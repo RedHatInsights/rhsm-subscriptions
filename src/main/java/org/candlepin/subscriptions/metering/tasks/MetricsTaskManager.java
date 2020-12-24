@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.task.queue.TaskQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
@@ -54,7 +55,8 @@ public class MetricsTaskManager {
     private AccountListSource accountListSource;
 
     public MetricsTaskManager(TaskQueue queue,
-        TaskQueueProperties queueProps, AccountListSource accountListSource) {
+        @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
+        AccountListSource accountListSource) {
         log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
         this.queue = queue;
         this.topic = queueProps.getTopic();
