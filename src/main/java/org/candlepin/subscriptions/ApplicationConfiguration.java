@@ -45,6 +45,7 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -69,6 +70,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
+    @Primary
     ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
