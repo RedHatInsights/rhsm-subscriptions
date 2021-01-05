@@ -45,7 +45,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
+import java.util.function.Consumer;
 
 /**
  * Collects the max values from all accounts in the inventory.
@@ -69,7 +69,8 @@ public class InventoryAccountUsageCollector {
         this.culledOffsetDays = props.getCullingOffsetDays();
     }
 
-    @SuppressWarnings("squid:S3776")
+    //squid:S3776 is the cognitive complexity violation in sonar
+    @SuppressWarnings({ "squid:S3776", "methodlength" })
     @Transactional
     public Map<String, AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
@@ -86,8 +87,15 @@ public class InventoryAccountUsageCollector {
         Map<String, Host> hypervisorHosts = new HashMap<>();
         Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
-        inventory.reportedHypervisors(accounts,
-            reported -> hypMapping.put((String) reported[0], (String) reported[1]));
+        Consumer<Object[]> addToHypervisorMap = resultRow -> {
+            final int hypIdIndex = 0;
+            final int hypSubmanIdIndex = 1;
+            String k = (String) resultRow[hypIdIndex];
+            String v = (String) resultRow[hypSubmanIdIndex];
+            hypMapping.put(k, v);
+        };
+
+        inventory.reportedHypervisors(accounts, addToHypervisorMap);
         log.info("Found {} reported hypervisors.", hypMapping.size());
 
         Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();

@@ -34,35 +34,38 @@ import java.util.stream.Stream;
 /**
  * Interface that Spring Data will turn into a read-only DAO.
  */
-@SuppressWarnings({"linelength", "indentation"})
+@SuppressWarnings({ "linelength", "indentation" })
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
     @Query(nativeQuery = true)
-    Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts,
-        @Param("culledOffsetDays") Integer culledOffsetDays);
+    Stream<InventoryHostFacts> getFacts(
+        @Param("accounts") Collection<String> accounts, @Param("culledOffsetDays") Integer culledOffsetDays);
 
     /**
      * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID.
      * If the hypervisor hasn't been reported, then the hyp_subman_id value will be null.
      *
+     * If a reported hypervisor is invalid (0 sockets), omit it from the results so guest hosts are treated
+     * the same as a guest with an unknown hypervisor - tallying 1 socket for the guest.
+     *
      * @param accounts the accounts to filter hosts by.
-     * @return a stream of Object[] with each entry representing a hypervisor mapping.
+     * @return a stream of Object[] with each entry representing a hypervisor mapping. Each Object[]
+     * represents a row of the result set
      */
-    @Query(nativeQuery = true,
-        value = "select " +
-                    "distinct h.facts->'rhsm'->>'VM_HOST_UUID' as hyp_id, " +
-                    "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
-                "from hosts h " +
-                    "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' " +
-                "where h.facts->'rhsm'->'VM_HOST_UUID' is not null " +
-                    "and h.account IN (:accounts)" +
-                "union all " +
-                "select " +
-                    "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, " +
-                    "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
-                "from hosts h " +
-                    "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' " +
-                "where h.facts->'satellite'->'virtual_host_uuid' is not null " +
-                    "and h.account IN (:accounts)")
+    @Query(nativeQuery = true, value = "select hyp_id, hyp_subman_id " +
+        "from (" +
+        "           select distinct h.facts -> 'rhsm' ->> 'VM_HOST_UUID' as hyp_id," +
+        "           h_.canonical_facts ->> 'subscription_manager_id' as hyp_subman_id," +
+        "           jsonb_extract_path(h_.system_profile_facts, 'number_of_sockets') as sockets" +
+        "           from hosts h left outer join hosts h_ on h.facts -> 'rhsm' ->> 'VM_HOST_UUID' = h_.canonical_facts ->> 'subscription_manager_id'" +
+        "           where h.facts -> 'rhsm' -> 'VM_HOST_UUID' is not null and h.account IN (:accounts)" +
+        "       union all" +
+        "           select distinct h.facts -> 'satellite' ->> 'virtual_host_uuid'  as hyp_id," +
+        "           h_.canonical_facts ->> 'subscription_manager_id' as hyp_subman_id," +
+        "           jsonb_extract_path (h_.system_profile_facts, 'number_of_sockets') as sockets" +
+        "           from hosts h left outer join hosts h_ on h.facts -> 'satellite' ->> 'virtual_host_uuid' = h_.canonical_facts ->> 'subscription_manager_id'" +
+        "           where h.facts -> 'satellite' -> 'virtual_host_uuid' is not null and h.account IN (:accounts)" +
+        "   ) as validHypTbl" +
+        "   where sockets <> '0'")
     Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
 }

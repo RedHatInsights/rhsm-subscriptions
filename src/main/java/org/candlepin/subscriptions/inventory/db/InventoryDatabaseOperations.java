@@ -45,14 +45,14 @@ public class InventoryDatabaseOperations {
     public void processHostFacts(Collection<String> accounts, int culledOffsetDays,
         Consumer<InventoryHostFacts> consumer) {
         try (Stream<InventoryHostFacts> hostFactStream = repo.getFacts(accounts, culledOffsetDays)) {
-            hostFactStream.forEach(consumer::accept);
+            hostFactStream.forEach(consumer);
         }
     }
 
     @Transactional(value = "inventoryTransactionManager", readOnly = true)
     public void reportedHypervisors(Collection<String> accounts, Consumer<Object[]> consumer) {
         try (Stream<Object[]> stream = repo.getReportedHypervisors(accounts)) {
-            stream.forEach(consumer::accept);
+            stream.forEach(consumer);
         }
     }
 }
