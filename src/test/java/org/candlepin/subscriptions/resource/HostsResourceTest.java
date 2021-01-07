@@ -53,6 +53,7 @@ import java.util.Collections;
 class HostsResourceTest {
 
     static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
+    private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
     @MockBean
     HostRepository repository;
     @MockBean
@@ -81,7 +82,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1, Sort.by(
@@ -100,7 +101,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(
@@ -120,7 +121,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
@@ -139,7 +140,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
@@ -158,7 +159,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
@@ -177,7 +178,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
@@ -194,7 +195,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
@@ -212,7 +213,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(1),
             eq(0),
             eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
@@ -228,7 +229,7 @@ class HostsResourceTest {
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
-            eq(null),
+            eq(SANITIZED_MISSING_DISPLAY_NAME),
             eq(0),
             eq(1),
             eq(PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER)))
