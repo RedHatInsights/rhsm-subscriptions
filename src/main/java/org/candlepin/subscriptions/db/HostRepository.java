@@ -63,7 +63,7 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
             "b.key.productId = :product and " +
             "b.key.sla = :sla and b.key.usage = :usage and " +
             // Have to do the null check first, otherwise the lower in the LIKE clause has issues with datatypes
-            "(:displayNameSubstring IS NULL or (lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
+            "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
             "b.cores >= :minCores and b.sockets >= :minSockets",
         // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
         // we need to specify how the Page should gets its count when the 'limit' parameter
@@ -72,7 +72,7 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
             "h.accountNumber = :account and " +
             "b.key.productId = :product and " +
             "b.key.sla = :sla and b.key.usage = :usage and " +
-            "(:displayNameSubstring IS NULL or (lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
+            "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
             "b.cores >= :minCores and b.sockets >= :minSockets"
     )
     Page<TallyHostView> getTallyHostViews(//NOSONAR (exceeds allowed 7 params)

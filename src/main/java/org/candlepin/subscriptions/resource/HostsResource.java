@@ -48,6 +48,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.validation.constraints.Max;
@@ -111,12 +112,16 @@ public class HostsResource implements HostsApi {
         String accountNumber = ResourceUtils.getAccountNumber();
         ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
         Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+        String sanitizedDisplayNameSubstring = Objects.nonNull(displayNameContains) ?
+            displayNameContains :
+            "";
         Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
-        Page<TallyHostView> hosts = repository.getTallyHostViews(accountNumber,
+        Page<TallyHostView> hosts = repository.getTallyHostViews(
+            accountNumber,
             productId.toString(),
             sanitizedSla,
             sanitizedUsage,
-            displayNameContains,
+            sanitizedDisplayNameSubstring,
             minCores,
             minSockets,
             page);
