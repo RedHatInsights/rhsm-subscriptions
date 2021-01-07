@@ -36,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.UUID;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * Provides access to Host database entities.
  */
@@ -80,7 +82,7 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
         @Param("usage") Usage usage,
-        @Param("displayNameSubstring") String displayNameSubstring,
+        @NotNull @Param("displayNameSubstring") String displayNameSubstring,
         @Param("minCores") int minCores,
         @Param("minSockets") int minSockets,
         Pageable pageable
