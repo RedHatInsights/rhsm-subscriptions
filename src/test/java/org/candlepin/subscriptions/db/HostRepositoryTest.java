@@ -311,8 +311,14 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void testCanSortByIdForImplicitSort() {
-        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC, "id"));
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2",
+            "RHEL",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            SANITIZED_MISSING_DISPLAY_NAME,
+            0,
+            0,
+            PageRequest.of(0, 10, Sort.Direction.ASC, "id"));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
