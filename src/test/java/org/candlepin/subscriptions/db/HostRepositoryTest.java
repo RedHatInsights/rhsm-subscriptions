@@ -65,11 +65,13 @@ class HostRepositoryTest {
     private final String RHEL = "RHEL";
     private final String COOL_PROD = "COOL_PROD";
     private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
+    private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
 
     @Autowired
     private HostRepository repo;
 
     private Map<String, Host> existingHostsByInventoryId;
+
 
     @Transactional
     @BeforeAll
@@ -146,7 +148,7 @@ class HostRepositoryTest {
         repo.saveAndFlush(host);
 
         Page<TallyHostView> hosts = repo.getTallyHostViews(expAccount, RHEL, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
         assertEquals(1, found.size());
 
@@ -222,7 +224,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenAccountIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account1", RHEL, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -233,7 +235,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenProductIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", COOL_PROD, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -244,7 +246,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenSLAIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", RHEL, ServiceLevel.SELF_SUPPORT,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -255,7 +257,7 @@ class HostRepositoryTest {
     @Test
     void testFindHostsWhenUsageIsDifferent() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", RHEL, ServiceLevel.SELF_SUPPORT,
-            Usage.DISASTER_RECOVERY, null, 0, 0, PageRequest.of(0, 10));
+            Usage.DISASTER_RECOVERY, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -309,8 +311,14 @@ class HostRepositoryTest {
     @Transactional
     @Test
     void testCanSortByIdForImplicitSort() {
-        Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC, "id"));
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account2",
+            "RHEL",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            SANITIZED_MISSING_DISPLAY_NAME,
+            0,
+            0,
+            PageRequest.of(0, 10, Sort.Direction.ASC, "id"));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -321,7 +329,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByDisplayName() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -333,7 +341,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByMeasurementType() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account3", RHEL, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -345,7 +353,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByCores() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest
             .of(0, 10, Sort.Direction.ASC, HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -357,7 +365,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortBySockets() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest
             .of(0, 10, Sort.Direction.ASC, HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -369,7 +377,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByLastSeen() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -381,7 +389,7 @@ class HostRepositoryTest {
     @Test
     void testCanSortByHardwareType() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
             HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
@@ -438,7 +446,7 @@ class HostRepositoryTest {
         repo.flush();
 
         Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         Map<String, TallyHostView> hosts = results.getContent().stream()
             .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
         assertEquals(2, hosts.size());
@@ -476,7 +484,7 @@ class HostRepositoryTest {
         repo.flush();
 
         Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
         Map<String, TallyHostView> hosts = results.getContent().stream()
             .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
         assertEquals(1, hosts.size());
@@ -512,7 +520,7 @@ class HostRepositoryTest {
         repo.flush();
 
         Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 0, 1, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 1, PageRequest.of(0, 10));
         Map<String, TallyHostView> hosts = results.getContent().stream()
             .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
         assertEquals(1, hosts.size());
@@ -547,7 +555,7 @@ class HostRepositoryTest {
         repo.flush();
 
         Page<TallyHostView> results = repo.getTallyHostViews("my_acct", "RHEL", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, null, 1, 0, PageRequest.of(0, 10));
+            Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 1, 0, PageRequest.of(0, 10));
         Map<String, TallyHostView> hosts = results.getContent().stream()
             .collect(Collectors.toMap(TallyHostView::getHardwareMeasurementType, Function.identity()));
         assertEquals(1, hosts.size());
