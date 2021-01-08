@@ -41,7 +41,6 @@ class OfferingTest {
         offering.setUsage(Usage.DEVELOPMENT_TEST);
         offering.setServiceLevel(ServiceLevel.PREMIUM);
         offering.setRole("testrole");
-        offering.setEntitlementQuantity(1);
         offering.setPhysicalCores(2);
         offering.setPhysicalSockets(3);
         offering.setVirtualCores(4);
@@ -54,7 +53,6 @@ class OfferingTest {
         assertEquals(Usage.DEVELOPMENT_TEST, offering.getUsage());
         assertEquals(ServiceLevel.PREMIUM, offering.getServiceLevel());
         assertEquals("testrole", offering.getRole());
-        assertEquals(1, offering.getEntitlementQuantity());
         assertEquals(2, offering.getPhysicalCores());
         assertEquals(3, offering.getPhysicalSockets());
         assertEquals(4, offering.getVirtualCores());

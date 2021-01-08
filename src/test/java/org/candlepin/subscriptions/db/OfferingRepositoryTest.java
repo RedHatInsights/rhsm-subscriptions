@@ -55,7 +55,6 @@ class OfferingRepositoryTest {
         offering.setUsage(Usage.DEVELOPMENT_TEST);
         offering.setServiceLevel(ServiceLevel.PREMIUM);
         offering.setRole("test");
-        offering.setEntitlementQuantity(1);
         offering.setPhysicalCores(1);
         offering.setPhysicalSockets(1);
         offering.setProductFamily("test");
