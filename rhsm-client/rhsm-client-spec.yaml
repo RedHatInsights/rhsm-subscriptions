@@ -1,0 +1,179 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-client-api"
+  description: "REST interface for the rhsm client used by rhsm-conduit"
+  version: 1.0.0
+
+servers:
+  - url: https://localhost/
+
+paths:
+  /candlepin/consumers/feeds:
+    description: "Consumer operations based on an owner."
+    parameters:
+      - name: X-RhsmApi-AccountID
+        in: header
+        required: true
+        schema:
+          type: string
+        description: "The orgId is the candlepin owner key."
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+        description: "Number of consumers to emit at once."
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: string
+        description: "Paging offset."
+      - name: lastCheckinAfter
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: '^([12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T(0[0-9]|1[0-9]|2[1-4]):(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9]))Z$'
+        description: "Last check in time in YYYY-MM-DDTHH-MM-SSZ format"
+    get:
+      description: "List consumers on an owner."
+      operationId: getConsumersForOrg
+      tags:
+        - rhsm
+      responses:
+        '200':
+          description: "The request for consumer data was successful."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgInventory"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '404':
+          $ref: "#/components/responses/ResourceNotFound"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+components:
+  responses:
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+
+    Consumer:
+      required:
+        - type
+        - id
+        - uuid
+        - name
+        - orgId
+        - lastCheckin
+        - installedProducts
+        - sysPurposeRole
+        - sysPurposeUsage
+        - sysPurposeAddons
+        - facts
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        uuid:
+          type: string
+        name:
+          type: string
+        orgId:
+          type: string
+        accountNumber:
+          type: string
+        lastCheckin:
+          type: string
+          format: date-time
+        installedProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstalledProducts"
+        serviceLevel:
+          type: string
+        sysPurposeRole:
+          type: string
+        sysPurposeUsage:
+          type: string
+        sysPurposeAddons:
+          type: array
+          items:
+            type: string
+        facts:
+          type: object
+          additionalProperties:
+            type: string
+        hypervisorUuid:
+          type: string
+        hypervisorName:
+          type: string
+        guestId:
+          type: string
+
+    InstalledProducts:
+      required:
+        - productId
+        - productName
+        - productVersion
+      properties:
+        productId:
+          type: string
+        productName:
+          type: string
+        productVersion:
+          type: string
+
+    Pagination:
+      required:
+        - offset
+        - limit
+        - count
+      properties:
+        offset:
+          type: string
+        limit:
+          type: integer
+          format: int64
+        count:
+          type: integer
+          format: int64
+
+    OrgInventory:
+      properties:
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        body:
+          type: array
+          items:
+            $ref: "#/components/schemas/Consumer"
+

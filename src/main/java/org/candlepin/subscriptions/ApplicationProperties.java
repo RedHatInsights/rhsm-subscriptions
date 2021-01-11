@@ -24,30 +24,20 @@ import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
  *
- * NB: This class must be labeled as a component, not loaded via the EnableConfigurationProperties annotation.
- * Loading this class as a component gives the bean a formal name.  Using EnableConfigurationProperties
- * uses a generated name with a hyphen in it.  From the Spring Boot Docs (section 4.2.8 Type-safe
- * Configuration):
+ * NOTE: not annotated with @Component, as this doesn't live in a package that is picked up with package
+ * scanning.
  *
- *     When the @ConfigurationProperties bean is registered using configuration property scanning or via
- *     @EnableConfigurationProperties, the bean has a conventional name: <prefix>-<fqn>, where <prefix> is
- *     the environment key prefix specified in the @ConfigurationProperties annotation and <fqn> is the fully
- *     qualified name of the bean. If the annotation does not provide any prefix, only the fully qualified
- *     name of the bean is used.
- *
- * Unfortunately, "<prefix>-<fqn>" has a hyphen in it which means we can't use the bean name in a SpEL
- * expression: the hyphen is interpreted as a subtraction operator.
+ * @see ApplicationConfiguration
  */
-@Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
+    private String version;
 
     private boolean prettyPrintJson = false;
 
@@ -173,6 +163,14 @@ public class ApplicationProperties {
      * Number of times to attempt query against cloudigrade for Tally integration.
      */
     private int cloudigradeMaxAttempts = 2;
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
 
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;

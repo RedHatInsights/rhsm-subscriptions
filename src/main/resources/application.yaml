@@ -38,8 +38,8 @@ spring:
   profiles:
     active:
       - api
-      - in-memory-queue
       - capacity-ingress
+      - rhsm-conduit
       - worker
   liquibase:
     change-log: classpath:/liquibase/changelog.xml

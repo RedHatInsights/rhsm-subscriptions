@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
+import org.candlepin.subscriptions.conduit.ConduitConfiguration;
+import org.candlepin.subscriptions.conduit.job.OrgSyncConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
@@ -43,6 +45,7 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -55,8 +58,9 @@ import javax.validation.Validator;
 /** Class to hold configuration beans common to all profiles and import all profile configurations */
 @Configuration
 @Import({
-    ApiConfiguration.class, CapacityIngressConfiguration.class, CaptureSnapshotsConfiguration.class,
-    PurgeSnapshotsConfiguration.class, LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class,
+    ApiConfiguration.class, ConduitConfiguration.class, CapacityIngressConfiguration.class,
+    CaptureSnapshotsConfiguration.class, PurgeSnapshotsConfiguration.class,
+    LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class, OrgSyncConfiguration.class,
     DevModeConfiguration.class, SecurityConfig.class, HawtioConfiguration.class
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
@@ -66,6 +70,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
+    @Primary
     ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
