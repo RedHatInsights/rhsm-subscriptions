@@ -21,9 +21,9 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
@@ -35,10 +35,13 @@ import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
+import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,36 +53,33 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("api,test")
 @WithMockRedHatPrincipal("123456")
 public class TallyResourceTest {
 
-    @MockBean
-    TallySnapshotRepository repository;
-
-    @MockBean
-    PageLinkCreator pageLinkCreator;
-
-    @MockBean
-    AccountListSource accountListSource;
-
-    @Autowired
-    TallyResource resource;
-
+    public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL;
+    public static final String INVALID_PRODUCT_ID_VALUE = "bad_product";
     private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
     private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+    @MockBean
+    TallySnapshotRepository repository;
+    @MockBean
+    PageLinkCreator pageLinkCreator;
+    @MockBean
+    AccountListSource accountListSource;
+    @Autowired
+    TallyResource resource;
 
     @BeforeEach
     public void setupTests() throws AccountListSourceException {
@@ -94,42 +94,57 @@ public class TallyResourceTest {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
                 Mockito.eq("account123456"),
-                Mockito.eq("product1"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
-                Mockito.eq(ServiceLevel.ANY),
+                Mockito.eq(ServiceLevel._ANY),
                 Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(min),
                 Mockito.eq(max),
-                Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+                Mockito.any(Pageable.class)
+            )).thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
+        TallyReport report = resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             10,
             10,
             null,
-            Usage.PRODUCTION.getValue()
+            UsageType.PRODUCTION
         );
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository).findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("account123456"),
-            Mockito.eq("product1"),
+            Mockito.eq(RHEL_PRODUCT_ID.toString()),
             Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.ANY),
+            Mockito.eq(ServiceLevel._ANY),
             Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", null,
-            Usage.PRODUCTION.getValue(), Granularity.DAILY.name(), 1);
+        assertMetadata(report.getMeta(),
+            RHEL_PRODUCT_ID,
+            null,
+            UsageType.PRODUCTION,
+            GranularityType.DAILY,
+            1
+        );
 
+    }
+
+    private void assertMetadata(TallyReportMeta meta, ProductId expectedProduct,
+        ServiceLevelType expectedSla, UsageType expectedUsage,
+        GranularityType expectedGranularity, Integer expectedCount) {
+
+        assertEquals(expectedProduct, meta.getProduct());
+        assertEquals(expectedSla, meta.getServiceLevel());
+        assertEquals(expectedUsage, meta.getUsage());
+        assertEquals(expectedCount, meta.getCount());
+        assertEquals(expectedGranularity, meta.getGranularity());
     }
 
     @Test
@@ -137,26 +152,24 @@ public class TallyResourceTest {
 
         TallySnapshot snap = new TallySnapshot();
 
-        Mockito.when(repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                Mockito.eq("account123456"),
-                Mockito.eq("product1"),
-                Mockito.eq(Granularity.DAILY),
-                Mockito.eq(ServiceLevel.PREMIUM),
-                Mockito.eq(Usage.ANY),
-                Mockito.eq(min),
-                Mockito.eq(max),
-                Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+        Mockito.when(repository.findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            Mockito.eq("account123456"),
+            Mockito.eq(RHEL_PRODUCT_ID.toString()),
+            Mockito.eq(Granularity.DAILY),
+            Mockito.eq(ServiceLevel.PREMIUM),
+            Mockito.eq(Usage._ANY),
+            Mockito.eq(min),
+            Mockito.eq(max),
+            Mockito.any(Pageable.class)
+        )).thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
+        TallyReport report = resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             10,
             10,
-            ServiceLevel.PREMIUM.getValue(),
+            ServiceLevelType.PREMIUM,
             null
         );
         assertEquals(1, report.getData().size());
@@ -164,62 +177,73 @@ public class TallyResourceTest {
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository).findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("account123456"),
-            Mockito.eq("product1"),
+            Mockito.eq(RHEL_PRODUCT_ID.toString()),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(ServiceLevel.PREMIUM),
-            Mockito.eq(Usage.ANY),
+            Mockito.eq(Usage._ANY),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", ServiceLevel.PREMIUM.getValue(), null, Granularity.DAILY.name(),
-            1);
+        assertMetadata(report.getMeta(),
+            RHEL_PRODUCT_ID,
+            ServiceLevelType.PREMIUM,
+            null,
+            GranularityType.DAILY,
+            1
+        );
 
     }
 
     @Test
+    @SuppressWarnings({ "linelength", "indentation" })
     public void testUnsetSlaQueryParameter() {
         TallySnapshot snap = new TallySnapshot();
 
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                 Mockito.eq("account123456"),
-                 Mockito.eq("product1"),
-                 Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.UNSPECIFIED),
-                 Mockito.eq(Usage.PRODUCTION),
-                 Mockito.eq(min),
-                 Mockito.eq(max),
-                 Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+                Mockito.eq("account123456"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel.EMPTY),
+                Mockito.eq(Usage.PRODUCTION),
+                Mockito.eq(min),
+                Mockito.eq(max),
+                Mockito.any(Pageable.class)
+            )).thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
+        TallyReport report = resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             10,
             10,
-            ServiceLevel.UNSPECIFIED.getValue(),
-            Usage.PRODUCTION.getValue()
+            ServiceLevelType.EMPTY,
+            UsageType.PRODUCTION
         );
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
-        Mockito.verify(repository).findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("account123456"),
-            Mockito.eq("product1"),
-            Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.UNSPECIFIED),
-            Mockito.eq(Usage.PRODUCTION),
-            Mockito.eq(min),
-            Mockito.eq(max),
-            Mockito.eq(expectedPageable)
-        );
+        Mockito.verify(repository)
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                Mockito.eq("account123456"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel.EMPTY),
+                Mockito.eq(Usage.PRODUCTION),
+                Mockito.eq(min),
+                Mockito.eq(max),
+                Mockito.eq(expectedPageable)
+            );
 
-        assertMetadata(report.getMeta(), "product1", "", Usage.PRODUCTION.getValue(), Granularity.DAILY.name(),
-            1);
+        assertMetadata(report.getMeta(),
+            RHEL_PRODUCT_ID,
+            ServiceLevelType.EMPTY,
+            UsageType.PRODUCTION,
+            GranularityType.DAILY,
+            1
+        );
     }
 
     @Test
@@ -229,41 +253,45 @@ public class TallyResourceTest {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
                 Mockito.eq("account123456"),
-                Mockito.eq("product1"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.PREMIUM),
-                Mockito.eq(Usage.UNSPECIFIED),
+                Mockito.eq(Usage.EMPTY),
                 Mockito.eq(min),
                 Mockito.eq(max),
-                Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+                Mockito.any(Pageable.class)
+            )).thenReturn(new PageImpl<>(Arrays.asList(snap)));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
+        TallyReport report = resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             10,
             10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.UNSPECIFIED.getValue()
+            ServiceLevelType.PREMIUM,
+            UsageType.EMPTY
         );
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository).findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("account123456"),
-            Mockito.eq("product1"),
+            Mockito.eq(RHEL_PRODUCT_ID.toString()),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(ServiceLevel.PREMIUM),
-            Mockito.eq(Usage.UNSPECIFIED),
+            Mockito.eq(Usage.EMPTY),
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", ServiceLevel.PREMIUM.getValue(), "", Granularity.DAILY.name(),
-            1);
+        assertMetadata(report.getMeta(),
+            RHEL_PRODUCT_ID,
+            ServiceLevelType.PREMIUM,
+            UsageType.EMPTY,
+            GranularityType.DAILY,
+            1
+        );
     }
 
     @Test
@@ -272,31 +300,31 @@ public class TallyResourceTest {
 
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                 Mockito.eq("account123456"),
-                 Mockito.eq("product1"),
-                 Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.PREMIUM),
-                 Mockito.eq(Usage.PRODUCTION),
-                 Mockito.eq(min),
-                 Mockito.eq(max),
-                 Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            Granularity.DAILY.name(),
+                Mockito.eq("account123456"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel.PREMIUM),
+                Mockito.eq(Usage.PRODUCTION),
+                Mockito.eq(min),
+                Mockito.eq(max),
+                Mockito.any(Pageable.class)
+            )).thenReturn(new PageImpl<>(Arrays.asList(snap)));
+
+        TallyReport report = resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             10,
             10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue()
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION
         );
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
         Mockito.verify(repository).findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("account123456"),
-            Mockito.eq("product1"),
+            Mockito.eq(RHEL_PRODUCT_ID.toString()),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(ServiceLevel.PREMIUM),
             Mockito.eq(Usage.PRODUCTION),
@@ -305,8 +333,13 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable)
         );
 
-        assertMetadata(report.getMeta(), "product1", ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue(), Granularity.DAILY.name(), 1);
+        assertMetadata(report.getMeta(),
+            RHEL_PRODUCT_ID,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            GranularityType.DAILY,
+            1
+        );
     }
 
     @Test
@@ -315,38 +348,38 @@ public class TallyResourceTest {
 
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("account123456"),
-            Mockito.eq("product1"),
-            Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM),
-            Mockito.eq(Usage.PRODUCTION),
-            Mockito.eq(min),
-            Mockito.eq(max),
-            Mockito.any(Pageable.class)))
-            .thenReturn(new PageImpl<>(Arrays.asList(snap)));
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            "daily",
+                Mockito.eq("account123456"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel.PREMIUM),
+                Mockito.eq(Usage.PRODUCTION),
+                Mockito.eq(min),
+                Mockito.eq(max),
+                Mockito.any(Pageable.class)
+            )).thenReturn(new PageImpl<>(Arrays.asList(snap)));
+
+        TallyReport report = resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             10,
             10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue()
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION
         );
         assertEquals(1, report.getData().size());
 
         Pageable expectedPageable = PageRequest.of(1, 10);
-        Mockito.verify(repository)
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+        Mockito.verify(repository).findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             Mockito.eq("account123456"),
-            Mockito.eq("product1"),
+            Mockito.eq(RHEL_PRODUCT_ID.toString()),
             Mockito.eq(Granularity.DAILY),
             Mockito.eq(ServiceLevel.PREMIUM),
             Mockito.eq(Usage.PRODUCTION),
             Mockito.eq(min),
             Mockito.eq(max),
-            Mockito.eq(expectedPageable));
+            Mockito.eq(expectedPageable)
+        );
     }
 
     @Test
@@ -450,14 +483,14 @@ public class TallyResourceTest {
     @Test
     public void testShouldThrowExceptionOnBadOffset() throws IOException {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
-            "product1",
-            "daily",
+            RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
             min,
             max,
             11,
             10,
-            ServiceLevel.PREMIUM.getValue(),
-            Usage.PRODUCTION.getValue()
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION
         ));
         assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
     }
@@ -466,26 +499,18 @@ public class TallyResourceTest {
     public void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                 Mockito.eq("account123456"),
-                 Mockito.eq("product1"),
-                 Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.ANY),
-                 Mockito.eq(Usage.ANY),
-                 Mockito.eq(min),
-                 Mockito.eq(max),
-                 Mockito.eq(null)))
-            .thenReturn(new PageImpl<>(Collections.emptyList()));
+                Mockito.eq("account123456"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel._ANY),
+                Mockito.eq(Usage._ANY),
+                Mockito.eq(min),
+                Mockito.eq(max),
+                Mockito.eq(null)
+            )).thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            null
-        );
+        TallyReport report = resource
+            .getTallyReport(RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null);
 
         // Since nothing was returned from the DB, there should be one generated snapshot for each day
         // in the range.
@@ -495,8 +520,7 @@ public class TallyResourceTest {
 
     @Test
     void testEmptySnapshotFilledWithAllZeroes() {
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
-            new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
+        org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot = new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
 
         assertEquals(0, snapshot.getInstanceCount().intValue());
         assertEquals(0, snapshot.getCores().intValue());
@@ -510,46 +534,22 @@ public class TallyResourceTest {
     }
 
     @Test
-    public void ensureBadRequestExceptionIsThrownWhenAnInvalidSlaParameterIsSpecified() {
-        assertThrows(BadRequestException.class, () -> {
-            resource.getTallyReport(
-                "product1",
-                "daily",
-                min,
-                max,
-                null,
-                null,
-                "foo_sla",
-                null
-            );
-        });
-    }
-
-    @Test
-    @WithMockRedHatPrincipal(value = "123456", roles = {"ROLE_" + RoleProvider.SWATCH_ADMIN_ROLE})
+    @WithMockRedHatPrincipal(value = "123456", roles = { "ROLE_" + RoleProvider.SWATCH_ADMIN_ROLE })
     public void canReportWithOnlyReportingRole() {
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                 Mockito.eq("account123456"),
-                 Mockito.eq("product1"),
-                 Mockito.eq(Granularity.DAILY),
-                 Mockito.eq(ServiceLevel.ANY),
-                 Mockito.eq(Usage.ANY),
-                 Mockito.eq(min),
-                 Mockito.eq(max),
-                 Mockito.eq(null)))
-            .thenReturn(new PageImpl<>(Collections.emptyList()));
+                Mockito.eq("account123456"),
+                Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel._ANY),
+                Mockito.eq(Usage._ANY),
+                Mockito.eq(min),
+                Mockito.eq(max),
+                Mockito.eq(null)
+            )).thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        TallyReport report = resource.getTallyReport(
-            "product1",
-            "daily",
-            min,
-            max,
-            null,
-            null,
-            null,
-            null
-        );
+        TallyReport report = resource
+            .getTallyReport(RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null);
         assertNotNull(report);
     }
 
@@ -557,9 +557,8 @@ public class TallyResourceTest {
     @WithMockRedHatPrincipal("1111")
     public void testAccessDeniedWhenAccountIsNotWhitelisted() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getTallyReport(
-                "product1",
-                "daily",
+            resource.getTallyReport(RHEL_PRODUCT_ID,
+                GranularityType.DAILY,
                 min,
                 max,
                 null,
@@ -574,9 +573,8 @@ public class TallyResourceTest {
     @WithMockRedHatPrincipal(value = "123456", roles = {})
     public void testAccessDeniedWhenUserIsNotAnAdmin() {
         assertThrows(AccessDeniedException.class, () -> {
-            resource.getTallyReport(
-                "product1",
-                "daily",
+            resource.getTallyReport(RHEL_PRODUCT_ID,
+                GranularityType.DAILY,
                 min,
                 max,
                 null,
@@ -585,15 +583,5 @@ public class TallyResourceTest {
                 null
             );
         });
-    }
-
-    private void assertMetadata(TallyReportMeta meta, String expectedProd, String expectedSla,
-        String expectedUsage, String expectedGranularity, Integer expectedCount) {
-        assertEquals(expectedProd, meta.getProduct());
-        assertEquals(expectedSla, meta.getServiceLevel());
-        assertEquals(expectedUsage, meta.getUsage());
-        assertEquals(expectedGranularity, meta.getGranularity());
-        assertEquals(expectedCount, meta.getCount());
-
     }
 }

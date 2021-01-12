@@ -127,8 +127,8 @@ public class InventoryAccountUsageCollector {
                     hypervisorGuestCounts.put(host.getHypervisorUuid(), ++guests);
                 }
 
-                ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel.ANY};
-                Usage[] usages = new Usage[]{facts.getUsage(), Usage.ANY};
+                ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel._ANY };
+                Usage[] usages = new Usage[]{facts.getUsage(), Usage._ANY };
 
                 // Calculate for each UsageKey
                 products.forEach(product -> {

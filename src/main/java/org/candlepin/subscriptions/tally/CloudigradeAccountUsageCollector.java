@@ -27,8 +27,8 @@ import org.candlepin.subscriptions.cloudigrade.api.model.UsageCount;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ArchToProductMapSource;
-import org.candlepin.subscriptions.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.tally.files.ArchToProductMapSource;
+import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,11 +113,11 @@ public class CloudigradeAccountUsageCollector {
     private UsageCalculation.Key extractKey(UsageCount usageCount, Map<String, String> archToProductMap,
         Map<String, List<String>> roleToProductsMap) {
         String productId = extractProductId(usageCount, archToProductMap, roleToProductsMap);
-        ServiceLevel sla = ServiceLevel.fromDbString(usageCount.getSla());
-        Usage usage = Usage.fromDbString(usageCount.getUsage());
+        ServiceLevel sla = ServiceLevel.fromString(usageCount.getSla());
+        Usage usage = Usage.fromString(usageCount.getUsage());
         // FIXME cloudigrade does report usage yet, workaround below
         if (usageCount.getUsage() == null) {
-            usage = Usage.ANY;
+            usage = Usage._ANY;
         }
         return new UsageCalculation.Key(productId, sla, usage);
     }

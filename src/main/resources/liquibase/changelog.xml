@@ -32,5 +32,9 @@
     <include file="liquibase/202009211317-add-additional-host-fields.xml" />
     <include file="liquibase/202010080931-fix-capacity-unspecified.xml" />
     <include file="liquibase/202011090921-re-add-hypervisor-type.xml" />
+    <include file="liquibase/202012181510-add-offering-table.xml" />
+    <include file="liquibase/202012141133-enforce-display-name-not-null.xml" />
+    <include file="liquibase/202011130945-add-events-table.xml" />
+    <include file="liquibase/202101081600-tweak-offering.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,37 +20,9 @@
  */
 package org.candlepin.subscriptions.task;
 
-import org.candlepin.subscriptions.controller.TallySnapshotController;
-import org.candlepin.subscriptions.task.tasks.UpdateAccountSnapshotsTask;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-
 /**
- * A class responsible for a TaskDescriptor into actual Task instances. Task instances are build via the
- * build(TaskDescriptor) method. The type of Task that will be built is determined by the descriptor's
- * TaskType property.
+ * Interface for a component which is able to transform a TaskDescriptor into an executable Task.
  */
-@Component
-public class TaskFactory {
-
-    @Autowired
-    private TallySnapshotController snapshotController;
-
-    /**
-     * Builds a Task instance based on the specified TaskDescriptor.
-     *
-     * @param taskDescriptor the task descriptor that is used to customize the Task that is to be created.
-     *
-     * @return the Task defined by the descriptor.
-     */
-    public Task build(TaskDescriptor taskDescriptor) {
-        if (TaskType.UPDATE_SNAPSHOTS.equals(taskDescriptor.getTaskType())) {
-            return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
-        }
-        throw new IllegalArgumentException("Could not build task. Unknown task type: " +
-            taskDescriptor.getTaskType());
-    }
-
+public interface TaskFactory {
+    Task build(TaskDescriptor taskDescriptor);
 }

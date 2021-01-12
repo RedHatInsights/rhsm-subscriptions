@@ -20,9 +20,10 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import com.google.common.collect.ImmutableMap;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 
 import java.util.Map;
+import java.util.Objects;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
@@ -33,23 +34,22 @@ import javax.persistence.Converter;
  * SLA or service level agreement is defined on a given subscription, and can be set as an attribute on a
  * system to associate it with a specific SLA requirement.
  */
-public enum ServiceLevel {
-    UNSPECIFIED(""),
-    PREMIUM("Premium"),
-    STANDARD("Standard"),
-    SELF_SUPPORT("Self-Support"),
-    ANY("_ANY");
+public enum ServiceLevel implements StringValueEnum<ServiceLevelType> {
+    EMPTY("", ServiceLevelType.EMPTY),
+    PREMIUM("Premium", ServiceLevelType.PREMIUM),
+    STANDARD("Standard", ServiceLevelType.STANDARD),
+    SELF_SUPPORT("Self-Support", ServiceLevelType.SELF_SUPPORT),
+    _ANY("_ANY", ServiceLevelType._ANY); //NOSONAR
+
+    private static final Map<String, ServiceLevel> VALUE_ENUM_MAP = StringValueEnum.initializeImmutableMap(
+        ServiceLevel.class);
 
     private final String value;
+    private final ServiceLevelType openApiEnum;
 
-    private static final Map<String, ServiceLevel> VALUE_ENUM_MAP = ImmutableMap.of(
-        PREMIUM.value.toUpperCase(), PREMIUM,
-        STANDARD.value.toUpperCase(), STANDARD,
-        SELF_SUPPORT.value.toUpperCase(), SELF_SUPPORT
-    );
-
-    ServiceLevel(String value) {
+    ServiceLevel(String value, ServiceLevelType openApiEnum) {
         this.value = value;
+        this.openApiEnum = openApiEnum;
     }
 
     /**
@@ -58,32 +58,19 @@ public enum ServiceLevel {
      * NOTE: this method will not return the special value ANY, and gives UNSPECIFIED for any invalid value.
      *
      * @param value String representation of the SLA, as seen in a host record
+     *
      * @return the ServiceLevel enum; UNSPECIFIED if unparseable.
      */
     public static ServiceLevel fromString(String value) {
-        String key = value == null ? "" : value.toUpperCase();
-        return VALUE_ENUM_MAP.getOrDefault(key, UNSPECIFIED);
-    }
-
-    /**
-     * Parse the service level from its string representation
-     *
-     * NOTE: this method will return UNSPECIFIED for any invalid value.
-     *
-     * @param value String representation of the service level, as seen in the DB.
-     * @return the ServiceLevel enum; UNSPECIFIED if unparseable.
-     */
-    public static ServiceLevel fromDbString(String value) {
-        if (ServiceLevel.ANY.value.equals(value)) {
-            return ServiceLevel.ANY;
-        }
-        else {
-            return fromString(value);
-        }
+        return StringValueEnum.getValueOf(ServiceLevel.class, VALUE_ENUM_MAP, value, EMPTY);
     }
 
     public String getValue() {
         return value;
+    }
+
+    public ServiceLevelType asOpenApiEnum() {
+        return openApiEnum;
     }
 
     /**
@@ -91,17 +78,15 @@ public enum ServiceLevel {
      */
     @Converter(autoApply = true)
     public static class EnumConverter implements AttributeConverter<ServiceLevel, String> {
+
         @Override
         public String convertToDatabaseColumn(ServiceLevel attribute) {
-            if (attribute == null) {
-                return null;
-            }
-            return attribute.getValue();
+            return Objects.nonNull(attribute) ? attribute.getValue() : null;
         }
 
         @Override
         public ServiceLevel convertToEntityAttribute(String dbData) {
-            return ServiceLevel.fromDbString(dbData);
+            return ServiceLevel.fromString(dbData);
         }
     }
 }

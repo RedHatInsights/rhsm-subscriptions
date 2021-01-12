@@ -6,7 +6,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:4.0.1"
+        classpath "org.openapitools:openapi-generator-gradle-plugin:4.3.1"
+        classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.0.2"
     }
 }
 
@@ -77,6 +78,7 @@ allprojects {
             dependencySet(group: "org.junit.jupiter", version: "$junit_version") {
                 entry "junit-jupiter-api"
                 entry "junit-jupiter-engine"
+                entry "junit-jupiter-params"
             }
             dependencySet(group: "org.mockito", version: "$mockito_version") {
                 entry "mockito-core"
@@ -123,6 +125,7 @@ allprojects {
 
         // We use JUnit 5 which the spring-boot-starter-test doesn't provide
         testCompile "org.junit.jupiter:junit-jupiter-api"
+        testCompile "org.junit.jupiter:junit-jupiter-params"
         testCompile "org.mockito:mockito-core"
         testCompile "org.mockito:mockito-junit-jupiter"
         testCompile "org.hamcrest:hamcrest"
@@ -130,6 +133,20 @@ allprojects {
         testRuntime "org.junit.jupiter:junit-jupiter-engine"
         testRuntime "ch.qos.logback:logback-classic"
     }
+}
+
+apply plugin: 'jsonschema2pojo'
+jsonSchema2Pojo {
+    source = files("${projectDir}/schemas")
+    targetPackage = 'org.candlepin.subscriptions.json'
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
 }
 
 bootJar {
@@ -167,8 +184,13 @@ release {
 dependencies {
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
+    // code changes
+    compile('org.springframework.boot:spring-boot-devtools')
 
     compile project(":api")
+    compile project(":insights-inventory-client")
+    compile project(":rhsm-client")
     compile project(":cloudigrade-client")
     compile project(":rbac-client")
     compile project(":kafka-schema")
@@ -261,8 +283,8 @@ project(":api") {
       configFile = config_file
       outputDir = "$buildDir/generated"
       configOptions = [
-          interfaceOnly: true,
-          generatePom: false,
+          interfaceOnly: "true",
+          generatePom: "false",
           dateLibrary: "java8",
       ]
     }
@@ -306,11 +328,39 @@ project(":api") {
         compile "javax.validation:validation-api"
         compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
         compile "io.swagger:swagger-annotations"
+        compile "com.google.code.findbugs:jsr305:3.0.2"
+        compile "org.openapitools:jackson-databind-nullable:0.2.1"
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
     processResources.dependsOn tasks.generateOpenApiJson
+}
+
+project(":insights-inventory-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/075f8e4433ecfb2e227e02108096847242e14e19/swagger/api.spec.yaml"
+        config_file = "${projectDir}/insights-inventory-client-config.json"
+    }
+
+    dependencies {
+        compileOnly 'org.springframework.boot:spring-boot'
+    }
+}
+
+project(":rhsm-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/rhsm-client-spec.yaml"
+        config_file = "${projectDir}/rhsm-client-config.json"
+    }
+
+    dependencies {
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.27.2"
+    }
 }
 
 project(":rbac-client") {
@@ -336,7 +386,7 @@ project(":cloudigrade-client") {
     }
 }
 
-configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'rbac-client'}) {
+configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client', 'insights-inventory-client']}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 
@@ -364,9 +414,9 @@ configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'r
         outputDir = "${buildDir}/generated"
         generatorName = "java"
         configOptions = [
-                generatePom: false,
+                generatePom: "false",
                 library: "resteasy",
-                java8: true,
+                java8: "true",
                 dateLibrary: "java8"
         ]
     }
@@ -382,6 +432,8 @@ configure(subprojects.findAll { it.name == "cloudigrade-client" || it.name == 'r
         compile "org.springframework:spring-context"
         compile "org.slf4j:slf4j-api"
         compile "io.swagger:swagger-annotations"
+        compile "com.google.code.findbugs:jsr305:3.0.2"
+        compile "org.openapitools:jackson-databind-nullable:0.2.1"
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

@@ -1,0 +1,14 @@
+rhsm-subscriptions:
+  datasource:
+    url: jdbc:hsqldb:mem:testdb
+    username: ''
+    password: ''
+    driver-class-name: org.hsqldb.jdbc.JDBCDriver
+    platform: hsqldb
+  inventory-service.datasource:
+    url: jdbc:hsqldb:mem:inventory-testdb
+    username: ''
+    password: ''
+    driver-class-name: org.hsqldb.jdbc.JDBCDriver
+    platform: hsqldb
+  account-batch-size: 2

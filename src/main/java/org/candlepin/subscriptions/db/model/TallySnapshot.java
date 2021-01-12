@@ -66,10 +66,10 @@ public class TallySnapshot implements Serializable {
     private String accountNumber;
 
     @Column(name = "sla")
-    private ServiceLevel serviceLevel = ServiceLevel.ANY;
+    private ServiceLevel serviceLevel = ServiceLevel._ANY;
 
     @Column(name = "usage")
-    private Usage usage = Usage.ANY;
+    private Usage usage = Usage._ANY;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "granularity")

@@ -23,10 +23,13 @@
         "type": "map",
         "values": {
           "type": "array",
-          "items": {
-            "type": "string",
-            "avro.java.string": "String"
-          }
+          "items": [
+            "null",
+            {
+              "type": "string",
+              "avro.java.string": "String"
+            }
+          ]
         },
         "avro.java.string": "String"
       }

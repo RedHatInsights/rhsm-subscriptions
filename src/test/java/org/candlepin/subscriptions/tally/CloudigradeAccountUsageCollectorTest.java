@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @SpringBootTest
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("worker,test")
 class CloudigradeAccountUsageCollectorTest {
     public static final String ACCOUNT = "foo123";
 
@@ -96,8 +96,9 @@ class CloudigradeAccountUsageCollectorTest {
         AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
         collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage),
             Collections.singletonList(ACCOUNT));
-        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL", ServiceLevel.ANY,
-            Usage.ANY)).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
+        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL", ServiceLevel._ANY,
+            Usage._ANY
+        )).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
     }
 
     @Test
@@ -140,8 +141,9 @@ class CloudigradeAccountUsageCollectorTest {
         AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
         collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage),
             Collections.singletonList(ACCOUNT));
-        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL", ServiceLevel.ANY,
-            Usage.ANY)).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
+        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL", ServiceLevel._ANY,
+            Usage._ANY
+        )).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
     }
 
     @Test
@@ -162,8 +164,9 @@ class CloudigradeAccountUsageCollectorTest {
         AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
         collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage),
             Collections.singletonList(ACCOUNT));
-        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL Server", ServiceLevel.ANY,
-            Usage.ANY)).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
+        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL Server", ServiceLevel._ANY,
+            Usage._ANY
+        )).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
     }
 
     @Test
@@ -187,6 +190,7 @@ class CloudigradeAccountUsageCollectorTest {
         assertEquals(0, accountUsage.getKeys().size());
     }
 
+    @SuppressWarnings("linelength")
     @Test
     void testEnrichUsageMatchesByArch() throws ApiException, IOException {
         UsageCount usageCount = new UsageCount()
@@ -205,8 +209,9 @@ class CloudigradeAccountUsageCollectorTest {
         AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
         collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage),
             Collections.singletonList(ACCOUNT));
-        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL for x86", ServiceLevel.ANY,
-            Usage.ANY)).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
+        assertEquals(1, accountUsage.getCalculation(new UsageCalculation.Key("RHEL for x86", ServiceLevel._ANY,
+            Usage._ANY
+        )).getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE).getInstances());
     }
 
     @Test

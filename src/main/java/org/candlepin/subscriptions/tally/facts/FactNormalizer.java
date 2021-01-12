@@ -26,8 +26,8 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
-import org.candlepin.subscriptions.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -252,7 +252,7 @@ public class FactNormalizer {
 
     private Usage extractRhsmUsage(InventoryHostFacts hostFacts) {
         Usage effectiveUsage = Usage.fromString(hostFacts.getSyspurposeUsage());
-        if (hostFacts.getSyspurposeUsage() != null && effectiveUsage == Usage.UNSPECIFIED &&
+        if (hostFacts.getSyspurposeUsage() != null && effectiveUsage == Usage.EMPTY &&
             log.isDebugEnabled()) {
 
             log.debug(
@@ -267,7 +267,7 @@ public class FactNormalizer {
 
     private ServiceLevel extractRhsmSla(InventoryHostFacts hostFacts) {
         ServiceLevel effectiveSla = ServiceLevel.fromString(hostFacts.getSyspurposeSla());
-        if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.UNSPECIFIED &&
+        if (hostFacts.getSyspurposeSla() != null && effectiveSla == ServiceLevel.EMPTY &&
             log.isDebugEnabled()) {
 
             log.debug(

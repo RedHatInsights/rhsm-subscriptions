@@ -29,7 +29,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -42,7 +42,7 @@ import java.util.List;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 class SubscriptionCapacityRepositoryTest {
     private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
         ZoneId.systemDefault());
@@ -70,8 +70,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -99,8 +99,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -128,8 +128,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -157,8 +157,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -186,8 +186,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -203,8 +203,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -220,8 +220,8 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
@@ -237,7 +237,7 @@ class SubscriptionCapacityRepositoryTest {
             "ownerId",
             "product",
             ServiceLevel.STANDARD,
-            Usage.ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(0, found.size());
@@ -252,7 +252,7 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
+            ServiceLevel._ANY,
             Usage.DEVELOPMENT_TEST,
             NOWISH,
             FAR_FUTURE);
@@ -269,7 +269,7 @@ class SubscriptionCapacityRepositoryTest {
             "ownerId",
             "product",
             ServiceLevel.PREMIUM,
-            Usage.ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
 
@@ -284,7 +284,7 @@ class SubscriptionCapacityRepositoryTest {
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
+            ServiceLevel._ANY,
             Usage.PRODUCTION,
             NOWISH,
             FAR_FUTURE);
@@ -301,7 +301,7 @@ class SubscriptionCapacityRepositoryTest {
         standard.setSubscriptionId("standard");
         standard.setServiceLevel(ServiceLevel.STANDARD);
         unset.setSubscriptionId("unset");
-        unset.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        unset.setServiceLevel(ServiceLevel.EMPTY);
         repository.saveAll(Arrays.asList(premium, standard, unset));
         repository.flush();
 
@@ -325,19 +325,19 @@ class SubscriptionCapacityRepositoryTest {
         standard.setSubscriptionId("standard");
         standard.setServiceLevel(ServiceLevel.STANDARD);
         unset.setSubscriptionId("unset");
-        unset.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        unset.setServiceLevel(ServiceLevel.EMPTY);
         repository.saveAll(Arrays.asList(premium, standard, unset));
         repository.flush();
 
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.UNSPECIFIED,
+            ServiceLevel.EMPTY,
             Usage.PRODUCTION,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
-        assertEquals(ServiceLevel.UNSPECIFIED, found.get(0).getServiceLevel());
+        assertEquals(ServiceLevel.EMPTY, found.get(0).getServiceLevel());
     }
 
     @Test
@@ -350,14 +350,14 @@ class SubscriptionCapacityRepositoryTest {
         standard.setSubscriptionId("standard");
         standard.setServiceLevel(ServiceLevel.STANDARD);
         unset.setSubscriptionId("unset");
-        unset.setServiceLevel(ServiceLevel.UNSPECIFIED);
+        unset.setServiceLevel(ServiceLevel.EMPTY);
         repository.saveAll(Arrays.asList(premium, standard, unset));
         repository.flush();
 
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
+            ServiceLevel._ANY,
             Usage.PRODUCTION,
             NOWISH,
             FAR_FUTURE);
@@ -374,14 +374,14 @@ class SubscriptionCapacityRepositoryTest {
         dr.setSubscriptionId("dr");
         dr.setUsage(Usage.DISASTER_RECOVERY);
         unset.setSubscriptionId("unset");
-        unset.setUsage(Usage.UNSPECIFIED);
+        unset.setUsage(Usage.EMPTY);
         repository.saveAll(Arrays.asList(production, dr, unset));
         repository.flush();
 
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
+            ServiceLevel._ANY,
             null,
             NOWISH,
             FAR_FUTURE);
@@ -398,19 +398,19 @@ class SubscriptionCapacityRepositoryTest {
         dr.setSubscriptionId("dr");
         dr.setUsage(Usage.DISASTER_RECOVERY);
         unset.setSubscriptionId("unset");
-        unset.setUsage(Usage.UNSPECIFIED);
+        unset.setUsage(Usage.EMPTY);
         repository.saveAll(Arrays.asList(production, dr, unset));
         repository.flush();
 
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.UNSPECIFIED,
+            ServiceLevel._ANY,
+            Usage.EMPTY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(1, found.size());
-        assertEquals(Usage.UNSPECIFIED, found.get(0).getUsage());
+        assertEquals(Usage.EMPTY, found.get(0).getUsage());
     }
 
     @Test
@@ -423,15 +423,15 @@ class SubscriptionCapacityRepositoryTest {
         dr.setSubscriptionId("dr");
         dr.setUsage(Usage.DISASTER_RECOVERY);
         unset.setSubscriptionId("unset");
-        unset.setUsage(Usage.UNSPECIFIED);
+        unset.setUsage(Usage.EMPTY);
         repository.saveAll(Arrays.asList(production, dr, unset));
         repository.flush();
 
         List<SubscriptionCapacity> found = repository.findByOwnerAndProductId(
             "ownerId",
             "product",
-            ServiceLevel.ANY,
-            Usage.ANY,
+            ServiceLevel._ANY,
+            Usage._ANY,
             NOWISH,
             FAR_FUTURE);
         assertEquals(3, found.size());

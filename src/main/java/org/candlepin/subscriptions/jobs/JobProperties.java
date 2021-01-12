@@ -20,14 +20,9 @@
  */
 package org.candlepin.subscriptions.jobs;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-
 /**
  * Contains the configuration properties for all jobs.
  */
-@Component
-@ConfigurationProperties(prefix = "rhsm-subscriptions.jobs")
 public class JobProperties {
 
     private String captureSnapshotSchedule = "0 5 * * * ?";

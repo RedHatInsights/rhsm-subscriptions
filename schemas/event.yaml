@@ -1,0 +1,150 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: Event
+properties:
+  event_id:
+    description: UUID for the event, will be generated upon ingestion if not specified.
+    type: string
+    format: uuid
+    required: false
+  event_source:
+    description: Identifier for the system that captured the event.
+    type: string
+    required: true
+  event_type:
+    description: Source-specific identifier for the type of event (e.g. Snapshot, Delete). This allows
+      the source to encode a special semantic for the event.
+    type: string
+    required: false
+  account_number:
+    description: Account identifier for the relevant account.
+    type: string
+    required: true
+  service_type:
+    description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
+    type: string
+    required: true
+  instance_id:
+    description: Primary identifier for the instance of the service, according to the event producer.
+    type: string
+    required: true
+  timestamp:
+    description: Time that the event happened or the snapshot was captured.
+    type: string
+    format: date-time
+    required: true
+  expiration:
+    description: End of the range for the event (exclusive).
+    type: string
+    existingJavaType: java.util.Optional<java.time.OffsetDateTime>
+    format: date-time
+    required: false
+  display_name:
+    description: User-set name for the subject.
+    type: string
+    existingJavaType: java.util.Optional<String>
+    required: false
+  inventory_id:
+    description: Host-based inventory ID for the service, if applicable and known.
+    type: string
+    existingJavaType: java.util.Optional<String>
+    required: false
+  insights_id:
+    description: Red Hat Insights ID for the service, if applicable and known.
+    type: string
+    existingJavaType: java.util.Optional<String>
+    required: false
+  subscription_manager_id:
+    description: subscription-manager ID for the service, if applicable and known.
+    type: string
+    existingJavaType: java.util.Optional<String>
+    required: false
+  correlation_ids:
+    description: List of IDs to be used in debugging. Correlation IDs should ideally be unique.
+    type: array
+    items:
+      type: string
+    required: false
+  measurements:
+    description: Captures measurements for the service instance.
+    type: array
+    items:
+      type: object
+      properties:
+        value:
+          description: Measurement value.
+          type: number
+          required: true
+        uom:
+          description: UOM for the measurement. (e.g. Cores, Sockets)
+          type: string
+          required: true
+          enum:
+            - Cores
+            - Sockets
+            - Core-seconds
+    required: false
+  cloud_provider:
+    description: Identifier for the cloud provider of the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Alibaba
+      - AWS
+      - Azure
+      - Google
+    required: false
+  hardware_type:
+    description: Identifier for the type of hardware of the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Physical
+      - Virtual
+      - Cloud
+    required: false
+  hypervisor_uuid:
+    description: Subscription-manager ID of the hypervisor, as reported in virt-who mappings.
+    type: string
+    existingJavaType: java.util.Optional<String>
+    required: false
+  product_ids:
+    description: List of engineering product IDs detected on the subject.
+    type: array
+    items:
+      type: string
+    required: false
+  role:
+    description: The syspurpose role for the system.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Red Hat Enterprise Linux Server
+      - Red Hat Enterprise Linux Workstation
+      - Red Hat Enterprise Linux Compute Node
+    required: false
+  sla:
+    description: Service level for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Premium
+      - Standard
+      - Self-Support
+    required: false
+  usage:
+    description: Intended usage for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Production
+      - Development/Test
+      - Disaster Recovery
+    required: false
+  uom:
+    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Cores
+      - Sockets
+    required: false

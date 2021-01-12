@@ -36,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.UUID;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * Provides access to Host database entities.
  */
@@ -47,36 +49,40 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
      * A TallyHostView is a Host representation detailing what 'bucket' was applied
      * to the current daily snapshots.
      *
-     * @param accountNumber The account number of the hosts to query (required).
-     * @param productId The bucket product ID to filter Host by (pass null to ignore).
-     * @param sla The bucket service level to filter Hosts by (pass null to ignore).
-     * @param usage The bucket usage to filter Hosts by (pass null to ignore).
-     * @param minCores Filter to Hosts with at least this number of cores.
-     * @param minSockets Filter to Hosts with at least this number of sockets.
-     * @param pageable the current paging info for this query.
+     * @param accountNumber        The account number of the hosts to query (required).
+     * @param productId            The bucket product ID to filter Host by (pass null to ignore).
+     * @param sla                  The bucket service level to filter Hosts by (pass null to ignore).
+     * @param usage                The bucket usage to filter Hosts by (pass null to ignore).
+     * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null or empty string to ignore)
+     * @param minCores             Filter to Hosts with at least this number of cores.
+     * @param minSockets           Filter to Hosts with at least this number of sockets.
+     * @param pageable             the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
     @Query(
         value = "select b from HostTallyBucket b join fetch b.key.host h where " +
-                "h.accountNumber = :account and " +
-                "b.key.productId = :product and " +
-                "b.key.sla = :sla and b.key.usage = :usage and " +
-                "b.cores >= :minCores and b.sockets >= :minSockets",
+            "h.accountNumber = :account and " +
+            "b.key.productId = :product and " +
+            "b.key.sla = :sla and b.key.usage = :usage and " +
+            // Have to do the null check first, otherwise the lower in the LIKE clause has issues with datatypes
+            "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
+            "b.cores >= :minCores and b.sockets >= :minSockets",
         // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
         // we need to specify how the Page should gets its count when the 'limit' parameter
         // is used.
         countQuery = "select count(b) from HostTallyBucket b join b.key.host h where " +
-                     "h.accountNumber = :account and " +
-                     "b.key.productId = :product and " +
-                     "b.key.sla = :sla and b.key.usage = :usage and " +
-                     "b.cores >= :minCores and b.sockets >= :minSockets"
-
+            "h.accountNumber = :account and " +
+            "b.key.productId = :product and " +
+            "b.key.sla = :sla and b.key.usage = :usage and " +
+            "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
+            "b.cores >= :minCores and b.sockets >= :minSockets"
     )
-    Page<TallyHostView> getTallyHostViews(
+    Page<TallyHostView> getTallyHostViews(//NOSONAR (exceeds allowed 7 params)
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,
         @Param("usage") Usage usage,
+        @NotNull @Param("displayNameSubstring") String displayNameSubstring,
         @Param("minCores") int minCores,
         @Param("minSockets") int minSockets,
         Pageable pageable

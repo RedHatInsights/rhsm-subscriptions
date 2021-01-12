@@ -106,7 +106,7 @@ public class DefaultProductUsageCollectorTest {
     }
 
     private UsageCalculation.Key createUsageKey() {
-        return new UsageCalculation.Key("NON_RHEL", ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
+        return new UsageCalculation.Key("NON_RHEL", ServiceLevel.EMPTY, Usage.EMPTY);
     }
 
 }

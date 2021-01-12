@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@TestPropertySource("classpath:/test.properties")
+@ActiveProfiles("test")
 public class TallySnapshotRepositoryTest {
     private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
         ZoneId.systemDefault());
@@ -103,8 +103,8 @@ public class TallySnapshotRepositoryTest {
     @SuppressWarnings("linelength")
     @Test
     public void testFindByEmptyServiceLevelAndUsage() {
-        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, ServiceLevel.UNSPECIFIED,
-            Usage.UNSPECIFIED, 1111, 111, 11, NOWISH);
+        TallySnapshot t1 = createUnpersisted("A1", "P1", Granularity.DAILY, ServiceLevel.EMPTY,
+            Usage.EMPTY, 1111, 111, 11, NOWISH);
 
         repository.saveAll(Arrays.asList(t1));
         repository.flush();
@@ -114,8 +114,8 @@ public class TallySnapshotRepositoryTest {
             "A1",
             "P1",
             Granularity.DAILY,
-            ServiceLevel.UNSPECIFIED,
-            Usage.UNSPECIFIED,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
             LONG_AGO,
             FAR_FUTURE,
             PageRequest.of(0, 10))

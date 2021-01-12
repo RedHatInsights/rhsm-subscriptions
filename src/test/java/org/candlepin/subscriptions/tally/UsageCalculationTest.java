@@ -21,9 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -65,7 +63,7 @@ public class UsageCalculationTest {
     }
 
     private UsageCalculation.Key createUsageKey(String product) {
-        return new UsageCalculation.Key(product, ServiceLevel.UNSPECIFIED, Usage.UNSPECIFIED);
+        return new UsageCalculation.Key(product, ServiceLevel.EMPTY, Usage.EMPTY);
     }
 
     @Test

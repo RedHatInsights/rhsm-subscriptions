@@ -20,6 +20,10 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+
+import java.util.Map;
+
 /**
  * Granularity of a given snapshot.
  *
@@ -27,10 +31,33 @@ package org.candlepin.subscriptions.db.model;
  * represents the maximum tally totals across all days in that week. For example, given a week where daily
  * tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
-public enum Granularity {
-    DAILY,
-    WEEKLY,
-    MONTHLY,
-    QUARTERLY,
-    YEARLY
+public enum Granularity implements StringValueEnum<GranularityType> {
+    DAILY("Daily", GranularityType.DAILY),
+    WEEKLY("Weekly", GranularityType.WEEKLY),
+    MONTHLY("Monthly", GranularityType.MONTHLY),
+    QUARTERLY("Quarterly", GranularityType.QUARTERLY),
+    YEARLY("Yearly", GranularityType.YEARLY);
+
+    private static final Map<String, Granularity> VALUE_ENUM_MAP = StringValueEnum.initializeImmutableMap(
+        Granularity.class);
+
+    private final String value;
+    private final GranularityType openApiEnum;
+
+    Granularity(String value, GranularityType openApiEnum) {
+        this.value = value;
+        this.openApiEnum = openApiEnum;
+    }
+
+    public static Granularity fromString(String value) {
+        return StringValueEnum.getValueOf(Granularity.class, VALUE_ENUM_MAP, value, null);
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public GranularityType asOpenApiEnum() {
+        return openApiEnum;
+    }
 }

@@ -66,11 +66,11 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
         predicates.add(cb.equal(capacity.get("key").get("ownerId"), ownerId));
         predicates.add(cb.equal(capacity.get("key").get("productId"), productId));
 
-        if (serviceLevel != null && serviceLevel != ServiceLevel.ANY) {
+        if (serviceLevel != null && serviceLevel != ServiceLevel._ANY) {
             predicates.add(cb.equal(capacity.get("serviceLevel"), serviceLevel));
         }
 
-        if (usage != null && usage != Usage.ANY) {
+        if (usage != null && usage != Usage._ANY) {
             predicates.add(cb.equal(capacity.get("usage"), usage));
         }
 

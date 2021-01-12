@@ -20,40 +20,33 @@
  */
 package org.candlepin.subscriptions;
 
-import org.candlepin.subscriptions.retention.TallyRetentionPolicyProperties;
+import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
  *
- * NB: This class must be labeled as a component, not loaded via the EnableConfigurationProperties annotation.
- * Loading this class as a component gives the bean a formal name.  Using EnableConfigurationProperties
- * uses a generated name with a hyphen in it.  From the Spring Boot Docs (section 4.2.8 Type-safe
- * Configuration):
+ * NOTE: not annotated with @Component, as this doesn't live in a package that is picked up with package
+ * scanning.
  *
- *     When the @ConfigurationProperties bean is registered using configuration property scanning or via
- *     @EnableConfigurationProperties, the bean has a conventional name: <prefix>-<fqn>, where <prefix> is
- *     the environment key prefix specified in the @ConfigurationProperties annotation and <fqn> is the fully
- *     qualified name of the bean. If the annotation does not provide any prefix, only the fully qualified
- *     name of the bean is used.
- *
- * Unfortunately, "<prefix>-<fqn>" has a hyphen in it which means we can't use the bean name in a SpEL
- * expression: the hyphen is interpreted as a subtraction operator.
+ * @see ApplicationConfiguration
  */
-@Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
+    private String version;
 
     private boolean prettyPrintJson = false;
 
     private boolean devMode = false;
 
-    private final TallyRetentionPolicyProperties tallyRetentionPolicy = new TallyRetentionPolicyProperties();
+    /**
+     * Job schedules when running in dev mode.
+     */
+    private JobProperties jobs;
 
     /**
      * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
@@ -171,6 +164,14 @@ public class ApplicationProperties {
      */
     private int cloudigradeMaxAttempts = 2;
 
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
     public boolean isPrettyPrintJson() {
         return prettyPrintJson;
     }
@@ -193,10 +194,6 @@ public class ApplicationProperties {
 
     public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
         this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
-    }
-
-    public TallyRetentionPolicyProperties getTallyRetentionPolicy() {
-        return tallyRetentionPolicy;
     }
 
     public String getAccountListResourceLocation() {
@@ -357,5 +354,13 @@ public class ApplicationProperties {
 
     public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
         this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
+    }
+
+    public JobProperties getJobs() {
+        return jobs;
+    }
+
+    public void setJobs(JobProperties jobs) {
+        this.jobs = jobs;
     }
 }

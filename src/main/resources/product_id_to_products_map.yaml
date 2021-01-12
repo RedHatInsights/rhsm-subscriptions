@@ -46,7 +46,9 @@
   - RHEL for x86
 
 250:  # Red Hat Satellite
-  - Satellite 6
+  - Satellite
+  - Satellite Server
 
 269:  # Red Hat Satellite Capsule
-  - Satellite 6 Capsule
+  - Satellite
+  - Satellite Capsule
