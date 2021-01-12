@@ -27,8 +27,7 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 
 import org.junit.jupiter.api.Test;
 
-
-public class ApiProviderFactoryTest {
+class ApiProviderFactoryTest {
 
     @Test
     void canUseStubClient() throws Exception {
@@ -41,7 +40,7 @@ public class ApiProviderFactoryTest {
     }
 
     @Test
-    public void checkPropertyInitialization() throws Exception {
+    void checkPropertyInitialization() throws Exception {
         HttpClientProperties props = new HttpClientProperties();
         assertFalse(props.isUseStub());
 

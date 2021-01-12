@@ -41,7 +41,7 @@ spring:
       - capacity-ingress
       - rhsm-conduit
       - worker
-      - metering-worker
+      - openshift-metering-worker
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
   kafka:
@@ -91,3 +91,9 @@ rhsm-subscriptions:
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
   # Base path override for reverse proxy support
   hawtio-base-path: ${HAWTIO_BASE_PATH:}
+  metering:
+    openshift:
+      tasks:
+        topic: ${OPENSHIFT_METERING_TASK_TOPIC:platform.rhsm-subscriptions.openshift-metering-tasks}
+        kafka-group-id: ${OPENSHIFT_METERING_TASK_GROUP_ID:openshift-metering-task-processor}
+

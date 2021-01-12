@@ -21,28 +21,24 @@
 package org.candlepin.subscriptions.metering.job;
 
 import org.candlepin.subscriptions.exception.JobFailureException;
-import org.candlepin.subscriptions.metering.service.PrometheusServicePropeties;
-import org.candlepin.subscriptions.metering.tasks.MetricsTaskManager;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 
 /**
  * A cron job that sends a task message to capture metrics from prometheus for metering.
  */
-@Component
-public class MeteringJob implements Runnable {
+public class OpenshiftMeteringJob implements Runnable {
 
-    private MetricsTaskManager tasks;
+    private PrometheusMetricsTaskManager tasks;
     private ApplicationClock clock;
     private int rangeInMinutes;
 
-    @Autowired
-    public MeteringJob(MetricsTaskManager tasks, ApplicationClock clock,
+    public OpenshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
         PrometheusServicePropeties servicePropeties) {
         this.tasks = tasks;
         this.clock = clock;

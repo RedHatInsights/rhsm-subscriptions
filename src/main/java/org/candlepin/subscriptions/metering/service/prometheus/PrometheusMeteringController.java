@@ -18,9 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering;
+package org.candlepin.subscriptions.metering.service.prometheus;
 
-import org.candlepin.subscriptions.metering.service.PrometheusService;
+import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
@@ -38,13 +38,13 @@ import java.util.Map;
  * A controller class that defines the business logic related to any metrics that are gathered.
  */
 @Component
-public class MeteringController {
+public class PrometheusMeteringController {
 
-    private static final Logger log = LoggerFactory.getLogger(MeteringController.class);
+    private static final Logger log = LoggerFactory.getLogger(PrometheusMeteringController.class);
 
     private final PrometheusService prometheusService;
 
-    public MeteringController(PrometheusService service) {
+    public PrometheusMeteringController(PrometheusService service) {
         this.prometheusService = service;
     }
 
@@ -68,8 +68,6 @@ public class MeteringController {
             r.getValues().forEach(measurement -> {
                 BigDecimal time = measurement.get(0);
                 BigDecimal value = measurement.get(1);
-
-                // TODO Persist events to the DB once the supporting code is ready.
                 log.info("# PERSISTING EVENT -> Cluster: {}, SLA: {} [{}:{}]",
                     clusterId, serviceLevel, time, value);
             });

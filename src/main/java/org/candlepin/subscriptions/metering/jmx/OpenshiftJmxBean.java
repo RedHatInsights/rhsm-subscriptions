@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.metering.jmx;
 
-import org.candlepin.subscriptions.metering.service.PrometheusServicePropeties;
-import org.candlepin.subscriptions.metering.tasks.MetricsTaskManager;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -31,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
@@ -39,20 +38,19 @@ import java.time.OffsetDateTime;
 /**
  * Exposes the ability to trigger metering operations from JMX.
  */
-@Component
 @ManagedResource
-public class MeteringJmxBean {
+public class OpenshiftJmxBean {
 
-    private static final Logger log = LoggerFactory.getLogger(MeteringJmxBean.class);
+    private static final Logger log = LoggerFactory.getLogger(OpenshiftJmxBean.class);
 
-    private MetricsTaskManager tasks;
+    private PrometheusMetricsTaskManager tasks;
 
     private ApplicationClock clock;
 
     private PrometheusServicePropeties servicePropeties;
 
     @Autowired
-    public MeteringJmxBean(ApplicationClock clock, MetricsTaskManager tasks,
+    public OpenshiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager tasks,
         PrometheusServicePropeties servicePropeties) {
         this.clock = clock;
         this.tasks = tasks;
@@ -156,7 +154,6 @@ public class MeteringJmxBean {
                 String.format("Unable to parse date arg '%s'. Invalid format.", dateToParse)
             );
         }
-
     }
 
     private OffsetDateTime getStartDate(OffsetDateTime endDate, Integer rangeInMinutes) {
@@ -165,7 +162,8 @@ public class MeteringJmxBean {
         }
 
         if (rangeInMinutes < 0) {
-            throw new IllegalArgumentException("Invalid value specified: rangeInMinutes");
+            throw new IllegalArgumentException(
+                "Invalid value specified (Must be >= 0): rangeInMinutes");
         }
 
         return endDate.minusMinutes(rangeInMinutes);

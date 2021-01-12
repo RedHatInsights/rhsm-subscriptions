@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2009 - 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,34 +18,35 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.job;
+package org.candlepin.subscriptions.metering.profile;
 
-import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.jobs.JobProperties;
-import org.candlepin.subscriptions.metering.TaskQueueConfiguration;
-import org.candlepin.subscriptions.metering.service.PrometheusServicePropeties;
-import org.candlepin.subscriptions.metering.tasks.MetricsTaskManager;
+import org.candlepin.subscriptions.metering.job.OpenshiftMeteringJob;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
+import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
+import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
 import org.candlepin.subscriptions.spring.JobRunner;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
-import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
 /**
- * Bean configuration when running a metering job.
+ * Defines the beans for the openshift-metering-job profile.
  */
 @Configuration
-@Profile("metering-job")
-@Import({TaskQueueConfiguration.class, TaskProducerConfiguration.class})
-@ComponentScan("org.candlepin.subscriptions.metering.job")
-public class MeteringJobConfiguration {
+@Profile("openshift-metering-job")
+@Import({
+    PrometheusServiceConfiguration.class,
+    OpenShiftTasksConfiguration.class,
+    TaskProducerConfiguration.class
+})
+public class OpenShiftJobProfile {
 
     @Bean
     JobProperties jobProperties() {
@@ -53,19 +54,13 @@ public class MeteringJobConfiguration {
     }
 
     @Bean
-    PrometheusServicePropeties prometheusServicePropeties() {
-        return new PrometheusServicePropeties();
+    OpenshiftMeteringJob openshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
+        PrometheusServicePropeties servicePropeties) {
+        return new OpenshiftMeteringJob(tasks, clock, servicePropeties);
     }
 
     @Bean
-    MetricsTaskManager metricsTaskManager(TaskQueue queue,
-        @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
-        AccountListSource accounts) {
-        return new MetricsTaskManager(queue, queueProps, accounts);
-    }
-
-    @Bean
-    JobRunner jobRunner(MeteringJob job, ApplicationContext applicationContext) {
+    JobRunner jobRunner(OpenshiftMeteringJob job, ApplicationContext applicationContext) {
         return new JobRunner(job, applicationContext);
     }
 

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.service;
+package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -41,7 +41,7 @@ import java.time.OffsetDateTime;
 
 
 @ExtendWith(MockitoExtension.class)
-public class PrometheusServiceTest {
+class PrometheusServiceTest {
 
     @Mock
     private QueryApi queryApi;

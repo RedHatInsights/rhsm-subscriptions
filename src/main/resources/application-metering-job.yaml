@@ -1,8 +1,0 @@
-rhsm-subscriptions:
-  account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
-  account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
-
-  metering:
-    tasks:
-      topic: ${METERING_KAFKA_TOPIC:platform.rhsm-subscriptions.metering-tasks}
-      kafka-group-id: ${METERING_KAFKA_GROUP_ID:rhsm-subscriptions-metering-task-processor}

@@ -18,15 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering;
+package org.candlepin.subscriptions.metering.service.prometheus.task;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.metering.tasks.MetricsTaskManager;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
@@ -43,7 +41,7 @@ import java.util.Arrays;
 
 
 @ExtendWith(MockitoExtension.class)
-public class MetricsManagerTest {
+class PrometheusMetricsTaskManagerTest {
 
     private static final String TASK_TOPIC = "metrics-tasks-topic";
 
@@ -56,12 +54,12 @@ public class MetricsManagerTest {
     @Mock
     private TaskQueueProperties queueProperties;
 
-    private MetricsTaskManager manager;
+    private PrometheusMetricsTaskManager manager;
 
     @BeforeEach
-    public void setupTest() {
+    void setupTest() {
         when(queueProperties.getTopic()).thenReturn(TASK_TOPIC);
-        manager = new MetricsTaskManager(queue, queueProperties, accountSource);
+        manager = new PrometheusMetricsTaskManager(queue, queueProperties, accountSource);
     }
 
     @Test
@@ -77,11 +75,11 @@ public class MetricsManagerTest {
             .setSingleValuedArg("end", end.toString())
             .build();
         manager.updateOpenshiftMetricsForAccount(account, start, end);
-        verify(queue).enqueue(eq(expectedTask));
+        verify(queue).enqueue(expectedTask);
     }
 
     @Test
-    public void updateForConfiguredAccounts() throws Exception {
+    void updateForConfiguredAccounts() throws Exception {
         OffsetDateTime end = OffsetDateTime.now();
         OffsetDateTime start = end.minusDays(1);
 
@@ -100,8 +98,8 @@ public class MetricsManagerTest {
             .build();
 
         manager.updateOpenshiftMetricsForAllAccounts(start, end);
-        verify(queue).enqueue(eq(account1Task));
-        verify(queue).enqueue(eq(account2Task));
+        verify(queue).enqueue(account1Task);
+        verify(queue).enqueue(account2Task);
         verifyNoMoreInteractions(queue);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2009 - 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,23 +20,15 @@
  */
 package org.candlepin.subscriptions.metering;
 
-import org.candlepin.subscriptions.task.TaskQueueProperties;
-
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
 /**
- * Custom metering task queue configuration properties. This allows configuring a separate
- * task queue for metering purposes.
+ * Top level config class for metering. Beans are defined/configured
+ * on a profile basis via the profile package. This class serves as
+ * an application entry point for the metering components.
  */
-public class TaskQueueConfiguration {
-
-    @Bean
-    @Qualifier("meteringTaskQueueProperties")
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.tasks")
-    TaskQueueProperties meteringTaskQueueProperties() {
-        return new TaskQueueProperties();
-    }
-
+@Configuration
+@ComponentScan({"org.candlepin.subscriptions.metering.profile"})
+public class MeteringConfiguration {
 }

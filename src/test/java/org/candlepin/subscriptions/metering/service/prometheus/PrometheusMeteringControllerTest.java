@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2009 - 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering;
+package org.candlepin.subscriptions.metering.service.prometheus;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.candlepin.subscriptions.metering.service.PrometheusService;
+import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
@@ -41,24 +44,27 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 
-
 @ExtendWith(MockitoExtension.class)
-public class MeteringControllerTest {
+class PrometheusMeteringControllerTest {
 
     @Mock
-    private PrometheusService prometheusService;
+    private PrometheusService service;
 
     @Test
-    void apiExceptionThrownOnFailure() throws Exception {
-        QueryResult data = new QueryResult().status(StatusType.ERROR);
-        when(prometheusService.getOpenshiftData(eq("my-account"),
-            any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
+    void testMeteringExceptionWhenServiceReturnsError() throws Exception {
+        QueryResult errorResponse = new QueryResult();
+        errorResponse.setStatus(StatusType.ERROR);
+        errorResponse.setError("FORCED!!");
 
-        MeteringController controller = new MeteringController(prometheusService);
-        assertThrows(MeteringException.class, () -> {
-            controller.reportOpenshiftMetrics("my-account", OffsetDateTime.now(),
-                OffsetDateTime.now());
-        });
+        when(service.getOpenshiftData(anyString(), any(), any())).thenReturn(errorResponse);
+
+        PrometheusMeteringController controller = new PrometheusMeteringController(service);
+        OffsetDateTime start = OffsetDateTime.now();
+        OffsetDateTime end = start.plusDays(1);
+
+        Throwable e = assertThrows(MeteringException.class, () -> controller.reportOpenshiftMetrics(
+            "account", start, end));
+        assertEquals("Unable to fetch openshift metrics: FORCED!!", e.getMessage());
     }
 
     @Test
@@ -75,14 +81,19 @@ public class MeteringControllerTest {
                     .addValuesItem(Arrays.asList(BigDecimal.valueOf(124456.234), BigDecimal.valueOf(126L)))
             )
         );
-        when(prometheusService.getOpenshiftData(eq("my-account"),
+        when(service.getOpenshiftData(eq("my-account"),
             any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
 
-        MeteringController controller = new MeteringController(prometheusService);
-        controller.reportOpenshiftMetrics("my-account", OffsetDateTime.now(),
-            OffsetDateTime.now());
+        OffsetDateTime start = OffsetDateTime.now();
+        OffsetDateTime end = start.plusDays(1);
+
+        PrometheusMeteringController controller = new PrometheusMeteringController(service);
+        controller.reportOpenshiftMetrics("my-account", start, end);
+
+        verify(service).getOpenshiftData("my-account", start, end);
 
         // TODO Verify that the repository called save for each metric received. Will need to
-        //      add other labels (putMetricItem) in there as well.
+        //      add other labels (putMetricItem) in there as well. This will be done in upcoming
+        //      persist Events task.
     }
 }
