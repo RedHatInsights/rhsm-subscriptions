@@ -8,11 +8,11 @@ services:
     volumes:
       - ./init_dbs.sh:/docker-entrypoint-initdb.d/init_dbs.sh:z
     ports:
-      - "5432"
+      - "5432:5432"
   zookeeper:
     image: docker.io/confluentinc/cp-zookeeper
     ports:
-      - "32181"
+      - "32181:32181"
     environment:
       - ZOOKEEPER_CLIENT_PORT=32181
       - ZOOKEEPER_SERVER_ID=1
