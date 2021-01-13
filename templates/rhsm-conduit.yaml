@@ -73,6 +73,48 @@ objects:
           prometheus.io/port: '8080'
           prometheus.io/scrape: 'true'
       spec:
+        initContainers:
+          - image: ${IMAGE}:${IMAGE_TAG}
+            name: liquibase
+            env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: liquibase-only
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.name
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
         containers:
           - image: ${IMAGE}:${IMAGE_TAG}
             name: rhsm-conduit
@@ -82,8 +124,8 @@ objects:
                 value: 'true'
               - name: HAWTIO_BASE_PATH
                 value: ${HAWTIO_BASE_PATH}
-              - name: JAVA_OPTIONS
-                value: -Dspring.profiles.active=rhsm-conduit,kafka-queue
+              - name: SPRING_PROFILES_ACTIVE
+                value: rhsm-conduit,kafka-queue
               - name: LOG_FILE
                 value: /logs/server.log
               - name: JAVA_MAX_MEM_RATIO
@@ -250,8 +292,8 @@ objects:
               - image: ${IMAGE}:${IMAGE_TAG}
                 name: rhsm-conduit-cron-sync
                 env:
-                - name: JAVA_OPTIONS
-                  value: -Dspring.profiles.active=orgsync
+                - name: SPRING_PROFILES_ACTIVE
+                  value: orgsync
                 - name: JAVA_MAX_MEM_RATIO
                   value: '85'
                 - name: GC_MAX_METASPACE_SIZE
