@@ -196,6 +196,7 @@ dependencies {
     compile project(":cloudigrade-client")
     compile project(":rbac-client")
     compile project(":subscription-client")
+    compile project(":marketplace-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -429,8 +430,23 @@ project(":subscription-client") {
     }
 }
 
+project(":marketplace-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/marketplace-api-spec.yaml"
+        config_file = "${projectDir}/marketplace-client-config.json"
+    }
+
+    dependencies {
+        compileOnly "org.springframework:spring-web"
+        compileOnly "javax.servlet:javax.servlet-api"
+    }
+}
+
 configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
-                                            'insights-inventory-client', 'subscription-client']}) {
+                                            'insights-inventory-client', 'subscription-client',
+                                            'marketplace-client']}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 

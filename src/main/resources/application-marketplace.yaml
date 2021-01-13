@@ -1,0 +1,5 @@
+rhsm-subscriptions:
+  marketplace:
+    api-key: ${MARKETPLACE_API_KEY}
+    url: ${MARKETPLACE_URL}
+    token-refresh-period: ${MARKETPLACE_TOKEN_REFRESH_PERIOD:1m}

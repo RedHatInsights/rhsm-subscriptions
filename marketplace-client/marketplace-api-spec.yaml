@@ -1,0 +1,161 @@
+# This is a file maintained by the rhsm-subscription project that describes
+# a portion of the Marketplace API.
+openapi: 3.0.2
+info:
+  title: marketplace-api
+  description: Third-party specification for Marketplace API, see https://marketplace.redhat.com/en-us/documentation/api-reference
+  version: 1.0.0
+
+paths:
+  /api-security/om-auth/cloud/token:
+    post:
+      operationId: getAccessToken
+      tags:
+        - marketplace
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/AuthRequest"
+      responses:
+        '200':
+          description: The operation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /metering/api/v1/metrics:
+    post:
+      operationId: submitUsageEvents
+      tags:
+        - marketplace
+      security:
+        - accessToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsageRequest"
+      responses:
+        '200':
+          description: The operation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+  /metering/api/v1/metrics/{batchId}:
+    parameters:
+      - name: batchId
+        required: true
+        in: path
+        schema:
+          type: string
+    get:
+      operationId: getUsageBatchStatus
+      tags:
+        - marketplace
+      security:
+        - accessToken: []
+      responses:
+        '200':
+          description: Batch status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+
+components:
+  schemas:
+    AuthRequest:
+      properties:
+        grant_type:
+          $ref: "#/components/schemas/AuthGrantType"
+        apikey:
+          type: string
+    AuthGrantType:
+      type: string
+      enum: [ "urn:ibm:params:oauth:grant-type:apikey" ]
+    AuthResponse:
+      required:
+        - access_token
+        - expiration
+      properties:
+        access_token:
+          type: string
+        expiration:
+          type: integer
+          format: int64
+    UsageRequest:
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageEvent"
+    UsageEvent:
+      required:
+        - start
+        - end
+        - resourceType
+        - subscriptionId
+        - eventId
+        - additionalAttributes
+        - measuredUsage
+      properties:
+        start:
+          description: Start time of the usage in millseconds since Unix epoch.
+          type: integer
+          format: int64
+        end:
+          description: End time of the usage in millseconds since Unix epoch.
+          type: integer
+          format: int64
+        resourceType:
+          type: string
+        subscriptionId:
+          type: string
+        eventId:
+          description: Event ID for Marketplace API.
+          type: string
+        additionalAttributes:
+          type: object
+        measuredUsage:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageMeasurement"
+    UsageMeasurement:
+      required:
+        - chargeId
+        - value
+      properties:
+        chargeId:
+          type: string
+        value:
+          type: number
+          format: double
+    StatusResponse:
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchStatus"
+    BatchStatus:
+      properties:
+        status:
+          type: string
+        batchId:
+          type: string
+
+  securitySchemes:
+    accessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
