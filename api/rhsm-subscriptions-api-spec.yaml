@@ -684,8 +684,9 @@ components:
         - RHEL for x86
         - RHEL Server
         - RHEL Workstation
-        - Satellite 6
-        - Satellite 6 Capsule
+        - Satellite
+        - Satellite Capsule
+        - Satellite Server
     Uom:
       type: string
       enum:
