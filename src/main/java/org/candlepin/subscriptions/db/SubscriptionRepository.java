@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,32 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
-import org.candlepin.subscriptions.utilization.api.resources.IngressApi;
+import org.candlepin.subscriptions.db.model.Subscription;
 
-import org.springframework.stereotype.Component;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-import javax.validation.Valid;
-
 /**
- * Updates subscription capacity based on Candlepin pool data.
+ * Repository for Subscription Entities
  */
-@Component
-public class IngressResource implements IngressApi {
+public interface SubscriptionRepository extends JpaRepository<Subscription, String> {
 
-    private final PoolIngressController controller;
-
-    public IngressResource(PoolIngressController controller) {
-        this.controller = controller;
-    }
-
-    @Override
-    public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> pools) {
-        controller.updateCapacityForOrg(orgId, pools);
-        controller.updateSubscriptionsForOrg(orgId, pools);
-    }
+    /**
+     * Object a set of subscriptions
+     * @param ownerId the ownerId of the subscriptions
+     * @param subscriptionIds the list of subscriptionIds to filter on
+     * @return a list of subscriptions with the specified ownerId and a subscriptionId from the provided list
+     */
+    List<Subscription> findByOwnerIdAndSubscriptionIdIn(String ownerId,
+        List<String> subscriptionIds);
 }
