@@ -20,22 +20,26 @@
  */
 package org.candlepin.subscriptions.metering;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Top level config class for metering. Beans are defined/configured
- * on a profile basis via the profile package. This class serves as
- * an application entry point for the metering components.
+ * Set of configurable settings for metering components.
  */
-@Configuration
-@ComponentScan({"org.candlepin.subscriptions.metering.profile"})
-public class MeteringConfiguration {
 
-    @Bean
-    MeteringProperties meteringProperties() {
-        return new MeteringProperties();
+@ConfigurationProperties(prefix = "rhsm-subscriptions.metering")
+public class MeteringProperties {
+
+    /**
+     * Batch size to use while persisting events.
+     */
+    private int eventBatchSize = 100;
+
+    public int getEventBatchSize() {
+        return eventBatchSize;
+    }
+
+    public void setEventBatchSize(int eventBatchSize) {
+        this.eventBatchSize = eventBatchSize;
     }
 
 }

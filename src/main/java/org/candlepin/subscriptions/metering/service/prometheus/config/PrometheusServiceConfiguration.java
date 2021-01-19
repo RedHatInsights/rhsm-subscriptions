@@ -20,13 +20,17 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.config;
 
+import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.metering.MeteringProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
 
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -59,8 +63,14 @@ public class PrometheusServiceConfiguration {
     }
 
     @Bean
-    PrometheusMeteringController getController(PrometheusService service) {
-        return new PrometheusMeteringController(service);
+    PrometheusMeteringController getController(ApplicationClock clock, MeteringProperties mProps,
+        PrometheusService service, EventController eventController) {
+        return new PrometheusMeteringController(clock, mProps, service, eventController);
+    }
+
+    @Bean
+    EventController eventController(EventRecordRepository repo) {
+        return new EventController(repo);
     }
 
 }

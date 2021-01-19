@@ -20,10 +20,14 @@
  */
 package org.candlepin.subscriptions.util;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
@@ -169,4 +173,12 @@ public class ApplicationClock {
     public OffsetDateTime startOfHour(OffsetDateTime toAdjust) {
         return toAdjust.truncatedTo(ChronoUnit.HOURS);
     }
+
+    public OffsetDateTime dateFromUnix(BigDecimal time) {
+        ZoneId zone = this.clock.getZone();
+        ZonedDateTime zonedDateTime = LocalDateTime.ofEpochSecond(time.longValue(), 0,
+            OffsetDateTime.now(zone).getOffset()).atZone(zone);
+        return zonedDateTime.toOffsetDateTime();
+    }
+
 }

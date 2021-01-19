@@ -79,8 +79,7 @@ class PrometheusMeteringTaskFactoryTest {
         assertTrue(task instanceof OpenShiftMetricsTask);
 
         task.execute();
-        verify(controller).reportOpenshiftMetrics("12234", start, end);
-
+        verify(controller).collectOpenshiftMetrics("12234", start, end);
     }
 
     @Test

@@ -55,7 +55,7 @@ public class OpenShiftMetricsTask implements Task {
     public void execute() {
         log.info("Running Openshift metrics update for account: {}", account);
         try {
-            controller.reportOpenshiftMetrics(this.account, start, end);
+            controller.collectOpenshiftMetrics(this.account, start, end);
             log.info("Openshift metrics task complete.");
         }
         catch (ApiException apie) {

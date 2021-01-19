@@ -45,4 +45,5 @@ import org.springframework.context.annotation.Profile;
 public class OpenShiftWorkerProfile {
     // No additional beans required for the worker. We simply need to define access to the service
     // and the queue/topic that needs to be processed.
+
 }

@@ -49,8 +49,7 @@ class OpenShiftMetricsTaskTest {
 
         OpenShiftMetricsTask task = new OpenShiftMetricsTask(controller, expAccount, expStart, expEnd);
         task.execute();
-
-        verify(controller).reportOpenshiftMetrics(expAccount, expStart, expEnd);
+        verify(controller).collectOpenshiftMetrics(expAccount, expStart, expEnd);
     }
 
 }
