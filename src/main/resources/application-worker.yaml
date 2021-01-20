@@ -10,7 +10,6 @@ rhsm-subscriptions:
   role-to-products-map-resource-location: classpath:role_to_products_map.yaml
   arch-to-product-map-resource-location: classpath:arch_to_product_map.yaml
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
-  account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
 
   cloudigrade-enabled: ${CLOUDIGRADE_ENABLED:false}
   cloudigrade-max-attempts: ${CLOUDIGRADE_MAX_ATTEMPTS:2}

@@ -79,6 +79,12 @@ public class TallySnapshotController {
 
     @Timed("rhsm-subscriptions.snapshots.collection")
     public void produceSnapshotsForAccounts(List<String> accounts) {
+        if (accounts.size() > props.getAccountBatchSize()) {
+            log.info("Skipping message w/ {} accounts: count is greater than configured batch size: {}",
+                accounts.size(),
+                props.getAccountBatchSize());
+            return;
+        }
         log.info("Producing snapshots for {} accounts.", accounts.size());
         // Account list could be large. Only print them when debugging.
         if (log.isDebugEnabled()) {
