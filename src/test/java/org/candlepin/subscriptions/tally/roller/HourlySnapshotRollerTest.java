@@ -81,7 +81,7 @@ class HourlySnapshotRollerTest {
     public void setupAllTests() throws Exception {
         this.tester = new SnapshotRollerTester<>(repository,
             new HourlySnapshotRoller(repository, clock, testSource.getObject()));
-        this.tester.setTestProduct("openshift_hourly_1");
+        this.tester.setTestProduct("999");
     }
 
 

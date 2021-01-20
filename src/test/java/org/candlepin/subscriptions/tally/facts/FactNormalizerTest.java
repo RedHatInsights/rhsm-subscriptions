@@ -28,9 +28,8 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
@@ -71,20 +70,13 @@ public class FactNormalizerTest {
     @BeforeAll
     public void setup() throws IOException {
         ApplicationProperties props = new ApplicationProperties();
-        props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
-        props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
+        props.setProductProfileRegistryResourceLocation("classpath:test_product_profile_registry.yaml");
 
-        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props,
-            clock);
-        productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
-        productIdToProductsMapSource.init();
+        ProductProfileRegistrySource registrySource = new ProductProfileRegistrySource(props, clock);
+        registrySource.setResourceLoader(new FileSystemResourceLoader());
+        registrySource.init();
 
-        RoleToProductsMapSource productToRolesMapSource = new RoleToProductsMapSource(props, clock);
-        productToRolesMapSource.setResourceLoader(new FileSystemResourceLoader());
-        productToRolesMapSource.init();
-
-        normalizer = new FactNormalizer(new ApplicationProperties(), productIdToProductsMapSource,
-            productToRolesMapSource, clock);
+        normalizer = new FactNormalizer(new ApplicationProperties(), registrySource.getValue(), clock);
     }
 
     @Test
@@ -230,7 +222,7 @@ public class FactNormalizerTest {
     @Test
     void testDetectsProductFromSyspurposeRole() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Collections.emptyList(), 2, 2,
-            "role1", clock.now()), new HashMap<>());
+            "Red Hat Enterprise Linux Server", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
@@ -244,14 +236,14 @@ public class FactNormalizerTest {
     @Test
     void variantFromSyspurposeWinsIfMultipleVariants() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost(Arrays.asList(9, 10), 2, 2,
-            "role1", clock.now()), new HashMap<>());
+            "Red Hat Enterprise Linux Server", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 
     @Test
     void nonNumericProductIdIgnored() {
         NormalizedFacts normalized = normalizer.normalize(createRhsmHost("A1", "O1", "9,10,Foobar", 2, 2,
-            "role1", clock.now()), new HashMap<>());
+            "Red Hat Enterprise Linux Server", clock.now()), new HashMap<>());
         assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
     }
 

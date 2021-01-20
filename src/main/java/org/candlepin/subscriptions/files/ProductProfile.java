@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -34,7 +35,6 @@ import java.util.Set;
  * Represents information telling capacity and tally how to handle certain products
  */
 public class ProductProfile {
-
     private static final ProductProfile DEFAULT_PROFILE = new ProductProfile("DEFAULT",
         Collections.emptySet(), DAILY);
 
@@ -43,17 +43,19 @@ public class ProductProfile {
     }
 
     private String name;
-    private Set<String> productIds;
+    private Set<SubscriptionWatchProductId> productIds;
+    private Set<SyspurposeRole> syspurposeRoles;
     private Granularity finestGranularity;
     private boolean burstable = false;
     private String prometheusMetricName;
     private String prometheusCounterName;
+    private Map<String, String> architectureProductMap;
 
     public ProductProfile() {
         // Default used for YAML deserialization
     }
 
-    public ProductProfile(String name, Set<String> productIds, Granularity granularity) {
+    public ProductProfile(String name, Set<SubscriptionWatchProductId> productIds, Granularity granularity) {
         this.name = name;
         this.productIds = productIds;
         this.finestGranularity = granularity;
@@ -67,12 +69,20 @@ public class ProductProfile {
         this.name = name;
     }
 
-    public Set<String> getProductIds() {
+    public Set<SubscriptionWatchProductId> getProductIds() {
         return productIds;
     }
 
-    public void setProductIds(Set<String> productIds) {
+    public void setProductIds(Set<SubscriptionWatchProductId> productIds) {
         this.productIds = productIds;
+    }
+
+    public Set<SyspurposeRole> getSyspurposeRoles() {
+        return syspurposeRoles;
+    }
+
+    public void setSyspurposeRoles(Set<SyspurposeRole> syspurposeRoles) {
+        this.syspurposeRoles = syspurposeRoles;
     }
 
     public Granularity getFinestGranularity() {
@@ -81,6 +91,14 @@ public class ProductProfile {
 
     public void setFinestGranularity(Granularity finestGranularity) {
         this.finestGranularity = finestGranularity;
+    }
+
+    public Map<String, String> getArchitectureProductMap() {
+        return architectureProductMap;
+    }
+
+    public void setArchitectureProductMap(Map<String, String> architectureProductMap) {
+        this.architectureProductMap = architectureProductMap;
     }
 
     public boolean isBurstable() {
@@ -108,7 +126,7 @@ public class ProductProfile {
     }
 
     public boolean supportsProduct(String productId) {
-        return productIds.contains(productId);
+        return productIds.stream().anyMatch(x -> productId.equals(x.getId()));
     }
 
     public boolean prometheusEnabled() {
@@ -131,12 +149,19 @@ public class ProductProfile {
         return burstable == that.burstable && Objects.equals(name, that.name) &&
             Objects.equals(productIds, that.productIds) && finestGranularity == that.finestGranularity &&
             Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
-            Objects.equals(prometheusCounterName, that.prometheusCounterName);
+            Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
+            Objects.equals(architectureProductMap, that.architectureProductMap);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, productIds, finestGranularity, burstable, prometheusMetricName,
-            prometheusCounterName);
+        return Objects.hash(
+            name,
+            productIds,
+            finestGranularity,
+            burstable,
+            prometheusMetricName,
+            prometheusCounterName, architectureProductMap
+        );
     }
 }

@@ -38,10 +38,14 @@ class ProductProfileRegistrySourceTest {
         ProductProfileRegistrySource source =
             initRegistrySource("classpath:test_product_profile_registry.yaml");
         ProductProfileRegistry registry = source.getValue();
-        assertEquals(2, registry.getAllProductProfiles().size());
 
-        assertEquals(new HashSet<>(Arrays.asList("RHELProduct", "OpenshiftProduct")),
-            registry.listProfiles());
+        HashSet<String> expected = new HashSet<>(Arrays.asList(
+            "RHELProduct",
+            "SatelliteProduct",
+            "OpenShiftHourlyProduct",
+            "OtherProduct"
+        ));
+        assertEquals(expected, registry.listProfiles());
     }
 
     private ProductProfileRegistrySource initRegistrySource(String resourceLocation) {

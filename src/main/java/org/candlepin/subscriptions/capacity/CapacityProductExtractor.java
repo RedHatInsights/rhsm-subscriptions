@@ -20,15 +20,13 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -43,13 +41,10 @@ import java.util.stream.Collectors;
 public class CapacityProductExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
+    private final Map<Integer, Set<String>> productIdToProductsMap;
 
-    private final Map<Integer, List<String>> productIdToProductsMap;
-
-    public CapacityProductExtractor(ProductIdToProductsMapSource productIdToProductsMapSource)
-        throws IOException {
-
-        this.productIdToProductsMap = productIdToProductsMapSource.getValue();
+    public CapacityProductExtractor(ProductProfileRegistry productProfileRegistry) {
+        this.productIdToProductsMap = productProfileRegistry.getProductIdToProductsMap();
     }
 
     public Set<String> getProducts(Collection<String> productIds) {
@@ -58,7 +53,7 @@ public class CapacityProductExtractor {
             .filter(Objects::nonNull)
             .map(productIdToProductsMap::get)
             .filter(Objects::nonNull)
-            .flatMap(List::stream)
+            .flatMap(Set::stream)
             .collect(Collectors.toSet());
 
         if (setIsInvalid(products)) {

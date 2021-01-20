@@ -46,21 +46,23 @@ public class ProductProfileRegistry {
 
     // Only classes in this package should have any need to add product profiles
     void addProductProfile(ProductProfile profile) {
-        Set<String> profileIds = profile.getProductIds();
+        Set<SubscriptionWatchProductId> profileIds = profile.getProductIds();
         if (profileIds.isEmpty()) {
             log.warn("No product IDs are set in product profile {}. This is probably a mistake.",
                 profile.getName());
         }
 
-        Set<String> duplicates =
-            profileIds.stream().filter(profileMap::containsKey).collect(Collectors.toSet());
+        Set<SubscriptionWatchProductId> duplicates =
+            profileIds.stream()
+            .filter(x -> profileMap.containsKey(x.getId()))
+            .collect(Collectors.toSet());
 
         if (!duplicates.isEmpty()) {
             throw new IllegalStateException("Failed to add profile " + profile.getName() + ".  The " +
                 "following product IDs are already defined: " + duplicates);
         }
 
-        profileIds.forEach(x -> profileMap.put(x, profile));
+        profileIds.forEach(x -> profileMap.put(x.getId(), profile));
     }
 
     public ProductProfile findProfile(String productId) {
@@ -77,5 +79,44 @@ public class ProductProfileRegistry {
 
     public Set<ProductProfile> getAllProductProfiles() {
         return new HashSet<>(profileMap.values());
+    }
+
+    public Map<Integer, Set<String>> getProductIdToProductsMap() {
+        Map<Integer, Set<String>> productIdToProductsMap = new HashMap<>();
+        profileMap.values().stream()
+            .distinct()
+            .flatMap(x -> x.getProductIds().stream())
+            .forEach(x -> {
+                Integer id = Integer.parseInt(x.getId());
+                if (productIdToProductsMap.containsKey(id)) {
+                    throw new IllegalStateException("Duplicate productId found: " + id);
+                }
+                productIdToProductsMap.put(id, x.getProducts());
+            });
+        return productIdToProductsMap;
+    }
+
+    public Map<String, Set<String>> getRoleToProductsMap() {
+        Map<String, Set<String>> roleToProductsMap = new HashMap<>();
+        profileMap.values().stream()
+            .distinct()
+            .flatMap(x -> x.getSyspurposeRoles().stream())
+            .forEach(x -> {
+                String role = x.getName();
+                if (roleToProductsMap.containsKey(role)) {
+                    throw new IllegalStateException("Duplicate role found: " + role);
+                }
+                roleToProductsMap.put(role, x.getProducts());
+            });
+        return roleToProductsMap;
+    }
+
+    public Map<String, String> getArchToProductMap() {
+        Map<String, String> archToProductMap = new HashMap<>();
+        profileMap.values().stream()
+            .distinct()
+            .map(ProductProfile::getArchitectureProductMap)
+            .forEach(archToProductMap::putAll);
+        return archToProductMap;
     }
 }

@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.capacity;
 import static org.hamcrest.MatcherAssert.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.hamcrest.Matchers;
@@ -50,15 +50,13 @@ class CapacityProductExtractorTest {
     @BeforeAll
     void setup() throws IOException {
         ApplicationProperties props = new ApplicationProperties();
-        props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
-        props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
+        props.setProductProfileRegistryResourceLocation("classpath:test_product_profile_registry.yaml");
 
-        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props,
-            clock);
-        productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
-        productIdToProductsMapSource.init();
+        ProductProfileRegistrySource source = new ProductProfileRegistrySource(props, clock);
+        source.setResourceLoader(new FileSystemResourceLoader());
+        source.init();
 
-        extractor = new CapacityProductExtractor(productIdToProductsMapSource);
+        extractor = new CapacityProductExtractor(source.getValue());
     }
 
     @Test
