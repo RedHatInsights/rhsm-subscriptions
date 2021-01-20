@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202101121122-1" author="jharriso">
+        <comment>Create the subscription table</comment>
+        <createTable tableName="subscription">
+            <column name="sku" type="VARCHAR(255)"/>
+            <column name="owner_id" type="VARCHAR(255)"/>
+            <column name="subscription_id" type="VARCHAR(255)"/>
+            <column name="quantity" type="BIGINT"/>
+            <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="end_date" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+        <addPrimaryKey tableName="subscription" columnNames="subscription_id"/>
+    </changeSet>
+
+</databaseChangeLog>

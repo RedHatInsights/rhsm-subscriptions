@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.capacity;
 
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
@@ -52,7 +54,8 @@ public class PoolIngressController {
 
     private static final Logger log = LoggerFactory.getLogger(PoolIngressController.class);
 
-    private final SubscriptionCapacityRepository repository;
+    private final SubscriptionCapacityRepository subscriptionCapacityRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final CandlepinPoolCapacityMapper capacityMapper;
     private final ProductWhitelist productWhitelist;
     private final Counter poolsProcessed;
@@ -61,11 +64,12 @@ public class PoolIngressController {
     private final Counter capacityRecordsUpdated;
     private final Counter capacityRecordsDeleted;
 
-    public PoolIngressController(SubscriptionCapacityRepository repository,
-        CandlepinPoolCapacityMapper capacityMapper, ProductWhitelist productWhitelist,
-        MeterRegistry meterRegistry) {
+    public PoolIngressController(SubscriptionCapacityRepository subscriptionCapacityRepository,
+        SubscriptionRepository subscriptionRepository, CandlepinPoolCapacityMapper capacityMapper,
+        ProductWhitelist productWhitelist, MeterRegistry meterRegistry) {
 
-        this.repository = repository;
+        this.subscriptionCapacityRepository = subscriptionCapacityRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.capacityMapper = capacityMapper;
         this.productWhitelist = productWhitelist;
         poolsProcessed = meterRegistry.counter("rhsm-subscriptions.capacity.pools");
@@ -76,12 +80,51 @@ public class PoolIngressController {
     }
 
     @Transactional
+    @Timed("rhsm-subscriptions.subscription.ingress")
+    public void updateSubscriptionsForOrg(String orgId, List<CandlepinPool> pools) {
+        final List<String> subscriptionIds = pools.stream().map(CandlepinPool::getSubscriptionId)
+            .collect(Collectors.toList());
+        final Collection<Subscription> existingSubscriptionRecords = subscriptionRepository
+            .findByOwnerIdAndSubscriptionIdIn(orgId, subscriptionIds);
+
+        final Map<String, Subscription> skuToSubscription = new HashMap<>();
+        existingSubscriptionRecords
+            .forEach(subscription -> skuToSubscription.put(subscription.getSku(), subscription));
+
+        final Collection<Subscription> needsSave = new ArrayList<>();
+        final Collection<Subscription> needsDelete = new ArrayList<>();
+        pools.forEach(pool -> {
+            final String poolSku = pool.getProductId();
+            if (productWhitelist.productIdMatches(poolSku)) {
+                Subscription updatableSubscription = skuToSubscription.get(poolSku);
+                if (updatableSubscription == null) {
+                    updatableSubscription = new Subscription();
+                    updatableSubscription.setSku(poolSku);
+                }
+                else {
+                    skuToSubscription.remove(poolSku);
+                }
+                updatableSubscription.setSubscriptionId(pool.getSubscriptionId());
+                updatableSubscription.setStartDate(pool.getStartDate());
+                updatableSubscription.setEndDate(pool.getEndDate());
+                updatableSubscription.setOwnerId(orgId);
+
+                needsSave.add(updatableSubscription);
+            }
+        });
+
+        needsDelete.addAll(skuToSubscription.values());
+        subscriptionRepository.saveAll(needsSave);
+        subscriptionRepository.deleteAll(needsDelete);
+    }
+
+    @Transactional
     @Timed("rhsm-subscriptions.capacity.ingress")
     public void updateCapacityForOrg(String orgId, List<CandlepinPool> pools) {
         List<String> subscriptionIds = pools.stream().map(CandlepinPool::getSubscriptionId)
             .collect(Collectors.toList());
 
-        Collection<SubscriptionCapacity> existingCapacityRecords = repository
+        Collection<SubscriptionCapacity> existingCapacityRecords = subscriptionCapacityRepository
             .findByKeyOwnerIdAndKeySubscriptionIdIn(orgId, subscriptionIds);
 
         // used to lookup existing capacity records by key, per subscription ID
@@ -123,8 +166,8 @@ public class PoolIngressController {
             needsDelete.addAll(subscriptionCapacityMap.values());
         }
 
-        repository.saveAll(needsSave);
-        repository.deleteAll(needsDelete);
+        subscriptionCapacityRepository.saveAll(needsSave);
+        subscriptionCapacityRepository.deleteAll(needsDelete);
 
         log.info(
             "Update for org {} processed {} of {} posted pools, resulting in {} capacity records.",

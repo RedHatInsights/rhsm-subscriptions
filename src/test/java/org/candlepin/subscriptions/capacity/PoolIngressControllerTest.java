@@ -24,6 +24,8 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
@@ -40,6 +42,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 @SpringBootTest
 @ActiveProfiles("capacity-ingress,test")
@@ -49,7 +52,10 @@ class PoolIngressControllerTest {
     PoolIngressController controller;
 
     @MockBean
-    SubscriptionCapacityRepository repository;
+    SubscriptionCapacityRepository subscriptionCapacityRepository;
+
+    @MockBean
+    SubscriptionRepository subscriptionRepository;
 
     @MockBean
     CandlepinPoolCapacityMapper mapper;
@@ -60,20 +66,20 @@ class PoolIngressControllerTest {
     @Test
     void testNothingSavedIfFilteredByWhitelist() {
         when(whitelist.productIdMatches(any())).thenReturn(false);
-        when(repository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
+        when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
             .thenReturn(Collections.emptyList());
 
         CandlepinPool pool = createTestPool();
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
         verifyZeroInteractions(mapper);
-        verify(repository).saveAll(eq(Collections.emptyList()));
+        verify(subscriptionCapacityRepository).saveAll(Collections.emptyList());
     }
 
     @Test
     void testSavesPoolsProvidedByMapper() {
         when(whitelist.productIdMatches(any())).thenReturn(true);
-        when(repository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
+        when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
             .thenReturn(Collections.emptyList());
         SubscriptionCapacity capacity = new SubscriptionCapacity();
         when(mapper.mapPoolToSubscriptionCapacity(anyString(), any(), eq(Collections.emptyMap())))
@@ -82,7 +88,7 @@ class PoolIngressControllerTest {
         CandlepinPool pool = createTestPool();
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
-        verify(repository).saveAll(eq(Collections.singletonList(capacity)));
+        verify(subscriptionCapacityRepository).saveAll(Collections.singletonList(capacity));
     }
 
     @Test
@@ -92,7 +98,7 @@ class PoolIngressControllerTest {
         SubscriptionCapacity expected = createCapacity("owner", "OpenShift Container Platform");
 
         when(whitelist.productIdMatches(any())).thenReturn(true);
-        when(repository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
+        when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
             .thenReturn(Arrays.asList(stale1, stale2, expected));
         when(mapper.mapPoolToSubscriptionCapacity(anyString(), any(CandlepinPool.class), anyMap()))
             .thenReturn(Collections.singletonList(expected));
@@ -100,9 +106,9 @@ class PoolIngressControllerTest {
         CandlepinPool pool = createTestPool();
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
-        verify(repository).saveAll(eq(Collections.singletonList(expected)));
-        verify(repository).deleteAll(MockitoHamcrest.argThat(Matchers.containsInAnyOrder(stale1,
-            stale2)));
+        verify(subscriptionCapacityRepository).saveAll(Collections.singletonList(expected));
+        verify(subscriptionCapacityRepository)
+            .deleteAll(MockitoHamcrest.argThat(Matchers.containsInAnyOrder(stale1, stale2)));
     }
 
     @Test
@@ -111,7 +117,7 @@ class PoolIngressControllerTest {
         SubscriptionCapacity stale2 = createCapacity("owner", "RHEL Workstation");
 
         when(whitelist.productIdMatches(anyString())).thenReturn(false);
-        when(repository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
+        when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
             .thenReturn(Arrays.asList(stale1, stale2));
         when(mapper.mapPoolToSubscriptionCapacity(anyString(), any(CandlepinPool.class), anyMap()))
             .thenReturn(Arrays.asList(stale1, stale2));
@@ -119,9 +125,77 @@ class PoolIngressControllerTest {
         CandlepinPool pool = createTestPool();
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
-        verify(repository).saveAll(eq(Collections.emptyList()));
-        verify(repository).deleteAll(MockitoHamcrest.argThat(Matchers.containsInAnyOrder(stale1,
-            stale2)));
+        verify(subscriptionCapacityRepository).saveAll(Collections.emptyList());
+        verify(subscriptionCapacityRepository)
+            .deleteAll(MockitoHamcrest.argThat(Matchers.containsInAnyOrder(stale1, stale2)));
+    }
+
+    @Test
+    void testSavesNewSkus() {
+        List<Subscription> subscriptionList = Arrays.asList(createSubscription("1", "product-1"));
+
+        when(subscriptionRepository.findByOwnerIdAndSubscriptionIdIn("1",
+            Arrays.asList("12345"))).thenReturn(subscriptionList);
+        when(whitelist.productIdMatches(any())).thenReturn(true);
+
+        CandlepinPool pool = createTestPool();
+        pool.setProductId("product-1");
+        controller.updateSubscriptionsForOrg("1", Collections.singletonList(pool));
+
+        verify(subscriptionRepository).saveAll(subscriptionList);
+        verify(subscriptionRepository).deleteAll(Collections.emptyList());
+    }
+
+    @Test
+    void testUpdateExistingSkusWhileSavingNew() {
+        Subscription subscription = createSubscription("1", "product-1");
+
+        when(subscriptionRepository.findByOwnerIdAndSubscriptionIdIn(anyString(),
+            anyList())).thenReturn(Collections.singletonList(subscription));
+        when(whitelist.productIdMatches(any())).thenReturn(true);
+
+        CandlepinPool pool1 = createTestPool();
+        pool1.setProductId("product-1");
+
+        CandlepinPool pool2 = createTestPool();
+        pool2.setProductId("product-2");
+
+        controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
+
+        verify(subscriptionRepository).saveAll(Arrays.asList(subscription,
+            createSubscription("1", "product-2")));
+        verify(subscriptionRepository).deleteAll(Collections.emptyList());
+    }
+
+    @Test
+    void testUpdateExistingSkusWhileSavingNewAndDeleteUnused() {
+        Subscription subscription = createSubscription("1", "product-1");
+        Subscription deletableSubscription = createSubscription("1", "product-3");
+
+        when(subscriptionRepository.findByOwnerIdAndSubscriptionIdIn(anyString(),
+            anyList())).thenReturn(Arrays.asList(subscription, deletableSubscription));
+        when(whitelist.productIdMatches(any())).thenReturn(true);
+
+        CandlepinPool pool1 = createTestPool();
+        pool1.setProductId("product-1");
+
+        CandlepinPool pool2 = createTestPool();
+        pool2.setProductId("product-2");
+
+        controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
+
+        verify(subscriptionRepository).saveAll(Arrays.asList(subscription,
+            createSubscription("1", "product-2")));
+        verify(subscriptionRepository).deleteAll(Collections.singletonList(deletableSubscription));
+    }
+
+    private Subscription createSubscription(String orgId, String sku) {
+        final Subscription subscription = new Subscription();
+        subscription.setSubscriptionId("12345");
+        subscription.setOwnerId(orgId);
+        subscription.setSku(sku);
+
+        return subscription;
     }
 
     private SubscriptionCapacity createCapacity(String owner, String product) {
