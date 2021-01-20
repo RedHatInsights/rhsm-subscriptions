@@ -37,6 +37,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @SpringBootTest
 @ActiveProfiles("worker,test")
@@ -91,5 +92,12 @@ class TallySnapshotControllerTest {
         props.setCloudigradeEnabled(false);
         controller.produceSnapshotsForAccount(ACCOUNT);
         verifyZeroInteractions(cloudigradeCollector);
+    }
+
+    @Test
+    void testBatchesLargerThanConfigIgnored() {
+        controller.produceSnapshotsForAccounts(Collections.nCopies(props.getAccountBatchSize() + 1, "foo"));
+        verifyZeroInteractions(cloudigradeCollector);
+        verifyZeroInteractions(inventoryCollector);
     }
 }

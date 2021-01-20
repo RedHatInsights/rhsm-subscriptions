@@ -83,6 +83,7 @@ rhsm-subscriptions:
   jobs:
     capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
     purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
+  account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   tasks:
     topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
