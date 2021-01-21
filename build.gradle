@@ -91,12 +91,11 @@ allprojects {
         }
     }
 
-    sourceCompatibility = "1.8"
-    targetCompatibility = "1.8"
+    sourceCompatibility = "11"
+    targetCompatibility = "11"
 
     tasks.withType(JavaCompile) {
         options.compilerArgs << '-parameters'
-        options.compilerArgs.addAll(['--release', '8'])
     }
 
     repositories {
@@ -121,6 +120,8 @@ allprojects {
     group = "org.candlepin"
 
     dependencies {
+        implementation 'javax.annotation:javax.annotation-api:1.3.2'
+
         testCompile "org.springframework.boot:spring-boot-test"
         testCompile "org.springframework:spring-test"
 
