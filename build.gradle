@@ -193,6 +193,7 @@ dependencies {
     compile project(":rhsm-client")
     compile project(":cloudigrade-client")
     compile project(":rbac-client")
+    compile project(":subscription-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -390,7 +391,17 @@ project(":cloudigrade-client") {
     }
 }
 
-configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client', 'insights-inventory-client']}) {
+project(":subscription-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/subscription-api-spec.yaml"
+        config_file = "${projectDir}/subscription-client-config.json"
+    }
+}
+
+configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
+                                            'insights-inventory-client', 'subscription-client']}) {
     apply plugin: "org.openapi.generator"
     apply plugin: "checkstyle"
 
