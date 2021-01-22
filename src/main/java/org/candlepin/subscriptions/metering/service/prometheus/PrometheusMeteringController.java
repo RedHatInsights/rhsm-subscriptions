@@ -28,8 +28,8 @@ import org.candlepin.subscriptions.metering.MeteringProperties;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-
 import org.candlepin.subscriptions.util.ApplicationClock;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

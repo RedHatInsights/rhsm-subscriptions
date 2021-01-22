@@ -20,16 +20,16 @@
  */
 package org.candlepin.subscriptions.metering;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Sla;
-import org.candlepin.subscriptions.json.Event.Uom;
 import org.candlepin.subscriptions.json.Measurement;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MeteringEventFactoryTest {
 

@@ -46,6 +46,9 @@ public class MeteringEventFactory {
     public static final String OPENSHIFT_CLUSTER_EVENT_TYPE = "snapshot";
     public static final String OPENSHIFT_CLUSTER_SERVICE_TYPE = "OpenShift Cluster";
 
+    private MeteringEventFactory() {
+        throw new IllegalStateException("Utility class; should never be instantiated!");
+    }
 
     /**
      * Creates an Event object that represents a cores snapshot for a given OpenShift cluster.
@@ -60,17 +63,15 @@ public class MeteringEventFactory {
     public static Event openShiftClusterCores(String accountNumber, String clusterId, String serviceLevel,
         OffsetDateTime measuredTime, Double measuredValue) {
         Event e = new Event()
-        .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
-        .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
-        .withServiceType(OPENSHIFT_CLUSTER_SERVICE_TYPE)
-        .withAccountNumber(accountNumber)
-        .withInstanceId(clusterId)
-        .withTimestamp(measuredTime)
-        .withDisplayName(Optional.of(clusterId))
-        .withUsage(Usage.PRODUCTION) // Inferred
-        .withMeasurements(Arrays.asList(
-            new Measurement().withUom(Uom.CORES).withValue(measuredValue)
-        ));
+            .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
+            .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
+            .withServiceType(OPENSHIFT_CLUSTER_SERVICE_TYPE)
+            .withAccountNumber(accountNumber)
+            .withInstanceId(clusterId)
+            .withTimestamp(measuredTime)
+            .withDisplayName(Optional.of(clusterId))
+            .withUsage(Usage.PRODUCTION) // Inferred
+            .withMeasurements(Arrays.asList(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
 
         // TODO Prometheus is currently reporting an SLA of Eval. What happens in this case?
         //      Should the event even get sent? Should it be sent so that we can account for

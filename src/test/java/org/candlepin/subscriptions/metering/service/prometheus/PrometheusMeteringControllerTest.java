@@ -165,9 +165,9 @@ class PrometheusMeteringControllerTest {
     private QueryResult buildOpenShiftClusterQueryResult(String account, String clusterId, String sla,
         List<List<BigDecimal>> timeValueTuples) {
         QueryResultDataResult dataResult = new QueryResultDataResult()
-        .putMetricItem("_id", clusterId)
-        .putMetricItem("support", sla)
-        .putMetricItem("ebs_account", account);
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", sla)
+            .putMetricItem("ebs_account", account);
 
         // NOTE: A tuple is [unix_time,value]
         timeValueTuples.forEach(tuple -> dataResult.addValuesItem(tuple));

@@ -147,7 +147,7 @@ public class OpenshiftJmxBean {
     private OffsetDateTime getDate(String dateToParse) {
         try {
             // 2018-03-20T09:12:28Z
-            return StringUtils.hasText(dateToParse) ? OffsetDateTime.parse(dateToParse) : null;
+            return StringUtils.hasText(dateToParse) ? OffsetDateTime.parse(dateToParse) : clock.now();
         }
         catch (Exception e) {
             throw new IllegalArgumentException(
