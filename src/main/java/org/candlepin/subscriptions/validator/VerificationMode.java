@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.validator;
 
 import static java.lang.annotation.ElementType.*;
@@ -32,17 +31,19 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 
 /**
- * Marks a field as needing validation against the acceptable sslmode values supported by the PostgreSQL
- * JDBC driver.
+ * Marks a field as needing validation against the acceptable sslmode values supported by the
+ * PostgreSQL JDBC driver.
  */
-@Target({ FIELD, TYPE_USE })
+@Target({FIELD, TYPE_USE})
 @Retention(RUNTIME)
 @Documented
-@Constraint(validatedBy = { VerificationModeValidator.class })
+@Constraint(validatedBy = {VerificationModeValidator.class})
 public @interface VerificationMode {
-    String message() default "Must be one of \"disable\", \"allow\", \"prefer\", \"require\", \"verify-ca\"" +
-        " or \"verify-full\".";
-    Class<?>[] groups() default { };
-    Class<? extends Payload>[] payload() default { };
-}
+  String message() default
+      "Must be one of \"disable\", \"allow\", \"prefer\", \"require\", \"verify-ca\""
+          + " or \"verify-full\".";
 
+  Class<?>[] groups() default {};
+
+  Class<? extends Payload>[] payload() default {};
+}

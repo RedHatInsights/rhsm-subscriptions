@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,31 +35,30 @@ import org.springframework.kafka.core.ProducerFactory;
 /**
  * Configuration for a component that produces task messages onto a kafka topic.
  *
- * Should not be imported directly, instead, the component's configuration should import
- * {@link org.candlepin.subscriptions.task.queue.TaskProducerConfiguration}
- * which will handle creation of either in-memory or kafka task queue producers (depending on profile).
+ * <p>Should not be imported directly, instead, the component's configuration should import {@link
+ * org.candlepin.subscriptions.task.queue.TaskProducerConfiguration} which will handle creation of
+ * either in-memory or kafka task queue producers (depending on profile).
  */
 @Configuration
 @Profile("kafka-queue")
 @Import(KafkaConfiguration.class)
 public class KafkaTaskProducerConfiguration {
-    @Autowired
-    private KafkaConfigurator kafkaConfigurator;
+  @Autowired private KafkaConfigurator kafkaConfigurator;
 
-    @Bean
-    public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
-        return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
-    }
+  @Bean
+  public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
+    return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
+  }
 
-    @Bean
-    public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
-        ProducerFactory<String, TaskMessage> factory) {
+  @Bean
+  public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
+      ProducerFactory<String, TaskMessage> factory) {
 
-        return kafkaConfigurator.taskMessageKafkaTemplate(factory);
-    }
+    return kafkaConfigurator.taskMessageKafkaTemplate(factory);
+  }
 
-    @Bean
-    public TaskQueue kafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
-        return new KafkaTaskQueue(producer);
-    }
+  @Bean
+  public TaskQueue kafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
+    return new KafkaTaskQueue(producer);
+  }
 }

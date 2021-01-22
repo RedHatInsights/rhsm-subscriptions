@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,29 +24,28 @@ import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
 
-
 /**
- * A ReportFiller instance that will fill the given TallyReport's snapshots based on a MONTHLY granularity.
+ * A ReportFiller instance that will fill the given TallyReport's snapshots based on a MONTHLY
+ * granularity.
  */
 public class YearlyTimeAdjuster extends SnapshotTimeAdjuster {
 
-    public YearlyTimeAdjuster(ApplicationClock clock) {
-        super(clock);
-    }
+  public YearlyTimeAdjuster(ApplicationClock clock) {
+    super(clock);
+  }
 
-    @Override
-    public TemporalAmount getSnapshotOffset() {
-        return Period.ofYears(1);
-    }
+  @Override
+  public TemporalAmount getSnapshotOffset() {
+    return Period.ofYears(1);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
-        return clock.startOfYear(toAdjust);
-    }
+  @Override
+  public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
+    return clock.startOfYear(toAdjust);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
-        return clock.endOfYear(toAdjust);
-    }
-
+  @Override
+  public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
+    return clock.endOfYear(toAdjust);
+  }
 }

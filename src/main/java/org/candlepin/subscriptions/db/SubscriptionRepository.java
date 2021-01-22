@@ -26,17 +26,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-/**
- * Repository for Subscription Entities
- */
+/** Repository for Subscription Entities */
 public interface SubscriptionRepository extends JpaRepository<Subscription, String> {
 
-    /**
-     * Object a set of subscriptions
-     * @param ownerId the ownerId of the subscriptions
-     * @param subscriptionIds the list of subscriptionIds to filter on
-     * @return a list of subscriptions with the specified ownerId and a subscriptionId from the provided list
-     */
-    List<Subscription> findByOwnerIdAndSubscriptionIdIn(String ownerId,
-        List<String> subscriptionIds);
+  /**
+   * Object a set of subscriptions
+   *
+   * @param ownerId the ownerId of the subscriptions
+   * @param subscriptionIds the list of subscriptionIds to filter on
+   * @return a list of subscriptions with the specified ownerId and a subscriptionId from the
+   *     provided list
+   */
+  List<Subscription> findByOwnerIdAndSubscriptionIdIn(String ownerId, List<String> subscriptionIds);
 }

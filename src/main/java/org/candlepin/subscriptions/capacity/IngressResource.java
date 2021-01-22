@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,21 +29,19 @@ import java.util.List;
 
 import javax.validation.Valid;
 
-/**
- * Updates subscription capacity based on Candlepin pool data.
- */
+/** Updates subscription capacity based on Candlepin pool data. */
 @Component
 public class IngressResource implements IngressApi {
 
-    private final PoolIngressController controller;
+  private final PoolIngressController controller;
 
-    public IngressResource(PoolIngressController controller) {
-        this.controller = controller;
-    }
+  public IngressResource(PoolIngressController controller) {
+    this.controller = controller;
+  }
 
-    @Override
-    public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> pools) {
-        controller.updateCapacityForOrg(orgId, pools);
-        controller.updateSubscriptionsForOrg(orgId, pools);
-    }
+  @Override
+  public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> pools) {
+    controller.updateCapacityForOrg(orgId, pools);
+    controller.updateSubscriptionsForOrg(orgId, pools);
+  }
 }

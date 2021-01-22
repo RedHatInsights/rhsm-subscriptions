@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,97 +40,103 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
-
 class ContentNegotiationRequestFilterTest {
 
-    @Test
-    void acceptHeaderMustContainVendorSpecificJsonHeaderWithNoParameters() throws Exception {
-        List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json");
-        assertEquals(1, types.size());
+  @Test
+  void acceptHeaderMustContainVendorSpecificJsonHeaderWithNoParameters() throws Exception {
+    List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json");
+    assertEquals(1, types.size());
 
-        MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-        headers.put("content-type", Collections.emptyList());
+    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
+    headers.put("content-type", Collections.emptyList());
 
-        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-        when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
-        when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
-        when(requestContext.getHeaders()).thenReturn(headers);
+    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
+    when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
+    when(requestContext.getHeaders()).thenReturn(headers);
 
-        ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-        filter.filter(requestContext);
-    }
+    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
+    filter.filter(requestContext);
+  }
 
-    @Test
-    void notAcceptableThrownWhenAcceptHeaderContainsJsonMediaTypeWithParams() {
-        List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
-        assertEquals(1, types.size());
+  @Test
+  void notAcceptableThrownWhenAcceptHeaderContainsJsonMediaTypeWithParams() {
+    List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
+    assertEquals(1, types.size());
 
-        MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-        headers.put("content-type", Collections.emptyList());
+    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
+    headers.put("content-type", Collections.emptyList());
 
-        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-        when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
-        when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
-        when(requestContext.getHeaders()).thenReturn(headers);
+    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
+    when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
+    when(requestContext.getHeaders()).thenReturn(headers);
 
-        ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-        assertThrows(NotAcceptableException.class, () -> {
-            filter.filter(requestContext);
+    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
+    assertThrows(
+        NotAcceptableException.class,
+        () -> {
+          filter.filter(requestContext);
         });
-    }
+  }
 
-    @Test
-    void notAcceptableNotThrownWhenAcceptHeaderOneValidJsonMediaTypeWithoutParams() throws Exception {
-        List<MediaType> types = MediaTypeHelper.parseHeader(
+  @Test
+  void notAcceptableNotThrownWhenAcceptHeaderOneValidJsonMediaTypeWithoutParams() throws Exception {
+    List<MediaType> types =
+        MediaTypeHelper.parseHeader(
             "application/vnd.api+json;version=1.0,application/vnd.api+json,application/vnd.api+json;v=2");
-        assertEquals(3, types.size());
+    assertEquals(3, types.size());
 
-        MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-        headers.put("content-type", Collections.emptyList());
+    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
+    headers.put("content-type", Collections.emptyList());
 
-        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-        when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
-        when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
-        when(requestContext.getHeaders()).thenReturn(headers);
+    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
+    when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
+    when(requestContext.getHeaders()).thenReturn(headers);
 
-        ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-        filter.filter(requestContext);
-    }
+    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
+    filter.filter(requestContext);
+  }
 
-    @Test
-    void contentTypeHeaderCanNotSpecifyAnyMediaTypeParameters() {
-        List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
-        assertEquals(1, types.size());
+  @Test
+  void contentTypeHeaderCanNotSpecifyAnyMediaTypeParameters() {
+    List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
+    assertEquals(1, types.size());
 
-        MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-        headers.put("content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
+    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
+    headers.put(
+        "content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
 
-        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-        when(requestContext.getHeaderString(eq("Accept"))).thenReturn(null);
-        when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
-        when(requestContext.getHeaders()).thenReturn(headers);
+    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(null);
+    when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
+    when(requestContext.getHeaders()).thenReturn(headers);
 
-        ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-        assertThrows(NotSupportedException.class, () -> {
-            filter.filter(requestContext);
+    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
+    assertThrows(
+        NotSupportedException.class,
+        () -> {
+          filter.filter(requestContext);
         });
-    }
+  }
 
-    @Test
-    void nonMatchingContentTypesCanHaveParamteters() throws Exception {
-        List<MediaType> types = MediaTypeHelper.parseHeader("application/foobar;version=1.0");
-        assertEquals(1, types.size());
-        assertEquals(1, types.get(0).getParameters().size());
+  @Test
+  void nonMatchingContentTypesCanHaveParamteters() throws Exception {
+    List<MediaType> types = MediaTypeHelper.parseHeader("application/foobar;version=1.0");
+    assertEquals(1, types.size());
+    assertEquals(1, types.get(0).getParameters().size());
 
-        MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-        headers.put("content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
+    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
+    headers.put(
+        "content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
 
-        ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-        when(requestContext.getHeaderString(eq("Accept"))).thenReturn(null);
-        when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
-        when(requestContext.getHeaders()).thenReturn(headers);
+    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
+    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(null);
+    when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
+    when(requestContext.getHeaders()).thenReturn(headers);
 
-        ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-        filter.filter(requestContext);
-    }
+    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
+    filter.filter(requestContext);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,19 +30,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Loads the mapping of syspurpose role to Tally products from a YAML file.
- */
+/** Loads the mapping of syspurpose role to Tally products from a YAML file. */
 @Component
 public class RoleToProductsMapSource extends YamlFileSource<Map<String, List<String>>> {
 
-    public RoleToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {
-        super(properties.getRoleToProductsMapResourceLocation(), clock.getClock(),
-            properties.getRoleToProductsMapCacheTtl());
-    }
+  public RoleToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {
+    super(
+        properties.getRoleToProductsMapResourceLocation(),
+        clock.getClock(),
+        properties.getRoleToProductsMapCacheTtl());
+  }
 
-    @Override
-    protected Map<String, List<String>> getDefault() {
-        return Collections.emptyMap();
-    }
+  @Override
+  protected Map<String, List<String>> getDefault() {
+    return Collections.emptyMap();
+  }
 }

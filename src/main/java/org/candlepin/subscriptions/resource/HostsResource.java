@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,67 +56,71 @@ import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-/**
- * Hosts API implementation.
- */
+/** Hosts API implementation. */
 @Component
 public class HostsResource implements HostsApi {
 
-    @SuppressWarnings("linelength")
-    public static final Map<HostReportSort, String> SORT_PARAM_MAPPING = ImmutableMap.<HostReportSort, String>builderWithExpectedSize(
-        5)
-        .put(HostReportSort.DISPLAY_NAME, "key.host.displayName")
-        .put(HostReportSort.CORES, "cores")
-        .put(HostReportSort.HARDWARE_TYPE, "key.host.hardwareType")
-        .put(HostReportSort.SOCKETS, "sockets")
-        .put(HostReportSort.LAST_SEEN, "key.host.lastSeen")
-        .put(HostReportSort.MEASUREMENT_TYPE, "measurementType")
-        .build();
-    private final HostRepository repository;
-    private final PageLinkCreator pageLinkCreator;
-    @Context
-    UriInfo uriInfo;
+  @SuppressWarnings("linelength")
+  public static final Map<HostReportSort, String> SORT_PARAM_MAPPING =
+      ImmutableMap.<HostReportSort, String>builderWithExpectedSize(5)
+          .put(HostReportSort.DISPLAY_NAME, "key.host.displayName")
+          .put(HostReportSort.CORES, "cores")
+          .put(HostReportSort.HARDWARE_TYPE, "key.host.hardwareType")
+          .put(HostReportSort.SOCKETS, "sockets")
+          .put(HostReportSort.LAST_SEEN, "key.host.lastSeen")
+          .put(HostReportSort.MEASUREMENT_TYPE, "measurementType")
+          .build();
 
-    public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
-        this.repository = repository;
-        this.pageLinkCreator = pageLinkCreator;
+  private final HostRepository repository;
+  private final PageLinkCreator pageLinkCreator;
+  @Context UriInfo uriInfo;
+
+  public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
+    this.repository = repository;
+    this.pageLinkCreator = pageLinkCreator;
+  }
+
+  @ReportingAccessRequired
+  @Override
+  public HostReport getHosts(
+      ProductId productId,
+      Integer offset,
+      @Min(1) @Max(100) Integer limit,
+      ServiceLevelType sla,
+      UsageType usage,
+      Uom uom,
+      String displayNameContains,
+      HostReportSort sort,
+      SortDirection dir) {
+
+    Sort.Direction dirValue = Sort.Direction.ASC;
+    if (dir == SortDirection.DESC) {
+      dirValue = Sort.Direction.DESC;
+    }
+    Sort.Order implicitOrder = Sort.Order.by("id");
+    Sort sortValue = Sort.by(implicitOrder);
+
+    if (sort != null) {
+      Sort.Order userDefinedOrder = new Sort.Order(dirValue, SORT_PARAM_MAPPING.get(sort));
+      sortValue = Sort.by(userDefinedOrder, implicitOrder);
     }
 
-    @ReportingAccessRequired
-    @Override
-    public HostReport getHosts(ProductId productId, Integer offset, @Min(1) @Max(100) Integer limit,
-        ServiceLevelType sla, UsageType usage, Uom uom, String displayNameContains, HostReportSort sort,
-        SortDirection dir) {
+    int minCores = 0;
+    int minSockets = 0;
+    if (uom == Uom.CORES) {
+      minCores = 1;
+    } else if (uom == Uom.SOCKETS) {
+      minSockets = 1;
+    }
 
-        Sort.Direction dirValue = Sort.Direction.ASC;
-        if (dir == SortDirection.DESC) {
-            dirValue = Sort.Direction.DESC;
-        }
-        Sort.Order implicitOrder = Sort.Order.by("id");
-        Sort sortValue = Sort.by(implicitOrder);
-
-        if (sort != null) {
-            Sort.Order userDefinedOrder = new Sort.Order(dirValue, SORT_PARAM_MAPPING.get(sort));
-            sortValue = Sort.by(userDefinedOrder, implicitOrder);
-        }
-
-        int minCores = 0;
-        int minSockets = 0;
-        if (uom == Uom.CORES) {
-            minCores = 1;
-        }
-        else if (uom == Uom.SOCKETS) {
-            minSockets = 1;
-        }
-
-        String accountNumber = ResourceUtils.getAccountNumber();
-        ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
-        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-        String sanitizedDisplayNameSubstring = Objects.nonNull(displayNameContains) ?
-            displayNameContains :
-            "";
-        Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
-        Page<TallyHostView> hosts = repository.getTallyHostViews(
+    String accountNumber = ResourceUtils.getAccountNumber();
+    ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
+    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+    String sanitizedDisplayNameSubstring =
+        Objects.nonNull(displayNameContains) ? displayNameContains : "";
+    Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
+    Page<TallyHostView> hosts =
+        repository.getTallyHostViews(
             accountNumber,
             productId.toString(),
             sanitizedSla,
@@ -126,42 +130,43 @@ public class HostsResource implements HostsApi {
             minSockets,
             page);
 
-        TallyReportLinks links;
-        if (offset != null || limit != null) {
-            links = pageLinkCreator.getPaginationLinks(uriInfo, hosts);
-        }
-        else {
-            links = null;
-        }
+    TallyReportLinks links;
+    if (offset != null || limit != null) {
+      links = pageLinkCreator.getPaginationLinks(uriInfo, hosts);
+    } else {
+      links = null;
+    }
 
-        return new HostReport()
-            .links(links)
-            .meta(new HostReportMeta()
+    return new HostReport()
+        .links(links)
+        .meta(
+            new HostReportMeta()
                 .count((int) hosts.getTotalElements())
                 .product(productId)
                 .serviceLevel(sla)
                 .usage(usage)
                 .uom(uom))
-            .data(hosts.getContent().stream().map(TallyHostView::asApiHost).collect(Collectors.toList()));
+        .data(
+            hosts.getContent().stream().map(TallyHostView::asApiHost).collect(Collectors.toList()));
+  }
+
+  @Override
+  @ReportingAccessRequired
+  public HypervisorGuestReport getHypervisorGuests(
+      String hypervisorUuid, Integer offset, Integer limit) {
+    String accountNumber = ResourceUtils.getAccountNumber();
+    Pageable page = ResourceUtils.getPageable(offset, limit);
+    Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
+    TallyReportLinks links;
+    if (offset != null || limit != null) {
+      links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
+    } else {
+      links = null;
     }
 
-    @Override
-    @ReportingAccessRequired
-    public HypervisorGuestReport getHypervisorGuests(String hypervisorUuid, Integer offset, Integer limit) {
-        String accountNumber = ResourceUtils.getAccountNumber();
-        Pageable page = ResourceUtils.getPageable(offset, limit);
-        Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
-        TallyReportLinks links;
-        if (offset != null || limit != null) {
-            links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
-        }
-        else {
-            links = null;
-        }
-
-        return new HypervisorGuestReport()
-            .links(links)
-            .meta(new HypervisorGuestReportMeta().count((int) guests.getTotalElements()))
-            .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
-    }
+    return new HypervisorGuestReport()
+        .links(links)
+        .meta(new HypervisorGuestReportMeta().count((int) guests.getTotalElements()))
+        .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
+  }
 }

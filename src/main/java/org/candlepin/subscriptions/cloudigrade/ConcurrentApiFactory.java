@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,41 +28,38 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
-/**
- * Factory that produces inventory service clients using configuration.
- */
+/** Factory that produces inventory service clients using configuration. */
 public class ConcurrentApiFactory implements FactoryBean<ConcurrentApi> {
 
-    private static Logger log = LoggerFactory.getLogger(ConcurrentApiFactory.class);
+  private static Logger log = LoggerFactory.getLogger(ConcurrentApiFactory.class);
 
-    private final HttpClientProperties serviceProperties;
+  private final HttpClientProperties serviceProperties;
 
-    public ConcurrentApiFactory(HttpClientProperties serviceProperties) {
-        this.serviceProperties = serviceProperties;
+  public ConcurrentApiFactory(HttpClientProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
+  @Override
+  public ConcurrentApi getObject() throws Exception {
+    if (serviceProperties.isUseStub()) {
+      log.info("Using stub cloudigrade client");
+      return new StubConcurrentApi();
     }
-
-    @Override
-    public ConcurrentApi getObject() throws Exception {
-        if (serviceProperties.isUseStub()) {
-            log.info("Using stub cloudigrade client");
-            return new StubConcurrentApi();
-        }
-        ApiClient apiClient = Configuration.getDefaultApiClient();
-        apiClient.setHttpClient(HttpClient.buildHttpClient(serviceProperties, apiClient.getJSON(),
-            apiClient.isDebugging()));
-        if (serviceProperties.getUrl() != null) {
-            log.info("Cloudigrade service URL: {}", serviceProperties.getUrl());
-            apiClient.setBasePath(serviceProperties.getUrl());
-        }
-        else {
-            log.warn("Cloudigrade service URL not set...");
-        }
-        return new ConcurrentApi(apiClient);
+    ApiClient apiClient = Configuration.getDefaultApiClient();
+    apiClient.setHttpClient(
+        HttpClient.buildHttpClient(
+            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
+    if (serviceProperties.getUrl() != null) {
+      log.info("Cloudigrade service URL: {}", serviceProperties.getUrl());
+      apiClient.setBasePath(serviceProperties.getUrl());
+    } else {
+      log.warn("Cloudigrade service URL not set...");
     }
+    return new ConcurrentApi(apiClient);
+  }
 
-    @Override
-    public Class<?> getObjectType() {
-        return ConcurrentApi.class;
-    }
-
+  @Override
+  public Class<?> getObjectType() {
+    return ConcurrentApi.class;
+  }
 }

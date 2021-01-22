@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,27 +41,25 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(StubResourceConfiguration.class)
 class SubscriptionWatchAdminOnlyTest {
 
-    @Autowired
-    ApplicationContext context;
+  @Autowired ApplicationContext context;
 
-    @MockBean
-    WhitelistedAccountReportAccessService reportAccessService;
+  @MockBean WhitelistedAccountReportAccessService reportAccessService;
 
-    @Test
-    @WithMockRedHatPrincipal(value = "NotAnAdmin", roles = {})
-    void testAdminOnlyCallWithNonAdmin() {
-        StubResource stub = context.getBean(StubResource.class);
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "NotAnAdmin",
+      roles = {})
+  void testAdminOnlyCallWithNonAdmin() {
+    StubResource stub = context.getBean(StubResource.class);
 
-        assertThrows(AccessDeniedException.class, stub::adminOnlyCall);
-    }
+    assertThrows(AccessDeniedException.class, stub::adminOnlyCall);
+  }
 
-    @Test
-    @WithMockRedHatPrincipal("Admin")
-    void testAdminOnlyCallWithOrgAdmin() {
-        StubResource stub = context.getBean(StubResource.class);
+  @Test
+  @WithMockRedHatPrincipal("Admin")
+  void testAdminOnlyCallWithOrgAdmin() {
+    StubResource stub = context.getBean(StubResource.class);
 
-        assertDoesNotThrow(stub::adminOnlyCall);
-    }
-
-
+    assertDoesNotThrow(stub::adminOnlyCall);
+  }
 }

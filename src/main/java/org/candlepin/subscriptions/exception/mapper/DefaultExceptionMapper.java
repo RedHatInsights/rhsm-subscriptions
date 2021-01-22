@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,21 +29,20 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
 /**
- * The default exception mapper used to catch any Throwable that isn't already
- * being mapped by another mapper. This mapper will always produce a 500 HTTP
- * response containing the message from the exception.
+ * The default exception mapper used to catch any Throwable that isn't already being mapped by
+ * another mapper. This mapper will always produce a 500 HTTP response containing the message from
+ * the exception.
  */
 @Component
 @Provider
 public class DefaultExceptionMapper extends BaseExceptionMapper<Throwable> {
 
-    @Override
-    protected Error buildError(Throwable exception) {
-        return new Error()
-            .code(ErrorCode.UNHANDLED_EXCEPTION_ERROR.getCode())
-            .status(String.valueOf(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
-            .title("An internal server error has occurred. Check the server logs for further details.")
-            .detail(exception.getMessage());
-    }
-
+  @Override
+  protected Error buildError(Throwable exception) {
+    return new Error()
+        .code(ErrorCode.UNHANDLED_EXCEPTION_ERROR.getCode())
+        .status(String.valueOf(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()))
+        .title("An internal server error has occurred. Check the server logs for further details.")
+        .detail(exception.getMessage());
+  }
 }

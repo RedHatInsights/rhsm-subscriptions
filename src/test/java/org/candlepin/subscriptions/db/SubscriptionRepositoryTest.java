@@ -37,29 +37,28 @@ import javax.transaction.Transactional;
 @ActiveProfiles("test")
 class SubscriptionRepositoryTest {
 
-    @Autowired
-    SubscriptionRepository subject;
+  @Autowired SubscriptionRepository subject;
 
-    @Transactional
-    @Test
-    void canInsertAndRetrieveSubscriptions() {
-        final Subscription subscription = createSubscription("1", "testsku", "123");
-        subject.saveAndFlush(subscription);
+  @Transactional
+  @Test
+  void canInsertAndRetrieveSubscriptions() {
+    final Subscription subscription = createSubscription("1", "testsku", "123");
+    subject.saveAndFlush(subscription);
 
-        final Subscription retrieved = subject.getOne("123");
+    final Subscription retrieved = subject.getOne("123");
 
-        assertEquals(subscription, retrieved);
-    }
+    assertEquals(subscription, retrieved);
+  }
 
-    private Subscription createSubscription(String orgId, String sku, String subId) {
-        final Subscription subscription = new Subscription();
-        subscription.setSubscriptionId(subId);
-        subscription.setOwnerId(orgId);
-        subscription.setQuantity(4L);
-        subscription.setSku(sku);
-        subscription.setStartDate(OffsetDateTime.now());
-        subscription.setEndDate(OffsetDateTime.now());
+  private Subscription createSubscription(String orgId, String sku, String subId) {
+    final Subscription subscription = new Subscription();
+    subscription.setSubscriptionId(subId);
+    subscription.setOwnerId(orgId);
+    subscription.setQuantity(4L);
+    subscription.setSku(sku);
+    subscription.setStartDate(OffsetDateTime.now());
+    subscription.setEndDate(OffsetDateTime.now());
 
-        return subscription;
-    }
+    return subscription;
+  }
 }

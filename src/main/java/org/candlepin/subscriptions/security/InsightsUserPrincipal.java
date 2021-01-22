@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,83 +25,79 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
-/**
- * Represents a normal cloud.redhat.com user authenticated via the x-rh-identity header.
- */
+/** Represents a normal cloud.redhat.com user authenticated via the x-rh-identity header. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsightsUserPrincipal implements RhIdentity.Identity {
 
-    public InsightsUserPrincipal() {
-        // intentionally left empty
+  public InsightsUserPrincipal() {
+    // intentionally left empty
+  }
+
+  // package-private to be used for testing
+  InsightsUserPrincipal(String org, String account) {
+    internal.orgId = org;
+    accountNumber = account;
+  }
+
+  /** POJO representation of "internal" object inside the x-rh-identity object JSON. */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class Internal {
+    @JsonProperty("org_id")
+    private String orgId;
+
+    public String getOrgId() {
+      return orgId;
     }
 
-    // package-private to be used for testing
-    InsightsUserPrincipal(String org, String account) {
-        internal.orgId = org;
-        accountNumber = account;
+    public void setOrgId(String orgId) {
+      this.orgId = orgId;
     }
+  }
 
-    /**
-     * POJO representation of "internal" object inside the x-rh-identity object JSON.
-     */
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Internal {
-        @JsonProperty("org_id")
-        private String orgId;
+  @JsonProperty("account_number")
+  private String accountNumber;
 
-        public String getOrgId() {
-            return orgId;
-        }
+  private Internal internal = new Internal();
 
-        public void setOrgId(String orgId) {
-            this.orgId = orgId;
-        }
+  public String getOwnerId() {
+    return internal.getOrgId();
+  }
+
+  public String getAccountNumber() {
+    return accountNumber;
+  }
+
+  public void setAccountNumber(String accountNumber) {
+    this.accountNumber = accountNumber;
+  }
+
+  public Internal getInternal() {
+    return internal;
+  }
+
+  public void setInternal(Internal internal) {
+    this.internal = internal;
+  }
+
+  public String toString() {
+    return String.format("[Account: %s, Owner: %s]", accountNumber, getOwnerId());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @JsonProperty("account_number")
-    private String accountNumber;
-    private Internal internal = new Internal();
-
-    public String getOwnerId() {
-        return internal.getOrgId();
+    if (!(o instanceof InsightsUserPrincipal)) {
+      return false;
     }
+    InsightsUserPrincipal principal = (InsightsUserPrincipal) o;
+    return Objects.equals(getOwnerId(), principal.getOwnerId())
+        && Objects.equals(getAccountNumber(), principal.getAccountNumber());
+  }
 
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public Internal getInternal() {
-        return internal;
-    }
-
-    public void setInternal(Internal internal) {
-        this.internal = internal;
-    }
-
-    public String toString() {
-        return String.format("[Account: %s, Owner: %s]", accountNumber, getOwnerId());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof InsightsUserPrincipal)) {
-            return false;
-        }
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) o;
-        return Objects.equals(getOwnerId(), principal.getOwnerId()) &&
-            Objects.equals(getAccountNumber(), principal.getAccountNumber());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getOwnerId(), getAccountNumber());
-    }
-
+  @Override
+  public int hashCode() {
+    return Objects.hash(getOwnerId(), getAccountNumber());
+  }
 }

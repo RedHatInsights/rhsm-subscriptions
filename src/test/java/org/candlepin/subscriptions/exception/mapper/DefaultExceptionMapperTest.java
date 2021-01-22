@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,29 +31,27 @@ import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
 
-
 class DefaultExceptionMapperTest {
 
-    @Test
-    void testExceptionMapping() {
-        String expectedDetail = "FORCED!";
-        String expectedTitle =
-            "An internal server error has occurred. Check the server logs for further details.";
+  @Test
+  void testExceptionMapping() {
+    String expectedDetail = "FORCED!";
+    String expectedTitle =
+        "An internal server error has occurred. Check the server logs for further details.";
 
-        DefaultExceptionMapper mapper = new DefaultExceptionMapper();
-        Response resp = mapper.toResponse(new RuntimeException(expectedDetail));
+    DefaultExceptionMapper mapper = new DefaultExceptionMapper();
+    Response resp = mapper.toResponse(new RuntimeException(expectedDetail));
 
-        Object entityObj = resp.getEntity();
-        assertNotNull(entityObj);
-        assertThat(entityObj, Matchers.instanceOf(Errors.class));
+    Object entityObj = resp.getEntity();
+    assertNotNull(entityObj);
+    assertThat(entityObj, Matchers.instanceOf(Errors.class));
 
-        Errors errors = (Errors) entityObj;
-        assertEquals(1, errors.getErrors().size());
+    Errors errors = (Errors) entityObj;
+    assertEquals(1, errors.getErrors().size());
 
-        Error error = errors.getErrors().get(0);
-        assertEquals("500", error.getStatus());
-        assertEquals(expectedTitle, error.getTitle());
-        assertEquals(expectedDetail, error.getDetail());
-    }
-
+    Error error = errors.getErrors().get(0);
+    assertEquals("500", error.getStatus());
+    assertEquals(expectedTitle, error.getTitle());
+    assertEquals(expectedDetail, error.getDetail());
+  }
 }

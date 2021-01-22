@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,14 +35,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class UpdateOrgInventoryTaskTest {
 
-    @Mock
-    private InventoryController controller;
+  @Mock private InventoryController controller;
 
-    @Test
-    void testExecute() throws MissingAccountNumberException, ApiException {
-        String expectedOrg = "my-org";
-        UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg, null);
-        task.execute();
-        Mockito.verify(controller).updateInventoryForOrg(eq(expectedOrg), eq(null));
-    }
+  @Test
+  void testExecute() throws MissingAccountNumberException, ApiException {
+    String expectedOrg = "my-org";
+    UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg, null);
+    task.execute();
+    Mockito.verify(controller).updateInventoryForOrg(eq(expectedOrg), eq(null));
+  }
 }

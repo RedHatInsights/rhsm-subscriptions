@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,35 +41,34 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 public class WeeklySnapshotRollerTest {
 
-    @Autowired
-    private TallySnapshotRepository repository;
+  @Autowired private TallySnapshotRepository repository;
 
-    private ApplicationClock clock;
+  private ApplicationClock clock;
 
-    private SnapshotRollerTester<WeeklySnapshotRoller> tester;
+  private SnapshotRollerTester<WeeklySnapshotRoller> tester;
 
-    @BeforeAll
-    public void setupAllTests() {
-        this.clock = new FixedClockConfiguration().fixedClock();
-        this.tester = new SnapshotRollerTester<>(repository, new WeeklySnapshotRoller(repository, clock));
-    }
+  @BeforeAll
+  public void setupAllTests() {
+    this.clock = new FixedClockConfiguration().fixedClock();
+    this.tester =
+        new SnapshotRollerTester<>(repository, new WeeklySnapshotRoller(repository, clock));
+  }
 
-    @Test
-    public void testWeeklySnapshotProduction() {
-        this.tester.performBasicSnapshotRollerTest(Granularity.WEEKLY,
-            clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
-    }
+  @Test
+  public void testWeeklySnapshotProduction() {
+    this.tester.performBasicSnapshotRollerTest(
+        Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
+  }
 
-    @Test
-    public void testWeeklySnapIsUpdatedWhenItAlreadyExists() {
-        this.tester.performSnapshotUpdateTest(Granularity.WEEKLY,
-            clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
-    }
+  @Test
+  public void testWeeklySnapIsUpdatedWhenItAlreadyExists() {
+    this.tester.performSnapshotUpdateTest(
+        Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
+  }
 
-    @Test
-    public void ensureCurrentWeeklyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
-        this.tester.performUpdateWithLesserValueTest(Granularity.WEEKLY,
-            clock.startOfCurrentWeek(), clock.endOfCurrentWeek(), true);
-    }
-
+  @Test
+  public void ensureCurrentWeeklyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+    this.tester.performUpdateWithLesserValueTest(
+        Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(), true);
+  }
 }

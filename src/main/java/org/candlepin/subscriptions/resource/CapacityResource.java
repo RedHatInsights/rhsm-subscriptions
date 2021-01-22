@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,167 +54,173 @@ import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-/**
- * Capacity API implementation.
- */
+/** Capacity API implementation. */
 @Component
 public class CapacityResource implements CapacityApi {
 
-    private final SubscriptionCapacityRepository repository;
-    private final PageLinkCreator pageLinkCreator;
-    private final ApplicationClock clock;
+  private final SubscriptionCapacityRepository repository;
+  private final PageLinkCreator pageLinkCreator;
+  private final ApplicationClock clock;
 
-    @Context
-    UriInfo uriInfo;
+  @Context UriInfo uriInfo;
 
-    public CapacityResource(SubscriptionCapacityRepository repository, PageLinkCreator pageLinkCreator,
-        ApplicationClock clock) {
-        this.repository = repository;
-        this.pageLinkCreator = pageLinkCreator;
-        this.clock = clock;
+  public CapacityResource(
+      SubscriptionCapacityRepository repository,
+      PageLinkCreator pageLinkCreator,
+      ApplicationClock clock) {
+    this.repository = repository;
+    this.pageLinkCreator = pageLinkCreator;
+    this.clock = clock;
+  }
+
+  @Override
+  @ReportingAccessRequired
+  public CapacityReport getCapacityReport(
+      ProductId productId,
+      @NotNull GranularityType granularityType,
+      @NotNull OffsetDateTime beginning,
+      @NotNull OffsetDateTime ending,
+      Integer offset,
+      @Min(1) Integer limit,
+      ServiceLevelType sla,
+      UsageType usage) {
+
+    // capacity records do not include _ANY rows
+    ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
+    if (sanitizedServiceLevel == ServiceLevel._ANY) {
+      sanitizedServiceLevel = null;
     }
 
-    @Override
-    @ReportingAccessRequired
-    public CapacityReport getCapacityReport(ProductId productId, @NotNull GranularityType granularityType,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit, ServiceLevelType sla, UsageType usage) {
+    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+    if (sanitizedUsage == Usage._ANY) {
+      sanitizedUsage = null;
+    }
 
-        // capacity records do not include _ANY rows
-        ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-        if (sanitizedServiceLevel == ServiceLevel._ANY) {
-            sanitizedServiceLevel = null;
-        }
-
-        Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-        if (sanitizedUsage == Usage._ANY) {
-            sanitizedUsage = null;
-        }
-
-        Granularity granularityValue = Granularity.fromString(granularityType.toString());
-        String ownerId = ResourceUtils.getOwnerId();
-        List<CapacitySnapshot> capacities = getCapacities(ownerId,
+    Granularity granularityValue = Granularity.fromString(granularityType.toString());
+    String ownerId = ResourceUtils.getOwnerId();
+    List<CapacitySnapshot> capacities =
+        getCapacities(
+            ownerId,
             productId,
             sanitizedServiceLevel,
             sanitizedUsage,
             granularityValue,
             beginning,
-            ending
-        );
+            ending);
 
-        List<CapacitySnapshot> data;
-        TallyReportLinks links;
-        if (offset != null || limit != null) {
-            Pageable pageable = ResourceUtils.getPageable(offset, limit);
-            data = paginate(capacities, pageable);
-            Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
-            links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
-        }
-        else {
-            data = capacities;
-            links = null;
-        }
-
-        CapacityReport report = new CapacityReport();
-        report.setData(data);
-        report.setMeta(new CapacityReportMeta());
-        report.getMeta().setGranularity(granularityType);
-        report.getMeta().setProduct(productId);
-        report.getMeta().setCount(report.getData().size());
-
-        if (sanitizedServiceLevel != null) {
-            report
-                .getMeta()
-                .setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
-        }
-
-        if (sanitizedUsage != null) {
-            report.getMeta().setUsage(sanitizedUsage.asOpenApiEnum());
-        }
-
-        report.setLinks(links);
-
-        return report;
+    List<CapacitySnapshot> data;
+    TallyReportLinks links;
+    if (offset != null || limit != null) {
+      Pageable pageable = ResourceUtils.getPageable(offset, limit);
+      data = paginate(capacities, pageable);
+      Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+      links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
+    } else {
+      data = capacities;
+      links = null;
     }
 
-    private List<CapacitySnapshot> getCapacities(String ownerId, ProductId productId, ServiceLevel sla,
-        Usage usage, Granularity granularity, @NotNull OffsetDateTime reportBegin,
-        @NotNull OffsetDateTime reportEnd) {
+    CapacityReport report = new CapacityReport();
+    report.setData(data);
+    report.setMeta(new CapacityReportMeta());
+    report.getMeta().setGranularity(granularityType);
+    report.getMeta().setProduct(productId);
+    report.getMeta().setCount(report.getData().size());
 
-        List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(ownerId,
-            productId.toString(),
-            sla,
-            usage,
-            reportBegin,
-            reportEnd);
-
-        SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
-
-        OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportBegin);
-        OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
-        TemporalAmount offset = timeAdjuster.getSnapshotOffset();
-
-        List<CapacitySnapshot> result = new ArrayList<>();
-        OffsetDateTime next = OffsetDateTime.from(start);
-        while (next.isBefore(end) || next.isEqual(end)) {
-            result.add(createCapacitySnapshot(clock.startOfDay(next), matches));
-            next = clock.startOfDay(next.plus(offset));
-        }
-        return result;
+    if (sanitizedServiceLevel != null) {
+      report.getMeta().setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
     }
 
-    private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
-        if (pageable == null) {
-            return capacities;
-        }
-        int offset = pageable.getPageNumber() * pageable.getPageSize();
-        int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
-        return capacities.subList(offset, lastIndex);
+    if (sanitizedUsage != null) {
+      report.getMeta().setUsage(sanitizedUsage.asOpenApiEnum());
     }
 
-    private CapacitySnapshot createCapacitySnapshot(OffsetDateTime date, List<SubscriptionCapacity> matches) {
-        // NOTE there is room for future optimization here, as the we're *generally* calculating the same sum
-        // across a time range, also we might opt to do some of this in the DB query in the future.
-        int sockets = 0;
-        int physicalSockets = 0;
-        int hypervisorSockets = 0;
-        int cores = 0;
-        int physicalCores = 0;
-        int hypervisorCores = 0;
+    report.setLinks(links);
 
-        for (SubscriptionCapacity capacity : matches) {
-            if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
-                int capacityVirtSockets = sanitize(capacity.getVirtualSockets());
-                sockets += capacityVirtSockets;
-                hypervisorSockets += capacityVirtSockets;
+    return report;
+  }
 
-                int capacityPhysicalSockets = sanitize(capacity.getPhysicalSockets());
-                sockets += capacityPhysicalSockets;
-                physicalSockets += capacityPhysicalSockets;
+  private List<CapacitySnapshot> getCapacities(
+      String ownerId,
+      ProductId productId,
+      ServiceLevel sla,
+      Usage usage,
+      Granularity granularity,
+      @NotNull OffsetDateTime reportBegin,
+      @NotNull OffsetDateTime reportEnd) {
 
-                int capacityPhysCores = sanitize(capacity.getPhysicalCores());
-                cores += capacityPhysCores;
-                physicalCores += capacityPhysCores;
+    List<SubscriptionCapacity> matches =
+        repository.findByOwnerAndProductId(
+            ownerId, productId.toString(), sla, usage, reportBegin, reportEnd);
 
-                int capacityVirtCores = sanitize(capacity.getVirtualCores());
-                cores += capacityVirtCores;
-                hypervisorCores += capacityVirtCores;
-            }
-        }
+    SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
-        return new CapacitySnapshot()
-            .date(date)
-            .sockets(sockets)
-            .physicalSockets(physicalSockets)
-            .hypervisorSockets(hypervisorSockets)
-            .cores(cores)
-            .physicalCores(physicalCores)
-            .hypervisorCores(hypervisorCores)
-            .hasInfiniteQuantity(false);
+    OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportBegin);
+    OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
+    TemporalAmount offset = timeAdjuster.getSnapshotOffset();
+
+    List<CapacitySnapshot> result = new ArrayList<>();
+    OffsetDateTime next = OffsetDateTime.from(start);
+    while (next.isBefore(end) || next.isEqual(end)) {
+      result.add(createCapacitySnapshot(clock.startOfDay(next), matches));
+      next = clock.startOfDay(next.plus(offset));
+    }
+    return result;
+  }
+
+  private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
+    if (pageable == null) {
+      return capacities;
+    }
+    int offset = pageable.getPageNumber() * pageable.getPageSize();
+    int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
+    return capacities.subList(offset, lastIndex);
+  }
+
+  private CapacitySnapshot createCapacitySnapshot(
+      OffsetDateTime date, List<SubscriptionCapacity> matches) {
+    // NOTE there is room for future optimization here, as the we're *generally* calculating the
+    // same sum
+    // across a time range, also we might opt to do some of this in the DB query in the future.
+    int sockets = 0;
+    int physicalSockets = 0;
+    int hypervisorSockets = 0;
+    int cores = 0;
+    int physicalCores = 0;
+    int hypervisorCores = 0;
+
+    for (SubscriptionCapacity capacity : matches) {
+      if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
+        int capacityVirtSockets = sanitize(capacity.getVirtualSockets());
+        sockets += capacityVirtSockets;
+        hypervisorSockets += capacityVirtSockets;
+
+        int capacityPhysicalSockets = sanitize(capacity.getPhysicalSockets());
+        sockets += capacityPhysicalSockets;
+        physicalSockets += capacityPhysicalSockets;
+
+        int capacityPhysCores = sanitize(capacity.getPhysicalCores());
+        cores += capacityPhysCores;
+        physicalCores += capacityPhysCores;
+
+        int capacityVirtCores = sanitize(capacity.getVirtualCores());
+        cores += capacityVirtCores;
+        hypervisorCores += capacityVirtCores;
+      }
     }
 
-    private int sanitize(Integer value) {
-        return value != null ? value : 0;
-    }
+    return new CapacitySnapshot()
+        .date(date)
+        .sockets(sockets)
+        .physicalSockets(physicalSockets)
+        .hypervisorSockets(hypervisorSockets)
+        .cores(cores)
+        .physicalCores(physicalCores)
+        .hypervisorCores(hypervisorCores)
+        .hasInfiniteQuantity(false);
+  }
 
+  private int sanitize(Integer value) {
+    return value != null ? value : 0;
+  }
 }

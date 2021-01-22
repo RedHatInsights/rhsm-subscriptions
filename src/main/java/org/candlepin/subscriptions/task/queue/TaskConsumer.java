@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,9 +21,9 @@
 package org.candlepin.subscriptions.task.queue;
 
 /**
- * Base type for both {@link org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskProcessor} and
- * {@link org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProcessor}
+ * Base type for both {@link org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskProcessor}
+ * and {@link org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProcessor}
  */
 public interface TaskConsumer {
-    /* Intentionally empty */
+  /* Intentionally empty */
 }

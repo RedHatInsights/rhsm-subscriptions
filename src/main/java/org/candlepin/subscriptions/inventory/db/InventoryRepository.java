@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,38 +31,39 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-/**
- * Interface that Spring Data will turn into a read-only DAO.
- */
+/** Interface that Spring Data will turn into a read-only DAO. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
-    @Query(nativeQuery = true)
-    Stream<InventoryHostFacts> getFacts(@Param("accounts") Collection<String> accounts,
-        @Param("culledOffsetDays") Integer culledOffsetDays);
+  @Query(nativeQuery = true)
+  Stream<InventoryHostFacts> getFacts(
+      @Param("accounts") Collection<String> accounts,
+      @Param("culledOffsetDays") Integer culledOffsetDays);
 
-    /**
-     * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID.
-     * If the hypervisor hasn't been reported, then the hyp_subman_id value will be null.
-     *
-     * @param accounts the accounts to filter hosts by.
-     * @return a stream of Object[] with each entry representing a hypervisor mapping.
-     */
-    @Query(nativeQuery = true,
-        value = "select " +
-                    "distinct h.facts->'rhsm'->>'VM_HOST_UUID' as hyp_id, " +
-                    "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
-                "from hosts h " +
-                    "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' " +
-                "where h.facts->'rhsm'->'VM_HOST_UUID' is not null " +
-                    "and h.account IN (:accounts)" +
-                "union all " +
-                "select " +
-                    "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, " +
-                    "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id " +
-                "from hosts h " +
-                    "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' " +
-                "where h.facts->'satellite'->'virtual_host_uuid' is not null " +
-                    "and h.account IN (:accounts)")
-    Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
+  /**
+   * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID. If the
+   * hypervisor hasn't been reported, then the hyp_subman_id value will be null.
+   *
+   * @param accounts the accounts to filter hosts by.
+   * @return a stream of Object[] with each entry representing a hypervisor mapping.
+   */
+  @Query(
+      nativeQuery = true,
+      value =
+          "select "
+              + "distinct h.facts->'rhsm'->>'VM_HOST_UUID' as hyp_id, "
+              + "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id "
+              + "from hosts h "
+              + "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' "
+              + "where h.facts->'rhsm'->'VM_HOST_UUID' is not null "
+              + "and h.account IN (:accounts)"
+              + "union all "
+              + "select "
+              + "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, "
+              + "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id "
+              + "from hosts h "
+              + "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' "
+              + "where h.facts->'satellite'->'virtual_host_uuid' is not null "
+              + "and h.account IN (:accounts)")
+  Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
 }

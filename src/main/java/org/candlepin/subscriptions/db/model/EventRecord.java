@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,94 +38,92 @@ import javax.validation.Valid;
 /**
  * DB entity for an event record.
  *
- * An event record consists of an ID and a JSON document with the event data.
+ * <p>An event record consists of an ID and a JSON document with the event data.
  */
 @Entity
 @Table(name = "events")
 public class EventRecord {
-    public EventRecord() {
-        /* intentionally empty */
+  public EventRecord() {
+    /* intentionally empty */
+  }
+
+  /**
+   * Create a new EventRecord from a given Event.
+   *
+   * <p>Generates a new random UUID if the Event does not have a UUID.
+   *
+   * @param event the event object
+   */
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+  public EventRecord(Event event) {
+    Objects.requireNonNull(event, "event must not be null");
+    if (event.getEventId() == null) {
+      event.setEventId(UUID.randomUUID());
     }
+    this.id = event.getEventId();
+    this.event = event;
+    this.accountNumber = event.getAccountNumber();
+    this.timestamp = event.getTimestamp();
+  }
 
-    /**
-     * Create a new EventRecord from a given Event.
-     *
-     * Generates a new random UUID if the Event does not have a UUID.
-     *
-     * @param event the event object
-     */
-    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-    public EventRecord(Event event) {
-        Objects.requireNonNull(event, "event must not be null");
-        if (event.getEventId() == null) {
-            event.setEventId(UUID.randomUUID());
-        }
-        this.id = event.getEventId();
-        this.event = event;
-        this.accountNumber = event.getAccountNumber();
-        this.timestamp = event.getTimestamp();
+  @Id private UUID id;
+
+  @Column(name = "account_number")
+  private String accountNumber;
+
+  private OffsetDateTime timestamp;
+
+  @Valid
+  @Column(name = "data")
+  @Convert(converter = EventRecordConverter.class)
+  private Event event;
+
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID id) {
+    this.id = id;
+  }
+
+  public String getAccountNumber() {
+    return accountNumber;
+  }
+
+  public void setAccountNumber(String accountNumber) {
+    this.accountNumber = accountNumber;
+  }
+
+  public OffsetDateTime getTimestamp() {
+    return timestamp;
+  }
+
+  public void setTimestamp(OffsetDateTime timestamp) {
+    this.timestamp = timestamp;
+  }
+
+  public Event getEvent() {
+    return event;
+  }
+
+  public void setEvent(Event event) {
+    this.event = event;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @Id
-    private UUID id;
-
-    @Column(name = "account_number")
-    private String accountNumber;
-
-    private OffsetDateTime timestamp;
-
-    @Valid
-    @Column(name = "data")
-    @Convert(converter = EventRecordConverter.class)
-    private Event event;
-
-    public UUID getId() {
-        return id;
+    if (!(o instanceof EventRecord)) {
+      return false;
     }
+    EventRecord that = (EventRecord) o;
+    return Objects.equals(id, that.id) && Objects.equals(event, that.event);
+  }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public OffsetDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(OffsetDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public Event getEvent() {
-        return event;
-    }
-
-    public void setEvent(Event event) {
-        this.event = event;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof EventRecord)) {
-            return false;
-        }
-        EventRecord that = (EventRecord) o;
-        return Objects.equals(id, that.id) && Objects.equals(event, that.event);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, event);
-    }
-
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, event);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,16 +31,17 @@ import java.util.Collections;
 
 public class WithInvalidPrincipalSecurityContextFactory
     implements WithSecurityContextFactory<WithInvalidPrincipal> {
-    public SecurityContext createSecurityContext(WithInvalidPrincipal annotation) {
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
+  public SecurityContext createSecurityContext(WithInvalidPrincipal annotation) {
+    SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-        // We don't use a User as our principla.  We use a InsightsUserPrincipal, so this principal will
-        // fail the instanceof tests that we use.
-        User principal = new User("bad", "principal", Collections.emptyList());
+    // We don't use a User as our principla.  We use a InsightsUserPrincipal, so this principal will
+    // fail the instanceof tests that we use.
+    User principal = new User("bad", "principal", Collections.emptyList());
 
-        Authentication auth = new UsernamePasswordAuthenticationToken(principal, principal.getPassword(),
-            principal.getAuthorities());
-        context.setAuthentication(auth);
-        return context;
-    }
+    Authentication auth =
+        new UsernamePasswordAuthenticationToken(
+            principal, principal.getPassword(), principal.getAuthorities());
+    context.setAuthentication(auth);
+    return context;
+  }
 }

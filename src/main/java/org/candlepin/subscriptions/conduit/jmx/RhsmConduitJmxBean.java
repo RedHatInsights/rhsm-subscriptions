@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,120 +41,124 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Exposes the ability to trigger a sync of a Candlepin org from JMX.
- */
+/** Exposes the ability to trigger a sync of a Candlepin org from JMX. */
 @Component
 @ManagedResource
 // must log, then throw because the exception is passed to client and not logged.
 @SuppressWarnings("java:S2139")
 public class RhsmConduitJmxBean {
 
-    private static final Logger log = LoggerFactory.getLogger(RhsmConduitJmxBean.class);
+  private static final Logger log = LoggerFactory.getLogger(RhsmConduitJmxBean.class);
 
-    private final InventoryController controller;
-    private final OrgConfigRepository repo;
-    private final OrgSyncTaskManager tasks;
-    private final ApplicationClock clock;
+  private final InventoryController controller;
+  private final OrgConfigRepository repo;
+  private final OrgSyncTaskManager tasks;
+  private final ApplicationClock clock;
 
-    RhsmConduitJmxBean(InventoryController controller, OrgConfigRepository repo, OrgSyncTaskManager tasks,
-        ApplicationClock clock) {
-        this.controller = controller;
-        this.repo = repo;
-        this.tasks = tasks;
-        this.clock = clock;
+  RhsmConduitJmxBean(
+      InventoryController controller,
+      OrgConfigRepository repo,
+      OrgSyncTaskManager tasks,
+      ApplicationClock clock) {
+    this.controller = controller;
+    this.repo = repo;
+    this.tasks = tasks;
+    this.clock = clock;
+  }
+
+  @ManagedOperation(description = "Trigger a sync for a given Org ID")
+  public void syncOrg(String orgId) throws RhsmJmxException {
+    log.info(
+        "Starting JMX-initiated sync for org ID {} by {}", orgId, ResourceUtils.getPrincipal());
+    try {
+      controller.updateInventoryForOrg(orgId);
+    } catch (Exception e) {
+      log.error("Error during JMX-initiated sync for org ID {}", orgId, e);
+      throw new RhsmJmxException(e);
     }
+  }
 
-    @ManagedOperation(description = "Trigger a sync for a given Org ID")
-    public void syncOrg(String orgId) throws RhsmJmxException {
-        log.info("Starting JMX-initiated sync for org ID {} by {}", orgId, ResourceUtils.getPrincipal());
-        try {
-            controller.updateInventoryForOrg(orgId);
-        }
-        catch (Exception e) {
-            log.error("Error during JMX-initiated sync for org ID {}", orgId, e);
-            throw new RhsmJmxException(e);
-        }
+  @ManagedOperation(description = "Sync all orgs from the configured org list")
+  public void syncFullOrgList() throws RhsmJmxException {
+    log.info(
+        "Starting JMX-initiated sync for all configured orgs, initiated by {}",
+        ResourceUtils.getPrincipal());
+    try {
+      tasks.syncFullOrgList();
+    } catch (Exception e) {
+      log.error("Error during JMX-initiated sync for full org list", e);
+      throw new RhsmJmxException(e);
     }
+  }
 
-    @ManagedOperation(description = "Sync all orgs from the configured org list")
-    public void syncFullOrgList() throws RhsmJmxException {
-        log.info("Starting JMX-initiated sync for all configured orgs, initiated by {}",
-            ResourceUtils.getPrincipal());
-        try {
-            tasks.syncFullOrgList();
-        }
-        catch (Exception e) {
-            log.error("Error during JMX-initiated sync for full org list", e);
-            throw new RhsmJmxException(e);
-        }
+  @ManagedOperation(description = "Add some orgs to the database sync list")
+  @ManagedOperationParameter(
+      name = "orgs",
+      description = "comma-separated org list (whitespace ignored)")
+  public void addOrgsToSyncList(String orgs) throws RhsmJmxException {
+    try {
+      List<OrgConfig> orgList = extractOrgList(orgs);
+
+      log.info(
+          "Adding {} orgs to DB sync list, initiated by {}",
+          orgList.size(),
+          ResourceUtils.getPrincipal());
+
+      repo.saveAll(orgList);
+    } catch (Exception e) {
+      log.error("Error while adding orgs to DB sync list via JMX", e);
+      throw new RhsmJmxException(e);
     }
+  }
 
-    @ManagedOperation(description = "Add some orgs to the database sync list")
-    @ManagedOperationParameter(name = "orgs", description = "comma-separated org list (whitespace ignored)")
-    public void addOrgsToSyncList(String orgs) throws RhsmJmxException {
-        try {
-            List<OrgConfig> orgList = extractOrgList(orgs);
+  @ManagedOperation(description = "Remove some orgs from the database sync list")
+  @ManagedOperationParameter(
+      name = "orgs",
+      description = "comma-separated org list (whitespace ignored)")
+  public void removeOrgsFromSyncList(String orgs) throws RhsmJmxException {
+    try {
+      List<OrgConfig> orgList = extractOrgList(orgs);
 
-            log.info("Adding {} orgs to DB sync list, initiated by {}", orgList.size(),
-                ResourceUtils.getPrincipal());
+      log.info(
+          "Removing {} orgs from DB sync list, initiated by {}",
+          orgList.size(),
+          ResourceUtils.getPrincipal());
 
-            repo.saveAll(orgList);
-        }
-        catch (Exception e) {
-            log.error("Error while adding orgs to DB sync list via JMX", e);
-            throw new RhsmJmxException(e);
-        }
+      repo.deleteAll(orgList);
+    } catch (Exception e) {
+      log.error("Error removing orgs from DB sync list via JMX", e);
+      throw new RhsmJmxException(e);
     }
+  }
 
-    @ManagedOperation(description = "Remove some orgs from the database sync list")
-    @ManagedOperationParameter(name = "orgs", description = "comma-separated org list (whitespace ignored)")
-    public void removeOrgsFromSyncList(String orgs) throws RhsmJmxException {
-        try {
-            List<OrgConfig> orgList = extractOrgList(orgs);
-
-            log.info("Removing {} orgs from DB sync list, initiated by {}", orgList.size(),
-                ResourceUtils.getPrincipal());
-
-            repo.deleteAll(orgList);
-        }
-        catch (Exception e) {
-            log.error("Error removing orgs from DB sync list via JMX", e);
-            throw new RhsmJmxException(e);
-        }
+  @ManagedOperation(description = "Check if an org is present in the database sync list")
+  public boolean hasOrgInSyncList(String orgId) throws RhsmJmxException {
+    try {
+      return repo.existsById(orgId);
+    } catch (Exception e) {
+      log.error("Unable to determine if org {} exists via JMX", orgId);
+      throw new RhsmJmxException(e);
     }
+  }
 
-    @ManagedOperation(description = "Check if an org is present in the database sync list")
-    public boolean hasOrgInSyncList(String orgId) throws RhsmJmxException {
-        try {
-            return repo.existsById(orgId);
-        }
-        catch (Exception e) {
-            log.error("Unable to determine if org {} exists via JMX", orgId);
-            throw new RhsmJmxException(e);
-        }
+  @ManagedOperation(description = "See conduit representation of a org's systems from RHSM")
+  public OrgInventory getInventoryForOrg(String orgId, String offset) throws RhsmJmxException {
+    try {
+      return controller.getInventoryForOrg(orgId, offset);
+    } catch (ApiException e) {
+      log.error("Unable to fetch org systems via JMX");
+      throw new RhsmJmxException(e);
+    } catch (MissingAccountNumberException e) {
+      log.error("Systems are missing account number in orgId {}", orgId);
+      throw new RhsmJmxException(e);
     }
+  }
 
-    @ManagedOperation(description = "See conduit representation of a org's systems from RHSM")
-    public OrgInventory getInventoryForOrg(String orgId, String offset) throws RhsmJmxException {
-        try {
-            return controller.getInventoryForOrg(orgId, offset);
-        }
-        catch (ApiException e) {
-            log.error("Unable to fetch org systems via JMX");
-            throw new RhsmJmxException(e);
-        }
-        catch (MissingAccountNumberException e) {
-            log.error("Systems are missing account number in orgId {}", orgId);
-            throw new RhsmJmxException(e);
-        }
-    }
-
-    private List<OrgConfig> extractOrgList(String orgs) {
-        return Arrays.stream(orgs.split("[, \n]"))
-            .map(String::trim)
-            .filter(orgId -> !orgId.isEmpty())
-            .map(orgId -> OrgConfig.fromJmx(orgId, clock.now()))
-            .collect(Collectors.toList());
-    }
+  private List<OrgConfig> extractOrgList(String orgs) {
+    return Arrays.stream(orgs.split("[, \n]"))
+        .map(String::trim)
+        .filter(orgId -> !orgId.isEmpty())
+        .map(orgId -> OrgConfig.fromJmx(orgId, clock.now()))
+        .collect(Collectors.toList());
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,69 +31,64 @@ import org.springframework.stereotype.Component;
 
 import javax.ws.rs.BadRequestException;
 
-/**
- * Defines the API for opting an account and its org into the sync/reporting
- * functionality.
- */
+/** Defines the API for opting an account and its org into the sync/reporting functionality. */
 @Component
 public class OptInResource implements OptInApi {
 
-    private OptInController controller;
+  private OptInController controller;
 
-    @Autowired
-    public OptInResource(OptInController controller) {
-        this.controller = controller;
+  @Autowired
+  public OptInResource(OptInController controller) {
+    this.controller = controller;
+  }
+
+  @SubscriptionWatchAdminOnly
+  @Override
+  public void deleteOptInConfig() {
+    controller.optOut(validateAccountNumber(), validateOrgId());
+  }
+
+  @SubscriptionWatchAdminOnly
+  @Override
+  public OptInConfig getOptInConfig() {
+    return controller.getOptInConfig(validateAccountNumber(), validateOrgId());
+  }
+
+  @SubscriptionWatchAdminOnly
+  @Override
+  public OptInConfig putOptInConfig(
+      Boolean enableTallySync, Boolean enableTallyReporting, Boolean enableConduitSync) {
+    // NOTE: All query params are defaulted to 'true' by the API definition, however we
+    //       double check below.
+    return controller.optIn(
+        validateAccountNumber(),
+        validateOrgId(),
+        OptInType.API,
+        trueIfNull(enableTallySync),
+        trueIfNull(enableTallyReporting),
+        trueIfNull(enableConduitSync));
+  }
+
+  private String validateAccountNumber() {
+    String accountNumber = ResourceUtils.getAccountNumber();
+    if (accountNumber == null) {
+      throw new BadRequestException("Must specify an account number.");
     }
+    return accountNumber;
+  }
 
-    @SubscriptionWatchAdminOnly
-    @Override
-    public void deleteOptInConfig() {
-        controller.optOut(validateAccountNumber(), validateOrgId());
+  private String validateOrgId() {
+    String ownerId = ResourceUtils.getOwnerId();
+    if (ownerId == null) {
+      throw new BadRequestException("Must specify an org ID.");
     }
+    return ownerId;
+  }
 
-    @SubscriptionWatchAdminOnly
-    @Override
-    public OptInConfig getOptInConfig() {
-        return controller.getOptInConfig(validateAccountNumber(), validateOrgId());
+  private Boolean trueIfNull(Boolean toVerify) {
+    if (toVerify == null) {
+      return true;
     }
-
-    @SubscriptionWatchAdminOnly
-    @Override
-    public OptInConfig putOptInConfig(Boolean enableTallySync, Boolean enableTallyReporting,
-        Boolean enableConduitSync) {
-        // NOTE: All query params are defaulted to 'true' by the API definition, however we
-        //       double check below.
-        return controller.optIn(
-            validateAccountNumber(),
-            validateOrgId(),
-            OptInType.API,
-            trueIfNull(enableTallySync),
-            trueIfNull(enableTallyReporting),
-            trueIfNull(enableConduitSync)
-        );
-    }
-
-    private String validateAccountNumber() {
-        String accountNumber = ResourceUtils.getAccountNumber();
-        if (accountNumber == null) {
-            throw new BadRequestException("Must specify an account number.");
-        }
-        return accountNumber;
-    }
-
-    private String validateOrgId() {
-        String ownerId = ResourceUtils.getOwnerId();
-        if (ownerId == null) {
-            throw new BadRequestException("Must specify an org ID.");
-        }
-        return ownerId;
-    }
-
-    private Boolean trueIfNull(Boolean toVerify) {
-        if (toVerify == null) {
-            return true;
-        }
-        return toVerify;
-    }
-
+    return toVerify;
+  }
 }

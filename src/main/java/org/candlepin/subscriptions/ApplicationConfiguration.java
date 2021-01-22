@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,63 +55,76 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 import javax.validation.Validator;
 
-/** Class to hold configuration beans common to all profiles and import all profile configurations */
+/**
+ * Class to hold configuration beans common to all profiles and import all profile configurations
+ */
 @Configuration
 @Import({
-    ApiConfiguration.class, ConduitConfiguration.class, CapacityIngressConfiguration.class,
-    CaptureSnapshotsConfiguration.class, PurgeSnapshotsConfiguration.class,
-    LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class, OrgSyncConfiguration.class,
-    DevModeConfiguration.class, SecurityConfig.class, HawtioConfiguration.class
+  ApiConfiguration.class,
+  ConduitConfiguration.class,
+  CapacityIngressConfiguration.class,
+  CaptureSnapshotsConfiguration.class,
+  PurgeSnapshotsConfiguration.class,
+  LiquibaseUpdateOnlyConfiguration.class,
+  TallyWorkerConfiguration.class,
+  OrgSyncConfiguration.class,
+  DevModeConfiguration.class,
+  SecurityConfig.class,
+  HawtioConfiguration.class
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
-    @Bean
-    ApplicationProperties applicationProperties() {
-        return new ApplicationProperties();
-    }
+  @Bean
+  ApplicationProperties applicationProperties() {
+    return new ApplicationProperties();
+  }
 
-    @Bean
-    @Primary
-    ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-        objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
+  @Bean
+  @Primary
+  ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+    objectMapper.configure(
+        SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
+    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
 
-        // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in order to
-        // avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing deserialization
-        // to ignore @JsonProperty on OpenApi classes.
-        objectMapper.registerModule(new JaxbAnnotationModule());
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.registerModule(new Jdk8Module());
+    // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
+    // order to
+    // avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
+    // deserialization
+    // to ignore @JsonProperty on OpenApi classes.
+    objectMapper.registerModule(new JaxbAnnotationModule());
+    objectMapper.registerModule(new JavaTimeModule());
+    objectMapper.registerModule(new Jdk8Module());
 
-        return objectMapper;
-    }
+    return objectMapper;
+  }
 
-    @Bean
-    ApplicationClock applicationClock() {
-        return new ApplicationClock();
-    }
+  @Bean
+  ApplicationClock applicationClock() {
+    return new ApplicationClock();
+  }
 
-    /**
-     * Tell Spring AOP to run methods in classes marked @Validated through the JSR-303 Validation
-     * implementation.  Validations that fail will throw an ConstraintViolationException.
-     * @return post-processor used by Spring AOP
-     */
-    @Bean
-    public MethodValidationPostProcessor methodValidationPostProcessor() {
-        return new MethodValidationPostProcessor();
-    }
+  /**
+   * Tell Spring AOP to run methods in classes marked @Validated through the JSR-303 Validation
+   * implementation. Validations that fail will throw an ConstraintViolationException.
+   *
+   * @return post-processor used by Spring AOP
+   */
+  @Bean
+  public MethodValidationPostProcessor methodValidationPostProcessor() {
+    return new MethodValidationPostProcessor();
+  }
 
-    @Bean
-    public Validator validator() {
-        return new LocalValidatorFactoryBean();
-    }
+  @Bean
+  public Validator validator() {
+    return new LocalValidatorFactoryBean();
+  }
 
-    @Bean
-    public TimedAspect timedAspect(MeterRegistry registry) {
-        return new TimedAspect(registry);
-    }
+  @Bean
+  public TimedAspect timedAspect(MeterRegistry registry) {
+    return new TimedAspect(registry);
+  }
 }

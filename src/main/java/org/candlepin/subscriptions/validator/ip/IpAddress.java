@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.validator.ip;
 
-
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -36,8 +35,9 @@ import javax.validation.Constraint;
 import javax.validation.Payload;
 
 /**
- * Marks a field as needing V4/V6 IP validation. The annotation can be used on a String field
- * or on a String typed collection.
+ * Marks a field as needing V4/V6 IP validation. The annotation can be used on a String field or on
+ * a String typed collection.
+ *
  * <pre>
  * @IpAddress
  * private String ip;
@@ -45,23 +45,23 @@ import javax.validation.Payload;
  * private List<@IpAddress String> ipAddresses
  * </pre>
  */
-@Target({ FIELD, TYPE_USE })
+@Target({FIELD, TYPE_USE})
 @Retention(RUNTIME)
 @Repeatable(List.class)
 @Documented
-@Constraint(validatedBy = { IpAddressValidator.class })
+@Constraint(validatedBy = {IpAddressValidator.class})
 public @interface IpAddress {
-    String message() default "Must be a valid IP address.";
-    Class<?>[] groups() default { };
-    Class<? extends Payload>[] payload() default { };
+  String message() default "Must be a valid IP address.";
 
-    /**
-     * Inner annotation to support annotating type arguments of parameterized types.
-     */
-    @Target({ FIELD, TYPE_USE })
-    @Retention(RUNTIME)
-    @Documented
-    @interface List {
-        IpAddress[] value();
-    }
+  Class<?>[] groups() default {};
+
+  Class<? extends Payload>[] payload() default {};
+
+  /** Inner annotation to support annotating type arguments of parameterized types. */
+  @Target({FIELD, TYPE_USE})
+  @Retention(RUNTIME)
+  @Documented
+  @interface List {
+    IpAddress[] value();
+  }
 }

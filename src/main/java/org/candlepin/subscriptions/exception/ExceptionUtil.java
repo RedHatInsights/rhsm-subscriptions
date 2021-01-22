@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.exception;
 
 import org.candlepin.subscriptions.utilization.api.model.Error;
@@ -29,30 +28,27 @@ import java.util.Collections;
 
 import javax.ws.rs.core.Response;
 
-/**
- * Utility class for constructing the JSON responses to send when exceptions are thrown.
- */
+/** Utility class for constructing the JSON responses to send when exceptions are thrown. */
 public class ExceptionUtil {
-    // Media type required per the jsonapi.org API spec. JAXRS doesn't provide
-    // this type as a constant, so we define it ourselves.
-    protected static final String MEDIA_TYPE = "application/vnd.api+json";
+  // Media type required per the jsonapi.org API spec. JAXRS doesn't provide
+  // this type as a constant, so we define it ourselves.
+  protected static final String MEDIA_TYPE = "application/vnd.api+json";
 
-    private ExceptionUtil() {
-        // only static methods available on this class
-    }
+  private ExceptionUtil() {
+    // only static methods available on this class
+  }
 
-    public static Response toResponse(Error error) {
-        // IMPL NOTE:
-        //   The jsonapi.org spec requires that an Error response should be a
-        //   collection of Error objects in a dictionary with an 'errors' key
-        //   in case the server should want to return multiple errors in a single
-        //   response. While we likely won't ever need to do this, we'll conform
-        //   to the spec anyhow.
-        Errors errors = new Errors().errors(new ArrayList<>(Collections.singleton(error)));
-        return Response.status(Integer.parseInt(error.getStatus()))
-            .entity(errors)
-            .type(MEDIA_TYPE)
-            .build();
-    }
-
+  public static Response toResponse(Error error) {
+    // IMPL NOTE:
+    //   The jsonapi.org spec requires that an Error response should be a
+    //   collection of Error objects in a dictionary with an 'errors' key
+    //   in case the server should want to return multiple errors in a single
+    //   response. While we likely won't ever need to do this, we'll conform
+    //   to the spec anyhow.
+    Errors errors = new Errors().errors(new ArrayList<>(Collections.singleton(error)));
+    return Response.status(Integer.parseInt(error.getStatus()))
+        .entity(errors)
+        .type(MEDIA_TYPE)
+        .build();
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,149 +33,144 @@ import javax.persistence.NamedNativeQuery;
 import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 
-
-/**
- * Represents a host entity stored in the inventory service's database.
- */
+/** Represents a host entity stored in the inventory service's database. */
 @SuppressWarnings({"indentation", "linelength"})
 @Entity
 @Table(name = "hosts")
 @SqlResultSetMapping(
     name = "inventoryHostFactsMapping",
     classes = {
-        @ConstructorResult(
-            targetClass = InventoryHostFacts.class,
-            columns = {
-                @ColumnResult(name = "inventory_id", type = UUID.class),
-                @ColumnResult(name = "modified_on", type = OffsetDateTime.class),
-                @ColumnResult(name = "account"),
-                @ColumnResult(name = "display_name"),
-                @ColumnResult(name = "org_id"),
-                @ColumnResult(name = "cores"),
-                @ColumnResult(name = "sockets"),
-                @ColumnResult(name = "products"),
-                @ColumnResult(name = "sync_timestamp"),
-                @ColumnResult(name = "system_profile_infrastructure_type"),
-                @ColumnResult(name = "system_profile_cores_per_socket"),
-                @ColumnResult(name = "system_profile_sockets"),
-                @ColumnResult(name = "qpc_products"),
-                @ColumnResult(name = "qpc_product_ids"),
-                @ColumnResult(name = "system_profile_product_ids"),
-                @ColumnResult(name = "syspurpose_role"),
-                @ColumnResult(name = "syspurpose_sla"),
-                @ColumnResult(name = "syspurpose_usage"),
-                @ColumnResult(name = "syspurpose_units"),
-                @ColumnResult(name = "is_virtual"),
-                @ColumnResult(name = "hypervisor_uuid"),
-                @ColumnResult(name = "satellite_hypervisor_uuid"),
-                @ColumnResult(name = "guest_id"),
-                @ColumnResult(name = "subscription_manager_id"),
-                @ColumnResult(name = "insights_id"),
-                @ColumnResult(name = "cloud_provider"),
-                @ColumnResult(name = "stale_timestamp", type = OffsetDateTime.class)
-            }
-        )
-    }
-)
+      @ConstructorResult(
+          targetClass = InventoryHostFacts.class,
+          columns = {
+            @ColumnResult(name = "inventory_id", type = UUID.class),
+            @ColumnResult(name = "modified_on", type = OffsetDateTime.class),
+            @ColumnResult(name = "account"),
+            @ColumnResult(name = "display_name"),
+            @ColumnResult(name = "org_id"),
+            @ColumnResult(name = "cores"),
+            @ColumnResult(name = "sockets"),
+            @ColumnResult(name = "products"),
+            @ColumnResult(name = "sync_timestamp"),
+            @ColumnResult(name = "system_profile_infrastructure_type"),
+            @ColumnResult(name = "system_profile_cores_per_socket"),
+            @ColumnResult(name = "system_profile_sockets"),
+            @ColumnResult(name = "qpc_products"),
+            @ColumnResult(name = "qpc_product_ids"),
+            @ColumnResult(name = "system_profile_product_ids"),
+            @ColumnResult(name = "syspurpose_role"),
+            @ColumnResult(name = "syspurpose_sla"),
+            @ColumnResult(name = "syspurpose_usage"),
+            @ColumnResult(name = "syspurpose_units"),
+            @ColumnResult(name = "is_virtual"),
+            @ColumnResult(name = "hypervisor_uuid"),
+            @ColumnResult(name = "satellite_hypervisor_uuid"),
+            @ColumnResult(name = "guest_id"),
+            @ColumnResult(name = "subscription_manager_id"),
+            @ColumnResult(name = "insights_id"),
+            @ColumnResult(name = "cloud_provider"),
+            @ColumnResult(name = "stale_timestamp", type = OffsetDateTime.class)
+          })
+    })
 /* This query is complex so that we can fetch all the product IDs as a comma-delimited string all in one
  * query.  It's inspired by https://dba.stackexchange.com/a/54289. See also
  * https://stackoverflow.com/a/28557803/6124862
  */
-@NamedNativeQuery(name = "InventoryHost.getFacts",
-    query = "select h.id as inventory_id, h.modified_on, h.account, h.display_name, " +
-        "h.facts->'rhsm'->>'orgId' as org_id, " +
-        "h.facts->'rhsm'->>'CPU_CORES' as cores, " +
-        "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, " +
-        "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, " +
-        "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, " +
-        "h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid, " +
-        "h.facts->'rhsm'->>'GUEST_ID' as guest_id, " +
-        "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, " +
-        "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, " +
-        "h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla, " +
-        "h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage, " +
-        "h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units, " +
-        "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
-        "h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type, " +
-        "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
-        "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, " +
-        "h.system_profile_facts->>'cloud_provider' as cloud_provider, " +
-        "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, " +
-        "h.canonical_facts->>'insights_id' as insights_id, " +
-        "rhsm_products.products, " +
-        "qpc_prods.qpc_products, " +
-        "qpc_certs.qpc_product_ids, " +
-        "system_profile.system_profile_product_ids, " +
-        "h.stale_timestamp " +
-        "from hosts h " +
-        "cross join lateral ( " +
-        "    select string_agg(items, ',') as products " +
-        "    from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products " +
-        "cross join lateral ( " +
-        "    select string_agg(items, ',') as qpc_products " +
-        "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_products_installed') as items) qpc_prods " +
-        "cross join lateral ( " +
-        "    select string_agg(items, ',') as qpc_product_ids " +
-        "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_product_certs') as items) qpc_certs " +
-        "cross join lateral ( " +
-        "    select string_agg(items->>'id', ',') as system_profile_product_ids " +
-        "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile " +
-        "where account IN (:accounts) and (stale_timestamp is null or (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)))",
+@NamedNativeQuery(
+    name = "InventoryHost.getFacts",
+    query =
+        "select h.id as inventory_id, h.modified_on, h.account, h.display_name, "
+            + "h.facts->'rhsm'->>'orgId' as org_id, "
+            + "h.facts->'rhsm'->>'CPU_CORES' as cores, "
+            + "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, "
+            + "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, "
+            + "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, "
+            + "h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid, "
+            + "h.facts->'rhsm'->>'GUEST_ID' as guest_id, "
+            + "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, "
+            + "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, "
+            + "h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla, "
+            + "h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage, "
+            + "h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units, "
+            + "h.facts->'qpc'->>'IS_RHEL' as is_rhel, "
+            + "h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type, "
+            + "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, "
+            + "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, "
+            + "h.system_profile_facts->>'cloud_provider' as cloud_provider, "
+            + "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, "
+            + "h.canonical_facts->>'insights_id' as insights_id, "
+            + "rhsm_products.products, "
+            + "qpc_prods.qpc_products, "
+            + "qpc_certs.qpc_product_ids, "
+            + "system_profile.system_profile_product_ids, "
+            + "h.stale_timestamp "
+            + "from hosts h "
+            + "cross join lateral ( "
+            + "    select string_agg(items, ',') as products "
+            + "    from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products "
+            + "cross join lateral ( "
+            + "    select string_agg(items, ',') as qpc_products "
+            + "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_products_installed') as items) qpc_prods "
+            + "cross join lateral ( "
+            + "    select string_agg(items, ',') as qpc_product_ids "
+            + "    from jsonb_array_elements_text(h.facts->'qpc'->'rh_product_certs') as items) qpc_certs "
+            + "cross join lateral ( "
+            + "    select string_agg(items->>'id', ',') as system_profile_product_ids "
+            + "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile "
+            + "where account IN (:accounts) and (stale_timestamp is null or (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)))",
     resultSetMapping = "inventoryHostFactsMapping")
 public class InventoryHost implements Serializable {
 
-    @Id
-    private UUID id;
+  @Id private UUID id;
 
-    private String account;
+  private String account;
 
-    @Column(name = "display_name")
-    private String displayName;
+  @Column(name = "display_name")
+  private String displayName;
 
-    @Column(name = "created_on")
-    private OffsetDateTime createdOn;
+  @Column(name = "created_on")
+  private OffsetDateTime createdOn;
 
-    @Column(name = "modified_on")
-    private OffsetDateTime modifiedOn;
+  @Column(name = "modified_on")
+  private OffsetDateTime modifiedOn;
 
-    public UUID getId() {
-        return id;
-    }
+  public UUID getId() {
+    return id;
+  }
 
-    public void setId(UUID id) {
-        this.id = id;
-    }
+  public void setId(UUID id) {
+    this.id = id;
+  }
 
-    public String getAccount() {
-        return account;
-    }
+  public String getAccount() {
+    return account;
+  }
 
-    public void setAccount(String account) {
-        this.account = account;
-    }
+  public void setAccount(String account) {
+    this.account = account;
+  }
 
-    public String getDisplayName() {
-        return displayName;
-    }
+  public String getDisplayName() {
+    return displayName;
+  }
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
+  public void setDisplayName(String displayName) {
+    this.displayName = displayName;
+  }
 
-    public OffsetDateTime getCreatedOn() {
-        return createdOn;
-    }
+  public OffsetDateTime getCreatedOn() {
+    return createdOn;
+  }
 
-    public void setCreatedOn(OffsetDateTime createdOn) {
-        this.createdOn = createdOn;
-    }
+  public void setCreatedOn(OffsetDateTime createdOn) {
+    this.createdOn = createdOn;
+  }
 
-    public OffsetDateTime getModifiedOn() {
-        return modifiedOn;
-    }
+  public OffsetDateTime getModifiedOn() {
+    return modifiedOn;
+  }
 
-    public void setModifiedOn(OffsetDateTime modifiedOn) {
-        this.modifiedOn = modifiedOn;
-    }
-
+  public void setModifiedOn(OffsetDateTime modifiedOn) {
+    this.modifiedOn = modifiedOn;
+  }
 }

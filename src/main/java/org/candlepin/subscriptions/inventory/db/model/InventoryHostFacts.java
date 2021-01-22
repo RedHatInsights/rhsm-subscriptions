@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,317 +27,334 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Represents an inventory host's facts.
- */
+/** Represents an inventory host's facts. */
 public class InventoryHostFacts {
-    private UUID inventoryId;
-    private OffsetDateTime modifiedOn;
-    private String account;
-    private String displayName;
-    private String orgId;
-    private Integer cores;
-    private Integer sockets;
-    private String syncTimestamp;
-    private Set<String> products;
-    private String systemProfileInfrastructureType;
-    private Integer systemProfileCoresPerSocket;
-    private Integer systemProfileSockets;
-    private boolean isVirtual;
-    private String hypervisorUuid;
-    private String satelliteHypervisorUuid;
-    private String guestId;
-    private String subscriptionManagerId;
-    private String insightsId;
-    private Set<String> qpcProducts;
-    private Set<String> qpcProductIds;
-    private Set<String> systemProfileProductIds;
-    private String syspurposeRole;
-    private String syspurposeSla;
-    private String syspurposeUsage;
-    private String syspurposeUnits;
-    private String cloudProvider;
-    private OffsetDateTime staleTimestamp;
+  private UUID inventoryId;
+  private OffsetDateTime modifiedOn;
+  private String account;
+  private String displayName;
+  private String orgId;
+  private Integer cores;
+  private Integer sockets;
+  private String syncTimestamp;
+  private Set<String> products;
+  private String systemProfileInfrastructureType;
+  private Integer systemProfileCoresPerSocket;
+  private Integer systemProfileSockets;
+  private boolean isVirtual;
+  private String hypervisorUuid;
+  private String satelliteHypervisorUuid;
+  private String guestId;
+  private String subscriptionManagerId;
+  private String insightsId;
+  private Set<String> qpcProducts;
+  private Set<String> qpcProductIds;
+  private Set<String> systemProfileProductIds;
+  private String syspurposeRole;
+  private String syspurposeSla;
+  private String syspurposeUsage;
+  private String syspurposeUnits;
+  private String cloudProvider;
+  private OffsetDateTime staleTimestamp;
 
-    public InventoryHostFacts() {
-        // Used for testing
-    }
+  public InventoryHostFacts() {
+    // Used for testing
+  }
 
-    @SuppressWarnings("squid:S00107")
-    public InventoryHostFacts(UUID inventoryId, OffsetDateTime modifiedOn, String account,
-        String displayName, String orgId, String cores, String sockets,
-        String products, String syncTimestamp, String systemProfileInfrastructureType,
-        String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
-        String systemProfileProductIds, String syspurposeRole, String syspurposeSla,
-        String syspurposeUsage, String syspurposeUnits, String isVirtual, String hypervisorUuid,
-        String satelliteHypervisorUuid, String guestId, String subscriptionManagerId, String insightsId,
-        String cloudProvider, OffsetDateTime staleTimestamp) {
-        this.inventoryId = inventoryId;
-        this.modifiedOn = modifiedOn;
-        this.account = account;
-        this.displayName = displayName;
-        this.orgId = orgId;
-        this.cores = asInt(cores);
-        this.sockets = asInt(sockets);
-        this.products = asStringSet(products);
-        this.qpcProducts = asStringSet(qpcProducts);
-        this.qpcProductIds = asStringSet(qpcProductIds);
-        this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
-        this.systemProfileInfrastructureType = systemProfileInfrastructureType;
-        this.systemProfileCoresPerSocket = asInt(systemProfileCores);
-        this.systemProfileSockets = asInt(systemProfileSockets);
-        this.systemProfileProductIds = asStringSet(systemProfileProductIds);
-        this.syspurposeRole = syspurposeRole;
-        this.syspurposeSla = syspurposeSla;
-        this.syspurposeUsage = syspurposeUsage;
-        this.syspurposeUnits = syspurposeUnits;
-        this.isVirtual = asBoolean(isVirtual);
-        this.hypervisorUuid = hypervisorUuid;
-        this.satelliteHypervisorUuid = satelliteHypervisorUuid;
-        this.guestId = guestId;
-        this.subscriptionManagerId = subscriptionManagerId;
-        this.insightsId = insightsId;
-        this.cloudProvider = cloudProvider;
-        this.staleTimestamp = staleTimestamp;
-    }
+  @SuppressWarnings("squid:S00107")
+  public InventoryHostFacts(
+      UUID inventoryId,
+      OffsetDateTime modifiedOn,
+      String account,
+      String displayName,
+      String orgId,
+      String cores,
+      String sockets,
+      String products,
+      String syncTimestamp,
+      String systemProfileInfrastructureType,
+      String systemProfileCores,
+      String systemProfileSockets,
+      String qpcProducts,
+      String qpcProductIds,
+      String systemProfileProductIds,
+      String syspurposeRole,
+      String syspurposeSla,
+      String syspurposeUsage,
+      String syspurposeUnits,
+      String isVirtual,
+      String hypervisorUuid,
+      String satelliteHypervisorUuid,
+      String guestId,
+      String subscriptionManagerId,
+      String insightsId,
+      String cloudProvider,
+      OffsetDateTime staleTimestamp) {
+    this.inventoryId = inventoryId;
+    this.modifiedOn = modifiedOn;
+    this.account = account;
+    this.displayName = displayName;
+    this.orgId = orgId;
+    this.cores = asInt(cores);
+    this.sockets = asInt(sockets);
+    this.products = asStringSet(products);
+    this.qpcProducts = asStringSet(qpcProducts);
+    this.qpcProductIds = asStringSet(qpcProductIds);
+    this.syncTimestamp = StringUtils.hasText(syncTimestamp) ? syncTimestamp : "";
+    this.systemProfileInfrastructureType = systemProfileInfrastructureType;
+    this.systemProfileCoresPerSocket = asInt(systemProfileCores);
+    this.systemProfileSockets = asInt(systemProfileSockets);
+    this.systemProfileProductIds = asStringSet(systemProfileProductIds);
+    this.syspurposeRole = syspurposeRole;
+    this.syspurposeSla = syspurposeSla;
+    this.syspurposeUsage = syspurposeUsage;
+    this.syspurposeUnits = syspurposeUnits;
+    this.isVirtual = asBoolean(isVirtual);
+    this.hypervisorUuid = hypervisorUuid;
+    this.satelliteHypervisorUuid = satelliteHypervisorUuid;
+    this.guestId = guestId;
+    this.subscriptionManagerId = subscriptionManagerId;
+    this.insightsId = insightsId;
+    this.cloudProvider = cloudProvider;
+    this.staleTimestamp = staleTimestamp;
+  }
 
-    public UUID getInventoryId() {
-        return inventoryId;
-    }
+  public UUID getInventoryId() {
+    return inventoryId;
+  }
 
-    public void setInventoryId(UUID inventoryId) {
-        this.inventoryId = inventoryId;
-    }
+  public void setInventoryId(UUID inventoryId) {
+    this.inventoryId = inventoryId;
+  }
 
-    public OffsetDateTime getModifiedOn() {
-        return modifiedOn;
-    }
+  public OffsetDateTime getModifiedOn() {
+    return modifiedOn;
+  }
 
-    public void setModifiedOn(OffsetDateTime modifiedOn) {
-        this.modifiedOn = modifiedOn;
-    }
+  public void setModifiedOn(OffsetDateTime modifiedOn) {
+    this.modifiedOn = modifiedOn;
+  }
 
-    public String getAccount() {
-        return account;
-    }
+  public String getAccount() {
+    return account;
+  }
 
-    public void setAccount(String account) {
-        this.account = account;
-    }
+  public void setAccount(String account) {
+    this.account = account;
+  }
 
-    public String getDisplayName() {
-        return displayName;
-    }
+  public String getDisplayName() {
+    return displayName;
+  }
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
+  public void setDisplayName(String displayName) {
+    this.displayName = displayName;
+  }
 
-    public String getOrgId() {
-        return orgId;
-    }
+  public String getOrgId() {
+    return orgId;
+  }
 
-    public void setOrgId(String orgId) {
-        this.orgId = orgId;
-    }
+  public void setOrgId(String orgId) {
+    this.orgId = orgId;
+  }
 
-    public Integer getCores() {
-        return cores == null ? 0 : cores;
-    }
+  public Integer getCores() {
+    return cores == null ? 0 : cores;
+  }
 
-    public void setCores(Integer cores) {
-        this.cores = cores;
-    }
+  public void setCores(Integer cores) {
+    this.cores = cores;
+  }
 
-    public Integer getSockets() {
-        return sockets == null ? 0 : sockets;
-    }
+  public Integer getSockets() {
+    return sockets == null ? 0 : sockets;
+  }
 
-    public void setSockets(Integer sockets) {
-        this.sockets = sockets;
-    }
+  public void setSockets(Integer sockets) {
+    this.sockets = sockets;
+  }
 
-    public String getSyncTimestamp() {
-        return syncTimestamp;
-    }
+  public String getSyncTimestamp() {
+    return syncTimestamp;
+  }
 
-    public void setSyncTimestamp(String syncTimestamp) {
-        this.syncTimestamp = syncTimestamp;
-    }
+  public void setSyncTimestamp(String syncTimestamp) {
+    this.syncTimestamp = syncTimestamp;
+  }
 
-    public Set<String> getProducts() {
-        return products;
-    }
+  public Set<String> getProducts() {
+    return products;
+  }
 
-    public void setProducts(Set<String> products) {
-        this.products = products;
-    }
+  public void setProducts(Set<String> products) {
+    this.products = products;
+  }
 
-    public void setProducts(String products) {
-        this.products = asStringSet(products);
-    }
+  public void setProducts(String products) {
+    this.products = asStringSet(products);
+  }
 
-    private boolean asBoolean(String value) {
-        return Boolean.parseBoolean(value);
-    }
+  private boolean asBoolean(String value) {
+    return Boolean.parseBoolean(value);
+  }
 
-    private Integer asInt(String value) {
-        try {
-            return StringUtils.hasText(value) ? Integer.valueOf(value) : 0;
-        }
-        catch (NumberFormatException nfe) {
-            return 0;
-        }
+  private Integer asInt(String value) {
+    try {
+      return StringUtils.hasText(value) ? Integer.valueOf(value) : 0;
+    } catch (NumberFormatException nfe) {
+      return 0;
     }
+  }
 
-    private Set<String> asStringSet(String productJson) {
-        if (!StringUtils.hasText(productJson)) {
-            return new HashSet<>();
-        }
-        return StringUtils.commaDelimitedListToSet(productJson);
+  private Set<String> asStringSet(String productJson) {
+    if (!StringUtils.hasText(productJson)) {
+      return new HashSet<>();
     }
+    return StringUtils.commaDelimitedListToSet(productJson);
+  }
 
-    public String getSystemProfileInfrastructureType() {
-        return systemProfileInfrastructureType;
-    }
+  public String getSystemProfileInfrastructureType() {
+    return systemProfileInfrastructureType;
+  }
 
-    public void setSystemProfileInfrastructureType(String systemProfileInfrastructureType) {
-        this.systemProfileInfrastructureType = systemProfileInfrastructureType;
-    }
+  public void setSystemProfileInfrastructureType(String systemProfileInfrastructureType) {
+    this.systemProfileInfrastructureType = systemProfileInfrastructureType;
+  }
 
-    public Integer getSystemProfileCoresPerSocket() {
-        return systemProfileCoresPerSocket == null ? 0 : systemProfileCoresPerSocket;
-    }
+  public Integer getSystemProfileCoresPerSocket() {
+    return systemProfileCoresPerSocket == null ? 0 : systemProfileCoresPerSocket;
+  }
 
-    public void setSystemProfileCoresPerSocket(Integer coresPerSocket) {
-        this.systemProfileCoresPerSocket = coresPerSocket;
-    }
+  public void setSystemProfileCoresPerSocket(Integer coresPerSocket) {
+    this.systemProfileCoresPerSocket = coresPerSocket;
+  }
 
-    public Integer getSystemProfileSockets() {
-        return systemProfileSockets == null ? 0 : systemProfileSockets;
-    }
+  public Integer getSystemProfileSockets() {
+    return systemProfileSockets == null ? 0 : systemProfileSockets;
+  }
 
-    public void setSystemProfileSockets(Integer sockets) {
-        this.systemProfileSockets = sockets;
-    }
+  public void setSystemProfileSockets(Integer sockets) {
+    this.systemProfileSockets = sockets;
+  }
 
-    public Set<String> getQpcProducts() {
-        return qpcProducts;
-    }
+  public Set<String> getQpcProducts() {
+    return qpcProducts;
+  }
 
-    public void setQpcProducts(String qpcProducts) {
-        this.qpcProducts = asStringSet(qpcProducts);
-    }
+  public void setQpcProducts(String qpcProducts) {
+    this.qpcProducts = asStringSet(qpcProducts);
+  }
 
-    public Set<String> getQpcProductIds() {
-        return qpcProductIds;
-    }
+  public Set<String> getQpcProductIds() {
+    return qpcProductIds;
+  }
 
-    public void setQpcProductIds(String qpcProductIds) {
-        this.qpcProductIds = asStringSet(qpcProductIds);
-    }
+  public void setQpcProductIds(String qpcProductIds) {
+    this.qpcProductIds = asStringSet(qpcProductIds);
+  }
 
-    public Set<String> getSystemProfileProductIds() {
-        return systemProfileProductIds;
-    }
+  public Set<String> getSystemProfileProductIds() {
+    return systemProfileProductIds;
+  }
 
-    public void setSystemProfileProductIds(String productIds) {
-        this.systemProfileProductIds = asStringSet(productIds);
-    }
+  public void setSystemProfileProductIds(String productIds) {
+    this.systemProfileProductIds = asStringSet(productIds);
+  }
 
-    public String getSyspurposeRole() {
-        return syspurposeRole;
-    }
+  public String getSyspurposeRole() {
+    return syspurposeRole;
+  }
 
-    public void setSyspurposeRole(String syspurposeRole) {
-        this.syspurposeRole = syspurposeRole;
-    }
+  public void setSyspurposeRole(String syspurposeRole) {
+    this.syspurposeRole = syspurposeRole;
+  }
 
-    public boolean isVirtual() {
-        return isVirtual;
-    }
+  public boolean isVirtual() {
+    return isVirtual;
+  }
 
-    public void setVirtual(boolean virtual) {
-        isVirtual = virtual;
-    }
+  public void setVirtual(boolean virtual) {
+    isVirtual = virtual;
+  }
 
-    public String getHypervisorUuid() {
-        return hypervisorUuid;
-    }
+  public String getHypervisorUuid() {
+    return hypervisorUuid;
+  }
 
-    public void setHypervisorUuid(String hypervisorUuid) {
-        this.hypervisorUuid = hypervisorUuid;
-    }
+  public void setHypervisorUuid(String hypervisorUuid) {
+    this.hypervisorUuid = hypervisorUuid;
+  }
 
-    public String getGuestId() {
-        return guestId;
-    }
+  public String getGuestId() {
+    return guestId;
+  }
 
-    public void setGuestId(String guestId) {
-        this.guestId = guestId;
-    }
+  public void setGuestId(String guestId) {
+    this.guestId = guestId;
+  }
 
-    public String getSubscriptionManagerId() {
-        return subscriptionManagerId;
-    }
+  public String getSubscriptionManagerId() {
+    return subscriptionManagerId;
+  }
 
-    public void setSubscriptionManagerId(String subscriptionManagerId) {
-        this.subscriptionManagerId = subscriptionManagerId;
-    }
+  public void setSubscriptionManagerId(String subscriptionManagerId) {
+    this.subscriptionManagerId = subscriptionManagerId;
+  }
 
-    public String getInsightsId() {
-        return insightsId;
-    }
+  public String getInsightsId() {
+    return insightsId;
+  }
 
-    public void setInsightsId(String insightsId) {
-        this.insightsId = insightsId;
-    }
+  public void setInsightsId(String insightsId) {
+    this.insightsId = insightsId;
+  }
 
-    public String getCloudProvider() {
-        return cloudProvider;
-    }
+  public String getCloudProvider() {
+    return cloudProvider;
+  }
 
-    public void setCloudProvider(String cloudProvider) {
-        this.cloudProvider = cloudProvider;
-    }
+  public void setCloudProvider(String cloudProvider) {
+    this.cloudProvider = cloudProvider;
+  }
 
-    public OffsetDateTime getStaleTimestamp() {
-        return staleTimestamp;
-    }
+  public OffsetDateTime getStaleTimestamp() {
+    return staleTimestamp;
+  }
 
-    public void setStaleTimestamp(OffsetDateTime staleTimestamp) {
-        this.staleTimestamp = staleTimestamp;
-    }
+  public void setStaleTimestamp(OffsetDateTime staleTimestamp) {
+    this.staleTimestamp = staleTimestamp;
+  }
 
-    public String getSyspurposeSla() {
-        return syspurposeSla;
-    }
+  public String getSyspurposeSla() {
+    return syspurposeSla;
+  }
 
-    public void setSyspurposeSla(String syspurposeSla) {
-        this.syspurposeSla = syspurposeSla;
-    }
+  public void setSyspurposeSla(String syspurposeSla) {
+    this.syspurposeSla = syspurposeSla;
+  }
 
-    public String getSyspurposeUsage() {
-        return syspurposeUsage;
-    }
+  public String getSyspurposeUsage() {
+    return syspurposeUsage;
+  }
 
-    public void setSyspurposeUsage(String syspurposeUsage) {
-        this.syspurposeUsage = syspurposeUsage;
-    }
+  public void setSyspurposeUsage(String syspurposeUsage) {
+    this.syspurposeUsage = syspurposeUsage;
+  }
 
-    public String getSyspurposeUnits() {
-        return syspurposeUnits;
-    }
+  public String getSyspurposeUnits() {
+    return syspurposeUnits;
+  }
 
-    public void setSyspurposeUnits(String syspurposeUnits) {
-        this.syspurposeUnits = syspurposeUnits;
-    }
+  public void setSyspurposeUnits(String syspurposeUnits) {
+    this.syspurposeUnits = syspurposeUnits;
+  }
 
-    public String getSatelliteHypervisorUuid() {
-        return satelliteHypervisorUuid;
-    }
+  public String getSatelliteHypervisorUuid() {
+    return satelliteHypervisorUuid;
+  }
 
-    public void setSatelliteHypervisorUuid(String satelliteHypervisorUuid) {
-        this.satelliteHypervisorUuid = satelliteHypervisorUuid;
-    }
+  public void setSatelliteHypervisorUuid(String satelliteHypervisorUuid) {
+    this.satelliteHypervisorUuid = satelliteHypervisorUuid;
+  }
 }

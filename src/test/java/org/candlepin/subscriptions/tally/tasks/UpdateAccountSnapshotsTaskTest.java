@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,18 +33,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Arrays;
 import java.util.List;
 
-
 @ExtendWith(MockitoExtension.class)
 class UpdateAccountSnapshotsTaskTest {
 
-    @Mock
-    private TallySnapshotController snapshotController;
+  @Mock private TallySnapshotController snapshotController;
 
-    @Test
-    void testExecute() {
-        List<String> accounts = Arrays.asList("a1", "a2");
-        UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
-        task.execute();
-        Mockito.verify(snapshotController).produceSnapshotsForAccounts(eq(accounts));
-    }
+  @Test
+  void testExecute() {
+    List<String> accounts = Arrays.asList("a1", "a2");
+    UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
+    task.execute();
+    Mockito.verify(snapshotController).produceSnapshotsForAccounts(eq(accounts));
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,10 @@
  */
 package org.candlepin.subscriptions.rbac;
 
-/**
- * Thrown when an error occurs making an RBAC API call.
- */
+/** Thrown when an error occurs making an RBAC API call. */
 public class RbacApiException extends Exception {
 
-    public RbacApiException(String message, Throwable t) {
-        super(message, t);
-    }
+  public RbacApiException(String message, Throwable t) {
+    super(message, t);
+  }
 }

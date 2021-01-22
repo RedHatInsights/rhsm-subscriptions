@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,116 +31,118 @@ import java.time.temporal.WeekFields;
 /**
  * The single date and time source to be used by the application.
  *
- * All start* methods return the time at midnight - 2019-04-19 00:00:00.0
- * All end* methods return the max time of the day - 2019-04-19 23:59:59.999999999Z
+ * <p>All start* methods return the time at midnight - 2019-04-19 00:00:00.0 All end* methods return
+ * the max time of the day - 2019-04-19 23:59:59.999999999Z
  */
 public class ApplicationClock {
 
-    private Clock clock;
+  private Clock clock;
 
-    // Ensure the week starts with Sunday.
-    private TemporalField week = WeekFields.of(DayOfWeek.SUNDAY, 1).dayOfWeek();
+  // Ensure the week starts with Sunday.
+  private TemporalField week = WeekFields.of(DayOfWeek.SUNDAY, 1).dayOfWeek();
 
-    public ApplicationClock() {
-        this.clock = Clock.systemUTC();
-    }
+  public ApplicationClock() {
+    this.clock = Clock.systemUTC();
+  }
 
-    public ApplicationClock(Clock clock) {
-        this.clock = clock;
-    }
+  public ApplicationClock(Clock clock) {
+    this.clock = clock;
+  }
 
-    public Clock getClock() {
-        return this.clock;
-    }
+  public Clock getClock() {
+    return this.clock;
+  }
 
-    public OffsetDateTime now() {
-        return OffsetDateTime.now(getClock());
-    }
+  public OffsetDateTime now() {
+    return OffsetDateTime.now(getClock());
+  }
 
-    public OffsetDateTime startOfToday() {
-        return startOfDay(now());
-    }
+  public OffsetDateTime startOfToday() {
+    return startOfDay(now());
+  }
 
-    public OffsetDateTime startOfDay(OffsetDateTime anyDay) {
-        return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDay));
-    }
+  public OffsetDateTime startOfDay(OffsetDateTime anyDay) {
+    return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDay));
+  }
 
-    public OffsetDateTime endOfToday() {
-        return endOfDay(now());
-    }
+  public OffsetDateTime endOfToday() {
+    return endOfDay(now());
+  }
 
-    public OffsetDateTime endOfDay(OffsetDateTime anyDay) {
-        return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDay));
-    }
+  public OffsetDateTime endOfDay(OffsetDateTime anyDay) {
+    return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDay));
+  }
 
-    public OffsetDateTime endOfCurrentWeek() {
-        return endOfWeek(now());
-    }
+  public OffsetDateTime endOfCurrentWeek() {
+    return endOfWeek(now());
+  }
 
-    public OffsetDateTime endOfWeek(OffsetDateTime anyDayInWeek) {
-        return endOfDay(anyDayInWeek.with(week, 7));
-    }
+  public OffsetDateTime endOfWeek(OffsetDateTime anyDayInWeek) {
+    return endOfDay(anyDayInWeek.with(week, 7));
+  }
 
-    public OffsetDateTime startOfCurrentWeek() {
-        return startOfWeek(now());
-    }
+  public OffsetDateTime startOfCurrentWeek() {
+    return startOfWeek(now());
+  }
 
-    public OffsetDateTime startOfWeek(OffsetDateTime anyDayOfWeek) {
-        return startOfDay(anyDayOfWeek.with(week, 1));
-    }
+  public OffsetDateTime startOfWeek(OffsetDateTime anyDayOfWeek) {
+    return startOfDay(anyDayOfWeek.with(week, 1));
+  }
 
-    public OffsetDateTime endOfCurrentMonth() {
-        return endOfMonth(now());
-    }
+  public OffsetDateTime endOfCurrentMonth() {
+    return endOfMonth(now());
+  }
 
-    public OffsetDateTime endOfMonth(OffsetDateTime anyDayOfMonth) {
-        return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDayOfMonth))
-            .with(TemporalAdjusters.lastDayOfMonth());
-    }
+  public OffsetDateTime endOfMonth(OffsetDateTime anyDayOfMonth) {
+    return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDayOfMonth))
+        .with(TemporalAdjusters.lastDayOfMonth());
+  }
 
-    public OffsetDateTime startOfCurrentMonth() {
-        return startOfMonth(now());
-    }
+  public OffsetDateTime startOfCurrentMonth() {
+    return startOfMonth(now());
+  }
 
-    public OffsetDateTime startOfMonth(OffsetDateTime anyDayOfMonth) {
-        return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDayOfMonth))
-            .with(TemporalAdjusters.firstDayOfMonth());
-    }
+  public OffsetDateTime startOfMonth(OffsetDateTime anyDayOfMonth) {
+    return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDayOfMonth))
+        .with(TemporalAdjusters.firstDayOfMonth());
+  }
 
-    public OffsetDateTime startOfCurrentYear() {
-        return startOfYear(now());
-    }
+  public OffsetDateTime startOfCurrentYear() {
+    return startOfYear(now());
+  }
 
-    public OffsetDateTime startOfYear(OffsetDateTime anyDay) {
-        return startOfDay(anyDay).with(TemporalAdjusters.firstDayOfYear());
-    }
+  public OffsetDateTime startOfYear(OffsetDateTime anyDay) {
+    return startOfDay(anyDay).with(TemporalAdjusters.firstDayOfYear());
+  }
 
-    public OffsetDateTime endOfCurrentYear() {
-        return endOfYear(now());
-    }
+  public OffsetDateTime endOfCurrentYear() {
+    return endOfYear(now());
+  }
 
-    public OffsetDateTime endOfYear(OffsetDateTime anyDay) {
-        return endOfDay(anyDay).with(TemporalAdjusters.lastDayOfYear());
-    }
+  public OffsetDateTime endOfYear(OffsetDateTime anyDay) {
+    return endOfDay(anyDay).with(TemporalAdjusters.lastDayOfYear());
+  }
 
-    public OffsetDateTime startOfCurrentQuarter() {
-        return startOfQuarter(now());
-    }
+  public OffsetDateTime startOfCurrentQuarter() {
+    return startOfQuarter(now());
+  }
 
-    public OffsetDateTime endOfCurrentQuarter() {
-        return endOfQuarter(now());
-    }
+  public OffsetDateTime endOfCurrentQuarter() {
+    return endOfQuarter(now());
+  }
 
-    public OffsetDateTime startOfQuarter(OffsetDateTime anyDay) {
-        OffsetDateTime startOfDay = startOfDay(anyDay);
-        return startOfDay.with(startOfDay.getMonth().firstMonthOfQuarter())
-            .with(TemporalAdjusters.firstDayOfMonth());
-    }
+  public OffsetDateTime startOfQuarter(OffsetDateTime anyDay) {
+    OffsetDateTime startOfDay = startOfDay(anyDay);
+    return startOfDay
+        .with(startOfDay.getMonth().firstMonthOfQuarter())
+        .with(TemporalAdjusters.firstDayOfMonth());
+  }
 
-    public OffsetDateTime endOfQuarter(OffsetDateTime anyDay) {
-        OffsetDateTime endOfDay = endOfDay(anyDay);
-        return endOfDay.with(endOfDay.getMonth().firstMonthOfQuarter())
-            .plusMonths(2).with(TemporalAdjusters.lastDayOfMonth());
-    }
-
+  public OffsetDateTime endOfQuarter(OffsetDateTime anyDay) {
+    OffsetDateTime endOfDay = endOfDay(anyDay);
+    return endOfDay
+        .with(endOfDay.getMonth().firstMonthOfQuarter())
+        .plusMonths(2)
+        .with(TemporalAdjusters.lastDayOfMonth());
+  }
 }

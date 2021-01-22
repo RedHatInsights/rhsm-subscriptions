@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,56 +40,62 @@ import javax.ws.rs.ext.Provider;
 /**
  * Builds the servlet mappings by scanning beans.
  *
- * This assumes that the Application's resources and providers are in the same package (or a sub-package).
- * It uses the name of the Application's package to lookup the URI mapping, looking for a key like:
+ * <p>This assumes that the Application's resources and providers are in the same package (or a
+ * sub-package). It uses the name of the Application's package to lookup the URI mapping, looking
+ * for a key like:
  *
- *     subscriptions.package_uri_mappings.${package_name}=${path}
+ * <p>subscriptions.package_uri_mappings.${package_name}=${path}
  *
- * This can be used to map multiple different URIs to different JAX-RS applications if we need to in the
- * future.
+ * <p>This can be used to map multiple different URIs to different JAX-RS applications if we need to
+ * in the future.
  */
 public class JaxrsApplicationServletInitializer implements BeanFactoryPostProcessor {
 
-    @Override
-    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
-        BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
-        ConfigurableEnvironment env = beanFactory.getBean(ConfigurableEnvironment.class);
-        String[] applicationBeanNames = beanFactory.getBeanNamesForType(Application.class);
-        Set<Class<?>> resourceBeanClasses =
-            Arrays.stream(beanFactory.getBeanNamesForAnnotation(Path.class))
-            .map(beanFactory::getType).collect(Collectors.toSet());
-        Set<Class<?>> providerBeanClasses =
-            Arrays.stream(beanFactory.getBeanNamesForAnnotation(Provider.class))
-            .map(beanFactory::getType).collect(Collectors.toSet());
+  @Override
+  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+    BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
+    ConfigurableEnvironment env = beanFactory.getBean(ConfigurableEnvironment.class);
+    String[] applicationBeanNames = beanFactory.getBeanNamesForType(Application.class);
+    Set<Class<?>> resourceBeanClasses =
+        Arrays.stream(beanFactory.getBeanNamesForAnnotation(Path.class))
+            .map(beanFactory::getType)
+            .collect(Collectors.toSet());
+    Set<Class<?>> providerBeanClasses =
+        Arrays.stream(beanFactory.getBeanNamesForAnnotation(Provider.class))
+            .map(beanFactory::getType)
+            .collect(Collectors.toSet());
 
-        for (String applicationBeanName : applicationBeanNames) {
-            Class<?> applicationClass = beanFactory.getType(applicationBeanName);
-            String applicationClassName = Objects.requireNonNull(applicationClass).getCanonicalName();
-            String packageName = applicationClassName.substring(0, applicationClassName.lastIndexOf("."));
-            String propertyName = String.format("rhsm-subscriptions.package_uri_mappings.%s", packageName);
-            String uri = env.getRequiredProperty(propertyName);
-            Set<Class<?>> resourceClasses = resourceBeanClasses.stream()
-                .filter(clazz -> clazz.getCanonicalName().startsWith(packageName))
-                .collect(Collectors.toSet());
-            Set<Class<?>> providerClasses = providerBeanClasses.stream()
-                .filter(clazz -> clazz.getCanonicalName().startsWith(packageName))
-                .collect(Collectors.toSet());
+    for (String applicationBeanName : applicationBeanNames) {
+      Class<?> applicationClass = beanFactory.getType(applicationBeanName);
+      String applicationClassName = Objects.requireNonNull(applicationClass).getCanonicalName();
+      String packageName = applicationClassName.substring(0, applicationClassName.lastIndexOf("."));
+      String propertyName =
+          String.format("rhsm-subscriptions.package_uri_mappings.%s", packageName);
+      String uri = env.getRequiredProperty(propertyName);
+      Set<Class<?>> resourceClasses =
+          resourceBeanClasses.stream()
+              .filter(clazz -> clazz.getCanonicalName().startsWith(packageName))
+              .collect(Collectors.toSet());
+      Set<Class<?>> providerClasses =
+          providerBeanClasses.stream()
+              .filter(clazz -> clazz.getCanonicalName().startsWith(packageName))
+              .collect(Collectors.toSet());
 
-            GenericBeanDefinition applicationServletBean = new GenericBeanDefinition();
-            applicationServletBean.setFactoryBeanName(ResteasyApplicationBuilder.BEAN_NAME);
-            applicationServletBean.setFactoryMethodName("build");
+      GenericBeanDefinition applicationServletBean = new GenericBeanDefinition();
+      applicationServletBean.setFactoryBeanName(ResteasyApplicationBuilder.BEAN_NAME);
+      applicationServletBean.setFactoryMethodName("build");
 
-            ConstructorArgumentValues values = new ConstructorArgumentValues();
-            values.addIndexedArgumentValue(0, applicationClass.getName());
-            values.addIndexedArgumentValue(1, uri);
-            values.addIndexedArgumentValue(2, resourceClasses);
-            values.addIndexedArgumentValue(3, providerClasses);
-            applicationServletBean.setConstructorArgumentValues(values);
+      ConstructorArgumentValues values = new ConstructorArgumentValues();
+      values.addIndexedArgumentValue(0, applicationClass.getName());
+      values.addIndexedArgumentValue(1, uri);
+      values.addIndexedArgumentValue(2, resourceClasses);
+      values.addIndexedArgumentValue(3, providerClasses);
+      applicationServletBean.setConstructorArgumentValues(values);
 
-            applicationServletBean.setAutowireCandidate(false);
-            applicationServletBean.setScope("singleton");
+      applicationServletBean.setAutowireCandidate(false);
+      applicationServletBean.setScope("singleton");
 
-            registry.registerBeanDefinition(applicationClass.getName(), applicationServletBean);
-        }
+      registry.registerBeanDefinition(applicationClass.getName(), applicationServletBean);
     }
+  }
 }

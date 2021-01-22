@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,29 +42,28 @@ import javax.transaction.Transactional;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OfferingRepositoryTest {
 
-    @Autowired
-    OfferingRepository repository;
+  @Autowired OfferingRepository repository;
 
-    @Test
-    @Transactional
-    void canPersistAndRetrieveThenRemove() {
-        final Offering offering = new Offering();
-        offering.setSku("testsku");
-        offering.setChildSkus(Arrays.asList("childsku1", "childsku2"));
-        offering.setProductIds(Arrays.asList(1, 2));
-        offering.setUsage(Usage.DEVELOPMENT_TEST);
-        offering.setServiceLevel(ServiceLevel.PREMIUM);
-        offering.setRole("test");
-        offering.setPhysicalCores(1);
-        offering.setPhysicalSockets(1);
-        offering.setProductFamily("test");
-        offering.setProductName("test");
-        repository.save(offering);
-        final Offering actual = repository.getOne("testsku");
-        assertEquals(offering, actual);
-        assertEquals(offering.toString(), actual.toString());
-        assertEquals(offering.hashCode(), actual.hashCode());
-        repository.delete(actual);
-        assertTrue(repository.findAll().isEmpty());
-    }
+  @Test
+  @Transactional
+  void canPersistAndRetrieveThenRemove() {
+    final Offering offering = new Offering();
+    offering.setSku("testsku");
+    offering.setChildSkus(Arrays.asList("childsku1", "childsku2"));
+    offering.setProductIds(Arrays.asList(1, 2));
+    offering.setUsage(Usage.DEVELOPMENT_TEST);
+    offering.setServiceLevel(ServiceLevel.PREMIUM);
+    offering.setRole("test");
+    offering.setPhysicalCores(1);
+    offering.setPhysicalSockets(1);
+    offering.setProductFamily("test");
+    offering.setProductName("test");
+    repository.save(offering);
+    final Offering actual = repository.getOne("testsku");
+    assertEquals(offering, actual);
+    assertEquals(offering.toString(), actual.toString());
+    assertEquals(offering.hashCode(), actual.hashCode());
+    repository.delete(actual);
+    assertTrue(repository.findAll().isEmpty());
+  }
 }

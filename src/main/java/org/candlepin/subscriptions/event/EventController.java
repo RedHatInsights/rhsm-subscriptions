@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,58 +34,55 @@ import java.util.stream.Stream;
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 
-/**
- * Encapsulates interaction with event store.
- */
+/** Encapsulates interaction with event store. */
 @Service
 public class EventController {
-    private final EventRecordRepository repo;
+  private final EventRecordRepository repo;
 
-    public EventController(EventRecordRepository repo) {
-        this.repo = repo;
-    }
+  public EventController(EventRecordRepository repo) {
+    this.repo = repo;
+  }
 
-    /**
-     * Note: calling method needs to use @Transactional
-     *
-     * @param accountNumber account identifier
-     * @param begin beginning of the time range (inclusive)
-     * @param end end of the time range (exclusive)
-     * @return stream of Event
-     */
-    public Stream<Event> fetchEventsInTimeRange(String accountNumber, OffsetDateTime begin,
-        OffsetDateTime end) {
-        return repo
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            accountNumber, begin, end).map(EventRecord::getEvent);
-    }
+  /**
+   * Note: calling method needs to use @Transactional
+   *
+   * @param accountNumber account identifier
+   * @param begin beginning of the time range (inclusive)
+   * @param end end of the time range (exclusive)
+   * @return stream of Event
+   */
+  public Stream<Event> fetchEventsInTimeRange(
+      String accountNumber, OffsetDateTime begin, OffsetDateTime end) {
+    return repo.findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+            accountNumber, begin, end)
+        .map(EventRecord::getEvent);
+  }
 
-    /**
-     * Validates and saves event JSON in the DB.
-     *
-     * @param event the event to save
-     * @return the event ID
-     */
-    @Transactional
-    public UUID saveEvent(Event event) {
-        EventRecord eventRecord = new EventRecord(event);
-        repo.save(eventRecord);
-        return eventRecord.getId();
-    }
+  /**
+   * Validates and saves event JSON in the DB.
+   *
+   * @param event the event to save
+   * @return the event ID
+   */
+  @Transactional
+  public UUID saveEvent(Event event) {
+    EventRecord eventRecord = new EventRecord(event);
+    repo.save(eventRecord);
+    return eventRecord.getId();
+  }
 
-    /**
-     * Fetch a single Event by its ID.
-     *
-     * @param eventId Event id as a UUID
-     * @return Event if present, otherwise Optional.empty()
-     */
-    @Transactional
-    public Optional<Event> getEvent(UUID eventId) {
-        try {
-            return Optional.of(repo.getOne(eventId).getEvent());
-        }
-        catch (EntityNotFoundException e) {
-            return Optional.empty();
-        }
+  /**
+   * Fetch a single Event by its ID.
+   *
+   * @param eventId Event id as a UUID
+   * @return Event if present, otherwise Optional.empty()
+   */
+  @Transactional
+  public Optional<Event> getEvent(UUID eventId) {
+    try {
+      return Optional.of(repo.getOne(eventId).getEvent());
+    } catch (EntityNotFoundException e) {
+      return Optional.empty();
     }
+  }
 }

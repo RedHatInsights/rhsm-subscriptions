@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,18 +29,16 @@ import org.springframework.stereotype.Component;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
-/**
- * This handler catches RESTEasy BadRequestException.
- */
+/** This handler catches RESTEasy BadRequestException. */
 @Component
 @Provider
 public class BadRequestExceptionMapper extends BaseExceptionMapper<BadRequestException> {
-    @Override
-    protected Error buildError(BadRequestException exception) {
-        return new Error()
-            .code(ErrorCode.VALIDATION_FAILED_ERROR.getCode())
-            .status(String.valueOf(Response.Status.BAD_REQUEST.getStatusCode()))
-            .title("Bad Request")
-            .detail(exception.getCause().getMessage());
-    }
+  @Override
+  protected Error buildError(BadRequestException exception) {
+    return new Error()
+        .code(ErrorCode.VALIDATION_FAILED_ERROR.getCode())
+        .status(String.valueOf(Response.Status.BAD_REQUEST.getStatusCode()))
+        .title("Bad Request")
+        .detail(exception.getCause().getMessage());
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,32 +28,28 @@ import org.candlepin.subscriptions.task.TaskType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-
 /**
- * A class responsible for a TaskDescriptor into actual Task instances. Task instances are build via the
- * build(TaskDescriptor) method. The type of Task that will be built is determined by the descriptor's
- * TaskType property.
+ * A class responsible for a TaskDescriptor into actual Task instances. Task instances are build via
+ * the build(TaskDescriptor) method. The type of Task that will be built is determined by the
+ * descriptor's TaskType property.
  */
-
 public class TallyTaskFactory implements TaskFactory {
 
-    @Autowired
-    private TallySnapshotController snapshotController;
+  @Autowired private TallySnapshotController snapshotController;
 
-    /**
-     * Builds a Task instance based on the specified TaskDescriptor.
-     *
-     * @param taskDescriptor the task descriptor that is used to customize the Task that is to be created.
-     *
-     * @return the Task defined by the descriptor.
-     */
-    @Override
-    public Task build(TaskDescriptor taskDescriptor) {
-        if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
-            return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
-        }
-        throw new IllegalArgumentException("Could not build task. Unknown task type: " +
-            taskDescriptor.getTaskType());
+  /**
+   * Builds a Task instance based on the specified TaskDescriptor.
+   *
+   * @param taskDescriptor the task descriptor that is used to customize the Task that is to be
+   *     created.
+   * @return the Task defined by the descriptor.
+   */
+  @Override
+  public Task build(TaskDescriptor taskDescriptor) {
+    if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
+      return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
     }
-
+    throw new IllegalArgumentException(
+        "Could not build task. Unknown task type: " + taskDescriptor.getTaskType());
+  }
 }

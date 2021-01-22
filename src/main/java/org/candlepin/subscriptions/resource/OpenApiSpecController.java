@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,35 +37,33 @@ import javax.ws.rs.core.Response;
 /**
  * Fetches and returns the OpenAPI spec in either JSON or YAML format.
  *
- * Pulls the spec files from the API jar.
+ * <p>Pulls the spec files from the API jar.
  */
 @Component
 public class OpenApiSpecController {
-    @Value("classpath:openapi.yaml")
-    private Resource openApiYaml;
+  @Value("classpath:openapi.yaml")
+  private Resource openApiYaml;
 
-    @Value("classpath:openapi.json")
-    private Resource openApiJson;
+  @Value("classpath:openapi.json")
+  private Resource openApiJson;
 
-    private String getResourceAsString(Resource r) {
-        try (InputStream is = r.getInputStream()) {
-            return IOUtils.toString(is, StandardCharsets.UTF_8);
-        }
-        catch (IOException e) {
-            throw new SubscriptionsException(
-                ErrorCode.UNHANDLED_EXCEPTION_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                String.format("Unable to read %s", r.getFilename()),
-                e.getMessage()
-            );
-        }
+  private String getResourceAsString(Resource r) {
+    try (InputStream is = r.getInputStream()) {
+      return IOUtils.toString(is, StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new SubscriptionsException(
+          ErrorCode.UNHANDLED_EXCEPTION_ERROR,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          String.format("Unable to read %s", r.getFilename()),
+          e.getMessage());
     }
+  }
 
-    public String getOpenApiJson() {
-        return getResourceAsString(openApiJson);
-    }
+  public String getOpenApiJson() {
+    return getResourceAsString(openApiJson);
+  }
 
-    public String getOpenApiYaml() {
-        return getResourceAsString(openApiYaml);
-    }
+  public String getOpenApiYaml() {
+    return getResourceAsString(openApiYaml);
+  }
 }

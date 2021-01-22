@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,32 +33,32 @@ import java.io.IOException;
 
 class ProductWhitelistTest {
 
-    @Test
-    void testUnspecifiedLocationAllowsArbitraryProducts() throws IOException {
-        ProductWhitelist whitelist = initProductWhitelist("");
-        assertTrue(whitelist.productIdMatches("whee!"));
-    }
+  @Test
+  void testUnspecifiedLocationAllowsArbitraryProducts() throws IOException {
+    ProductWhitelist whitelist = initProductWhitelist("");
+    assertTrue(whitelist.productIdMatches("whee!"));
+  }
 
-    @Test
-    void testAllowsProductsSpecified() throws IOException {
-        ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
-        assertTrue(whitelist.productIdMatches("I1"));
-        assertTrue(whitelist.productIdMatches("I2"));
-        assertTrue(whitelist.productIdMatches("I3"));
-    }
+  @Test
+  void testAllowsProductsSpecified() throws IOException {
+    ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
+    assertTrue(whitelist.productIdMatches("I1"));
+    assertTrue(whitelist.productIdMatches("I2"));
+    assertTrue(whitelist.productIdMatches("I3"));
+  }
 
-    @Test
-    void testDisallowsProductsNotInWhitelist() throws IOException {
-        ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
-        assertFalse(whitelist.productIdMatches("not on the list :-("));
-    }
+  @Test
+  void testDisallowsProductsNotInWhitelist() throws IOException {
+    ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
+    assertFalse(whitelist.productIdMatches("not on the list :-("));
+  }
 
-    private ProductWhitelist initProductWhitelist(String resourceLocation) throws IOException {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setProductWhitelistResourceLocation(resourceLocation);
-        ProductWhitelist whitelist = new ProductWhitelist(props, new ApplicationClock());
-        whitelist.setResourceLoader(new FileSystemResourceLoader());
-        whitelist.init();
-        return whitelist;
-    }
+  private ProductWhitelist initProductWhitelist(String resourceLocation) throws IOException {
+    ApplicationProperties props = new ApplicationProperties();
+    props.setProductWhitelistResourceLocation(resourceLocation);
+    ProductWhitelist whitelist = new ProductWhitelist(props, new ApplicationClock());
+    whitelist.setResourceLoader(new FileSystemResourceLoader());
+    whitelist.init();
+    return whitelist;
+  }
 }

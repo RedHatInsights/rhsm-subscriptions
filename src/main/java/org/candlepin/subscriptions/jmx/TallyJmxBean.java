@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,32 +29,30 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
-/**
- * Exposes the ability to trigger a tally for an account from JMX.
- */
+/** Exposes the ability to trigger a tally for an account from JMX. */
 @Component
 @ManagedResource
 public class TallyJmxBean {
 
-    private static final Logger log = LoggerFactory.getLogger(TallyJmxBean.class);
+  private static final Logger log = LoggerFactory.getLogger(TallyJmxBean.class);
 
-    private final CaptureSnapshotsTaskManager tasks;
+  private final CaptureSnapshotsTaskManager tasks;
 
-    public TallyJmxBean(CaptureSnapshotsTaskManager taskManager) {
-        this.tasks = taskManager;
-    }
+  public TallyJmxBean(CaptureSnapshotsTaskManager taskManager) {
+    this.tasks = taskManager;
+  }
 
-    @ManagedOperation(description = "Trigger a tally for an account")
-    public void tallyAccount(String accountNumber) {
-        Object principal = ResourceUtils.getPrincipal();
-        log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
-        tasks.updateAccountSnapshots(accountNumber);
-    }
+  @ManagedOperation(description = "Trigger a tally for an account")
+  public void tallyAccount(String accountNumber) {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
+    tasks.updateAccountSnapshots(accountNumber);
+  }
 
-    @ManagedOperation(description = "Trigger tally for all configured accounts")
-    public void tallyConfiguredAccounts() {
-        Object principal = ResourceUtils.getPrincipal();
-        log.info("Tally for all accounts triggered over JMX by {}", principal);
-        tasks.updateSnapshotsForAllAccounts();
-    }
+  @ManagedOperation(description = "Trigger tally for all configured accounts")
+  public void tallyConfiguredAccounts() {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Tally for all accounts triggered over JMX by {}", principal);
+    tasks.updateSnapshotsForAllAccounts();
+  }
 }

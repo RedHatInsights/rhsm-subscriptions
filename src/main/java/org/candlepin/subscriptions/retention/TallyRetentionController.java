@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,40 +31,39 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
-
-/**
- * Cleans up stale tally snapshots for an account.
- */
+/** Cleans up stale tally snapshots for an account. */
 @Component
 public class TallyRetentionController {
 
-    private final TallySnapshotRepository repository;
-    private final TallyRetentionPolicy policy;
+  private final TallySnapshotRepository repository;
+  private final TallyRetentionPolicy policy;
 
-    private final AccountListSource accountListSource;
+  private final AccountListSource accountListSource;
 
-    public TallyRetentionController(TallySnapshotRepository repository, TallyRetentionPolicy policy,
-        AccountListSource accountListSource) {
-        this.repository = repository;
-        this.policy = policy;
-        this.accountListSource = accountListSource;
+  public TallyRetentionController(
+      TallySnapshotRepository repository,
+      TallyRetentionPolicy policy,
+      AccountListSource accountListSource) {
+    this.repository = repository;
+    this.policy = policy;
+    this.accountListSource = accountListSource;
+  }
+
+  @Transactional
+  public void purgeSnapshots() throws AccountListSourceException {
+    try (Stream<String> accountList = accountListSource.purgeReportAccounts()) {
+      accountList.forEach(this::cleanStaleSnapshotsForAccount);
     }
+  }
 
-    @Transactional
-    public void purgeSnapshots() throws AccountListSourceException {
-        try (Stream<String> accountList = accountListSource.purgeReportAccounts()) {
-            accountList.forEach(this::cleanStaleSnapshotsForAccount);
-        }
+  public void cleanStaleSnapshotsForAccount(String accountNumber) {
+    for (Granularity granularity : Granularity.values()) {
+      OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
+      if (cutoffDate == null) {
+        continue;
+      }
+      repository.deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+          accountNumber, granularity, cutoffDate);
     }
-
-    public void cleanStaleSnapshotsForAccount(String accountNumber) {
-        for (Granularity granularity : Granularity.values()) {
-            OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
-            if (cutoffDate == null) {
-                continue;
-            }
-            repository.deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(accountNumber,
-                granularity, cutoffDate);
-        }
-    }
+  }
 }

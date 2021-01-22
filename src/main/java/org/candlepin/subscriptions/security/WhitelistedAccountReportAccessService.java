@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,23 +28,23 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 /**
- * Provides a means to validate that an authentication token has a whitelisted account associated with it.
- * The primary use of this class is to provide a check for expression based security annotations.
+ * Provides a means to validate that an authentication token has a whitelisted account associated
+ * with it. The primary use of this class is to provide a check for expression based security
+ * annotations.
  *
  * @see ReportingAccessRequired
  */
 @Service("reportAccessService")
 public class WhitelistedAccountReportAccessService {
 
-    private AccountListSource accountSource;
+  private AccountListSource accountSource;
 
-    public WhitelistedAccountReportAccessService(AccountListSource accountSource) {
-        this.accountSource = accountSource;
-    }
+  public WhitelistedAccountReportAccessService(AccountListSource accountSource) {
+    this.accountSource = accountSource;
+  }
 
-    public boolean providesAccessTo(Authentication auth) throws AccountListSourceException {
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-        return this.accountSource.containsReportingAccount(principal.getAccountNumber());
-    }
-
+  public boolean providesAccessTo(Authentication auth) throws AccountListSourceException {
+    InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+    return this.accountSource.containsReportingAccount(principal.getAccountNumber());
+  }
 }

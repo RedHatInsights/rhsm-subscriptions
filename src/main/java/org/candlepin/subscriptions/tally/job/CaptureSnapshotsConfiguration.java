@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,16 +30,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
-/**
- * A class to hold all job related configuration.
- */
+/** A class to hold all job related configuration. */
 @Configuration
 @Profile("capture-snapshots")
 @Import(TaskProducerConfiguration.class)
 @ComponentScan("org.candlepin.subscriptions.tally.job")
 public class CaptureSnapshotsConfiguration {
-    @Bean
-    JobRunner jobRunner(CaptureSnapshotsJob job, ApplicationContext applicationContext) {
-        return new JobRunner(job, applicationContext);
-    }
+  @Bean
+  JobRunner jobRunner(CaptureSnapshotsJob job, ApplicationContext applicationContext) {
+    return new JobRunner(job, applicationContext);
+  }
 }

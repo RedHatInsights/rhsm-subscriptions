@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,47 +20,39 @@
  */
 package org.candlepin.subscriptions.http;
 
-/**
- * HTTP service client configuration.
- */
+/** HTTP service client configuration. */
 public class HttpClientProperties {
 
-    /**
-     * Use a stub of the service.
-     */
-    private boolean useStub;
+  /** Use a stub of the service. */
+  private boolean useStub;
 
-    /**
-     * The URL of the service.
-     */
-    private String url;
+  /** The URL of the service. */
+  private String url;
 
-    /**
-     * Maximum number of simultaneous connections to the service.
-     */
-    private int maxConnections = 100;
+  /** Maximum number of simultaneous connections to the service. */
+  private int maxConnections = 100;
 
-    public boolean isUseStub() {
-        return useStub;
-    }
+  public boolean isUseStub() {
+    return useStub;
+  }
 
-    public void setUseStub(boolean useStub) {
-        this.useStub = useStub;
-    }
+  public void setUseStub(boolean useStub) {
+    this.useStub = useStub;
+  }
 
-    public String getUrl() {
-        return url;
-    }
+  public String getUrl() {
+    return url;
+  }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+  public void setUrl(String url) {
+    this.url = url;
+  }
 
-    public int getMaxConnections() {
-        return maxConnections;
-    }
+  public int getMaxConnections() {
+    return maxConnections;
+  }
 
-    public void setMaxConnections(int maxConnections) {
-        this.maxConnections = maxConnections;
-    }
+  public void setMaxConnections(int maxConnections) {
+    this.maxConnections = maxConnections;
+  }
 }

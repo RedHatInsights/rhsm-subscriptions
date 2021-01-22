@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,12 +27,9 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.stream.Stream;
 
-/**
- * Defines all operations for storing organization config entries.
- */
+/** Defines all operations for storing organization config entries. */
 public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
 
-    @Query("select distinct c.orgId from OrgConfig c where c.syncEnabled = TRUE")
-    Stream<String> findSyncEnabledOrgs();
-
+  @Query("select distinct c.orgId from OrgConfig c where c.syncEnabled = TRUE")
+  Stream<String> findSyncEnabledOrgs();
 }

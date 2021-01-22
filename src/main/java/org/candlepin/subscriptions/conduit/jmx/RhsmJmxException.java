@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,12 @@
 package org.candlepin.subscriptions.conduit.jmx;
 
 /**
- * Thrown by JMX beans when an error occurs executing a method. When throwing an
- * exception, be sure to log it first, otherwise it will get returned to the client.
+ * Thrown by JMX beans when an error occurs executing a method. When throwing an exception, be sure
+ * to log it first, otherwise it will get returned to the client.
  */
 public class RhsmJmxException extends Exception {
 
-    public RhsmJmxException(Throwable t) {
-        super(t);
-    }
+  public RhsmJmxException(Throwable t) {
+    super(t);
+  }
 }

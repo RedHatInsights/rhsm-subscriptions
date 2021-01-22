@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,13 +35,12 @@ import java.time.ZoneOffset;
 @TestConfiguration
 public class FixedClockConfiguration {
 
-    @Bean
-    @Primary
-    public ApplicationClock fixedClock() {
-        return new ApplicationClock(Clock.fixed(
+  @Bean
+  @Primary
+  public ApplicationClock fixedClock() {
+    return new ApplicationClock(
+        Clock.fixed(
             Instant.from(OffsetDateTime.of(2019, 5, 24, 12, 35, 0, 0, ZoneOffset.UTC)),
-            ZoneId.of("UTC"))
-        );
-    }
-
+            ZoneId.of("UTC")));
+  }
 }

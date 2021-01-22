@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,38 +24,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TestPojo {
-    private String value1;
-    private String value2;
-    private List<String> valueList = new ArrayList<>();
+  private String value1;
+  private String value2;
+  private List<String> valueList = new ArrayList<>();
 
-    public TestPojo() { }
+  public TestPojo() {}
 
-    public TestPojo(String value1, String value2) {
-        this.value1 = value1;
-        this.value2 = value2;
-    }
+  public TestPojo(String value1, String value2) {
+    this.value1 = value1;
+    this.value2 = value2;
+  }
 
-    public String getValue1() {
-        return value1;
-    }
+  public String getValue1() {
+    return value1;
+  }
 
-    public void setValue1(String value1) {
-        this.value1 = value1;
-    }
+  public void setValue1(String value1) {
+    this.value1 = value1;
+  }
 
-    public String getValue2() {
-        return value2;
-    }
+  public String getValue2() {
+    return value2;
+  }
 
-    public void setValue2(String value2) {
-        this.value2 = value2;
-    }
+  public void setValue2(String value2) {
+    this.value2 = value2;
+  }
 
-    public List<String> getValueList() {
-        return valueList;
-    }
+  public List<String> getValueList() {
+    return valueList;
+  }
 
-    public void setValueList(List<String> valueList) {
-        this.valueList = valueList;
-    }
+  public void setValueList(List<String> valueList) {
+    this.valueList = valueList;
+  }
 }

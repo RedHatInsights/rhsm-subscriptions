@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,38 +36,36 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 
-/**
- * Produces usage snapshot for all configured accounts.
- */
+/** Produces usage snapshot for all configured accounts. */
 @Component
 public class UsageSnapshotProducer {
 
-    private static final Logger log = LoggerFactory.getLogger(UsageSnapshotProducer.class);
+  private static final Logger log = LoggerFactory.getLogger(UsageSnapshotProducer.class);
 
-    private final DailySnapshotRoller dailyRoller;
-    private final WeeklySnapshotRoller weeklyRoller;
-    private final MonthlySnapshotRoller monthlyRoller;
-    private final YearlySnapshotRoller yearlyRoller;
-    private final QuarterlySnapshotRoller quarterlyRoller;
+  private final DailySnapshotRoller dailyRoller;
+  private final WeeklySnapshotRoller weeklyRoller;
+  private final MonthlySnapshotRoller monthlyRoller;
+  private final YearlySnapshotRoller yearlyRoller;
+  private final QuarterlySnapshotRoller quarterlyRoller;
 
-    @SuppressWarnings("squid:S00107")
-    @Autowired
-    public UsageSnapshotProducer(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
-        weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
-        monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);
-        yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock);
-        quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock);
-    }
+  @SuppressWarnings("squid:S00107")
+  @Autowired
+  public UsageSnapshotProducer(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
+    weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
+    monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);
+    yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock);
+    quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock);
+  }
 
-    @Transactional
-    public void produceSnapshotsFromCalculations(Collection<String> accounts,
-        Collection<AccountUsageCalculation> accountCalcs) {
-        dailyRoller.rollSnapshots(accounts, accountCalcs);
-        weeklyRoller.rollSnapshots(accounts, accountCalcs);
-        monthlyRoller.rollSnapshots(accounts, accountCalcs);
-        yearlyRoller.rollSnapshots(accounts, accountCalcs);
-        quarterlyRoller.rollSnapshots(accounts, accountCalcs);
-        log.info("Finished producing snapshots for all accounts.");
-    }
+  @Transactional
+  public void produceSnapshotsFromCalculations(
+      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    dailyRoller.rollSnapshots(accounts, accountCalcs);
+    weeklyRoller.rollSnapshots(accounts, accountCalcs);
+    monthlyRoller.rollSnapshots(accounts, accountCalcs);
+    yearlyRoller.rollSnapshots(accounts, accountCalcs);
+    quarterlyRoller.rollSnapshots(accounts, accountCalcs);
+    log.info("Finished producing snapshots for all accounts.");
+  }
 }

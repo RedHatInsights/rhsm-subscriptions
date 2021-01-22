@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,28 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
-/**
- * Represents how a reporting config entry was created.
- */
 package org.candlepin.subscriptions.db.model.config;
 
-/**
- * How the particular account was opted in.
- */
+/** How the particular account was opted in. */
 public enum OptInType {
-    /**
-     * Manually via the DB itself.
-     */
-    DB,
+  /** Manually via the DB itself. */
+  DB,
 
-    /**
-     * Configured via the JMX bean.
-     */
-    JMX,
+  /** Configured via the JMX bean. */
+  JMX,
 
-    /**
-     * Configured by an admin via the API.
-     */
-    API
+  /** Configured by an admin via the API. */
+  API
 }

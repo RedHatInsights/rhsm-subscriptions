@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,25 +39,26 @@ import org.springframework.context.annotation.Profile;
 /**
  * Configuration for the "rhsm-conduit" profile.
  *
- * This profile serves the inventory syncing API (internally), as well as its own JMX API, and handles
- * production and consumption of tasks from the rhsm-conduit task queue.
+ * <p>This profile serves the inventory syncing API (internally), as well as its own JMX API, and
+ * handles production and consumption of tasks from the rhsm-conduit task queue.
  */
 @Configuration
 @Profile("rhsm-conduit")
 @EnableConfigurationProperties(OrgSyncProperties.class)
 @Import({
-    RhsmSubscriptionsDataSourceConfiguration.class,
-    ConduitTaskQueueConfiguration.class,
-    TaskProducerConfiguration.class,
-    TaskConsumerConfiguration.class
+  RhsmSubscriptionsDataSourceConfiguration.class,
+  ConduitTaskQueueConfiguration.class,
+  TaskProducerConfiguration.class,
+  TaskConsumerConfiguration.class
 })
 @ComponentScan(basePackages = "org.candlepin.subscriptions.conduit")
 public class ConduitConfiguration {
-    @Bean
-    TaskConsumer taskConsumer(TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
-        ConduitTaskFactory conduitTaskFactory,
-        @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
+  @Bean
+  TaskConsumer taskConsumer(
+      TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
+      ConduitTaskFactory conduitTaskFactory,
+      @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
 
-        return taskConsumerFactory.createTaskConsumer(conduitTaskFactory, taskQueueProperties);
-    }
+    return taskConsumerFactory.createTaskConsumer(conduitTaskFactory, taskQueueProperties);
+  }
 }

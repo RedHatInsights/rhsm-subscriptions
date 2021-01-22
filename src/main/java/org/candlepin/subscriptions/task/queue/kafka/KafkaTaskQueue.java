@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,33 +29,33 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 
 /**
- * A task queue implementation that is backed by a kafka. Messages are sent to kafka
- * when queued. The topic that a task is published on is defined by TaskDescriptor.groupId.
+ * A task queue implementation that is backed by a kafka. Messages are sent to kafka when queued.
+ * The topic that a task is published on is defined by TaskDescriptor.groupId.
  */
 public class KafkaTaskQueue implements TaskQueue {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaTaskQueue.class);
+  private static final Logger log = LoggerFactory.getLogger(KafkaTaskQueue.class);
 
-    private final KafkaTemplate<String, TaskMessage> producer;
+  private final KafkaTemplate<String, TaskMessage> producer;
 
-    public KafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
-        this.producer = producer;
-        log.info("Creating Kafka task queue...");
-    }
+  public KafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
+    this.producer = producer;
+    log.info("Creating Kafka task queue...");
+  }
 
-    @SuppressWarnings("squid:S4449")
-    @Override
-    public void enqueue(TaskDescriptor taskDescriptor) {
-        log.info("Queuing task: {}", taskDescriptor);
+  @SuppressWarnings("squid:S4449")
+  @Override
+  public void enqueue(TaskDescriptor taskDescriptor) {
+    log.info("Queuing task: {}", taskDescriptor);
 
-        TaskMessage message = TaskMessage.newBuilder()
+    TaskMessage message =
+        TaskMessage.newBuilder()
             .setType(taskDescriptor.getTaskType().name())
             .setGroupId(taskDescriptor.getGroupId())
             .setArgs(taskDescriptor.getTaskArgs())
             .build();
 
-        // Message key is auto-generated.
-        producer.send(taskDescriptor.getGroupId(), null, message);
-    }
-
+    // Message key is auto-generated.
+    producer.send(taskDescriptor.getGroupId(), null, message);
+  }
 }

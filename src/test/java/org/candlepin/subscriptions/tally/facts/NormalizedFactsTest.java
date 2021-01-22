@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,35 +29,34 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.Set;
 
-
 public class NormalizedFactsTest {
 
-    @Test
-    public void testToInventoryPayload() {
-        NormalizedFacts facts = new NormalizedFacts();
-        facts.addProduct("RHEL");
-        facts.setCores(12);
+  @Test
+  public void testToInventoryPayload() {
+    NormalizedFacts facts = new NormalizedFacts();
+    facts.addProduct("RHEL");
+    facts.setCores(12);
 
-        Map<String, Object> payload = facts.toInventoryPayload();
-        assertThat(payload, Matchers.hasKey(NormalizedFacts.PRODUCTS_KEY));
-        Set<String> products = (Set<String>) payload.get(NormalizedFacts.PRODUCTS_KEY);
-        assertThat(products, Matchers.hasItem("RHEL"));
+    Map<String, Object> payload = facts.toInventoryPayload();
+    assertThat(payload, Matchers.hasKey(NormalizedFacts.PRODUCTS_KEY));
+    Set<String> products = (Set<String>) payload.get(NormalizedFacts.PRODUCTS_KEY);
+    assertThat(products, Matchers.hasItem("RHEL"));
 
-        assertThat(payload, Matchers.hasKey(NormalizedFacts.CORES_KEY));
-        assertNotNull(payload.get(NormalizedFacts.CORES_KEY));
-        assertEquals(12, payload.get(NormalizedFacts.CORES_KEY));
-    }
+    assertThat(payload, Matchers.hasKey(NormalizedFacts.CORES_KEY));
+    assertNotNull(payload.get(NormalizedFacts.CORES_KEY));
+    assertEquals(12, payload.get(NormalizedFacts.CORES_KEY));
+  }
 
-    @Test
-    public void testEmptyInventoryPayload() {
-        NormalizedFacts facts = new NormalizedFacts();
+  @Test
+  public void testEmptyInventoryPayload() {
+    NormalizedFacts facts = new NormalizedFacts();
 
-        Map<String, Object> payload = facts.toInventoryPayload();
-        assertThat(payload, Matchers.hasKey(NormalizedFacts.PRODUCTS_KEY));
-        Set<String> products = (Set<String>) payload.get(NormalizedFacts.PRODUCTS_KEY);
-        assertThat(products, Matchers.empty());
+    Map<String, Object> payload = facts.toInventoryPayload();
+    assertThat(payload, Matchers.hasKey(NormalizedFacts.PRODUCTS_KEY));
+    Set<String> products = (Set<String>) payload.get(NormalizedFacts.PRODUCTS_KEY);
+    assertThat(products, Matchers.empty());
 
-        assertThat(payload, Matchers.hasKey(NormalizedFacts.CORES_KEY));
-        assertNull(payload.get(NormalizedFacts.CORES_KEY));
-    }
+    assertThat(payload, Matchers.hasKey(NormalizedFacts.CORES_KEY));
+    assertNull(payload.get(NormalizedFacts.CORES_KEY));
+  }
 }

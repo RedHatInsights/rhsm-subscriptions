@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,28 +30,28 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
-
 /**
- * Tests the AvroSerializer failure logic. Successful serialization tests
- * are located in {@link AvroMessageSerializationTest} since both the serialization
- * and deserialization will be tested together.
+ * Tests the AvroSerializer failure logic. Successful serialization tests are located in {@link
+ * AvroMessageSerializationTest} since both the serialization and deserialization will be tested
+ * together.
  */
 public class AvroSerializerTest {
 
-    private AvroSerializer<TaskMessage> serializer;
+  private AvroSerializer<TaskMessage> serializer;
 
-    @BeforeEach
-    public void setupTest() {
-        serializer = new AvroSerializer<TaskMessage>();
-    }
+  @BeforeEach
+  public void setupTest() {
+    serializer = new AvroSerializer<TaskMessage>();
+  }
 
-    @Test
-    public void testThrowsSerializationException() {
-        TaskMessage mockMessage = mock(TaskMessage.class);
-        when(mockMessage.getSchema()).thenThrow(new RuntimeException("forced"));
-        assertThrows(SerializationException.class, () -> {
-            serializer.serialize("test-topic", mockMessage);
+  @Test
+  public void testThrowsSerializationException() {
+    TaskMessage mockMessage = mock(TaskMessage.class);
+    when(mockMessage.getSchema()).thenThrow(new RuntimeException("forced"));
+    assertThrows(
+        SerializationException.class,
+        () -> {
+          serializer.serialize("test-topic", mockMessage);
         });
-    }
+  }
 }

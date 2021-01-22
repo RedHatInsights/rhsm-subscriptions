@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,49 +20,43 @@
  */
 package org.candlepin.subscriptions.db;
 
-
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 
 import java.util.stream.Stream;
 
-/**
- * Gathers all accounts in the host inventory DB as the list to tally.
- */
+/** Gathers all accounts in the host inventory DB as the list to tally. */
 public class DatabaseAccountListSource implements AccountListSource {
 
-    private final AccountConfigRepository repository;
+  private final AccountConfigRepository repository;
 
-    public DatabaseAccountListSource(AccountConfigRepository repository) {
-        this.repository = repository;
-    }
+  public DatabaseAccountListSource(AccountConfigRepository repository) {
+    this.repository = repository;
+  }
 
-    @Override
-    public Stream<String> syncableAccounts() throws AccountListSourceException {
-        try {
-            return repository.findSyncEnabledAccounts();
-        }
-        catch (Exception e) {
-            throw new AccountListSourceException("Unable to get account sync list!", e);
-        }
+  @Override
+  public Stream<String> syncableAccounts() throws AccountListSourceException {
+    try {
+      return repository.findSyncEnabledAccounts();
+    } catch (Exception e) {
+      throw new AccountListSourceException("Unable to get account sync list!", e);
     }
+  }
 
-    @Override
-    public boolean containsReportingAccount(String accountNumber) throws AccountListSourceException {
-        try {
-            return repository.isReportingEnabled(accountNumber);
-        }
-        catch (Exception e) {
-            throw new AccountListSourceException("Unable to determine if account was in whitelist.", e);
-        }
+  @Override
+  public boolean containsReportingAccount(String accountNumber) throws AccountListSourceException {
+    try {
+      return repository.isReportingEnabled(accountNumber);
+    } catch (Exception e) {
+      throw new AccountListSourceException("Unable to determine if account was in whitelist.", e);
     }
+  }
 
-    @Override
-    public Stream<String> purgeReportAccounts() throws AccountListSourceException {
-        try {
-            return repository.findSyncEnabledAccounts();
-        }
-        catch (Exception e) {
-            throw new AccountListSourceException("Unable to get account purge list!", e);
-        }
+  @Override
+  public Stream<String> purgeReportAccounts() throws AccountListSourceException {
+    try {
+      return repository.findSyncEnabledAccounts();
+    } catch (Exception e) {
+      throw new AccountListSourceException("Unable to get account purge list!", e);
     }
+  }
 }

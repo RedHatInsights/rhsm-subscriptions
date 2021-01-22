@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,9 +38,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
-/**
- * A class to hold the inventory data source configuration.
- */
+/** A class to hold the inventory data source configuration. */
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
@@ -48,34 +46,36 @@ import javax.sql.DataSource;
     entityManagerFactoryRef = "inventoryEntityManagerFactory")
 public class InventoryDataSourceConfiguration {
 
-    @Bean
-    @Validated
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service.datasource")
-    public PostgresTlsDataSourceProperties inventoryDataSourceProperties() {
-        return new PostgresTlsDataSourceProperties();
-    }
+  @Bean
+  @Validated
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service.datasource")
+  public PostgresTlsDataSourceProperties inventoryDataSourceProperties() {
+    return new PostgresTlsDataSourceProperties();
+  }
 
-    @Bean(name = "inventoryDataSource")
-    public PostgresTlsHikariDataSourceFactoryBean inventoryDataSource(
-        @Qualifier("inventoryDataSourceProperties") PostgresTlsDataSourceProperties dataSourceProperties) {
-        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
-        factory.setTlsDataSourceProperties(dataSourceProperties);
-        return factory;
-    }
+  @Bean(name = "inventoryDataSource")
+  public PostgresTlsHikariDataSourceFactoryBean inventoryDataSource(
+      @Qualifier("inventoryDataSourceProperties")
+          PostgresTlsDataSourceProperties dataSourceProperties) {
+    PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
+    factory.setTlsDataSourceProperties(dataSourceProperties);
+    return factory;
+  }
 
-    @Bean(name = "inventoryEntityManagerFactory")
-    public LocalContainerEntityManagerFactoryBean inventoryEntityManagerFactory(
-        EntityManagerFactoryBuilder builder, @Qualifier("inventoryDataSource") DataSource dataSource) {
-        return builder
-                .dataSource(dataSource)
-                .packages("org.candlepin.subscriptions.inventory.db.model")
-                .persistenceUnit("inventory")
-                .build();
-    }
+  @Bean(name = "inventoryEntityManagerFactory")
+  public LocalContainerEntityManagerFactoryBean inventoryEntityManagerFactory(
+      EntityManagerFactoryBuilder builder,
+      @Qualifier("inventoryDataSource") DataSource dataSource) {
+    return builder
+        .dataSource(dataSource)
+        .packages("org.candlepin.subscriptions.inventory.db.model")
+        .persistenceUnit("inventory")
+        .build();
+  }
 
-    @Bean(name = "inventoryTransactionManager")
-    public PlatformTransactionManager inventoryTransactionManager(
-        @Qualifier("inventoryEntityManagerFactory") EntityManagerFactory emf) {
-        return new JpaTransactionManager(emf);
-    }
+  @Bean(name = "inventoryTransactionManager")
+  public PlatformTransactionManager inventoryTransactionManager(
+      @Qualifier("inventoryEntityManagerFactory") EntityManagerFactory emf) {
+    return new JpaTransactionManager(emf);
+  }
 }

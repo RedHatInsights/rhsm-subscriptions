@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,42 +25,41 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 public class TestHelper {
 
-    public static NormalizedFacts physicalNonHypervisor(int sockets, int cores) {
-        NormalizedFacts facts = new NormalizedFacts();
-        facts.setSockets(sockets);
-        facts.setCores(cores);
-        return facts;
-    }
+  public static NormalizedFacts physicalNonHypervisor(int sockets, int cores) {
+    NormalizedFacts facts = new NormalizedFacts();
+    facts.setSockets(sockets);
+    facts.setCores(cores);
+    return facts;
+  }
 
-    public static NormalizedFacts hypervisorFacts(int sockets, int cores) {
-        NormalizedFacts facts = new NormalizedFacts();
-        facts.setSockets(sockets);
-        facts.setCores(cores);
-        facts.setHypervisor(true);
-        return facts;
-    }
+  public static NormalizedFacts hypervisorFacts(int sockets, int cores) {
+    NormalizedFacts facts = new NormalizedFacts();
+    facts.setSockets(sockets);
+    facts.setCores(cores);
+    facts.setHypervisor(true);
+    return facts;
+  }
 
-    public static NormalizedFacts guestFacts(int sockets, int cores, boolean hypervisorIsunknown) {
-        NormalizedFacts facts = new NormalizedFacts();
-        facts.setSockets(sockets);
-        facts.setCores(cores);
-        facts.setVirtual(true);
-        facts.setHypervisorUnknown(hypervisorIsunknown);
-        facts.setHypervisor(false);
-        return facts;
-    }
+  public static NormalizedFacts guestFacts(int sockets, int cores, boolean hypervisorIsunknown) {
+    NormalizedFacts facts = new NormalizedFacts();
+    facts.setSockets(sockets);
+    facts.setCores(cores);
+    facts.setVirtual(true);
+    facts.setHypervisorUnknown(hypervisorIsunknown);
+    facts.setHypervisor(false);
+    return facts;
+  }
 
-    public static NormalizedFacts cloudMachineFacts(HardwareMeasurementType cloudProviderType, int sockets,
-        int cores) {
-        NormalizedFacts facts = new NormalizedFacts();
-        facts.setSockets(sockets);
-        facts.setCores(cores);
-        facts.setCloudProviderType(cloudProviderType);
-        return facts;
-    }
+  public static NormalizedFacts cloudMachineFacts(
+      HardwareMeasurementType cloudProviderType, int sockets, int cores) {
+    NormalizedFacts facts = new NormalizedFacts();
+    facts.setSockets(sockets);
+    facts.setCores(cores);
+    facts.setCloudProviderType(cloudProviderType);
+    return facts;
+  }
 
-    private TestHelper() {
-        throw new IllegalStateException("Utility class; should never be instantiated!");
-    }
-
+  private TestHelper() {
+    throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
 }

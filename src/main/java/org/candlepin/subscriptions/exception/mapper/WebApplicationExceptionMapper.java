@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,22 +29,21 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.ext.Provider;
 
 /**
- * An exception mapper used to override the default exception mapping done by
- * resteasy. This implementation generates and returns an Errors object as the
- * response Json instead of redirecting to an error page.
+ * An exception mapper used to override the default exception mapping done by resteasy. This
+ * implementation generates and returns an Errors object as the response Json instead of redirecting
+ * to an error page.
  */
 @Component
 @Provider
 public class WebApplicationExceptionMapper extends BaseExceptionMapper<WebApplicationException> {
-    public static final String ERROR_TITLE = "An rhsm-conduit API error has occurred.";
+  public static final String ERROR_TITLE = "An rhsm-conduit API error has occurred.";
 
-    @Override
-    protected Error buildError(WebApplicationException wae) {
-        return new Error()
-            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-            .status(String.valueOf(wae.getResponse().getStatus()))
-            .title(ERROR_TITLE)
-            .detail(wae.getMessage());
-    }
-
+  @Override
+  protected Error buildError(WebApplicationException wae) {
+    return new Error()
+        .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
+        .status(String.valueOf(wae.getResponse().getStatus()))
+        .title(ERROR_TITLE)
+        .detail(wae.getMessage());
+  }
 }

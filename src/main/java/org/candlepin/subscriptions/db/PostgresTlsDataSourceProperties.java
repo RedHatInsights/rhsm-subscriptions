@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.validator.VerificationMode;
@@ -28,52 +27,52 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import javax.validation.constraints.NotBlank;
 
 /**
- * Properties class to hold additional TLS information such as verification mode, root CA location, etc.
- * Generally speaking, the fields in this class correspond one to one with the options on the PostgreSQL
- * JDBC connection URL.  See https://jdbc.postgresql.org/documentation/head/connect.html#ssl
+ * Properties class to hold additional TLS information such as verification mode, root CA location,
+ * etc. Generally speaking, the fields in this class correspond one to one with the options on the
+ * PostgreSQL JDBC connection URL. See
+ * https://jdbc.postgresql.org/documentation/head/connect.html#ssl
  */
 public class PostgresTlsDataSourceProperties extends DataSourceProperties {
 
-    // Require TLS to be actively enabled since doing so requires providing the CA and
-    // other settings. No sense in having it be true but then immediately fail due to a missing CA.
-    private boolean enableTls = false;
+  // Require TLS to be actively enabled since doing so requires providing the CA and
+  // other settings. No sense in having it be true but then immediately fail due to a missing CA.
+  private boolean enableTls = false;
 
-    @VerificationMode
-    private String verificationMode = "verify-full";
+  @VerificationMode private String verificationMode = "verify-full";
 
-    @NotBlank
-    private String rootCaLocation = "classpath:/rhsm-subscriptions-ca.crt";
+  @NotBlank private String rootCaLocation = "classpath:/rhsm-subscriptions-ca.crt";
 
-    public boolean isEnableTls() {
-        return enableTls;
-    }
+  public boolean isEnableTls() {
+    return enableTls;
+  }
 
-    public void setEnableTls(boolean enableTls) {
-        this.enableTls = enableTls;
-    }
+  public void setEnableTls(boolean enableTls) {
+    this.enableTls = enableTls;
+  }
 
-    public String getVerificationMode() {
-        return verificationMode;
-    }
+  public String getVerificationMode() {
+    return verificationMode;
+  }
 
-    /**
-     * Possible values include "disable", "allow", "prefer", "require", "verify-ca" and "verify-full". The
-     * "require", "allow", and "prefer" options all default to a non validating SSL factory and do not check
-     * the validity of the certificate or the host name. "verify-ca" validates the certificate, but does not
-     * verify the hostname. "verify-full" will validate that the certificate is correct and verify the host
-     * connected to has the same hostname as the certificate.
-     * @param verificationMode the verification mode to use.  One of "disable", "allow", "prefer", "require",
-     *      "verify-ca" and "verify-full".
-     */
-    public void setVerificationMode(String verificationMode) {
-        this.verificationMode = verificationMode;
-    }
+  /**
+   * Possible values include "disable", "allow", "prefer", "require", "verify-ca" and "verify-full".
+   * The "require", "allow", and "prefer" options all default to a non validating SSL factory and do
+   * not check the validity of the certificate or the host name. "verify-ca" validates the
+   * certificate, but does not verify the hostname. "verify-full" will validate that the certificate
+   * is correct and verify the host connected to has the same hostname as the certificate.
+   *
+   * @param verificationMode the verification mode to use. One of "disable", "allow", "prefer",
+   *     "require", "verify-ca" and "verify-full".
+   */
+  public void setVerificationMode(String verificationMode) {
+    this.verificationMode = verificationMode;
+  }
 
-    public String getRootCaLocation() {
-        return rootCaLocation;
-    }
+  public String getRootCaLocation() {
+    return rootCaLocation;
+  }
 
-    public void setRootCaLocation(String rootCaLocation) {
-        this.rootCaLocation = rootCaLocation;
-    }
+  public void setRootCaLocation(String rootCaLocation) {
+    this.rootCaLocation = rootCaLocation;
+  }
 }

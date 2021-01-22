@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,82 +44,83 @@ import java.util.stream.Collectors;
 @Transactional
 @ActiveProfiles("test")
 class EventRecordRepositoryTest {
-    private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
+  private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
 
-    @Autowired
-    private EventRecordRepository repository;
+  @Autowired private EventRecordRepository repository;
 
-    @Test
-    void saveAndUpdate() {
-        Event event = new Event();
-        event.setAccountNumber("account123");
-        event.setTimestamp(OffsetDateTime.now(CLOCK));
-        event.setInstanceId("instanceId");
-        event.setServiceType("RHEL System");
-        UUID eventId = UUID.randomUUID();
-        event.setEventId(eventId);
-        event.setEventSource("eventSource");
-        event.setDisplayName(Optional.empty());
+  @Test
+  void saveAndUpdate() {
+    Event event = new Event();
+    event.setAccountNumber("account123");
+    event.setTimestamp(OffsetDateTime.now(CLOCK));
+    event.setInstanceId("instanceId");
+    event.setServiceType("RHEL System");
+    UUID eventId = UUID.randomUUID();
+    event.setEventId(eventId);
+    event.setEventSource("eventSource");
+    event.setDisplayName(Optional.empty());
 
-        EventRecord record = new EventRecord(event);
-        repository.saveAndFlush(record);
+    EventRecord record = new EventRecord(event);
+    repository.saveAndFlush(record);
 
-        EventRecord found = repository.getOne(eventId);
-        assertNull(found.getEvent().getInventoryId());
-        assertNotNull(found.getEvent().getDisplayName());
-        assertFalse(found.getEvent().getDisplayName().isPresent());
-        assertEquals(record, found);
-    }
+    EventRecord found = repository.getOne(eventId);
+    assertNull(found.getEvent().getInventoryId());
+    assertNotNull(found.getEvent().getDisplayName());
+    assertFalse(found.getEvent().getDisplayName().isPresent());
+    assertEquals(record, found);
+  }
 
-    @Test
-    void testFindBeginInclusive() {
-        EventRecord oldEvent = new EventRecord();
-        UUID oldId = UUID.randomUUID();
-        oldEvent.setId(oldId);
-        oldEvent.setAccountNumber("account123");
-        oldEvent.setTimestamp(OffsetDateTime.now(CLOCK).minusSeconds(1));
+  @Test
+  void testFindBeginInclusive() {
+    EventRecord oldEvent = new EventRecord();
+    UUID oldId = UUID.randomUUID();
+    oldEvent.setId(oldId);
+    oldEvent.setAccountNumber("account123");
+    oldEvent.setTimestamp(OffsetDateTime.now(CLOCK).minusSeconds(1));
 
-        EventRecord currentEvent = new EventRecord();
-        UUID currentId = UUID.randomUUID();
-        currentEvent.setId(currentId);
-        currentEvent.setAccountNumber("account123");
-        currentEvent.setTimestamp(OffsetDateTime.now(CLOCK));
+    EventRecord currentEvent = new EventRecord();
+    UUID currentId = UUID.randomUUID();
+    currentEvent.setId(currentId);
+    currentEvent.setAccountNumber("account123");
+    currentEvent.setTimestamp(OffsetDateTime.now(CLOCK));
 
-        repository.saveAll(Arrays.asList(oldEvent, currentEvent));
-        repository.flush();
+    repository.saveAll(Arrays.asList(oldEvent, currentEvent));
+    repository.flush();
 
-        List<EventRecord> found = repository
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp("account123",
-            OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK).plusYears(1))
+    List<EventRecord> found =
+        repository
+            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                "account123", OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK).plusYears(1))
             .collect(Collectors.toList());
 
-        assertEquals(1, found.size());
-        assertEquals(currentId, found.get(0).getId());
-    }
+    assertEquals(1, found.size());
+    assertEquals(currentId, found.get(0).getId());
+  }
 
-    @Test
-    void testFindEndExclusive() {
-        EventRecord futureEvent = new EventRecord();
-        UUID futureId = UUID.randomUUID();
-        futureEvent.setId(futureId);
-        futureEvent.setAccountNumber("account123");
-        futureEvent.setTimestamp(OffsetDateTime.now(CLOCK));
+  @Test
+  void testFindEndExclusive() {
+    EventRecord futureEvent = new EventRecord();
+    UUID futureId = UUID.randomUUID();
+    futureEvent.setId(futureId);
+    futureEvent.setAccountNumber("account123");
+    futureEvent.setTimestamp(OffsetDateTime.now(CLOCK));
 
-        EventRecord currentEvent = new EventRecord();
-        UUID currentId = UUID.randomUUID();
-        currentEvent.setId(currentId);
-        currentEvent.setAccountNumber("account123");
-        currentEvent.setTimestamp(OffsetDateTime.now(CLOCK).minusSeconds(1));
+    EventRecord currentEvent = new EventRecord();
+    UUID currentId = UUID.randomUUID();
+    currentEvent.setId(currentId);
+    currentEvent.setAccountNumber("account123");
+    currentEvent.setTimestamp(OffsetDateTime.now(CLOCK).minusSeconds(1));
 
-        repository.saveAll(Arrays.asList(futureEvent, currentEvent));
-        repository.flush();
+    repository.saveAll(Arrays.asList(futureEvent, currentEvent));
+    repository.flush();
 
-        List<EventRecord> found = repository
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp("account123",
-            OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK))
+    List<EventRecord> found =
+        repository
+            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                "account123", OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK))
             .collect(Collectors.toList());
 
-        assertEquals(1, found.size());
-        assertEquals(currentId, found.get(0).getId());
-    }
+    assertEquals(1, found.size());
+    assertEquals(currentId, found.get(0).getId());
+  }
 }

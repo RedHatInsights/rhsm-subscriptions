@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,72 +51,77 @@ import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 
 import java.util.Map;
 
-
 @SpringBootTest
 @DirtiesContext
 @ActiveProfiles("worker,test,test-kafka,test-kafka-schema")
-@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
+@EmbeddedKafka(
+    partitions = 1,
+    topics = {"${rhsm-subscriptions.tasks.topic}"})
 public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 
-    @Test
-    public void testSendAndReceiveTaskMessage() throws InterruptedException {
-        runSendAndReceiveTaskMessageTest();
+  @Test
+  public void testSendAndReceiveTaskMessage() throws InterruptedException {
+    runSendAndReceiveTaskMessageTest();
+  }
+
+  public static class TestingKafkaConfigurator extends KafkaConfigurator {
+
+    private MockSchemaRegistryClient registryClient = new MockSchemaRegistryClient();
+
+    @Override
+    public DefaultKafkaProducerFactory<String, TaskMessage> defaultProducerFactory(
+        KafkaProperties kafkaProperties) {
+      DefaultKafkaProducerFactory<String, TaskMessage> factory =
+          super.defaultProducerFactory(kafkaProperties);
+
+      // Verify that the configuration specifies the correct serializer and that it is
+      // properly configured. Once verified, we can manually instantiate the serializer
+      // with the mock schema registry.
+      Map<String, Object> factoryConfig = factory.getConfigurationProperties();
+      assertEquals(
+          KafkaAvroSerializer.class,
+          factoryConfig.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+      assertThat(
+          factoryConfig, Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
+
+      return new DefaultKafkaProducerFactory(
+          factoryConfig,
+          new StringSerializer(),
+          new KafkaAvroSerializer(registryClient, factoryConfig));
     }
 
-    public static class TestingKafkaConfigurator extends KafkaConfigurator {
+    @Override
+    public ConsumerFactory<String, TaskMessage> defaultConsumerFactory(
+        KafkaProperties kafkaProperties) {
+      ConsumerFactory<String, TaskMessage> factory = super.defaultConsumerFactory(kafkaProperties);
 
-        private MockSchemaRegistryClient registryClient = new MockSchemaRegistryClient();
+      // Verify that the configuration specifies the correct deserializer and that it is
+      // properly configured. Once verified, we can manually instantiate the deserializer
+      // with the mock schema registry.
+      Map<String, Object> factoryConfig = factory.getConfigurationProperties();
+      assertEquals(
+          ErrorHandlingDeserializer2.class,
+          factoryConfig.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
+      assertEquals(
+          KafkaAvroDeserializer.class,
+          factoryConfig.get(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS));
+      assertThat(
+          factoryConfig, Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
 
-        @Override
-        public DefaultKafkaProducerFactory<String, TaskMessage> defaultProducerFactory(
-            KafkaProperties kafkaProperties) {
-            DefaultKafkaProducerFactory<String, TaskMessage> factory =
-                super.defaultProducerFactory(kafkaProperties);
-
-            // Verify that the configuration specifies the correct serializer and that it is
-            // properly configured. Once verified, we can manually instantiate the serializer
-            // with the mock schema registry.
-            Map<String, Object> factoryConfig = factory.getConfigurationProperties();
-            assertEquals(KafkaAvroSerializer.class,
-                factoryConfig.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
-            assertThat(factoryConfig,
-                Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
-
-            return new DefaultKafkaProducerFactory(factoryConfig, new StringSerializer(),
-                new KafkaAvroSerializer(registryClient, factoryConfig));
-        }
-
-        @Override
-        public ConsumerFactory<String, TaskMessage> defaultConsumerFactory(KafkaProperties kafkaProperties) {
-            ConsumerFactory<String, TaskMessage> factory = super.defaultConsumerFactory(kafkaProperties);
-
-            // Verify that the configuration specifies the correct deserializer and that it is
-            // properly configured. Once verified, we can manually instantiate the deserializer
-            // with the mock schema registry.
-            Map<String, Object> factoryConfig = factory.getConfigurationProperties();
-            assertEquals(ErrorHandlingDeserializer2.class,
-                factoryConfig.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
-            assertEquals(KafkaAvroDeserializer.class,
-                factoryConfig.get(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS));
-            assertThat(factoryConfig,
-                Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
-
-            KafkaAvroDeserializer delegate = new KafkaAvroDeserializer(registryClient, factoryConfig);
-            ErrorHandlingDeserializer2 errorDeserializer = new ErrorHandlingDeserializer2(delegate);
-            return new DefaultKafkaConsumerFactory<>(factoryConfig, new StringDeserializer(),
-                errorDeserializer);
-        }
+      KafkaAvroDeserializer delegate = new KafkaAvroDeserializer(registryClient, factoryConfig);
+      ErrorHandlingDeserializer2 errorDeserializer = new ErrorHandlingDeserializer2(delegate);
+      return new DefaultKafkaConsumerFactory<>(
+          factoryConfig, new StringDeserializer(), errorDeserializer);
     }
+  }
 
-    @TestConfiguration
-    static class KafkaTaskQueueSchemaRegistryTestConfiguration {
+  @TestConfiguration
+  static class KafkaTaskQueueSchemaRegistryTestConfiguration {
 
-        @Bean
-        @Primary
-        public KafkaConfigurator testingConfigurator() {
-            return new TestingKafkaConfigurator();
-        }
-
+    @Bean
+    @Primary
+    public KafkaConfigurator testingConfigurator() {
+      return new TestingKafkaConfigurator();
     }
-
+  }
 }

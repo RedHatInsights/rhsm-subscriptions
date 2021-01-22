@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,21 +33,19 @@ import org.springframework.core.io.FileSystemResourceLoader;
 
 import java.util.List;
 
-
 public class FileAccountSyncListSourceTest {
 
-    @Test
-    public void ensureResourcePathComesFromApplicationProperty() throws Exception {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setAccountListResourceLocation("classpath:account_list.txt");
+  @Test
+  public void ensureResourcePathComesFromApplicationProperty() throws Exception {
+    ApplicationProperties props = new ApplicationProperties();
+    props.setAccountListResourceLocation("classpath:account_list.txt");
 
-        FileAccountSyncListSource source = new FileAccountSyncListSource(props, new ApplicationClock());
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
+    FileAccountSyncListSource source = new FileAccountSyncListSource(props, new ApplicationClock());
+    source.setResourceLoader(new FileSystemResourceLoader());
+    source.init();
 
-        List<String> accountList = source.list();
-        assertEquals(3, accountList.size());
-        assertThat(accountList, Matchers.contains("A1", "A2", "A3"));
-    }
-
+    List<String> accountList = source.list();
+    assertEquals(3, accountList.size());
+    assertThat(accountList, Matchers.contains("A1", "A2", "A3"));
+  }
 }

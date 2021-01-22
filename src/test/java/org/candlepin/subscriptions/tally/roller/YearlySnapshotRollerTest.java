@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,34 +41,34 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 public class YearlySnapshotRollerTest {
 
-    @Autowired
-    private TallySnapshotRepository repository;
+  @Autowired private TallySnapshotRepository repository;
 
-    private ApplicationClock clock;
+  private ApplicationClock clock;
 
-    private SnapshotRollerTester<YearlySnapshotRoller> tester;
+  private SnapshotRollerTester<YearlySnapshotRoller> tester;
 
-    @BeforeEach
-    public void setupTest() {
-        this.clock = new FixedClockConfiguration().fixedClock();
-        this.tester = new SnapshotRollerTester<>(repository, new YearlySnapshotRoller(repository, clock));
-    }
+  @BeforeEach
+  public void setupTest() {
+    this.clock = new FixedClockConfiguration().fixedClock();
+    this.tester =
+        new SnapshotRollerTester<>(repository, new YearlySnapshotRoller(repository, clock));
+  }
 
-    @Test
-    public void testYearlySnapshotProduction() {
-        this.tester.performBasicSnapshotRollerTest(Granularity.YEARLY, clock.startOfCurrentYear(),
-            clock.endOfCurrentYear());
-    }
+  @Test
+  public void testYearlySnapshotProduction() {
+    this.tester.performBasicSnapshotRollerTest(
+        Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
+  }
 
-    @Test
-    public void testYearlySnapIsUpdatedWhenItAlreadyExists() {
-        this.tester.performSnapshotUpdateTest(Granularity.YEARLY, clock.startOfCurrentYear(),
-            clock.endOfCurrentYear());
-    }
+  @Test
+  public void testYearlySnapIsUpdatedWhenItAlreadyExists() {
+    this.tester.performSnapshotUpdateTest(
+        Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
+  }
 
-    @Test
-    public void ensureCurrentYearlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
-        this.tester.performUpdateWithLesserValueTest(Granularity.YEARLY, clock.startOfCurrentYear(),
-            clock.endOfCurrentYear(), true);
-    }
+  @Test
+  public void ensureCurrentYearlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+    this.tester.performUpdateWithLesserValueTest(
+        Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(), true);
+  }
 }

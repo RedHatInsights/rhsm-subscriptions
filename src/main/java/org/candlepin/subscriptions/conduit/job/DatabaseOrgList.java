@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,18 +30,18 @@ import java.util.stream.Stream;
 /**
  * Pulls the list of orgs to sync from a database table.
  *
- * See {@link OrgConfig}.
+ * <p>See {@link OrgConfig}.
  */
 @Component
 public class DatabaseOrgList {
 
-    private final OrgConfigRepository repo;
+  private final OrgConfigRepository repo;
 
-    public DatabaseOrgList(OrgConfigRepository repo) {
-        this.repo = repo;
-    }
+  public DatabaseOrgList(OrgConfigRepository repo) {
+    this.repo = repo;
+  }
 
-    public Stream<String> getOrgsToSync() {
-        return repo.findSyncEnabledOrgs();
-    }
+  public Stream<String> getOrgsToSync() {
+    return repo.findSyncEnabledOrgs();
+  }
 }

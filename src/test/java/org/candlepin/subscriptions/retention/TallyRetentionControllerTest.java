@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,52 +43,48 @@ import java.util.List;
 @SpringBootTest
 @ActiveProfiles("test")
 class TallyRetentionControllerTest {
-    @TestConfiguration
-    @ComponentScan(basePackages = "org.candlepin.subscriptions.retention")
-    public static class RetentionConfiguration {
-        /* Intentionally empty */
-    }
+  @TestConfiguration
+  @ComponentScan(basePackages = "org.candlepin.subscriptions.retention")
+  public static class RetentionConfiguration {
+    /* Intentionally empty */
+  }
 
-    @MockBean private TallyRetentionPolicy policy;
-    @MockBean private TallySnapshotRepository repository;
-    @MockBean private AccountListSource accountListSource;
+  @MockBean private TallyRetentionPolicy policy;
+  @MockBean private TallySnapshotRepository repository;
+  @MockBean private AccountListSource accountListSource;
 
-    @Autowired private TallyRetentionController controller;
+  @Autowired private TallyRetentionController controller;
 
-    @Test
-    void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
-        OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-        when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
-        controller.cleanStaleSnapshotsForAccount("123456");
-        verify(repository).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-            eq("123456"),
-            eq(Granularity.DAILY),
-            eq(cutoff)
-        );
-        verifyNoMoreInteractions(repository);
-    }
+  @Test
+  void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
+    OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
+    controller.cleanStaleSnapshotsForAccount("123456");
+    verify(repository)
+        .deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+            eq("123456"), eq(Granularity.DAILY), eq(cutoff));
+    verifyNoMoreInteractions(repository);
+  }
 
-    @Test
-    void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
-        when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
-        controller.cleanStaleSnapshotsForAccount("123456");
-        verifyZeroInteractions(repository);
-    }
+  @Test
+  void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
+    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
+    controller.cleanStaleSnapshotsForAccount("123456");
+    verifyZeroInteractions(repository);
+  }
 
-    @Test
-    void testPurgeSnapshots() throws Exception {
-        OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-        when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
+  @Test
+  void testPurgeSnapshots() throws Exception {
+    OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
 
-        List<String> testList = Arrays.asList("1", "2", "3", "4");
-        when(accountListSource.purgeReportAccounts()).thenReturn(testList.stream());
+    List<String> testList = Arrays.asList("1", "2", "3", "4");
+    when(accountListSource.purgeReportAccounts()).thenReturn(testList.stream());
 
-        controller.purgeSnapshots();
+    controller.purgeSnapshots();
 
-        verify(repository, times(4)).deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-            anyString(),
-            eq(Granularity.DAILY),
-            eq(cutoff)
-        );
-    }
+    verify(repository, times(4))
+        .deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+            anyString(), eq(Granularity.DAILY), eq(cutoff));
+  }
 }

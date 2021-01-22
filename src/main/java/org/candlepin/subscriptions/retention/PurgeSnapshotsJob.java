@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,30 +29,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * A cron job that purges usage snapshots on a configured schedule.
- */
+/** A cron job that purges usage snapshots on a configured schedule. */
 @Component
 public class PurgeSnapshotsJob implements Runnable {
 
-    private static final Logger log = LoggerFactory.getLogger(PurgeSnapshotsJob.class);
-    private final TallyRetentionController retentionController;
+  private static final Logger log = LoggerFactory.getLogger(PurgeSnapshotsJob.class);
+  private final TallyRetentionController retentionController;
 
-    @Autowired
-    public PurgeSnapshotsJob(TallyRetentionController retentionController) {
-        this.retentionController = retentionController;
-    }
+  @Autowired
+  public PurgeSnapshotsJob(TallyRetentionController retentionController) {
+    this.retentionController = retentionController;
+  }
 
-    @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
-    public void run() {
-        log.info("Starting snapshot purge.");
-        try {
-            retentionController.purgeSnapshots();
-            log.info("Snapshot purge complete.");
-        }
-        catch (AccountListSourceException e) {
-            throw new JobFailureException("Could not purge snapshots.", e);
-        }
+  @Override
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
+  public void run() {
+    log.info("Starting snapshot purge.");
+    try {
+      retentionController.purgeSnapshots();
+      log.info("Snapshot purge complete.");
+    } catch (AccountListSourceException e) {
+      throw new JobFailureException("Could not purge snapshots.", e);
     }
+  }
 }

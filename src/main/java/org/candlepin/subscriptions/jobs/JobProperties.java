@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,28 +20,26 @@
  */
 package org.candlepin.subscriptions.jobs;
 
-/**
- * Contains the configuration properties for all jobs.
- */
+/** Contains the configuration properties for all jobs. */
 public class JobProperties {
 
-    private String captureSnapshotSchedule = "0 5 * * * ?";
-    // Once a day at 3am
-    private String purgeSnapshotSchedule = "0 0 3 * * ?";
+  private String captureSnapshotSchedule = "0 5 * * * ?";
+  // Once a day at 3am
+  private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
-    public String getCaptureSnapshotSchedule() {
-        return captureSnapshotSchedule;
-    }
+  public String getCaptureSnapshotSchedule() {
+    return captureSnapshotSchedule;
+  }
 
-    public void setCaptureSnapshotSchedule(String captureSnapshotSchedule) {
-        this.captureSnapshotSchedule = captureSnapshotSchedule;
-    }
+  public void setCaptureSnapshotSchedule(String captureSnapshotSchedule) {
+    this.captureSnapshotSchedule = captureSnapshotSchedule;
+  }
 
-    public String getPurgeSnapshotSchedule() {
-        return purgeSnapshotSchedule;
-    }
+  public String getPurgeSnapshotSchedule() {
+    return purgeSnapshotSchedule;
+  }
 
-    public void setPurgeSnapshotSchedule(String purgeSnapshotSchedule) {
-        this.purgeSnapshotSchedule = purgeSnapshotSchedule;
-    }
+  public void setPurgeSnapshotSchedule(String purgeSnapshotSchedule) {
+    this.purgeSnapshotSchedule = purgeSnapshotSchedule;
+  }
 }

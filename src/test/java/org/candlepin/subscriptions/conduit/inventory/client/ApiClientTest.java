@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,18 +34,15 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("rhsm-conduit,test,test-api-client")
 class ApiClientTest {
-    @Autowired
-    private HostsApi hostsApi;
+  @Autowired private HostsApi hostsApi;
 
-    @Autowired
-    Environment environment;
+  @Autowired Environment environment;
 
-    @Autowired
-    InventoryServiceProperties properties;
+  @Autowired InventoryServiceProperties properties;
 
-    @Test
-    void testServiceUrlConfigurableViaProperties() {
+  @Test
+  void testServiceUrlConfigurableViaProperties() {
 
-        assertEquals("https://localhost/api/hostinventory", hostsApi.getApiClient().getBasePath());
-    }
+    assertEquals("https://localhost/api/hostinventory", hostsApi.getApiClient().getBasePath());
+  }
 }

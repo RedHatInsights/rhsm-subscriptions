@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,21 +31,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
-/**
- * Configuration class for beans related to the OrgSyncJob.
- */
+/** Configuration class for beans related to the OrgSyncJob. */
 @Configuration
 @Profile("orgsync")
 @Import({ConduitTaskQueueConfiguration.class, TaskProducerConfiguration.class})
 @ComponentScan(basePackages = "org.candlepin.subscriptions.conduit.job")
 public class OrgSyncConfiguration {
-    @Bean
-    OrgSyncJob job(OrgSyncTaskManager taskManager) {
-        return new OrgSyncJob(taskManager);
-    }
+  @Bean
+  OrgSyncJob job(OrgSyncTaskManager taskManager) {
+    return new OrgSyncJob(taskManager);
+  }
 
-    @Bean
-    JobRunner jobRunner(OrgSyncJob job, ApplicationContext applicationContext) {
-        return new JobRunner(job, applicationContext);
-    }
+  @Bean
+  JobRunner jobRunner(OrgSyncJob job, ApplicationContext applicationContext) {
+    return new JobRunner(job, applicationContext);
+  }
 }

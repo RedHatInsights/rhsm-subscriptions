@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,11 +33,12 @@ import java.lang.annotation.Target;
  * Must have the SWATCH_ADMIN_ROLE and account must be whitelisted for reporting.
  *
  * @see RoleProvider
- *
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole('" + RoleProvider.SWATCH_ADMIN_ROLE + "') and " +
-    "@reportAccessService.providesAccessTo(authentication)")
-public @interface ReportingAccessRequired {
-}
+@PreAuthorize(
+    "hasRole('"
+        + RoleProvider.SWATCH_ADMIN_ROLE
+        + "') and "
+        + "@reportAccessService.providesAccessTo(authentication)")
+public @interface ReportingAccessRequired {}

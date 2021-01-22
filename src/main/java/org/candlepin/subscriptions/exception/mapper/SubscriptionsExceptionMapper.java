@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,14 +27,12 @@ import org.springframework.stereotype.Component;
 
 import javax.ws.rs.ext.Provider;
 
-/**
- * An exception mapper used to map all SubscriptionsException to an error repsonse.
- */
+/** An exception mapper used to map all SubscriptionsException to an error repsonse. */
 @Component
 @Provider
 public class SubscriptionsExceptionMapper extends BaseExceptionMapper<SubscriptionsException> {
-    @Override
-    protected Error buildError(SubscriptionsException exception) {
-        return exception.error();
-    }
+  @Override
+  protected Error buildError(SubscriptionsException exception) {
+    return exception.error();
+  }
 }

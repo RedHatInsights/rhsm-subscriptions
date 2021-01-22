@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,55 +44,56 @@ import javax.transaction.Transactional;
 /**
  * JMX Bean for interacting with the event store.
  *
- * Allows insertion of event JSON *only in dev-mode*.
+ * <p>Allows insertion of event JSON *only in dev-mode*.
  */
 @Component
 @ManagedResource
 public class EventJmxBean {
-    private static final Logger log = LoggerFactory.getLogger(EventJmxBean.class);
+  private static final Logger log = LoggerFactory.getLogger(EventJmxBean.class);
 
-    private final ApplicationProperties applicationProperties;
-    private final EventController eventController;
-    private final ObjectMapper objectMapper;
+  private final ApplicationProperties applicationProperties;
+  private final EventController eventController;
+  private final ObjectMapper objectMapper;
 
-    public EventJmxBean(ApplicationProperties applicationProperties, EventController eventController,
-        ObjectMapper objectMapper) {
-        this.applicationProperties = applicationProperties;
-        this.eventController = eventController;
-        this.objectMapper = objectMapper;
+  public EventJmxBean(
+      ApplicationProperties applicationProperties,
+      EventController eventController,
+      ObjectMapper objectMapper) {
+    this.applicationProperties = applicationProperties;
+    this.eventController = eventController;
+    this.objectMapper = objectMapper;
+  }
+
+  @Transactional
+  @ManagedOperation(description = "Fetch events (for debugging).")
+  @ManagedOperationParameter(name = "accountNumber", description = "Account number")
+  @ManagedOperationParameter(name = "begin", description = "Beginning of time range (inclusive)")
+  @ManagedOperationParameter(name = "end", description = "End of time range (exclusive)")
+  public String fetchEventsInTimeRange(String accountNumber, String begin, String end) {
+    OffsetDateTime beginValue = OffsetDateTime.parse(begin);
+    OffsetDateTime endValue = OffsetDateTime.parse(end);
+    Stream<Event> eventStream =
+        eventController.fetchEventsInTimeRange(accountNumber, beginValue, endValue);
+    return String.format("[%s]", eventStream.map(Event::toString).collect(Collectors.joining(",")));
+  }
+
+  @ManagedOperation(description = "Fetch an event")
+  @ManagedOperationParameter(name = "eventId", description = "Event UUID")
+  public String getEvent(String eventId) {
+    return eventController.getEvent(UUID.fromString(eventId)).toString();
+  }
+
+  @ManagedOperation(description = "Save an event. Supported only in dev-mode.")
+  @ManagedOperationParameter(name = "json", description = "Event JSON")
+  public String saveEvent(String json) {
+    if (!applicationProperties.isDevMode()) {
+      throw new JmxException("Unsupported outside dev-mode!");
     }
-
-    @Transactional
-    @ManagedOperation(description = "Fetch events (for debugging).")
-    @ManagedOperationParameter(name = "accountNumber", description = "Account number")
-    @ManagedOperationParameter(name = "begin", description = "Beginning of time range (inclusive)")
-    @ManagedOperationParameter(name = "end", description = "End of time range (exclusive)")
-    public String fetchEventsInTimeRange(String accountNumber, String begin, String end) {
-        OffsetDateTime beginValue = OffsetDateTime.parse(begin);
-        OffsetDateTime endValue = OffsetDateTime.parse(end);
-        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber, beginValue,
-            endValue);
-        return String.format("[%s]", eventStream.map(Event::toString).collect(Collectors.joining(",")));
+    try {
+      return eventController.saveEvent(objectMapper.readValue(json, Event.class)).toString();
+    } catch (Exception e) {
+      log.error("Error saving event", e);
+      throw new JmxException("Error saving event. See log for details.");
     }
-
-    @ManagedOperation(description = "Fetch an event")
-    @ManagedOperationParameter(name = "eventId", description = "Event UUID")
-    public String getEvent(String eventId) {
-        return eventController.getEvent(UUID.fromString(eventId)).toString();
-    }
-
-    @ManagedOperation(description = "Save an event. Supported only in dev-mode.")
-    @ManagedOperationParameter(name = "json", description = "Event JSON")
-    public String saveEvent(String json) {
-        if (!applicationProperties.isDevMode()) {
-            throw new JmxException("Unsupported outside dev-mode!");
-        }
-        try {
-            return eventController.saveEvent(objectMapper.readValue(json, Event.class)).toString();
-        }
-        catch (Exception e) {
-            log.error("Error saving event", e);
-            throw new JmxException("Error saving event. See log for details.");
-        }
-    }
+  }
 }

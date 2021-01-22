@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,8 @@
  */
 package org.candlepin.subscriptions.task;
 
-/**
- * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
- */
+/** An enumeration representing the types of tasks that can be handled by rhsm-subscriptions. */
 public enum TaskType {
-    UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY
+  UPDATE_SNAPSHOTS,
+  UPDATE_ORG_INVENTORY
 }

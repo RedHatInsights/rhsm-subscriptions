@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,62 +32,57 @@ import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
 
-
-/**
- * An Account list source that uses a file as its source.
- */
+/** An Account list source that uses a file as its source. */
 public class FileAccountListSource implements AccountListSource, ResourceLoaderAware {
 
-    private FileAccountSyncListSource syncListSource;
-    private ReportingAccountWhitelist reportingAccountWhitelist;
+  private FileAccountSyncListSource syncListSource;
+  private ReportingAccountWhitelist reportingAccountWhitelist;
 
-    public FileAccountListSource(FileAccountSyncListSource syncListSource,
-        ReportingAccountWhitelist reportingAccountWhitelist) {
-        this.syncListSource = syncListSource;
-        this.reportingAccountWhitelist = reportingAccountWhitelist;
-    }
+  public FileAccountListSource(
+      FileAccountSyncListSource syncListSource,
+      ReportingAccountWhitelist reportingAccountWhitelist) {
+    this.syncListSource = syncListSource;
+    this.reportingAccountWhitelist = reportingAccountWhitelist;
+  }
 
-    @Override
-    public Stream<String> syncableAccounts() throws AccountListSourceException {
-        try {
-            return syncListSource.list().stream();
-        }
-        catch (IOException ioe) {
-            throw new AccountListSourceException("Unable to get account sync list!", ioe);
-        }
+  @Override
+  public Stream<String> syncableAccounts() throws AccountListSourceException {
+    try {
+      return syncListSource.list().stream();
+    } catch (IOException ioe) {
+      throw new AccountListSourceException("Unable to get account sync list!", ioe);
     }
+  }
 
-    @Override
-    public boolean containsReportingAccount(String accountNumber) throws AccountListSourceException {
-        try {
-            return reportingAccountWhitelist.hasAccount(accountNumber);
-        }
-        catch (IOException ioe) {
-            throw new AccountListSourceException("Unable to determine if account was in whitelist.", ioe);
-        }
+  @Override
+  public boolean containsReportingAccount(String accountNumber) throws AccountListSourceException {
+    try {
+      return reportingAccountWhitelist.hasAccount(accountNumber);
+    } catch (IOException ioe) {
+      throw new AccountListSourceException("Unable to determine if account was in whitelist.", ioe);
     }
+  }
 
-    @Override
-    public Stream<String> purgeReportAccounts() throws AccountListSourceException {
-        try {
-            return syncListSource.list().stream();
-        }
-        catch (IOException ioe) {
-            throw new AccountListSourceException("Unable to get account purge list!", ioe);
-        }
+  @Override
+  public Stream<String> purgeReportAccounts() throws AccountListSourceException {
+    try {
+      return syncListSource.list().stream();
+    } catch (IOException ioe) {
+      throw new AccountListSourceException("Unable to get account purge list!", ioe);
     }
+  }
 
-    @PostConstruct
-    public void init() {
-        // @PostConstruct methods will not get called by these objects since
-        // only the managed beans have this invoked.
-        this.syncListSource.init();
-        this.reportingAccountWhitelist.init();
-    }
+  @PostConstruct
+  public void init() {
+    // @PostConstruct methods will not get called by these objects since
+    // only the managed beans have this invoked.
+    this.syncListSource.init();
+    this.reportingAccountWhitelist.init();
+  }
 
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        this.syncListSource.setResourceLoader(resourceLoader);
-        this.reportingAccountWhitelist.setResourceLoader(resourceLoader);
-    }
+  @Override
+  public void setResourceLoader(ResourceLoader resourceLoader) {
+    this.syncListSource.setResourceLoader(resourceLoader);
+    this.reportingAccountWhitelist.setResourceLoader(resourceLoader);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -37,23 +36,31 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-/**
- * Interface that Spring Data will turn into a DAO for us.
- */
+/** Interface that Spring Data will turn into a DAO for us. */
 public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UUID> {
 
-    // suppress line length and params arguments, can't help either easily b/c this is a spring data method
-    @SuppressWarnings({"linelength", "java:S107"})
-    Page<TallySnapshot> findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-        String accountNumber, String productId, Granularity granularity, ServiceLevel serviceLevel,
-        Usage usage, OffsetDateTime beginning, OffsetDateTime ending, Pageable pageable);
+  // suppress line length and params arguments, can't help either easily b/c this is a spring data
+  // method
+  @SuppressWarnings({"linelength", "java:S107"})
+  Page<TallySnapshot>
+      findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+          String accountNumber,
+          String productId,
+          Granularity granularity,
+          ServiceLevel serviceLevel,
+          Usage usage,
+          OffsetDateTime beginning,
+          OffsetDateTime ending,
+          Pageable pageable);
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(String accountNumber,
-        Granularity granularity, OffsetDateTime cutoffDate);
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+      String accountNumber, Granularity granularity, OffsetDateTime cutoffDate);
 
-    Stream<TallySnapshot> findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-        Collection<String> accountNumbers, Collection<String> productIds, Granularity granularity,
-        OffsetDateTime beginning, OffsetDateTime ending);
-
+  Stream<TallySnapshot> findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+      Collection<String> accountNumbers,
+      Collection<String> productIds,
+      Granularity granularity,
+      OffsetDateTime beginning,
+      OffsetDateTime ending);
 }

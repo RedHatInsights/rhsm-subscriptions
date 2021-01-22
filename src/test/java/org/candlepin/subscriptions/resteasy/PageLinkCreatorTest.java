@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,58 +44,66 @@ import javax.ws.rs.core.UriInfo;
 
 @ExtendWith(MockitoExtension.class)
 class PageLinkCreatorTest {
-    @Mock
-    UriInfo uriInfo;
+  @Mock UriInfo uriInfo;
 
-    @BeforeEach
-    void setupUriInfo() {
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(new ResteasyUriBuilder());
-    }
+  @BeforeEach
+  void setupUriInfo() {
+    Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(new ResteasyUriBuilder());
+  }
 
-    @Test
-    void testNoResultsOffsets() {
-        Pageable pageable = PageRequest.of(0, 50);
-        Page<TallySnapshot> page = new PageImpl<>(Collections.emptyList(), pageable, 0);
-        TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
-        assertEquals("/?offset=0", links.getFirst());
-        assertEquals("/?offset=0", links.getLast());
-        assertNull(links.getPrevious());
-        assertNull(links.getNext());
-    }
+  @Test
+  void testNoResultsOffsets() {
+    Pageable pageable = PageRequest.of(0, 50);
+    Page<TallySnapshot> page = new PageImpl<>(Collections.emptyList(), pageable, 0);
+    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    assertEquals("/?offset=0", links.getFirst());
+    assertEquals("/?offset=0", links.getLast());
+    assertNull(links.getPrevious());
+    assertNull(links.getNext());
+  }
 
-    @Test
-    void testPagingWorksFromFirstPage() {
-        Pageable pageable = PageRequest.of(0, 1);
-        Page<TallySnapshot> page = new PageImpl<>(Arrays.asList(new TallySnapshot(), new TallySnapshot(),
-            new TallySnapshot()), pageable, 3);
-        TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
-        assertEquals("/?offset=0", links.getFirst());
-        assertEquals("/?offset=2", links.getLast());
-        assertNull(links.getPrevious());
-        assertEquals("/?offset=1", links.getNext());
-    }
+  @Test
+  void testPagingWorksFromFirstPage() {
+    Pageable pageable = PageRequest.of(0, 1);
+    Page<TallySnapshot> page =
+        new PageImpl<>(
+            Arrays.asList(new TallySnapshot(), new TallySnapshot(), new TallySnapshot()),
+            pageable,
+            3);
+    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    assertEquals("/?offset=0", links.getFirst());
+    assertEquals("/?offset=2", links.getLast());
+    assertNull(links.getPrevious());
+    assertEquals("/?offset=1", links.getNext());
+  }
 
-    @Test
-    void testPagingWorksFromLastPage() {
-        Pageable pageable = PageRequest.of(2, 1);
-        Page<TallySnapshot> page = new PageImpl<>(Arrays.asList(new TallySnapshot(), new TallySnapshot(),
-            new TallySnapshot()), pageable, 3);
-        TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
-        assertEquals("/?offset=0", links.getFirst());
-        assertEquals("/?offset=2", links.getLast());
-        assertEquals("/?offset=1", links.getPrevious());
-        assertNull(links.getNext());
-    }
+  @Test
+  void testPagingWorksFromLastPage() {
+    Pageable pageable = PageRequest.of(2, 1);
+    Page<TallySnapshot> page =
+        new PageImpl<>(
+            Arrays.asList(new TallySnapshot(), new TallySnapshot(), new TallySnapshot()),
+            pageable,
+            3);
+    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    assertEquals("/?offset=0", links.getFirst());
+    assertEquals("/?offset=2", links.getLast());
+    assertEquals("/?offset=1", links.getPrevious());
+    assertNull(links.getNext());
+  }
 
-    @Test
-    void testPagingWorksFromMiddlePage() {
-        Pageable pageable = PageRequest.of(1, 1);
-        Page<TallySnapshot> page = new PageImpl<>(Arrays.asList(new TallySnapshot(), new TallySnapshot(),
-            new TallySnapshot()), pageable, 3);
-        TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
-        assertEquals("/?offset=0", links.getFirst());
-        assertEquals("/?offset=2", links.getLast());
-        assertEquals("/?offset=0", links.getPrevious());
-        assertEquals("/?offset=2", links.getNext());
-    }
+  @Test
+  void testPagingWorksFromMiddlePage() {
+    Pageable pageable = PageRequest.of(1, 1);
+    Page<TallySnapshot> page =
+        new PageImpl<>(
+            Arrays.asList(new TallySnapshot(), new TallySnapshot(), new TallySnapshot()),
+            pageable,
+            3);
+    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    assertEquals("/?offset=0", links.getFirst());
+    assertEquals("/?offset=2", links.getLast());
+    assertEquals("/?offset=0", links.getPrevious());
+    assertEquals("/?offset=2", links.getNext());
+  }
 }

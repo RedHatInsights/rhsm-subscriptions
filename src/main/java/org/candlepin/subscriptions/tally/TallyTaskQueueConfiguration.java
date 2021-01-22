@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,15 +27,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration for tally task queue common to both producers and consumers.
- */
+/** Configuration for tally task queue common to both producers and consumers. */
 @Configuration
 public class TallyTaskQueueConfiguration {
-    @Bean
-    @Qualifier("tallyTaskQueueProperties")
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.tasks")
-    TaskQueueProperties tallyTaskQueueProperties() {
-        return new TaskQueueProperties();
-    }
+  @Bean
+  @Qualifier("tallyTaskQueueProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.tasks")
+  TaskQueueProperties tallyTaskQueueProperties() {
+    return new TaskQueueProperties();
+  }
 }

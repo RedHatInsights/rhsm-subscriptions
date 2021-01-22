@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,125 +43,122 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Response;
 
-/**
- * Functionality common to both capacity and tally resources.
- */
+/** Functionality common to both capacity and tally resources. */
 public class ResourceUtils {
 
-    private static final Integer DEFAULT_LIMIT = 50;
+  private static final Integer DEFAULT_LIMIT = 50;
 
-    private ResourceUtils() {
-        throw new IllegalStateException("Utility class; should never be instantiated!");
+  private ResourceUtils() {
+    throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
+
+  /**
+   * Get the authenicated principal.
+   *
+   * <p>Typically one of {@link InsightsUserPrincipal}, {@link
+   * org.candlepin.subscriptions.security.RhAssociatePrincipal}, or {@link
+   * org.candlepin.subscriptions.security.X509Principal}
+   *
+   * @return the principal object
+   */
+  public static Object getPrincipal() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    return auth != null ? auth.getPrincipal() : null;
+  }
+
+  /**
+   * Get the owner ID of the authenticated user.
+   *
+   * @return ownerId as a String
+   */
+  public static String getOwnerId() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+    return principal.getOwnerId();
+  }
+
+  /**
+   * Get the account number of the authenticated user.
+   *
+   * @return account number as a String
+   */
+  static String getAccountNumber() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+    return principal.getAccountNumber();
+  }
+
+  /**
+   * Gets the identity header passed when the request was made. Useful when it has to be forwarded
+   * to other APIs.
+   *
+   * @return the encoded identity header.
+   */
+  public static String getIdentityHeader() {
+    HttpServletRequest request =
+        ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+    return request.getHeader(IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER);
+  }
+
+  /**
+   * Validates offset and limit parameters and produces a {@link Pageable} for them.
+   *
+   * @param offset 0-based offset, can be null.
+   * @param limit max number of items per-page, should be non-zero.
+   * @return Pageable holding paging information.
+   */
+  @NotNull
+  public static Pageable getPageable(Integer offset, Integer limit) {
+    return getPageable(offset, limit, Sort.unsorted());
+  }
+
+  /**
+   * Validates offset, limit, and sort parameters and produces a {@link Pageable} for them.
+   *
+   * @param offset 0-based offset, can be null.
+   * @param limit max number of items per-page, should be non-zero.
+   * @param sort sorting parameters.
+   * @return Pageable holding paging and sorting information.
+   */
+  @NotNull
+  static Pageable getPageable(Integer offset, Integer limit, Sort sort) {
+    if (limit == null) {
+      limit = DEFAULT_LIMIT;
     }
 
-    /**
-     * Get the authenicated principal.
-     *
-     * Typically one of {@link InsightsUserPrincipal},
-     * {@link org.candlepin.subscriptions.security.RhAssociatePrincipal}, or
-     * {@link org.candlepin.subscriptions.security.X509Principal}
-     *
-     * @return the principal object
-     */
-    public static Object getPrincipal() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null ? auth.getPrincipal() : null;
+    if (offset == null) {
+      offset = 0;
     }
 
-    /**
-     * Get the owner ID of the authenticated user.
-     *
-     * @return ownerId as a String
-     */
-    public static String getOwnerId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-        return principal.getOwnerId();
+    if (offset % limit != 0) {
+      throw new SubscriptionsException(
+          ErrorCode.VALIDATION_FAILED_ERROR,
+          Response.Status.BAD_REQUEST,
+          "Offset must be divisible by limit",
+          "Arbitrary offsets are not currently supported by this API");
     }
+    return PageRequest.of(offset / limit, limit, sort);
+  }
 
-    /**
-     * Get the account number of the authenticated user.
-     *
-     * @return account number as a String
-     */
-    static String getAccountNumber() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-        return principal.getAccountNumber();
-    }
+  /**
+   * Uses Usage.ANY for a null value, otherwise returns db model equivalent of UsageType generated
+   * enum
+   *
+   * @param usageType openapi generated equivalent enum for UsageType
+   * @return Usage enum
+   */
+  public static Usage sanitizeUsage(UsageType usageType) {
+    return Objects.isNull(usageType) ? Usage._ANY : Usage.fromString(usageType.toString());
+  }
 
-    /**
-     * Gets the identity header passed when the request was made. Useful
-     * when it has to be forwarded to other APIs.
-     *
-     * @return the encoded identity header.
-     */
-    public static String getIdentityHeader() {
-        HttpServletRequest request =
-            ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        return request.getHeader(IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER);
-    }
-
-    /**
-     * Validates offset and limit parameters and produces a {@link Pageable} for them.
-     *
-     * @param offset 0-based offset, can be null.
-     * @param limit max number of items per-page, should be non-zero.
-     * @return Pageable holding paging information.
-     */
-    @NotNull
-    public static Pageable getPageable(Integer offset, Integer limit) {
-        return getPageable(offset, limit, Sort.unsorted());
-    }
-
-    /**
-     * Validates offset, limit, and sort parameters and produces a {@link Pageable} for them.
-     *
-     * @param offset 0-based offset, can be null.
-     * @param limit max number of items per-page, should be non-zero.
-     * @param sort sorting parameters.
-     * @return Pageable holding paging and sorting information.
-     */
-    @NotNull
-    static Pageable getPageable(Integer offset, Integer limit, Sort sort) {
-        if (limit == null) {
-            limit = DEFAULT_LIMIT;
-        }
-
-        if (offset == null) {
-            offset = 0;
-        }
-
-        if (offset % limit != 0) {
-            throw new SubscriptionsException(
-                ErrorCode.VALIDATION_FAILED_ERROR,
-                Response.Status.BAD_REQUEST,
-                "Offset must be divisible by limit",
-                "Arbitrary offsets are not currently supported by this API"
-            );
-        }
-        return PageRequest.of(offset / limit, limit, sort);
-    }
-
-    /**
-     * Uses Usage.ANY for a null value, otherwise returns db model equivalent of UsageType
-     * generated enum
-     *
-     * @param usageType openapi generated equivalent enum for UsageType
-     * @return Usage enum
-     */
-    public static Usage sanitizeUsage(UsageType usageType) {
-        return Objects.isNull(usageType) ? Usage._ANY : Usage.fromString(usageType.toString());
-    }
-
-    /**
-     * Uses ServiceLevel.ANY for a null value, otherwise returns db model equivalent of ServiceLevelType
-     * generated enum
-     *
-     * @param sla string form of sla
-     * @return ServiceLevel enum
-     */
-    public static ServiceLevel sanitizeServiceLevel(ServiceLevelType sla) {
-        return Objects.isNull(sla) ? ServiceLevel._ANY : ServiceLevel.fromString(sla.toString());
-    }
+  /**
+   * Uses ServiceLevel.ANY for a null value, otherwise returns db model equivalent of
+   * ServiceLevelType generated enum
+   *
+   * @param sla string form of sla
+   * @return ServiceLevel enum
+   */
+  public static ServiceLevel sanitizeServiceLevel(ServiceLevelType sla) {
+    return Objects.isNull(sla) ? ServiceLevel._ANY : ServiceLevel.fromString(sla.toString());
+  }
 }

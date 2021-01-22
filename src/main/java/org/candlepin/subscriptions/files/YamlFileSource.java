@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,41 +39,41 @@ import javax.annotation.PostConstruct;
  */
 public abstract class YamlFileSource<T> implements ResourceLoaderAware {
 
-    private final Cache<T> cachedValue;
-    private String resourceLocation;
-    private ResourceLoader resourceLoader;
-    private Resource fileResource;
+  private final Cache<T> cachedValue;
+  private String resourceLocation;
+  private ResourceLoader resourceLoader;
+  private Resource fileResource;
 
-    protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-        this.resourceLocation = resourceLocation;
-        this.cachedValue = new Cache(clock, cacheTtl);
-    }
+  protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
+    this.resourceLocation = resourceLocation;
+    this.cachedValue = new Cache(clock, cacheTtl);
+  }
 
-    public T getValue() throws IOException {
-        if (cachedValue.isExpired()) {
-            try (InputStream s = fileResource.getInputStream()) {
-                T value = new Yaml().load(s);
-                if (value == null) {
-                    return getDefault();
-                }
-                cachedValue.setValue(value);
-            }
+  public T getValue() throws IOException {
+    if (cachedValue.isExpired()) {
+      try (InputStream s = fileResource.getInputStream()) {
+        T value = new Yaml().load(s);
+        if (value == null) {
+          return getDefault();
         }
-        return cachedValue.getValue();
+        cachedValue.setValue(value);
+      }
     }
+    return cachedValue.getValue();
+  }
 
-    protected abstract T getDefault();
+  protected abstract T getDefault();
 
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
+  @Override
+  public void setResourceLoader(ResourceLoader resourceLoader) {
+    this.resourceLoader = resourceLoader;
+  }
+
+  @PostConstruct
+  public void init() {
+    fileResource = resourceLoader.getResource(resourceLocation);
+    if (!fileResource.exists()) {
+      throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
     }
-
-    @PostConstruct
-    public void init() {
-        fileResource = resourceLoader.getResource(resourceLocation);
-        if (!fileResource.exists()) {
-            throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
-        }
-    }
+  }
 }

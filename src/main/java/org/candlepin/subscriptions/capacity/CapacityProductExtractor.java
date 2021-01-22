@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,24 +36,25 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Given a list of product IDs provided by a given product/subscription, returns the effective view of
- * products for capacity.
+ * Given a list of product IDs provided by a given product/subscription, returns the effective view
+ * of products for capacity.
  */
 @Component
 public class CapacityProductExtractor {
 
-    private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
+  private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
 
-    private final Map<Integer, List<String>> productIdToProductsMap;
+  private final Map<Integer, List<String>> productIdToProductsMap;
 
-    public CapacityProductExtractor(ProductIdToProductsMapSource productIdToProductsMapSource)
-        throws IOException {
+  public CapacityProductExtractor(ProductIdToProductsMapSource productIdToProductsMapSource)
+      throws IOException {
 
-        this.productIdToProductsMap = productIdToProductsMapSource.getValue();
-    }
+    this.productIdToProductsMap = productIdToProductsMapSource.getValue();
+  }
 
-    public Set<String> getProducts(Collection<String> productIds) {
-        Set<String> products = productIds.stream()
+  public Set<String> getProducts(Collection<String> productIds) {
+    Set<String> products =
+        productIds.stream()
             .map(CapacityProductExtractor::parseIntSkipUnparseable)
             .filter(Objects::nonNull)
             .map(productIdToProductsMap::get)
@@ -61,40 +62,39 @@ public class CapacityProductExtractor {
             .flatMap(List::stream)
             .collect(Collectors.toSet());
 
-        if (setIsInvalid(products)) {
-            // Kick out the RHEL products since it's implicit with the RHEL-included product being there.
-            products = products.stream().filter(matchesRhel().negate()).collect(Collectors.toSet());
-        }
-
-        return products;
+    if (setIsInvalid(products)) {
+      // Kick out the RHEL products since it's implicit with the RHEL-included product being there.
+      products = products.stream().filter(matchesRhel().negate()).collect(Collectors.toSet());
     }
 
-    private static Integer parseIntSkipUnparseable(String s) {
-        try {
-            return Integer.parseInt(s);
-        }
-        catch (NumberFormatException e) {
-            log.debug("Skipping non-numeric product ID: {}", s);
-        }
-        return null;
-    }
+    return products;
+  }
 
-    /**
-     * Return whether this set of products should be considered for capacity calculations.
-     * @param products a set of product names
-     * @return true if the set is invalid for capacity calculations
-     */
-    public boolean setIsInvalid(Set<String> products) {
-        return products.stream().anyMatch(matchesRhel()) && products.stream()
-            .anyMatch(matchesRhelIncludedProduct());
+  private static Integer parseIntSkipUnparseable(String s) {
+    try {
+      return Integer.parseInt(s);
+    } catch (NumberFormatException e) {
+      log.debug("Skipping non-numeric product ID: {}", s);
     }
+    return null;
+  }
 
-    private Predicate<String> matchesRhel() {
-        return x -> x.startsWith("RHEL");
-    }
+  /**
+   * Return whether this set of products should be considered for capacity calculations.
+   *
+   * @param products a set of product names
+   * @return true if the set is invalid for capacity calculations
+   */
+  public boolean setIsInvalid(Set<String> products) {
+    return products.stream().anyMatch(matchesRhel())
+        && products.stream().anyMatch(matchesRhelIncludedProduct());
+  }
 
-    private Predicate<String> matchesRhelIncludedProduct() {
-        return x -> x.startsWith("Satellite") || x.startsWith("OpenShift");
-    }
+  private Predicate<String> matchesRhel() {
+    return x -> x.startsWith("RHEL");
+  }
 
+  private Predicate<String> matchesRhelIncludedProduct() {
+    return x -> x.startsWith("Satellite") || x.startsWith("OpenShift");
+  }
 }

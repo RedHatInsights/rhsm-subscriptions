@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,11 @@ import org.springframework.context.annotation.Bean;
 
 @TestConfiguration
 public class StubResourceConfiguration {
-    @TestConfiguration
-    protected static class ReportingAdminOnlyConfiguration {
-        @Bean
-        public StubResource stubResource() {
-            return new StubResource();
-        }
+  @TestConfiguration
+  protected static class ReportingAdminOnlyConfiguration {
+    @Bean
+    public StubResource stubResource() {
+      return new StubResource();
     }
-
+  }
 }

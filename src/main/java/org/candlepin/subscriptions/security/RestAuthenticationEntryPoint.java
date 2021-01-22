@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.security;
 
 import org.springframework.security.core.AuthenticationException;
@@ -31,23 +30,28 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * If the user is not presently authenticated, the server needs to send back a response indicating that
- * they must authenticate.  In normal web applications, this would be a redirect to a login page or similar.
- * But since we require external authentication, there is no entry point we can direct the user to.  If the
- * x-rh-identity header is absent we send back a 401 telling the user that authentication failed.
+ * If the user is not presently authenticated, the server needs to send back a response indicating
+ * that they must authenticate. In normal web applications, this would be a redirect to a login page
+ * or similar. But since we require external authentication, there is no entry point we can direct
+ * the user to. If the x-rh-identity header is absent we send back a 401 telling the user that
+ * authentication failed.
+ *
  * @see org.springframework.security.web.authentication.Http403ForbiddenEntryPoint
  */
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
-    private final IdentityHeaderAuthenticationFailureHandler failureHandler;
+  private final IdentityHeaderAuthenticationFailureHandler failureHandler;
 
-    public RestAuthenticationEntryPoint(IdentityHeaderAuthenticationFailureHandler failureHandler) {
-        this.failureHandler = failureHandler;
-    }
+  public RestAuthenticationEntryPoint(IdentityHeaderAuthenticationFailureHandler failureHandler) {
+    this.failureHandler = failureHandler;
+  }
 
-    @Override
-    public void commence(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-        AuthenticationException authException) throws IOException, ServletException {
+  @Override
+  public void commence(
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      AuthenticationException authException)
+      throws IOException, ServletException {
 
-        failureHandler.onAuthenticationFailure(servletRequest, servletResponse, authException);
-    }
+    failureHandler.onAuthenticationFailure(servletRequest, servletResponse, authException);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,106 +42,104 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.GenericType;
 
 class RhsmApiFactoryTest {
-    public static final String STORE_PASSWORD = "password";
+  public static final String STORE_PASSWORD = "password";
 
-    private WireMockServer server;
-    private RhsmApiProperties config;
-    private X509ApiClientFactory x509Factory;
+  private WireMockServer server;
+  private RhsmApiProperties config;
+  private X509ApiClientFactory x509Factory;
 
-    private MappingBuilder stubHelloWorld() {
-        return get(urlPathEqualTo("/hello")).willReturn(
-            ok("Hello World").withHeader("Content-Type", "text/plain")
-        );
+  private MappingBuilder stubHelloWorld() {
+    return get(urlPathEqualTo("/hello"))
+        .willReturn(ok("Hello World").withHeader("Content-Type", "text/plain"));
+  }
+
+  @AfterEach
+  private void tearDown() {
+    if (server != null) {
+      server.stop();
     }
+  }
 
-    @AfterEach
-    private void tearDown() {
-        if (server != null) {
-            server.stop();
-        }
-    }
+  @BeforeEach
+  private void setUp() {
+    config = new RhsmApiProperties();
+  }
 
-    @BeforeEach
-    private void setUp() {
-        config = new RhsmApiProperties();
-    }
+  @Test
+  void testStubClientConfiguration() throws Exception {
+    config.setUseStub(true);
+    RhsmApiFactory factory = new RhsmApiFactory(config);
+    assertEquals(StubRhsmApi.class, factory.getObject().getClass());
+  }
 
-    @Test
-    void testStubClientConfiguration() throws Exception {
-        config.setUseStub(true);
-        RhsmApiFactory factory = new RhsmApiFactory(config);
-        assertEquals(StubRhsmApi.class, factory.getObject().getClass());
-    }
+  @Test
+  void testNoAuthClientConfiguration() throws Exception {
+    RhsmApiFactory factory = new RhsmApiFactory(config);
+    assertEquals(null, factory.getObject().getApiClient().getHttpClient().getSslContext());
+  }
 
-    @Test
-    void testNoAuthClientConfiguration() throws Exception {
-        RhsmApiFactory factory = new RhsmApiFactory(config);
-        assertEquals(null, factory.getObject().getApiClient().getHttpClient().getSslContext());
-    }
+  @Test
+  void testTlsClientAuth() throws Exception {
+    server = new WireMockServer(buildWireMockConfig());
+    server.start();
+    server.stubFor(stubHelloWorld());
 
-    @Test
-    void testTlsClientAuth() throws Exception {
-        server = new WireMockServer(buildWireMockConfig());
-        server.start();
-        server.stubFor(stubHelloWorld());
+    config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
+    config.setKeystorePassword(STORE_PASSWORD);
 
-        config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
-        config.setKeystorePassword(STORE_PASSWORD);
+    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststorePassword(STORE_PASSWORD);
 
-        config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
-        config.setTruststorePassword(STORE_PASSWORD);
+    RhsmApiFactory factory = new RhsmApiFactory(config);
+    ApiClient client = factory.getObject().getApiClient();
 
-        RhsmApiFactory factory = new RhsmApiFactory(config);
-        ApiClient client = factory.getObject().getApiClient();
+    client.setBasePath(server.baseUrl());
+    assertEquals("Hello World", invokeHello(client));
+  }
 
-        client.setBasePath(server.baseUrl());
-        assertEquals("Hello World", invokeHello(client));
-    }
+  @Test
+  void testTlsClientAuthFailsWithNoClientCert() throws Exception {
+    server = new WireMockServer(buildWireMockConfig());
+    server.start();
+    server.stubFor(stubHelloWorld());
 
-    @Test
-    void testTlsClientAuthFailsWithNoClientCert() throws Exception {
-        server = new WireMockServer(buildWireMockConfig());
-        server.start();
-        server.stubFor(stubHelloWorld());
+    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststorePassword(STORE_PASSWORD);
 
-        config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
-        config.setTruststorePassword(STORE_PASSWORD);
+    RhsmApiFactory factory = new RhsmApiFactory(config);
+    ApiClient client = factory.getObject().getApiClient();
 
-        RhsmApiFactory factory = new RhsmApiFactory(config);
-        ApiClient client = factory.getObject().getApiClient();
+    client.setBasePath(server.baseUrl());
+    Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));
+    assertThat(e.getCause(), instanceOf(SSLHandshakeException.class));
+  }
 
-        client.setBasePath(server.baseUrl());
-        Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));
-        assertThat(e.getCause(), instanceOf(SSLHandshakeException.class));
-    }
+  /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
+  private String invokeHello(ApiClient client) throws ApiException {
+    return client.<String>invokeAPI(
+        "/hello",
+        "GET",
+        new ArrayList<>(),
+        new Object(),
+        new HashMap<>(),
+        new HashMap<>(),
+        new HashMap<>(),
+        "text/plain",
+        "text/plain",
+        new String[] {},
+        new GenericType<String>() {});
+  }
 
-    /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
-    private String invokeHello(ApiClient client) throws ApiException {
-        return client.<String>invokeAPI(
-            "/hello",
-            "GET",
-            new ArrayList<>(),
-            new Object(),
-            new HashMap<>(),
-            new HashMap<>(),
-            new HashMap<>(),
-            "text/plain",
-            "text/plain",
-            new String[] {},
-            new GenericType<String>() {}
-        );
-    }
-
-    private WireMockConfiguration buildWireMockConfig() {
-        String keystorePath = Resources.getResource("server.jks").getPath();
-        String truststorePath = Resources.getResource("test-ca.jks").getPath();
-        return WireMockConfiguration.options()
-            .dynamicHttpsPort()
-            .dynamicPort()
-            .keystorePath(keystorePath)
-            .keystorePassword(STORE_PASSWORD)
-            .needClientAuth(true)
-            .trustStorePath(truststorePath)
-            .trustStorePassword(STORE_PASSWORD);
-    }
+  private WireMockConfiguration buildWireMockConfig() {
+    String keystorePath = Resources.getResource("server.jks").getPath();
+    String truststorePath = Resources.getResource("test-ca.jks").getPath();
+    return WireMockConfiguration.options()
+        .dynamicHttpsPort()
+        .dynamicPort()
+        .keystorePath(keystorePath)
+        .keystorePassword(STORE_PASSWORD)
+        .needClientAuth(true)
+        .trustStorePath(truststorePath)
+        .trustStorePassword(STORE_PASSWORD);
+  }
 }

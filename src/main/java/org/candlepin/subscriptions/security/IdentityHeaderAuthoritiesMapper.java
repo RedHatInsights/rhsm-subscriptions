@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.security;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -31,28 +30,28 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Class responsible for returning GrantedAuthorities objects back to Spring.  This is a little
+ * Class responsible for returning GrantedAuthorities objects back to Spring. This is a little
  * over-engineered considering our requirements, but it fits in with the Spring Security worldview.
  */
 public class IdentityHeaderAuthoritiesMapper implements Attributes2GrantedAuthoritiesMapper {
-    private static final String ATTRIBUTE_PREFIX = "ROLE_";
+  private static final String ATTRIBUTE_PREFIX = "ROLE_";
 
-    @Override
-    public Collection<? extends GrantedAuthority> getGrantedAuthorities(Collection<String> attributes) {
-        List<GrantedAuthority> result = new ArrayList<>(attributes.size());
-        for (String attribute : attributes) {
-            result.add(getGrantedAuthority(attribute));
-        }
-        return result;
+  @Override
+  public Collection<? extends GrantedAuthority> getGrantedAuthorities(
+      Collection<String> attributes) {
+    List<GrantedAuthority> result = new ArrayList<>(attributes.size());
+    for (String attribute : attributes) {
+      result.add(getGrantedAuthority(attribute));
     }
+    return result;
+  }
 
-    private GrantedAuthority getGrantedAuthority(String attribute) {
-        attribute = attribute.toUpperCase(Locale.getDefault());
-        if (!attribute.startsWith(ATTRIBUTE_PREFIX)) {
-            return new SimpleGrantedAuthority(ATTRIBUTE_PREFIX + attribute);
-        }
-        else {
-            return new SimpleGrantedAuthority(attribute);
-        }
+  private GrantedAuthority getGrantedAuthority(String attribute) {
+    attribute = attribute.toUpperCase(Locale.getDefault());
+    if (!attribute.startsWith(ATTRIBUTE_PREFIX)) {
+      return new SimpleGrantedAuthority(ATTRIBUTE_PREFIX + attribute);
+    } else {
+      return new SimpleGrantedAuthority(attribute);
     }
+  }
 }

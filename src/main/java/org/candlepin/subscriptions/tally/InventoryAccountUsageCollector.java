@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,154 +46,161 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-
-/**
- * Collects the max values from all accounts in the inventory.
- */
+/** Collects the max values from all accounts in the inventory. */
 @Component
 public class InventoryAccountUsageCollector {
 
-    private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
+  private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
 
-    private final FactNormalizer factNormalizer;
-    private final InventoryDatabaseOperations inventory;
-    private final HostRepository hostRepository;
-    private final int culledOffsetDays;
+  private final FactNormalizer factNormalizer;
+  private final InventoryDatabaseOperations inventory;
+  private final HostRepository hostRepository;
+  private final int culledOffsetDays;
 
-    public InventoryAccountUsageCollector(FactNormalizer factNormalizer,
-        InventoryDatabaseOperations inventory, HostRepository hostRepository,
-        ApplicationProperties props) {
-        this.factNormalizer = factNormalizer;
-        this.inventory = inventory;
-        this.hostRepository = hostRepository;
-        this.culledOffsetDays = props.getCullingOffsetDays();
-    }
+  public InventoryAccountUsageCollector(
+      FactNormalizer factNormalizer,
+      InventoryDatabaseOperations inventory,
+      HostRepository hostRepository,
+      ApplicationProperties props) {
+    this.factNormalizer = factNormalizer;
+    this.inventory = inventory;
+    this.hostRepository = hostRepository;
+    this.culledOffsetDays = props.getCullingOffsetDays();
+  }
 
-    @SuppressWarnings("squid:S3776")
-    @Transactional
-    public Map<String, AccountUsageCalculation> collect(Collection<String> products,
-        Collection<String> accounts) {
+  @SuppressWarnings("squid:S3776")
+  @Transactional
+  public Map<String, AccountUsageCalculation> collect(
+      Collection<String> products, Collection<String> accounts) {
 
-        // Delete all of the host records for the specified accounts before starting the
-        // calculation. Applicable hosts will be recreated as usage is calculated.
-        log.info("Deleting existing Hosts: {}", accounts);
-        int deleted = hostRepository.deleteByAccountNumberIn(accounts);
-        log.info("Deleted {} existing Host records.", deleted);
+    // Delete all of the host records for the specified accounts before starting the
+    // calculation. Applicable hosts will be recreated as usage is calculated.
+    log.info("Deleting existing Hosts: {}", accounts);
+    int deleted = hostRepository.deleteByAccountNumberIn(accounts);
+    log.info("Deleted {} existing Host records.", deleted);
 
-        Map<String, String> hypMapping = new HashMap<>();
-        Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
-        Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts = new HashMap<>();
-        Map<String, Host> hypervisorHosts = new HashMap<>();
-        Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
+    Map<String, String> hypMapping = new HashMap<>();
+    Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
+    Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts = new HashMap<>();
+    Map<String, Host> hypervisorHosts = new HashMap<>();
+    Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
-        inventory.reportedHypervisors(accounts,
-            reported -> hypMapping.put((String) reported[0], (String) reported[1]));
-        log.info("Found {} reported hypervisors.", hypMapping.size());
+    inventory.reportedHypervisors(
+        accounts, reported -> hypMapping.put((String) reported[0], (String) reported[1]));
+    log.info("Found {} reported hypervisors.", hypMapping.size());
 
-        Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
-        inventory.processHostFacts(accounts, culledOffsetDays,
-            hostFacts -> {
-                String account = hostFacts.getAccount();
+    Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
+    inventory.processHostFacts(
+        accounts,
+        culledOffsetDays,
+        hostFacts -> {
+          String account = hostFacts.getAccount();
 
-                calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
+          calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
 
-                AccountUsageCalculation accountCalc = calcsByAccount.get(account);
-                NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypMapping);
+          AccountUsageCalculation accountCalc = calcsByAccount.get(account);
+          NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypMapping);
 
-                // Validate and set the owner.
-                // Don't set null owner as it may overwrite an existing value.
-                // Likely won't happen, but there could be stale data in inventory
-                // with no owner set.
-                String owner = facts.getOwner();
-                if (owner != null) {
-                    String currentOwner = accountCalc.getOwner();
-                    if (currentOwner != null && !currentOwner.equalsIgnoreCase(owner)) {
-                        throw new IllegalStateException(
-                            String.format("Attempt to set a different owner for an account: %s:%s",
-                                currentOwner, owner));
-                    }
-                    accountCalc.setOwner(owner);
-                }
-
-                Host host = new Host(hostFacts, facts);
-                if (facts.isHypervisor()) {
-                    Map<String, NormalizedFacts> idToHypervisorMap = accountHypervisorFacts
-                        .computeIfAbsent(account, a -> new HashMap<>());
-                    idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
-                    hypervisorHosts.put(hostFacts.getSubscriptionManagerId(), host);
-                }
-                else if (facts.isVirtual() && !StringUtils.isEmpty(facts.getHypervisorUuid())) {
-                    Integer guests = hypervisorGuestCounts.getOrDefault(host.getHypervisorUuid(), 0);
-                    hypervisorGuestCounts.put(host.getHypervisorUuid(), ++guests);
-                }
-
-                ServiceLevel[] slas = new ServiceLevel[]{facts.getSla(), ServiceLevel._ANY };
-                Usage[] usages = new Usage[]{facts.getUsage(), Usage._ANY };
-
-                // Calculate for each UsageKey
-                products.forEach(product -> {
-                    for (ServiceLevel sla : slas) {
-                        for (Usage usage : usages) {
-                            UsageCalculation.Key key = new UsageCalculation.Key(product, sla, usage);
-                            UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
-                            if (facts.getProducts().contains(product)) {
-                                try {
-                                    String hypervisorUuid = facts.getHypervisorUuid();
-                                    if (hypervisorUuid != null) {
-                                        Set<UsageCalculation.Key> keys = hypervisorUsageKeys
-                                            .computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>());
-                                        keys.add(key);
-                                    }
-                                    Optional<HostTallyBucket> appliedBucket =
-                                        ProductUsageCollectorFactory.get(product).collect(calc, facts);
-                                    appliedBucket.ifPresent(host::addBucket);
-                                }
-                                catch (Exception e) {
-                                    log.error("Unable to collect usage data for host: {} product: {}",
-                                        hostFacts.getSubscriptionManagerId(), product, e);
-                                }
-                            }
-                        }
-                    }
-                });
-
-                // Save the host now that the buckets have been determined. Hypervisor hosts will
-                // be persisted once all potential guests have been processed.
-                if (!facts.isHypervisor()) {
-                    hostRepository.save(host);
-                }
+          // Validate and set the owner.
+          // Don't set null owner as it may overwrite an existing value.
+          // Likely won't happen, but there could be stale data in inventory
+          // with no owner set.
+          String owner = facts.getOwner();
+          if (owner != null) {
+            String currentOwner = accountCalc.getOwner();
+            if (currentOwner != null && !currentOwner.equalsIgnoreCase(owner)) {
+              throw new IllegalStateException(
+                  String.format(
+                      "Attempt to set a different owner for an account: %s:%s",
+                      currentOwner, owner));
             }
-        );
+            accountCalc.setOwner(owner);
+          }
 
-        accountHypervisorFacts.forEach((account, accountHypervisors) -> {
-            AccountUsageCalculation accountCalc = calcsByAccount.get(account);
-            accountHypervisors.forEach((hypervisorUuid, hypervisor) -> {
-                Host hypHost = hypervisorHosts.get(hypervisorUuid);
-                hypHost.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
-                Set<UsageCalculation.Key> usageKeys = hypervisorUsageKeys.getOrDefault(hypervisorUuid,
-                    Collections.emptySet());
+          Host host = new Host(hostFacts, facts);
+          if (facts.isHypervisor()) {
+            Map<String, NormalizedFacts> idToHypervisorMap =
+                accountHypervisorFacts.computeIfAbsent(account, a -> new HashMap<>());
+            idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
+            hypervisorHosts.put(hostFacts.getSubscriptionManagerId(), host);
+          } else if (facts.isVirtual() && !StringUtils.isEmpty(facts.getHypervisorUuid())) {
+            Integer guests = hypervisorGuestCounts.getOrDefault(host.getHypervisorUuid(), 0);
+            hypervisorGuestCounts.put(host.getHypervisorUuid(), ++guests);
+          }
 
-                usageKeys.forEach(key -> {
-                    UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
-                    ProductUsageCollector productUsageCollector = ProductUsageCollectorFactory
-                        .get(key.getProductId());
-                    Optional<HostTallyBucket> appliedBucket =
-                        productUsageCollector.collectForHypervisor(account, usageCalc, hypervisor);
-                    appliedBucket.ifPresent(hypHost::addBucket);
-                });
-            });
+          ServiceLevel[] slas = new ServiceLevel[] {facts.getSla(), ServiceLevel._ANY};
+          Usage[] usages = new Usage[] {facts.getUsage(), Usage._ANY};
+
+          // Calculate for each UsageKey
+          products.forEach(
+              product -> {
+                for (ServiceLevel sla : slas) {
+                  for (Usage usage : usages) {
+                    UsageCalculation.Key key = new UsageCalculation.Key(product, sla, usage);
+                    UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
+                    if (facts.getProducts().contains(product)) {
+                      try {
+                        String hypervisorUuid = facts.getHypervisorUuid();
+                        if (hypervisorUuid != null) {
+                          Set<UsageCalculation.Key> keys =
+                              hypervisorUsageKeys.computeIfAbsent(
+                                  hypervisorUuid, uuid -> new HashSet<>());
+                          keys.add(key);
+                        }
+                        Optional<HostTallyBucket> appliedBucket =
+                            ProductUsageCollectorFactory.get(product).collect(calc, facts);
+                        appliedBucket.ifPresent(host::addBucket);
+                      } catch (Exception e) {
+                        log.error(
+                            "Unable to collect usage data for host: {} product: {}",
+                            hostFacts.getSubscriptionManagerId(),
+                            product,
+                            e);
+                      }
+                    }
+                  }
+                }
+              });
+
+          // Save the host now that the buckets have been determined. Hypervisor hosts will
+          // be persisted once all potential guests have been processed.
+          if (!facts.isHypervisor()) {
+            hostRepository.save(host);
+          }
         });
 
-        if (hypervisorHosts.size() > 0) {
-            log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
-            hostRepository.saveAll(hypervisorHosts.values());
-        }
+    accountHypervisorFacts.forEach(
+        (account, accountHypervisors) -> {
+          AccountUsageCalculation accountCalc = calcsByAccount.get(account);
+          accountHypervisors.forEach(
+              (hypervisorUuid, hypervisor) -> {
+                Host hypHost = hypervisorHosts.get(hypervisorUuid);
+                hypHost.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
+                Set<UsageCalculation.Key> usageKeys =
+                    hypervisorUsageKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
 
-        if (log.isDebugEnabled()) {
-            calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
-        }
+                usageKeys.forEach(
+                    key -> {
+                      UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
+                      ProductUsageCollector productUsageCollector =
+                          ProductUsageCollectorFactory.get(key.getProductId());
+                      Optional<HostTallyBucket> appliedBucket =
+                          productUsageCollector.collectForHypervisor(
+                              account, usageCalc, hypervisor);
+                      appliedBucket.ifPresent(hypHost::addBucket);
+                    });
+              });
+        });
 
-        return calcsByAccount;
+    if (hypervisorHosts.size() > 0) {
+      log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
+      hostRepository.saveAll(hypervisorHosts.values());
     }
 
+    if (log.isDebugEnabled()) {
+      calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
+    }
+
+    return calcsByAccount;
+  }
 }

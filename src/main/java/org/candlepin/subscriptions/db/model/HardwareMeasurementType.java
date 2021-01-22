@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,42 +18,37 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.db.model;
 
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Enum to capture the various types of measurements in the hardware_measurements table
- */
+/** Enum to capture the various types of measurements in the hardware_measurements table */
 public enum HardwareMeasurementType {
-    PHYSICAL,
-    HYPERVISOR,
-    VIRTUAL,
-    TOTAL,
-    AWS, // AWS measured by HBI data
-    AWS_CLOUDIGRADE, // AWS, measured by cloudigrade
-    GOOGLE,
-    ALIBABA,
-    AZURE;
+  PHYSICAL,
+  HYPERVISOR,
+  VIRTUAL,
+  TOTAL,
+  AWS, // AWS measured by HBI data
+  AWS_CLOUDIGRADE, // AWS, measured by cloudigrade
+  GOOGLE,
+  ALIBABA,
+  AZURE;
 
-    public static boolean isSupportedCloudProvider(String name) {
-        if (name == null || name.isEmpty()) {
-            return false;
-        }
-
-        try {
-            return getCloudProviderTypes().contains(HardwareMeasurementType.valueOf(name.toUpperCase()));
-        }
-        catch (IllegalArgumentException e) {
-            // Passed an invalid type string, consider it not supported.
-            return false;
-        }
+  public static boolean isSupportedCloudProvider(String name) {
+    if (name == null || name.isEmpty()) {
+      return false;
     }
 
-    public static List<HardwareMeasurementType> getCloudProviderTypes() {
-        return Arrays.asList(AWS, AWS_CLOUDIGRADE, GOOGLE, AZURE, ALIBABA);
+    try {
+      return getCloudProviderTypes().contains(HardwareMeasurementType.valueOf(name.toUpperCase()));
+    } catch (IllegalArgumentException e) {
+      // Passed an invalid type string, consider it not supported.
+      return false;
     }
+  }
+
+  public static List<HardwareMeasurementType> getCloudProviderTypes() {
+    return Arrays.asList(AWS, AWS_CLOUDIGRADE, GOOGLE, AZURE, ALIBABA);
+  }
 }
-

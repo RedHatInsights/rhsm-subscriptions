@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,36 +34,41 @@ import java.util.List;
 
 public class PerLineFileResourceTest {
 
-    @Test
-    public void ensureOneProductPerLine() throws Exception {
-        assertListFile("item_per_line.txt", Arrays.asList("I1", "I2", "I3"));
-    }
+  @Test
+  public void ensureOneProductPerLine() throws Exception {
+    assertListFile("item_per_line.txt", Arrays.asList("I1", "I2", "I3"));
+  }
 
-    @Test
-    public void ensureEmptyLinesAreIgnored() throws Exception {
-        assertListFile("item_per_line_with_empty_lines.txt", Arrays.asList("I10", "I20", "I30"));
-    }
+  @Test
+  public void ensureEmptyLinesAreIgnored() throws Exception {
+    assertListFile("item_per_line_with_empty_lines.txt", Arrays.asList("I10", "I20", "I30"));
+  }
 
-    @Test
-    public void ensureExceptionWhenResourceNotFound() {
-        RuntimeException rte = assertThrows(RuntimeException.class, () -> {
-            assertListFile("bogus", Arrays.asList());
-        });
-        assertEquals("Resource not found: class path resource [bogus]", rte.getMessage());
-    }
+  @Test
+  public void ensureExceptionWhenResourceNotFound() {
+    RuntimeException rte =
+        assertThrows(
+            RuntimeException.class,
+            () -> {
+              assertListFile("bogus", Arrays.asList());
+            });
+    assertEquals("Resource not found: class path resource [bogus]", rte.getMessage());
+  }
 
-    private void assertListFile(String orgListFileLocation, List<String> expectedLines) throws Exception {
-        PerLineFileSource source = createSource(orgListFileLocation);
-        List<String> read = source.list();
-        assertEquals(3, read.size());
-        assertThat(read, Matchers.contains(expectedLines.toArray()));
-    }
+  private void assertListFile(String orgListFileLocation, List<String> expectedLines)
+      throws Exception {
+    PerLineFileSource source = createSource(orgListFileLocation);
+    List<String> read = source.list();
+    assertEquals(3, read.size());
+    assertThat(read, Matchers.contains(expectedLines.toArray()));
+  }
 
-    private PerLineFileSource createSource(String filename) {
-        PerLineFileSource source = new PerLineFileSource(String.format("classpath:%s", filename),
-            Clock.systemUTC(), Duration.ofMinutes(5));
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
-        return source;
-    }
+  private PerLineFileSource createSource(String filename) {
+    PerLineFileSource source =
+        new PerLineFileSource(
+            String.format("classpath:%s", filename), Clock.systemUTC(), Duration.ofMinutes(5));
+    source.setResourceLoader(new FileSystemResourceLoader());
+    source.init();
+    return source;
+  }
 }

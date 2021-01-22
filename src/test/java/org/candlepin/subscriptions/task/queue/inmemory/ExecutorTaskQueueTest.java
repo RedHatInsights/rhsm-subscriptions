@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,48 +36,56 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
 @ExtendWith(MockitoExtension.class)
 class ExecutorTaskQueueTest {
 
-    @Mock
-    TallyTaskFactory taskFactory;
+  @Mock TallyTaskFactory taskFactory;
 
-    @Test
-    void ensureTaskIsExecutedPriorToShutdown() throws InterruptedException {
-        ExecutorTaskQueue queue = new ExecutorTaskQueue();
-        ExecutorTaskProcessor processor = new ExecutorTaskProcessor(Executors.newCachedThreadPool(),
-            taskFactory, queue, "my-group");
-        TaskDescriptor expectedTaskDesc =
-            TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build();
-        final AtomicBoolean done = new AtomicBoolean();
-        Mockito.when(taskFactory.build(Mockito.any())).thenReturn(() -> {
-            done.set(true);
-        });
-        queue.enqueue(expectedTaskDesc);
-        processor.shutdown(2000, TimeUnit.MILLISECONDS);
-        assertTrue(done.get());
-    }
+  @Test
+  void ensureTaskIsExecutedPriorToShutdown() throws InterruptedException {
+    ExecutorTaskQueue queue = new ExecutorTaskQueue();
+    ExecutorTaskProcessor processor =
+        new ExecutorTaskProcessor(Executors.newCachedThreadPool(), taskFactory, queue, "my-group");
+    TaskDescriptor expectedTaskDesc =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build();
+    final AtomicBoolean done = new AtomicBoolean();
+    Mockito.when(taskFactory.build(Mockito.any()))
+        .thenReturn(
+            () -> {
+              done.set(true);
+            });
+    queue.enqueue(expectedTaskDesc);
+    processor.shutdown(2000, TimeUnit.MILLISECONDS);
+    assertTrue(done.get());
+  }
 
-    @Test
-    void verifyNoExceptionWhenTaskFails() throws InterruptedException {
-        AtomicBoolean failed = new AtomicBoolean();
-        ExecutorTaskQueue queue = new ExecutorTaskQueue();
-        ExecutorTaskProcessor processor = new ExecutorTaskProcessor(
-            Executors.newCachedThreadPool((runnable) -> {
-                Thread thread = new Thread(runnable);
-                thread.setUncaughtExceptionHandler((_thread, throwable) -> {
-                    failed.set(true);
-                });
-                return thread;
-            }), taskFactory, queue, "my-group");
-        TaskDescriptor expectedTaskDesc =
-            TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build();
-        Mockito.when(taskFactory.build(Mockito.any())).thenReturn(() -> {
-            throw new RuntimeException("Error!");
-        });
-        queue.enqueue(expectedTaskDesc);
-        processor.shutdown(2000, TimeUnit.MILLISECONDS);
-        assertFalse(failed.get());
-    }
+  @Test
+  void verifyNoExceptionWhenTaskFails() throws InterruptedException {
+    AtomicBoolean failed = new AtomicBoolean();
+    ExecutorTaskQueue queue = new ExecutorTaskQueue();
+    ExecutorTaskProcessor processor =
+        new ExecutorTaskProcessor(
+            Executors.newCachedThreadPool(
+                (runnable) -> {
+                  Thread thread = new Thread(runnable);
+                  thread.setUncaughtExceptionHandler(
+                      (_thread, throwable) -> {
+                        failed.set(true);
+                      });
+                  return thread;
+                }),
+            taskFactory,
+            queue,
+            "my-group");
+    TaskDescriptor expectedTaskDesc =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build();
+    Mockito.when(taskFactory.build(Mockito.any()))
+        .thenReturn(
+            () -> {
+              throw new RuntimeException("Error!");
+            });
+    queue.enqueue(expectedTaskDesc);
+    processor.shutdown(2000, TimeUnit.MILLISECONDS);
+    assertFalse(failed.get());
+  }
 }

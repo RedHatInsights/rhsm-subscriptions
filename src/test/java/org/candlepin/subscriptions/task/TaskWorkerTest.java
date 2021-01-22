@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,31 +31,30 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-
 @SpringBootTest
 @ActiveProfiles("worker,test")
 public class TaskWorkerTest {
 
-    @MockBean
-    private TallyTaskFactory factory;
+  @MockBean private TallyTaskFactory factory;
 
-    @Mock
-    private Task mockTask;
+  @Mock private Task mockTask;
 
-    @Test
-    public void testExecuteTask() throws Exception {
-        TaskWorker worker = new TaskWorker(factory);
-        when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
-        worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group").build());
-        verify(mockTask).execute();
-    }
+  @Test
+  public void testExecuteTask() throws Exception {
+    TaskWorker worker = new TaskWorker(factory);
+    when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
+    worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group").build());
+    verify(mockTask).execute();
+  }
 
-    @Test
-    public void testThrowsTaskExecutionExceptionOnTaskFailure() throws Exception {
-        TaskWorker worker = new TaskWorker(factory);
-        when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
-        doThrow(RuntimeException.class).when(mockTask).execute();
-        assertThrows(TaskExecutionException.class,
-            () -> worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group").build()));
-    }
+  @Test
+  public void testThrowsTaskExecutionExceptionOnTaskFailure() throws Exception {
+    TaskWorker worker = new TaskWorker(factory);
+    when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
+    doThrow(RuntimeException.class).when(mockTask).execute();
+    assertThrows(
+        TaskExecutionException.class,
+        () ->
+            worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group").build()));
+  }
 }

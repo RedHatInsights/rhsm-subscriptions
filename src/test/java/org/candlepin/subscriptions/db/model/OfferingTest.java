@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,34 +30,34 @@ import java.util.List;
 
 class OfferingTest {
 
-    @Test
-    void veriftySimpleGetSetTest() {
-        final List<String> skus = Arrays.asList("childsku1", "childsku2");
-        final List<Integer> productIds = Arrays.asList(1, 2);
-        final Offering offering = new Offering();
-        offering.setSku("testsku");
-        offering.setChildSkus(skus);
-        offering.setProductIds(productIds);
-        offering.setUsage(Usage.DEVELOPMENT_TEST);
-        offering.setServiceLevel(ServiceLevel.PREMIUM);
-        offering.setRole("testrole");
-        offering.setPhysicalCores(2);
-        offering.setPhysicalSockets(3);
-        offering.setVirtualCores(4);
-        offering.setVirtualSockets(5);
-        offering.setProductFamily("testproductfamily");
-        offering.setProductName("testproductname");
-        assertEquals("testsku", offering.getSku());
-        assertArrayEquals(skus.toArray(), offering.getChildSkus().toArray());
-        assertArrayEquals(productIds.toArray(), offering.getProductIds().toArray());
-        assertEquals(Usage.DEVELOPMENT_TEST, offering.getUsage());
-        assertEquals(ServiceLevel.PREMIUM, offering.getServiceLevel());
-        assertEquals("testrole", offering.getRole());
-        assertEquals(2, offering.getPhysicalCores());
-        assertEquals(3, offering.getPhysicalSockets());
-        assertEquals(4, offering.getVirtualCores());
-        assertEquals(5, offering.getVirtualSockets());
-        assertEquals("testproductfamily", offering.getProductFamily());
-        assertEquals("testproductname", offering.getProductName());
-    }
+  @Test
+  void veriftySimpleGetSetTest() {
+    final List<String> skus = Arrays.asList("childsku1", "childsku2");
+    final List<Integer> productIds = Arrays.asList(1, 2);
+    final Offering offering = new Offering();
+    offering.setSku("testsku");
+    offering.setChildSkus(skus);
+    offering.setProductIds(productIds);
+    offering.setUsage(Usage.DEVELOPMENT_TEST);
+    offering.setServiceLevel(ServiceLevel.PREMIUM);
+    offering.setRole("testrole");
+    offering.setPhysicalCores(2);
+    offering.setPhysicalSockets(3);
+    offering.setVirtualCores(4);
+    offering.setVirtualSockets(5);
+    offering.setProductFamily("testproductfamily");
+    offering.setProductName("testproductname");
+    assertEquals("testsku", offering.getSku());
+    assertArrayEquals(skus.toArray(), offering.getChildSkus().toArray());
+    assertArrayEquals(productIds.toArray(), offering.getProductIds().toArray());
+    assertEquals(Usage.DEVELOPMENT_TEST, offering.getUsage());
+    assertEquals(ServiceLevel.PREMIUM, offering.getServiceLevel());
+    assertEquals("testrole", offering.getRole());
+    assertEquals(2, offering.getPhysicalCores());
+    assertEquals(3, offering.getPhysicalSockets());
+    assertEquals(4, offering.getVirtualCores());
+    assertEquals(5, offering.getVirtualSockets());
+    assertEquals("testproductfamily", offering.getProductFamily());
+    assertEquals("testproductname", offering.getProductName());
+  }
 }

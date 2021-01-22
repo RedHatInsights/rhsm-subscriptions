@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,19 +27,19 @@ import org.springframework.security.access.AccessDeniedException;
 import javax.ws.rs.core.Response.Status;
 
 /**
- * An exception that represents an access denied exception in cases where
- * opt-in is required to access an end-point.
+ * An exception that represents an access denied exception in cases where opt-in is required to
+ * access an end-point.
  */
 public class OptInRequiredException extends AccessDeniedException {
-    public OptInRequiredException() {
-        super("Opt-in required.");
-    }
+  public OptInRequiredException() {
+    super("Opt-in required.");
+  }
 
-    public Error getError() {
-        return new Error()
-           .code(ErrorCode.OPT_IN_REQUIRED.getCode())
-           .status(String.valueOf(Status.FORBIDDEN.getStatusCode()))
-           .title("Access Denied")
-           .detail(this.getMessage());
-    }
+  public Error getError() {
+    return new Error()
+        .code(ErrorCode.OPT_IN_REQUIRED.getCode())
+        .status(String.valueOf(Status.FORBIDDEN.getStatusCode()))
+        .title("Access Denied")
+        .detail(this.getMessage());
+  }
 }

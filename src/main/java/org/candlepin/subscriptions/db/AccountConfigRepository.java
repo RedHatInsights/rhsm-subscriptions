@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,21 +29,19 @@ import org.springframework.data.repository.query.Param;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
-/**
- * Defines all operations for storing account config entries.
- */
+/** Defines all operations for storing account config entries. */
 public interface AccountConfigRepository extends JpaRepository<AccountConfig, String> {
 
-    @Query("select distinct c.accountNumber from AccountConfig c where c.syncEnabled = TRUE")
-    Stream<String> findSyncEnabledAccounts();
+  @Query("select distinct c.accountNumber from AccountConfig c where c.syncEnabled = TRUE")
+  Stream<String> findSyncEnabledAccounts();
 
-    @Query(
-        "select case when count(c) > 0 then true else false end from AccountConfig c " +
-        "where c.accountNumber = :account and c.reportingEnabled = TRUE")
-    boolean isReportingEnabled(@Param("account") String accountNumber);
+  @Query(
+      "select case when count(c) > 0 then true else false end from AccountConfig c "
+          + "where c.accountNumber = :account and c.reportingEnabled = TRUE")
+  boolean isReportingEnabled(@Param("account") String accountNumber);
 
-    @Query("select count(c) from AccountConfig c " +
-        "where c.optInType='API' and c.created between :startOfWeek and :endOfWeek")
-    int getCountOfOptInsForDateRange(OffsetDateTime startOfWeek, OffsetDateTime endOfWeek);
-
+  @Query(
+      "select count(c) from AccountConfig c "
+          + "where c.optInType='API' and c.created between :startOfWeek and :endOfWeek")
+  int getCountOfOptInsForDateRange(OffsetDateTime startOfWeek, OffsetDateTime endOfWeek);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,43 +28,41 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Factory that produces inventory service clients using configuration. An
- * AuthApiClient is used to ensure that the identity header is passed on
- * with any request to the RBAC API.
+ * Factory that produces inventory service clients using configuration. An AuthApiClient is used to
+ * ensure that the identity header is passed on with any request to the RBAC API.
  */
 public class RbacApiFactory implements FactoryBean<RbacApi> {
 
-    private static Logger log = LoggerFactory.getLogger(RbacApiFactory.class);
+  private static Logger log = LoggerFactory.getLogger(RbacApiFactory.class);
 
-    private final HttpClientProperties serviceProperties;
+  private final HttpClientProperties serviceProperties;
 
-    public RbacApiFactory(HttpClientProperties serviceProperties) {
-        this.serviceProperties = serviceProperties;
+  public RbacApiFactory(HttpClientProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
+  @Override
+  public RbacApi getObject() throws Exception {
+    if (serviceProperties.isUseStub()) {
+      log.info("Using stub RBAC client");
+      return new StubRbacApi();
+    }
+    ApiClient apiClient = new RbacApiClient();
+    apiClient.setHttpClient(
+        HttpClient.buildHttpClient(
+            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
+    if (serviceProperties.getUrl() != null) {
+      log.info("RBAC service URL: {}", serviceProperties.getUrl());
+      apiClient.setBasePath(serviceProperties.getUrl());
+    } else {
+      log.warn("RBAC service URL not set...");
     }
 
-    @Override
-    public RbacApi getObject() throws Exception {
-        if (serviceProperties.isUseStub()) {
-            log.info("Using stub RBAC client");
-            return new StubRbacApi();
-        }
-        ApiClient apiClient = new RbacApiClient();
-        apiClient.setHttpClient(HttpClient.buildHttpClient(serviceProperties, apiClient.getJSON(),
-            apiClient.isDebugging()));
-        if (serviceProperties.getUrl() != null) {
-            log.info("RBAC service URL: {}", serviceProperties.getUrl());
-            apiClient.setBasePath(serviceProperties.getUrl());
-        }
-        else {
-            log.warn("RBAC service URL not set...");
-        }
+    return new RbacApiImpl(apiClient);
+  }
 
-        return new RbacApiImpl(apiClient);
-    }
-
-    @Override
-    public Class<?> getObjectType() {
-        return RbacApi.class;
-    }
-
+  @Override
+  public Class<?> getObjectType() {
+    return RbacApi.class;
+  }
 }

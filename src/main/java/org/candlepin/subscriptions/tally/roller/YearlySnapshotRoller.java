@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,32 +34,34 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-
 /**
- * Produces yearly snapshots based on data stored in the inventory service. If a snapshot
- * does not exist for the account for the current year and an incoming calculation exists
- * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
- * instances will only be updated if the incoming calculated values are greater than those
- * existing for the current year.
+ * Produces yearly snapshots based on data stored in the inventory service. If a snapshot does not
+ * exist for the account for the current year and an incoming calculation exists for the account, a
+ * new snapshot will be created. A snapshot's cores, sockets, and instances will only be updated if
+ * the incoming calculated values are greater than those existing for the current year.
  */
 public class YearlySnapshotRoller extends BaseSnapshotRoller {
 
-    private static final Logger log = LoggerFactory.getLogger(YearlySnapshotRoller.class);
+  private static final Logger log = LoggerFactory.getLogger(YearlySnapshotRoller.class);
 
-    public YearlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        super(tallyRepo, clock);
-    }
+  public YearlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    super(tallyRepo, clock);
+  }
 
-    @Override
-    @Transactional
-    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
-        log.debug("Producing yearly snapshots for {} account(s).", accounts.size());
+  @Override
+  @Transactional
+  public void rollSnapshots(
+      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing yearly snapshots for {} account(s).", accounts.size());
 
-        Map<String, List<TallySnapshot>> currentYearlySnaps = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), Granularity.YEARLY, clock.startOfCurrentYear(),
+    Map<String, List<TallySnapshot>> currentYearlySnaps =
+        getCurrentSnapshotsByAccount(
+            accounts,
+            getApplicableProducts(accountCalcs),
+            Granularity.YEARLY,
+            clock.startOfCurrentYear(),
             clock.endOfCurrentYear());
 
-        updateSnapshots(accountCalcs, currentYearlySnaps, Granularity.YEARLY);
-    }
-
+    updateSnapshots(accountCalcs, currentYearlySnaps, Granularity.YEARLY);
+  }
 }

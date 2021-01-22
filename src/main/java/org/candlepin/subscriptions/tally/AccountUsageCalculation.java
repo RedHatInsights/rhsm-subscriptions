@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,75 +25,72 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * The calculated usage for an account.
- */
+/** The calculated usage for an account. */
 public class AccountUsageCalculation {
 
+  private String account;
+  private String owner;
+  private Map<UsageCalculation.Key, UsageCalculation> calculations;
+  private Set<String> products;
 
-    private String account;
-    private String owner;
-    private Map<UsageCalculation.Key, UsageCalculation> calculations;
-    private Set<String> products;
+  public AccountUsageCalculation(String account) {
+    this.account = account;
+    this.calculations = new HashMap<>();
+    this.products = new HashSet<>();
+  }
 
-    public AccountUsageCalculation(String account) {
-        this.account = account;
-        this.calculations = new HashMap<>();
-        this.products = new HashSet<>();
+  public UsageCalculation getOrCreateCalculation(UsageCalculation.Key key) {
+    UsageCalculation calc = getCalculation(key);
+    if (calc == null) {
+      calc = new UsageCalculation(key);
+      addCalculation(calc);
     }
+    return calc;
+  }
 
-    public UsageCalculation getOrCreateCalculation(UsageCalculation.Key key) {
-        UsageCalculation calc = getCalculation(key);
-        if (calc == null) {
-            calc = new UsageCalculation(key);
-            addCalculation(calc);
-        }
-        return calc;
+  public String getAccount() {
+    return account;
+  }
+
+  public String getOwner() {
+    return owner;
+  }
+
+  public void setOwner(String owner) {
+    this.owner = owner;
+  }
+
+  public void addCalculation(UsageCalculation calc) {
+    String productId = calc.getProductId();
+    this.calculations.put(
+        new UsageCalculation.Key(productId, calc.getSla(), calc.getUsage()), calc);
+    this.products.add(productId);
+  }
+
+  public boolean containsCalculation(UsageCalculation.Key key) {
+    return this.calculations.containsKey(key);
+  }
+
+  public Set<UsageCalculation.Key> getKeys() {
+    return this.calculations.keySet();
+  }
+
+  public Set<String> getProducts() {
+    return this.products;
+  }
+
+  public UsageCalculation getCalculation(UsageCalculation.Key key) {
+    return this.calculations.get(key);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append(String.format("[Account: %s, Owner: %s, Calculations: [", account, owner));
+    for (UsageCalculation calc : this.calculations.values()) {
+      builder.append(calc);
     }
-
-    public String getAccount() {
-        return account;
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
-    public void addCalculation(UsageCalculation calc) {
-        String productId = calc.getProductId();
-        this.calculations.put(new UsageCalculation.Key(productId, calc.getSla(), calc.getUsage()), calc);
-        this.products.add(productId);
-    }
-
-    public boolean containsCalculation(UsageCalculation.Key key) {
-        return this.calculations.containsKey(key);
-    }
-
-    public Set<UsageCalculation.Key> getKeys() {
-        return this.calculations.keySet();
-    }
-
-    public Set<String> getProducts() {
-        return this.products;
-    }
-
-    public UsageCalculation getCalculation(UsageCalculation.Key key) {
-        return this.calculations.get(key);
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append(String.format("[Account: %s, Owner: %s, Calculations: [", account, owner));
-        for (UsageCalculation calc : this.calculations.values()) {
-            builder.append(calc);
-        }
-        builder.append("]");
-        return builder.toString();
-    }
-
+    builder.append("]");
+    return builder.toString();
+  }
 }

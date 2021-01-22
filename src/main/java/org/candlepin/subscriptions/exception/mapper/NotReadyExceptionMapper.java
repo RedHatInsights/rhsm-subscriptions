@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,18 +30,15 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
-/**
- * Maps a NotReadyException to a 503 (Service Unavailable) response
- */
+/** Maps a NotReadyException to a 503 (Service Unavailable) response */
 @Component
 @Provider
 public class NotReadyExceptionMapper implements ExceptionMapper<NotReadyException> {
-    @Override
-    public Response toResponse(NotReadyException exception) {
-        return Response
-            .status(Status.SERVICE_UNAVAILABLE)
-            .entity(exception.getMessage())
-            .type(MediaType.TEXT_PLAIN)
-            .build();
-    }
+  @Override
+  public Response toResponse(NotReadyException exception) {
+    return Response.status(Status.SERVICE_UNAVAILABLE)
+        .entity(exception.getMessage())
+        .type(MediaType.TEXT_PLAIN)
+        .build();
+  }
 }

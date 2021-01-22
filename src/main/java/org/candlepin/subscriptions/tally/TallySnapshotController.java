@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,98 +37,93 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Provides the logic for updating Tally snapshots.
- */
+/** Provides the logic for updating Tally snapshots. */
 @Component
 public class TallySnapshotController {
 
-    private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
+  private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
-    private final ApplicationProperties props;
-    private final InventoryAccountUsageCollector usageCollector;
-    private final CloudigradeAccountUsageCollector cloudigradeCollector;
-    private final UsageSnapshotProducer snapshotProducer;
-    private final RetryTemplate retryTemplate;
-    private final RetryTemplate cloudigradeRetryTemplate;
+  private final ApplicationProperties props;
+  private final InventoryAccountUsageCollector usageCollector;
+  private final CloudigradeAccountUsageCollector cloudigradeCollector;
+  private final UsageSnapshotProducer snapshotProducer;
+  private final RetryTemplate retryTemplate;
+  private final RetryTemplate cloudigradeRetryTemplate;
 
-    private final Set<String> applicableProducts;
+  private final Set<String> applicableProducts;
 
-    public TallySnapshotController(
-        ApplicationProperties props,
-        @Qualifier("applicableProducts") Set<String> applicableProducts,
-        InventoryAccountUsageCollector usageCollector,
-        CloudigradeAccountUsageCollector cloudigradeCollector,
-        UsageSnapshotProducer snapshotProducer,
-        @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
-        @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate) {
+  public TallySnapshotController(
+      ApplicationProperties props,
+      @Qualifier("applicableProducts") Set<String> applicableProducts,
+      InventoryAccountUsageCollector usageCollector,
+      CloudigradeAccountUsageCollector cloudigradeCollector,
+      UsageSnapshotProducer snapshotProducer,
+      @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
+      @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate) {
 
-        this.props = props;
-        this.applicableProducts = applicableProducts;
-        this.usageCollector = usageCollector;
-        this.cloudigradeCollector = cloudigradeCollector;
-        this.snapshotProducer = snapshotProducer;
-        this.retryTemplate = retryTemplate;
-        this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
+    this.props = props;
+    this.applicableProducts = applicableProducts;
+    this.usageCollector = usageCollector;
+    this.cloudigradeCollector = cloudigradeCollector;
+    this.snapshotProducer = snapshotProducer;
+    this.retryTemplate = retryTemplate;
+    this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
+  }
+
+  @Timed("rhsm-subscriptions.snapshots.single")
+  public void produceSnapshotsForAccount(String account) {
+    produceSnapshotsForAccounts(Collections.singletonList(account));
+  }
+
+  @Timed("rhsm-subscriptions.snapshots.collection")
+  public void produceSnapshotsForAccounts(List<String> accounts) {
+    if (accounts.size() > props.getAccountBatchSize()) {
+      log.info(
+          "Skipping message w/ {} accounts: count is greater than configured batch size: {}",
+          accounts.size(),
+          props.getAccountBatchSize());
+      return;
+    }
+    log.info("Producing snapshots for {} accounts.", accounts.size());
+    // Account list could be large. Only print them when debugging.
+    if (log.isDebugEnabled()) {
+      log.debug("Producing snapshots for accounts: {}", String.join(",", accounts));
     }
 
-    @Timed("rhsm-subscriptions.snapshots.single")
-    public void produceSnapshotsForAccount(String account) {
-        produceSnapshotsForAccounts(Collections.singletonList(account));
+    Map<String, AccountUsageCalculation> accountCalcs;
+    try {
+      accountCalcs =
+          retryTemplate.execute(
+              context -> usageCollector.collect(this.applicableProducts, accounts));
+      if (props.isCloudigradeEnabled()) {
+        attemptCloudigradeEnrichment(accounts, accountCalcs);
+      }
+    } catch (Exception e) {
+      log.error("Could not collect existing usage snapshots for accounts {}", accounts, e);
+      return;
     }
 
-    @Timed("rhsm-subscriptions.snapshots.collection")
-    public void produceSnapshotsForAccounts(List<String> accounts) {
-        if (accounts.size() > props.getAccountBatchSize()) {
-            log.info("Skipping message w/ {} accounts: count is greater than configured batch size: {}",
-                accounts.size(),
-                props.getAccountBatchSize());
-            return;
-        }
-        log.info("Producing snapshots for {} accounts.", accounts.size());
-        // Account list could be large. Only print them when debugging.
-        if (log.isDebugEnabled()) {
-            log.debug("Producing snapshots for accounts: {}", String.join(",", accounts));
-        }
+    snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+  }
 
-        Map<String, AccountUsageCalculation> accountCalcs;
-        try {
-            accountCalcs = retryTemplate.execute(context ->
-                usageCollector.collect(this.applicableProducts, accounts)
-            );
-            if (props.isCloudigradeEnabled()) {
-                attemptCloudigradeEnrichment(accounts, accountCalcs);
+  private void attemptCloudigradeEnrichment(
+      List<String> accounts, Map<String, AccountUsageCalculation> accountCalcs) {
+    log.info("Adding cloudigrade reports to calculations.");
+    try {
+      cloudigradeRetryTemplate.execute(
+          context -> {
+            try {
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, accounts);
+            } catch (Exception e) {
+              throw new ExternalServiceException(
+                  ErrorCode.REQUEST_PROCESSING_ERROR,
+                  "Error during attempt to integrate cloudigrade report",
+                  e);
             }
-        }
-        catch (Exception e) {
-            log.error("Could not collect existing usage snapshots for accounts {}", accounts, e);
-            return;
-        }
-
-        snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+            return null; // RetryCallback requires a return
+          });
+    } catch (Exception e) {
+      log.warn("Exception during cloudigrade enrichment, tally will not be enriched.", e);
     }
-
-    private void attemptCloudigradeEnrichment(List<String> accounts,
-        Map<String, AccountUsageCalculation> accountCalcs) {
-        log.info("Adding cloudigrade reports to calculations.");
-        try {
-            cloudigradeRetryTemplate.execute(context -> {
-                try {
-                    cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, accounts);
-                }
-                catch (Exception e) {
-                    throw new ExternalServiceException(
-                        ErrorCode.REQUEST_PROCESSING_ERROR,
-                        "Error during attempt to integrate cloudigrade report",
-                        e
-                    );
-                }
-                return null; // RetryCallback requires a return
-            });
-        }
-        catch (Exception e) {
-            log.warn("Exception during cloudigrade enrichment, tally will not be enriched.", e);
-        }
-    }
-
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,40 +34,38 @@ import org.springframework.util.StringUtils;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-
 /**
  * The base class for all rhsm-subscription exception mappers. Its intent is to build the same
  * response no matter the exception.
+ *
  * @param <T> the throwable that is to be mapped
  */
 public abstract class BaseExceptionMapper<T extends Throwable> implements ExceptionMapper<T> {
-    private static final Logger log = LoggerFactory.getLogger(BaseExceptionMapper.class);
+  private static final Logger log = LoggerFactory.getLogger(BaseExceptionMapper.class);
 
-    @Override
-    public Response toResponse(T exception) {
-        Error error = buildError(exception);
-        String message = StringUtils.hasText(error.getCode()) ?
-            String.format("%s: %s", error.getCode(), error.getTitle()) :
-            error.getTitle();
-        Class<?> exClass = exception.getClass();
-        if (AccessDeniedException.class.isAssignableFrom(exClass) ||
-            AuthenticationException.class.isAssignableFrom(exClass)) {
-            log.error(SECURITY_STACKTRACE, message, exception);
-        }
-        else {
-            log.error(message, exception);
-        }
-        return ExceptionUtil.toResponse(error);
+  @Override
+  public Response toResponse(T exception) {
+    Error error = buildError(exception);
+    String message =
+        StringUtils.hasText(error.getCode())
+            ? String.format("%s: %s", error.getCode(), error.getTitle())
+            : error.getTitle();
+    Class<?> exClass = exception.getClass();
+    if (AccessDeniedException.class.isAssignableFrom(exClass)
+        || AuthenticationException.class.isAssignableFrom(exClass)) {
+      log.error(SECURITY_STACKTRACE, message, exception);
+    } else {
+      log.error(message, exception);
     }
+    return ExceptionUtil.toResponse(error);
+  }
 
-    /**
-     * Builds an Error model object that will be returned as the body of an
-     * error response.
-     *
-     * @param exception the exception to be transformed.
-     * @return an Error object containing the appropriate code and message
-     *         as deduced from the passed exception.
-     */
-    protected abstract Error buildError(T exception);
-
+  /**
+   * Builds an Error model object that will be returned as the body of an error response.
+   *
+   * @param exception the exception to be transformed.
+   * @return an Error object containing the appropriate code and message as deduced from the passed
+   *     exception.
+   */
+  protected abstract Error buildError(T exception);
 }

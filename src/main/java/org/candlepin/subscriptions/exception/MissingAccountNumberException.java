@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,7 @@
  */
 package org.candlepin.subscriptions.exception;
 
-/**
- * Exception thrown when an org does not have an account number.
- */
+/** Exception thrown when an org does not have an account number. */
 public class MissingAccountNumberException extends Exception {
-    /* intentionally empty */
+  /* intentionally empty */
 }

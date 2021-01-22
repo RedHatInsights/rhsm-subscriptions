@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,8 @@ package org.candlepin.subscriptions.files;
 
 import org.springframework.context.annotation.ComponentScan;
 
-/**
- * Configuration that provides the product ID to product map.
- */
+/** Configuration that provides the product ID to product map. */
 @ComponentScan(basePackages = "org.candlepin.subscriptions.files")
 public class ProductIdMappingConfiguration {
-    /* Intentionally empty */
+  /* Intentionally empty */
 }

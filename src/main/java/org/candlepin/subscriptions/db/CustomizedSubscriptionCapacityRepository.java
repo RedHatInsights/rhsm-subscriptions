@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,14 +30,19 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Fragment interface defining methods for queries not handled well by Spring JPA's
- * query methods DSL.
+ * Fragment interface defining methods for queries not handled well by Spring JPA's query methods
+ * DSL.
  *
- * See
+ * <p>See
  * https://docs.spring.io/spring-data/jpa/docs/2.3.0.RELEASE/reference/html/#repositories.custom-implementations
  */
 public interface CustomizedSubscriptionCapacityRepository {
-    @Transactional
-    List<SubscriptionCapacity> findByOwnerAndProductId(String ownerId, String productId,
-        ServiceLevel serviceLevel, Usage usage, OffsetDateTime reportBegin, OffsetDateTime reportEnd);
+  @Transactional
+  List<SubscriptionCapacity> findByOwnerAndProductId(
+      String ownerId,
+      String productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      OffsetDateTime reportBegin,
+      OffsetDateTime reportEnd);
 }

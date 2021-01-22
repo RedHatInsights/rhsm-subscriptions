@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,56 +35,51 @@ import java.net.URISyntaxException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-/**
- * Utility to create page links for paginated APIs.
- */
+/** Utility to create page links for paginated APIs. */
 @Component
 public class PageLinkCreator {
 
-    /**
-     * Create a Links object with first, last, previous, next API links.
-     *
-     * @param uriInfo pre-existing URI to be used as a template for the page links
-     * @param page Spring Data JPA page object
-     *
-     * @return a populate TallyReportLinks object
-     */
-    public TallyReportLinks getPaginationLinks(UriInfo uriInfo, Page page) {
-        TallyReportLinks links = new TallyReportLinks();
-        if (page.previousPageable() != Pageable.unpaged()) {
-            links.setPrevious(formatUri(uriWithOffset(uriInfo, page.previousPageable().getOffset())));
-        }
-        if (page.nextPageable() != Pageable.unpaged()) {
-            links.setNext(formatUri(uriWithOffset(uriInfo, page.nextPageable().getOffset())));
-        }
-        links.setFirst(formatUri(uriWithOffset(uriInfo, 0)));
-        int lastPage = page.getTotalPages() - 1;
-        if (lastPage < 0) {
-            lastPage = 0;
-        }
-        int lastOffset =
-            (int) PageRequest.of(lastPage, page.getPageable().getPageSize()).getOffset();
-        links.setLast(formatUri(uriWithOffset(uriInfo, lastOffset)));
-        return links;
+  /**
+   * Create a Links object with first, last, previous, next API links.
+   *
+   * @param uriInfo pre-existing URI to be used as a template for the page links
+   * @param page Spring Data JPA page object
+   * @return a populate TallyReportLinks object
+   */
+  public TallyReportLinks getPaginationLinks(UriInfo uriInfo, Page page) {
+    TallyReportLinks links = new TallyReportLinks();
+    if (page.previousPageable() != Pageable.unpaged()) {
+      links.setPrevious(formatUri(uriWithOffset(uriInfo, page.previousPageable().getOffset())));
     }
+    if (page.nextPageable() != Pageable.unpaged()) {
+      links.setNext(formatUri(uriWithOffset(uriInfo, page.nextPageable().getOffset())));
+    }
+    links.setFirst(formatUri(uriWithOffset(uriInfo, 0)));
+    int lastPage = page.getTotalPages() - 1;
+    if (lastPage < 0) {
+      lastPage = 0;
+    }
+    int lastOffset = (int) PageRequest.of(lastPage, page.getPageable().getPageSize()).getOffset();
+    links.setLast(formatUri(uriWithOffset(uriInfo, lastOffset)));
+    return links;
+  }
 
-    private URI uriWithOffset(UriInfo uriInfo, long newOffset) {
-        return uriInfo.getRequestUriBuilder().replaceQueryParam("offset", newOffset).build();
-    }
+  private URI uriWithOffset(UriInfo uriInfo, long newOffset) {
+    return uriInfo.getRequestUriBuilder().replaceQueryParam("offset", newOffset).build();
+  }
 
-    private String formatUri(URI uri) {
-        try {
-            URI serverUri = new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), "/",
-                null, null);
-            return String.format("/%s", serverUri.relativize(uri).toString());
-        }
-        catch (URISyntaxException e) {
-            throw new SubscriptionsException(
-                ErrorCode.REQUEST_PROCESSING_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                "Unable to format URI",
-                e
-            );
-        }
+  private String formatUri(URI uri) {
+    try {
+      URI serverUri =
+          new URI(
+              uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), "/", null, null);
+      return String.format("/%s", serverUri.relativize(uri).toString());
+    } catch (URISyntaxException e) {
+      throw new SubscriptionsException(
+          ErrorCode.REQUEST_PROCESSING_ERROR,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Unable to format URI",
+          e);
     }
+  }
 }

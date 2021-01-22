@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,70 +44,72 @@ import java.util.Set;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CapacityProductExtractorTest {
 
-    private CapacityProductExtractor extractor;
-    private ApplicationClock clock = new ApplicationClock(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+  private CapacityProductExtractor extractor;
+  private ApplicationClock clock = new ApplicationClock(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
-    @BeforeAll
-    void setup() throws IOException {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
-        props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
+  @BeforeAll
+  void setup() throws IOException {
+    ApplicationProperties props = new ApplicationProperties();
+    props.setProductIdToProductsMapResourceLocation(
+        "classpath:test_product_id_to_products_map.yaml");
+    props.setRoleToProductsMapResourceLocation("classpath:test_role_to_products_map.yaml");
 
-        ProductIdToProductsMapSource productIdToProductsMapSource = new ProductIdToProductsMapSource(props,
-            clock);
-        productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
-        productIdToProductsMapSource.init();
+    ProductIdToProductsMapSource productIdToProductsMapSource =
+        new ProductIdToProductsMapSource(props, clock);
+    productIdToProductsMapSource.setResourceLoader(new FileSystemResourceLoader());
+    productIdToProductsMapSource.init();
 
-        extractor = new CapacityProductExtractor(productIdToProductsMapSource);
-    }
+    extractor = new CapacityProductExtractor(productIdToProductsMapSource);
+  }
 
-    @Test
-    void productExtractorReturnsExpectedProducts() {
-        Set<String> products = extractor.getProducts(Arrays.asList("6", "9", "10"));
-        assertThat(products, Matchers.containsInAnyOrder("RHEL", "NOT RHEL", "RHEL Workstation",
-            "RHEL Server"));
-    }
+  @Test
+  void productExtractorReturnsExpectedProducts() {
+    Set<String> products = extractor.getProducts(Arrays.asList("6", "9", "10"));
+    assertThat(
+        products,
+        Matchers.containsInAnyOrder("RHEL", "NOT RHEL", "RHEL Workstation", "RHEL Server"));
+  }
 
-    @Test
-    void productExtractorReturnsNoProductsIfNoProductIdsMatch() {
-        Set<String> products = extractor.getProducts(Collections.singletonList("42"));
-        assertThat(products, Matchers.empty());
-    }
+  @Test
+  void productExtractorReturnsNoProductsIfNoProductIdsMatch() {
+    Set<String> products = extractor.getProducts(Collections.singletonList("42"));
+    assertThat(products, Matchers.empty());
+  }
 
-    @Test
-    void productSetIsInvalid() {
-        Set<String> products = new HashSet<>();
-        products.add("RHEL Workstation");
-        products.add("Satellite 6");
-        assertThat(extractor.setIsInvalid(products), Matchers.is(true));
-    }
+  @Test
+  void productSetIsInvalid() {
+    Set<String> products = new HashSet<>();
+    products.add("RHEL Workstation");
+    products.add("Satellite 6");
+    assertThat(extractor.setIsInvalid(products), Matchers.is(true));
+  }
 
-    @Test
-    void productSetIsInvalidWithOpenShift() {
-        Set<String> products = new HashSet<>();
-        products.add("RHEL Workstation");
-        products.add("OpenShift Container Platform");
-        assertThat(extractor.setIsInvalid(products), Matchers.is(true));
-    }
+  @Test
+  void productSetIsInvalidWithOpenShift() {
+    Set<String> products = new HashSet<>();
+    products.add("RHEL Workstation");
+    products.add("OpenShift Container Platform");
+    assertThat(extractor.setIsInvalid(products), Matchers.is(true));
+  }
 
-    @Test
-    void productSetIsValid() {
-        Set<String> products = new HashSet<>();
-        products.add("RHEL Workstation");
-        products.add("RHEL");
-        products.add("RHEL for x86");
-        assertThat(extractor.setIsInvalid(products), Matchers.is(false));
-    }
+  @Test
+  void productSetIsValid() {
+    Set<String> products = new HashSet<>();
+    products.add("RHEL Workstation");
+    products.add("RHEL");
+    products.add("RHEL for x86");
+    assertThat(extractor.setIsInvalid(products), Matchers.is(false));
+  }
 
-    @Test
-    void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
-        Set<String> products = extractor.getProducts(Arrays.asList("1", "12"));
-        assertThat(products, Matchers.containsInAnyOrder("Satellite 6 Capsule"));
-    }
+  @Test
+  void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
+    Set<String> products = extractor.getProducts(Arrays.asList("1", "12"));
+    assertThat(products, Matchers.containsInAnyOrder("Satellite 6 Capsule"));
+  }
 
-    @Test
-    void productExtractorReturnsExpectedProductsWhenOpenShiftPresent() {
-        Set<String> products = extractor.getProducts(Arrays.asList("1", "13"));
-        assertThat(products, Matchers.containsInAnyOrder("OpenShift Container Platform"));
-    }
+  @Test
+  void productExtractorReturnsExpectedProductsWhenOpenShiftPresent() {
+    Set<String> products = extractor.getProducts(Arrays.asList("1", "13"));
+    assertThat(products, Matchers.containsInAnyOrder("OpenShift Container Platform"));
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,14 +20,10 @@
  */
 package org.candlepin.subscriptions.tally;
 
-/**
- * Represents an exception that occurs when something goes wrong
- * while pulling account lists.
- */
+/** Represents an exception that occurs when something goes wrong while pulling account lists. */
 public class AccountListSourceException extends Exception {
 
-    public AccountListSourceException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
+  public AccountListSourceException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

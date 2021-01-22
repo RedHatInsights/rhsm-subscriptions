@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,82 +51,87 @@ import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-/**
- * Tally API implementation.
- */
+/** Tally API implementation. */
 @Component
 public class TallyResource implements TallyApi {
 
-    private final TallySnapshotRepository repository;
-    private final PageLinkCreator pageLinkCreator;
-    private final ApplicationClock clock;
+  private final TallySnapshotRepository repository;
+  private final PageLinkCreator pageLinkCreator;
+  private final ApplicationClock clock;
 
-    @Context
-    private UriInfo uriInfo;
+  @Context private UriInfo uriInfo;
 
-    public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator,
-        ApplicationClock clock) {
-        this.repository = repository;
-        this.pageLinkCreator = pageLinkCreator;
-        this.clock = clock;
+  public TallyResource(
+      TallySnapshotRepository repository, PageLinkCreator pageLinkCreator, ApplicationClock clock) {
+    this.repository = repository;
+    this.pageLinkCreator = pageLinkCreator;
+    this.clock = clock;
+  }
+
+  @SuppressWarnings("linelength")
+  @Override
+  @ReportingAccessRequired
+  public TallyReport getTallyReport(
+      ProductId productId,
+      @NotNull GranularityType granularityType,
+      @NotNull OffsetDateTime beginning,
+      @NotNull OffsetDateTime ending,
+      Integer offset,
+      @Min(1) Integer limit,
+      ServiceLevelType sla,
+      UsageType usageType) {
+    // When limit and offset are not specified, we will fill the report with dummy
+    // records from beginning to ending dates. Otherwise we page as usual.
+    Pageable pageable = null;
+    boolean fill = limit == null && offset == null;
+    if (!fill) {
+      pageable = ResourceUtils.getPageable(offset, limit);
     }
 
-    @SuppressWarnings("linelength")
-    @Override
-    @ReportingAccessRequired
-    public TallyReport getTallyReport(ProductId productId, @NotNull GranularityType granularityType,
-        @NotNull OffsetDateTime beginning, @NotNull OffsetDateTime ending, Integer offset,
-        @Min(1) Integer limit, ServiceLevelType sla, UsageType usageType) {
-        // When limit and offset are not specified, we will fill the report with dummy
-        // records from beginning to ending dates. Otherwise we page as usual.
-        Pageable pageable = null;
-        boolean fill = limit == null && offset == null;
-        if (!fill) {
-            pageable = ResourceUtils.getPageable(offset, limit);
-        }
+    String accountNumber = ResourceUtils.getAccountNumber();
+    ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
+    Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
+    Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
 
-        String accountNumber = ResourceUtils.getAccountNumber();
-        ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-        Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
-        Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
+    Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
+        repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                accountNumber,
+                productId.toString(),
+                granularityFromValue,
+                serviceLevel,
+                effectiveUsage,
+                beginning,
+                ending,
+                pageable);
 
-        Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository.findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-            accountNumber,
-            productId.toString(),
-            granularityFromValue,
-            serviceLevel,
-            effectiveUsage,
-            beginning,
-            ending,
-            pageable);
-
-        List<TallySnapshot> snaps = snapshotPage.stream()
+    List<TallySnapshot> snaps =
+        snapshotPage.stream()
             .map(org.candlepin.subscriptions.db.model.TallySnapshot::asApiSnapshot)
             .collect(Collectors.toList());
 
-        TallyReport report = new TallyReport();
-        report.setData(snaps);
-        report.setMeta(new TallyReportMeta());
-        report.getMeta().setGranularity(granularityFromValue.asOpenApiEnum());
-        report.getMeta().setProduct(productId);
-        report.getMeta().setServiceLevel(sla);
-        report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
+    TallyReport report = new TallyReport();
+    report.setData(snaps);
+    report.setMeta(new TallyReportMeta());
+    report.getMeta().setGranularity(granularityFromValue.asOpenApiEnum());
+    report.getMeta().setProduct(productId);
+    report.getMeta().setServiceLevel(sla);
+    report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
 
-        // Only set page links if we are paging (not filling).
-        if (pageable != null) {
-            report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
-        }
-
-        // Fill the report gaps if no paging was requested.
-        if (fill) {
-            ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityFromValue);
-            reportFiller.fillGaps(report, beginning, ending);
-        }
-
-        // Set the count last since the report may have gotten filled.
-        report.getMeta().setCount(report.getData().size());
-
-        return report;
+    // Only set page links if we are paging (not filling).
+    if (pageable != null) {
+      report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
     }
 
+    // Fill the report gaps if no paging was requested.
+    if (fill) {
+      ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityFromValue);
+      reportFiller.fillGaps(report, beginning, ending);
+    }
+
+    // Set the count last since the report may have gotten filled.
+    report.getMeta().setCount(report.getData().size());
+
+    return report;
+  }
 }

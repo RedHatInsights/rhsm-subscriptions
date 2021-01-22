@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,23 +25,20 @@ import com.google.common.net.InetAddresses;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-/**
- * A ConstraintValidator that ensures that an IP is a valid IPV4 or IPV6 IP.
- */
+/** A ConstraintValidator that ensures that an IP is a valid IPV4 or IPV6 IP. */
 public class IpAddressValidator implements ConstraintValidator<IpAddress, String> {
 
-    @Override
-    public void initialize(IpAddress constraintAnnotation) {
-        /* intentionally empty */
-    }
+  @Override
+  public void initialize(IpAddress constraintAnnotation) {
+    /* intentionally empty */
+  }
 
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        // A null or empty value is considered invalid.
-        if (value == null || value.isEmpty()) {
-            return false;
-        }
-        return InetAddresses.isInetAddress(value);
+  @Override
+  public boolean isValid(String value, ConstraintValidatorContext context) {
+    // A null or empty value is considered invalid.
+    if (value == null || value.isEmpty()) {
+      return false;
     }
-
+    return InetAddresses.isInetAddress(value);
+  }
 }

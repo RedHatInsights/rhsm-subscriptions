@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,14 +24,14 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
-/**
- * Reads a set of accounts to sync from a file. Each line is a single account.
- */
+/** Reads a set of accounts to sync from a file. Each line is a single account. */
 public class FileAccountSyncListSource extends PerLineFileSource {
 
-    public FileAccountSyncListSource(ApplicationProperties applicationProperties, ApplicationClock clock) {
-        super(applicationProperties.getAccountListResourceLocation(), clock.getClock(),
-            applicationProperties.getAccountListCacheTtl());
-    }
-
+  public FileAccountSyncListSource(
+      ApplicationProperties applicationProperties, ApplicationClock clock) {
+    super(
+        applicationProperties.getAccountListResourceLocation(),
+        clock.getClock(),
+        applicationProperties.getAccountListCacheTtl());
+  }
 }

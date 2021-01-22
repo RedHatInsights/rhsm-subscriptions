@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,13 +23,10 @@ package org.candlepin.subscriptions.exception.inventory;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 
-/**
- * Thrown when there was an issue making a request to the inventory service.
- */
+/** Thrown when there was an issue making a request to the inventory service. */
 public class InventoryServiceRequestException extends ExternalServiceException {
 
-    public InventoryServiceRequestException(String message, Throwable e) {
-        super(ErrorCode.INVENTORY_SERVICE_REQUEST_ERROR, message, e);
-    }
-
+  public InventoryServiceRequestException(String message, Throwable e) {
+    super(ErrorCode.INVENTORY_SERVICE_REQUEST_ERROR, message, e);
+  }
 }

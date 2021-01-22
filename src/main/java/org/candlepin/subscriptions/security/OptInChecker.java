@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,42 +27,43 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 /**
- * A simple class to check that the user has opted in.  This class is meant to be used from a SpEL expression
- * like so "@optInChecker.checkAccess(authentication, request)".  A WebExpressionVoter will then run that
- * expression and based on the result vote +1 or -1 for granting access.  That vote will got to the
- * AccessDecisionManager who makes the final access control decision.
+ * A simple class to check that the user has opted in. This class is meant to be used from a SpEL
+ * expression like so "@optInChecker.checkAccess(authentication, request)". A WebExpressionVoter
+ * will then run that expression and based on the result vote +1 or -1 for granting access. That
+ * vote will got to the AccessDecisionManager who makes the final access control decision.
  */
 @Component
 public class OptInChecker {
-    private OptInController optInController;
+  private OptInController optInController;
 
-    public OptInChecker(OptInController optInController) {
-        this.optInController = optInController;
+  public OptInChecker(OptInController optInController) {
+    this.optInController = optInController;
+  }
+
+  public boolean checkAccess(Authentication authentication) {
+    Object principal = authentication.getPrincipal();
+    if (!InsightsUserPrincipal.class.isAssignableFrom(principal.getClass())) {
+      // Unrecognized principal.  Allow Spring Security to return Access Denied.
+      return false;
     }
 
-    public boolean checkAccess(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (!InsightsUserPrincipal.class.isAssignableFrom(principal.getClass())) {
-            // Unrecognized principal.  Allow Spring Security to return Access Denied.
-            return false;
-        }
+    InsightsUserPrincipal insightsUserPrincipal =
+        (InsightsUserPrincipal) authentication.getPrincipal();
 
-        InsightsUserPrincipal insightsUserPrincipal = (InsightsUserPrincipal) authentication.getPrincipal();
+    OptInConfig optin =
+        optInController.getOptInConfig(
+            insightsUserPrincipal.getAccountNumber(), insightsUserPrincipal.getOwnerId());
 
-        OptInConfig optin = optInController.getOptInConfig(
-            insightsUserPrincipal.getAccountNumber(), insightsUserPrincipal.getOwnerId()
-        );
-
-        /* If not opted-in, throw an exception.  Ideally we would just return true/false, but if we return
-         * false the user just gets a generic "Access Denied" message.  By throwing the exception here, we
-         * ensure that they see the message indicating they have not opted in. If we just wanted to return
-         * true/false I think we would need to implement this class as an AccessDecisionVoter that throws
-         * the OptInRequiredException in the AccessDecisionVoter.vote method and then our own
-         * AbstractAccessDecisionManager capable of catching that exception and rethrowing it after all
-         * the other voters had been consulted. */
-        if (Boolean.FALSE.equals(optin.getData().getOptInComplete())) {
-            throw new OptInRequiredException();
-        }
-        return true;
+    /* If not opted-in, throw an exception.  Ideally we would just return true/false, but if we return
+     * false the user just gets a generic "Access Denied" message.  By throwing the exception here, we
+     * ensure that they see the message indicating they have not opted in. If we just wanted to return
+     * true/false I think we would need to implement this class as an AccessDecisionVoter that throws
+     * the OptInRequiredException in the AccessDecisionVoter.vote method and then our own
+     * AbstractAccessDecisionManager capable of catching that exception and rethrowing it after all
+     * the other voters had been consulted. */
+    if (Boolean.FALSE.equals(optin.getData().getOptInComplete())) {
+      throw new OptInRequiredException();
     }
+    return true;
+  }
 }

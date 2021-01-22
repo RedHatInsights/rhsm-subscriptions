@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,36 +25,37 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-
 public class HardwareMeasurementTypeTest {
 
-    @Test
-    public void testIsCloudProviderTypeCaseInsensitive() {
-        assertTrue(HardwareMeasurementType.isSupportedCloudProvider("aws"));
-        assertTrue(HardwareMeasurementType.isSupportedCloudProvider("AWS"));
-    }
+  @Test
+  public void testIsCloudProviderTypeCaseInsensitive() {
+    assertTrue(HardwareMeasurementType.isSupportedCloudProvider("aws"));
+    assertTrue(HardwareMeasurementType.isSupportedCloudProvider("AWS"));
+  }
 
-    @Test
-    public void testEmptyCloudProviderNotSupported() {
-        assertFalse(HardwareMeasurementType.isSupportedCloudProvider(null));
-        assertFalse(HardwareMeasurementType.isSupportedCloudProvider(""));
-    }
+  @Test
+  public void testEmptyCloudProviderNotSupported() {
+    assertFalse(HardwareMeasurementType.isSupportedCloudProvider(null));
+    assertFalse(HardwareMeasurementType.isSupportedCloudProvider(""));
+  }
 
-    @Test
-    public void testUnsupportedIfNotInList() {
-        assertFalse(HardwareMeasurementType.isSupportedCloudProvider("unknown_type"));
-    }
+  @Test
+  public void testUnsupportedIfNotInList() {
+    assertFalse(HardwareMeasurementType.isSupportedCloudProvider("unknown_type"));
+  }
 
-    @Test
-    public void testUnsupportedIfHardwareTypeButNotInList() {
-        assertFalse(HardwareMeasurementType.isSupportedCloudProvider(
-            HardwareMeasurementType.PHYSICAL.name()));
-    }
+  @Test
+  public void testUnsupportedIfHardwareTypeButNotInList() {
+    assertFalse(
+        HardwareMeasurementType.isSupportedCloudProvider(HardwareMeasurementType.PHYSICAL.name()));
+  }
 
-    @Test
-    public void ensureAllCloudProviderTypesAreConsideredSupported() {
-        HardwareMeasurementType.getCloudProviderTypes().forEach(type -> {
-            assertTrue(HardwareMeasurementType.isSupportedCloudProvider(type.name()));
-        });
-    }
+  @Test
+  public void ensureAllCloudProviderTypesAreConsideredSupported() {
+    HardwareMeasurementType.getCloudProviderTypes()
+        .forEach(
+            type -> {
+              assertTrue(HardwareMeasurementType.isSupportedCloudProvider(type.name()));
+            });
+  }
 }

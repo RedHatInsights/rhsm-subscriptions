@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,19 +27,15 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 
-/**
- * Stops all message consumption when the application is shutting down.
- */
+/** Stops all message consumption when the application is shutting down. */
 public class KafkaApplicationListener implements ApplicationListener<ContextClosedEvent> {
-    private static final Logger log = LoggerFactory.getLogger(KafkaApplicationListener.class);
+  private static final Logger log = LoggerFactory.getLogger(KafkaApplicationListener.class);
 
-    @Autowired
-    private KafkaListenerEndpointRegistry registry;
+  @Autowired private KafkaListenerEndpointRegistry registry;
 
-
-    @Override
-    public void onApplicationEvent(ContextClosedEvent event) {
-        log.info("Shutting down kafka consumers...");
-        registry.stop();
-    }
+  @Override
+  public void onApplicationEvent(ContextClosedEvent event) {
+    log.info("Shutting down kafka consumers...");
+    registry.stop();
+  }
 }

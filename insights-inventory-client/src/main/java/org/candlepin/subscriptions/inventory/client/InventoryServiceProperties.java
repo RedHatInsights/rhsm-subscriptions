@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,82 +25,80 @@ import org.springframework.boot.convert.DurationUnit;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
-/**
- * Sub-class for inventory service properties
- */
+/** Sub-class for inventory service properties */
 public class InventoryServiceProperties {
-    private boolean useStub;
-    private String url;
-    private String apiKey;
-    private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-    private int apiHostUpdateBatchSize = 50;
-    private int staleHostOffsetInDays = 0;
-    private boolean addUuidHyphens = false;
+  private boolean useStub;
+  private String url;
+  private String apiKey;
+  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
+  private int apiHostUpdateBatchSize = 50;
+  private int staleHostOffsetInDays = 0;
+  private boolean addUuidHyphens = false;
 
-    @DurationUnit(ChronoUnit.HOURS)
-    private Duration hostLastSyncThreshold = Duration.ofHours(24);
+  @DurationUnit(ChronoUnit.HOURS)
+  private Duration hostLastSyncThreshold = Duration.ofHours(24);
 
-    public boolean isUseStub() {
-        return useStub;
-    }
+  public boolean isUseStub() {
+    return useStub;
+  }
 
-    public void setUseStub(boolean useStub) {
-        this.useStub = useStub;
-    }
+  public void setUseStub(boolean useStub) {
+    this.useStub = useStub;
+  }
 
-    public String getUrl() {
-        return url;
-    }
+  public String getUrl() {
+    return url;
+  }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+  public void setUrl(String url) {
+    this.url = url;
+  }
 
-    public String getApiKey() {
-        return apiKey;
-    }
+  public String getApiKey() {
+    return apiKey;
+  }
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+  public void setApiKey(String apiKey) {
+    this.apiKey = apiKey;
+  }
 
-    public int getApiHostUpdateBatchSize() {
-        return apiHostUpdateBatchSize;
-    }
+  public int getApiHostUpdateBatchSize() {
+    return apiHostUpdateBatchSize;
+  }
 
-    public void setApiHostUpdateBatchSize(int apiHostUpdateBatchSize) {
-        this.apiHostUpdateBatchSize = apiHostUpdateBatchSize;
-    }
+  public void setApiHostUpdateBatchSize(int apiHostUpdateBatchSize) {
+    this.apiHostUpdateBatchSize = apiHostUpdateBatchSize;
+  }
 
-    public int getStaleHostOffsetInDays() {
-        return staleHostOffsetInDays;
-    }
+  public int getStaleHostOffsetInDays() {
+    return staleHostOffsetInDays;
+  }
 
-    public void setStaleHostOffsetInDays(int staleHostOffsetInDays) {
-        this.staleHostOffsetInDays = staleHostOffsetInDays;
-    }
+  public void setStaleHostOffsetInDays(int staleHostOffsetInDays) {
+    this.staleHostOffsetInDays = staleHostOffsetInDays;
+  }
 
-    public String getKafkaHostIngressTopic() {
-        return kafkaHostIngressTopic;
-    }
+  public String getKafkaHostIngressTopic() {
+    return kafkaHostIngressTopic;
+  }
 
-    public void setKafkaHostIngressTopic(String kafkaHostIngressTopic) {
-        this.kafkaHostIngressTopic = kafkaHostIngressTopic;
-    }
+  public void setKafkaHostIngressTopic(String kafkaHostIngressTopic) {
+    this.kafkaHostIngressTopic = kafkaHostIngressTopic;
+  }
 
-    public Duration getHostLastSyncThreshold() {
-        return hostLastSyncThreshold;
-    }
+  public Duration getHostLastSyncThreshold() {
+    return hostLastSyncThreshold;
+  }
 
-    public void setHostLastSyncThreshold(Duration hostLastSyncThreshold) {
-        this.hostLastSyncThreshold = hostLastSyncThreshold;
-    }
+  public void setHostLastSyncThreshold(Duration hostLastSyncThreshold) {
+    this.hostLastSyncThreshold = hostLastSyncThreshold;
+  }
 
-    public boolean isAddUuidHyphens() {
-        return addUuidHyphens;
-    }
+  public boolean isAddUuidHyphens() {
+    return addUuidHyphens;
+  }
 
-    public void setAddUuidHyphens(boolean addUuidHyphens) {
-        this.addUuidHyphens = addUuidHyphens;
-    }
+  public void setAddUuidHyphens(boolean addUuidHyphens) {
+    this.addUuidHyphens = addUuidHyphens;
+  }
 }

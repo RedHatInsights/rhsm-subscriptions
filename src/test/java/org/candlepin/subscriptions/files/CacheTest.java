@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,44 +33,47 @@ import java.time.ZoneOffset;
 
 class CacheTest {
 
-    @Test
-    void testValueSetIsRetrieved() {
-        Cache<Object> cache = new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ofMinutes(5));
-        Object expected = new Object();
-        cache.setValue(expected);
-        assertEquals(expected, cache.getValue());
-    }
+  @Test
+  void testValueSetIsRetrieved() {
+    Cache<Object> cache =
+        new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ofMinutes(5));
+    Object expected = new Object();
+    cache.setValue(expected);
+    assertEquals(expected, cache.getValue());
+  }
 
-    @Test
-    void testExpiredBeforeSet() {
-        Cache<Object> cache = new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ofMinutes(5));
-        assertTrue(cache.isExpired());
-    }
+  @Test
+  void testExpiredBeforeSet() {
+    Cache<Object> cache =
+        new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ofMinutes(5));
+    assertTrue(cache.isExpired());
+  }
 
-    @Test
-    void testNotExpiredImmediatelyAfterSetting() {
-        Cache<Object> cache = new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ofMinutes(5));
-        Object expected = new Object();
-        cache.setValue(expected);
-        assertFalse(cache.isExpired());
-    }
+  @Test
+  void testNotExpiredImmediatelyAfterSetting() {
+    Cache<Object> cache =
+        new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ofMinutes(5));
+    Object expected = new Object();
+    cache.setValue(expected);
+    assertFalse(cache.isExpired());
+  }
 
-    @Test
-    void testNoCachingIfZeroTtl() {
-        Cache<Object> cache = new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ZERO);
-        Object expected = new Object();
-        cache.setValue(expected);
-        assertTrue(cache.isExpired());
-    }
+  @Test
+  void testNoCachingIfZeroTtl() {
+    Cache<Object> cache = new Cache<>(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC), Duration.ZERO);
+    Object expected = new Object();
+    cache.setValue(expected);
+    assertTrue(cache.isExpired());
+  }
 
-    @Test
-    void testExpiresAfterTtl() {
-        TestClock clock = new TestClock(Instant.EPOCH, ZoneOffset.UTC);
-        Cache<Object> cache = new Cache<>(clock, Duration.ofSeconds(60));
-        Object expected = new Object();
-        cache.setValue(expected);
-        assertFalse(cache.isExpired());
-        clock.setInstant(Instant.EPOCH.plusSeconds(60));
-        assertTrue(cache.isExpired());
-    }
+  @Test
+  void testExpiresAfterTtl() {
+    TestClock clock = new TestClock(Instant.EPOCH, ZoneOffset.UTC);
+    Cache<Object> cache = new Cache<>(clock, Duration.ofSeconds(60));
+    Object expected = new Object();
+    cache.setValue(expected);
+    assertFalse(cache.isExpired());
+    clock.setInstant(Instant.EPOCH.plusSeconds(60));
+    assertTrue(cache.isExpired());
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,43 +41,41 @@ import java.util.Collections;
 @ActiveProfiles("test")
 class IdentityHeaderAuthenticationProviderTest {
 
-    @MockBean
-    PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
+  @MockBean PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
-    @MockBean
-    IdentityHeaderAuthenticationDetailsService detailsService;
+  @MockBean IdentityHeaderAuthenticationDetailsService detailsService;
 
-    @Autowired
-    AuthenticationProvider manager;
+  @Autowired AuthenticationProvider manager;
 
-    @Test
-    void testMissingOrgId() {
-        Authentication auth = token(null, "account");
-        AuthenticationException e =
-            assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
-        assertEquals("x-rh-identity contains no owner ID for the principal", e.getCause().getMessage());
-    }
+  @Test
+  void testMissingOrgId() {
+    Authentication auth = token(null, "account");
+    AuthenticationException e =
+        assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
+    assertEquals("x-rh-identity contains no owner ID for the principal", e.getCause().getMessage());
+  }
 
-    @Test
-    void testMissingAccountNumber() {
-        Authentication auth = token("123", null);
-        AuthenticationException e =
-            assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
-        assertEquals("x-rh-identity contains no account number for the principal", e.getCause().getMessage());
-    }
+  @Test
+  void testMissingAccountNumber() {
+    Authentication auth = token("123", null);
+    AuthenticationException e =
+        assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
+    assertEquals(
+        "x-rh-identity contains no account number for the principal", e.getCause().getMessage());
+  }
 
-    @Test
-    void validPrincipalIsAuthenticated() {
-        when(detailsService.loadUserDetails(any())).thenReturn(new User("N/A", "N/A",
-            Collections.emptyList()));
-        Authentication result = manager.authenticate(token("123", "acct"));
-        assertTrue(result.isAuthenticated());
-    }
+  @Test
+  void validPrincipalIsAuthenticated() {
+    when(detailsService.loadUserDetails(any()))
+        .thenReturn(new User("N/A", "N/A", Collections.emptyList()));
+    Authentication result = manager.authenticate(token("123", "acct"));
+    assertTrue(result.isAuthenticated());
+  }
 
-    private PreAuthenticatedAuthenticationToken token(String org, String account) {
-        PreAuthenticatedAuthenticationToken token =
-            new PreAuthenticatedAuthenticationToken(new InsightsUserPrincipal(org, account), "N/A");
-        token.setDetails(details);
-        return token;
-    }
+  private PreAuthenticatedAuthenticationToken token(String org, String account) {
+    PreAuthenticatedAuthenticationToken token =
+        new PreAuthenticatedAuthenticationToken(new InsightsUserPrincipal(org, account), "N/A");
+    token.setDetails(details);
+    return token;
+  }
 }

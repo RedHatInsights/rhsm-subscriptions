@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,13 +23,12 @@ package org.candlepin.subscriptions.exception;
 import javax.ws.rs.core.Response.Status;
 
 /**
- * An exception that is thrown when rhsm-subscriptions encounters an exception while
- * communicating with an external service such as insights-inventory.
+ * An exception that is thrown when rhsm-subscriptions encounters an exception while communicating
+ * with an external service such as insights-inventory.
  */
 public class ExternalServiceException extends SubscriptionsException {
 
-    public ExternalServiceException(ErrorCode code, String message, Throwable e) {
-        super(code, Status.INTERNAL_SERVER_ERROR, message, e);
-    }
-
+  public ExternalServiceException(ErrorCode code, String message, Throwable e) {
+    super(code, Status.INTERNAL_SERVER_ERROR, message, e);
+  }
 }

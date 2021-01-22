@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,27 +26,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.SchedulingException;
 import org.springframework.scheduling.annotation.Scheduled;
 
-/**
- * A job to sync orgs from RHSM API to RHSM Conduit.
- */
+/** A job to sync orgs from RHSM API to RHSM Conduit. */
 public class OrgSyncJob implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(OrgSyncJob.class);
-    private final OrgSyncTaskManager tasks;
+  private static final Logger log = LoggerFactory.getLogger(OrgSyncJob.class);
+  private final OrgSyncTaskManager tasks;
 
-    @Autowired
-    public OrgSyncJob(OrgSyncTaskManager tasks) {
-        this.tasks = tasks;
-    }
+  @Autowired
+  public OrgSyncJob(OrgSyncTaskManager tasks) {
+    this.tasks = tasks;
+  }
 
-    @Override
-    @Scheduled(cron = "${rhsm-conduit.org-sync.schedule}")
-    public void run() {
-        try {
-            log.info("Firing OrgSync job");
-            tasks.syncFullOrgList();
-        }
-        catch (Exception e) {
-            throw new SchedulingException("Failed to sync org list.", e);
-        }
+  @Override
+  @Scheduled(cron = "${rhsm-conduit.org-sync.schedule}")
+  public void run() {
+    try {
+      log.info("Firing OrgSync job");
+      tasks.syncFullOrgList();
+    } catch (Exception e) {
+      throw new SchedulingException("Failed to sync org list.", e);
     }
+  }
 }

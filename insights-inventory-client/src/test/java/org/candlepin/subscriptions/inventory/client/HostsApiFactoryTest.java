@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,47 +25,47 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 class HostsApiFactoryTest {
-    @Test
-    void testStubClientConfiguration() throws Exception {
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        props.setUseStub(true);
-        HostsApiFactory factory = new HostsApiFactory(props);
-        assertEquals(StubHostsApi.class, factory.getObject().getClass());
-    }
+  @Test
+  void testStubClientConfiguration() throws Exception {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setUseStub(true);
+    HostsApiFactory factory = new HostsApiFactory(props);
+    assertEquals(StubHostsApi.class, factory.getObject().getClass());
+  }
 
-    @Test
-    void testClientGetsUrlFromConfiguration() throws Exception {
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        props.setApiKey("mysecret");
-        props.setUrl("http://example.com/foobar");
-        HostsApiFactory factory = new HostsApiFactory(props);
-        assertEquals("http://example.com/foobar", factory.getObject().getApiClient().getBasePath());
-    }
+  @Test
+  void testClientGetsUrlFromConfiguration() throws Exception {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setApiKey("mysecret");
+    props.setUrl("http://example.com/foobar");
+    HostsApiFactory factory = new HostsApiFactory(props);
+    assertEquals("http://example.com/foobar", factory.getObject().getApiClient().getBasePath());
+  }
 
-    @Test
-    void testNoErrorWhenApiKeyIsSet() throws Exception {
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        props.setApiKey("mysecret");
+  @Test
+  void testNoErrorWhenApiKeyIsSet() throws Exception {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setApiKey("mysecret");
 
-        HostsApiFactory factory = new HostsApiFactory(props);
-        assertNotNull(factory.getObject());
-    }
+    HostsApiFactory factory = new HostsApiFactory(props);
+    assertNotNull(factory.getObject());
+  }
 
-    @Test
-    void throwsIllegalStateWhenApiKeyIsNull() throws Exception {
-        testApiToken(null);
-    }
+  @Test
+  void throwsIllegalStateWhenApiKeyIsNull() throws Exception {
+    testApiToken(null);
+  }
 
-    @Test
-    void throwsIllegalStateWhenApiKeyIsEmpty() throws Exception {
-        testApiToken("");
-    }
+  @Test
+  void throwsIllegalStateWhenApiKeyIsEmpty() throws Exception {
+    testApiToken("");
+  }
 
-    private void testApiToken(String key) {
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        props.setApiKey(key);
-        HostsApiFactory factory = new HostsApiFactory(props);
+  private void testApiToken(String key) {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setApiKey(key);
+    HostsApiFactory factory = new HostsApiFactory(props);
 
-        assertThrows(IllegalStateException.class, () -> factory.getObject());
-    }
+    assertThrows(IllegalStateException.class, () -> factory.getObject());
+  }
 }

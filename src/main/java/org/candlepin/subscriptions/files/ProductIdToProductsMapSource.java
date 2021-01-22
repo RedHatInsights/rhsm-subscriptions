@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,19 +29,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Loads the product ID to list of Tally products mapping from a YAML file.
- */
+/** Loads the product ID to list of Tally products mapping from a YAML file. */
 @Component
 public class ProductIdToProductsMapSource extends YamlFileSource<Map<Integer, List<String>>> {
 
-    public ProductIdToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {
-        super(properties.getProductIdToProductsMapResourceLocation(), clock.getClock(),
-            properties.getProductIdToProductsMapCacheTtl());
-    }
+  public ProductIdToProductsMapSource(ApplicationProperties properties, ApplicationClock clock) {
+    super(
+        properties.getProductIdToProductsMapResourceLocation(),
+        clock.getClock(),
+        properties.getProductIdToProductsMapCacheTtl());
+  }
 
-    @Override
-    protected Map<Integer, List<String>> getDefault() {
-        return Collections.emptyMap();
-    }
+  @Override
+  protected Map<Integer, List<String>> getDefault() {
+    return Collections.emptyMap();
+  }
 }

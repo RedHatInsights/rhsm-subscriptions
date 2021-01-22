@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +35,8 @@ import org.springframework.context.annotation.Import;
 @Import(ApplicationConfiguration.class)
 @SuppressWarnings("checkstyle:hideutilityclassconstructor")
 public class BootApplication {
-    public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(BootApplication.class);
-        app.run(args);
-    }
+  public static void main(String[] args) {
+    SpringApplication app = new SpringApplication(BootApplication.class);
+    app.run(args);
+  }
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,43 +30,39 @@ import org.springframework.stereotype.Component;
 
 import javax.persistence.AttributeConverter;
 
-/**
- * JPA AttributeConverter which uses Jackson to map to/from Event JSON.
- */
+/** JPA AttributeConverter which uses Jackson to map to/from Event JSON. */
 @Component
 class EventRecordConverter implements AttributeConverter<Event, String> {
 
-    private static ObjectMapper objectMapper;
+  private static ObjectMapper objectMapper;
 
-    public EventRecordConverter() {
-        /* intentionally left empty */
-    }
+  public EventRecordConverter() {
+    /* intentionally left empty */
+  }
 
-    // hack to get ObjectMapper from spring context, we should remove once we're on Spring Boot 2.1 &
-    // Hibernate 5.3 per https://stackoverflow.com/a/54686119
-    @Autowired
-    @SuppressWarnings("java:S3010")
-    EventRecordConverter(ObjectMapper mapper) {
-        EventRecordConverter.objectMapper = mapper;
-    }
+  // hack to get ObjectMapper from spring context, we should remove once we're on Spring Boot 2.1 &
+  // Hibernate 5.3 per https://stackoverflow.com/a/54686119
+  @Autowired
+  @SuppressWarnings("java:S3010")
+  EventRecordConverter(ObjectMapper mapper) {
+    EventRecordConverter.objectMapper = mapper;
+  }
 
-    @Override
-    public String convertToDatabaseColumn(Event attribute) {
-        try {
-            return objectMapper.writeValueAsString(attribute);
-        }
-        catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Error serializing event", e);
-        }
+  @Override
+  public String convertToDatabaseColumn(Event attribute) {
+    try {
+      return objectMapper.writeValueAsString(attribute);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Error serializing event", e);
     }
+  }
 
-    @Override
-    public Event convertToEntityAttribute(String dbData) {
-        try {
-            return objectMapper.readValue(dbData, Event.class);
-        }
-        catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Error parsing event", e);
-        }
+  @Override
+  public Event convertToEntityAttribute(String dbData) {
+    try {
+      return objectMapper.readValue(dbData, Event.class);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Error parsing event", e);
     }
+  }
 }

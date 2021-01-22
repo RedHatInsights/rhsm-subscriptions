@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,44 +33,44 @@ import java.util.List;
 
 public class Assertions {
 
-    public static void assertTotalsCalculation(UsageCalculation calc, int sockets, int cores,
-        int instances) {
-        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.TOTAL, sockets, cores, instances);
-    }
+  public static void assertTotalsCalculation(
+      UsageCalculation calc, int sockets, int cores, int instances) {
+    assertHardwareMeasurementTotals(calc, HardwareMeasurementType.TOTAL, sockets, cores, instances);
+  }
 
-    public static void assertPhysicalTotalsCalculation(UsageCalculation calc, int physSockets,
-        int physCores, int physInstances) {
-        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.PHYSICAL, physSockets, physCores,
-            physInstances);
-    }
+  public static void assertPhysicalTotalsCalculation(
+      UsageCalculation calc, int physSockets, int physCores, int physInstances) {
+    assertHardwareMeasurementTotals(
+        calc, HardwareMeasurementType.PHYSICAL, physSockets, physCores, physInstances);
+  }
 
-    public static void assertHypervisorTotalsCalculation(UsageCalculation calc, int hypSockets,
-        int hypCores, int hypInstances) {
-        assertHardwareMeasurementTotals(calc, HardwareMeasurementType.VIRTUAL, hypSockets, hypCores,
-            hypInstances);
-    }
+  public static void assertHypervisorTotalsCalculation(
+      UsageCalculation calc, int hypSockets, int hypCores, int hypInstances) {
+    assertHardwareMeasurementTotals(
+        calc, HardwareMeasurementType.VIRTUAL, hypSockets, hypCores, hypInstances);
+  }
 
-    public static void assertHardwareMeasurementTotals(UsageCalculation calc,
-        HardwareMeasurementType type, int sockets, int cores, int instances) {
-        Totals totals = calc.getTotals(type);
-        assertNotNull(totals, "No totals found for " + type);
+  public static void assertHardwareMeasurementTotals(
+      UsageCalculation calc, HardwareMeasurementType type, int sockets, int cores, int instances) {
+    Totals totals = calc.getTotals(type);
+    assertNotNull(totals, "No totals found for " + type);
 
-        assertEquals(cores, totals.getCores());
-        assertEquals(sockets, totals.getSockets());
-        assertEquals(instances, totals.getInstances());
-    }
+    assertEquals(cores, totals.getCores());
+    assertEquals(sockets, totals.getSockets());
+    assertEquals(instances, totals.getInstances());
+  }
 
-    public static void assertNullExcept(UsageCalculation calc, HardwareMeasurementType ... types) {
-        List<HardwareMeasurementType> notNull = Arrays.asList(types);
-        for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
-            if (notNull.contains(type)) {
-                continue;
-            }
-            assertNull(calc.getTotals(type), "Expected type to be null: " + type);
-        }
+  public static void assertNullExcept(UsageCalculation calc, HardwareMeasurementType... types) {
+    List<HardwareMeasurementType> notNull = Arrays.asList(types);
+    for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
+      if (notNull.contains(type)) {
+        continue;
+      }
+      assertNull(calc.getTotals(type), "Expected type to be null: " + type);
     }
+  }
 
-    private Assertions() {
-        throw new IllegalStateException("Utility class; should never be instantiated!");
-    }
+  private Assertions() {
+    throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
 }

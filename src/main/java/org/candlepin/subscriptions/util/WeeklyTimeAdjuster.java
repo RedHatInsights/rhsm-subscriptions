@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,27 +25,27 @@ import java.time.Period;
 import java.time.temporal.TemporalAmount;
 
 /**
- * A ReportFiller instance that will fill the given TallyReport's snapshots based on a WEEKLY granularity.
+ * A ReportFiller instance that will fill the given TallyReport's snapshots based on a WEEKLY
+ * granularity.
  */
 public class WeeklyTimeAdjuster extends SnapshotTimeAdjuster {
 
-    public WeeklyTimeAdjuster(ApplicationClock clock) {
-        super(clock);
-    }
+  public WeeklyTimeAdjuster(ApplicationClock clock) {
+    super(clock);
+  }
 
-    @Override
-    public TemporalAmount getSnapshotOffset() {
-        return Period.ofWeeks(1);
-    }
+  @Override
+  public TemporalAmount getSnapshotOffset() {
+    return Period.ofWeeks(1);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodStart(OffsetDateTime startDate) {
-        return clock.startOfWeek(startDate);
-    }
+  @Override
+  public OffsetDateTime adjustToPeriodStart(OffsetDateTime startDate) {
+    return clock.startOfWeek(startDate);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
-        return clock.endOfWeek(toAdjust);
-    }
-
+  @Override
+  public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
+    return clock.endOfWeek(toAdjust);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,99 +45,98 @@ import java.util.List;
 @ActiveProfiles("worker,test")
 class CaptureSnapshotsTaskManagerTest {
 
-    @MockBean
-    ExecutorTaskQueue queue;
+  @MockBean ExecutorTaskQueue queue;
 
-    @MockBean
-    ExecutorTaskQueueConsumerFactory consumerFactory;
+  @MockBean ExecutorTaskQueueConsumerFactory consumerFactory;
 
-    @Autowired
-    private CaptureSnapshotsTaskManager manager;
+  @Autowired private CaptureSnapshotsTaskManager manager;
 
-    @MockBean
-    private AccountListSource accountListSource;
+  @MockBean private AccountListSource accountListSource;
 
-    @Autowired
-    private TaskQueueProperties taskQueueProperties;
+  @Autowired private TaskQueueProperties taskQueueProperties;
 
-    @Test
-    void testUpdateForSingleAccount() {
-        String account = "12345";
-        manager.updateAccountSnapshots(account);
+  @Test
+  void testUpdateForSingleAccount() {
+    String account = "12345";
+    manager.updateAccountSnapshots(account);
 
-        verify(queue).enqueue(eq(createDescriptor(account)));
-    }
+    verify(queue).enqueue(eq(createDescriptor(account)));
+  }
 
-    @Test
-    void ensureUpdateIsRunForEachAccount() throws Exception {
-        List<String> expectedAccounts = Arrays.asList("a1", "a2");
-        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  @Test
+  void ensureUpdateIsRunForEachAccount() throws Exception {
+    List<String> expectedAccounts = Arrays.asList("a1", "a2");
+    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
-        manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllAccounts();
 
-        verify(queue, times(1)).enqueue(eq(createDescriptor(expectedAccounts)));
-    }
+    verify(queue, times(1)).enqueue(eq(createDescriptor(expectedAccounts)));
+  }
 
-    @Test
-    void ensureAccountListIsPartitionedWhenSendingTaskMessages() throws Exception {
-        List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4");
-        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  @Test
+  void ensureAccountListIsPartitionedWhenSendingTaskMessages() throws Exception {
+    List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4");
+    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
-        manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllAccounts();
 
-        // NOTE: Partition size is defined in test.properties
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
-    }
+    // NOTE: Partition size is defined in test.properties
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+  }
 
-    @Test
-    void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
-        List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5");
-        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  @Test
+  void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
+    List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5");
+    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
-        manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllAccounts();
 
-        // NOTE: Partition size is defined in test.properties
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5"))));
-    }
+    // NOTE: Partition size is defined in test.properties
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5"))));
+  }
 
-    @Test
-    void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
-        List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5", "a6");
-        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  @Test
+  void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
+    List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5", "a6");
+    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
 
-        doThrow(new RuntimeException("Forced!"))
-            .when(queue).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+    doThrow(new RuntimeException("Forced!"))
+        .when(queue)
+        .enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
 
-        manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllAccounts();
 
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
-        // Even though a3,a4 throws exception, a5,a6 should be enqueued.
-        verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5", "a6"))));
-    }
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+    // Even though a3,a4 throws exception, a5,a6 should be enqueued.
+    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5", "a6"))));
+  }
 
-    @Test
-    void ensureNoUpdatesWhenAccountListCanNotBeRetreived() throws Exception {
-        doThrow(new AccountListSourceException("Forced!", new RuntimeException()))
-            .when(accountListSource).syncableAccounts();
+  @Test
+  void ensureNoUpdatesWhenAccountListCanNotBeRetreived() throws Exception {
+    doThrow(new AccountListSourceException("Forced!", new RuntimeException()))
+        .when(accountListSource)
+        .syncableAccounts();
 
-        assertThrows(TaskManagerException.class, () -> {
-            manager.updateSnapshotsForAllAccounts();
+    assertThrows(
+        TaskManagerException.class,
+        () -> {
+          manager.updateSnapshotsForAllAccounts();
         });
 
-        verify(queue, never()).enqueue(any());
-    }
+    verify(queue, never()).enqueue(any());
+  }
 
-    private TaskDescriptor createDescriptor(String account) {
-        return createDescriptor(Arrays.asList(account));
-    }
+  private TaskDescriptor createDescriptor(String account) {
+    return createDescriptor(Arrays.asList(account));
+  }
 
-    private TaskDescriptor createDescriptor(List<String> accounts) {
-        return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
-            .setArg("accounts", accounts)
-            .build();
-    }
+  private TaskDescriptor createDescriptor(List<String> accounts) {
+    return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+        .setArg("accounts", accounts)
+        .build();
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,32 +34,34 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-
 /**
- * Produces weekly snapshots based on data stored in the inventory service. If a snapshot
- * does not exist for the account for the current week and an incoming calculation exists
- * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
- * instances will only be updated if the incoming calculated values are greater than those
- * existing for the current week.
+ * Produces weekly snapshots based on data stored in the inventory service. If a snapshot does not
+ * exist for the account for the current week and an incoming calculation exists for the account, a
+ * new snapshot will be created. A snapshot's cores, sockets, and instances will only be updated if
+ * the incoming calculated values are greater than those existing for the current week.
  */
 public class WeeklySnapshotRoller extends BaseSnapshotRoller {
 
-    private static final Logger log = LoggerFactory.getLogger(WeeklySnapshotRoller.class);
+  private static final Logger log = LoggerFactory.getLogger(WeeklySnapshotRoller.class);
 
-    public WeeklySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        super(tallyRepo, clock);
-    }
+  public WeeklySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    super(tallyRepo, clock);
+  }
 
-    @Override
-    @Transactional
-    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
-        log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
+  @Override
+  @Transactional
+  public void rollSnapshots(
+      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
 
-        Map<String, List<TallySnapshot>> currentForWeek = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), Granularity.WEEKLY, clock.startOfCurrentWeek(),
+    Map<String, List<TallySnapshot>> currentForWeek =
+        getCurrentSnapshotsByAccount(
+            accounts,
+            getApplicableProducts(accountCalcs),
+            Granularity.WEEKLY,
+            clock.startOfCurrentWeek(),
             clock.endOfCurrentWeek());
 
-        updateSnapshots(accountCalcs, currentForWeek, Granularity.WEEKLY);
-    }
-
+    updateSnapshots(accountCalcs, currentForWeek, Granularity.WEEKLY);
+  }
 }

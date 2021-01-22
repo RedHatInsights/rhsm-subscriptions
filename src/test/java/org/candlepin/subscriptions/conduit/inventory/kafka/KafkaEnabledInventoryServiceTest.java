@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,116 +51,113 @@ import java.util.Map;
 @ExtendWith(MockitoExtension.class)
 class KafkaEnabledInventoryServiceTest {
 
-    @Mock
-    private KafkaTemplate producer;
+  @Mock private KafkaTemplate producer;
 
-    @Mock
-    MeterRegistry meterRegistry;
+  @Mock MeterRegistry meterRegistry;
 
-    @Mock
-    Counter mockCounter;
+  @Mock Counter mockCounter;
 
-    @BeforeEach
-    void setup() {
-        when(meterRegistry.counter(any())).thenReturn(mockCounter);
-    }
+  @BeforeEach
+  void setup() {
+    when(meterRegistry.counter(any())).thenReturn(mockCounter);
+  }
 
-    @Test
-    void ensureKafkaProducerSendsHostMessage() {
-        ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
-            ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
+  @Test
+  void ensureKafkaProducerSendsHostMessage() {
+    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
+        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
 
-        when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
+    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
 
-        ConduitFacts expectedFacts = new ConduitFacts();
-        expectedFacts.setFqdn("my_fqdn");
-        expectedFacts.setAccountNumber("my_account");
-        expectedFacts.setOrgId("my_org");
-        expectedFacts.setCpuCores(25);
-        expectedFacts.setCpuSockets(45);
+    ConduitFacts expectedFacts = new ConduitFacts();
+    expectedFacts.setFqdn("my_fqdn");
+    expectedFacts.setAccountNumber("my_account");
+    expectedFacts.setOrgId("my_org");
+    expectedFacts.setCpuCores(25);
+    expectedFacts.setCpuSockets(45);
 
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
-        service.sendHostUpdate(Arrays.asList(expectedFacts));
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry);
+    service.sendHostUpdate(Arrays.asList(expectedFacts));
 
-        assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
+    assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
 
-        CreateUpdateHostMessage message = messageCaptor.getValue();
-        assertNotNull(message);
-        assertEquals("add_host", message.getOperation());
-        assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
-        assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
+    CreateUpdateHostMessage message = messageCaptor.getValue();
+    assertNotNull(message);
+    assertEquals("add_host", message.getOperation());
+    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
+    assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
 
-        assertNotNull(message.getData().getFacts());
-        assertEquals(1, message.getData().getFacts().size());
-        FactSet rhsm = message.getData().getFacts().get(0);
-        assertEquals("rhsm", rhsm.getNamespace());
+    assertNotNull(message.getData().getFacts());
+    assertEquals(1, message.getData().getFacts().size());
+    FactSet rhsm = message.getData().getFacts().get(0);
+    assertEquals("rhsm", rhsm.getNamespace());
 
-        Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
-        assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
-        assertEquals(expectedFacts.getCpuCores(), (Integer) rhsmFacts.get("CPU_CORES"));
-        assertEquals(expectedFacts.getCpuSockets(), (Integer) rhsmFacts.get("CPU_SOCKETS"));
+    Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
+    assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
+    assertEquals(expectedFacts.getCpuCores(), (Integer) rhsmFacts.get("CPU_CORES"));
+    assertEquals(expectedFacts.getCpuSockets(), (Integer) rhsmFacts.get("CPU_SOCKETS"));
 
-        OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
-        assertNotNull(syncDate);
-        assertEquals(syncDate, message.getData().getStaleTimestamp());
-        assertEquals("rhsm-conduit", message.getData().getReporter());
-    }
+    OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+    assertNotNull(syncDate);
+    assertEquals(syncDate, message.getData().getStaleTimestamp());
+    assertEquals("rhsm-conduit", message.getData().getReporter());
+  }
 
-    @Test
-    void ensureNoMessageWithEmptyFactList() {
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
-        service.sendHostUpdate(Arrays.asList());
+  @Test
+  void ensureNoMessageWithEmptyFactList() {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry);
+    service.sendHostUpdate(Arrays.asList());
 
-        verifyZeroInteractions(producer);
-    }
+    verifyZeroInteractions(producer);
+  }
 
-    @Test
-    void ensureMessageSentWhenHostUpdateScheduled() {
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
-        service.scheduleHostUpdate(new ConduitFacts());
-        service.scheduleHostUpdate(new ConduitFacts());
+  @Test
+  void ensureMessageSentWhenHostUpdateScheduled() {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry);
+    service.scheduleHostUpdate(new ConduitFacts());
+    service.scheduleHostUpdate(new ConduitFacts());
 
-        verify(producer, times(2)).send(anyString(), any());
-    }
+    verify(producer, times(2)).send(anyString(), any());
+  }
 
-    @Test
-    void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() {
-        ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
-            ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
+  @Test
+  void testStaleTimestampUpdatedBasedOnSyncTimestampAndOffset() {
+    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
+        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
 
-        when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
+    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
 
-        ConduitFacts expectedFacts = new ConduitFacts();
-        expectedFacts.setAccountNumber("my_account");
+    ConduitFacts expectedFacts = new ConduitFacts();
+    expectedFacts.setAccountNumber("my_account");
 
-        InventoryServiceProperties props = new InventoryServiceProperties();
-        props.setStaleHostOffsetInDays(24);
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setStaleHostOffsetInDays(24);
 
-        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
-        service.sendHostUpdate(Arrays.asList(expectedFacts));
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry);
+    service.sendHostUpdate(Arrays.asList(expectedFacts));
 
-        CreateUpdateHostMessage message = messageCaptor.getValue();
-        assertNotNull(message);
-        assertEquals("add_host", message.getOperation());
-        assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
+    CreateUpdateHostMessage message = messageCaptor.getValue();
+    assertNotNull(message);
+    assertEquals("add_host", message.getOperation());
+    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
 
-        assertNotNull(message.getData().getFacts());
-        assertEquals(1, message.getData().getFacts().size());
-        FactSet rhsm = message.getData().getFacts().get(0);
-        assertEquals("rhsm", rhsm.getNamespace());
+    assertNotNull(message.getData().getFacts());
+    assertEquals(1, message.getData().getFacts().size());
+    FactSet rhsm = message.getData().getFacts().get(0);
+    assertEquals("rhsm", rhsm.getNamespace());
 
-        Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
-        OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
-        assertNotNull(syncDate);
-        assertEquals(syncDate.plusHours(24), message.getData().getStaleTimestamp());
-    }
+    Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
+    OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+    assertNotNull(syncDate);
+    assertEquals(syncDate.plusHours(24), message.getData().getStaleTimestamp());
+  }
 }

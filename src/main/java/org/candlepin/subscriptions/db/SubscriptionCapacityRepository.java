@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,13 +27,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-/**
- * Repository for subscription-provided product capacities.
- */
-public interface SubscriptionCapacityRepository extends
-    JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
-    CustomizedSubscriptionCapacityRepository {
+/** Repository for subscription-provided product capacities. */
+public interface SubscriptionCapacityRepository
+    extends JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
+        CustomizedSubscriptionCapacityRepository {
 
-    List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(String ownerId,
-        List<String> subscriptionIds);
+  List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
+      String ownerId, List<String> subscriptionIds);
 }

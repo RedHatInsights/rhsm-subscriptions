@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,38 +20,36 @@
  */
 package org.candlepin.subscriptions.task;
 
-/**
- * Settings particular to the task queue framework.
- */
+/** Settings particular to the task queue framework. */
 public class TaskQueueProperties {
 
-    private String kafkaGroupId;
+  private String kafkaGroupId;
 
-    private String topic;
+  private String topic;
 
-    private int executorTaskQueueThreadLimit = 20;
+  private int executorTaskQueueThreadLimit = 20;
 
-    public int getExecutorTaskQueueThreadLimit() {
-        return executorTaskQueueThreadLimit;
-    }
+  public int getExecutorTaskQueueThreadLimit() {
+    return executorTaskQueueThreadLimit;
+  }
 
-    public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
-        this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
-    }
+  public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
+    this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
+  }
 
-    public String getKafkaGroupId() {
-        return kafkaGroupId;
-    }
+  public String getKafkaGroupId() {
+    return kafkaGroupId;
+  }
 
-    public void setKafkaGroupId(String kafkaGroupId) {
-        this.kafkaGroupId = kafkaGroupId;
-    }
+  public void setKafkaGroupId(String kafkaGroupId) {
+    this.kafkaGroupId = kafkaGroupId;
+  }
 
-    public String getTopic() {
-        return topic;
-    }
+  public String getTopic() {
+    return topic;
+  }
 
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
+  public void setTopic(String topic) {
+    this.topic = topic;
+  }
 }

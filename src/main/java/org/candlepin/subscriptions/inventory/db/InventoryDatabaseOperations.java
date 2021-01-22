@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,30 +29,28 @@ import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-/**
- * Isolates readonly transaction for inventory database operations.
- */
+/** Isolates readonly transaction for inventory database operations. */
 @Component
 public class InventoryDatabaseOperations {
 
-    private final InventoryRepository repo;
+  private final InventoryRepository repo;
 
-    public InventoryDatabaseOperations(InventoryRepository inventoryRepository) {
-        this.repo = inventoryRepository;
-    }
+  public InventoryDatabaseOperations(InventoryRepository inventoryRepository) {
+    this.repo = inventoryRepository;
+  }
 
-    @Transactional(value = "inventoryTransactionManager", readOnly = true)
-    public void processHostFacts(Collection<String> accounts, int culledOffsetDays,
-        Consumer<InventoryHostFacts> consumer) {
-        try (Stream<InventoryHostFacts> hostFactStream = repo.getFacts(accounts, culledOffsetDays)) {
-            hostFactStream.forEach(consumer::accept);
-        }
+  @Transactional(value = "inventoryTransactionManager", readOnly = true)
+  public void processHostFacts(
+      Collection<String> accounts, int culledOffsetDays, Consumer<InventoryHostFacts> consumer) {
+    try (Stream<InventoryHostFacts> hostFactStream = repo.getFacts(accounts, culledOffsetDays)) {
+      hostFactStream.forEach(consumer::accept);
     }
+  }
 
-    @Transactional(value = "inventoryTransactionManager", readOnly = true)
-    public void reportedHypervisors(Collection<String> accounts, Consumer<Object[]> consumer) {
-        try (Stream<Object[]> stream = repo.getReportedHypervisors(accounts)) {
-            stream.forEach(consumer::accept);
-        }
+  @Transactional(value = "inventoryTransactionManager", readOnly = true)
+  public void reportedHypervisors(Collection<String> accounts, Consumer<Object[]> consumer) {
+    try (Stream<Object[]> stream = repo.getReportedHypervisors(accounts)) {
+      stream.forEach(consumer::accept);
     }
+  }
 }

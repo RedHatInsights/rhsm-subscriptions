@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,16 +26,16 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
-
 @SpringBootTest
 @DirtiesContext
 @ActiveProfiles("worker,test,kafka-test")
-@EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
+@EmbeddedKafka(
+    partitions = 1,
+    topics = {"${rhsm-subscriptions.tasks.topic}"})
 class KafkaTaskQueueTest extends KafkaTaskQueueTester {
 
-    @Test
-    void testSendAndReceiveTaskMessage() throws InterruptedException {
-        runSendAndReceiveTaskMessageTest();
-    }
-
+  @Test
+  void testSendAndReceiveTaskMessage() throws InterruptedException {
+    runSendAndReceiveTaskMessageTest();
+  }
 }

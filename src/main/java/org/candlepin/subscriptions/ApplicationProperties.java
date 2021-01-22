@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,337 +30,319 @@ import java.time.Duration;
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
  *
- * NOTE: not annotated with @Component, as this doesn't live in a package that is picked up with package
- * scanning.
+ * <p>NOTE: not annotated with @Component, as this doesn't live in a package that is picked up with
+ * package scanning.
  *
  * @see ApplicationConfiguration
  */
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
-    private String version;
-
-    private boolean prettyPrintJson = false;
-
-    private boolean devMode = false;
-
-    /**
-     * Job schedules when running in dev mode.
-     */
-    private JobProperties jobs;
-
-    /**
-     * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
-     */
-    private String productIdToProductsMapResourceLocation;
-
-    /**
-     * Resource location of a file containing a mapping of syspurpose roles to products.
-     */
-    private String roleToProductsMapResourceLocation;
-
-    /**
-     * Resource location of a file containing a list of accounts to process.
-     */
-    private String accountListResourceLocation;
-
-    /**
-     * Resource location of a file containing a list of products (SKUs) to process. If not specified, all
-     * products will be processed.
-     */
-    private String productWhitelistResourceLocation;
-
-    /**
-     * Resource location of a file containing the whitelisted accounts allowed to run reports.
-     */
-    private String reportingAccountWhitelistResourceLocation;
-
-    /**
-     * Resource location of a file containing the map of arch to product.
-     */
-    private String archToProductMapResourceLocation;
-
-    /**
-     * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
-     * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
-     */
-    private int hostLastSyncThresholdHours = 24;
-
-    /**
-     * The batch size of account numbers that will be processed at a time while producing snapshots.
-     * Default: 500
-     */
-    private int accountBatchSize = 500;
-
-    /**
-     * Amount of time to cache the account list, before allowing a re-read from the filesystem.
-     */
-    private Duration accountListCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * Amount of time to cache the product mapping, before allowing a re-read from the filesystem.
-     */
-    private Duration productIdToProductsMapCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
-     */
-    private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * Amount of time to cache the syspurpose role to products map, before allowing a re-read from the
-     * filesystem.
-     */
-    private Duration roleToProductsMapCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * Amount of time to cache the API access whitelist, before allowing a re-read from the filesystem.
-     */
-    private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * Amount of time to cache the arch to product map, before allowing a re-read from the filesystem.
-     */
-    private Duration archToProductMapCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * The number of days after the inventory's stale_timestamp that the record will be culled.
-     * Currently HBI is calculating this value and setting it on messages. Right now the
-     * default is: stale_timestamp + 14 days. Adding this as a configuration setting since
-     * we may need to adjust it at some point to match.
-     */
-    private int cullingOffsetDays = 14;
-
-    /**
-     * Expected domain suffix for origin or referer headers.
-     *
-     * @see AntiCsrfFilter
-     */
-    private String antiCsrfDomainSuffix = ".redhat.com";
-
-    /**
-     * Expected port for origin or referer headers.
-     *
-     * @see AntiCsrfFilter
-     */
-    private int antiCsrfPort = 443;
-
-    /**
-     * The RBAC application name that defines the permissions for this application.
-     */
-    private String rbacApplicationName = "subscriptions";
-
-    /**
-     * The base path for hawtio. Needed to serve hawtio behind a reverse proxy.
-     */
-    private String hawtioBasePath;
-
-    /**
-     * Enable or disable cloudigrade integration.
-     */
-    private boolean cloudigradeEnabled = false;
-
-    /**
-     * Number of times to attempt query against cloudigrade for Tally integration.
-     */
-    private int cloudigradeMaxAttempts = 2;
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public boolean isPrettyPrintJson() {
-        return prettyPrintJson;
-    }
-
-    public void setPrettyPrintJson(boolean prettyPrintJson) {
-        this.prettyPrintJson = prettyPrintJson;
-    }
-
-    public String getProductIdToProductsMapResourceLocation() {
-        return productIdToProductsMapResourceLocation;
-    }
-
-    public void setProductIdToProductsMapResourceLocation(String productIdToProductsMapResourceLocation) {
-        this.productIdToProductsMapResourceLocation = productIdToProductsMapResourceLocation;
-    }
-
-    public String getRoleToProductsMapResourceLocation() {
-        return roleToProductsMapResourceLocation;
-    }
-
-    public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
-        this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
-    }
-
-    public String getAccountListResourceLocation() {
-        return accountListResourceLocation;
-    }
-
-    public void setAccountListResourceLocation(String accountListResourceLocation) {
-        this.accountListResourceLocation = accountListResourceLocation;
-    }
-
-    public int getHostLastSyncThresholdHours() {
-        return hostLastSyncThresholdHours;
-    }
-
-    public void setHostLastSyncThresholdHours(int hostLastSyncThresholdHours) {
-        this.hostLastSyncThresholdHours = hostLastSyncThresholdHours;
-    }
-
-    public int getAccountBatchSize() {
-        return this.accountBatchSize;
-    }
-
-    public void setAccountBatchSize(int accountBatchSize) {
-        this.accountBatchSize = accountBatchSize;
-    }
-
-    public boolean isDevMode() {
-        return devMode;
-    }
-
-    public void setDevMode(boolean devMode) {
-        this.devMode = devMode;
-    }
-
-    public String getProductWhitelistResourceLocation() {
-        return productWhitelistResourceLocation;
-    }
-
-    public void setProductWhitelistResourceLocation(String productWhitelistResourceLocation) {
-        this.productWhitelistResourceLocation = productWhitelistResourceLocation;
-    }
-
-    public String getReportingAccountWhitelistResourceLocation() {
-        return reportingAccountWhitelistResourceLocation;
-    }
-
-    public void setReportingAccountWhitelistResourceLocation(String location) {
-        this.reportingAccountWhitelistResourceLocation = location;
-    }
-
-    public Duration getAccountListCacheTtl() {
-        return accountListCacheTtl;
-    }
-
-    public void setAccountListCacheTtl(Duration accountListCacheTtl) {
-        this.accountListCacheTtl = accountListCacheTtl;
-    }
-
-    public Duration getProductIdToProductsMapCacheTtl() {
-        return productIdToProductsMapCacheTtl;
-    }
-
-    public void setProductIdToProductsMapCacheTtl(Duration productIdToProductsMapCacheTtl) {
-        this.productIdToProductsMapCacheTtl = productIdToProductsMapCacheTtl;
-    }
-
-    public Duration getProductWhiteListCacheTtl() {
-        return productWhiteListCacheTtl;
-    }
-
-    public void setProductWhiteListCacheTtl(Duration productWhiteListCacheTtl) {
-        this.productWhiteListCacheTtl = productWhiteListCacheTtl;
-    }
-
-    public Duration getRoleToProductsMapCacheTtl() {
-        return roleToProductsMapCacheTtl;
-    }
-
-    public void setRoleToProductsMapCacheTtl(Duration roleToProductsMapCacheTtl) {
-        this.roleToProductsMapCacheTtl = roleToProductsMapCacheTtl;
-    }
-
-    public Duration getReportingAccountWhitelistCacheTtl() {
-        return reportingAccountWhitelistCacheTtl;
-    }
-
-    public void setReportingAccountWhitelistCacheTtl(Duration reportingAccountWhitelistCacheTtl) {
-        this.reportingAccountWhitelistCacheTtl = reportingAccountWhitelistCacheTtl;
-    }
-
-    public int getCullingOffsetDays() {
-        return cullingOffsetDays;
-    }
-
-    public void setCullingOffsetDays(int cullingOffsetDays) {
-        this.cullingOffsetDays = cullingOffsetDays;
-    }
-
-    public String getAntiCsrfDomainSuffix() {
-        return antiCsrfDomainSuffix;
-    }
-
-    public void setAntiCsrfDomainSuffix(String antiCsrfDomainSuffix) {
-        this.antiCsrfDomainSuffix = antiCsrfDomainSuffix;
-    }
-
-    public int getAntiCsrfPort() {
-        return antiCsrfPort;
-    }
-
-    public void setAntiCsrfPort(int antiCsrfPort) {
-        this.antiCsrfPort = antiCsrfPort;
-    }
-
-    public String getRbacApplicationName() {
-        return rbacApplicationName;
-    }
-
-    public void setRbacApplicationName(String rbacApplicationName) {
-        this.rbacApplicationName = rbacApplicationName;
-    }
-
-    public String getHawtioBasePath() {
-        return hawtioBasePath;
-    }
-
-    public void setHawtioBasePath(String hawtioBasePath) {
-        this.hawtioBasePath = hawtioBasePath;
-    }
-
-    public boolean isCloudigradeEnabled() {
-        return cloudigradeEnabled;
-    }
-
-    public void setCloudigradeEnabled(boolean cloudigradeEnabled) {
-        this.cloudigradeEnabled = cloudigradeEnabled;
-    }
-
-    public String getArchToProductMapResourceLocation() {
-        return archToProductMapResourceLocation;
-    }
-
-    public void setArchToProductMapResourceLocation(String archToProductMapResourceLocation) {
-        this.archToProductMapResourceLocation = archToProductMapResourceLocation;
-    }
-
-    public Duration getArchToProductMapCacheTtl() {
-        return archToProductMapCacheTtl;
-    }
-
-    public void setArchToProductMapCacheTtl(Duration archToProductMapCacheTtl) {
-        this.archToProductMapCacheTtl = archToProductMapCacheTtl;
-    }
-
-    public int getCloudigradeMaxAttempts() {
-        return cloudigradeMaxAttempts;
-    }
-
-    public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
-        this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
-    }
-
-    public JobProperties getJobs() {
-        return jobs;
-    }
-
-    public void setJobs(JobProperties jobs) {
-        this.jobs = jobs;
-    }
+  private String version;
+
+  private boolean prettyPrintJson = false;
+
+  private boolean devMode = false;
+
+  /** Job schedules when running in dev mode. */
+  private JobProperties jobs;
+
+  /**
+   * Resource location of a file containing a mapping of product IDs to product IDs that identify
+   * them.
+   */
+  private String productIdToProductsMapResourceLocation;
+
+  /** Resource location of a file containing a mapping of syspurpose roles to products. */
+  private String roleToProductsMapResourceLocation;
+
+  /** Resource location of a file containing a list of accounts to process. */
+  private String accountListResourceLocation;
+
+  /**
+   * Resource location of a file containing a list of products (SKUs) to process. If not specified,
+   * all products will be processed.
+   */
+  private String productWhitelistResourceLocation;
+
+  /** Resource location of a file containing the whitelisted accounts allowed to run reports. */
+  private String reportingAccountWhitelistResourceLocation;
+
+  /** Resource location of a file containing the map of arch to product. */
+  private String archToProductMapResourceLocation;
+
+  /**
+   * An hour based threshold used to determine whether an inventory host record's rhsm facts are
+   * outdated. The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is
+   * 24 hours.
+   */
+  private int hostLastSyncThresholdHours = 24;
+
+  /**
+   * The batch size of account numbers that will be processed at a time while producing snapshots.
+   * Default: 500
+   */
+  private int accountBatchSize = 500;
+
+  /** Amount of time to cache the account list, before allowing a re-read from the filesystem. */
+  private Duration accountListCacheTtl = Duration.ofMinutes(5);
+
+  /** Amount of time to cache the product mapping, before allowing a re-read from the filesystem. */
+  private Duration productIdToProductsMapCacheTtl = Duration.ofMinutes(5);
+
+  /**
+   * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
+   */
+  private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
+
+  /**
+   * Amount of time to cache the syspurpose role to products map, before allowing a re-read from the
+   * filesystem.
+   */
+  private Duration roleToProductsMapCacheTtl = Duration.ofMinutes(5);
+
+  /**
+   * Amount of time to cache the API access whitelist, before allowing a re-read from the
+   * filesystem.
+   */
+  private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
+
+  /**
+   * Amount of time to cache the arch to product map, before allowing a re-read from the filesystem.
+   */
+  private Duration archToProductMapCacheTtl = Duration.ofMinutes(5);
+
+  /**
+   * The number of days after the inventory's stale_timestamp that the record will be culled.
+   * Currently HBI is calculating this value and setting it on messages. Right now the default is:
+   * stale_timestamp + 14 days. Adding this as a configuration setting since we may need to adjust
+   * it at some point to match.
+   */
+  private int cullingOffsetDays = 14;
+
+  /**
+   * Expected domain suffix for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private String antiCsrfDomainSuffix = ".redhat.com";
+
+  /**
+   * Expected port for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private int antiCsrfPort = 443;
+
+  /** The RBAC application name that defines the permissions for this application. */
+  private String rbacApplicationName = "subscriptions";
+
+  /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
+  private String hawtioBasePath;
+
+  /** Enable or disable cloudigrade integration. */
+  private boolean cloudigradeEnabled = false;
+
+  /** Number of times to attempt query against cloudigrade for Tally integration. */
+  private int cloudigradeMaxAttempts = 2;
+
+  public String getVersion() {
+    return version;
+  }
+
+  public void setVersion(String version) {
+    this.version = version;
+  }
+
+  public boolean isPrettyPrintJson() {
+    return prettyPrintJson;
+  }
+
+  public void setPrettyPrintJson(boolean prettyPrintJson) {
+    this.prettyPrintJson = prettyPrintJson;
+  }
+
+  public String getProductIdToProductsMapResourceLocation() {
+    return productIdToProductsMapResourceLocation;
+  }
+
+  public void setProductIdToProductsMapResourceLocation(
+      String productIdToProductsMapResourceLocation) {
+    this.productIdToProductsMapResourceLocation = productIdToProductsMapResourceLocation;
+  }
+
+  public String getRoleToProductsMapResourceLocation() {
+    return roleToProductsMapResourceLocation;
+  }
+
+  public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
+    this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
+  }
+
+  public String getAccountListResourceLocation() {
+    return accountListResourceLocation;
+  }
+
+  public void setAccountListResourceLocation(String accountListResourceLocation) {
+    this.accountListResourceLocation = accountListResourceLocation;
+  }
+
+  public int getHostLastSyncThresholdHours() {
+    return hostLastSyncThresholdHours;
+  }
+
+  public void setHostLastSyncThresholdHours(int hostLastSyncThresholdHours) {
+    this.hostLastSyncThresholdHours = hostLastSyncThresholdHours;
+  }
+
+  public int getAccountBatchSize() {
+    return this.accountBatchSize;
+  }
+
+  public void setAccountBatchSize(int accountBatchSize) {
+    this.accountBatchSize = accountBatchSize;
+  }
+
+  public boolean isDevMode() {
+    return devMode;
+  }
+
+  public void setDevMode(boolean devMode) {
+    this.devMode = devMode;
+  }
+
+  public String getProductWhitelistResourceLocation() {
+    return productWhitelistResourceLocation;
+  }
+
+  public void setProductWhitelistResourceLocation(String productWhitelistResourceLocation) {
+    this.productWhitelistResourceLocation = productWhitelistResourceLocation;
+  }
+
+  public String getReportingAccountWhitelistResourceLocation() {
+    return reportingAccountWhitelistResourceLocation;
+  }
+
+  public void setReportingAccountWhitelistResourceLocation(String location) {
+    this.reportingAccountWhitelistResourceLocation = location;
+  }
+
+  public Duration getAccountListCacheTtl() {
+    return accountListCacheTtl;
+  }
+
+  public void setAccountListCacheTtl(Duration accountListCacheTtl) {
+    this.accountListCacheTtl = accountListCacheTtl;
+  }
+
+  public Duration getProductIdToProductsMapCacheTtl() {
+    return productIdToProductsMapCacheTtl;
+  }
+
+  public void setProductIdToProductsMapCacheTtl(Duration productIdToProductsMapCacheTtl) {
+    this.productIdToProductsMapCacheTtl = productIdToProductsMapCacheTtl;
+  }
+
+  public Duration getProductWhiteListCacheTtl() {
+    return productWhiteListCacheTtl;
+  }
+
+  public void setProductWhiteListCacheTtl(Duration productWhiteListCacheTtl) {
+    this.productWhiteListCacheTtl = productWhiteListCacheTtl;
+  }
+
+  public Duration getRoleToProductsMapCacheTtl() {
+    return roleToProductsMapCacheTtl;
+  }
+
+  public void setRoleToProductsMapCacheTtl(Duration roleToProductsMapCacheTtl) {
+    this.roleToProductsMapCacheTtl = roleToProductsMapCacheTtl;
+  }
+
+  public Duration getReportingAccountWhitelistCacheTtl() {
+    return reportingAccountWhitelistCacheTtl;
+  }
+
+  public void setReportingAccountWhitelistCacheTtl(Duration reportingAccountWhitelistCacheTtl) {
+    this.reportingAccountWhitelistCacheTtl = reportingAccountWhitelistCacheTtl;
+  }
+
+  public int getCullingOffsetDays() {
+    return cullingOffsetDays;
+  }
+
+  public void setCullingOffsetDays(int cullingOffsetDays) {
+    this.cullingOffsetDays = cullingOffsetDays;
+  }
+
+  public String getAntiCsrfDomainSuffix() {
+    return antiCsrfDomainSuffix;
+  }
+
+  public void setAntiCsrfDomainSuffix(String antiCsrfDomainSuffix) {
+    this.antiCsrfDomainSuffix = antiCsrfDomainSuffix;
+  }
+
+  public int getAntiCsrfPort() {
+    return antiCsrfPort;
+  }
+
+  public void setAntiCsrfPort(int antiCsrfPort) {
+    this.antiCsrfPort = antiCsrfPort;
+  }
+
+  public String getRbacApplicationName() {
+    return rbacApplicationName;
+  }
+
+  public void setRbacApplicationName(String rbacApplicationName) {
+    this.rbacApplicationName = rbacApplicationName;
+  }
+
+  public String getHawtioBasePath() {
+    return hawtioBasePath;
+  }
+
+  public void setHawtioBasePath(String hawtioBasePath) {
+    this.hawtioBasePath = hawtioBasePath;
+  }
+
+  public boolean isCloudigradeEnabled() {
+    return cloudigradeEnabled;
+  }
+
+  public void setCloudigradeEnabled(boolean cloudigradeEnabled) {
+    this.cloudigradeEnabled = cloudigradeEnabled;
+  }
+
+  public String getArchToProductMapResourceLocation() {
+    return archToProductMapResourceLocation;
+  }
+
+  public void setArchToProductMapResourceLocation(String archToProductMapResourceLocation) {
+    this.archToProductMapResourceLocation = archToProductMapResourceLocation;
+  }
+
+  public Duration getArchToProductMapCacheTtl() {
+    return archToProductMapCacheTtl;
+  }
+
+  public void setArchToProductMapCacheTtl(Duration archToProductMapCacheTtl) {
+    this.archToProductMapCacheTtl = archToProductMapCacheTtl;
+  }
+
+  public int getCloudigradeMaxAttempts() {
+    return cloudigradeMaxAttempts;
+  }
+
+  public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
+    this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
+  }
+
+  public JobProperties getJobs() {
+    return jobs;
+  }
+
+  public void setJobs(JobProperties jobs) {
+    this.jobs = jobs;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,27 +32,25 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-/**
- * Filter to add user authentication information to the logback Mapped Diagnostic Context (MDC)
- */
+/** Filter to add user authentication information to the logback Mapped Diagnostic Context (MDC) */
 public class MdcFilter extends OncePerRequestFilter {
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-        FilterChain filterChain) throws ServletException, IOException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            MDC.put("user", authentication.getName());
-        }
-        try {
-            filterChain.doFilter(request, response);
-        }
-        finally {
-            // The MDC is stored on a ThreadLocal so we need to clear it at the end of a request since
-            // Tomcat reuses threads.
-            if (authentication != null) {
-                MDC.remove("user");
-            }
-        }
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null) {
+      MDC.put("user", authentication.getName());
     }
+    try {
+      filterChain.doFilter(request, response);
+    } finally {
+      // The MDC is stored on a ThreadLocal so we need to clear it at the end of a request since
+      // Tomcat reuses threads.
+      if (authentication != null) {
+        MDC.remove("user");
+      }
+    }
+  }
 }

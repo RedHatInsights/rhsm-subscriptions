@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,62 +31,66 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-
 public class TaskDescriptorTest {
 
-    @Test
-    public void testCreation() {
-        String expectedGroupId = "my-group";
-        TaskType expectedTaskType = TaskType.UPDATE_SNAPSHOTS;
-        String expectedArgKey = "arg1";
-        List<String> expectedArgValues = Arrays.asList("1", "2", "3");
+  @Test
+  public void testCreation() {
+    String expectedGroupId = "my-group";
+    TaskType expectedTaskType = TaskType.UPDATE_SNAPSHOTS;
+    String expectedArgKey = "arg1";
+    List<String> expectedArgValues = Arrays.asList("1", "2", "3");
 
-        TaskDescriptor desc = TaskDescriptor.builder(expectedTaskType, expectedGroupId)
+    TaskDescriptor desc =
+        TaskDescriptor.builder(expectedTaskType, expectedGroupId)
             .setArg(expectedArgKey, expectedArgValues)
             .build();
 
-        assertEquals(expectedGroupId, desc.getGroupId());
-        assertEquals(expectedTaskType, desc.getTaskType());
+    assertEquals(expectedGroupId, desc.getGroupId());
+    assertEquals(expectedTaskType, desc.getTaskType());
 
-        Map<String, List<String>> args = desc.getTaskArgs();
-        assertThat(args, Matchers.hasKey(expectedArgKey));
-        assertEquals(expectedArgValues, args.get(expectedArgKey));
-        assertEquals(expectedArgValues, desc.getArg(expectedArgKey));
-    }
+    Map<String, List<String>> args = desc.getTaskArgs();
+    assertThat(args, Matchers.hasKey(expectedArgKey));
+    assertEquals(expectedArgValues, args.get(expectedArgKey));
+    assertEquals(expectedArgValues, desc.getArg(expectedArgKey));
+  }
 
-    @Test
-    public void testEquality() {
-        TaskDescriptor d1 = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
+  @Test
+  public void testEquality() {
+    TaskDescriptor d1 =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
             .setSingleValuedArg("a1", "a1v")
             .build();
 
-        TaskDescriptor d1Copy = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
+    TaskDescriptor d1Copy =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
             .setSingleValuedArg("a1", "a1v")
             .build();
-        assertEquals(d1, d1Copy);
+    assertEquals(d1, d1Copy);
 
-        TaskDescriptor differentGroup =
-            TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group2").build();
-        assertNotEquals(d1, differentGroup);
+    TaskDescriptor differentGroup =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group2").build();
+    assertNotEquals(d1, differentGroup);
 
-        TaskDescriptor nullGroup = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, null).build();
-        assertNotEquals(d1, nullGroup);
+    TaskDescriptor nullGroup = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, null).build();
+    assertNotEquals(d1, nullGroup);
 
-        TaskDescriptor nullType = TaskDescriptor.builder(null, "group1").build();
-        assertNotEquals(d1, nullType);
+    TaskDescriptor nullType = TaskDescriptor.builder(null, "group1").build();
+    assertNotEquals(d1, nullType);
 
-        TaskDescriptor argsNotEqual = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1").build();
-        assertNotEquals(d1, argsNotEqual);
+    TaskDescriptor argsNotEqual =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1").build();
+    assertNotEquals(d1, argsNotEqual);
 
-        TaskDescriptor argValueNotEqual = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
+    TaskDescriptor argValueNotEqual =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
             .setSingleValuedArg("a1", "a1v_")
             .build();
-        assertNotEquals(d1, argValueNotEqual);
+    assertNotEquals(d1, argValueNotEqual);
 
-        TaskDescriptor differentArgs = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
+    TaskDescriptor differentArgs =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
             .setSingleValuedArg("a2", "v2")
             .build();
-        assertNotEquals(d1, differentArgs);
-    }
-
+    assertNotEquals(d1, differentArgs);
+  }
 }

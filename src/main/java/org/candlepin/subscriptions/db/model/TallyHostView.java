@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,64 +27,64 @@ import org.springframework.beans.factory.annotation.Value;
 import java.time.OffsetDateTime;
 
 /**
- * A data projection around Host and TallyHostBuckets necessary to give us a view of the data to
- * be returned in the Hosts API.
+ * A data projection around Host and TallyHostBuckets necessary to give us a view of the data to be
+ * returned in the Hosts API.
  */
 public interface TallyHostView {
 
-    @Value("#{target.key.host.inventoryId}")
-    String getInventoryId();
+  @Value("#{target.key.host.inventoryId}")
+  String getInventoryId();
 
-    @Value("#{target.key.host.insightsId}")
-    String getInsightsId();
+  @Value("#{target.key.host.insightsId}")
+  String getInsightsId();
 
-    @Value("#{target.key.host.displayName}")
-    String getDisplayName();
+  @Value("#{target.key.host.displayName}")
+  String getDisplayName();
 
-    @Value("#{target.measurementType}")
-    String getHardwareMeasurementType();
+  @Value("#{target.measurementType}")
+  String getHardwareMeasurementType();
 
-    @Value("#{target.key.host.hardwareType}")
-    String getHardwareType();
+  @Value("#{target.key.host.hardwareType}")
+  String getHardwareType();
 
-    @Value("#{target.cores}")
-    int getCores();
+  @Value("#{target.cores}")
+  int getCores();
 
-    @Value("#{target.sockets}")
-    int getSockets();
+  @Value("#{target.sockets}")
+  int getSockets();
 
-    @Value("#{target.key.host.numOfGuests}")
-    Integer getNumberOfGuests();
+  @Value("#{target.key.host.numOfGuests}")
+  Integer getNumberOfGuests();
 
-    @Value("#{target.key.host.subscriptionManagerId}")
-    String getSubscriptionManagerId();
+  @Value("#{target.key.host.subscriptionManagerId}")
+  String getSubscriptionManagerId();
 
-    @Value("#{target.key.host.lastSeen}")
-    OffsetDateTime getLastSeen();
+  @Value("#{target.key.host.lastSeen}")
+  OffsetDateTime getLastSeen();
 
-    @Value("#{target.key.host.unmappedGuest}")
-    boolean isUnmappedGuest();
+  @Value("#{target.key.host.unmappedGuest}")
+  boolean isUnmappedGuest();
 
-    @Value("#{target.key.host.hypervisor}")
-    boolean isHypervisor();
+  @Value("#{target.key.host.hypervisor}")
+  boolean isHypervisor();
 
-    @Value("#{target.key.host.cloudProvider}")
-    String getCloudProvider();
+  @Value("#{target.key.host.cloudProvider}")
+  String getCloudProvider();
 
-    default Host asApiHost() {
-        return new Host()
-            .inventoryId(getInventoryId())
-            .insightsId(getInsightsId())
-            .hardwareType(getHardwareType())
-            .measurementType(getHardwareMeasurementType())
-            .cores(getCores())
-            .sockets(getSockets())
-            .displayName(getDisplayName())
-            .subscriptionManagerId(getSubscriptionManagerId())
-            .numberOfGuests(getNumberOfGuests())
-            .lastSeen(getLastSeen())
-            .isHypervisor(isHypervisor())
-            .isUnmappedGuest(isUnmappedGuest())
-            .cloudProvider(getCloudProvider());
-    }
+  default Host asApiHost() {
+    return new Host()
+        .inventoryId(getInventoryId())
+        .insightsId(getInsightsId())
+        .hardwareType(getHardwareType())
+        .measurementType(getHardwareMeasurementType())
+        .cores(getCores())
+        .sockets(getSockets())
+        .displayName(getDisplayName())
+        .subscriptionManagerId(getSubscriptionManagerId())
+        .numberOfGuests(getNumberOfGuests())
+        .lastSeen(getLastSeen())
+        .isHypervisor(isHypervisor())
+        .isUnmappedGuest(isUnmappedGuest())
+        .cloudProvider(getCloudProvider());
+  }
 }

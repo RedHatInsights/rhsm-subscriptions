@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,55 +39,54 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-/**
- * Collects each line of a file and returns it as a List of Strings. Empty strings are ignored.
- */
+/** Collects each line of a file and returns it as a List of Strings. Empty strings are ignored. */
 public class PerLineFileSource implements ResourceLoaderAware {
 
-    private final Cache<List<String>> listCache;
-    private final Cache<Set<String>> setCache;
-    private ResourceLoader resourceLoader;
-    private Resource fileResource;
-    private String resourceLocation;
+  private final Cache<List<String>> listCache;
+  private final Cache<Set<String>> setCache;
+  private ResourceLoader resourceLoader;
+  private Resource fileResource;
+  private String resourceLocation;
 
-    public PerLineFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-        this.resourceLocation = resourceLocation;
-        this.listCache = new Cache<>(clock, cacheTtl);
-        this.setCache = new Cache<>(clock, cacheTtl);
+  public PerLineFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
+    this.resourceLocation = resourceLocation;
+    this.listCache = new Cache<>(clock, cacheTtl);
+    this.setCache = new Cache<>(clock, cacheTtl);
+  }
+
+  public List<String> list() throws IOException {
+    return getCachedValue(listCache, Collectors.toList());
+  }
+
+  public Set<String> set() throws IOException {
+    return getCachedValue(setCache, Collectors.toSet());
+  }
+
+  private <T extends Collection<String>> T getCachedValue(
+      Cache<T> cache, Collector<String, ?, T> collector) throws IOException {
+
+    if (cache.isExpired()) {
+      try (InputStream s = fileResource.getInputStream()) {
+        cache.setValue(
+            new BufferedReader(new InputStreamReader(s, Charset.defaultCharset()))
+                .lines()
+                .filter(line -> line != null && !line.isEmpty())
+                .collect(collector));
+      }
     }
+    return cache.getValue();
+  }
 
-    public List<String> list() throws IOException {
-        return getCachedValue(listCache, Collectors.toList());
+  @Override
+  public void setResourceLoader(ResourceLoader resourceLoader) {
+    this.resourceLoader = resourceLoader;
+  }
+
+  @PostConstruct
+  public void init() {
+    fileResource = resourceLoader.getResource(resourceLocation);
+    if (!fileResource.exists()) {
+      throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
     }
-
-    public Set<String> set() throws IOException {
-        return getCachedValue(setCache, Collectors.toSet());
-    }
-
-    private <T extends Collection<String>> T getCachedValue(Cache<T> cache,
-        Collector<String, ?, T> collector) throws IOException {
-
-        if (cache.isExpired()) {
-            try (InputStream s = fileResource.getInputStream()) {
-                cache.setValue(new BufferedReader(
-                    new InputStreamReader(s, Charset.defaultCharset())).lines()
-                    .filter(line -> line != null && !line.isEmpty()).collect(collector));
-            }
-        }
-        return cache.getValue();
-    }
-
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
-    }
-
-    @PostConstruct
-    public void init() {
-        fileResource = resourceLoader.getResource(resourceLocation);
-        if (!fileResource.exists()) {
-            throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
-        }
-    }
-
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.SecurityConfig.*;
@@ -42,43 +41,42 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-/**
- * AuthenticationFailureHandler that returns a JSON response.
- */
-public class IdentityHeaderAuthenticationFailureHandler
-    implements AuthenticationFailureHandler {
+/** AuthenticationFailureHandler that returns a JSON response. */
+public class IdentityHeaderAuthenticationFailureHandler implements AuthenticationFailureHandler {
 
-    private static final Logger log =
-        LoggerFactory.getLogger(IdentityHeaderAuthenticationFailureHandler.class);
+  private static final Logger log =
+      LoggerFactory.getLogger(IdentityHeaderAuthenticationFailureHandler.class);
 
-    private final ObjectMapper mapper;
+  private final ObjectMapper mapper;
 
-    public IdentityHeaderAuthenticationFailureHandler(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
+  public IdentityHeaderAuthenticationFailureHandler(ObjectMapper mapper) {
+    this.mapper = mapper;
+  }
 
-    @Override
-    public void onAuthenticationFailure(HttpServletRequest servletRequest,
-        HttpServletResponse servletResponse, AuthenticationException authException)
-        throws IOException {
+  @Override
+  public void onAuthenticationFailure(
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      AuthenticationException authException)
+      throws IOException {
 
-        Error error = buildError(authException);
-        log.error(SECURITY_STACKTRACE, "{}: {}", error.getTitle(), error.getDetail(), authException);
+    Error error = buildError(authException);
+    log.error(SECURITY_STACKTRACE, "{}: {}", error.getTitle(), error.getDetail(), authException);
 
-        Response r = ExceptionUtil.toResponse(error);
-        servletResponse.setContentType(r.getMediaType().toString());
-        servletResponse.setStatus(r.getStatus());
+    Response r = ExceptionUtil.toResponse(error);
+    servletResponse.setContentType(r.getMediaType().toString());
+    servletResponse.setStatus(r.getStatus());
 
-        OutputStream out = servletResponse.getOutputStream();
-        mapper.writeValue(out, r.getEntity());
-        out.flush();
-    }
+    OutputStream out = servletResponse.getOutputStream();
+    mapper.writeValue(out, r.getEntity());
+    out.flush();
+  }
 
-    protected Error buildError(AuthenticationException exception) {
-        return new Error()
-            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-            .status(String.valueOf(Status.UNAUTHORIZED.getStatusCode()))
-            .title("Could not authenticate the user.")
-            .detail(exception.getMessage());
-    }
+  protected Error buildError(AuthenticationException exception) {
+    return new Error()
+        .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
+        .status(String.valueOf(Status.UNAUTHORIZED.getStatusCode()))
+        .title("Could not authenticate the user.")
+        .detail(exception.getMessage());
+  }
 }

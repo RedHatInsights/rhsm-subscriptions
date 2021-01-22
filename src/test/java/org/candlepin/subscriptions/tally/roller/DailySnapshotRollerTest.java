@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,43 +41,44 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 public class DailySnapshotRollerTest {
 
-    @Autowired
-    private TallySnapshotRepository repository;
+  @Autowired private TallySnapshotRepository repository;
 
-    private ApplicationClock clock;
+  private ApplicationClock clock;
 
-    private SnapshotRollerTester<DailySnapshotRoller> tester;
+  private SnapshotRollerTester<DailySnapshotRoller> tester;
 
-    @BeforeAll
-    public void setupAllTests() {
-        this.clock = new FixedClockConfiguration().fixedClock();
-        this.tester = new SnapshotRollerTester<>(repository, new DailySnapshotRoller(repository, clock));
-    }
+  @BeforeAll
+  public void setupAllTests() {
+    this.clock = new FixedClockConfiguration().fixedClock();
+    this.tester =
+        new SnapshotRollerTester<>(repository, new DailySnapshotRoller(repository, clock));
+  }
 
-    @SuppressWarnings("indentation")
-    @Test
-    public void testDailySnapshotProducer() {
-        this.tester.performBasicSnapshotRollerTest(Granularity.DAILY, clock.startOfToday(),
-            clock.endOfToday());
-    }
+  @SuppressWarnings("indentation")
+  @Test
+  public void testDailySnapshotProducer() {
+    this.tester.performBasicSnapshotRollerTest(
+        Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
+  }
 
-    @SuppressWarnings("indentation")
-    @Test
-    public void testDailySnapIsUpdatedWhenItAlreadyExists() {
-        this.tester.performSnapshotUpdateTest(Granularity.DAILY, clock.startOfToday(),
-            clock.endOfToday());
-    }
+  @SuppressWarnings("indentation")
+  @Test
+  public void testDailySnapIsUpdatedWhenItAlreadyExists() {
+    this.tester.performSnapshotUpdateTest(
+        Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
+  }
 
-    @Test
-    public void ensureCurrentDailyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
-        tester.performUpdateWithLesserValueTest(Granularity.DAILY, clock.startOfToday(), clock.endOfToday(),
-            false);
-    }
+  @Test
+  public void
+      ensureCurrentDailyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
+    tester.performUpdateWithLesserValueTest(
+        Granularity.DAILY, clock.startOfToday(), clock.endOfToday(), false);
+  }
 
-    @Test
-    @SuppressWarnings("java:S2699") /* NOTE(khowell): have no idea why sonar thinks no assertions */
-    public void testEmptySnapshotsNotPersisted() {
-        tester.performDoesNotPersistEmptySnapshots(Granularity.DAILY, clock.startOfToday(),
-            clock.endOfToday());
-    }
+  @Test
+  @SuppressWarnings("java:S2699") /* NOTE(khowell): have no idea why sonar thinks no assertions */
+  public void testEmptySnapshotsNotPersisted() {
+    tester.performDoesNotPersistEmptySnapshots(
+        Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
+  }
 }

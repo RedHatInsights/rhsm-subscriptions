@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,38 +24,35 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-/**
- * Base type for JSON serializing x-rh-identity header values once base64-decoded
- */
+/** Base type for JSON serializing x-rh-identity header values once base64-decoded */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RhIdentity {
 
-    /**
-     * Abstraction over different auth types that may be present in x-rh-identity header.
-     *
-     * @see InsightsUserPrincipal
-     * @see RhAssociatePrincipal
-     * @see X509Principal
-     */
-    @JsonTypeInfo(
-        use = JsonTypeInfo.Id.NAME,
-        property = "type",
-        defaultImpl = InsightsUserPrincipal.class
-    )
-    @JsonSubTypes({
-        @JsonSubTypes.Type(value = InsightsUserPrincipal.class, name = "User"),
-        @JsonSubTypes.Type(value = RhAssociatePrincipal.class, name = "Associate"),
-        @JsonSubTypes.Type(value = X509Principal.class, name = "X509")
-    })
-    public interface Identity {}
+  /**
+   * Abstraction over different auth types that may be present in x-rh-identity header.
+   *
+   * @see InsightsUserPrincipal
+   * @see RhAssociatePrincipal
+   * @see X509Principal
+   */
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.NAME,
+      property = "type",
+      defaultImpl = InsightsUserPrincipal.class)
+  @JsonSubTypes({
+    @JsonSubTypes.Type(value = InsightsUserPrincipal.class, name = "User"),
+    @JsonSubTypes.Type(value = RhAssociatePrincipal.class, name = "Associate"),
+    @JsonSubTypes.Type(value = X509Principal.class, name = "X509")
+  })
+  public interface Identity {}
 
-    private Identity identity;
+  private Identity identity;
 
-    public Identity getIdentity() {
-        return identity;
-    }
+  public Identity getIdentity() {
+    return identity;
+  }
 
-    public void setIdentity(Identity identity) {
-        this.identity = identity;
-    }
+  public void setIdentity(Identity identity) {
+    this.identity = identity;
+  }
 }

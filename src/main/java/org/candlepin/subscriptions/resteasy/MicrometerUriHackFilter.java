@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,36 +40,32 @@ import javax.ws.rs.ext.Provider;
 /**
  * Hack to get URI populated by micrometer.
  *
- * This uses internal knowledge of how MVC requests are providing URI to micrometer, found by reading the
- * source.
+ * <p>This uses internal knowledge of how MVC requests are providing URI to micrometer, found by
+ * reading the source.
  */
 @Component
 @Provider
 public class MicrometerUriHackFilter implements ContainerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(MicrometerUriHackFilter.class);
+  private static final Logger log = LoggerFactory.getLogger(MicrometerUriHackFilter.class);
 
-    @Context
-    HttpServletRequest request;
+  @Context HttpServletRequest request;
 
-    @Context
-    ResourceInfo resourceInfo;
+  @Context ResourceInfo resourceInfo;
 
-    @Context
-    UriInfo uriInfo;
+  @Context UriInfo uriInfo;
 
-    @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {
-        String path = uriInfo.getAbsolutePath().getPath();
-        try {
-            String applicationPath = uriInfo.getBaseUri().getPath();
-            String classPath = resourceInfo.getResourceClass().getAnnotation(Path.class).value();
-            String methodPath = resourceInfo.getResourceMethod().getAnnotation(Path.class).value();
-            path = Paths.get(applicationPath, classPath, methodPath).toString();
-        }
-        catch (Exception e) {
-            log.debug("Unable to determine templated resource path, falling back to absolute path", e);
-        }
-        request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, path);
+  @Override
+  public void filter(ContainerRequestContext requestContext) throws IOException {
+    String path = uriInfo.getAbsolutePath().getPath();
+    try {
+      String applicationPath = uriInfo.getBaseUri().getPath();
+      String classPath = resourceInfo.getResourceClass().getAnnotation(Path.class).value();
+      String methodPath = resourceInfo.getResourceMethod().getAnnotation(Path.class).value();
+      path = Paths.get(applicationPath, classPath, methodPath).toString();
+    } catch (Exception e) {
+      log.debug("Unable to determine templated resource path, falling back to absolute path", e);
     }
+    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, path);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,49 +29,45 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
-/**
- * Factory that produces inventory service clients using configuration.
- */
+/** Factory that produces inventory service clients using configuration. */
 public class HostsApiFactory implements FactoryBean<HostsApi> {
 
-    private static Logger log = LoggerFactory.getLogger(HostsApiFactory.class);
+  private static Logger log = LoggerFactory.getLogger(HostsApiFactory.class);
 
-    private final InventoryServiceProperties serviceProperties;
+  private final InventoryServiceProperties serviceProperties;
 
-    public HostsApiFactory(InventoryServiceProperties serviceProperties) {
-        this.serviceProperties = serviceProperties;
+  public HostsApiFactory(InventoryServiceProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
+  @Override
+  public HostsApi getObject() throws Exception {
+    if (serviceProperties.isUseStub()) {
+      log.info("Using stub host inventory client");
+      return new StubHostsApi();
+    }
+    ApiClient apiClient = Configuration.getDefaultApiClient();
+    if (serviceProperties.getUrl() != null) {
+      log.info("Host inventory service URL: {}", serviceProperties.getUrl());
+      apiClient.setBasePath(serviceProperties.getUrl());
+    } else {
+      log.warn("Host inventory service URL not set...");
     }
 
-    @Override
-    public HostsApi getObject() throws Exception {
-        if (serviceProperties.isUseStub()) {
-            log.info("Using stub host inventory client");
-            return new StubHostsApi();
-        }
-        ApiClient apiClient = Configuration.getDefaultApiClient();
-        if (serviceProperties.getUrl() != null) {
-            log.info("Host inventory service URL: {}", serviceProperties.getUrl());
-            apiClient.setBasePath(serviceProperties.getUrl());
-        }
-        else {
-            log.warn("Host inventory service URL not set...");
-        }
-
-        // Inventory API requires us to use key based auth.
-        String apiKey = serviceProperties.getApiKey();
-        if (apiKey == null || apiKey.isEmpty()) {
-            throw new IllegalStateException("No api key has been set for the inventory client.");
-        }
-        ObjectMapper mapper = apiClient.getJSON().getContext(ObjectMapper.class);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        apiClient.addDefaultHeader("Authorization", String.format("Bearer %s", apiKey));
-
-        return new HostsApi(apiClient);
+    // Inventory API requires us to use key based auth.
+    String apiKey = serviceProperties.getApiKey();
+    if (apiKey == null || apiKey.isEmpty()) {
+      throw new IllegalStateException("No api key has been set for the inventory client.");
     }
+    ObjectMapper mapper = apiClient.getJSON().getContext(ObjectMapper.class);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    apiClient.addDefaultHeader("Authorization", String.format("Bearer %s", apiKey));
 
-    @Override
-    public Class<?> getObjectType() {
-        return HostsApi.class;
-    }
+    return new HostsApi(apiClient);
+  }
 
+  @Override
+  public Class<?> getObjectType() {
+    return HostsApi.class;
+  }
 }

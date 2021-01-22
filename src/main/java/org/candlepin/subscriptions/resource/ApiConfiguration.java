@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ import org.springframework.context.annotation.Profile;
 /**
  * Configuration for the "api" profile.
  *
- * The API profile is responsible for handling customer-facing API requests.
+ * <p>The API profile is responsible for handling customer-facing API requests.
  */
 @Configuration
 @Profile("api")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.resource")
 @Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
 public class ApiConfiguration {
-    /* Intentionally empty */
+  /* Intentionally empty */
 }

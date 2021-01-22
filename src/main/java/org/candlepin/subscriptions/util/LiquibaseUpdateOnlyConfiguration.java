@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,24 +32,22 @@ import org.springframework.context.annotation.Profile;
 /**
  * Configuration for the "liquibase-only" profile.
  *
- * This profile can be used during development to run the liquibase changes and then simply exit.
+ * <p>This profile can be used during development to run the liquibase changes and then simply exit.
  */
 @Configuration
 @Profile("liquibase-only")
 @Import(RhsmSubscriptionsDataSourceConfiguration.class)
 public class LiquibaseUpdateOnlyConfiguration {
-    @Bean
-    JobRunner jobRunner(ApplicationContext context) {
-        return new JobRunner(new LiquibaseUpdateOnly(), context);
-    }
+  @Bean
+  JobRunner jobRunner(ApplicationContext context) {
+    return new JobRunner(new LiquibaseUpdateOnly(), context);
+  }
 
-    /**
-     * No-op job.
-     */
-    public static class LiquibaseUpdateOnly implements Runnable {
-        @Override
-        public void run() {
-            /* Intentionally left blank */
-        }
+  /** No-op job. */
+  public static class LiquibaseUpdateOnly implements Runnable {
+    @Override
+    public void run() {
+      /* Intentionally left blank */
     }
+  }
 }

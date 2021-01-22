@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,51 +27,51 @@ import java.time.OffsetDateTime;
 /**
  * Cache for a value that expires after a certain time.
  *
- * Uses of this class must check whether the cached value is valid by using isExpired.
+ * <p>Uses of this class must check whether the cached value is valid by using isExpired.
  *
  * @param <T> type of value to cache.
  */
 public class Cache<T> {
-    private OffsetDateTime lastCached;
-    private T cachedValue;
-    private final Duration cacheTtl;
-    private final Clock clock;
+  private OffsetDateTime lastCached;
+  private T cachedValue;
+  private final Duration cacheTtl;
+  private final Clock clock;
 
-    public Cache(Clock clock, Duration cacheTtl) {
-        this.clock = clock;
-        this.cacheTtl = cacheTtl;
-    }
+  public Cache(Clock clock, Duration cacheTtl) {
+    this.clock = clock;
+    this.cacheTtl = cacheTtl;
+  }
 
-    /**
-     * Set the value in the cache and transparently update the TTL on the value.
-     *
-     * @param value value to cache
-     */
-    public void setValue(T value) {
-        cachedValue = value;
-        lastCached = OffsetDateTime.now(clock);
-    }
+  /**
+   * Set the value in the cache and transparently update the TTL on the value.
+   *
+   * @param value value to cache
+   */
+  public void setValue(T value) {
+    cachedValue = value;
+    lastCached = OffsetDateTime.now(clock);
+  }
 
-    /**
-     * Get the cached value.
-     *
-     * @return the cached value
-     */
-    public T getValue() {
-        return cachedValue;
-    }
+  /**
+   * Get the cached value.
+   *
+   * @return the cached value
+   */
+  public T getValue() {
+    return cachedValue;
+  }
 
-    /**
-     * Returns whether the TTL has elapsed or not.
-     *
-     * @return boolean indicating TTL expiry
-     */
-    public boolean isExpired() {
-        if (lastCached == null) {
-            return true;
-        }
-        OffsetDateTime expiry = lastCached.plus(cacheTtl);
-        OffsetDateTime now = OffsetDateTime.now(clock);
-        return expiry.isBefore(now) || expiry.isEqual(now);
+  /**
+   * Returns whether the TTL has elapsed or not.
+   *
+   * @return boolean indicating TTL expiry
+   */
+  public boolean isExpired() {
+    if (lastCached == null) {
+      return true;
     }
+    OffsetDateTime expiry = lastCached.plus(cacheTtl);
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    return expiry.isBefore(now) || expiry.isEqual(now);
+  }
 }

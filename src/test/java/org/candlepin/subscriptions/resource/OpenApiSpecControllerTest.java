@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,20 +30,19 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("api,test")
 class OpenApiSpecControllerTest {
-    @Autowired
-    OpenApiSpecController controller;
+  @Autowired OpenApiSpecController controller;
 
-    @Test
-    void testOpenApiJson() {
-        /* Tests that we receive a successful non-empty response */
-        String json = controller.getOpenApiJson();
-        assertNotEquals(0, json.length());
-    }
+  @Test
+  void testOpenApiJson() {
+    /* Tests that we receive a successful non-empty response */
+    String json = controller.getOpenApiJson();
+    assertNotEquals(0, json.length());
+  }
 
-    @Test
-    void testOpenApiYaml() {
-        /* Tests that we receive a successful non-empty response */
-        String yaml = controller.getOpenApiYaml();
-        assertNotEquals(0, yaml.length());
-    }
+  @Test
+  void testOpenApiYaml() {
+    /* Tests that we receive a successful non-empty response */
+    String yaml = controller.getOpenApiYaml();
+    assertNotEquals(0, yaml.length());
+  }
 }

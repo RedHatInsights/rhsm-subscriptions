@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,326 +51,323 @@ import java.util.stream.Collectors;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CandlepinPoolCapacityMapperTest {
 
-    private static final OffsetDateTime LONG_AGO = OffsetDateTime.ofInstant(Instant.EPOCH,
-        ZoneId.systemDefault());
-    private static final OffsetDateTime NOWISH = OffsetDateTime.of(2019, 06, 23, 00, 00, 00, 00,
-        ZoneOffset.UTC);
+  private static final OffsetDateTime LONG_AGO =
+      OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
+  private static final OffsetDateTime NOWISH =
+      OffsetDateTime.of(2019, 06, 23, 00, 00, 00, 00, ZoneOffset.UTC);
 
-    CapacityProductExtractor productExtractor;
+  CapacityProductExtractor productExtractor;
 
-    CandlepinPoolCapacityMapper mapper;
+  CandlepinPoolCapacityMapper mapper;
 
-    private static Set<String> physicalProducts = new HashSet<>(Arrays.asList("RHEL", "RHEL Server"));
-    private static List<String> physicalProductIds = Arrays.asList("1", "2");
-    private static Set<String> virtualProducts = new HashSet<>(Arrays.asList("RHEL", "RHEL Workstation"));
-    private static List<String> virtualProductIds = Arrays.asList("3", "4");
+  private static Set<String> physicalProducts = new HashSet<>(Arrays.asList("RHEL", "RHEL Server"));
+  private static List<String> physicalProductIds = Arrays.asList("1", "2");
+  private static Set<String> virtualProducts =
+      new HashSet<>(Arrays.asList("RHEL", "RHEL Workstation"));
+  private static List<String> virtualProductIds = Arrays.asList("3", "4");
 
-    @BeforeAll
-    void setup() {
-        productExtractor = Mockito.mock(CapacityProductExtractor.class);
+  @BeforeAll
+  void setup() {
+    productExtractor = Mockito.mock(CapacityProductExtractor.class);
 
-        Mockito.when(productExtractor.getProducts(Mockito.eq(physicalProductIds)))
-            .thenReturn(physicalProducts);
+    Mockito.when(productExtractor.getProducts(Mockito.eq(physicalProductIds)))
+        .thenReturn(physicalProducts);
 
-        Mockito.when(productExtractor.getProducts(Mockito.eq(virtualProductIds)))
-            .thenReturn(virtualProducts);
+    Mockito.when(productExtractor.getProducts(Mockito.eq(virtualProductIds)))
+        .thenReturn(virtualProducts);
 
-        mapper = new CandlepinPoolCapacityMapper(productExtractor);
+    mapper = new CandlepinPoolCapacityMapper(productExtractor);
+  }
+
+  @Test
+  void testPoolWithPhysicalProductsProvidesCapacity() {
+    CandlepinPool pool = createTestPool(physicalProductIds, null);
+
+    Collection<SubscriptionCapacity> capacities =
+        mapper.mapPoolToSubscriptionCapacity("ownerId", pool, Collections.emptyMap());
+
+    SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+    expectedRhelCapacity.setProductId("RHEL");
+    expectedRhelCapacity.setPhysicalSockets(20);
+    expectedRhelCapacity.setPhysicalCores(40);
+    expectedRhelCapacity.setAccountNumber("account");
+    expectedRhelCapacity.setBeginDate(LONG_AGO);
+    expectedRhelCapacity.setEndDate(NOWISH);
+    expectedRhelCapacity.setSubscriptionId("subId");
+    expectedRhelCapacity.setOwnerId("ownerId");
+    expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedRhelCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
+    expectedServerCapacity.setProductId("RHEL Server");
+    expectedServerCapacity.setPhysicalSockets(20);
+    expectedServerCapacity.setPhysicalCores(40);
+    expectedServerCapacity.setAccountNumber("account");
+    expectedServerCapacity.setBeginDate(LONG_AGO);
+    expectedServerCapacity.setEndDate(NOWISH);
+    expectedServerCapacity.setSubscriptionId("subId");
+    expectedServerCapacity.setOwnerId("ownerId");
+    expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedServerCapacity.setUsage(Usage.PRODUCTION);
+
+    assertThat(
+        capacities, Matchers.containsInAnyOrder(expectedRhelCapacity, expectedServerCapacity));
+  }
+
+  @Test
+  void testBadSlaAndUsageAreWrittenAsEmptyString() {
+    CandlepinPool pool = createTestPool(physicalProductIds, null, null, "badSLA", "badUsage");
+
+    Collection<SubscriptionCapacity> capacities =
+        mapper.mapPoolToSubscriptionCapacity("ownerId", pool, Collections.emptyMap());
+
+    SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+    expectedRhelCapacity.setProductId("RHEL");
+    expectedRhelCapacity.setPhysicalSockets(20);
+    expectedRhelCapacity.setPhysicalCores(40);
+    expectedRhelCapacity.setAccountNumber("account");
+    expectedRhelCapacity.setBeginDate(LONG_AGO);
+    expectedRhelCapacity.setEndDate(NOWISH);
+    expectedRhelCapacity.setSubscriptionId("subId");
+    expectedRhelCapacity.setServiceLevel(ServiceLevel.EMPTY);
+    expectedRhelCapacity.setUsage(Usage.EMPTY);
+    expectedRhelCapacity.setOwnerId("ownerId");
+
+    SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
+    expectedServerCapacity.setProductId("RHEL Server");
+    expectedServerCapacity.setPhysicalSockets(20);
+    expectedServerCapacity.setPhysicalCores(40);
+    expectedServerCapacity.setAccountNumber("account");
+    expectedServerCapacity.setBeginDate(LONG_AGO);
+    expectedServerCapacity.setEndDate(NOWISH);
+    expectedServerCapacity.setSubscriptionId("subId");
+    expectedServerCapacity.setOwnerId("ownerId");
+    expectedServerCapacity.setServiceLevel(ServiceLevel.EMPTY);
+    expectedServerCapacity.setUsage(Usage.EMPTY);
+
+    assertThat(
+        capacities, Matchers.containsInAnyOrder(expectedRhelCapacity, expectedServerCapacity));
+  }
+
+  @Test
+  void testQuantityIsDividedByInstanceMultiplier() {
+    CandlepinPool pool = createTestPool(physicalProductIds, null, 2);
+
+    Collection<SubscriptionCapacity> capacities =
+        mapper.mapPoolToSubscriptionCapacity("ownerId", pool, Collections.emptyMap());
+
+    SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+    expectedRhelCapacity.setProductId("RHEL");
+    expectedRhelCapacity.setPhysicalSockets(10);
+    expectedRhelCapacity.setPhysicalCores(20);
+    expectedRhelCapacity.setAccountNumber("account");
+    expectedRhelCapacity.setBeginDate(LONG_AGO);
+    expectedRhelCapacity.setEndDate(NOWISH);
+    expectedRhelCapacity.setSubscriptionId("subId");
+    expectedRhelCapacity.setOwnerId("ownerId");
+    expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedRhelCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
+    expectedServerCapacity.setProductId("RHEL Server");
+    expectedServerCapacity.setPhysicalSockets(10);
+    expectedServerCapacity.setPhysicalCores(20);
+    expectedServerCapacity.setAccountNumber("account");
+    expectedServerCapacity.setBeginDate(LONG_AGO);
+    expectedServerCapacity.setEndDate(NOWISH);
+    expectedServerCapacity.setSubscriptionId("subId");
+    expectedServerCapacity.setOwnerId("ownerId");
+    expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedServerCapacity.setUsage(Usage.PRODUCTION);
+
+    assertThat(
+        capacities, Matchers.containsInAnyOrder(expectedRhelCapacity, expectedServerCapacity));
+  }
+
+  @Test
+  void testPoolWithVirtualProductsProvidesCapacity() {
+    CandlepinPool pool = createTestPool(null, virtualProductIds);
+
+    Collection<SubscriptionCapacity> capacities =
+        mapper.mapPoolToSubscriptionCapacity("ownerId", pool, Collections.emptyMap());
+
+    SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+    expectedRhelCapacity.setProductId("RHEL");
+    expectedRhelCapacity.setVirtualSockets(20);
+    expectedRhelCapacity.setVirtualCores(40);
+    expectedRhelCapacity.setAccountNumber("account");
+    expectedRhelCapacity.setBeginDate(LONG_AGO);
+    expectedRhelCapacity.setEndDate(NOWISH);
+    expectedRhelCapacity.setSubscriptionId("subId");
+    expectedRhelCapacity.setOwnerId("ownerId");
+    expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedRhelCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
+    expectedWorkstationCapacity.setProductId("RHEL Workstation");
+    expectedWorkstationCapacity.setVirtualSockets(20);
+    expectedWorkstationCapacity.setVirtualCores(40);
+    expectedWorkstationCapacity.setAccountNumber("account");
+    expectedWorkstationCapacity.setBeginDate(LONG_AGO);
+    expectedWorkstationCapacity.setEndDate(NOWISH);
+    expectedWorkstationCapacity.setSubscriptionId("subId");
+    expectedWorkstationCapacity.setOwnerId("ownerId");
+    expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
+
+    assertThat(
+        capacities, Matchers.containsInAnyOrder(expectedRhelCapacity, expectedWorkstationCapacity));
+  }
+
+  @Test
+  void testPoolWithBothPhysicalAndVirtualProductsProvidesCapacity() {
+    CandlepinPool pool = createTestPool(physicalProductIds, virtualProductIds);
+
+    Collection<SubscriptionCapacity> capacities =
+        mapper.mapPoolToSubscriptionCapacity("ownerId", pool, Collections.emptyMap());
+
+    SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+    expectedRhelCapacity.setProductId("RHEL");
+    expectedRhelCapacity.setPhysicalSockets(20);
+    expectedRhelCapacity.setVirtualSockets(20);
+    expectedRhelCapacity.setPhysicalCores(40);
+    expectedRhelCapacity.setVirtualCores(40);
+    expectedRhelCapacity.setAccountNumber("account");
+    expectedRhelCapacity.setBeginDate(LONG_AGO);
+    expectedRhelCapacity.setEndDate(NOWISH);
+    expectedRhelCapacity.setSubscriptionId("subId");
+    expectedRhelCapacity.setOwnerId("ownerId");
+    expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedRhelCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
+    expectedWorkstationCapacity.setProductId("RHEL Workstation");
+    expectedWorkstationCapacity.setVirtualSockets(20);
+    expectedWorkstationCapacity.setVirtualCores(40);
+    expectedWorkstationCapacity.setAccountNumber("account");
+    expectedWorkstationCapacity.setBeginDate(LONG_AGO);
+    expectedWorkstationCapacity.setEndDate(NOWISH);
+    expectedWorkstationCapacity.setSubscriptionId("subId");
+    expectedWorkstationCapacity.setOwnerId("ownerId");
+    expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
+    expectedServerCapacity.setProductId("RHEL Server");
+    expectedServerCapacity.setPhysicalSockets(20);
+    expectedServerCapacity.setPhysicalCores(40);
+    expectedServerCapacity.setAccountNumber("account");
+    expectedServerCapacity.setBeginDate(LONG_AGO);
+    expectedServerCapacity.setEndDate(NOWISH);
+    expectedServerCapacity.setSubscriptionId("subId");
+    expectedServerCapacity.setOwnerId("ownerId");
+    expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedServerCapacity.setUsage(Usage.PRODUCTION);
+
+    assertThat(
+        capacities,
+        Matchers.containsInAnyOrder(
+            expectedRhelCapacity, expectedServerCapacity, expectedWorkstationCapacity));
+  }
+
+  @Test
+  void testPoolWithBadlyDefinedSkuGivesNoCapacity() {
+    CandlepinPool pool = createTestPool(physicalProductIds, virtualProductIds);
+    pool.setQuantity(-1L);
+
+    Collection<SubscriptionCapacity> capacities =
+        mapper.mapPoolToSubscriptionCapacity("ownerId", pool, Collections.emptyMap());
+
+    SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
+    expectedRhelCapacity.setProductId("RHEL");
+    expectedRhelCapacity.setAccountNumber("account");
+    expectedRhelCapacity.setBeginDate(LONG_AGO);
+    expectedRhelCapacity.setEndDate(NOWISH);
+    expectedRhelCapacity.setSubscriptionId("subId");
+    expectedRhelCapacity.setOwnerId("ownerId");
+    expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedRhelCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
+    expectedWorkstationCapacity.setProductId("RHEL Workstation");
+    expectedWorkstationCapacity.setAccountNumber("account");
+    expectedWorkstationCapacity.setBeginDate(LONG_AGO);
+    expectedWorkstationCapacity.setEndDate(NOWISH);
+    expectedWorkstationCapacity.setSubscriptionId("subId");
+    expectedWorkstationCapacity.setOwnerId("ownerId");
+    expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
+
+    SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
+    expectedServerCapacity.setProductId("RHEL Server");
+    expectedServerCapacity.setAccountNumber("account");
+    expectedServerCapacity.setBeginDate(LONG_AGO);
+    expectedServerCapacity.setEndDate(NOWISH);
+    expectedServerCapacity.setSubscriptionId("subId");
+    expectedServerCapacity.setOwnerId("ownerId");
+    expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedServerCapacity.setUsage(Usage.PRODUCTION);
+
+    assertThat(
+        capacities,
+        Matchers.containsInAnyOrder(
+            expectedRhelCapacity, expectedServerCapacity, expectedWorkstationCapacity));
+  }
+
+  private CandlepinPool createTestPool(
+      List<String> physicalProductIds, List<String> derivedProductIds) {
+    return createTestPool(physicalProductIds, derivedProductIds, null);
+  }
+
+  private CandlepinPool createTestPool(
+      List<String> physicalProductIds, List<String> derivedProductIds, Integer instanceMultiplier) {
+    return createTestPool(
+        physicalProductIds,
+        derivedProductIds,
+        instanceMultiplier,
+        ServiceLevel.PREMIUM.getValue(),
+        Usage.PRODUCTION.getValue());
+  }
+
+  private CandlepinPool createTestPool(
+      List<String> physicalProductIds,
+      List<String> derivedProductIds,
+      Integer instanceMultiplier,
+      String sla,
+      String usage) {
+    CandlepinPool pool = new CandlepinPool();
+    pool.setAccountNumber("account");
+    pool.setStartDate(LONG_AGO);
+    pool.setEndDate(NOWISH);
+    pool.setQuantity(10L);
+    pool.setSubscriptionId("subId");
+    if (physicalProductIds != null) {
+      pool.setProvidedProducts(
+          physicalProductIds.stream()
+              .map(id -> new CandlepinProvidedProduct().productId(id))
+              .collect(Collectors.toList()));
+    }
+    if (derivedProductIds != null) {
+      pool.setDerivedProvidedProducts(
+          derivedProductIds.stream()
+              .map(id -> new CandlepinProvidedProduct().productId(id))
+              .collect(Collectors.toList()));
     }
 
-    @Test
-    void testPoolWithPhysicalProductsProvidesCapacity() {
-        CandlepinPool pool = createTestPool(physicalProductIds, null);
-
-        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool, Collections.emptyMap());
-
-        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
-        expectedRhelCapacity.setProductId("RHEL");
-        expectedRhelCapacity.setPhysicalSockets(20);
-        expectedRhelCapacity.setPhysicalCores(40);
-        expectedRhelCapacity.setAccountNumber("account");
-        expectedRhelCapacity.setBeginDate(LONG_AGO);
-        expectedRhelCapacity.setEndDate(NOWISH);
-        expectedRhelCapacity.setSubscriptionId("subId");
-        expectedRhelCapacity.setOwnerId("ownerId");
-        expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
-        expectedServerCapacity.setProductId("RHEL Server");
-        expectedServerCapacity.setPhysicalSockets(20);
-        expectedServerCapacity.setPhysicalCores(40);
-        expectedServerCapacity.setAccountNumber("account");
-        expectedServerCapacity.setBeginDate(LONG_AGO);
-        expectedServerCapacity.setEndDate(NOWISH);
-        expectedServerCapacity.setSubscriptionId("subId");
-        expectedServerCapacity.setOwnerId("ownerId");
-        expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedServerCapacity.setUsage(Usage.PRODUCTION);
-
-        assertThat(capacities, Matchers.containsInAnyOrder(
-            expectedRhelCapacity,
-            expectedServerCapacity
-        ));
+    List<CandlepinProductAttribute> attributes =
+        new ArrayList<>(
+            Arrays.asList(
+                new CandlepinProductAttribute().name("sockets").value("2"),
+                new CandlepinProductAttribute().name("cores").value("4")));
+    if (instanceMultiplier != null) {
+      attributes.add(
+          new CandlepinProductAttribute()
+              .name("instance_multiplier")
+              .value(instanceMultiplier.toString()));
     }
-
-    @Test
-    void testBadSlaAndUsageAreWrittenAsEmptyString() {
-        CandlepinPool pool = createTestPool(physicalProductIds, null, null, "badSLA", "badUsage");
-
-        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool, Collections.emptyMap());
-
-        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
-        expectedRhelCapacity.setProductId("RHEL");
-        expectedRhelCapacity.setPhysicalSockets(20);
-        expectedRhelCapacity.setPhysicalCores(40);
-        expectedRhelCapacity.setAccountNumber("account");
-        expectedRhelCapacity.setBeginDate(LONG_AGO);
-        expectedRhelCapacity.setEndDate(NOWISH);
-        expectedRhelCapacity.setSubscriptionId("subId");
-        expectedRhelCapacity.setServiceLevel(ServiceLevel.EMPTY);
-        expectedRhelCapacity.setUsage(Usage.EMPTY);
-        expectedRhelCapacity.setOwnerId("ownerId");
-
-        SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
-        expectedServerCapacity.setProductId("RHEL Server");
-        expectedServerCapacity.setPhysicalSockets(20);
-        expectedServerCapacity.setPhysicalCores(40);
-        expectedServerCapacity.setAccountNumber("account");
-        expectedServerCapacity.setBeginDate(LONG_AGO);
-        expectedServerCapacity.setEndDate(NOWISH);
-        expectedServerCapacity.setSubscriptionId("subId");
-        expectedServerCapacity.setOwnerId("ownerId");
-        expectedServerCapacity.setServiceLevel(ServiceLevel.EMPTY);
-        expectedServerCapacity.setUsage(Usage.EMPTY);
-
-        assertThat(capacities, Matchers.containsInAnyOrder(
-            expectedRhelCapacity,
-            expectedServerCapacity
-        ));
-    }
-
-    @Test
-    void testQuantityIsDividedByInstanceMultiplier() {
-        CandlepinPool pool = createTestPool(physicalProductIds, null, 2);
-
-        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool, Collections.emptyMap());
-
-        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
-        expectedRhelCapacity.setProductId("RHEL");
-        expectedRhelCapacity.setPhysicalSockets(10);
-        expectedRhelCapacity.setPhysicalCores(20);
-        expectedRhelCapacity.setAccountNumber("account");
-        expectedRhelCapacity.setBeginDate(LONG_AGO);
-        expectedRhelCapacity.setEndDate(NOWISH);
-        expectedRhelCapacity.setSubscriptionId("subId");
-        expectedRhelCapacity.setOwnerId("ownerId");
-        expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
-        expectedServerCapacity.setProductId("RHEL Server");
-        expectedServerCapacity.setPhysicalSockets(10);
-        expectedServerCapacity.setPhysicalCores(20);
-        expectedServerCapacity.setAccountNumber("account");
-        expectedServerCapacity.setBeginDate(LONG_AGO);
-        expectedServerCapacity.setEndDate(NOWISH);
-        expectedServerCapacity.setSubscriptionId("subId");
-        expectedServerCapacity.setOwnerId("ownerId");
-        expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedServerCapacity.setUsage(Usage.PRODUCTION);
-
-        assertThat(capacities, Matchers.containsInAnyOrder(
-            expectedRhelCapacity,
-            expectedServerCapacity
-        ));
-    }
-
-    @Test
-    void testPoolWithVirtualProductsProvidesCapacity() {
-        CandlepinPool pool = createTestPool(null, virtualProductIds);
-
-        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool, Collections.emptyMap());
-
-        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
-        expectedRhelCapacity.setProductId("RHEL");
-        expectedRhelCapacity.setVirtualSockets(20);
-        expectedRhelCapacity.setVirtualCores(40);
-        expectedRhelCapacity.setAccountNumber("account");
-        expectedRhelCapacity.setBeginDate(LONG_AGO);
-        expectedRhelCapacity.setEndDate(NOWISH);
-        expectedRhelCapacity.setSubscriptionId("subId");
-        expectedRhelCapacity.setOwnerId("ownerId");
-        expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
-        expectedWorkstationCapacity.setProductId("RHEL Workstation");
-        expectedWorkstationCapacity.setVirtualSockets(20);
-        expectedWorkstationCapacity.setVirtualCores(40);
-        expectedWorkstationCapacity.setAccountNumber("account");
-        expectedWorkstationCapacity.setBeginDate(LONG_AGO);
-        expectedWorkstationCapacity.setEndDate(NOWISH);
-        expectedWorkstationCapacity.setSubscriptionId("subId");
-        expectedWorkstationCapacity.setOwnerId("ownerId");
-        expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
-
-        assertThat(capacities, Matchers.containsInAnyOrder(
-            expectedRhelCapacity,
-            expectedWorkstationCapacity
-        ));
-    }
-
-    @Test
-    void testPoolWithBothPhysicalAndVirtualProductsProvidesCapacity() {
-        CandlepinPool pool = createTestPool(physicalProductIds, virtualProductIds);
-
-        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool, Collections.emptyMap());
-
-        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
-        expectedRhelCapacity.setProductId("RHEL");
-        expectedRhelCapacity.setPhysicalSockets(20);
-        expectedRhelCapacity.setVirtualSockets(20);
-        expectedRhelCapacity.setPhysicalCores(40);
-        expectedRhelCapacity.setVirtualCores(40);
-        expectedRhelCapacity.setAccountNumber("account");
-        expectedRhelCapacity.setBeginDate(LONG_AGO);
-        expectedRhelCapacity.setEndDate(NOWISH);
-        expectedRhelCapacity.setSubscriptionId("subId");
-        expectedRhelCapacity.setOwnerId("ownerId");
-        expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
-        expectedWorkstationCapacity.setProductId("RHEL Workstation");
-        expectedWorkstationCapacity.setVirtualSockets(20);
-        expectedWorkstationCapacity.setVirtualCores(40);
-        expectedWorkstationCapacity.setAccountNumber("account");
-        expectedWorkstationCapacity.setBeginDate(LONG_AGO);
-        expectedWorkstationCapacity.setEndDate(NOWISH);
-        expectedWorkstationCapacity.setSubscriptionId("subId");
-        expectedWorkstationCapacity.setOwnerId("ownerId");
-        expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
-        expectedServerCapacity.setProductId("RHEL Server");
-        expectedServerCapacity.setPhysicalSockets(20);
-        expectedServerCapacity.setPhysicalCores(40);
-        expectedServerCapacity.setAccountNumber("account");
-        expectedServerCapacity.setBeginDate(LONG_AGO);
-        expectedServerCapacity.setEndDate(NOWISH);
-        expectedServerCapacity.setSubscriptionId("subId");
-        expectedServerCapacity.setOwnerId("ownerId");
-        expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedServerCapacity.setUsage(Usage.PRODUCTION);
-
-        assertThat(capacities, Matchers.containsInAnyOrder(
-            expectedRhelCapacity,
-            expectedServerCapacity,
-            expectedWorkstationCapacity
-        ));
-    }
-
-    @Test
-    void testPoolWithBadlyDefinedSkuGivesNoCapacity() {
-        CandlepinPool pool = createTestPool(physicalProductIds, virtualProductIds);
-        pool.setQuantity(-1L);
-
-        Collection<SubscriptionCapacity> capacities = mapper.mapPoolToSubscriptionCapacity("ownerId",
-            pool, Collections.emptyMap());
-
-        SubscriptionCapacity expectedRhelCapacity = new SubscriptionCapacity();
-        expectedRhelCapacity.setProductId("RHEL");
-        expectedRhelCapacity.setAccountNumber("account");
-        expectedRhelCapacity.setBeginDate(LONG_AGO);
-        expectedRhelCapacity.setEndDate(NOWISH);
-        expectedRhelCapacity.setSubscriptionId("subId");
-        expectedRhelCapacity.setOwnerId("ownerId");
-        expectedRhelCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedRhelCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedWorkstationCapacity = new SubscriptionCapacity();
-        expectedWorkstationCapacity.setProductId("RHEL Workstation");
-        expectedWorkstationCapacity.setAccountNumber("account");
-        expectedWorkstationCapacity.setBeginDate(LONG_AGO);
-        expectedWorkstationCapacity.setEndDate(NOWISH);
-        expectedWorkstationCapacity.setSubscriptionId("subId");
-        expectedWorkstationCapacity.setOwnerId("ownerId");
-        expectedWorkstationCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedWorkstationCapacity.setUsage(Usage.PRODUCTION);
-
-        SubscriptionCapacity expectedServerCapacity = new SubscriptionCapacity();
-        expectedServerCapacity.setProductId("RHEL Server");
-        expectedServerCapacity.setAccountNumber("account");
-        expectedServerCapacity.setBeginDate(LONG_AGO);
-        expectedServerCapacity.setEndDate(NOWISH);
-        expectedServerCapacity.setSubscriptionId("subId");
-        expectedServerCapacity.setOwnerId("ownerId");
-        expectedServerCapacity.setServiceLevel(ServiceLevel.PREMIUM);
-        expectedServerCapacity.setUsage(Usage.PRODUCTION);
-
-        assertThat(capacities, Matchers.containsInAnyOrder(
-            expectedRhelCapacity,
-            expectedServerCapacity,
-            expectedWorkstationCapacity
-        ));
-    }
-
-    private CandlepinPool createTestPool(List<String> physicalProductIds, List<String> derivedProductIds) {
-        return createTestPool(physicalProductIds, derivedProductIds, null);
-    }
-
-    private CandlepinPool createTestPool(List<String> physicalProductIds, List<String> derivedProductIds,
-        Integer instanceMultiplier) {
-        return createTestPool(physicalProductIds, derivedProductIds, instanceMultiplier,
-            ServiceLevel.PREMIUM.getValue(), Usage.PRODUCTION.getValue());
-    }
-
-    private CandlepinPool createTestPool(List<String> physicalProductIds, List<String> derivedProductIds,
-        Integer instanceMultiplier, String sla, String usage) {
-        CandlepinPool pool = new CandlepinPool();
-        pool.setAccountNumber("account");
-        pool.setStartDate(LONG_AGO);
-        pool.setEndDate(NOWISH);
-        pool.setQuantity(10L);
-        pool.setSubscriptionId("subId");
-        if (physicalProductIds != null) {
-            pool.setProvidedProducts(
-                physicalProductIds.stream().map(id -> new CandlepinProvidedProduct().productId(id))
-                .collect(Collectors.toList()));
-        }
-        if (derivedProductIds != null) {
-            pool.setDerivedProvidedProducts(
-                derivedProductIds.stream().map(id -> new CandlepinProvidedProduct().productId(id))
-                .collect(Collectors.toList()));
-        }
-
-        List<CandlepinProductAttribute> attributes = new ArrayList<>(Arrays.asList(
-            new CandlepinProductAttribute().name("sockets").value("2"),
-            new CandlepinProductAttribute().name("cores").value("4")
-        ));
-        if (instanceMultiplier != null) {
-            attributes.add(new CandlepinProductAttribute()
-                .name("instance_multiplier")
-                .value(instanceMultiplier.toString())
-            );
-        }
-        attributes.add(new CandlepinProductAttribute()
-            .name("support_level")
-            .value(sla)
-        );
-        attributes.add(new CandlepinProductAttribute()
-            .name("usage")
-            .value(usage)
-        );
-        pool.setProductAttributes(attributes);
-        return pool;
-    }
+    attributes.add(new CandlepinProductAttribute().name("support_level").value(sla));
+    attributes.add(new CandlepinProductAttribute().name("usage").value(usage));
+    pool.setProductAttributes(attributes);
+    return pool;
+  }
 }

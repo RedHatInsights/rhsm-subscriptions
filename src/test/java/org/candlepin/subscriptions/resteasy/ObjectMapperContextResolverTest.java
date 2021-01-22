@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,111 +39,105 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-
 @SpringBootTest
 @ActiveProfiles("api,test")
 @TestInstance(Lifecycle.PER_CLASS)
 class ObjectMapperContextResolverTest {
 
-    @Autowired
-    private ObjectMapperContextResolver resolver;
+  @Autowired private ObjectMapperContextResolver resolver;
 
-    private ObjectMapper mapper;
+  private ObjectMapper mapper;
 
-    @BeforeAll
-    void setupTests() {
-        mapper = resolver.getContext(Void.class);
-    }
+  @BeforeAll
+  void setupTests() {
+    mapper = resolver.getContext(Void.class);
+  }
 
-    /**
-     * Ensure that dates are in ISO-8601 format.
-     */
-    @Test
-    void ensureDatesAreSerializedToISO8601Format() throws Exception {
+  /** Ensure that dates are in ISO-8601 format. */
+  @Test
+  void ensureDatesAreSerializedToISO8601Format() throws Exception {
 
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.set(Calendar.MONTH, Calendar.JANUARY);
-        cal.set(Calendar.DATE, 12);
-        cal.set(Calendar.YEAR, 2019);
-        cal.set(Calendar.HOUR_OF_DAY, 8);
-        cal.set(Calendar.MINUTE, 30);
-        cal.set(Calendar.SECOND, 15);
-        cal.set(Calendar.MILLISECOND, 222);
+    Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    cal.set(Calendar.MONTH, Calendar.JANUARY);
+    cal.set(Calendar.DATE, 12);
+    cal.set(Calendar.YEAR, 2019);
+    cal.set(Calendar.HOUR_OF_DAY, 8);
+    cal.set(Calendar.MINUTE, 30);
+    cal.set(Calendar.SECOND, 15);
+    cal.set(Calendar.MILLISECOND, 222);
 
-        String formatted = mapper.writeValueAsString(cal.getTime());
-        // NOTE: The mapper will wrap the string in quotes.
-        assertEquals("\"2019-01-12T08:30:15.222+00:00\"", formatted);
+    String formatted = mapper.writeValueAsString(cal.getTime());
+    // NOTE: The mapper will wrap the string in quotes.
+    assertEquals("\"2019-01-12T08:30:15.222+00:00\"", formatted);
+  }
 
-    }
+  @Test
+  void serialization() throws Exception {
+    String expectedVal1 = "foo";
+    String expectedVal2 = "bar";
 
-    @Test
-    void serialization() throws Exception {
-        String expectedVal1 = "foo";
-        String expectedVal2 = "bar";
+    TestPojo pojo = new TestPojo(expectedVal1, expectedVal2);
+    String data = mapper.writeValueAsString(pojo);
+    assertContainsProperty(data, "value1", expectedVal1);
+    assertContainsProperty(data, "value2", expectedVal2);
+  }
 
-        TestPojo pojo = new TestPojo(expectedVal1, expectedVal2);
-        String data = mapper.writeValueAsString(pojo);
-        assertContainsProperty(data, "value1", expectedVal1);
-        assertContainsProperty(data, "value2", expectedVal2);
-    }
+  @Test
+  void ensureSerializedObjectsDoNotIncludePropsWithNullValues() throws Exception {
+    String v2 = "bar";
+    TestPojo pojo = new TestPojo(null, v2);
+    String data = mapper.writeValueAsString(pojo);
+    assertDoesNotContainProperty(data, "value1");
+    assertContainsProperty(data, "value2", v2);
+  }
 
-    @Test
-    void ensureSerializedObjectsDoNotIncludePropsWithNullValues() throws Exception {
-        String v2 = "bar";
-        TestPojo pojo = new TestPojo(null, v2);
-        String data = mapper.writeValueAsString(pojo);
-        assertDoesNotContainProperty(data, "value1");
-        assertContainsProperty(data, "value2", v2);
-    }
+  @Test
+  void ensureSerializedObjectsIncludePropsWithEmptyValues() throws Exception {
+    String v2 = "bar";
+    TestPojo pojo = new TestPojo("", v2);
+    String data = mapper.writeValueAsString(pojo);
+    assertContainsProperty(data, "value1", "");
+    assertContainsProperty(data, "value2", v2);
+  }
 
-    @Test
-    void ensureSerializedObjectsIncludePropsWithEmptyValues() throws Exception {
-        String v2 = "bar";
-        TestPojo pojo = new TestPojo("", v2);
-        String data = mapper.writeValueAsString(pojo);
-        assertContainsProperty(data, "value1", "");
-        assertContainsProperty(data, "value2", v2);
-    }
+  @Test
+  void testDeserialization() throws Exception {
+    String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\"}";
+    TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
+    assertNotNull(pojo);
+    assertEquals("value1", pojo.getValue1());
+    assertEquals("value2", pojo.getValue2());
+  }
 
-    @Test
-    void testDeserialization() throws Exception {
-        String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\"}";
-        TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
-        assertNotNull(pojo);
-        assertEquals("value1", pojo.getValue1());
-        assertEquals("value2", pojo.getValue2());
-    }
+  @Test
+  void testDeserializationDoesNotFailOnUnknownProperties() throws Exception {
+    String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\",\"value3\":\"value3\"}";
+    TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
+    assertNotNull(pojo);
+    assertEquals("value1", pojo.getValue1());
+    assertEquals("value2", pojo.getValue2());
+  }
 
-    @Test
-    void testDeserializationDoesNotFailOnUnknownProperties() throws Exception {
-        String pojoJson = "{\"value1\":\"value1\",\"value2\":\"value2\",\"value3\":\"value3\"}";
-        TestPojo pojo = mapper.readValue(pojoJson, TestPojo.class);
-        assertNotNull(pojo);
-        assertEquals("value1", pojo.getValue1());
-        assertEquals("value2", pojo.getValue2());
-    }
+  @Test
+  void ensureSerializedObjectsIncludeEmptyList() throws Exception {
+    TestPojo pojo = new TestPojo("foo", "bar");
+    String data = mapper.writeValueAsString(pojo);
+    assertContainsProperty(data, "value1", "foo");
+    assertContainsProperty(data, "value2", "bar");
+    assertIncludesCollection(data, "valueList", "[]");
+  }
 
-    @Test
-    void ensureSerializedObjectsIncludeEmptyList() throws Exception {
-        TestPojo pojo = new TestPojo("foo", "bar");
-        String data = mapper.writeValueAsString(pojo);
-        assertContainsProperty(data, "value1", "foo");
-        assertContainsProperty(data, "value2", "bar");
-        assertIncludesCollection(data, "valueList", "[]");
-    }
+  private void assertContainsProperty(String data, String key, String value) throws Exception {
+    String toFind = String.format("\"%s\":\"%s\"", key, value);
+    assertThat(data, Matchers.containsString(toFind));
+  }
 
-    private void assertContainsProperty(String data, String key, String value)  throws Exception {
-        String toFind = String.format("\"%s\":\"%s\"", key, value);
-        assertThat(data, Matchers.containsString(toFind));
-    }
+  private void assertDoesNotContainProperty(String data, String property) throws Exception {
+    assertThat(data, Matchers.not(Matchers.containsString((property))));
+  }
 
-    private void assertDoesNotContainProperty(String data, String property) throws Exception {
-        assertThat(data, Matchers.not(Matchers.containsString((property))));
-    }
-
-    private void assertIncludesCollection(String data, String key, String collectionValue) {
-        String toFind = String.format("\"%s\":%s", key, collectionValue);
-        assertTrue(data.contains(toFind));
-    }
-
+  private void assertIncludesCollection(String data, String key, String collectionValue) {
+    String toFind = String.format("\"%s\":%s", key, collectionValue);
+    assertTrue(data.contains(toFind));
+  }
 }

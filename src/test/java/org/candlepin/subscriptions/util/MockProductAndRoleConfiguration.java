@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,33 +37,35 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Why are we doing this?  Because when we use a MockBean annotation on the MapSources, we
- * don't get access to the mock until an @BeforeEach method. However, we need to mock the
- * getValue() call before that so the FactNormalizer gets a populated list when it is constructed.
- * The solution is to replace the bean definition of the MapSource with the ones below.
+ * Why are we doing this? Because when we use a MockBean annotation on the MapSources, we don't get
+ * access to the mock until an @BeforeEach method. However, we need to mock the getValue() call
+ * before that so the FactNormalizer gets a populated list when it is constructed. The solution is
+ * to replace the bean definition of the MapSource with the ones below.
  */
 @TestConfiguration
 public class MockProductAndRoleConfiguration {
 
-    @Bean
-    @Primary
-    public ProductIdToProductsMapSource testProductIdToProductsMapSource() throws IOException {
-        Map<Integer, List<String>> productList = new HashMap<>();
-        productList.put(InventoryAccountUsageCollectorTest.TEST_PRODUCT_ID,
-            InventoryAccountUsageCollectorTest.RHEL_PRODUCTS);
-        productList.put(InventoryAccountUsageCollectorTest.NON_RHEL_PRODUCT_ID,
-            InventoryAccountUsageCollectorTest.NON_RHEL_PRODUCTS);
+  @Bean
+  @Primary
+  public ProductIdToProductsMapSource testProductIdToProductsMapSource() throws IOException {
+    Map<Integer, List<String>> productList = new HashMap<>();
+    productList.put(
+        InventoryAccountUsageCollectorTest.TEST_PRODUCT_ID,
+        InventoryAccountUsageCollectorTest.RHEL_PRODUCTS);
+    productList.put(
+        InventoryAccountUsageCollectorTest.NON_RHEL_PRODUCT_ID,
+        InventoryAccountUsageCollectorTest.NON_RHEL_PRODUCTS);
 
-        ProductIdToProductsMapSource source = mock(ProductIdToProductsMapSource.class);
-        when(source.getValue()).thenReturn(productList);
-        return source;
-    }
+    ProductIdToProductsMapSource source = mock(ProductIdToProductsMapSource.class);
+    when(source.getValue()).thenReturn(productList);
+    return source;
+  }
 
-    @Bean
-    @Primary
-    public RoleToProductsMapSource testRoleToProducsMapSource() throws IOException {
-        RoleToProductsMapSource source = mock(RoleToProductsMapSource.class);
-        when(source.getValue()).thenReturn(Collections.emptyMap());
-        return source;
-    }
+  @Bean
+  @Primary
+  public RoleToProductsMapSource testRoleToProducsMapSource() throws IOException {
+    RoleToProductsMapSource source = mock(RoleToProductsMapSource.class);
+    when(source.getValue()).thenReturn(Collections.emptyMap());
+    return source;
+  }
 }

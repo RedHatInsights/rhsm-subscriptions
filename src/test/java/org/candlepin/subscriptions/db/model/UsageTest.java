@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,55 +35,58 @@ import java.util.stream.Collectors;
 
 class UsageTest {
 
-    public static final String DEVELOPMENT_TEST_MIXED_CASE = "DevelOPment/TeSt";
-    public static final String BAD_VALUE = "overused";
+  public static final String DEVELOPMENT_TEST_MIXED_CASE = "DevelOPment/TeSt";
+  public static final String BAD_VALUE = "overused";
 
-    @Test
-    void testEachValueSurvivesStringConversion() {
-        Usage.EnumConverter converter = new Usage.EnumConverter();
-        for (Usage usage : Usage.values()) {
-            assertEquals(converter.convertToDatabaseColumn(usage), usage.getValue());
-            assertEquals(converter.convertToEntityAttribute(usage.getValue()), usage);
-        }
+  @Test
+  void testEachValueSurvivesStringConversion() {
+    Usage.EnumConverter converter = new Usage.EnumConverter();
+    for (Usage usage : Usage.values()) {
+      assertEquals(converter.convertToDatabaseColumn(usage), usage.getValue());
+      assertEquals(converter.convertToEntityAttribute(usage.getValue()), usage);
     }
+  }
 
-    @Test
-    void testFromStringInvalidValueDefaultUnspecified() {
-        assertEquals(Usage.EMPTY, Usage.fromString(BAD_VALUE));
-    }
+  @Test
+  void testFromStringInvalidValueDefaultUnspecified() {
+    assertEquals(Usage.EMPTY, Usage.fromString(BAD_VALUE));
+  }
 
-    @Test
-    void testFromStringNullDefaultUnspecified() {
-        assertEquals(Usage.EMPTY, Usage.fromString(null));
-    }
+  @Test
+  void testFromStringNullDefaultUnspecified() {
+    assertEquals(Usage.EMPTY, Usage.fromString(null));
+  }
 
-    @Test
-    void testFromStringEmptyString() {
-        assertEquals(Usage.EMPTY, Usage.fromString(StringUtils.EMPTY));
-    }
+  @Test
+  void testFromStringEmptyString() {
+    assertEquals(Usage.EMPTY, Usage.fromString(StringUtils.EMPTY));
+  }
 
-    @Test
-    void testFromStringUpperCase() {
-        assertEquals(Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE.toUpperCase()));
-    }
+  @Test
+  void testFromStringUpperCase() {
+    assertEquals(
+        Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE.toUpperCase()));
+  }
 
-    @Test
-    void testFromStringLowerCase() {
-        assertEquals(Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE.toLowerCase()));
-    }
+  @Test
+  void testFromStringLowerCase() {
+    assertEquals(
+        Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE.toLowerCase()));
+  }
 
-    @Test
-    void testFromStringMixedCase() {
-        assertEquals(Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE));
-    }
+  @Test
+  void testFromStringMixedCase() {
+    assertEquals(Usage.DEVELOPMENT_TEST, Usage.fromString(DEVELOPMENT_TEST_MIXED_CASE));
+  }
 
-    @Test
-    void testAsOpenApiEnumValuesMatch() {
-        Set<UsageType> expected = Sets.newHashSet(UsageType.class.getEnumConstants());
-        Set<UsageType> actual = Sets.newHashSet(Usage.class.getEnumConstants()).stream().map(
-            Usage::asOpenApiEnum).collect(Collectors.toSet());
+  @Test
+  void testAsOpenApiEnumValuesMatch() {
+    Set<UsageType> expected = Sets.newHashSet(UsageType.class.getEnumConstants());
+    Set<UsageType> actual =
+        Sets.newHashSet(Usage.class.getEnumConstants()).stream()
+            .map(Usage::asOpenApiEnum)
+            .collect(Collectors.toSet());
 
-        assertEquals(expected, actual);
-    }
-
+    assertEquals(expected, actual);
+  }
 }

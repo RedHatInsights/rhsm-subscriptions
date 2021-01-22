@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,27 +25,27 @@ import java.time.Period;
 import java.time.temporal.TemporalAmount;
 
 /**
- * A ReportFiller instance that will fill the given TallyReport's snapshots based on a QUARTERLY granularity.
+ * A ReportFiller instance that will fill the given TallyReport's snapshots based on a QUARTERLY
+ * granularity.
  */
 public class QuarterlyTimeAdjuster extends SnapshotTimeAdjuster {
 
-    public QuarterlyTimeAdjuster(ApplicationClock clock) {
-        super(clock);
-    }
+  public QuarterlyTimeAdjuster(ApplicationClock clock) {
+    super(clock);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
-        return clock.startOfQuarter(toAdjust);
-    }
+  @Override
+  public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
+    return clock.startOfQuarter(toAdjust);
+  }
 
-    @Override
-    public TemporalAmount getSnapshotOffset() {
-        return Period.ofMonths(3);
-    }
+  @Override
+  public TemporalAmount getSnapshotOffset() {
+    return Period.ofMonths(3);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
-        return clock.endOfQuarter(toAdjust);
-    }
-
+  @Override
+  public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
+    return clock.endOfQuarter(toAdjust);
+  }
 }

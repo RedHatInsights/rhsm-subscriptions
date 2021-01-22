@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,20 +29,19 @@ import javax.validation.ConstraintViolationException;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
-/**
- * Exception mapper for calls to a resource method that fail to pass validation.
- */
+/** Exception mapper for calls to a resource method that fail to pass validation. */
 @Component
 @Provider
-public class ConstraintViolationExceptionMapper extends BaseExceptionMapper<ConstraintViolationException> {
-    public static final String ERROR_TITLE = ErrorCode.VALIDATION_FAILED_ERROR.getDescription();
+public class ConstraintViolationExceptionMapper
+    extends BaseExceptionMapper<ConstraintViolationException> {
+  public static final String ERROR_TITLE = ErrorCode.VALIDATION_FAILED_ERROR.getDescription();
 
-    @Override
-    protected Error buildError(ConstraintViolationException exception) {
-        return new Error()
-            .code(ErrorCode.VALIDATION_FAILED_ERROR.getCode())
-            .status(String.valueOf(Status.BAD_REQUEST.getStatusCode()))
-            .title(ERROR_TITLE)
-            .detail(exception.getMessage());
-    }
+  @Override
+  protected Error buildError(ConstraintViolationException exception) {
+    return new Error()
+        .code(ErrorCode.VALIDATION_FAILED_ERROR.getCode())
+        .status(String.valueOf(Status.BAD_REQUEST.getStatusCode()))
+        .title(ERROR_TITLE)
+        .detail(exception.getMessage());
+  }
 }

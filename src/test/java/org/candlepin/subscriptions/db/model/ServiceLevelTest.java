@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,55 +35,57 @@ import java.util.stream.Collectors;
 
 class ServiceLevelTest {
 
-    public static final String PREMIUM_MIXED_CASE = "PreMIUm";
-    public static final String BAD_VALUE = "platinum";
+  public static final String PREMIUM_MIXED_CASE = "PreMIUm";
+  public static final String BAD_VALUE = "platinum";
 
-    @Test
-    void testEachValueSurvivesStringConversion() {
-        ServiceLevel.EnumConverter converter = new ServiceLevel.EnumConverter();
-        for (ServiceLevel sla : ServiceLevel.values()) {
-            assertEquals(converter.convertToDatabaseColumn(sla), sla.getValue());
-            assertEquals(converter.convertToEntityAttribute(sla.getValue()), sla);
-        }
+  @Test
+  void testEachValueSurvivesStringConversion() {
+    ServiceLevel.EnumConverter converter = new ServiceLevel.EnumConverter();
+    for (ServiceLevel sla : ServiceLevel.values()) {
+      assertEquals(converter.convertToDatabaseColumn(sla), sla.getValue());
+      assertEquals(converter.convertToEntityAttribute(sla.getValue()), sla);
     }
+  }
 
-    @Test
-    void testFromStringEmptyString() {
-        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(StringUtils.EMPTY));
-    }
+  @Test
+  void testFromStringEmptyString() {
+    assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(StringUtils.EMPTY));
+  }
 
-    @Test
-    void testFromStringInvalidValueDefaultUnspecified() {
-        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(BAD_VALUE));
-    }
+  @Test
+  void testFromStringInvalidValueDefaultUnspecified() {
+    assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(BAD_VALUE));
+  }
 
-    @Test
-    void testFromStringNullDefaultUnspecified() {
-        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(null));
-    }
+  @Test
+  void testFromStringNullDefaultUnspecified() {
+    assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(null));
+  }
 
-    @Test
-    void testFromStringUpperCase() {
-        assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE.toUpperCase()));
-    }
+  @Test
+  void testFromStringUpperCase() {
+    assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE.toUpperCase()));
+  }
 
-    @Test
-    void testFromStringLowerCase() {
+  @Test
+  void testFromStringLowerCase() {
 
-        assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE.toLowerCase()));
-    }
+    assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE.toLowerCase()));
+  }
 
-    @Test
-    void testFromStringMixedCase() {
-        assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE));
-    }
+  @Test
+  void testFromStringMixedCase() {
+    assertEquals(ServiceLevel.PREMIUM, ServiceLevel.fromString(PREMIUM_MIXED_CASE));
+  }
 
-    @Test
-    void testAsOpenApiEnumValuesMatch() {
-        Set<ServiceLevelType> expected = Sets.newHashSet(ServiceLevelType.class.getEnumConstants());
-        Set<ServiceLevelType> actual = Sets.newHashSet(ServiceLevel.class.getEnumConstants()).stream()
-            .map(ServiceLevel::asOpenApiEnum).collect(Collectors.toSet());
+  @Test
+  void testAsOpenApiEnumValuesMatch() {
+    Set<ServiceLevelType> expected = Sets.newHashSet(ServiceLevelType.class.getEnumConstants());
+    Set<ServiceLevelType> actual =
+        Sets.newHashSet(ServiceLevel.class.getEnumConstants()).stream()
+            .map(ServiceLevel::asOpenApiEnum)
+            .collect(Collectors.toSet());
 
-        assertEquals(expected, actual);
-    }
+    assertEquals(expected, actual);
+  }
 }

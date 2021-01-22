@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,61 +43,64 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(StubResourceConfiguration.class)
 public class ReportingAccessRequiredTest {
 
-    @Autowired ApplicationContext context;
+  @Autowired ApplicationContext context;
 
-    @MockBean
-    WhitelistedAccountReportAccessService reportAccessService;
+  @MockBean WhitelistedAccountReportAccessService reportAccessService;
 
-    /* The reporting admin expression in pseudo-code:
-     *
-     *     isOrgAdmin and isWhitelisted.
-     *
-     * I've marked the tests with the true/false values for these conditions.
-     */
+  /* The reporting admin expression in pseudo-code:
+   *
+   *     isOrgAdmin and isWhitelisted.
+   *
+   * I've marked the tests with the true/false values for these conditions.
+   */
 
-    /** F && F == F */
-    @Test
-    @WithMockRedHatPrincipal(value = "NotAdmin", roles = {})
-    void testFalseOrFalseAndFalseIsFalse() throws Exception {
-        whitelistOrg(false);
-        StubResource stub = context.getBean(StubResource.class);
+  /** F && F == F */
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "NotAdmin",
+      roles = {})
+  void testFalseOrFalseAndFalseIsFalse() throws Exception {
+    whitelistOrg(false);
+    StubResource stub = context.getBean(StubResource.class);
 
-        assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
-    }
+    assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
+  }
 
-    /** F && T == F */
-    @Test
-    @WithMockRedHatPrincipal(value = "NotAdmin", roles = {})
-    void testFalseOrFalseAndTrueIsFalse() throws Exception {
-        whitelistOrg(true);
-        StubResource stub = context.getBean(StubResource.class);
+  /** F && T == F */
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "NotAdmin",
+      roles = {})
+  void testFalseOrFalseAndTrueIsFalse() throws Exception {
+    whitelistOrg(true);
+    StubResource stub = context.getBean(StubResource.class);
 
-        assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
-    }
+    assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
+  }
 
-    /** T && F == F */
-    @Test
-    @WithMockRedHatPrincipal("Admin")
-    void testFalseOrTrueAndFalseIsFalse() throws Exception {
-        whitelistOrg(false);
-        StubResource stub = context.getBean(StubResource.class);
+  /** T && F == F */
+  @Test
+  @WithMockRedHatPrincipal("Admin")
+  void testFalseOrTrueAndFalseIsFalse() throws Exception {
+    whitelistOrg(false);
+    StubResource stub = context.getBean(StubResource.class);
 
-        assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
-    }
+    assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
+  }
 
-    /** T && T == T */
-    @Test
-    @WithMockRedHatPrincipal("Admin")
-    void testFalseOrTrueAndTrueIsTrue() throws Exception {
-        whitelistOrg(true);
-        StubResource stub = context.getBean(StubResource.class);
+  /** T && T == T */
+  @Test
+  @WithMockRedHatPrincipal("Admin")
+  void testFalseOrTrueAndTrueIsTrue() throws Exception {
+    whitelistOrg(true);
+    StubResource stub = context.getBean(StubResource.class);
 
-        assertDoesNotThrow(stub::reportingAdminOnlyCall);
-    }
+    assertDoesNotThrow(stub::reportingAdminOnlyCall);
+  }
 
-    private void whitelistOrg(boolean shouldWhitelist) throws Exception {
-        WhitelistedAccountReportAccessService mockAccess =
-            context.getBean(WhitelistedAccountReportAccessService.class);
-        when(mockAccess.providesAccessTo(any(Authentication.class))).thenReturn(shouldWhitelist);
-    }
+  private void whitelistOrg(boolean shouldWhitelist) throws Exception {
+    WhitelistedAccountReportAccessService mockAccess =
+        context.getBean(WhitelistedAccountReportAccessService.class);
+    when(mockAccess.providesAccessTo(any(Authentication.class))).thenReturn(shouldWhitelist);
+  }
 }

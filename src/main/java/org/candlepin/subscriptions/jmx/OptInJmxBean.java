@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,80 +40,93 @@ import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
-/**
- * Exposes the ability to perform OptIn operations.
- */
+/** Exposes the ability to perform OptIn operations. */
 @Component
 @ManagedResource
 public class OptInJmxBean {
-    private static final Logger log = LoggerFactory.getLogger(OptInJmxBean.class);
+  private static final Logger log = LoggerFactory.getLogger(OptInJmxBean.class);
 
-    private final OptInController controller;
-    private final ApplicationClock clock;
-    private final AccountConfigRepository repo;
+  private final OptInController controller;
+  private final ApplicationClock clock;
+  private final AccountConfigRepository repo;
 
-    public OptInJmxBean(OptInController controller, ApplicationClock clock, AccountConfigRepository repo) {
-        this.controller = controller;
-        this.clock = clock;
-        this.repo = repo;
-    }
+  public OptInJmxBean(
+      OptInController controller, ApplicationClock clock, AccountConfigRepository repo) {
+    this.controller = controller;
+    this.clock = clock;
+    this.repo = repo;
+  }
 
-    @ManagedOperation(description = "Fetch an opt in configuration")
-    @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
-    @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
-    public String getOptInConfig(String accountNumber, String orgId) {
-        return controller.getOptInConfig(accountNumber, orgId).toString();
-    }
+  @ManagedOperation(description = "Fetch an opt in configuration")
+  @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
+  @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
+  public String getOptInConfig(String accountNumber, String orgId) {
+    return controller.getOptInConfig(accountNumber, orgId).toString();
+  }
 
-    @ManagedOperation(description = "Delete opt in configuration")
-    @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
-    @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
-    public void optOut(String accountNumber, String orgId) {
-        Object principal = ResourceUtils.getPrincipal();
-        log.info("Opt out for {} triggered via JMX by {}", accountNumber, principal);
-        controller.optOut(accountNumber, orgId);
-    }
+  @ManagedOperation(description = "Delete opt in configuration")
+  @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
+  @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
+  public void optOut(String accountNumber, String orgId) {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Opt out for {} triggered via JMX by {}", accountNumber, principal);
+    controller.optOut(accountNumber, orgId);
+  }
 
-    @ManagedOperation(description = "Create or update an opt in configuration. This operation is idempotent")
-    @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
-    @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
-    @ManagedOperationParameter(name = "enableTallySync", description = "Turn on Tally syncing")
-    @ManagedOperationParameter(name = "enableTallyReporting", description = "Turn on Tally reporting")
-    @ManagedOperationParameter(name = "enableConduitSync", description = "Turn on Conduit syncing")
-    public String createOrUpdateOptInConfig(String accountNumber, String orgId, boolean enableTallySync,
-        boolean enableTallyReporting, boolean enableConduitSync) {
-        Object principal = ResourceUtils.getPrincipal();
-        log.info("Opt in for account {}, org {} triggered via JMX by {}", accountNumber, orgId, principal);
-        log.debug("Creating OptInConfig over JMX for account {}, org {}", accountNumber, orgId);
-        OptInConfig config = controller.optIn(accountNumber, orgId, OptInType.JMX, enableTallySync,
-            enableTallyReporting, enableConduitSync);
+  @ManagedOperation(
+      description = "Create or update an opt in configuration. This operation is idempotent")
+  @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
+  @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
+  @ManagedOperationParameter(name = "enableTallySync", description = "Turn on Tally syncing")
+  @ManagedOperationParameter(name = "enableTallyReporting", description = "Turn on Tally reporting")
+  @ManagedOperationParameter(name = "enableConduitSync", description = "Turn on Conduit syncing")
+  public String createOrUpdateOptInConfig(
+      String accountNumber,
+      String orgId,
+      boolean enableTallySync,
+      boolean enableTallyReporting,
+      boolean enableConduitSync) {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info(
+        "Opt in for account {}, org {} triggered via JMX by {}", accountNumber, orgId, principal);
+    log.debug("Creating OptInConfig over JMX for account {}, org {}", accountNumber, orgId);
+    OptInConfig config =
+        controller.optIn(
+            accountNumber,
+            orgId,
+            OptInType.JMX,
+            enableTallySync,
+            enableTallyReporting,
+            enableConduitSync);
 
-        String text = "Completed opt in for account %s and org %s:\n%s";
-        return String.format(text, accountNumber, orgId, config.toString());
-    }
+    String text = "Completed opt in for account %s and org %s:\n%s";
+    return String.format(text, accountNumber, orgId, config.toString());
+  }
 
-    @ManagedAttribute(description = "Count of how many orgs opted-in in the previous week.")
-    public int getLastWeekOptInCount() {
-        return weekCount(OffsetDateTime.now().minusWeeks(1));
-    }
+  @ManagedAttribute(description = "Count of how many orgs opted-in in the previous week.")
+  public int getLastWeekOptInCount() {
+    return weekCount(OffsetDateTime.now().minusWeeks(1));
+  }
 
-    @ManagedAttribute(description = "Count of how many orgs opted-in in the current week.")
-    public int getCurrentWeekOptInCount() {
-        return weekCount(OffsetDateTime.now());
-    }
+  @ManagedAttribute(description = "Count of how many orgs opted-in in the current week.")
+  public int getCurrentWeekOptInCount() {
+    return weekCount(OffsetDateTime.now());
+  }
 
-    @ManagedOperation(description = "Fetch the number of orgs opted-in in a given week.")
-    @ManagedOperationParameter(name = "weekOf", description = "Date in the week to query; YYYY-MM-DD format")
-    public int getOptInCountForWeekOf(String weekOf) throws ParseException {
-        OffsetDateTime dateInWeek = OffsetDateTime
-            .ofInstant(new SimpleDateFormat("yyyy-MM-dd").parse(weekOf).toInstant(), ZoneOffset.UTC);
-        return weekCount(dateInWeek);
-    }
+  @ManagedOperation(description = "Fetch the number of orgs opted-in in a given week.")
+  @ManagedOperationParameter(
+      name = "weekOf",
+      description = "Date in the week to query; YYYY-MM-DD format")
+  public int getOptInCountForWeekOf(String weekOf) throws ParseException {
+    OffsetDateTime dateInWeek =
+        OffsetDateTime.ofInstant(
+            new SimpleDateFormat("yyyy-MM-dd").parse(weekOf).toInstant(), ZoneOffset.UTC);
+    return weekCount(dateInWeek);
+  }
 
-    protected int weekCount(OffsetDateTime weekDate) {
-        OffsetDateTime begin = clock.startOfWeek(weekDate);
-        OffsetDateTime end = clock.endOfWeek(weekDate);
-        return repo.getCountOfOptInsForDateRange(begin, end);
-    }
-
+  protected int weekCount(OffsetDateTime weekDate) {
+    OffsetDateTime begin = clock.startOfWeek(weekDate);
+    OffsetDateTime end = clock.endOfWeek(weekDate);
+    return repo.getCountOfOptInsForDateRange(begin, end);
+  }
 }

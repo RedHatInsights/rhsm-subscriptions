@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.utilization.api.model.Error;
@@ -37,25 +37,24 @@ import javax.ws.rs.core.Response.Status;
 
 class ConstraintViolationExceptionMapperTest {
 
-    @Test
-    void testMapsWebApplicationException() {
-        String expectedDetail = "FORCED!";
-        ConstraintViolationException exception = new ConstraintViolationException(expectedDetail,
-            new HashSet<>());
+  @Test
+  void testMapsWebApplicationException() {
+    String expectedDetail = "FORCED!";
+    ConstraintViolationException exception =
+        new ConstraintViolationException(expectedDetail, new HashSet<>());
 
-        ConstraintViolationExceptionMapper mapper = new ConstraintViolationExceptionMapper();
-        Response resp = mapper.toResponse(exception);
-        Object entityObj = resp.getEntity();
-        assertNotNull(entityObj);
-        assertThat(entityObj, instanceOf(Errors.class));
+    ConstraintViolationExceptionMapper mapper = new ConstraintViolationExceptionMapper();
+    Response resp = mapper.toResponse(exception);
+    Object entityObj = resp.getEntity();
+    assertNotNull(entityObj);
+    assertThat(entityObj, instanceOf(Errors.class));
 
-        Errors errors = (Errors) entityObj;
-        assertEquals(1, errors.getErrors().size());
+    Errors errors = (Errors) entityObj;
+    assertEquals(1, errors.getErrors().size());
 
-        Error error = errors.getErrors().get(0);
-        assertEquals(Status.BAD_REQUEST.getStatusCode(), Integer.parseInt(error.getStatus()));
-        assertEquals(ConstraintViolationExceptionMapper.ERROR_TITLE, error.getTitle());
-        assertEquals(expectedDetail, error.getDetail());
-    }
-
+    Error error = errors.getErrors().get(0);
+    assertEquals(Status.BAD_REQUEST.getStatusCode(), Integer.parseInt(error.getStatus()));
+    assertEquals(ConstraintViolationExceptionMapper.ERROR_TITLE, error.getTitle());
+    assertEquals(expectedDetail, error.getDetail());
+  }
 }

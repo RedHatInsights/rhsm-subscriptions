@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,23 +28,22 @@ import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
 /**
- * A ContextResolver responsible for customizing the configuration of Jackson's
- * ObjectMapper instance. This is marked as a Provider so that RestEasy will
- * use the configured ObjectMapper provided by this instance.
+ * A ContextResolver responsible for customizing the configuration of Jackson's ObjectMapper
+ * instance. This is marked as a Provider so that RestEasy will use the configured ObjectMapper
+ * provided by this instance.
  */
 @Provider
 @Component
 public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper> {
 
-    private final ObjectMapper objectMapper;
+  private final ObjectMapper objectMapper;
 
-    public ObjectMapperContextResolver(ObjectMapper mapper) {
-        this.objectMapper = mapper;
-    }
+  public ObjectMapperContextResolver(ObjectMapper mapper) {
+    this.objectMapper = mapper;
+  }
 
-    @Override
-    public ObjectMapper getContext(Class<?> objectType) {
-        return objectMapper;
-    }
-
+  @Override
+  public ObjectMapper getContext(Class<?> objectType) {
+    return objectMapper;
+  }
 }

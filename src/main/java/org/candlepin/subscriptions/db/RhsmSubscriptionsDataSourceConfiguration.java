@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,9 +43,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
-/**
- * A class to hold the inventory data source configuration.
- */
+/** A class to hold the inventory data source configuration. */
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
@@ -55,55 +53,57 @@ import javax.sql.DataSource;
 @ComponentScan(basePackages = "org.candlepin.subscriptions.db")
 public class RhsmSubscriptionsDataSourceConfiguration {
 
-    @Bean
-    @Validated
-    @Primary
-    @ConfigurationProperties("rhsm-subscriptions.datasource")
-    public PostgresTlsDataSourceProperties rhsmDataSourceProperties() {
-        return new PostgresTlsDataSourceProperties();
+  @Bean
+  @Validated
+  @Primary
+  @ConfigurationProperties("rhsm-subscriptions.datasource")
+  public PostgresTlsDataSourceProperties rhsmDataSourceProperties() {
+    return new PostgresTlsDataSourceProperties();
+  }
+
+  @Bean(name = "rhsmSubscriptionsDataSource")
+  @Primary
+  public PostgresTlsHikariDataSourceFactoryBean rhsmSubscriptionsDataSource(
+      @Qualifier("rhsmDataSourceProperties")
+          PostgresTlsDataSourceProperties rhsmDataSourceProperties) {
+
+    PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
+    factory.setTlsDataSourceProperties(rhsmDataSourceProperties);
+    return factory;
+  }
+
+  @Bean(name = "rhsmSubscriptionsEntityManagerFactory")
+  @Primary
+  public LocalContainerEntityManagerFactoryBean rhsmSubscriptionsEntityManagerFactory(
+      EntityManagerFactoryBuilder builder,
+      @Qualifier("rhsmSubscriptionsDataSource") DataSource dataSource) {
+    return builder
+        .dataSource(dataSource)
+        .packages("org.candlepin.subscriptions.db.model")
+        .persistenceUnit("rhsm-subscriptions")
+        .build();
+  }
+
+  @Bean(name = "rhsmSubscriptionsTransactionManager")
+  @Primary
+  public PlatformTransactionManager rhsmSubscriptionsTransactionManager(
+      @Qualifier("rhsmSubscriptionsEntityManagerFactory")
+          EntityManagerFactory entityManagerFactory) {
+    return new JpaTransactionManager(entityManagerFactory);
+  }
+
+  @Bean
+  public AccountListSource accountListSource(
+      ApplicationProperties applicationProperties,
+      AccountConfigRepository accountConfigRepository,
+      ApplicationClock clock) {
+
+    if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
+      return new FileAccountListSource(
+          new FileAccountSyncListSource(applicationProperties, clock),
+          new ReportingAccountWhitelist(applicationProperties, clock));
+    } else {
+      return new DatabaseAccountListSource(accountConfigRepository);
     }
-
-    @Bean(name = "rhsmSubscriptionsDataSource")
-    @Primary
-    public PostgresTlsHikariDataSourceFactoryBean rhsmSubscriptionsDataSource(
-        @Qualifier("rhsmDataSourceProperties") PostgresTlsDataSourceProperties rhsmDataSourceProperties) {
-
-        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
-        factory.setTlsDataSourceProperties(rhsmDataSourceProperties);
-        return factory;
-    }
-
-    @Bean(name = "rhsmSubscriptionsEntityManagerFactory")
-    @Primary
-    public LocalContainerEntityManagerFactoryBean rhsmSubscriptionsEntityManagerFactory(
-        EntityManagerFactoryBuilder builder,
-        @Qualifier("rhsmSubscriptionsDataSource") DataSource dataSource) {
-        return builder
-                   .dataSource(dataSource)
-                   .packages("org.candlepin.subscriptions.db.model")
-                   .persistenceUnit("rhsm-subscriptions")
-                   .build();
-    }
-
-    @Bean(name = "rhsmSubscriptionsTransactionManager")
-    @Primary
-    public PlatformTransactionManager rhsmSubscriptionsTransactionManager(
-        @Qualifier("rhsmSubscriptionsEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
-        return new JpaTransactionManager(entityManagerFactory);
-    }
-
-    @Bean
-    public AccountListSource accountListSource(ApplicationProperties applicationProperties,
-        AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
-
-        if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
-            return new FileAccountListSource(
-                    new FileAccountSyncListSource(applicationProperties, clock),
-                    new ReportingAccountWhitelist(applicationProperties, clock)
-            );
-        }
-        else {
-            return new DatabaseAccountListSource(accountConfigRepository);
-        }
-    }
+  }
 }

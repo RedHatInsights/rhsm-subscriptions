@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,97 +35,103 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-
 public class YearlyReportFillerTest {
 
-    private ApplicationClock clock;
-    private ReportFiller filler;
+  private ApplicationClock clock;
+  private ReportFiller filler;
 
-    public YearlyReportFillerTest() {
-        clock = new FixedClockConfiguration().fixedClock();
-        filler = ReportFillerFactory.getInstance(clock, Granularity.YEARLY);
-    }
+  public YearlyReportFillerTest() {
+    clock = new FixedClockConfiguration().fixedClock();
+    filler = ReportFillerFactory.getInstance(clock, Granularity.YEARLY);
+  }
 
-    @Test
-    public void noExistingSnapsShouldFillWithYearlyGranularity() {
-        OffsetDateTime start = clock.startOfCurrentYear();
-        OffsetDateTime end = start.plusYears(3);
-        TallyReport report = new TallyReport();
-        filler.fillGaps(report, start, end);
+  @Test
+  public void noExistingSnapsShouldFillWithYearlyGranularity() {
+    OffsetDateTime start = clock.startOfCurrentYear();
+    OffsetDateTime end = start.plusYears(3);
+    TallyReport report = new TallyReport();
+    filler.fillGaps(report, start, end);
 
-        List<TallySnapshot> filled = report.getData();
-        assertEquals(4, filled.size());
-        assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), start.plusYears(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), start.plusYears(3), 0, 0, 0, false);
-    }
+    List<TallySnapshot> filled = report.getData();
+    assertEquals(4, filled.size());
+    assertSnapshot(filled.get(0), start, 0, 0, 0, false);
+    assertSnapshot(filled.get(1), start.plusYears(1), 0, 0, 0, false);
+    assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
+    assertSnapshot(filled.get(3), start.plusYears(3), 0, 0, 0, false);
+  }
 
-    @Test
-    public void startAndEndDatesForYearlyAreResetWhenDateIsMidYear() {
-        // Mid year start
-        OffsetDateTime start = clock.now();
-        // Mid year end
-        OffsetDateTime end = start.plusYears(3);
-        // Expected to start on the beginning of the year.
-        OffsetDateTime expectedStart = clock.startOfYear(start);
+  @Test
+  public void startAndEndDatesForYearlyAreResetWhenDateIsMidYear() {
+    // Mid year start
+    OffsetDateTime start = clock.now();
+    // Mid year end
+    OffsetDateTime end = start.plusYears(3);
+    // Expected to start on the beginning of the year.
+    OffsetDateTime expectedStart = clock.startOfYear(start);
 
-        TallyReport report = new TallyReport();
-        filler.fillGaps(report, start, end);
+    TallyReport report = new TallyReport();
+    filler.fillGaps(report, start, end);
 
-        List<TallySnapshot> filled = report.getData();
-        assertEquals(4, filled.size());
-        assertSnapshot(filled.get(0), expectedStart, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), expectedStart.plusYears(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), expectedStart.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), expectedStart.plusYears(3), 0, 0, 0, false);
-    }
+    List<TallySnapshot> filled = report.getData();
+    assertEquals(4, filled.size());
+    assertSnapshot(filled.get(0), expectedStart, 0, 0, 0, false);
+    assertSnapshot(filled.get(1), expectedStart.plusYears(1), 0, 0, 0, false);
+    assertSnapshot(filled.get(2), expectedStart.plusYears(2), 0, 0, 0, false);
+    assertSnapshot(filled.get(3), expectedStart.plusYears(3), 0, 0, 0, false);
+  }
 
-    @Test
-    public void testSnapshotsIgnoredWhenNoDatesSet() {
-        OffsetDateTime start = clock.startOfCurrentYear();
-        OffsetDateTime end = start.plusYears(3);
+  @Test
+  public void testSnapshotsIgnoredWhenNoDatesSet() {
+    OffsetDateTime start = clock.startOfCurrentYear();
+    OffsetDateTime end = start.plusYears(3);
 
-        TallySnapshot snap1 = new TallySnapshot().cores(2).sockets(3).instanceCount(4)
-            .hasData(true);
-        TallySnapshot snap2 = new TallySnapshot().cores(5).sockets(6).instanceCount(7)
-            .hasData(true);
-        List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
+    TallySnapshot snap1 = new TallySnapshot().cores(2).sockets(3).instanceCount(4).hasData(true);
+    TallySnapshot snap2 = new TallySnapshot().cores(5).sockets(6).instanceCount(7).hasData(true);
+    List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
-        TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+    TallyReport report = new TallyReport().data(snaps);
+    filler.fillGaps(report, start, end);
 
-        List<TallySnapshot> filled = report.getData();
-        assertEquals(4, filled.size());
-        assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), start.plusYears(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), start.plusYears(3), 0, 0, 0, false);
-    }
+    List<TallySnapshot> filled = report.getData();
+    assertEquals(4, filled.size());
+    assertSnapshot(filled.get(0), start, 0, 0, 0, false);
+    assertSnapshot(filled.get(1), start.plusYears(1), 0, 0, 0, false);
+    assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
+    assertSnapshot(filled.get(3), start.plusYears(3), 0, 0, 0, false);
+  }
 
-    @Test
-    public void shouldFillGapsBasedOnExistingSnapshotsForYearlyGranularity() {
-        OffsetDateTime start = clock.startOfCurrentYear();
-        OffsetDateTime snap1Date = start.plusYears(1);
-        OffsetDateTime end = start.plusYears(3);
+  @Test
+  public void shouldFillGapsBasedOnExistingSnapshotsForYearlyGranularity() {
+    OffsetDateTime start = clock.startOfCurrentYear();
+    OffsetDateTime snap1Date = start.plusYears(1);
+    OffsetDateTime end = start.plusYears(3);
 
-        TallySnapshot snap1 = new TallySnapshot().date(snap1Date).cores(2).sockets(3).instanceCount(4)
-            .hasData(true);
-        TallySnapshot snap2 = new TallySnapshot().date(end).cores(5).sockets(6).instanceCount(7)
-            .hasData(true);
-        List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
+    TallySnapshot snap1 =
+        new TallySnapshot().date(snap1Date).cores(2).sockets(3).instanceCount(4).hasData(true);
+    TallySnapshot snap2 =
+        new TallySnapshot().date(end).cores(5).sockets(6).instanceCount(7).hasData(true);
+    List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
-        TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+    TallyReport report = new TallyReport().data(snaps);
+    filler.fillGaps(report, start, end);
 
-        List<TallySnapshot> filled = report.getData();
-        assertEquals(4, filled.size());
-        assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), snap1.getDate(), snap1.getCores(), snap1.getSockets(),
-            snap1.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
-            snap2.getInstanceCount(), true);
-    }
-
+    List<TallySnapshot> filled = report.getData();
+    assertEquals(4, filled.size());
+    assertSnapshot(filled.get(0), start, 0, 0, 0, false);
+    assertSnapshot(
+        filled.get(1),
+        snap1.getDate(),
+        snap1.getCores(),
+        snap1.getSockets(),
+        snap1.getInstanceCount(),
+        true);
+    assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
+    assertSnapshot(
+        filled.get(3),
+        snap2.getDate(),
+        snap2.getCores(),
+        snap2.getSockets(),
+        snap2.getInstanceCount(),
+        true);
+  }
 }

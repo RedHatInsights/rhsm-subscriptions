@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,13 +30,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * A security annotation ensuring that the user must have the subscription watch admin in order to execute
- * the method.
+ * A security annotation ensuring that the user must have the subscription watch admin in order to
+ * execute the method.
  *
- * Requires the SWATCH_ADMIN_ROLE and the account
+ * <p>Requires the SWATCH_ADMIN_ROLE and the account
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @PreAuthorize("hasRole('" + RoleProvider.SWATCH_ADMIN_ROLE + "')")
-public @interface SubscriptionWatchAdminOnly {
-}
+public @interface SubscriptionWatchAdminOnly {}

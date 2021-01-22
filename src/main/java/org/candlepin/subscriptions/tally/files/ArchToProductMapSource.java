@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,19 +29,19 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.Map;
 
-/**
- * Loads the product ID to list of Tally products mapping from a YAML file.
- */
+/** Loads the product ID to list of Tally products mapping from a YAML file. */
 @Component
 public class ArchToProductMapSource extends YamlFileSource<Map<String, String>> {
 
-    public ArchToProductMapSource(ApplicationProperties properties, ApplicationClock clock) {
-        super(properties.getArchToProductMapResourceLocation(), clock.getClock(),
-            properties.getArchToProductMapCacheTtl());
-    }
+  public ArchToProductMapSource(ApplicationProperties properties, ApplicationClock clock) {
+    super(
+        properties.getArchToProductMapResourceLocation(),
+        clock.getClock(),
+        properties.getArchToProductMapCacheTtl());
+  }
 
-    @Override
-    protected Map<String, String> getDefault() {
-        return Collections.emptyMap();
-    }
+  @Override
+  protected Map<String, String> getDefault() {
+    return Collections.emptyMap();
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,35 +24,33 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
-/**
- * Clock for testing that allows manipulating the time
- */
+/** Clock for testing that allows manipulating the time */
 public class TestClock extends Clock {
 
-    private Instant instant;
-    private final ZoneId zone;
+  private Instant instant;
+  private final ZoneId zone;
 
-    public TestClock(Instant instant, ZoneId zone) {
-        this.instant = instant;
-        this.zone = zone;
-    }
+  public TestClock(Instant instant, ZoneId zone) {
+    this.instant = instant;
+    this.zone = zone;
+  }
 
-    public void setInstant(Instant instant) {
-        this.instant = instant;
-    }
+  public void setInstant(Instant instant) {
+    this.instant = instant;
+  }
 
-    @Override
-    public ZoneId getZone() {
-        return zone;
-    }
+  @Override
+  public ZoneId getZone() {
+    return zone;
+  }
 
-    @Override
-    public Clock withZone(ZoneId zoneId) {
-        return new TestClock(instant, zoneId);
-    }
+  @Override
+  public Clock withZone(ZoneId zoneId) {
+    return new TestClock(instant, zoneId);
+  }
 
-    @Override
-    public Instant instant() {
-        return instant;
-    }
+  @Override
+  public Instant instant() {
+    return instant;
+  }
 }

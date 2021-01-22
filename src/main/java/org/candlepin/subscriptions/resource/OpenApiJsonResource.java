@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,13 @@ import org.candlepin.subscriptions.utilization.api.resources.OpenapiJsonApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Serves the OpenAPI spec as /openapi.json.
- */
+/** Serves the OpenAPI spec as /openapi.json. */
 @Component
 public class OpenApiJsonResource implements OpenapiJsonApi {
-    @Autowired OpenApiSpecController controller;
+  @Autowired OpenApiSpecController controller;
 
-    @Override
-    public String getOpenApiJson() {
-        return controller.getOpenApiJson();
-    }
+  @Override
+  public String getOpenApiJson() {
+    return controller.getOpenApiJson();
+  }
 }

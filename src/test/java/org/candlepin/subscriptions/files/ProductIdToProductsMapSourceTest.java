@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,22 +32,22 @@ import org.springframework.core.io.FileSystemResourceLoader;
 
 import java.util.List;
 
-
 public class ProductIdToProductsMapSourceTest {
 
-    @Test
-    public void ensureResourcePathComesFromApplicationProperty() throws Exception {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setProductIdToProductsMapResourceLocation("classpath:test_product_id_to_products_map.yaml");
+  @Test
+  public void ensureResourcePathComesFromApplicationProperty() throws Exception {
+    ApplicationProperties props = new ApplicationProperties();
+    props.setProductIdToProductsMapResourceLocation(
+        "classpath:test_product_id_to_products_map.yaml");
 
-        ProductIdToProductsMapSource source = new ProductIdToProductsMapSource(props, new ApplicationClock());
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
+    ProductIdToProductsMapSource source =
+        new ProductIdToProductsMapSource(props, new ApplicationClock());
+    source.setResourceLoader(new FileSystemResourceLoader());
+    source.init();
 
-        List<String> prodList = source.getValue().get(1);
-        assertEquals(1, prodList.size());
+    List<String> prodList = source.getValue().get(1);
+    assertEquals(1, prodList.size());
 
-        assertThat(prodList, Matchers.contains("RHEL"));
-    }
-
+    assertThat(prodList, Matchers.contains("RHEL"));
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,47 +27,46 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending on
- * properties.
+ * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending
+ * on properties.
  */
 public class RhsmApiFactory implements FactoryBean<RhsmApi> {
-    private static Logger log = LoggerFactory.getLogger(RhsmApiFactory.class);
+  private static Logger log = LoggerFactory.getLogger(RhsmApiFactory.class);
 
-    private final RhsmApiProperties properties;
+  private final RhsmApiProperties properties;
 
-    public RhsmApiFactory(RhsmApiProperties properties) {
-        this.properties = properties;
+  public RhsmApiFactory(RhsmApiProperties properties) {
+    this.properties = properties;
+  }
+
+  @Override
+  public RhsmApi getObject() throws Exception {
+    if (properties.isUseStub()) {
+      log.info("Using stub RHSM client");
+      return new StubRhsmApi();
     }
 
-    @Override
-    public RhsmApi getObject() throws Exception {
-        if (properties.isUseStub()) {
-            log.info("Using stub RHSM client");
-            return new StubRhsmApi();
-        }
-
-        ApiClient client;
-        if (properties.usesClientAuth()) {
-            log.info("RHSM client configured with client-cert auth");
-            client = new X509ApiClientFactory(properties.getX509ApiClientFactoryConfiguration()).getObject();
-        }
-        else {
-            log.info("RHSM client configured without client-cert auth");
-            client = new ApiClient();
-        }
-        if (properties.getUrl() != null) {
-            log.info("RHSM URL: {}", properties.getUrl());
-            client.setBasePath(properties.getUrl());
-            client.addDefaultHeader("cp-lookup-permissions", "false");
-        }
-        else {
-            log.warn("RHSM URL not set...");
-        }
-        return new RhsmApi(client);
+    ApiClient client;
+    if (properties.usesClientAuth()) {
+      log.info("RHSM client configured with client-cert auth");
+      client =
+          new X509ApiClientFactory(properties.getX509ApiClientFactoryConfiguration()).getObject();
+    } else {
+      log.info("RHSM client configured without client-cert auth");
+      client = new ApiClient();
     }
-
-    @Override
-    public Class<?> getObjectType() {
-        return RhsmApi.class;
+    if (properties.getUrl() != null) {
+      log.info("RHSM URL: {}", properties.getUrl());
+      client.setBasePath(properties.getUrl());
+      client.addDefaultHeader("cp-lookup-permissions", "false");
+    } else {
+      log.warn("RHSM URL not set...");
     }
+    return new RhsmApi(client);
+  }
+
+  @Override
+  public Class<?> getObjectType() {
+    return RhsmApi.class;
+  }
 }
