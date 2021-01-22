@@ -14,6 +14,7 @@ buildscript {
 plugins {
     id "io.spring.dependency-management" version "1.0.8.RELEASE"
     id "com.diffplug.spotless" version "5.9.0"
+    id "checkstyle"
     id "jacoco"
     id "org.sonarqube" version "2.8"
     id "org.springframework.boot" version "2.0.8.RELEASE"
