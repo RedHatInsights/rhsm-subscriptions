@@ -13,7 +13,7 @@ buildscript {
 
 plugins {
     id "io.spring.dependency-management" version "1.0.8.RELEASE"
-    id "checkstyle"
+    id "com.diffplug.spotless" version "5.9.0"
     id "jacoco"
     id "org.sonarqube" version "2.8"
     id "org.springframework.boot" version "2.0.8.RELEASE"
@@ -45,10 +45,27 @@ ext {
     avro_version = "1.8.2"
 }
 
+spotless {
+    java {
+        enforceCheck false
+        googleJavaFormat()
+        importOrder('org.candlepin','com','org','net','ch','io','liquibase','java','javax','') // or importOrderFile
+        licenseHeaderFile "${projectDir}/config/codestyle/HEADER.txt"
+    }
+}
 
 allprojects {
     apply plugin: "java"
     apply plugin: "io.spring.dependency-management"
+
+    spotless {
+        java {
+            target project.fileTree(project.rootDir) {
+                include '**/*.java'
+                exclude '**/build/**'
+            }
+        }
+    }
 
     // Define all versions here so that all projects will use the same versions.
     dependencyManagement {
@@ -106,10 +123,6 @@ allprojects {
 
     test {
         useJUnitPlatform()
-    }
-
-    checkstyle {
-        toolVersion "8.16"
     }
 
     jacocoTestReport {
@@ -270,9 +283,6 @@ project.tasks["sonarqube"].dependsOn "jacocoTestReport"
 project(":api") {
     apply plugin: "org.openapi.generator"
 
-    // This project should only contain generated code.  No point in running checkstyle
-    checkstyle.sourceSets = []
-
     ext {
         api_spec_path = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
         config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
@@ -389,10 +399,6 @@ project(":cloudigrade-client") {
 
 configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client', 'insights-inventory-client']}) {
     apply plugin: "org.openapi.generator"
-    apply plugin: "checkstyle"
-
-    // These projects should only contain generated code.  No point in running checkstyle.
-    checkstyle.sourceSets = []
 
     openApiValidate {
         inputSpec = api_spec_path

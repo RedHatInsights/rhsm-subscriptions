@@ -24,14 +24,9 @@ pipeline {
                 }
             }
         }
-        stage('Checkstyle') {
+        stage('Spotless') {
             steps {
-                sh "./podman_run.sh ./gradlew --no-daemon checkstyleMain checkstyleTest"
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'build/reports/checkstyle/*.html'
-                }
+                sh "./podman_run.sh ./gradlew --no-daemon spotlessCheck"
             }
         }
         stage('Upload PR to SonarQube') {
@@ -82,7 +77,6 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'build/reports/checkstyle/*.html'
             junit 'build/test-results/**/*.xml'
         }
     }

@@ -26,8 +26,6 @@
 # However, Gradle also looks for project configurations (most notably
 # Checkstyle configuration) in the config directory.  This section hides
 # everything under the config directory except what Gradle is going to use.
-config/
-!config/checkstyle
 
 #VS Code
 .project
