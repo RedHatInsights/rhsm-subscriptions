@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.persistence.CascadeType;
@@ -34,6 +35,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -97,7 +99,8 @@ public class Host implements Serializable {
     @OneToMany(
         mappedBy = "key.host",
         cascade = CascadeType.ALL,
-        orphanRemoval = true
+        orphanRemoval = true,
+        fetch = FetchType.EAGER
     )
     private List<HostTallyBucket> buckets;
 
@@ -123,6 +126,12 @@ public class Host implements Serializable {
     }
 
     public Host(InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
+        populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
+    }
+
+    public void populateFieldsFromHbi(InventoryHostFacts inventoryHostFacts,
+        NormalizedFacts normalizedFacts) {
+
         this.inventoryId = inventoryHostFacts.getInventoryId().toString();
         this.insightsId = inventoryHostFacts.getInsightsId();
         this.accountNumber = inventoryHostFacts.getAccount();
@@ -277,7 +286,9 @@ public class Host implements Serializable {
 
     public void addBucket(HostTallyBucket bucket) {
         bucket.getKey().setHost(this);
-        getBuckets().add(bucket);
+        if (!getBuckets().contains(bucket)) {
+            getBuckets().add(bucket);
+        }
     }
 
     public void removeBucket(HostTallyBucket bucket) {
@@ -322,6 +333,35 @@ public class Host implements Serializable {
                    .isUnmappedGuest(isUnmappedGuest)
                    .isHypervisor(isHypervisor)
                    .cloudProvider(cloudProvider);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Host)) {
+            return false;
+        }
+        Host host = (Host) o;
+        return guest == host.guest && isUnmappedGuest == host.isUnmappedGuest &&
+            isHypervisor == host.isHypervisor && Objects.equals(id, host.id) &&
+            Objects.equals(inventoryId, host.inventoryId) && Objects.equals(insightsId, host.insightsId) &&
+            Objects.equals(displayName, host.displayName) &&
+            Objects.equals(accountNumber, host.accountNumber) && Objects.equals(orgId, host.orgId) &&
+            Objects.equals(subscriptionManagerId, host.subscriptionManagerId) &&
+            Objects.equals(cores, host.cores) && Objects.equals(sockets, host.sockets) &&
+            Objects.equals(hypervisorUuid, host.hypervisorUuid) && hardwareType == host.hardwareType &&
+            Objects.equals(numOfGuests, host.numOfGuests) && Objects.equals(lastSeen, host.lastSeen) &&
+            Objects.equals(buckets, host.buckets) && Objects.equals(cloudProvider, host.cloudProvider);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects
+            .hash(id, inventoryId, insightsId, displayName, accountNumber, orgId, subscriptionManagerId,
+                cores, sockets, guest, hypervisorUuid, hardwareType, numOfGuests, lastSeen, buckets,
+                isUnmappedGuest, isHypervisor, cloudProvider);
     }
 
 }
