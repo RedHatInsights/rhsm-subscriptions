@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -45,10 +46,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Collects the max values from all accounts in the inventory.
@@ -79,11 +82,9 @@ public class InventoryAccountUsageCollector {
     public Map<String, AccountUsageCalculation> collect(Collection<String> products,
         Collection<String> accounts) {
 
-        // Delete all of the host records for the specified accounts before starting the
-        // calculation. Applicable hosts will be recreated as usage is calculated.
-        log.info("Deleting existing Hosts: {}", accounts);
-        int deleted = hostRepository.deleteByAccountNumberIn(accounts);
-        log.info("Deleted {} existing Host records.", deleted);
+        List<Host> existing = getAccountHosts(accounts);
+        Map<String, Host> inventoryHostMap =
+            existing.stream().collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
 
         Map<String, String> hypMapping = new HashMap<>();
         Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
@@ -120,7 +121,8 @@ public class InventoryAccountUsageCollector {
                     accountCalc.setOwner(owner);
                 }
 
-                Host host = new Host(hostFacts, facts);
+                Host host = getOrCreateHost(inventoryHostMap, hostFacts, facts);
+
                 if (facts.isHypervisor()) {
                     Map<String, NormalizedFacts> idToHypervisorMap = accountHypervisorFacts
                         .computeIfAbsent(account, a -> new HashMap<>());
@@ -191,6 +193,9 @@ public class InventoryAccountUsageCollector {
             });
         });
 
+        log.info("Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
+        hostRepository.deleteAll(inventoryHostMap.values());
+
         if (hypervisorHosts.size() > 0) {
             log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
             hostRepository.saveAll(hypervisorHosts.values());
@@ -202,4 +207,28 @@ public class InventoryAccountUsageCollector {
 
         return calcsByAccount;
     }
+
+    private List<Host> getAccountHosts(Collection<String> accounts) {
+        return accounts.stream()
+            .map(hostRepository::findByAccountNumber)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+    }
+
+    private Host getOrCreateHost(Map<String, Host> inventoryHostMap, InventoryHostFacts hostFacts,
+        NormalizedFacts facts) {
+
+        Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
+        Host host;
+        if (existingHost == null) {
+            host = new Host(hostFacts, facts);
+        }
+        else {
+            host = existingHost;
+            host.getBuckets().clear(); // ensure we recalculate to remove any stale buckets
+            host.populateFieldsFromHbi(hostFacts, facts);
+        }
+        return host;
+    }
+
 }

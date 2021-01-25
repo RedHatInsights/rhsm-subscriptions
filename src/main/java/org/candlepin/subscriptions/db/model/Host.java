@@ -361,7 +361,9 @@ public class Host implements Serializable {
 
     public void addBucket(HostTallyBucket bucket) {
         bucket.getKey().setHost(this);
-        getBuckets().add(bucket);
+        if (!getBuckets().contains(bucket)) {
+            getBuckets().add(bucket);
+        }
     }
 
     public void removeBucket(HostTallyBucket bucket) {

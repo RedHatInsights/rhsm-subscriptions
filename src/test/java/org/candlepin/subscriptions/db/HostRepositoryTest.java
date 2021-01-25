@@ -399,28 +399,6 @@ class HostRepositoryTest {
 
     @Transactional
     @Test
-    void testDeleteByAccount() {
-        Host host1 = createHost("h1", "A1");
-        host1.setDisplayName(DEFAULT_DISPLAY_NAME);
-        Host h1 = repo.saveAndFlush(host1);
-
-        Host host2 = createHost("h2", "A2");
-        host2.setDisplayName(DEFAULT_DISPLAY_NAME);
-        Host h2 = repo.saveAndFlush(host2);
-
-        Host host3 = createHost("h3", "A3");
-        host3.setDisplayName(DEFAULT_DISPLAY_NAME);
-        Host h3 = repo.saveAndFlush(host3);
-
-        assertTrue(repo.findById(h1.getId()).isPresent());
-        assertTrue(repo.findById(h2.getId()).isPresent());
-        assertTrue(repo.findById(h3.getId()).isPresent());
-
-        assertEquals(2, repo.deleteByAccountNumberIn(Arrays.asList("A1", "A2")));
-    }
-
-    @Transactional
-    @Test
     void testGetHostViews() {
         Host host1 = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
         host1.setSockets(1);
