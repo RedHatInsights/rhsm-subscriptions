@@ -39,10 +39,10 @@ import javax.validation.Payload;
  * Marks a field as needing V4/V6 IP validation. The annotation can be used on a String field
  * or on a String typed collection.
  * <pre>
- * @IpAddress
+ * {@literal @}IpAddress
  * private String ip;
  *
- * private List<@IpAddress String> ipAddresses
+ * private List&lt;IpAddress String&gt; ipAddresses
  * </pre>
  */
 @Target({ FIELD, TYPE_USE })

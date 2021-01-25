@@ -45,7 +45,7 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 /**
- * Util class for dynamically building Specification<Host>
+ * Util class for dynamically building Specification&lt;Host&gt;
  */
 public class HostSpecification implements Specification<Host> {
 

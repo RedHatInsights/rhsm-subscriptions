@@ -200,11 +200,12 @@ class MarketplacePayloadMapperTest {
 
         var summary = new TallySummary().withTallySnapshots(List.of(snapshot)).withAccountNumber("test123");
 
+        var usageMeasurement = new UsageMeasurement().value(36.0)
+            .metricId("redhat.com:openshift:cpu_hour");
         var expected = List
             .of(new UsageEvent().start(1612500754L).end(1616100754L)
             .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
-            .measuredUsage(List.of(
-            new UsageMeasurement().value(36.0).metricId("redhat.com:openshift:cpu_hour"))));
+            .measuredUsage(List.of(usageMeasurement)));
 
         List<UsageEvent> actual = marketplacePayloadMapper.produceUsageEvents(summary);
 
