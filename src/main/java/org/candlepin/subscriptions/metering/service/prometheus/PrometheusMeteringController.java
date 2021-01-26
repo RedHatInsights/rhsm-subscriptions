@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import io.micrometer.core.annotation.Timed;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -62,6 +63,7 @@ public class PrometheusMeteringController {
         this.eventController = eventController;
     }
 
+    @Timed("rhsm-subscriptions.metering.openshift")
     public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end)
         throws ApiException {
 
