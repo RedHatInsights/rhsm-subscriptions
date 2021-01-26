@@ -664,7 +664,7 @@ components:
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
       type: string
-      enum: [ Daily, Weekly, Monthly, Quarterly, Yearly ]
+      enum: [ Hourly, Daily, Weekly, Monthly, Quarterly, Yearly ]
     ServiceLevelType:
       type: string
       enum: [ "", Premium, Standard, Self-Support, _ANY ]

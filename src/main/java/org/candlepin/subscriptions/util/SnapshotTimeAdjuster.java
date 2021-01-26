@@ -72,6 +72,8 @@ public abstract class SnapshotTimeAdjuster {
      */
     public static SnapshotTimeAdjuster getTimeAdjuster(ApplicationClock clock, Granularity granularity) {
         switch (granularity) {
+            case HOURLY:
+                return new HourlyTimeAdjuster(clock);
             case DAILY:
                 return new DailyTimeAdjuster(clock);
             case WEEKLY:
@@ -83,7 +85,7 @@ public abstract class SnapshotTimeAdjuster {
             case QUARTERLY:
                 return new QuarterlyTimeAdjuster(clock);
             default:
+                throw new IllegalArgumentException(String.format("Unsupported granularity: %s", granularity));
         }
-        throw new IllegalArgumentException("Unsupported granularity: " + granularity);
     }
 }

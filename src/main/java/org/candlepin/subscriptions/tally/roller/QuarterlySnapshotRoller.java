@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
+import static org.candlepin.subscriptions.db.model.Granularity.*;
+
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -47,8 +49,9 @@ import java.util.Map;
 public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
     private static final Logger log = LoggerFactory.getLogger(QuarterlySnapshotRoller.class);
 
-    public QuarterlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
-        super(tallyRepo, clock);
+    public QuarterlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+        ProductProfileRegistry registry) {
+        super(tallyRepo, clock, registry);
     }
 
     @Override
@@ -57,10 +60,10 @@ public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
         log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentQuarterlySnaps = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs), Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            getApplicableProducts(accountCalcs, QUARTERLY), QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter());
 
-        updateSnapshots(accountCalcs, currentQuarterlySnaps, Granularity.QUARTERLY);
+        updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
     }
 
 }

@@ -1,5 +1,6 @@
 rhsm-subscriptions:
   tally-retention-policy:
+    hourly: ${TALLY_RETENTION_HOURLY:1680}
     daily: ${TALLY_RETENTION_DAILY:37}
     weekly: ${TALLY_RETENTION_WEEKLY:12}
     monthly: ${TALLY_RETENTION_MONTHLY:12}

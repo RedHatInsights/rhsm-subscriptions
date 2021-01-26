@@ -45,7 +45,6 @@ ext {
     avro_version = "1.8.2"
 }
 
-
 allprojects {
     apply plugin: "java"
     apply plugin: "io.spring.dependency-management"
@@ -203,6 +202,10 @@ dependencies {
     }
     compile("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
+        // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
+        // logback and SLF4J issues a warning if more than one logging implementation is on the classpath.
+        // Frowny face to Zookeeper for adding a logging implementation to a library jar.
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
     compile "org.springframework.boot:spring-boot-starter-actuator"

@@ -20,12 +20,26 @@
  */
 package org.candlepin.subscriptions.files;
 
-import org.springframework.context.annotation.ComponentScan;
+import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Configuration that provides the product ID to product map.
- */
-@ComponentScan(basePackages = "org.candlepin.subscriptions.files")
-public class ProductIdMappingConfiguration {
-    /* Intentionally empty */
+import org.candlepin.subscriptions.db.model.Granularity;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+
+class ProductProfileTest {
+    @Test
+    void testGranularityComparisonPasses() {
+        ProductProfile p = new ProductProfile("test", Collections.emptySet(), Granularity.DAILY);
+
+        assertFalse(p.supportsGranularity(Granularity.HOURLY));
+
+        assertTrue(p.supportsGranularity(Granularity.DAILY));
+        assertTrue(p.supportsGranularity(Granularity.WEEKLY));
+        assertTrue(p.supportsGranularity(Granularity.MONTHLY));
+        assertTrue(p.supportsGranularity(Granularity.QUARTERLY));
+        assertTrue(p.supportsGranularity(Granularity.YEARLY));
+    }
+
 }

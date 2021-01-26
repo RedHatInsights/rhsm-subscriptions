@@ -30,6 +30,12 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "rhsm-subscriptions.tally-retention-policy")
 public class TallyRetentionPolicyProperties {
     /**
+     * Number of historic hourly snapshots to keep. Actual number kept will include an additional hour
+     * (current & historic).
+     */
+    private Integer hourly;
+
+    /**
      * Number of historic daily snapshots to keep. Actual number kept will include an additional day
      * (current & historic).
      */
@@ -54,6 +60,14 @@ public class TallyRetentionPolicyProperties {
      * (the current incomplete year).
      */
     private Integer yearly;
+
+    public Integer getHourly() {
+        return hourly;
+    }
+
+    public void setHourly(Integer hourly) {
+        this.hourly = hourly;
+    }
 
     public Integer getDaily() {
         return daily;

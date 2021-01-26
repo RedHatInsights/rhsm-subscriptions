@@ -80,6 +80,11 @@ public class ApplicationProperties {
     private String archToProductMapResourceLocation;
 
     /**
+     * Resource location of a file containing the list of product profiles
+     */
+    private String productProfileRegistryResourceLocation;
+
+    /**
      * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
      * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
      */
@@ -121,6 +126,11 @@ public class ApplicationProperties {
      * Amount of time to cache the arch to product map, before allowing a re-read from the filesystem.
      */
     private Duration archToProductMapCacheTtl = Duration.ofMinutes(5);
+
+    /**
+     * Amount of time to cache the list of product profiles before allowing a re-read from the filesystem
+     */
+    private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
 
     /**
      * The number of days after the inventory's stale_timestamp that the record will be culled.
@@ -362,5 +372,21 @@ public class ApplicationProperties {
 
     public void setJobs(JobProperties jobs) {
         this.jobs = jobs;
+    }
+
+    public String getProductProfileRegistryResourceLocation() {
+        return productProfileRegistryResourceLocation;
+    }
+
+    public void setProductProfileRegistryResourceLocation(String productProfileRegistryResourceLocation) {
+        this.productProfileRegistryResourceLocation = productProfileRegistryResourceLocation;
+    }
+
+    public Duration getProductProfileListCacheTtl() {
+        return productProfileListCacheTtl;
+    }
+
+    public void setProductProfileListCacheTtl(Duration productProfileListCacheTtl) {
+        this.productProfileListCacheTtl = productProfileListCacheTtl;
     }
 }
