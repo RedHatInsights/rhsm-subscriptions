@@ -21,17 +21,23 @@
 package org.candlepin.subscriptions.db.model;
 
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.persistence.CascadeType;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -39,6 +45,9 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.MapKeyColumn;
+import javax.persistence.MapKeyEnumerated;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
@@ -80,6 +89,16 @@ public class Host implements Serializable {
 
     private Integer sockets;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "instance_measurements",
+        joinColumns = @JoinColumn(name = "instance_id")
+    )
+    @MapKeyEnumerated(EnumType.STRING)
+    @MapKeyColumn(name = "uom")
+    @Column(name = "value")
+    private Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
+
     @Column(name = "is_guest")
     private boolean guest;
 
@@ -113,8 +132,18 @@ public class Host implements Serializable {
     @Column(name = "cloud_provider")
     private String cloudProvider;
 
+    /**
+     * The instance type represented by this record.
+     */
+    @Column(name = "type")
+    private String type;
+
     public Host() {
 
+    }
+
+    public Host(UUID id) {
+        this.id = id;
     }
 
     public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
@@ -140,8 +169,8 @@ public class Host implements Serializable {
         this.subscriptionManagerId = inventoryHostFacts.getSubscriptionManagerId();
         this.guest = normalizedFacts.isVirtual();
         this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
-        this.cores = normalizedFacts.getCores();
-        this.sockets = normalizedFacts.getSockets();
+        this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
+        this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
         this.isHypervisor = normalizedFacts.isHypervisor();
         this.isUnmappedGuest = normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
         this.cloudProvider = normalizedFacts.getCloudProviderType() == null ?
@@ -207,20 +236,58 @@ public class Host implements Serializable {
         this.subscriptionManagerId = subscriptionManagerId;
     }
 
+    /**
+     * @deprecated use getMeasurements().get(Measurement.Uom.CORES) in a future release
+     * @return core count for the host
+     */
+    @Deprecated
     public Integer getCores() {
-        return cores;
+        return Optional.ofNullable(measurements.get(Measurement.Uom.CORES)).map(Double::intValue)
+            .orElse(cores);
     }
 
+    /**
+     *
+     * @param cores
+     */
+    @Deprecated
     public void setCores(Integer cores) {
         this.cores = cores;
     }
 
+    /**
+     * @deprecated use getMeasurements().get(Measurement.Uom.SOCKETS) in a future release
+     * @return socket count for the host
+     */
+    @Deprecated
     public Integer getSockets() {
-        return sockets;
+        return Optional.ofNullable(measurements.get(Measurement.Uom.SOCKETS)).map(Double::intValue)
+            .orElse(sockets);
     }
 
+    /**
+     * @
+     * @param sockets
+     */
+    @Deprecated
     public void setSockets(Integer sockets) {
         this.sockets = sockets;
+    }
+
+    public Map<Measurement.Uom, Double> getMeasurements() {
+        return measurements;
+    }
+
+    public void setMeasurements(Map<Measurement.Uom, Double> measurements) {
+        this.measurements = measurements;
+    }
+
+    public Double getMeasurement(Measurement.Uom uom) {
+        return measurements.get(uom);
+    }
+
+    public void setMeasurement(Measurement.Uom uom, Double value) {
+        measurements.put(uom, value);
     }
 
     public Boolean getGuest() {
@@ -286,9 +353,7 @@ public class Host implements Serializable {
 
     public void addBucket(HostTallyBucket bucket) {
         bucket.getKey().setHost(this);
-        if (!getBuckets().contains(bucket)) {
-            getBuckets().add(bucket);
-        }
+        getBuckets().add(bucket);
     }
 
     public void removeBucket(HostTallyBucket bucket) {
@@ -364,4 +429,11 @@ public class Host implements Serializable {
                 isUnmappedGuest, isHypervisor, cloudProvider);
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 }

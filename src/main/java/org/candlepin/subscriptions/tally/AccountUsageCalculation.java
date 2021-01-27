@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.json.Measurement;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -34,6 +37,7 @@ public class AccountUsageCalculation {
     private String account;
     private String owner;
     private Map<UsageCalculation.Key, UsageCalculation> calculations;
+    private Map<UsageCalculation.Key, UsageCalculation> billedCalculations;
     private Set<String> products;
 
     public AccountUsageCalculation(String account) {
@@ -43,6 +47,15 @@ public class AccountUsageCalculation {
     }
 
     public UsageCalculation getOrCreateCalculation(UsageCalculation.Key key) {
+        UsageCalculation calc = getCalculation(key);
+        if (calc == null) {
+            calc = new UsageCalculation(key);
+            addCalculation(calc);
+        }
+        return calc;
+    }
+
+    public UsageCalculation getOrCreateBilledCalculation(UsageCalculation.Key key) {
         UsageCalculation calc = getCalculation(key);
         if (calc == null) {
             calc = new UsageCalculation(key);
@@ -67,6 +80,20 @@ public class AccountUsageCalculation {
         String productId = calc.getProductId();
         this.calculations.put(new UsageCalculation.Key(productId, calc.getSla(), calc.getUsage()), calc);
         this.products.add(productId);
+    }
+
+    public void addUsage(UsageCalculation.Key key, HardwareMeasurementType category,
+        Measurement.Uom uom, Double value) {
+        UsageCalculation usageCalculation = getOrCreateCalculation(key);
+        usageCalculation.add(category, uom, value);
+        products.add(key.getProductId());
+    }
+
+    public void addBilledUsage(UsageCalculation.Key key, HardwareMeasurementType category,
+        Measurement.Uom uom, Double value) {
+        UsageCalculation usageCalculation = getOrCreateBilledCalculation(key);
+        usageCalculation.add(category, uom, value);
+        products.add(key.getProductId());
     }
 
     public boolean containsCalculation(UsageCalculation.Key key) {

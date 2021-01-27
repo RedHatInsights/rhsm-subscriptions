@@ -174,6 +174,11 @@ public class ApplicationProperties {
      */
     private int cloudigradeMaxAttempts = 2;
 
+    /**
+     * Kafka topic for sending tally summaries.
+     */
+    private String tallySummaryTopic = "platform.rhsm-subscriptions.tallies"; // TODO confirm
+
     public String getVersion() {
         return version;
     }
@@ -388,5 +393,9 @@ public class ApplicationProperties {
 
     public void setProductProfileListCacheTtl(Duration productProfileListCacheTtl) {
         this.productProfileListCacheTtl = productProfileListCacheTtl;
+    }
+
+    public String getTallySummaryTopic() {
+        return tallySummaryTopic;
     }
 }

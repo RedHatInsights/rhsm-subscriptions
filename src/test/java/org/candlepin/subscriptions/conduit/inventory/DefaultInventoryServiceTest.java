@@ -30,12 +30,16 @@ import org.candlepin.subscriptions.inventory.client.model.SystemProfile;
 import org.candlepin.subscriptions.inventory.client.resources.HostsApi;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -48,6 +52,8 @@ import java.util.Map;
 class DefaultInventoryServiceTest {
     @Mock
     HostsApi api;
+
+    @Autowired
 
     private ConduitFacts createFullyPopulatedConduitFacts() {
         ConduitFacts conduitFacts = new ConduitFacts();
@@ -82,7 +88,8 @@ class DefaultInventoryServiceTest {
     }
 
     @Test
-    void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord() throws ApiException {
+    void testSendHostUpdatePopulatesAllFieldsWithFullConduitFactsRecord()
+        throws ApiException, JsonProcessingException {
         InventoryServiceProperties props = new InventoryServiceProperties();
         props.setApiHostUpdateBatchSize(1);
 
@@ -131,6 +138,9 @@ class DefaultInventoryServiceTest {
 
         ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
         Mockito.verify(api).apiHostAddHostList(argument.capture());
+
+        ObjectMapper mapper = new ObjectMapper();
+        System.out.println(mapper.writeValueAsString(argument.getValue().get(0)));
 
         List<CreateHostIn> resultList = argument.getValue();
         assertEquals(1, resultList.size());

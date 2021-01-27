@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202101260823-1" author="khowell">
+        <comment>Create the instance_measurements table</comment>
+        <createTable tableName="instance_measurements">
+            <column name="instance_id" type="uuid">
+                <constraints referencedTableName="hosts" referencedColumnNames="id"
+                    nullable="false" foreignKeyName="instance_measurement_host_id_fk" deleteCascade="true"/>
+            </column>
+            <column name="uom" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="double precision">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="instance_measurements" columnNames="instance_id,uom"/>
+    </changeSet>
+
+    <changeSet id="202101260823-2" author="khowell">
+        <comment>Create the tally_measurements table</comment>
+        <createTable tableName="tally_measurements">
+            <column name="snapshot_id" type="uuid">
+                <constraints referencedTableName="tally_snapshots" referencedColumnNames="id"
+                    nullable="false" foreignKeyName="tally_measurement_snapshot_id_fk" deleteCascade="true"/>
+            </column>
+            <column name="category" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uom" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="double precision">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="tally_measurements" columnNames="snapshot_id,category,uom"/>
+    </changeSet>
+
+</databaseChangeLog>
