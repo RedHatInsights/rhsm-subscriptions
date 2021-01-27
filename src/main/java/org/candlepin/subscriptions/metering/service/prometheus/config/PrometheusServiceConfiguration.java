@@ -34,6 +34,9 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 /**
  * Defines all of the beans required to use the Prometheus metrics service.
@@ -64,13 +67,29 @@ public class PrometheusServiceConfiguration {
 
     @Bean
     PrometheusMeteringController getController(ApplicationClock clock, MeteringProperties mProps,
-        PrometheusService service, EventController eventController) {
-        return new PrometheusMeteringController(clock, mProps, service, eventController);
+        PrometheusService service, EventController eventController,
+        @Qualifier("openshiftMeteringRetryTemplate") RetryTemplate openshiftRetryTemplate) {
+        return new PrometheusMeteringController(clock, mProps, service, eventController,
+            openshiftRetryTemplate);
     }
 
     @Bean
     EventController eventController(EventRecordRepository repo) {
         return new EventController(repo);
+    }
+
+    @Bean(name = "openshiftMeteringRetryTemplate")
+    public RetryTemplate openshiftRetryTemplate(PrometheusServicePropeties servicePropeties) {
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(servicePropeties.getOpenshiftMetricsMaxAttempts());
+
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        backOffPolicy.setBackOffPeriod(2000L);
+
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setRetryPolicy(retryPolicy);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
     }
 
 }

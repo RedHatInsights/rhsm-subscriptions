@@ -28,4 +28,8 @@ public class MeteringException extends RuntimeException {
     public MeteringException(String message) {
         super(message);
     }
+
+    public MeteringException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

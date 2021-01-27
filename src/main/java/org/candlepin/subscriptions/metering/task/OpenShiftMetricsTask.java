@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.task;
 
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.task.Task;
 
 import org.slf4j.Logger;
@@ -57,12 +56,6 @@ public class OpenShiftMetricsTask implements Task {
         try {
             controller.collectOpenshiftMetrics(this.account, start, end);
             log.info("Openshift metrics task complete.");
-        }
-        catch (ApiException apie) {
-            // ApiException messages are extremely verbose containing entire HTML body.
-            // Only log the code.
-            log.error("Problem running task: {} API RESPONSE CODE: {}",
-                this.getClass().getSimpleName(), apie.getCode());
         }
         catch (Exception e) {
             log.error("Problem running task: {}", this.getClass().getSimpleName(), e);

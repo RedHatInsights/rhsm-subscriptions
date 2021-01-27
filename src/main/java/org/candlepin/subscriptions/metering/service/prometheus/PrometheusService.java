@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -55,7 +58,7 @@ public class PrometheusService {
     }
 
     public QueryResult getOpenshiftData(String account, OffsetDateTime start, OffsetDateTime end)
-        throws ApiException {
+        throws ExternalServiceException {
         try {
             // NOTE: While the ApiClient **should** in theory already encode the query,
             //       it does not handle the curly braces correctly causing issues
@@ -67,9 +70,24 @@ public class PrometheusService {
             return apiProvider.queryRangeApi().queryRange(query, start.toEpochSecond(),
                 end.toEpochSecond(), Integer.toString(openshiftMetricStep), requestTimeout);
         }
-        catch (UnsupportedEncodingException e) {
-            throw new ApiException(e);
+        catch (ApiException apie) {
+            // ApiException message returned from prometheus server are huge and include the
+            // HTML error page body. Just output the code here.
+
+            throw new ExternalServiceException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                String.format(
+                    "Error during attempt to gather OpenShift metrics from prometheus.",
+                    apie.getCode()
+                ),
+                new ApiException(String.format("Prometheus API response code: %s", apie.getCode()))
+            );
         }
+        catch (UnsupportedEncodingException e) {
+            throw new MeteringException("Unsupported encoding for specified PromQL.", e);
+        }
+
+
     }
 
 }

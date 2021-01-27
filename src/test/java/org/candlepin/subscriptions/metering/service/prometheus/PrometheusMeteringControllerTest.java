@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,7 +32,6 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
-import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.MeteringProperties;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
@@ -43,9 +41,10 @@ import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -53,16 +52,23 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-@ExtendWith(MockitoExtension.class)
+
+@SpringBootTest
+@ActiveProfiles("openshift-metering-worker,test")
 class PrometheusMeteringControllerTest {
 
-    @Mock
+    @MockBean
     private PrometheusService service;
 
-    @Mock
+    @MockBean
     private EventController eventController;
 
-    private MeteringProperties props = new MeteringProperties();
+    @Autowired
+    private MeteringProperties props;
+
+    @Autowired
+    private PrometheusMeteringController controller;
+
 
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
@@ -71,21 +77,22 @@ class PrometheusMeteringControllerTest {
     private final String expectedSla = "Premium";
 
     @Test
-    void testMeteringExceptionWhenServiceReturnsError() throws Exception {
+    void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
         QueryResult errorResponse = new QueryResult();
         errorResponse.setStatus(StatusType.ERROR);
         errorResponse.setError("FORCED!!");
 
-        when(service.getOpenshiftData(anyString(), any(), any())).thenReturn(errorResponse);
+        QueryResult good = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
+            Arrays.asList(Arrays.asList(new BigDecimal(12312.345), new BigDecimal(24))));
 
-        PrometheusMeteringController controller = new PrometheusMeteringController(clock, props, service,
-            eventController);
+        when(service.getOpenshiftData(anyString(), any(), any()))
+            .thenReturn(errorResponse, errorResponse, good);
+
         OffsetDateTime start = OffsetDateTime.now();
         OffsetDateTime end = start.plusDays(1);
 
-        Throwable e = assertThrows(MeteringException.class, () -> controller.collectOpenshiftMetrics(
-            "account", start, end));
-        assertEquals("Unable to fetch openshift metrics: FORCED!!", e.getMessage());
+        controller.collectOpenshiftMetrics("account", start, end);
+        verify(service, times(3)).getOpenshiftData(any(), any(), any());
     }
 
     @Test
@@ -97,9 +104,6 @@ class PrometheusMeteringControllerTest {
         when(service.getOpenshiftData(eq(expectedAccount),
             any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
 
-        PrometheusMeteringController controller = new PrometheusMeteringController(clock, props, service,
-            eventController);
-
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
         verify(service).getOpenshiftData(expectedAccount, clock.startOfHour(start),
             clock.startOfHour(end));
@@ -107,7 +111,7 @@ class PrometheusMeteringControllerTest {
 
     @Test
     @SuppressWarnings("indentation")
-    void collectOpenShiftMetricswillPersistEvents() throws Exception {
+    void collectOpenShiftMetricsWillPersistEvents() throws Exception {
         BigDecimal time1 = BigDecimal.valueOf(123456.234);
         BigDecimal val1 = BigDecimal.valueOf(100L);
         BigDecimal time2 = BigDecimal.valueOf(222222.222);
@@ -128,8 +132,6 @@ class PrometheusMeteringControllerTest {
                 clock.dateFromUnix(time2), val2.doubleValue())
         );
 
-        PrometheusMeteringController controller = new PrometheusMeteringController(clock, props, service,
-            eventController);
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
 
         verify(service).getOpenshiftData(expectedAccount, start, end);
@@ -155,8 +157,6 @@ class PrometheusMeteringControllerTest {
         when(service.getOpenshiftData(eq(expectedAccount),
             any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
 
-        PrometheusMeteringController controller = new PrometheusMeteringController(clock, props, service,
-            eventController);
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
 
         verify(eventController, times(3)).saveAll(any());

@@ -51,6 +51,11 @@ public class PrometheusServicePropeties {
      */
     private int openshiftMetricStep = 3600; // 1 hour
 
+    /**
+     * Number of times the OpenShift metrics gathering should be retried if something fails.
+     */
+    private int openshiftMetricsMaxAttempts = 3;
+
     public String getOpenshiftMetricsPromQL() {
         return openshiftMetricsPromQL;
     }
@@ -81,5 +86,13 @@ public class PrometheusServicePropeties {
 
     public void setRequestTimeout(int requestTimeout) {
         this.requestTimeout = requestTimeout;
+    }
+
+    public int getOpenshiftMetricsMaxAttempts() {
+        return openshiftMetricsMaxAttempts;
+    }
+
+    public void setOpenshiftMetricsMaxAttempts(int openshiftMetricsMaxAttempts) {
+        this.openshiftMetricsMaxAttempts = openshiftMetricsMaxAttempts;
     }
 }

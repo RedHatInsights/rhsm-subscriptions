@@ -73,9 +73,9 @@ public class MeteringEventFactory {
             .withUsage(Usage.PRODUCTION) // Inferred
             .withMeasurements(Arrays.asList(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
 
-        // TODO Prometheus is currently reporting an SLA of Eval. What happens in this case?
-        //      Should the event even get sent? Should it be sent so that we can account for
-        //      it on the tally side when we create the cluster host records?
+        // NOTE: Prometheus is currently reporting an SLA of Eval. What happens in this case?
+        //       Should the event even get sent? Should it be sent so that we can account for
+        //       it on the tally side when we create the cluster host records?
         try {
             String sla = serviceLevel == null ? "" : serviceLevel;
             e.setSla(Sla.fromValue(StringUtils.trimWhitespace(serviceLevel)));

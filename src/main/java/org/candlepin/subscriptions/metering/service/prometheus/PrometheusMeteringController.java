@@ -20,20 +20,22 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import io.micrometer.core.annotation.Timed;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.MeteringProperties;
-import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
+
+import io.micrometer.core.annotation.Timed;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -54,63 +56,76 @@ public class PrometheusMeteringController {
     private final EventController eventController;
     private final ApplicationClock clock;
     private final MeteringProperties meteringProperties;
+    private final RetryTemplate openshiftRetry;
 
     public PrometheusMeteringController(ApplicationClock clock, MeteringProperties meteringProperties,
-        PrometheusService service, EventController eventController) {
+        PrometheusService service, EventController eventController,
+        @Qualifier("openshiftMeteringRetryTemplate") RetryTemplate openshiftRetry) {
         this.clock = clock;
         this.meteringProperties = meteringProperties;
         this.prometheusService = service;
         this.eventController = eventController;
+        this.openshiftRetry = openshiftRetry;
     }
 
     @Timed("rhsm-subscriptions.metering.openshift")
-    public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end)
-        throws ApiException {
+    public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
+        openshiftRetry.execute(context -> {
+            try {
+                log.info("Gathering openshift metrics.");
+                // Reset the start/end dates to the top of the hour.
+                // NOTE: If the prometheus query step changes, we will need to adjust this.
+                QueryResult metricData = prometheusService.getOpenshiftData(account, clock.startOfHour(start),
+                    clock.startOfHour(end));
 
-        // Reset the start/end dates to the top of the hour.
-        // NOTE: If the prometheus query step changes, we will need to adjust this.
-        QueryResult metricData = prometheusService.getOpenshiftData(account,
-            clock.startOfHour(start), clock.startOfHour(end));
-
-        if (StatusType.ERROR.equals(metricData.getStatus())) {
-            throw new MeteringException(
-                String.format("Unable to fetch openshift metrics: %s", metricData.getError())
-            );
-        }
-
-        List<Event> events = new LinkedList<>();
-        metricData.getData().getResult().forEach(r -> {
-            Map<String, String> labels = r.getMetric();
-            String clusterId = labels.getOrDefault("_id", "");
-            String sla = labels.getOrDefault("support", "");
-
-            // For the openshift metrics, we expect our results to be a 'matrix'
-            // vector [(instant_time,value), ...] so we only look at the result's getValues()
-            // data.
-            r.getValues().forEach(measurement -> {
-                BigDecimal time = measurement.get(0);
-                BigDecimal value = measurement.get(1);
-                Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla,
-                    clock.dateFromUnix(time), value.doubleValue());
-                events.add(event);
-
-                if (log.isDebugEnabled()) {
-                    log.debug(event.toString());
+                if (StatusType.ERROR.equals(metricData.getStatus())) {
+                    throw new MeteringException(
+                        String.format("Unable to fetch openshift metrics: %s", metricData.getError())
+                    );
                 }
 
-                if (events.size() >= meteringProperties.getEventBatchSize()) {
-                    log.info("Saving {} events", events.size());
+                List<Event> events = new LinkedList<>();
+                metricData.getData().getResult().forEach(r -> {
+                    Map<String, String> labels = r.getMetric();
+                    String clusterId = labels.getOrDefault("_id", "");
+                    String sla = labels.getOrDefault("support", "");
+
+                    // For the openshift metrics, we expect our results to be a 'matrix'
+                    // vector [(instant_time,value), ...] so we only look at the result's getValues()
+                    // data.
+                    r.getValues().forEach(measurement -> {
+                        BigDecimal time = measurement.get(0);
+                        BigDecimal value = measurement.get(1);
+                        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla,
+                            clock.dateFromUnix(time), value.doubleValue());
+                        events.add(event);
+
+                        if (log.isDebugEnabled()) {
+                            log.debug(event.toString());
+                        }
+
+                        if (events.size() >= meteringProperties.getEventBatchSize()) {
+                            log.info("Saving {} events", events.size());
+                            eventController.saveAll(events);
+                            events.clear();
+                        }
+                    });
+                });
+
+                // Flush the remainder
+                if (!events.isEmpty()) {
+                    log.info("Saving remaining events: {}", events.size());
                     eventController.saveAll(events);
-                    events.clear();
                 }
-            });
-        });
 
-        // Flush the remainder
-        if (!events.isEmpty()) {
-            log.info("Saving remaining events: {}", events.size());
-            eventController.saveAll(events);
-        }
+                return null;
+            }
+            catch (Exception e) {
+                log.warn("Exception thrown while updating openshift metrics. [Attempt: {}]",
+                    context.getRetryCount() + 1);
+                throw e;
+            }
+        });
     }
 
 }
