@@ -59,6 +59,7 @@ public class PrometheusService {
 
     public QueryResult getOpenshiftData(String account, OffsetDateTime start, OffsetDateTime end)
         throws ExternalServiceException {
+        log.info("Fetching metrics from prometheus: {} -> {} [Step: {}]", start, end, openshiftMetricStep);
         try {
             // NOTE: While the ApiClient **should** in theory already encode the query,
             //       it does not handle the curly braces correctly causing issues
@@ -73,13 +74,9 @@ public class PrometheusService {
         catch (ApiException apie) {
             // ApiException message returned from prometheus server are huge and include the
             // HTML error page body. Just output the code here.
-
             throw new ExternalServiceException(
                 ErrorCode.REQUEST_PROCESSING_ERROR,
-                String.format(
-                    "Error during attempt to gather OpenShift metrics from prometheus.",
-                    apie.getCode()
-                ),
+                String.format("Prometheus API Error! CODE: %s", apie.getCode()),
                 new ApiException(String.format("Prometheus API response code: %s", apie.getCode()))
             );
         }
