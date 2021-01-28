@@ -72,11 +72,11 @@ public class PrometheusMeteringController {
     public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
         openshiftRetry.execute(context -> {
             try {
-                log.info("Gathering openshift metrics.");
-                // Reset the start/end dates to the top of the hour.
+                log.info("Collecting openshift metrics");
+                // Reset the start/end dates to ensure they span a complete hour.
                 // NOTE: If the prometheus query step changes, we will need to adjust this.
                 QueryResult metricData = prometheusService.getOpenshiftData(account, clock.startOfHour(start),
-                    clock.startOfHour(end));
+                    clock.endOfHour(end));
 
                 if (StatusType.ERROR.equals(metricData.getStatus())) {
                     throw new MeteringException(
@@ -84,6 +84,8 @@ public class PrometheusMeteringController {
                     );
                 }
 
+                // Given the possibility of a very large number of events, we will batch persist them
+                // to provide the ability to tweak them.
                 List<Event> events = new LinkedList<>();
                 metricData.getData().getResult().forEach(r -> {
                     Map<String, String> labels = r.getMetric();
@@ -114,15 +116,15 @@ public class PrometheusMeteringController {
 
                 // Flush the remainder
                 if (!events.isEmpty()) {
-                    log.info("Saving remaining events: {}", events.size());
+                    log.debug("Saving remaining events: {}", events.size());
                     eventController.saveAll(events);
                 }
 
                 return null;
             }
             catch (Exception e) {
-                log.warn("Exception thrown while updating openshift metrics. [Attempt: {}]",
-                    context.getRetryCount() + 1);
+                log.warn("Exception thrown while updating openshift metrics. [Attempt: {}]: {}",
+                    context.getRetryCount() + 1, e.getMessage());
                 throw e;
             }
         });

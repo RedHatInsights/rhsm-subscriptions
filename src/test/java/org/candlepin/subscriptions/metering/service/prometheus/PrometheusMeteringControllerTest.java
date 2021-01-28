@@ -96,7 +96,7 @@ class PrometheusMeteringControllerTest {
     }
 
     @Test
-    void datesRoundedDownToTheHourWhenReportingOpenShiftMetrics() throws Exception {
+    void datesAdjustedWhenReportingOpenShiftMetrics() throws Exception {
         OffsetDateTime start = clock.now().withSecond(30).withMinute(22);
         OffsetDateTime end = start.plusHours(4);
         QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
@@ -106,7 +106,7 @@ class PrometheusMeteringControllerTest {
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
         verify(service).getOpenshiftData(expectedAccount, clock.startOfHour(start),
-            clock.startOfHour(end));
+            clock.endOfHour(end));
     }
 
     @Test
@@ -122,8 +122,8 @@ class PrometheusMeteringControllerTest {
         when(service.getOpenshiftData(eq(expectedAccount),
             any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
 
-        OffsetDateTime start = clock.startOfHour(clock.now());
-        OffsetDateTime end = start.plusDays(1);
+        OffsetDateTime start = clock.startOfCurrentHour();
+        OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
         List<Event> expectedEvents = Arrays.asList(
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
