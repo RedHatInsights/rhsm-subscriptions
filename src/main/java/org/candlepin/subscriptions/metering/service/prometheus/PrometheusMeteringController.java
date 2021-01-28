@@ -36,6 +36,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 import io.micrometer.core.annotation.Timed;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -69,6 +70,7 @@ public class PrometheusMeteringController {
     }
 
     @Timed("rhsm-subscriptions.metering.openshift")
+    @Transactional
     public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
         openshiftRetry.execute(context -> {
             try {
