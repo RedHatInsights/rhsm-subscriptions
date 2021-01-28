@@ -32,7 +32,7 @@ public class MeteringProperties {
     /**
      * Batch size to use while persisting events.
      */
-    private int eventBatchSize = 100;
+    private int eventBatchSize = 1000;
 
     public int getEventBatchSize() {
         return eventBatchSize;
