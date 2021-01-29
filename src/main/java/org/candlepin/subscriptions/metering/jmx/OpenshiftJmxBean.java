@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.jmx;
 
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -47,14 +47,14 @@ public class OpenshiftJmxBean {
 
     private ApplicationClock clock;
 
-    private PrometheusServicePropeties servicePropeties;
+    private PrometheusMetricPropeties metricPropeties;
 
     @Autowired
     public OpenshiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager tasks,
-        PrometheusServicePropeties servicePropeties) {
+        PrometheusMetricPropeties metricPropeties) {
         this.clock = clock;
         this.tasks = tasks;
-        this.servicePropeties = servicePropeties;
+        this.metricPropeties = metricPropeties;
     }
 
     @ManagedOperation(description = "Perform openshift metering for a single account.")
@@ -64,7 +64,7 @@ public class OpenshiftJmxBean {
         log.info("Openshift metering for {} triggered via JMX by {}", accountNumber, principal);
 
         OffsetDateTime end = clock.now();
-        OffsetDateTime start = getStartDate(end, servicePropeties.getRangeInMinutes());
+        OffsetDateTime start = getStartDate(end, metricPropeties.getRangeInMinutes());
 
         try {
             tasks.updateOpenshiftMetricsForAccount(accountNumber, start, end);
@@ -109,7 +109,7 @@ public class OpenshiftJmxBean {
         log.info("Metering for all accounts triggered via JMX by {}", principal);
 
         OffsetDateTime end = clock.now();
-        OffsetDateTime start = getStartDate(end, servicePropeties.getRangeInMinutes());
+        OffsetDateTime start = getStartDate(end, metricPropeties.getRangeInMinutes());
 
         try {
             tasks.updateOpenshiftMetricsForAllAccounts(start, end);

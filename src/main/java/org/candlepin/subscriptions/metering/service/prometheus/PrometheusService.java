@@ -49,14 +49,15 @@ public class PrometheusService {
     private final int requestTimeout;
     private ApiProvider apiProvider;
 
-    public PrometheusService(PrometheusServicePropeties props, ApiProvider prometheusApiProvider) {
+    public PrometheusService(PrometheusMetricPropeties props, ApiProvider prometheusApiProvider) {
         // Query API does not seem to like whitespace, even when encoded.
-        this.openshiftMetricsQuery = StringUtils.trimAllWhitespace(props.getOpenshiftMetricsPromQL());
-        this.openshiftMetricStep = props.getOpenshiftMetricStep();
-        this.requestTimeout = props.getRequestTimeout();
+        this.openshiftMetricsQuery = StringUtils.trimAllWhitespace(props.getMetricPromQL());
+        this.openshiftMetricStep = props.getStep();
+        this.requestTimeout = props.getQueryTimeout();
         this.apiProvider = prometheusApiProvider;
     }
 
+    // TODO MSTEAD This should be renamed to be perform range query and all openshift should be removed.
     public QueryResult getOpenshiftData(String account, OffsetDateTime start, OffsetDateTime end)
         throws ExternalServiceException {
         log.info("Fetching metrics from prometheus: {} -> {} [Step: {}]", start, end, openshiftMetricStep);

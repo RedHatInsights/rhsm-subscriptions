@@ -52,9 +52,9 @@ class PrometheusServiceTest {
     @Test
     void testGetOpenshiftMetrics() throws Exception {
         String account = "test-account";
-        PrometheusServicePropeties props = new PrometheusServicePropeties();
+        PrometheusMetricPropeties props = new PrometheusMetricPropeties();
 
-        String expectedQuery = String.format(props.getOpenshiftMetricsPromQL(), account);
+        String expectedQuery = String.format(props.getMetricPromQL(), account);
         expectedQuery = URLEncoder.encode(expectedQuery, "UTF-8");
         QueryResult expectedResult = new QueryResult();
 

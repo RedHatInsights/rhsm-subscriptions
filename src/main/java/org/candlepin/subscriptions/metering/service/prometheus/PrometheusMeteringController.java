@@ -24,7 +24,6 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
-import org.candlepin.subscriptions.metering.MeteringProperties;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -34,9 +33,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.micrometer.core.annotation.Timed;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -56,14 +55,14 @@ public class PrometheusMeteringController {
     private final PrometheusService prometheusService;
     private final EventController eventController;
     private final ApplicationClock clock;
-    private final MeteringProperties meteringProperties;
+    private final PrometheusMetricPropeties metricProperties;
     private final RetryTemplate openshiftRetry;
 
-    public PrometheusMeteringController(ApplicationClock clock, MeteringProperties meteringProperties,
+    public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricPropeties metricProperties,
         PrometheusService service, EventController eventController,
-        @Qualifier("openshiftMeteringRetryTemplate") RetryTemplate openshiftRetry) {
+        @Qualifier("prometheusMeteringRetryTemplate") RetryTemplate openshiftRetry) {
         this.clock = clock;
-        this.meteringProperties = meteringProperties;
+        this.metricProperties = metricProperties;
         this.prometheusService = service;
         this.eventController = eventController;
         this.openshiftRetry = openshiftRetry;
@@ -108,7 +107,7 @@ public class PrometheusMeteringController {
                             log.debug(event.toString());
                         }
 
-                        if (events.size() >= meteringProperties.getEventBatchSize()) {
+                        if (events.size() >= metricProperties.getEventBatchSize()) {
                             log.info("Saving {} events", events.size());
                             eventController.saveAll(events);
                             events.clear();

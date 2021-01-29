@@ -32,7 +32,6 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
-import org.candlepin.subscriptions.metering.MeteringProperties;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
@@ -64,7 +63,7 @@ class PrometheusMeteringControllerTest {
     private EventController eventController;
 
     @Autowired
-    private MeteringProperties props;
+    private PrometheusMetricPropeties props;
 
     @Autowired
     private PrometheusMeteringController controller;

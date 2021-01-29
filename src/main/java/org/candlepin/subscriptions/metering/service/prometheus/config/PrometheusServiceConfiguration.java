@@ -23,10 +23,9 @@ package org.candlepin.subscriptions.metering.service.prometheus.config;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
-import org.candlepin.subscriptions.metering.MeteringProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -56,19 +55,19 @@ public class PrometheusServiceConfiguration {
     }
 
     @Bean
-    public PrometheusServicePropeties servicePropeties() {
-        return new PrometheusServicePropeties();
+    public PrometheusMetricPropeties metricProperties() {
+        return new PrometheusMetricPropeties();
     }
 
     @Bean
-    public PrometheusService prometheusService(PrometheusServicePropeties props, ApiProvider provider) {
+    public PrometheusService prometheusService(PrometheusMetricPropeties props, ApiProvider provider) {
         return new PrometheusService(props, provider);
     }
 
     @Bean
-    PrometheusMeteringController getController(ApplicationClock clock, MeteringProperties mProps,
+    PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricPropeties mProps,
         PrometheusService service, EventController eventController,
-        @Qualifier("openshiftMeteringRetryTemplate") RetryTemplate openshiftRetryTemplate) {
+        @Qualifier("prometheusMeteringRetryTemplate") RetryTemplate openshiftRetryTemplate) {
         return new PrometheusMeteringController(clock, mProps, service, eventController,
             openshiftRetryTemplate);
     }
@@ -78,10 +77,10 @@ public class PrometheusServiceConfiguration {
         return new EventController(repo);
     }
 
-    @Bean(name = "openshiftMeteringRetryTemplate")
-    public RetryTemplate openshiftRetryTemplate(PrometheusServicePropeties servicePropeties) {
+    @Bean(name = "prometheusMeteringRetryTemplate")
+    public RetryTemplate openshiftRetryTemplate(PrometheusMetricPropeties metricProperties) {
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(servicePropeties.getOpenshiftMetricsMaxAttempts());
+        retryPolicy.setMaxAttempts(metricProperties.getMaxAttempts());
 
         FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
         backOffPolicy.setBackOffPeriod(2000L);

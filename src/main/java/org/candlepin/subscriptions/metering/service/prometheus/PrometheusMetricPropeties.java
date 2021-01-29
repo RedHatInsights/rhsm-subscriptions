@@ -21,20 +21,25 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
- * Properties related to the PrometheusService.
+ * Properties related to a metric that is to be gathered from the prometheus service.
  */
-
-@Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.service")
-public class PrometheusServicePropeties {
-    private String openshiftMetricsPromQL =
+public class PrometheusMetricPropeties {
+
+    /**
+     * The PromQL to run when gathering the configured metric
+     */
+    // TODO MSTEAD Move this to config file.
+    private String metricPromQL =
         "group(subscription_labels{ebs_account='%s'})by(_id,ebs_account,support)*on(_id)" +
         "group_right(ebs_account,support)cluster:usage:workload:capacity_physical_cpu_cores:min:5m";
 
-    private int requestTimeout = 10000;
+    /**
+     * How long to wait for results from the query.
+     */
+    private int queryTimeout = 10000;
 
     /**
      * Defines the amount of time (in minutes) that will be used to calculate a metric query's
@@ -49,27 +54,32 @@ public class PrometheusServicePropeties {
      * The amount of time for each openshift metric data point for the time range specified in the query.
      * This value should be specified in seconds.
      */
-    private int openshiftMetricStep = 3600; // 1 hour
+    private int step = 3600; // 1 hour
 
     /**
-     * Number of times the OpenShift metrics gathering should be retried if something fails.
+     * Number of times the metrics gathering should be retried if something fails.
      */
-    private int openshiftMetricsMaxAttempts = 3;
+    private int maxAttempts = 3;
 
-    public String getOpenshiftMetricsPromQL() {
-        return openshiftMetricsPromQL;
+    /**
+     * Batch size to use while persisting events.
+     */
+    private int eventBatchSize = 1000;
+
+    public String getMetricPromQL() {
+        return metricPromQL;
     }
 
-    public void setOpenshiftMetricsPromQL(String openshiftMetricsPromQL) {
-        this.openshiftMetricsPromQL = openshiftMetricsPromQL;
+    public void setMetricPromQL(String metricPromQL) {
+        this.metricPromQL = metricPromQL;
     }
 
-    public int getOpenshiftMetricStep() {
-        return openshiftMetricStep;
+    public int getStep() {
+        return step;
     }
 
-    public void setOpenshiftMetricStep(int openshiftMetricStep) {
-        this.openshiftMetricStep = openshiftMetricStep;
+    public void setStep(int step) {
+        this.step = step;
     }
 
     public int getRangeInMinutes() {
@@ -80,19 +90,27 @@ public class PrometheusServicePropeties {
         this.rangeInMinutes = rangeInMinutes;
     }
 
-    public int getRequestTimeout() {
-        return requestTimeout;
+    public int getQueryTimeout() {
+        return queryTimeout;
     }
 
-    public void setRequestTimeout(int requestTimeout) {
-        this.requestTimeout = requestTimeout;
+    public void setQueryTimeout(int queryTimeout) {
+        this.queryTimeout = queryTimeout;
     }
 
-    public int getOpenshiftMetricsMaxAttempts() {
-        return openshiftMetricsMaxAttempts;
+    public int getMaxAttempts() {
+        return maxAttempts;
     }
 
-    public void setOpenshiftMetricsMaxAttempts(int openshiftMetricsMaxAttempts) {
-        this.openshiftMetricsMaxAttempts = openshiftMetricsMaxAttempts;
+    public void setMaxAttempts(int maxAttempts) {
+        this.maxAttempts = maxAttempts;
+    }
+
+    public int getEventBatchSize() {
+        return eventBatchSize;
+    }
+
+    public void setEventBatchSize(int eventBatchSize) {
+        this.eventBatchSize = eventBatchSize;
     }
 }

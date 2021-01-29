@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.metering.job;
 import static org.mockito.Mockito.verify;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusServicePropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -42,22 +42,22 @@ class OpenShiftMeteringJobTest {
     private PrometheusMetricsTaskManager tasks;
 
     private ApplicationClock clock;
-    private PrometheusServicePropeties serviceProps;
+    private PrometheusMetricPropeties metricProps;
     private OpenshiftMeteringJob job;
 
     @BeforeEach
     void setupTests() {
-        serviceProps = new PrometheusServicePropeties();
-        serviceProps.setRangeInMinutes(60);
+        metricProps = new PrometheusMetricPropeties();
+        metricProps.setRangeInMinutes(60);
 
         clock = new FixedClockConfiguration().fixedClock();
-        job = new OpenshiftMeteringJob(tasks, clock, serviceProps);
+        job = new OpenshiftMeteringJob(tasks, clock, metricProps);
     }
 
     @Test
     void testRunJob() {
         OffsetDateTime expEndDate = clock.now();
-        OffsetDateTime expStartDate = expEndDate.minusMinutes(serviceProps.getRangeInMinutes());
+        OffsetDateTime expStartDate = expEndDate.minusMinutes(metricProps.getRangeInMinutes());
         job.run();
 
         verify(tasks).updateOpenshiftMetricsForAllAccounts(expStartDate, expEndDate);
