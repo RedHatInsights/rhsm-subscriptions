@@ -24,8 +24,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.HostTallyBucket_;
+import org.candlepin.subscriptions.db.model.Host_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -42,6 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -149,7 +153,7 @@ class HostRepositoryTest {
 
         Page<TallyHostView> hosts = repo.getTallyHostViews(expAccount, RHEL, ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10));
-        List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+        List<TallyHostView> found = hosts.getContent();
         assertEquals(1, found.size());
 
         TallyHostView view = found.get(0);
@@ -160,7 +164,7 @@ class HostRepositoryTest {
         assertEquals(expHardwareType.name(), view.getHardwareType());
         assertEquals(expCores, view.getCores());
         assertEquals(expSockets, view.getSockets());
-        assertEquals(expGuests, view.getNumberOfGuests().intValue());
+        assertEquals(expGuests, view.getNumOfGuests().intValue());
         assertEquals(expSubId, view.getSubscriptionManagerId());
         assertEquals(expLastSeen.format(DateTimeFormatter.BASIC_ISO_DATE),
             view.getLastSeen().format(DateTimeFormatter.BASIC_ISO_DATE));
@@ -272,7 +276,7 @@ class HostRepositoryTest {
         assertEquals("account3", existing.get().getAccountNumber());
 
         // When a host has no buckets, it will not be returned.
-        Page<TallyHostView> hosts = repo.getTallyHostViews("account4", null, null, null, null,
+        Page<TallyHostView> hosts = repo.getTallyHostViews("account4", null, null, null, SANITIZED_MISSING_DISPLAY_NAME,
             0, 0, PageRequest.of(0, 10));
         assertEquals(0, hosts.stream().count());
     }
@@ -455,7 +459,7 @@ class HostRepositoryTest {
         TallyHostView physical = hosts.get(HardwareMeasurementType.PHYSICAL.toString());
         assertEquals(host1.getInventoryId(), physical.getInventoryId());
         assertEquals(host1.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
-        assertEquals(host1.getNumOfGuests(), physical.getNumberOfGuests());
+        assertEquals(host1.getNumOfGuests(), physical.getNumOfGuests());
         assertEquals(4, physical.getSockets());
         assertEquals(2, physical.getCores());
 
@@ -463,7 +467,7 @@ class HostRepositoryTest {
         TallyHostView hypervisor = hosts.get(HardwareMeasurementType.VIRTUAL.toString());
         assertEquals(host1.getInventoryId(), hypervisor.getInventoryId());
         assertEquals(host1.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-        assertEquals(host1.getNumOfGuests(), hypervisor.getNumberOfGuests());
+        assertEquals(host1.getNumOfGuests(), hypervisor.getNumOfGuests());
         assertEquals(10, hypervisor.getSockets());
         assertEquals(5, hypervisor.getCores());
     }
@@ -493,7 +497,7 @@ class HostRepositoryTest {
         TallyHostView physical = hosts.get(HardwareMeasurementType.PHYSICAL.toString());
         assertEquals(host.getInventoryId(), physical.getInventoryId());
         assertEquals(host.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
-        assertNull(physical.getNumberOfGuests());
+        assertNull(physical.getNumOfGuests());
         assertEquals(4, physical.getSockets());
         assertEquals(2, physical.getCores());
     }
@@ -603,12 +607,68 @@ class HostRepositoryTest {
         int cores = 2;
 
         Page<TallyHostView> results = repo.getTallyHostViews(acctNumber, RHEL, ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, displayNameSubstring, cores, sockets, null);
+            Usage.PRODUCTION, displayNameSubstring, cores, sockets, Pageable.unpaged());
 
         int expected = expectedResults;
         int actual = results.getContent().size();
 
         assertEquals(expected, actual);
+
+    }
+
+    @Test
+    void testHostSpecificationTopLevelAttribute() {
+        HostSpecification searchCriteria = new HostSpecification();
+        searchCriteria
+            .add(new SearchCriteria(Host_.DISPLAY_NAME, DEFAULT_DISPLAY_NAME, SearchOperation.CONTAINS));
+        List<Host> results = repo.findAll(searchCriteria);
+
+        System.out.println(results.size());
+    }
+
+    @Test
+    void testHostSpecificationBucketAttribute() {
+        HostSpecification searchCriteria = new HostSpecification();
+        searchCriteria.add(
+            new SearchCriteria(HostTallyBucket_.MEASUREMENT_TYPE, HardwareMeasurementType.PHYSICAL,
+                SearchOperation.EQUAL));
+        List<Host> results = repo.findAll(searchCriteria);
+
+        System.out.println(results.size());
+    }
+
+    @Test
+    void testHostSpecificationWithMixed() {
+        HostSpecification searchCriteria = new HostSpecification();
+        searchCriteria.add(
+            new SearchCriteria(HostTallyBucket_.MEASUREMENT_TYPE, HardwareMeasurementType.PHYSICAL,
+                SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(Host_.DISPLAY_NAME, "REDHAT", SearchOperation.CONTAINS));
+        searchCriteria.add(new SearchCriteria(HostTallyBucket_.CORES, 0, SearchOperation.GREATER_THAN_EQUAL));
+
+        List<Host> results = repo.findAll(searchCriteria);
+
+        System.out.println(results.size());
+    }
+
+    @Test
+    void testSortByMeasurementType(){
+        HostSpecification searchCriteria = new HostSpecification();
+
+        searchCriteria.add(new SearchCriteria(Host_.ACCOUNT_NUMBER, "account3", SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(HostBucketKey_.PRODUCT_ID, "RHEL", SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, ServiceLevel.PREMIUM, SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, Usage.PRODUCTION, SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(Host_.DISPLAY_NAME, SANITIZED_MISSING_DISPLAY_NAME, SearchOperation.CONTAINS));
+        searchCriteria.add(new SearchCriteria(HostTallyBucket_.CORES, 0, SearchOperation.GREATER_THAN_EQUAL));
+        searchCriteria.add(new SearchCriteria(HostTallyBucket_.SOCKETS, 0, SearchOperation.GREATER_THAN_EQUAL));
+
+        Pageable pageRequest = PageRequest
+            .of(0, 10, Sort.Direction.ASC, HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.MEASUREMENT_TYPE));
+
+        Page<Host> results = repo.findAll(searchCriteria, pageRequest);
+
+        System.err.println(results.getTotalElements());
 
     }
 

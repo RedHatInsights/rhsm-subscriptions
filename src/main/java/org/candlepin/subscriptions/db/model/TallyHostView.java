@@ -22,53 +22,26 @@ package org.candlepin.subscriptions.db.model;
 
 import org.candlepin.subscriptions.utilization.api.model.Host;
 
-import org.springframework.beans.factory.annotation.Value;
-
 import java.time.OffsetDateTime;
 
 /**
- * A data projection around Host and TallyHostBuckets necessary to give us a view of the data to
+ * A data model around Host and TallyHostBuckets necessary to give us a view of the data to
  * be returned in the Hosts API.
  */
 public interface TallyHostView {
 
-    @Value("#{target.key.host.inventoryId}")
     String getInventoryId();
-
-    @Value("#{target.key.host.insightsId}")
     String getInsightsId();
-
-    @Value("#{target.key.host.displayName}")
     String getDisplayName();
-
-    @Value("#{target.measurementType}")
     String getHardwareMeasurementType();
-
-    @Value("#{target.key.host.hardwareType}")
     String getHardwareType();
-
-    @Value("#{target.cores}")
     int getCores();
-
-    @Value("#{target.sockets}")
     int getSockets();
-
-    @Value("#{target.key.host.numOfGuests}")
-    Integer getNumberOfGuests();
-
-    @Value("#{target.key.host.subscriptionManagerId}")
+    Integer getNumOfGuests();
     String getSubscriptionManagerId();
-
-    @Value("#{target.key.host.lastSeen}")
     OffsetDateTime getLastSeen();
-
-    @Value("#{target.key.host.unmappedGuest}")
     boolean isUnmappedGuest();
-
-    @Value("#{target.key.host.hypervisor}")
     boolean isHypervisor();
-
-    @Value("#{target.key.host.cloudProvider}")
     String getCloudProvider();
 
     default Host asApiHost() {
@@ -81,7 +54,7 @@ public interface TallyHostView {
             .sockets(getSockets())
             .displayName(getDisplayName())
             .subscriptionManagerId(getSubscriptionManagerId())
-            .numberOfGuests(getNumberOfGuests())
+            .numberOfGuests(getNumOfGuests())
             .lastSeen(getLastSeen())
             .isHypervisor(isHypervisor())
             .isUnmappedGuest(isUnmappedGuest())

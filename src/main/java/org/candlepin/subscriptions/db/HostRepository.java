@@ -21,20 +21,31 @@
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey_;
+import org.candlepin.subscriptions.db.model.HostTallyBucket_;
+import org.candlepin.subscriptions.db.model.Host_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
+import org.candlepin.subscriptions.db.model.TallyHostViewImpl;
 import org.candlepin.subscriptions.db.model.Usage;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -42,7 +53,11 @@ import javax.validation.constraints.NotNull;
  * Provides access to Host database entities.
  */
 @SuppressWarnings({"linelength", "indentation"})
-public interface HostRepository extends JpaRepository<Host, UUID> {
+public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host> {
+
+    @Override
+    @EntityGraph(attributePaths = {"buckets"})
+    Page<Host> findAll(Specification<Host> specification, Pageable pageable);
 
     /**
      * Find all Hosts by bucket criteria and return a page of TallyHostView objects.
@@ -59,34 +74,30 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
      * @param pageable             the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
-    @Query(
-        value = "select b from HostTallyBucket b join fetch b.key.host h where " +
-            "h.accountNumber = :account and " +
-            "b.key.productId = :product and " +
-            "b.key.sla = :sla and b.key.usage = :usage and " +
-            // Have to do the null check first, otherwise the lower in the LIKE clause has issues with datatypes
-            "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
-            "b.cores >= :minCores and b.sockets >= :minSockets",
-        // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
-        // we need to specify how the Page should gets its count when the 'limit' parameter
-        // is used.
-        countQuery = "select count(b) from HostTallyBucket b join b.key.host h where " +
-            "h.accountNumber = :account and " +
-            "b.key.productId = :product and " +
-            "b.key.sla = :sla and b.key.usage = :usage and " +
-            "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
-            "b.cores >= :minCores and b.sockets >= :minSockets"
-    )
-    Page<TallyHostView> getTallyHostViews(//NOSONAR (exceeds allowed 7 params)
-        @Param("account") String accountNumber,
-        @Param("product") String productId,
-        @Param("sla") ServiceLevel sla,
-        @Param("usage") Usage usage,
-        @NotNull @Param("displayNameSubstring") String displayNameSubstring,
-        @Param("minCores") int minCores,
-        @Param("minSockets") int minSockets,
-        Pageable pageable
-    );
+    default Page<TallyHostView> getTallyHostViews(//NOSONAR (exceeds allowed 7 params)
+        @Param("account") String accountNumber, @Param("product") String productId,
+        @Param("sla") ServiceLevel sla, @Param("usage") Usage usage,
+        @NotNull @Param("displayNameSubstring") String displayNameSubstring, @Param("minCores") int minCores,
+        @Param("minSockets") int minSockets, Pageable pageable) {
+
+        HostSpecification searchCriteria = new HostSpecification();
+
+        searchCriteria.add(new SearchCriteria(Host_.ACCOUNT_NUMBER, accountNumber, SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(HostBucketKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, usage, SearchOperation.EQUAL));
+        searchCriteria.add(new SearchCriteria(Host_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
+        searchCriteria.add(new SearchCriteria(HostTallyBucket_.CORES, minCores,
+            SearchOperation.GREATER_THAN_EQUAL));
+        searchCriteria.add(new SearchCriteria(HostTallyBucket_.SOCKETS, minSockets,
+            SearchOperation.GREATER_THAN_EQUAL));
+
+        Page<Host> results = findAll(searchCriteria, pageable);
+
+        List<TallyHostView> asView = results.getContent().stream().map(TallyHostViewImpl::new).collect(Collectors.toList());
+
+        return new PageImpl<>(asView, pageable, results.getTotalElements());
+    }
 
     @Query(
         "select distinct h from Host h where " +

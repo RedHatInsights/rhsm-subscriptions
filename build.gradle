@@ -185,7 +185,10 @@ release {
 
 dependencies {
     // Generates configuration metadata that IntelliJ can use
+    annotationProcessor('org.hibernate:hibernate-jpamodelgen:5.4.18.Final')
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    compileOnly 'org.projectlombok:lombok:1.18.16'
+    annotationProcessor 'org.projectlombok:lombok:1.18.16'
     // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
     // code changes
     compile('org.springframework.boot:spring-boot-devtools')
