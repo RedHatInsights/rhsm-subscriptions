@@ -61,7 +61,7 @@ public class MarketplaceService {
     public synchronized void ensureAccessToken() throws ApiException {
         if (OffsetDateTime.now().toEpochSecond() > tokenRefreshCutoff) {
             AuthResponse response =
-                api.getAccessToken(AuthGrantType.URN_IBM_PARAMS_OAUTH_GRANT_TYPE_APIKEY, apiKey);
+                api.getAccessToken(AuthGrantType.URN_IBM_PARAMS_OAUTH_GRANT_TYPE_APIKEY.getValue(), apiKey);
 
             accessToken = response.getAccessToken();
             tokenRefreshCutoff = response.getExpiration() - (tokenRefreshPeriodMs);
