@@ -44,33 +44,28 @@ public class PrometheusService {
 
     private static final Logger log = LoggerFactory.getLogger(PrometheusService.class);
 
-    private final String openshiftMetricsQuery;
-    private final int openshiftMetricStep;
-    private final int requestTimeout;
     private ApiProvider apiProvider;
 
-    public PrometheusService(PrometheusMetricPropeties props, ApiProvider prometheusApiProvider) {
-        // Query API does not seem to like whitespace, even when encoded.
-        this.openshiftMetricsQuery = StringUtils.trimAllWhitespace(props.getMetricPromQL());
-        this.openshiftMetricStep = props.getStep();
-        this.requestTimeout = props.getQueryTimeout();
+    public PrometheusService(ApiProvider prometheusApiProvider) {
         this.apiProvider = prometheusApiProvider;
     }
 
-    // TODO MSTEAD This should be renamed to be perform range query and all openshift should be removed.
-    public QueryResult getOpenshiftData(String account, OffsetDateTime start, OffsetDateTime end)
+    public QueryResult runRangeQuery(String promQuery, OffsetDateTime start, OffsetDateTime end,
+        Integer step, Integer timeout)
         throws ExternalServiceException {
-        log.info("Fetching metrics from prometheus: {} -> {} [Step: {}]", start, end, openshiftMetricStep);
+        log.info("Fetching metrics from prometheus: {} -> {} [Step: {}]", start, end, step);
         try {
             // NOTE: While the ApiClient **should** in theory already encode the query,
             //       it does not handle the curly braces correctly causing issues
             //       when the request is made.
-            String accountQuery = String.format(openshiftMetricsQuery, account);
+            //
+            //       Also, the Prometheus APIs do not seem to like whitespace, even when encoded.
+            String accountQuery = StringUtils.trimAllWhitespace(promQuery);
             log.debug("RAW Query: {}", accountQuery);
             String query = URLEncoder.encode(accountQuery, "UTF-8");
             log.debug("Running prometheus query: {}", query);
             return apiProvider.queryRangeApi().queryRange(query, start.toEpochSecond(),
-                end.toEpochSecond(), Integer.toString(openshiftMetricStep), requestTimeout);
+                end.toEpochSecond(), Integer.toString(step), timeout);
         }
         catch (ApiException apie) {
             // ApiException message returned from prometheus server are huge and include the

@@ -84,14 +84,14 @@ class PrometheusMeteringControllerTest {
         QueryResult good = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
             Arrays.asList(Arrays.asList(new BigDecimal(12312.345), new BigDecimal(24))));
 
-        when(service.getOpenshiftData(anyString(), any(), any()))
+        when(service.runRangeQuery(anyString(), any(), any(), any(), any()))
             .thenReturn(errorResponse, errorResponse, good);
 
         OffsetDateTime start = OffsetDateTime.now();
         OffsetDateTime end = start.plusDays(1);
 
         controller.collectOpenshiftMetrics("account", start, end);
-        verify(service, times(3)).getOpenshiftData(any(), any(), any());
+        verify(service, times(3)).runRangeQuery(anyString(), any(), any(), any(), any());
     }
 
     @Test
@@ -100,12 +100,11 @@ class PrometheusMeteringControllerTest {
         OffsetDateTime end = start.plusHours(4);
         QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
             Arrays.asList(Arrays.asList(new BigDecimal(12312.345), new BigDecimal(24))));
-        when(service.getOpenshiftData(eq(expectedAccount),
-            any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
+        when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
-        verify(service).getOpenshiftData(expectedAccount, clock.startOfHour(start),
-            clock.endOfHour(end));
+        verify(service).runRangeQuery(String.format(props.getMetricPromQL(), expectedAccount),
+            clock.startOfHour(start), clock.endOfHour(end), props.getStep(), props.getQueryTimeout());
     }
 
     @Test
@@ -118,8 +117,8 @@ class PrometheusMeteringControllerTest {
 
         QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
             Arrays.asList(Arrays.asList(time1, val1), Arrays.asList(time2, val2)));
-        when(service.getOpenshiftData(eq(expectedAccount),
-            any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
+        when(service.runRangeQuery(eq(String.format(props.getMetricPromQL(), expectedAccount)),
+            any(), any(), any(), any())).thenReturn(data);
 
         OffsetDateTime start = clock.startOfCurrentHour();
         OffsetDateTime end = clock.endOfHour(start.plusDays(1));
@@ -133,7 +132,8 @@ class PrometheusMeteringControllerTest {
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
 
-        verify(service).getOpenshiftData(expectedAccount, start, end);
+        verify(service).runRangeQuery(String.format(props.getMetricPromQL(), expectedAccount), start, end,
+            props.getStep(), props.getQueryTimeout());
         verify(eventController).saveAll(expectedEvents);
     }
 
@@ -153,8 +153,8 @@ class PrometheusMeteringControllerTest {
 
         QueryResult data = buildOpenShiftClusterQueryResult("my-account", "my-cluster", "Production",
             recordedMetrics);
-        when(service.getOpenshiftData(eq(expectedAccount),
-            any(OffsetDateTime.class), any(OffsetDateTime.class))).thenReturn(data);
+        when(service.runRangeQuery(eq(String.format(props.getMetricPromQL(), expectedAccount)), any(),
+            any(), any(), any())).thenReturn(data);
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
 

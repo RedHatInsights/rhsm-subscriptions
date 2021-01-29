@@ -60,8 +60,8 @@ public class PrometheusServiceConfiguration {
     }
 
     @Bean
-    public PrometheusService prometheusService(PrometheusMetricPropeties props, ApiProvider provider) {
-        return new PrometheusService(props, provider);
+    public PrometheusService prometheusService(ApiProvider provider) {
+        return new PrometheusService(provider);
     }
 
     @Bean

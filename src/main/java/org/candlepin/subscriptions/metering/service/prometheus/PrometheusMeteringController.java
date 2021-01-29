@@ -74,10 +74,18 @@ public class PrometheusMeteringController {
         openshiftRetry.execute(context -> {
             try {
                 log.info("Collecting openshift metrics");
-                // Reset the start/end dates to ensure they span a complete hour.
-                // NOTE: If the prometheus query step changes, we will need to adjust this.
-                QueryResult metricData = prometheusService.getOpenshiftData(account, clock.startOfHour(start),
-                    clock.endOfHour(end));
+
+                QueryResult metricData = prometheusService.runRangeQuery(
+                    // Substitute the account number into the query. The query is expected to
+                    // contain %s for replacement.
+                    String.format(metricProperties.getMetricPromQL(), account),
+                    // Reset the start/end dates to ensure they span a complete hour.
+                    // NOTE: If the prometheus query step changes, we will need to adjust this.
+                    clock.startOfHour(start),
+                    clock.endOfHour(end),
+                    metricProperties.getStep(),
+                    metricProperties.getQueryTimeout()
+                );
 
                 if (StatusType.ERROR.equals(metricData.getStatus())) {
                     throw new MeteringException(

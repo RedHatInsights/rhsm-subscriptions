@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -51,25 +50,24 @@ class PrometheusServiceTest {
 
     @Test
     void testGetOpenshiftMetrics() throws Exception {
-        String account = "test-account";
         PrometheusMetricPropeties props = new PrometheusMetricPropeties();
 
-        String expectedQuery = String.format(props.getMetricPromQL(), account);
-        expectedQuery = URLEncoder.encode(expectedQuery, "UTF-8");
+        String expectedQuery = URLEncoder.encode(props.getMetricPromQL(), "UTF-8");
         QueryResult expectedResult = new QueryResult();
 
         OffsetDateTime end = OffsetDateTime.now();
         OffsetDateTime start = end.minusDays(2);
         String step = "3600";
 
-        when(rangeApi.queryRange(eq(expectedQuery), eq(start.toEpochSecond()), eq(end.toEpochSecond()),
-            eq(step), anyInt()))
+        when(rangeApi.queryRange(eq(expectedQuery), eq(start.toEpochSecond()),
+            eq(end.toEpochSecond()),
+            eq(step), eq(1)))
             .thenReturn(expectedResult);
 
         ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
-        PrometheusService service = new PrometheusService(props, provider);
+        PrometheusService service = new PrometheusService(provider);
 
-        QueryResult result = service.getOpenshiftData(account, start, end);
+        QueryResult result = service.runRangeQuery(props.getMetricPromQL(), start, end, 3600, 1);
         assertEquals(expectedResult, result);
     }
 
