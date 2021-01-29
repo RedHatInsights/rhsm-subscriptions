@@ -1,0 +1,74 @@
+# This is a file maintained by the rhsm-subscription project that describes
+# a portion of the Red Hat IT Subscriptions API.
+openapi: "3.0.2"
+info:
+  title: "subscription-api"
+  description: "Third-party specification for Subscription API"
+  version: 1.0.0
+
+paths:
+  /search/{criteria}/{options}:
+    description: "Search based on criteria"
+    parameters:
+    - name: criteria
+      required: true
+      in: path
+      description: "The criteria for searching the data."
+      schema:
+        type: string
+    - name: options
+      required: true
+      in: path
+      description: "The options for response data."
+      schema:
+        type: string
+    get:
+      summary: "List the requested data"
+      operationId: "SearchSubscriptions"
+      tags:
+        - search
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+
+components:
+  schemas:
+    Subscription:
+      required:
+        - subscriptionNumber
+        - subscriptionProducts
+        - webCustomerId
+        - quantity
+      properties:
+        subscriptionNumber:
+          type: string
+        quantity:
+          type: integer
+        webCustomerId:
+          type: integer
+        effectiveStartDate:
+          type: integer
+          format: int64
+          description: The effective start date in epoch millisecond format.
+        effectiveEndDate:
+          type: integer
+          format: int64
+          description: The effective end date in epoch millisecond format.
+        subscriptionProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionProduct"
+    SubscriptionProduct:
+      required:
+        - sku
+      properties:
+        sku:
+          type: string
+        parentSubscriptionProductId:
+          type: integer

@@ -27,6 +27,16 @@ import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFa
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 
@@ -55,6 +65,10 @@ public class HttpClient {
         // to the service.
         apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
         apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
+        // if the keystore path is not null, add certificate authentication
+        if (serviceProperties.getKeystore() != null) {
+            apacheBuilder.setSSLContext(getSslContextFromKeystore(serviceProperties));
+        }
         org.apache.http.client.HttpClient httpClient = apacheBuilder.build();
 
         ClientHttpEngine engine = ApacheHttpClient4EngineFactory.create(httpClient);
@@ -67,5 +81,41 @@ public class HttpClient {
         ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
 
         return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
+    }
+
+    private static SSLContext getSslContextFromKeystore(HttpClientProperties serviceProperties) {
+        final File keyStoreFile = serviceProperties.getKeystore();
+        final char[] keyStorePassword;
+        if (serviceProperties.getKeystorePassword() == null) {
+            keyStorePassword = "".toCharArray();
+        }
+        else {
+            keyStorePassword = serviceProperties.getKeystorePassword();
+        }
+
+        if (keyStoreFile.exists() && keyStoreFile.canRead()) {
+            try (final BufferedInputStream bufferedInputStream =
+                new BufferedInputStream(new FileInputStream(keyStoreFile))) {
+                final KeyStore store = KeyStore.getInstance("JKS");
+                store.load(bufferedInputStream, keyStorePassword);
+                final KeyManagerFactory kmf =
+                    KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                kmf.init(store, keyStorePassword);
+                final TrustManagerFactory tmf =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                tmf.init((KeyStore) null);
+                final SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+                ctx.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
+                return ctx;
+            }
+            catch (IOException | GeneralSecurityException e) {
+                throw new IllegalStateException(String.format("Keystore file %s could not be accessed! %s",
+                    keyStoreFile.getAbsolutePath(), e.getMessage()));
+            }
+        }
+        else {
+            throw new IllegalStateException(String.format("Keystore file %s is not visible!",
+                keyStoreFile.getAbsolutePath()));
+        }
     }
 }
