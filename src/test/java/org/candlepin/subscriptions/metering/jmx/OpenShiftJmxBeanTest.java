@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -44,13 +44,13 @@ class OpenShiftJmxBeanTest {
     private PrometheusMetricsTaskManager tasks;
 
     private ApplicationClock clock;
-    private PrometheusMetricPropeties metricProps;
+    private PrometheusMetricsPropeties metricProps;
     private OpenshiftJmxBean jmx;
 
     @BeforeEach
     void setupTests() {
-        metricProps = new PrometheusMetricPropeties();
-        metricProps.setRangeInMinutes(60);
+        metricProps = new PrometheusMetricsPropeties();
+        metricProps.getOpenshift().setRangeInMinutes(60);
 
         clock = new FixedClockConfiguration().fixedClock();
         jmx = new OpenshiftJmxBean(clock, tasks, metricProps);
@@ -60,7 +60,8 @@ class OpenShiftJmxBeanTest {
     void testMeteringForAccount() {
         String expectedAccount = "test-account";
         OffsetDateTime endDate = clock.now();
-        OffsetDateTime startDate = endDate.minusMinutes(metricProps.getRangeInMinutes());
+        OffsetDateTime startDate =
+            endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
         jmx.performOpenshiftMeteringForAccount(expectedAccount);
 
         verify(tasks).updateOpenshiftMetricsForAccount(expectedAccount, startDate, endDate);
@@ -100,7 +101,8 @@ class OpenShiftJmxBeanTest {
     @Test
     void testPerformMeteringForAllAccounts() {
         OffsetDateTime endDate = clock.now();
-        OffsetDateTime startDate = endDate.minusMinutes(metricProps.getRangeInMinutes());
+        OffsetDateTime startDate =
+            endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
         jmx.performOpenshiftMetering();
 
         verify(tasks).updateOpenshiftMetricsForAllAccounts(startDate, endDate);

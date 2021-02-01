@@ -5,6 +5,11 @@ rhsm-subscriptions:
 
   metering:
     prometheus:
+      metric:
+        openshift:
+          metricPromQL: >-
+            group(subscription_labels{ebs_account='%s'})by(_id,ebs_account,support)*on(_id)
+            group_right(ebs_account,support)cluster:usage:workload:capacity_physical_cpu_cores:min:5m
       client:
         token: ${PROM_AUTH_TOKEN:}
         url: ${PROM_URL:https://localhost/api/v1}

@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
@@ -31,43 +30,48 @@ import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.StringUtils;
 
 import java.net.URLEncoder;
 import java.time.OffsetDateTime;
 
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@ActiveProfiles("openshift-metering-worker,test")
 class PrometheusServiceTest {
 
-    @Mock
+    @MockBean
     private QueryApi queryApi;
 
-    @Mock
+    @MockBean
     private QueryRangeApi rangeApi;
+
+    @Autowired
+    private PrometheusMetricsPropeties props;
 
     @Test
     void testGetOpenshiftMetrics() throws Exception {
-        PrometheusMetricPropeties props = new PrometheusMetricPropeties();
 
-        String expectedQuery = URLEncoder.encode(props.getMetricPromQL(), "UTF-8");
+        String expectedQuery =
+            URLEncoder.encode(StringUtils.trimAllWhitespace(props.getOpenshift().getMetricPromQL()), "UTF-8");
         QueryResult expectedResult = new QueryResult();
 
         OffsetDateTime end = OffsetDateTime.now();
         OffsetDateTime start = end.minusDays(2);
         String step = "3600";
 
-        when(rangeApi.queryRange(eq(expectedQuery), eq(start.toEpochSecond()),
-            eq(end.toEpochSecond()),
-            eq(step), eq(1)))
+        when(rangeApi.queryRange(expectedQuery, start.toEpochSecond(), end.toEpochSecond(), step, 1))
             .thenReturn(expectedResult);
 
         ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
         PrometheusService service = new PrometheusService(provider);
 
-        QueryResult result = service.runRangeQuery(props.getMetricPromQL(), start, end, 3600, 1);
+        QueryResult result = service.runRangeQuery(props.getOpenshift().getMetricPromQL(),
+            start, end, 3600, 1);
         assertEquals(expectedResult, result);
     }
 

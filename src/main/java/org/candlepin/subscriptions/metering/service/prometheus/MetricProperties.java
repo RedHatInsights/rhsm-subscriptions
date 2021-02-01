@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2009 - 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +20,15 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 /**
  * Properties related to a metric that is to be gathered from the prometheus service.
  */
-@ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.service")
-public class PrometheusMetricPropeties {
+public class MetricProperties {
 
     /**
      * The PromQL to run when gathering the configured metric
      */
-    // TODO MSTEAD Move this to config file.
-    private String metricPromQL =
-        "group(subscription_labels{ebs_account='%s'})by(_id,ebs_account,support)*on(_id)" +
-        "group_right(ebs_account,support)cluster:usage:workload:capacity_physical_cpu_cores:min:5m";
+    private String metricPromQL;
 
     /**
      * How long to wait for results from the query.

@@ -20,13 +20,18 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 
 /**
@@ -43,7 +48,19 @@ import org.springframework.context.annotation.Profile;
     OpenShiftTasksConfiguration.class
 })
 public class OpenShiftWorkerProfile {
-    // No additional beans required for the worker. We simply need to define access to the service
-    // and the queue/topic that needs to be processed.
+
+    @Bean(name = "openshiftMetricRetryTemplate")
+    public RetryTemplate openshiftRetryTemplate(PrometheusMetricsPropeties metricProperties) {
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(metricProperties.getOpenshift().getMaxAttempts());
+
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        backOffPolicy.setBackOffPeriod(2000L);
+
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setRetryPolicy(retryPolicy);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
+    }
 
 }

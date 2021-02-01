@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.jmx;
 
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -47,11 +47,11 @@ public class OpenshiftJmxBean {
 
     private ApplicationClock clock;
 
-    private PrometheusMetricPropeties metricPropeties;
+    private PrometheusMetricsPropeties metricPropeties;
 
     @Autowired
     public OpenshiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager tasks,
-        PrometheusMetricPropeties metricPropeties) {
+        PrometheusMetricsPropeties metricPropeties) {
         this.clock = clock;
         this.tasks = tasks;
         this.metricPropeties = metricPropeties;
@@ -64,7 +64,8 @@ public class OpenshiftJmxBean {
         log.info("Openshift metering for {} triggered via JMX by {}", accountNumber, principal);
 
         OffsetDateTime end = clock.now();
-        OffsetDateTime start = getStartDate(end, metricPropeties.getRangeInMinutes());
+        OffsetDateTime start =
+            getStartDate(end, metricPropeties.getOpenshift().getRangeInMinutes());
 
         try {
             tasks.updateOpenshiftMetricsForAccount(accountNumber, start, end);
@@ -109,7 +110,8 @@ public class OpenshiftJmxBean {
         log.info("Metering for all accounts triggered via JMX by {}", principal);
 
         OffsetDateTime end = clock.now();
-        OffsetDateTime start = getStartDate(end, metricPropeties.getRangeInMinutes());
+        OffsetDateTime start =
+            getStartDate(end, metricPropeties.getOpenshift().getRangeInMinutes());
 
         try {
             tasks.updateOpenshiftMetricsForAllAccounts(start, end);

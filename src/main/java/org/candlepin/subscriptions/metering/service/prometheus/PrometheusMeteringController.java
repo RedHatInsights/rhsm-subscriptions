@@ -55,12 +55,12 @@ public class PrometheusMeteringController {
     private final PrometheusService prometheusService;
     private final EventController eventController;
     private final ApplicationClock clock;
-    private final PrometheusMetricPropeties metricProperties;
+    private final PrometheusMetricsPropeties metricProperties;
     private final RetryTemplate openshiftRetry;
 
-    public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricPropeties metricProperties,
+    public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricsPropeties metricProperties,
         PrometheusService service, EventController eventController,
-        @Qualifier("prometheusMeteringRetryTemplate") RetryTemplate openshiftRetry) {
+        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry) {
         this.clock = clock;
         this.metricProperties = metricProperties;
         this.prometheusService = service;
@@ -68,9 +68,14 @@ public class PrometheusMeteringController {
         this.openshiftRetry = openshiftRetry;
     }
 
+    // Suppressing this sonar issue because we need to log plus throw an exception on retry
+    // otherwise we never know that we have failed during the retry cycle until all attempts
+    // are exhausted.
+    @SuppressWarnings("java:S2139")
     @Timed("rhsm-subscriptions.metering.openshift")
     @Transactional
     public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
+        MetricProperties openshiftProperties = metricProperties.getOpenshift();
         openshiftRetry.execute(context -> {
             try {
                 log.info("Collecting openshift metrics");
@@ -78,13 +83,13 @@ public class PrometheusMeteringController {
                 QueryResult metricData = prometheusService.runRangeQuery(
                     // Substitute the account number into the query. The query is expected to
                     // contain %s for replacement.
-                    String.format(metricProperties.getMetricPromQL(), account),
+                    String.format(openshiftProperties.getMetricPromQL(), account),
                     // Reset the start/end dates to ensure they span a complete hour.
                     // NOTE: If the prometheus query step changes, we will need to adjust this.
                     clock.startOfHour(start),
                     clock.endOfHour(end),
-                    metricProperties.getStep(),
-                    metricProperties.getQueryTimeout()
+                    openshiftProperties.getStep(),
+                    openshiftProperties.getQueryTimeout()
                 );
 
                 if (StatusType.ERROR.equals(metricData.getStatus())) {
@@ -115,7 +120,7 @@ public class PrometheusMeteringController {
                             log.debug(event.toString());
                         }
 
-                        if (events.size() >= metricProperties.getEventBatchSize()) {
+                        if (events.size() >= openshiftProperties.getEventBatchSize()) {
                             log.info("Saving {} events", events.size());
                             eventController.saveAll(events);
                             events.clear();

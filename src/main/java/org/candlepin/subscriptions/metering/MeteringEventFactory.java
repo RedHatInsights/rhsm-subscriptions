@@ -78,7 +78,7 @@ public class MeteringEventFactory {
         //       it on the tally side when we create the cluster host records?
         try {
             String sla = serviceLevel == null ? "" : serviceLevel;
-            e.setSla(Sla.fromValue(StringUtils.trimWhitespace(serviceLevel)));
+            e.setSla(Sla.fromValue(StringUtils.trimWhitespace(sla)));
         }
         catch (IllegalArgumentException iae) {
             log.warn("Unsupported SLA specified for prometheus-openshift event for account {}: {}",

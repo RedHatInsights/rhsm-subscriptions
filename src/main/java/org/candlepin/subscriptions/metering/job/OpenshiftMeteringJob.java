@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.metering.job;
 
 import org.candlepin.subscriptions.exception.JobFailureException;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -39,10 +39,10 @@ public class OpenshiftMeteringJob implements Runnable {
     private int rangeInMinutes;
 
     public OpenshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-        PrometheusMetricPropeties metricProperties) {
+        PrometheusMetricsPropeties metricProperties) {
         this.tasks = tasks;
         this.clock = clock;
-        this.rangeInMinutes = metricProperties.getRangeInMinutes();
+        this.rangeInMinutes = metricProperties.getOpenshift().getRangeInMinutes();
     }
 
     @Override

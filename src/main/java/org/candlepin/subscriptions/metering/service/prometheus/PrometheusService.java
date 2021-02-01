@@ -63,7 +63,8 @@ public class PrometheusService {
             String accountQuery = StringUtils.trimAllWhitespace(promQuery);
             log.debug("RAW Query: {}", accountQuery);
             String query = URLEncoder.encode(accountQuery, "UTF-8");
-            log.debug("Running prometheus query: {}", query);
+            log.debug("Running prometheus query: Start: {} End: {} Step: {}, Query: {}",
+                start.toEpochSecond(), end.toEpochSecond(), step, query);
             return apiProvider.queryRangeApi().queryRange(query, start.toEpochSecond(),
                 end.toEpochSecond(), Integer.toString(step), timeout);
         }
@@ -79,7 +80,6 @@ public class PrometheusService {
         catch (UnsupportedEncodingException e) {
             throw new MeteringException("Unsupported encoding for specified PromQL.", e);
         }
-
 
     }
 
