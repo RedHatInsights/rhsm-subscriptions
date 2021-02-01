@@ -9,6 +9,8 @@ metadata:
   name: rhsm-subscriptions-api
 
 parameters:
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
@@ -134,6 +136,8 @@ objects:
             - image: ${IMAGE}:${IMAGE_TAG}
               name: rhsm-subscriptions-api
               env:
+                - name: SERVER_MAX_HTTP_HEADER_SIZE
+                  value: ${SERVER_MAX_HTTP_HEADER_SIZE}
                 - name: LOG_FILE
                   value: /logs/server.log
                 - name: SPRING_PROFILES_ACTIVE
