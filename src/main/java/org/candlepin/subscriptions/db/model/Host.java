@@ -310,18 +310,20 @@ public class Host implements Serializable {
 
     public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
         return new org.candlepin.subscriptions.utilization.api.model.Host()
-                   .cores(cores)
-                   .sockets(sockets)
-                   .displayName(displayName)
-                   .hardwareType(hardwareType.toString())
-                   .insightsId(insightsId)
-                   .inventoryId(inventoryId)
-                   .subscriptionManagerId(subscriptionManagerId)
-                   .lastSeen(lastSeen)
-                   .numberOfGuests(numOfGuests)
-                   .isUnmappedGuest(isUnmappedGuest)
-                   .isHypervisor(isHypervisor)
-                   .cloudProvider(cloudProvider);
+            .cloudProvider(cloudProvider)
+            .cores(cores)
+            .displayName(displayName)
+            .hardwareType(hardwareType.toString())
+            .insightsId(insightsId)
+            .inventoryId(inventoryId)
+            .isHypervisor(isHypervisor)
+            .isUnmappedGuest(isUnmappedGuest)
+            .lastSeen(lastSeen)
+            //TODO
+            //.measurementType(getHardwareMeasurementType())
+            .numberOfGuests(numOfGuests)
+            .sockets(sockets)
+            .subscriptionManagerId(subscriptionManagerId);
     }
 
 }

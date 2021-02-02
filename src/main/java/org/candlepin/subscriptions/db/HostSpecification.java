@@ -117,13 +117,13 @@ public class HostSpecification implements Specification<Host> {
 
         //Helps omit duplicate rows when there is more than one bucket per host (like with RHEL
         // hypervisors, ENT-3210)
-        Predicate nonHypervisor = builder.isFalse(root.get(Host_.IS_HYPERVISOR));
-        Predicate isHypervisor = builder.isTrue(root.get(Host_.IS_HYPERVISOR));
-        Predicate asHypervisor = builder
-            .isTrue(bucketListJoin.get(HostTallyBucket_.KEY).get(HostBucketKey_.AS_HYPERVISOR));
-        Predicate predicateForHypervisor = builder.and(isHypervisor, asHypervisor);
-
-        predicates.add(builder.or(nonHypervisor, predicateForHypervisor));
+//        Predicate nonHypervisor = builder.isFalse(root.get(Host_.IS_HYPERVISOR));
+//        Predicate isHypervisor = builder.isTrue(root.get(Host_.IS_HYPERVISOR));
+//        Predicate asHypervisor = builder
+//            .isTrue(bucketListJoin.get(HostTallyBucket_.KEY).get(HostBucketKey_.AS_HYPERVISOR));
+//        Predicate predicateForHypervisor = builder.and(isHypervisor, asHypervisor);
+//
+//        predicates.add(builder.or(nonHypervisor, predicateForHypervisor));
 
         return builder.and(predicates.toArray(new Predicate[0]));
     }

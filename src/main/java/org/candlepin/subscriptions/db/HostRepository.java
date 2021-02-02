@@ -25,13 +25,9 @@ import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
 import org.candlepin.subscriptions.db.model.Host_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyHostView;
-import org.candlepin.subscriptions.db.model.TallyHostViewImpl;
 import org.candlepin.subscriptions.db.model.Usage;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -43,9 +39,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -74,7 +68,7 @@ public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificat
      * @param pageable             the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
-    default Page<TallyHostView> getTallyHostViews(//NOSONAR (exceeds allowed 7 params)
+    default Page<Host> findAllBy(//NOSONAR (exceeds allowed 7 params)
         @Param("account") String accountNumber, @Param("product") String productId,
         @Param("sla") ServiceLevel sla, @Param("usage") Usage usage,
         @NotNull @Param("displayNameSubstring") String displayNameSubstring, @Param("minCores") int minCores,
@@ -92,11 +86,8 @@ public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificat
         searchCriteria.add(new SearchCriteria(HostTallyBucket_.SOCKETS, minSockets,
             SearchOperation.GREATER_THAN_EQUAL));
 
-        Page<Host> results = findAll(searchCriteria, pageable);
+        return findAll(searchCriteria, pageable);
 
-        List<TallyHostView> asView = results.getContent().stream().map(TallyHostViewImpl::new).collect(Collectors.toList());
-
-        return new PageImpl<>(asView, pageable, results.getTotalElements());
     }
 
     @Query(

@@ -24,8 +24,8 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -65,8 +65,8 @@ class HostsResourceTest {
 
     @BeforeEach
     public void setup() throws AccountListSourceException {
-        PageImpl<TallyHostView> mockPage = new PageImpl<>(Collections.emptyList());
-        when(repository.getTallyHostViews(any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
+        PageImpl<Host> mockPage = new PageImpl<>(Collections.emptyList());
+        when(repository.findAllBy(any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
             .thenReturn(mockPage);
         when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
     }
@@ -77,7 +77,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null,
             HostReportSort.DISPLAY_NAME, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -96,7 +96,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null,
             HostReportSort.CORES, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -116,7 +116,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null,
             HostReportSort.SOCKETS, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -135,7 +135,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null,
             HostReportSort.LAST_SEEN, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -154,7 +154,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null,
             HostReportSort.HARDWARE_TYPE, SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -173,7 +173,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null, null,
             SortDirection.ASC);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -190,7 +190,7 @@ class HostsResourceTest {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, null, null,
             HostReportSort.DISPLAY_NAME, null);
 
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -208,7 +208,7 @@ class HostsResourceTest {
     void testShouldUseMinCoresWhenUomIsCores() {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, Uom.CORES, null, null,
             null);
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),
@@ -224,7 +224,7 @@ class HostsResourceTest {
     void testShouldUseMinSocketsWhenUomIsSockets() {
         resource.getHosts(ProductId.RHEL, 0, 1, null, null, Uom.SOCKETS, null, null,
             null);
-        verify(repository, only()).getTallyHostViews(
+        verify(repository, only()).findAllBy(
             eq("account123456"),
             eq(ProductId.RHEL.toString()),
             eq(ServiceLevel._ANY),

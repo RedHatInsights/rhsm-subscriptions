@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.resource;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyHostView;
+import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
@@ -116,7 +116,7 @@ public class HostsResource implements HostsApi {
             displayNameContains :
             "";
         Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
-        Page<TallyHostView> hosts = repository.getTallyHostViews(
+        Page<Host> hosts = repository.findAllBy(
             accountNumber,
             productId.toString(),
             sanitizedSla,
@@ -142,7 +142,7 @@ public class HostsResource implements HostsApi {
                 .serviceLevel(sla)
                 .usage(usage)
                 .uom(uom))
-            .data(hosts.getContent().stream().map(TallyHostView::asApiHost).collect(Collectors.toList()));
+            .data(hosts.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
     }
 
     @Override
