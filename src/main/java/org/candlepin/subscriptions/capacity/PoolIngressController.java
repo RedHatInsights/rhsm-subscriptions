@@ -85,7 +85,7 @@ public class PoolIngressController {
         final List<String> subscriptionIds = pools.stream().map(CandlepinPool::getSubscriptionId)
             .collect(Collectors.toList());
         final Collection<Subscription> existingSubscriptionRecords = subscriptionRepository
-            .findByOwnerIdAndSubscriptionIdIn(orgId, subscriptionIds);
+            .findActiveByOwnerIdAndSubscriptionIdIn(orgId, subscriptionIds);
 
         final Map<String, Subscription> skuToSubscription = new HashMap<>();
         existingSubscriptionRecords

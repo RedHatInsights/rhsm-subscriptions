@@ -41,11 +41,14 @@ components:
   schemas:
     Subscription:
       required:
+        - id
         - subscriptionNumber
         - subscriptionProducts
         - webCustomerId
         - quantity
       properties:
+        id:
+          type: integer
         subscriptionNumber:
           type: string
         quantity:
