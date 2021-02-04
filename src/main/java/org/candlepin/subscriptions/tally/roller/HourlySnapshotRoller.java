@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2009 - 2020 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,19 +36,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-
 /**
- * Produces weekly snapshots based on data stored in the inventory service. If a snapshot
- * does not exist for the account for the current week and an incoming calculation exists
+ * Produces hourly snapshots based on data stored in the inventory service. If a snapshot
+ * does not exist for the account for the current hour and an incoming calculation exists
  * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
  * instances will only be updated if the incoming calculated values are greater than those
- * existing for the current week.
+ * existing for the current hour.
  */
-public class WeeklySnapshotRoller extends BaseSnapshotRoller {
+public class HourlySnapshotRoller extends BaseSnapshotRoller {
+    private static final Logger log = LoggerFactory.getLogger(HourlySnapshotRoller.class);
 
-    private static final Logger log = LoggerFactory.getLogger(WeeklySnapshotRoller.class);
-
-    public WeeklySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
+    public HourlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
         ProductProfileRegistry registry) {
         super(tallyRepo, clock, registry);
     }
@@ -56,13 +54,12 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
     @Override
     @Transactional
     public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
-        log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
+        log.debug("Producing hourly snapshots for {} account(s).", accounts.size());
 
-        Map<String, List<TallySnapshot>> currentForWeek = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs, WEEKLY), WEEKLY, clock.startOfCurrentWeek(),
-            clock.endOfCurrentWeek());
+        Map<String, List<TallySnapshot>> existingSnapsForTheHour = getCurrentSnapshotsByAccount(accounts,
+            getApplicableProducts(accountCalcs, HOURLY), HOURLY, clock.startOfCurrentHour(),
+            clock.endOfCurrentHour());
 
-        updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
+        updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
     }
-
 }

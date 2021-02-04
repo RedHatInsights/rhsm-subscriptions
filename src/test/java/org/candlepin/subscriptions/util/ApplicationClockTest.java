@@ -30,7 +30,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 
-public class ApplicationClockTest {
+class ApplicationClockTest {
 
     private ApplicationClock clock;
 
@@ -162,7 +162,20 @@ public class ApplicationClockTest {
         assertEndOfDay(2019, 6, 30, clock.endOfCurrentQuarter());
     }
 
-    private void assertDate(int year, int month, int day, int hour, int minute, int seconds, int millis,
+    @Test
+    void testStartOfCurrentHour() {
+        // 2019-5-24 12:35:00 UTC
+        assertDate(2019, 5, 24, 12, 0, 0, 0,
+            clock.startOfCurrentHour());
+    }
+
+    @Test
+    void testEndOfCurrentHour() {
+        // 2019-5-24 12:35:00 UTC
+        assertDate(2019, 5, 24, 12, 59, 59, 999_999_999, clock.endOfCurrentHour());
+    }
+
+    private void assertDate(int year, int month, int day, int hour, int minute, int seconds, int nanos,
         OffsetDateTime date) {
         assertEquals(year, date.getYear());
         assertEquals(month, date.getMonthValue());
@@ -170,7 +183,7 @@ public class ApplicationClockTest {
         assertEquals(hour, date.getHour());
         assertEquals(minute, date.getMinute());
         assertEquals(seconds, date.getSecond());
-        assertEquals(millis, date.getNano());
+        assertEquals(nanos, date.getNano());
     }
 
     private void assertStartOfDay(int year, int month, int day, OffsetDateTime date) {

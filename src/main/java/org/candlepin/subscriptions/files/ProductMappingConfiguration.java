@@ -18,28 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.files;
 
-import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
-import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
-import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
 
 /**
- * Configuration for the "api" profile.
- *
- * The API profile is responsible for handling customer-facing API requests.
+ * Configuration that provides the product ID to product map.
  */
-@Configuration
-@Profile("api")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.resource")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class,
-    TallyWorkerConfiguration.class, ProductMappingConfiguration.class})
-public class ApiConfiguration {
-    /* Intentionally empty */
+@ComponentScan(basePackages = "org.candlepin.subscriptions.files")
+public class ProductMappingConfiguration {
+    @Bean
+    public ProductProfileRegistrySource productProfileRegistrySource(
+        ApplicationProperties applicationProperties, ApplicationClock applicationClock) {
+        return new ProductProfileRegistrySource(applicationProperties, applicationClock);
+    }
 }

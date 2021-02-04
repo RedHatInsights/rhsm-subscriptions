@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.roller;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -34,24 +35,30 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@ActiveProfiles("test")
+@ActiveProfiles("api,test")
 @TestInstance(Lifecycle.PER_CLASS)
 public class QuarterlySnapshotRollerTest {
 
     @Autowired
     private TallySnapshotRepository repository;
 
+    @Autowired
+    private ProductProfileRegistry registry;
+
     private ApplicationClock clock;
 
     private SnapshotRollerTester<QuarterlySnapshotRoller> tester;
 
     @BeforeEach
-    public void setupTest() {
+    public void setupTest() throws IOException {
         this.clock = new FixedClockConfiguration().fixedClock();
-        this.tester = new SnapshotRollerTester<>(repository, new QuarterlySnapshotRoller(repository, clock));
+        this.tester = new SnapshotRollerTester<>(repository, new QuarterlySnapshotRoller(repository, clock,
+         registry));
     }
 
     @Test

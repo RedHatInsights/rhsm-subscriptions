@@ -32,11 +32,13 @@ import java.util.Map;
  * tallies were 2, 3, 4, 5, 6, 2, 4, the weekly tally snapshot would be 6.
  */
 public enum Granularity implements StringValueEnum<GranularityType> {
-    DAILY("Daily", GranularityType.DAILY),
-    WEEKLY("Weekly", GranularityType.WEEKLY),
-    MONTHLY("Monthly", GranularityType.MONTHLY),
+    // NB: These need to be in descending order of length so that comparisons between granularities will work
+    YEARLY("Yearly", GranularityType.YEARLY),
     QUARTERLY("Quarterly", GranularityType.QUARTERLY),
-    YEARLY("Yearly", GranularityType.YEARLY);
+    MONTHLY("Monthly", GranularityType.MONTHLY),
+    WEEKLY("Weekly", GranularityType.WEEKLY),
+    DAILY("Daily", GranularityType.DAILY),
+    HOURLY("Hourly", GranularityType.HOURLY);
 
     private static final Map<String, Granularity> VALUE_ENUM_MAP = StringValueEnum.initializeImmutableMap(
         Granularity.class);

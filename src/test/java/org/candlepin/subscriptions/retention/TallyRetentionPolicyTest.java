@@ -38,6 +38,15 @@ class TallyRetentionPolicyTest {
     }
 
     @Test
+    void testHourlyCutoff() {
+        TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
+        config.setHourly(8);
+        OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.HOURLY);
+        OffsetDateTime eightHoursAgo = OffsetDateTime.of(2019, 5, 24, 4, 00, 0, 0, ZoneOffset.UTC);
+        assertEquals(eightHoursAgo, cutoff);
+    }
+
+    @Test
     void testDailyCutoffDate() {
         TallyRetentionPolicyProperties config = new TallyRetentionPolicyProperties();
         config.setDaily(15);

@@ -22,11 +22,12 @@ package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
-import org.candlepin.subscriptions.files.ProductIdMappingConfiguration;
 import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
+import org.candlepin.subscriptions.subscription.SearchApiFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -60,12 +61,13 @@ import java.util.Set;
 @Configuration
 @Profile("worker")
 @Import({TallyTaskQueueConfiguration.class, TaskConsumerConfiguration.class,
-    ProductIdMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
+    ProductMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
 @ComponentScan(basePackages = {
     "org.candlepin.subscriptions.cloudigrade",
     "org.candlepin.subscriptions.event",
     "org.candlepin.subscriptions.inventory.db",
     "org.candlepin.subscriptions.jmx",
+    "org.candlepin.subscriptions.subscription",
     "org.candlepin.subscriptions.tally"
 })
 public class TallyWorkerConfiguration {
@@ -141,5 +143,17 @@ public class TallyWorkerConfiguration {
         TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory, TallyTaskFactory taskFactory) {
 
         return taskConsumerFactory.createTaskConsumer(taskFactory, taskQueueProperties);
+    }
+
+    @Bean
+    @Qualifier("subscription")
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
+    public HttpClientProperties subscriptionServiceProperties() {
+        return new HttpClientProperties();
+    }
+
+    @Bean
+    public SearchApiFactory searchApiFactory(@Qualifier("subscription") HttpClientProperties props) {
+        return new SearchApiFactory(props);
     }
 }

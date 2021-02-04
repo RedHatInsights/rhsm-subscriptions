@@ -38,6 +38,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,14 +62,16 @@ public class InventoryAccountUsageCollector {
     private final InventoryDatabaseOperations inventory;
     private final HostRepository hostRepository;
     private final int culledOffsetDays;
+    private final Counter totalHosts;
 
     public InventoryAccountUsageCollector(FactNormalizer factNormalizer,
         InventoryDatabaseOperations inventory, HostRepository hostRepository,
-        ApplicationProperties props) {
+        ApplicationProperties props, MeterRegistry meterRegistry) {
         this.factNormalizer = factNormalizer;
         this.inventory = inventory;
         this.hostRepository = hostRepository;
         this.culledOffsetDays = props.getCullingOffsetDays();
+        this.totalHosts = meterRegistry.counter("rhsm-subscriptions.capacity.records_total");
     }
 
     @SuppressWarnings("squid:S3776")
@@ -162,6 +167,8 @@ public class InventoryAccountUsageCollector {
                 if (!facts.isHypervisor()) {
                     hostRepository.save(host);
                 }
+
+                totalHosts.increment();
             }
         );
 
@@ -195,5 +202,4 @@ public class InventoryAccountUsageCollector {
 
         return calcsByAccount;
     }
-
 }

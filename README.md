@@ -151,6 +151,7 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `DATABASE_PASSWORD`: DB password
 * `CAPTURE_SNAPSHOT_SCHEDULE`: cron schedule for capturing tally snapshots
 * `ACCOUNT_BATCH_SIZE`: number of accounts to tally at once
+* `TALLY_RETENTION_HOURLY`: number of hourly tallies to keep
 * `TALLY_RETENTION_DAILY`: number of daily tallies to keep
 * `TALLY_RETENTION_WEEKLY`: number of weekly tallies to keep
 * `TALLY_RETENTION_MONTHLY`: number of monthly tallies to keep

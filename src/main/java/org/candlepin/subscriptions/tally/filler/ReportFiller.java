@@ -145,10 +145,10 @@ public class ReportFiller {
     private List<TallySnapshot> fillWithRange(OffsetDateTime start, OffsetDateTime end,
         TemporalAmount offset) {
         List<TallySnapshot> result = new ArrayList<>();
-        OffsetDateTime next = OffsetDateTime.from(start);
+        OffsetDateTime next = timeAdjuster.adjustToPeriodStart(OffsetDateTime.from(start));
         while (next.isBefore(end) || next.isEqual(end)) {
             result.add(createDefaultSnapshot(clock.startOfDay(next)));
-            next = clock.startOfDay(next.plus(offset));
+            next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
         }
         return result;
     }

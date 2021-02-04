@@ -45,6 +45,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -74,6 +77,7 @@ public class InventoryAccountUsageCollectorTest {
     @MockBean private InventoryRepository inventoryRepo;
     @MockBean private HostRepository hostRepo;
     @Autowired private InventoryAccountUsageCollector collector;
+    @Autowired private MeterRegistry meterRegistry;
 
     @Test
     public void hypervisorCountsIgnoredForNonRhelProduct() {
@@ -501,6 +505,27 @@ public class InventoryAccountUsageCollectorTest {
         Host savedHypervisor = hypervisorSaves.getValue().iterator().next();
         assertEquals(hypervisor.getSubscriptionManagerId(), savedHypervisor.getSubscriptionManagerId());
         assertEquals(2, savedHypervisor.getNumOfGuests().intValue());
+    }
+
+    @Test
+    void testTotalHosts() {
+        List<String> targetAccounts = Arrays.asList("A1");
+        Counter counter = meterRegistry.counter("rhsm-subscriptions.capacity.records_total");
+        double initialCount = counter.count();
+
+        InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
+
+        Map<String, String> expectedHypervisorMap = new HashMap<>();
+        expectedHypervisorMap.put(hypervisor.getSubscriptionManagerId(),
+            hypervisor.getSubscriptionManagerId());
+        mockReportedHypervisors(targetAccounts, expectedHypervisorMap);
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt()))
+                .thenReturn(Arrays.asList(hypervisor).stream());
+
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
+        assertEquals(1, calcs.size());
+        assertEquals(1, counter.count() - initialCount);
     }
 
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,

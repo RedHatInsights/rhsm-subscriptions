@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.subscription;
 
-import org.springframework.context.annotation.ComponentScan;
+import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
- * Configuration that provides the product ID to product map.
+ * Stub version of the SearchApi for the Subscription service for local testing.
  */
-@ComponentScan(basePackages = "org.candlepin.subscriptions.files")
-public class ProductIdMappingConfiguration {
-    /* Intentionally empty */
+public class StubSearchApi extends SearchApi {
+
+    @Override
+    public List<Subscription> searchSubscriptions(String criteria, String options) throws ApiException {
+        return Collections.singletonList(createData());
+    }
+
+    private Subscription createData() {
+        return new Subscription().subscriptionNumber("2253591");
+    }
 }

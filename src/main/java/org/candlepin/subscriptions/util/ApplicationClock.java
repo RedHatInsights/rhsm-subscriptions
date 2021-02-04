@@ -24,6 +24,8 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.TemporalField;
 import java.time.temporal.WeekFields;
@@ -62,7 +64,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime startOfDay(OffsetDateTime anyDay) {
-        return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDay));
+        return OffsetDateTime.from(anyDay.with(LocalTime.MIDNIGHT));
     }
 
     public OffsetDateTime endOfToday() {
@@ -70,7 +72,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime endOfDay(OffsetDateTime anyDay) {
-        return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDay));
+        return OffsetDateTime.from(anyDay.with(LocalTime.MAX));
     }
 
     public OffsetDateTime endOfCurrentWeek() {
@@ -94,7 +96,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime endOfMonth(OffsetDateTime anyDayOfMonth) {
-        return OffsetDateTime.from(LocalTime.MAX.adjustInto(anyDayOfMonth))
+        return OffsetDateTime.from(anyDayOfMonth.with(LocalTime.MAX))
             .with(TemporalAdjusters.lastDayOfMonth());
     }
 
@@ -103,7 +105,7 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime startOfMonth(OffsetDateTime anyDayOfMonth) {
-        return OffsetDateTime.from(LocalTime.MIDNIGHT.adjustInto(anyDayOfMonth))
+        return OffsetDateTime.from(anyDayOfMonth.with(LocalTime.MIDNIGHT))
             .with(TemporalAdjusters.firstDayOfMonth());
     }
 
@@ -143,4 +145,28 @@ public class ApplicationClock {
             .plusMonths(2).with(TemporalAdjusters.lastDayOfMonth());
     }
 
+    public OffsetDateTime startOfCurrentHour() {
+        return startOfHour(now());
+    }
+
+    public OffsetDateTime endOfCurrentHour() {
+        return endOfHour(now());
+    }
+
+    /**
+     * Takes an OffsetDateTime and returns the last nanosecond of the hour in that OffsetDateTime
+     * @param toAdjust an OffsetDateTime to round up to the last nanosecond in the hour
+     * @return an OffsetDateTime representing the final nanosecond in toAdjust's hour.
+     */
+    public OffsetDateTime endOfHour(OffsetDateTime toAdjust) {
+        return toAdjust.with(temporal -> temporal
+            .with(ChronoField.MINUTE_OF_HOUR, temporal.range(ChronoField.MINUTE_OF_HOUR).getMaximum())
+            .with(ChronoField.SECOND_OF_MINUTE, temporal.range(ChronoField.SECOND_OF_MINUTE).getMaximum())
+            .with(ChronoField.NANO_OF_SECOND, temporal.range(ChronoField.NANO_OF_SECOND).getMaximum()));
+
+    }
+
+    public OffsetDateTime startOfHour(OffsetDateTime toAdjust) {
+        return toAdjust.truncatedTo(ChronoUnit.HOURS);
+    }
 }

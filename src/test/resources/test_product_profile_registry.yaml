@@ -1,0 +1,16 @@
+name: RHELProduct
+productIds:
+  - 123
+  - 456
+  - 789
+finestGranularity: DAILY
+burstable: false
+prometheusMetricName: metricName
+prometheusCounterName: counterName
+---
+name: OpenshiftProduct
+productIds:
+  - openshift_hourly_1
+  - openshift_hourly_2
+  - openshift_hourly_3
+finestGranularity: HOURLY

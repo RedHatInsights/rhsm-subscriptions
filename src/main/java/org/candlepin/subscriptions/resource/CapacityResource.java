@@ -25,6 +25,8 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.files.ProductProfile;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -43,6 +45,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
@@ -59,19 +62,20 @@ import javax.ws.rs.core.UriInfo;
  */
 @Component
 public class CapacityResource implements CapacityApi {
-
     private final SubscriptionCapacityRepository repository;
     private final PageLinkCreator pageLinkCreator;
     private final ApplicationClock clock;
+    private final ProductProfileRegistry productProfileRegistry;
 
     @Context
     UriInfo uriInfo;
 
     public CapacityResource(SubscriptionCapacityRepository repository, PageLinkCreator pageLinkCreator,
-        ApplicationClock clock) {
+        ApplicationClock clock, ProductProfileRegistry productProfileRegistry) {
         this.repository = repository;
         this.pageLinkCreator = pageLinkCreator;
         this.clock = clock;
+        this.productProfileRegistry = productProfileRegistry;
     }
 
     @Override
@@ -137,11 +141,18 @@ public class CapacityResource implements CapacityApi {
         return report;
     }
 
-    private List<CapacitySnapshot> getCapacities(String ownerId, ProductId productId, ServiceLevel sla,
+    protected List<CapacitySnapshot> getCapacities(String ownerId, ProductId productId, ServiceLevel sla,
         Usage usage, Granularity granularity, @NotNull OffsetDateTime reportBegin,
         @NotNull OffsetDateTime reportEnd) {
 
-        List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(ownerId,
+        /* Throw an error if we are asked to generate capacity reports at a finer granularity than what is
+         * supported by the product.  The reports created would be technically accurate, but would convey the
+         * false impression that we have capacity information at that fine of a granularity.  This decision is
+         * on of personal judgment and it may be appropriate to reverse it at a later date. */
+        validateGranularityCompatibility(productId, granularity);
+
+        List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(
+            ownerId,
             productId.toString(),
             sla,
             usage,
@@ -156,10 +167,12 @@ public class CapacityResource implements CapacityApi {
 
         List<CapacitySnapshot> result = new ArrayList<>();
         OffsetDateTime next = OffsetDateTime.from(start);
+
         while (next.isBefore(end) || next.isEqual(end)) {
-            result.add(createCapacitySnapshot(clock.startOfDay(next), matches));
-            next = clock.startOfDay(next.plus(offset));
+            result.add(createCapacitySnapshot(next, matches));
+            next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
         }
+
         return result;
     }
 
@@ -172,7 +185,19 @@ public class CapacityResource implements CapacityApi {
         return capacities.subList(offset, lastIndex);
     }
 
-    private CapacitySnapshot createCapacitySnapshot(OffsetDateTime date, List<SubscriptionCapacity> matches) {
+    /** Verify that the granularity requested is compatible with the finest granularity supported by the
+     *  product.  For example, if the requester asks for HOURLY granularity but the product only supports
+     *  DAILY granularity, we can't meaningfully fulfill that request.
+     */
+    protected void validateGranularityCompatibility(ProductId productId, Granularity requestedGranularity) {
+        ProductProfile productProfile = productProfileRegistry.findProfile(productId.toString());
+        String msg = String.format("%s does not support any granularity finer than %s", productId.toString(),
+            productProfile.getFinestGranularity());
+        Assert.isTrue(productProfile.supportsGranularity(requestedGranularity), msg);
+    }
+
+    protected CapacitySnapshot createCapacitySnapshot(OffsetDateTime date,
+        List<SubscriptionCapacity> matches) {
         // NOTE there is room for future optimization here, as the we're *generally* calculating the same sum
         // across a time range, also we might opt to do some of this in the DB query in the future.
         int sockets = 0;
