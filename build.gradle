@@ -361,7 +361,7 @@ project(":insights-inventory-client") {
     }
 
     task downloadSystemProfileSpec(type: Download) {
-        src 'https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/075f8e4433ecfb2e227e02108096847242e14e19/swagger/system_profile.spec.yaml'
+        src 'https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/d479778d9ae72fea9a493429ea44142364648ec5/swagger/system_profile.spec.yaml'
         dest buildDir
         overwrite false
     }
