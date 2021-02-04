@@ -29,6 +29,8 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
+
 /**
  * Exposes the ability to trigger a tally for an account from JMX.
  */
@@ -49,6 +51,19 @@ public class TallyJmxBean {
         Object principal = ResourceUtils.getPrincipal();
         log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
         tasks.updateAccountSnapshots(accountNumber);
+    }
+
+    @ManagedOperation(description = "Trigger hourly tally for an account within a timeframe.  Date parameters expected to be in 2017-08-01T17:32:28Z format")
+    public void tallyAccountByHourly(String accountNumber, String beginDate, String endDate) {
+        log.info("Hourly tally between {} and {} for account {} triggered over JMX by {}", beginDate, endDate,
+            accountNumber, ResourceUtils.getPrincipal());
+
+        OffsetDateTime from = OffsetDateTime.parse(beginDate);
+        OffsetDateTime to = OffsetDateTime.parse(endDate);
+
+        System.err.println(from);
+        System.err.println(to);
+
     }
 
     @ManagedOperation(description = "Trigger tally for all configured accounts")
