@@ -114,7 +114,8 @@ class DefaultInventoryServiceTest {
             .coresPerSocket(2)
             .infrastructureType("virtual")
             .systemMemoryBytes(1024L)
-            .numberOfSockets(4);
+            .numberOfSockets(4)
+            .ownerId("108152b1-6b41-4e1b-b908-922c943e7950");
 
         CreateHostIn expectedHostEntry = new CreateHostIn()
             .account("1234-account")
