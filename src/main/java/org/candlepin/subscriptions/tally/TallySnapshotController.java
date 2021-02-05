@@ -112,6 +112,7 @@ public class TallySnapshotController {
         snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
     }
 
+    @Timed("rhsm-subscriptions.snapshots.single.hourly")
     public void produceHourlySnapshotsForAccount(String accounts, OffsetDateTime begin, OffsetDateTime end) {
         log.info("produceHourlySnapshotsForAccount");
 
