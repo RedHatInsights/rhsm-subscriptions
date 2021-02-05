@@ -180,6 +180,13 @@ objects:
                     key: keystore_password
               - name: RHSM_KEYSTORE
                 value: /pinhead/keystore.jks
+              - name: RHSM_TRUSTSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: RHSM_TRUSTSTORE
+                value: /pinhead/truststore.jks
             livenessProbe:
               failureThreshold: 3
               httpGet:
@@ -293,7 +300,7 @@ objects:
                 name: rhsm-conduit-cron-sync
                 env:
                 - name: SPRING_PROFILES_ACTIVE
-                  value: orgsync
+                  value: orgsync,kafka-queue
                 - name: JAVA_MAX_MEM_RATIO
                   value: '85'
                 - name: GC_MAX_METASPACE_SIZE

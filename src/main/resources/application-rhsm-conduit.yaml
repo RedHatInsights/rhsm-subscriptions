@@ -1,9 +1,4 @@
 rhsm-conduit:
-  org-sync:
-    # The cron schedule is only used in development mode.  In a production deployment, a version of the
-    # application with the "orgsync" profile is deployed and run as a one-shot job.  The scheduling
-    # is handled by OpenShift's cron capabilities.
-    schedule: ${ORG_SYNC_SCHEDULE:0 */2 * * * ?}
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}
     url: ${RHSM_URL:http://localhost:9090}
@@ -11,6 +6,8 @@ rhsm-conduit:
     keystore-password: ${RHSM_KEYSTORE_PASSWORD:changeit}
     request-batch-size: ${RHSM_BATCH_SIZE:1000}
     max-connections: ${RHSM_MAX_CONNECTIONS:100}
+    truststore-file: ${RHSM_TRUSTSTORE:}
+    truststore-password: ${RHSM_TRUSTSTORE_PASSWORD:changeit}
   inventory-service:
     use-stub: ${INVENTORY_USE_STUB:true}
     api-key: ${INVENTORY_API_KEY:changeit}
