@@ -44,6 +44,7 @@ ext {
     snakeyaml_version = "1.25"
     kafka_avro_serializer_version = "5.2.1"
     avro_version = "1.8.2"
+    webjars_locator_version = "0.40"
 }
 
 allprojects {
@@ -63,6 +64,7 @@ allprojects {
             dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
             dependency "io.micrometer:micrometer-registry-prometheus:$prometheus_version"
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
+            dependency "org.webjars:webjars-locator:$webjars_locator_version"
             dependency "net.logstash.logback:logstash-logback-encoder:$logstash_logback_encoder_version"
             dependency "org.hamcrest:hamcrest:$hamcrest_version"
             dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
@@ -224,6 +226,7 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
     compile "org.webjars:swagger-ui"
+    compile "org.webjars:webjars-locator"
     compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
     compile "io.hawt:hawtio-springboot"
