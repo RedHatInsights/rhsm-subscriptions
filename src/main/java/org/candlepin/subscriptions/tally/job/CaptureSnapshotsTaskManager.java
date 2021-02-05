@@ -114,6 +114,19 @@ public class CaptureSnapshotsTaskManager {
         }
     }
 
+    public void captureHourlyMetrics(String accountNumber, String beginDate, String endDate) {
+
+        log.info("captureHourlyMetrics");
+
+        queue.enqueue(
+            TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+                .setSingleValuedArg("accounts", accountNumber)
+                .setSingleValuedArg("startTime",beginDate)
+                .setSingleValuedArg("endTime",endDate)
+                .build()
+        );
+    }
+
     /**
      * A class that is used to queue up account numbers as they are streamed from the DB
      * so that they can be sent for updates in the configured batches.

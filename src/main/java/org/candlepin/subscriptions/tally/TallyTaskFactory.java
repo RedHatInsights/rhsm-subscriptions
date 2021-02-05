@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.tally.tasks.CaptureMetricsSnapshotTask;
 import org.candlepin.subscriptions.tally.tasks.UpdateAccountSnapshotsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -28,6 +29,7 @@ import org.candlepin.subscriptions.task.TaskType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.OffsetDateTime;
 
 /**
  * A class responsible for a TaskDescriptor into actual Task instances. Task instances are build via the
@@ -52,6 +54,19 @@ public class TallyTaskFactory implements TaskFactory {
         if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
             return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
         }
+
+        if(taskDescriptor.getTaskType() == TaskType.UPDATE_HOURLY_SNAPSHOTS){
+            String accountNumber = taskDescriptor.getArg("accounts").get(0);
+            String beginDateTime = taskDescriptor.getArg("startTime").get(0);
+            String endDateTime = taskDescriptor.getArg("endTime").get(0);
+
+            OffsetDateTime from = OffsetDateTime.parse(beginDateTime);
+            OffsetDateTime to = OffsetDateTime.parse(endDateTime);
+
+            return new CaptureMetricsSnapshotTask(snapshotController, accountNumber, from, to);
+
+        }
+
         throw new IllegalArgumentException("Could not build task. Unknown task type: " +
             taskDescriptor.getTaskType());
     }
