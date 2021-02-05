@@ -37,5 +37,7 @@
     <include file="liquibase/202011130945-add-events-table.xml" />
     <include file="liquibase/202101081600-tweak-offering.xml" />
     <include file="liquibase/202101121122-add-subscription-table.xml" />
+    <include file="liquibase/202101260823-add-measurements-tables.xml" />
+    <include file="liquibase/202101291558-modify-hosts-for-non-hbi-sources.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
