@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.metering;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Sla;
@@ -34,7 +35,7 @@ import java.util.Optional;
 class MeteringEventFactoryTest {
 
     @Test
-    void testOpenShiftClusterEventCreation() {
+    void testOpenShiftClusterEventCreation() throws Exception {
         String account = "my-account";
         String clusterId = "my-cluster";
         String sla = "Premium";
@@ -58,10 +59,27 @@ class MeteringEventFactoryTest {
     }
 
     @Test
-    void testOpenShiftClusterEventHandlesNullServiceLevel() {
+    void testOpenShiftClusterEventHandlesNullServiceLevel() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", null,
             OffsetDateTime.now(), 12.5);
         assertEquals(Sla.__EMPTY__, event.getSla());
+    }
+
+    @Test
+    void testOpenShiftClusterEventSlaSetToEmptyForSlaValueNone() throws Exception {
+        Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "None",
+            OffsetDateTime.now(), 12.5);
+        assertEquals(Sla.__EMPTY__, event.getSla());
+    }
+
+    @Test
+    void testInvalidSlaCausesExceptionDuringOpenShiftClusterEventCreation() throws Exception {
+        Throwable e = assertThrows(EventCreationException.class, () -> {
+            MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "UNKNOWN_SLA",
+                OffsetDateTime.now(), 12.5);
+        });
+        assertEquals("Unsupported SLA 'UNKNOWN_SLA' specified for event. account/cluster: " +
+            "my-account/cluster-id", e.getMessage());
     }
 
 }

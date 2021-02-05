@@ -61,8 +61,8 @@ public class MeteringEventFactory {
      * @return a populated Event instance.
      */
     public static Event openShiftClusterCores(String accountNumber, String clusterId, String serviceLevel,
-        OffsetDateTime measuredTime, Double measuredValue) {
-        Event e = new Event()
+        OffsetDateTime measuredTime, Double measuredValue) throws EventCreationException {
+        Event event = new Event()
             .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
             .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
             .withServiceType(OPENSHIFT_CLUSTER_SERVICE_TYPE)
@@ -73,18 +73,27 @@ public class MeteringEventFactory {
             .withUsage(Usage.PRODUCTION) // Inferred
             .withMeasurements(Arrays.asList(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
 
-        // NOTE: Prometheus is currently reporting an SLA of Eval. What happens in this case?
-        //       Should the event even get sent? Should it be sent so that we can account for
-        //       it on the tally side when we create the cluster host records?
+        /**
+         * SLA values set by OCM:
+         *   - Eval (ignored for now)
+         *   - Standard
+         *   - Premium
+         *   - Self-Support
+         *   - None (converted to be __EMPTY__)
+         */
         try {
-            String sla = serviceLevel == null ? "" : serviceLevel;
-            e.setSla(Sla.fromValue(StringUtils.trimWhitespace(sla)));
+            String sla = serviceLevel == null || "None".equalsIgnoreCase(serviceLevel) ? "" : serviceLevel;
+            event.setSla(Sla.fromValue(StringUtils.trimWhitespace(sla)));
         }
-        catch (IllegalArgumentException iae) {
-            log.warn("Unsupported SLA specified for prometheus-openshift event for account {}: {}",
-                accountNumber, serviceLevel);
-            e.setSla(Sla.__EMPTY__);
+        catch (IllegalArgumentException e) {
+            throw new EventCreationException(
+                String.format(
+                    "Unsupported SLA '%s' specified for event. account/cluster: %s/%s",
+                    serviceLevel, accountNumber, clusterId
+                )
+            );
         }
-        return e;
+
+        return event;
     }
 }

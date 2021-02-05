@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
@@ -157,7 +158,7 @@ class PrometheusMeteringControllerTest {
         }
         assertEquals(12, recordedMetrics.size());
 
-        QueryResult data = buildOpenShiftClusterQueryResult("my-account", "my-cluster", "Production",
+        QueryResult data = buildOpenShiftClusterQueryResult("my-account", "my-cluster", expectedSla,
             recordedMetrics);
         when(service.runRangeQuery(eq(String.format(props.getOpenshift().getMetricPromQL(),
             expectedAccount)), any(), any(), any(), any())).thenReturn(data);
@@ -165,6 +166,29 @@ class PrometheusMeteringControllerTest {
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
 
         verify(eventController, times(3)).saveAll(any());
+    }
+
+    @Test
+    void openShiftEventsSkippedWhenSlaIsInvalid() throws Exception {
+        BigDecimal time1 = BigDecimal.valueOf(123456.234);
+        BigDecimal val1 = BigDecimal.valueOf(100L);
+
+        QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, "UNKNOWN_SLA",
+            Arrays.asList(Arrays.asList(time1, val1)));
+        when(service.runRangeQuery(
+            eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
+            any(), any(), any(), any())).thenReturn(data);
+
+        OffsetDateTime start = clock.startOfCurrentHour();
+        OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+
+        controller.collectOpenshiftMetrics(expectedAccount, start, end);
+
+        verify(service).runRangeQuery(
+            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            start, end, props.getOpenshift().getStep(),
+            props.getOpenshift().getQueryTimeout());
+        verifyZeroInteractions(eventController);
     }
 
     private QueryResult buildOpenShiftClusterQueryResult(String account, String clusterId, String sla,

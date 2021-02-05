@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.metering.EventCreationException;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -112,18 +113,24 @@ public class PrometheusMeteringController {
                     r.getValues().forEach(measurement -> {
                         BigDecimal time = measurement.get(0);
                         BigDecimal value = measurement.get(1);
-                        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla,
-                            clock.dateFromUnix(time), value.doubleValue());
-                        events.add(event);
 
-                        if (log.isDebugEnabled()) {
-                            log.debug(event.toString());
+                        try {
+                            Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId,
+                                sla, clock.dateFromUnix(time), value.doubleValue());
+                            events.add(event);
+
+                            if (log.isDebugEnabled()) {
+                                log.debug(event.toString());
+                            }
+
+                            if (events.size() >= openshiftProperties.getEventBatchSize()) {
+                                log.info("Saving {} events", events.size());
+                                eventController.saveAll(events);
+                                events.clear();
+                            }
                         }
-
-                        if (events.size() >= openshiftProperties.getEventBatchSize()) {
-                            log.info("Saving {} events", events.size());
-                            eventController.saveAll(events);
-                            events.clear();
+                        catch (EventCreationException e) {
+                            log.warn("Event will not be created. {}", e.getMessage());
                         }
                     });
                 });
