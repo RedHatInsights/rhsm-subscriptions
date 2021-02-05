@@ -21,22 +21,33 @@
 package org.candlepin.subscriptions.db.model;
 
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.persistence.CascadeType;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.MapKeyColumn;
+import javax.persistence.MapKeyEnumerated;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
@@ -53,8 +64,10 @@ public class Host implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @NotNull
-    @Column(name = "inventory_id", nullable = false)
+    @Column(name = "instance_id")
+    private String instanceId;
+
+    @Column(name = "inventory_id")
     private String inventoryId;
 
     @Column(name = "insights_id")
@@ -74,9 +87,27 @@ public class Host implements Serializable {
     @Column(name = "subscription_manager_id")
     private String subscriptionManagerId;
 
+    /**
+     * @deprecated use measurements instead
+     */
+    @Deprecated(forRemoval = true)
     private Integer cores;
 
+    /**
+     * @deprecated use measurements instead
+     */
+    @Deprecated(forRemoval = true)
     private Integer sockets;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "instance_measurements",
+        joinColumns = @JoinColumn(name = "instance_id")
+    )
+    @MapKeyEnumerated(EnumType.STRING)
+    @MapKeyColumn(name = "uom")
+    @Column(name = "value")
+    private Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
 
     @Column(name = "is_guest")
     private boolean guest;
@@ -97,9 +128,10 @@ public class Host implements Serializable {
     @OneToMany(
         mappedBy = "key.host",
         cascade = CascadeType.ALL,
-        orphanRemoval = true
+        orphanRemoval = true,
+        fetch = FetchType.EAGER
     )
-    private List<HostTallyBucket> buckets;
+    private List<HostTallyBucket> buckets = new ArrayList<>();
 
     @Column(name = "is_unmapped_guest")
     private boolean isUnmappedGuest;
@@ -110,11 +142,18 @@ public class Host implements Serializable {
     @Column(name = "cloud_provider")
     private String cloudProvider;
 
+    /**
+     * The instance type represented by this record.
+     */
+    @Column(name = "instance_type")
+    private String instanceType;
+
     public Host() {
 
     }
 
     public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
+        this.instanceType = "HBI_HOST";
         this.inventoryId = inventoryId;
         this.insightsId = insightsId;
         this.accountNumber = accountNumber;
@@ -123,6 +162,13 @@ public class Host implements Serializable {
     }
 
     public Host(InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
+        this.instanceType = "HBI_HOST";
+        populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
+    }
+
+    public void populateFieldsFromHbi(InventoryHostFacts inventoryHostFacts,
+        NormalizedFacts normalizedFacts) {
+
         this.inventoryId = inventoryHostFacts.getInventoryId().toString();
         this.insightsId = inventoryHostFacts.getInsightsId();
         this.accountNumber = inventoryHostFacts.getAccount();
@@ -131,8 +177,8 @@ public class Host implements Serializable {
         this.subscriptionManagerId = inventoryHostFacts.getSubscriptionManagerId();
         this.guest = normalizedFacts.isVirtual();
         this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
-        this.cores = normalizedFacts.getCores();
-        this.sockets = normalizedFacts.getSockets();
+        this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
+        this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
         this.isHypervisor = normalizedFacts.isHypervisor();
         this.isUnmappedGuest = normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
         this.cloudProvider = normalizedFacts.getCloudProviderType() == null ?
@@ -198,20 +244,58 @@ public class Host implements Serializable {
         this.subscriptionManagerId = subscriptionManagerId;
     }
 
+    /**
+     * @deprecated use getMeasurement(Measurement.Uom.CORES) instead
+     *
+     * @return effective cores measured on the instance
+     */
+    @Deprecated(forRemoval = true)
     public Integer getCores() {
-        return cores;
+        return Optional.ofNullable(measurements.get(Measurement.Uom.CORES)).map(Double::intValue)
+            .orElse(cores);
     }
 
+    /**
+     * @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead
+     */
+    @Deprecated(forRemoval = true)
     public void setCores(Integer cores) {
         this.cores = cores;
     }
 
+    /**
+     * @deprecated use getMeasurement(Measurement.Uom.SOCKETS) instead
+     *
+     * @return effective sockets measured on the instance
+     */
+    @Deprecated(forRemoval = true)
     public Integer getSockets() {
-        return sockets;
+        return Optional.ofNullable(measurements.get(Measurement.Uom.SOCKETS)).map(Double::intValue)
+            .orElse(sockets);
     }
 
+    /**
+     * @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead
+     */
+    @Deprecated(forRemoval = true)
     public void setSockets(Integer sockets) {
         this.sockets = sockets;
+    }
+
+    public Map<Measurement.Uom, Double> getMeasurements() {
+        return measurements;
+    }
+
+    public void setMeasurements(Map<Measurement.Uom, Double> measurements) {
+        this.measurements = measurements;
+    }
+
+    public Double getMeasurement(Measurement.Uom uom) {
+        return measurements.get(uom);
+    }
+
+    public void setMeasurement(Measurement.Uom uom, Double value) {
+        measurements.put(uom, value);
     }
 
     public Boolean getGuest() {
@@ -308,6 +392,22 @@ public class Host implements Serializable {
         this.cloudProvider = cloudProvider;
     }
 
+    public String getInstanceType() {
+        return instanceType;
+    }
+
+    public void setInstanceType(String type) {
+        this.instanceType = type;
+    }
+
+    public String getInstanceId() {
+        return instanceId;
+    }
+
+    public void setInstanceId(String instanceId) {
+        this.instanceId = instanceId;
+    }
+
     public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
         return new org.candlepin.subscriptions.utilization.api.model.Host()
                    .cores(cores)
@@ -324,4 +424,33 @@ public class Host implements Serializable {
                    .cloudProvider(cloudProvider);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Host)) {
+            return false;
+        }
+        Host host = (Host) o;
+        return guest == host.guest && isUnmappedGuest == host.isUnmappedGuest &&
+            isHypervisor == host.isHypervisor && Objects.equals(id, host.id) &&
+            Objects.equals(inventoryId, host.inventoryId) && Objects.equals(insightsId, host.insightsId) &&
+            Objects.equals(displayName, host.displayName) &&
+            Objects.equals(accountNumber, host.accountNumber) && Objects.equals(orgId, host.orgId) &&
+            Objects.equals(subscriptionManagerId, host.subscriptionManagerId) &&
+            Objects.equals(cores, host.cores) && Objects.equals(sockets, host.sockets) &&
+            Objects.equals(hypervisorUuid, host.hypervisorUuid) && hardwareType == host.hardwareType &&
+            Objects.equals(numOfGuests, host.numOfGuests) && Objects.equals(lastSeen, host.lastSeen) &&
+            Objects.equals(buckets, host.buckets) && Objects.equals(cloudProvider, host.cloudProvider) &&
+            Objects.equals(instanceId, host.instanceId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects
+            .hash(id, inventoryId, insightsId, displayName, accountNumber, orgId, subscriptionManagerId,
+                cores, sockets, guest, hypervisorUuid, hardwareType, numOfGuests, lastSeen, buckets,
+                isUnmappedGuest, isHypervisor, cloudProvider, instanceId, instanceType);
+    }
 }

@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Measurement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -207,6 +208,8 @@ public class TallySnapshotRepositoryTest {
         assertEquals(9, physicalResult.getCores());
         assertEquals(8, physicalResult.getSockets());
         assertEquals(7, physicalResult.getInstanceCount());
+        assertEquals(Double.valueOf(1.0), expected.getMeasurement(HardwareMeasurementType.TOTAL,
+            Measurement.Uom.CORES));
     }
 
     private TallySnapshot createUnpersisted(String account, String product, Granularity granularity,
@@ -231,6 +234,8 @@ public class TallySnapshotRepositoryTest {
         total.setCores(cores);
         total.setSockets(sockets);
         total.setInstanceCount(instances);
+
+        tally.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, (double) cores);
 
         tally.setHardwareMeasurement(HardwareMeasurementType.TOTAL, total);
         return tally;
