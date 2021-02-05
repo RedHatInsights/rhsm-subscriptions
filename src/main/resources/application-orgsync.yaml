@@ -1,0 +1,8 @@
+rhsm-conduit:
+  org-sync:
+    # The cron schedule is only used in development mode.  In a production deployment, a version of the
+    # application with the "orgsync" profile is deployed and run as a one-shot job.  The scheduling
+    # is handled by OpenShift's cron capabilities.
+    schedule: ${ORG_SYNC_SCHEDULE:0 */2 * * * ?}
+  tasks:
+    topic: ${CONDUIT_KAFKA_TOPIC:platform.rhsm-conduit.tasks}
