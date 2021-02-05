@@ -31,7 +31,7 @@ ext {
     swagger_ui_version = "3.20.8"
     prometheus_version = "1.1.2"
     resteasy_version = "3.6.2.Final"
-    spring_boot_version = "2.2.9.RELEASE"
+    spring_boot_version = "2.4.2"
     spring_data_releasetrain = "Moore-RELEASE"
     postgres_jdbc_driver_version = "42.2.5"
     junit_version = "5.3.2"
