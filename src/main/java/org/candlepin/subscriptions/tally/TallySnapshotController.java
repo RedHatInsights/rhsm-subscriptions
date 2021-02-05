@@ -32,6 +32,7 @@ import org.springframework.stereotype.Component;
 
 import io.micrometer.core.annotation.Timed;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ public class TallySnapshotController {
     private final ApplicationProperties props;
     private final InventoryAccountUsageCollector usageCollector;
     private final CloudigradeAccountUsageCollector cloudigradeCollector;
+    private final MetricUsageCollector metricUsageCollector;
     private final UsageSnapshotProducer snapshotProducer;
     private final RetryTemplate retryTemplate;
     private final RetryTemplate cloudigradeRetryTemplate;
@@ -61,7 +63,8 @@ public class TallySnapshotController {
         CloudigradeAccountUsageCollector cloudigradeCollector,
         UsageSnapshotProducer snapshotProducer,
         @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
-        @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate) {
+        @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
+        MetricUsageCollector metricUsageCollector) {
 
         this.props = props;
         this.applicableProducts = applicableProducts;
@@ -70,6 +73,7 @@ public class TallySnapshotController {
         this.snapshotProducer = snapshotProducer;
         this.retryTemplate = retryTemplate;
         this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
+        this.metricUsageCollector = metricUsageCollector;
     }
 
     @Timed("rhsm-subscriptions.snapshots.single")
@@ -106,6 +110,22 @@ public class TallySnapshotController {
         }
 
         snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+    }
+
+    public void produceHourlySnapshotsForAccount(String accounts, OffsetDateTime begin, OffsetDateTime end) {
+        log.info("produceHourlySnapshotsForAccount");
+
+        AccountUsageCalculation accountCalcs;
+        try {
+            accountCalcs = retryTemplate
+                .execute(context -> metricUsageCollector.collect(accounts, begin, end));
+        }
+        catch (Exception e) {
+            log.error("Could not collect existing usage snapshots for accounts {}", accounts, e);
+            return;
+        }
+
+        snapshotProducer.produceSnapshotsFromCalculations(List.of(accounts), List.of(accountCalcs));
     }
 
     private void attemptCloudigradeEnrichment(List<String> accounts,
