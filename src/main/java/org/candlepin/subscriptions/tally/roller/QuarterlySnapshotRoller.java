@@ -63,7 +63,7 @@ public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
             getApplicableProducts(accountCalcs, QUARTERLY), QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter());
 
-        updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
+        return updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
     }
 
 }

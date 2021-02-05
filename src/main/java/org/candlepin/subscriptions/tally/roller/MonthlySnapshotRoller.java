@@ -62,7 +62,7 @@ public class MonthlySnapshotRoller extends BaseSnapshotRoller {
             getApplicableProducts(accountCalcs, MONTHLY), MONTHLY, clock.startOfCurrentMonth(),
             clock.endOfCurrentMonth());
 
-        updateSnapshots(accountCalcs, currentMonthlySnaps, MONTHLY);
+        return updateSnapshots(accountCalcs, currentMonthlySnaps, MONTHLY);
     }
 
 }

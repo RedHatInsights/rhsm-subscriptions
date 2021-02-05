@@ -62,7 +62,7 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
             getApplicableProducts(accountCalcs, WEEKLY), WEEKLY, clock.startOfCurrentWeek(),
             clock.endOfCurrentWeek());
 
-        updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
+        return updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
     }
 
 }

@@ -62,7 +62,6 @@ public class YearlySnapshotRoller extends BaseSnapshotRoller {
             getApplicableProducts(accountCalcs, YEARLY), YEARLY, clock.startOfCurrentYear(),
             clock.endOfCurrentYear());
 
-        updateSnapshots(accountCalcs, currentYearlySnaps, YEARLY);
+        return updateSnapshots(accountCalcs, currentYearlySnaps, YEARLY);
     }
-
 }

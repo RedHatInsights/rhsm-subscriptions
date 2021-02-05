@@ -125,8 +125,12 @@ public class MetricUsageCollector {
             });
             host.setDisplayName(event.getDisplayName().orElse(event.getInstanceId()));
             addBuckets(host, usageKeys);
+
+            //TODO
+            int cores = 0;
+
             usageKeys.stream().map(accountUsageCalculation::getOrCreateCalculation).forEach(usageCalculation -> {
-                usageCalculation.addPhysical(cores.intValue(), 0, 1);
+                usageCalculation.addPhysical(cores, 0, 1);
             });
             account.getHosts().put(instanceId, host);
         });

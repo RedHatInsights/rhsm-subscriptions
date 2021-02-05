@@ -60,6 +60,6 @@ public class HourlySnapshotRoller extends BaseSnapshotRoller {
             getApplicableProducts(accountCalcs, HOURLY), HOURLY, clock.startOfCurrentHour(),
             clock.endOfCurrentHour());
 
-        updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
+        return updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
     }
 }
