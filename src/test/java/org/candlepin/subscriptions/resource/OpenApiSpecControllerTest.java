@@ -28,7 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 class OpenApiSpecControllerTest {
     @Autowired
     OpenApiSpecController controller;

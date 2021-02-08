@@ -61,7 +61,7 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 @Import(MockProductAndRoleConfiguration.class)
 public class InventoryAccountUsageCollectorTest {
 

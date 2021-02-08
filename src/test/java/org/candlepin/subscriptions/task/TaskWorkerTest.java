@@ -33,7 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 public class TaskWorkerTest {
 
     @MockBean

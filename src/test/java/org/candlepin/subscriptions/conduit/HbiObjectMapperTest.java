@@ -41,7 +41,7 @@ import java.util.TimeZone;
 
 @SpringBootTest
 @TestInstance(Lifecycle.PER_CLASS)
-@ActiveProfiles("rhsm-conduit,test")
+@ActiveProfiles({"rhsm-conduit", "test"})
 class HbiObjectMapperTest {
 
     @Autowired

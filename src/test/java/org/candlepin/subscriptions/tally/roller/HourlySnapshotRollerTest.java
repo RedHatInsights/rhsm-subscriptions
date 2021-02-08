@@ -46,7 +46,7 @@ import java.time.Duration;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
 class HourlySnapshotRollerTest {
 

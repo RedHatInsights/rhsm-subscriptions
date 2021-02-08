@@ -64,7 +64,7 @@ import javax.ws.rs.core.Response;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
 public class TallyResourceTest {
 

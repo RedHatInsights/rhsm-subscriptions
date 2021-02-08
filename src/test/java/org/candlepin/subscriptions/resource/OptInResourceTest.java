@@ -46,7 +46,7 @@ import javax.ws.rs.BadRequestException;
 
 
 @SpringBootTest
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
 public class OptInResourceTest {
 
