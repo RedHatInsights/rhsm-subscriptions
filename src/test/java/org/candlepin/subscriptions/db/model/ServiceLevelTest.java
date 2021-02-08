@@ -28,8 +28,6 @@ import com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Test;
 
-import net.logstash.logback.encoder.org.apache.commons.lang.StringUtils;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,7 +47,7 @@ class ServiceLevelTest {
 
     @Test
     void testFromStringEmptyString() {
-        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(StringUtils.EMPTY));
+        assertEquals(ServiceLevel.EMPTY, ServiceLevel.fromString(""));
     }
 
     @Test

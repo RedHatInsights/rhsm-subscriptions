@@ -35,8 +35,6 @@ ext {
     postgres_jdbc_driver_version = "42.2.5"
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
-    logstash_logback_encoder_version = "5.3"
-    aws_sdk_version = "1.11.32"
     kafka_avro_serializer_version = "5.2.1"
     avro_version = "1.8.2"
     webjars_locator_version = "0.40"
@@ -59,12 +57,8 @@ allprojects {
             dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
             dependency "org.webjars:webjars-locator:$webjars_locator_version"
-            dependency "net.logstash.logback:logstash-logback-encoder:$logstash_logback_encoder_version"
             dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
             dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
-            dependency "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender:1.11"
-            dependency "com.amazonaws:aws-java-sdk-logs:$aws_sdk_version"
-            dependency "com.amazonaws:aws-java-sdk-ec2:$aws_sdk_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
@@ -206,7 +200,6 @@ dependencies {
     compile "org.springframework:spring-context-support"
     compile "org.springframework.kafka:spring-kafka"
 
-    compile "net.logstash.logback:logstash-logback-encoder"
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
     compile "org.webjars:swagger-ui"
@@ -225,7 +218,6 @@ dependencies {
 
     runtime "org.hsqldb:hsqldb"
     runtime "org.jolokia:jolokia-core"
-    runtime "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender"
 }
 
 // Add a custom task to output dependency info in a machine parseable format. Used to generate dependency
