@@ -37,7 +37,7 @@ ext {
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     logstash_logback_encoder_version = "5.3"
     aws_sdk_version = "1.11.32"
-    kafka_avro_serializer_version = "5.2.1"
+    kafka_avro_serializer_version = "6.0.1"
     avro_version = "1.8.2"
 }
 
