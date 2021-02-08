@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 class CloudigradeAccountUsageCollectorTest {
     public static final String ACCOUNT = "foo123";
 

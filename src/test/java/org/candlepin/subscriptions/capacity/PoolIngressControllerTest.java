@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.List;
 
 @SpringBootTest
-@ActiveProfiles("capacity-ingress,test")
+@ActiveProfiles({"capacity-ingress", "test"})
 class PoolIngressControllerTest {
 
     @Autowired

@@ -41,7 +41,7 @@ import java.util.TimeZone;
 
 
 @SpringBootTest
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
 class ObjectMapperContextResolverTest {
 

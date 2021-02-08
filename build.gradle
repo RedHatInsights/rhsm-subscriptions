@@ -29,19 +29,14 @@ plugins {
 ext {
     swagger_annotations_version = "1.5.21"
     swagger_ui_version = "3.20.8"
-    prometheus_version = "1.1.2"
     resteasy_version = "3.6.2.Final"
-    spring_boot_version = "2.2.9.RELEASE"
+    spring_boot_version = "2.4.2"
     spring_data_releasetrain = "Moore-RELEASE"
     postgres_jdbc_driver_version = "42.2.5"
-    junit_version = "5.3.2"
-    mockito_version = "2.23.4"
-    hamcrest_version = "2.2"
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     logstash_logback_encoder_version = "5.3"
     aws_sdk_version = "1.11.32"
-    snakeyaml_version = "1.25"
     kafka_avro_serializer_version = "5.2.1"
     avro_version = "1.8.2"
 }
@@ -61,29 +56,17 @@ allprojects {
         dependencies{
             dependency "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:$jboss_jaxrs_api_version"
             dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
-            dependency "io.micrometer:micrometer-registry-prometheus:$prometheus_version"
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
             dependency "net.logstash.logback:logstash-logback-encoder:$logstash_logback_encoder_version"
-            dependency "org.hamcrest:hamcrest:$hamcrest_version"
             dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
             dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
             dependency "com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender:1.11"
             dependency "com.amazonaws:aws-java-sdk-logs:$aws_sdk_version"
             dependency "com.amazonaws:aws-java-sdk-ec2:$aws_sdk_version"
-            dependency "org.yaml:snakeyaml:$snakeyaml_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
                 entry "resteasy-validator-provider-11"
-            }
-            dependencySet(group: "org.junit.jupiter", version: "$junit_version") {
-                entry "junit-jupiter-api"
-                entry "junit-jupiter-engine"
-                entry "junit-jupiter-params"
-            }
-            dependencySet(group: "org.mockito", version: "$mockito_version") {
-                entry "mockito-core"
-                entry "mockito-junit-jupiter"
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
@@ -227,6 +210,7 @@ dependencies {
     compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
     compile "io.hawt:hawtio-springboot"
+    compile "org.hibernate.validator:hibernate-validator"
 
     testCompile "org.springframework.security:spring-security-test"
     testCompile "org.springframework.kafka:spring-kafka-test"

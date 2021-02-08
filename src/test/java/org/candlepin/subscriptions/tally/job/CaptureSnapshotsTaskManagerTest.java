@@ -42,7 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 class CaptureSnapshotsTaskManagerTest {
 
     @MockBean

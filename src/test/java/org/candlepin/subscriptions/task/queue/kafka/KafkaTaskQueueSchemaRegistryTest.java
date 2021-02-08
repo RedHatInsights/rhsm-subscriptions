@@ -39,7 +39,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer2;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,7 +54,7 @@ import java.util.Map;
 
 @SpringBootTest
 @DirtiesContext
-@ActiveProfiles("worker,test,test-kafka,test-kafka-schema")
+@ActiveProfiles({"worker", "test", "test-kafka", "test-kafka-schema"})
 @EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
 public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 
@@ -94,15 +94,15 @@ public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
             // properly configured. Once verified, we can manually instantiate the deserializer
             // with the mock schema registry.
             Map<String, Object> factoryConfig = factory.getConfigurationProperties();
-            assertEquals(ErrorHandlingDeserializer2.class,
+            assertEquals(ErrorHandlingDeserializer.class,
                 factoryConfig.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
             assertEquals(KafkaAvroDeserializer.class,
-                factoryConfig.get(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS));
+                factoryConfig.get(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS));
             assertThat(factoryConfig,
                 Matchers.hasKey(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG));
 
             KafkaAvroDeserializer delegate = new KafkaAvroDeserializer(registryClient, factoryConfig);
-            ErrorHandlingDeserializer2 errorDeserializer = new ErrorHandlingDeserializer2(delegate);
+            ErrorHandlingDeserializer errorDeserializer = new ErrorHandlingDeserializer(delegate);
             return new DefaultKafkaConsumerFactory<>(factoryConfig, new StringDeserializer(),
                 errorDeserializer);
         }

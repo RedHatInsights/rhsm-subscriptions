@@ -35,7 +35,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.Collections;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 class SubscriptionServiceTest {
     private static final String CRITERIA =
         "criteria;web_customer_id=123;statusList=active;statusList=temporary";

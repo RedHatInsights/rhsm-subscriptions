@@ -36,7 +36,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.ContainerProperties.AckMode;
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer2;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -71,16 +71,16 @@ public class KafkaConfigurator {
 
         consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         // Prevent the client from continuously replaying a message that fails to deserialize.
-        consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer2.class);
+        consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
 
         // Configure the error handling delegate deserializer classes based on whether the
         // schema registry is being bypassed.
         if (bypassRegistry) {
-            consumerConfig.put(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS, AvroDeserializer.class);
+            consumerConfig.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, AvroDeserializer.class);
             consumerConfig.put(AvroDeserializer.TARGET_TYPE_CLASS, TaskMessage.class);
         }
         else {
-            consumerConfig.put(ErrorHandlingDeserializer2.VALUE_DESERIALIZER_CLASS,
+            consumerConfig.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS,
                 KafkaAvroDeserializer.class);
             consumerConfig.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, true);
         }

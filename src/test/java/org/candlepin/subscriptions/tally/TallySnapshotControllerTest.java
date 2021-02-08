@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 class TallySnapshotControllerTest {
 
     public static final String ACCOUNT = "foo123";

@@ -48,7 +48,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.Collections;
 
 @SpringBootTest
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
 class HostsResourceTest {
 

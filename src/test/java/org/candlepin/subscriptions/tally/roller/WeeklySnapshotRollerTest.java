@@ -40,7 +40,7 @@ import java.io.IOException;
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
-@ActiveProfiles("api,test")
+@ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
 public class WeeklySnapshotRollerTest {
 
