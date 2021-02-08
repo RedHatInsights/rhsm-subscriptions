@@ -20,15 +20,15 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.MapKeyJoinColumn;
+import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -44,14 +44,15 @@ public class Account {
     @Column(name = "account_number")
     private String accountNumber;
 
+    // NOTE: we'll probably need to do an abstraction per-service type in the future
     @OneToMany(
         cascade = CascadeType.ALL,
         mappedBy = "accountNumber",
         fetch = FetchType.EAGER,
         orphanRemoval = true
     )
-    @MapKeyJoinColumn(name="id")
-    private Map<UUID, Host> hosts;
+    @MapKeyColumn(name = "instance_id")
+    private Map<String, Host> serviceInstances = new HashMap<>();
 
     public String getAccountNumber() {
         return accountNumber;
@@ -61,11 +62,11 @@ public class Account {
         this.accountNumber = accountNumber;
     }
 
-    public Map<UUID, Host> getHosts() {
-        return hosts;
+    public Map<String, Host> getServiceInstances() {
+        return serviceInstances;
     }
 
-    public void setHosts(Map<UUID, Host> hosts) {
-        this.hosts = hosts;
+    public void setServiceInstances(Map<String, Host> hosts) {
+        this.serviceInstances = hosts;
     }
 }

@@ -118,6 +118,6 @@ public class HostBucketKey implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(productId, sla, asHypervisor, host);
+        return Objects.hash(productId, sla, asHypervisor);
     }
 }

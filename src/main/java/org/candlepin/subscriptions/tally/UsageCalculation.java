@@ -104,9 +104,26 @@ public class UsageCalculation {
         }
     }
 
+    /**
+     * Provides metric totals associated with each hardware type associated with a calculation.
+     */
     public static class Totals {
+        /**
+         * @deprecated use measurements instead
+         */
+        @Deprecated(forRemoval = true)
         private int cores;
+
+        /**
+         * @deprecated use measurements instead
+         */
+        @Deprecated(forRemoval = true)
         private int sockets;
+
+        /**
+         * @deprecated use measurements instead
+         */
+        @Deprecated(forRemoval = true)
         private int instances;
         private final Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
 
@@ -127,24 +144,30 @@ public class UsageCalculation {
 
         /**
          * @deprecated use getMeasurement instead
+         *
+         * @return running cores measurement
          */
-        @Deprecated
+        @Deprecated(forRemoval = true)
         public int getCores() {
             return cores;
         }
 
         /**
          * @deprecated use getMeasurement instead
+         *
+         * @return running sockets measurement
          */
-        @Deprecated
+        @Deprecated(forRemoval = true)
         public int getSockets() {
             return sockets;
         }
 
         /**
          * @deprecated use getMeasurement instead
+         *
+         * @return running instances measurement
          */
-        @Deprecated
+        @Deprecated(forRemoval = true)
         public int getInstances() {
             return instances;
         }
@@ -154,12 +177,12 @@ public class UsageCalculation {
         }
 
         public Double getMeasurement(Measurement.Uom uom) {
-            measurements.putIfAbsent(uom, 0d);
             return measurements.get(uom);
         }
 
         public void increment(Measurement.Uom uom, Double amount) {
-            Double value = getMeasurement(uom);
+            Double existingValue = getMeasurement(uom);
+            double value = existingValue == null ? 0.0 : existingValue;
             double newValue = value + amount;
             measurements.put(uom, newValue);
         }
@@ -196,7 +219,7 @@ public class UsageCalculation {
     /**
      * @deprecated use add instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void addPhysical(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.PHYSICAL, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
@@ -205,7 +228,7 @@ public class UsageCalculation {
     /**
      * @deprecated use add instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void addHypervisor(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
@@ -214,7 +237,7 @@ public class UsageCalculation {
     /**
      * @deprecated use addToTotal(Measurement.Uom, Double value) instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void addToTotal(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.TOTAL, cores, sockets, instances);
     }
@@ -226,7 +249,7 @@ public class UsageCalculation {
     /**
      * @deprecated use add instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void addCloudProvider(HardwareMeasurementType cloudType, int cores, int sockets, int instances) {
         if (!HardwareMeasurementType.isSupportedCloudProvider(cloudType.name())) {
             throw new IllegalArgumentException(String.format("%s is not a supported cloud provider type.",
@@ -238,9 +261,9 @@ public class UsageCalculation {
     }
 
     /**
-     * @deprecated to be replaced by add in the future
+     * @deprecated use add instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void addCloudigrade(HardwareMeasurementType cloudType, int count) {
         increment(cloudType, 0, count, count);
         Totals awsTotals = getTotals(HardwareMeasurementType.AWS);
@@ -260,7 +283,7 @@ public class UsageCalculation {
     /**
      * @deprecated use increment(HardwareMeasurementType, Measurement.Uom, Double) instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     private void increment(HardwareMeasurementType type, int cores, int sockets, int instances) {
         Totals total = getOrDefault(type);
         total.cores += cores;

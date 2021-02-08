@@ -64,8 +64,10 @@ public class Host implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @NotNull
-    @Column(name = "inventory_id", nullable = false)
+    @Column(name = "instance_id")
+    private String instanceId;
+
+    @Column(name = "inventory_id")
     private String inventoryId;
 
     @Column(name = "insights_id")
@@ -85,8 +87,16 @@ public class Host implements Serializable {
     @Column(name = "subscription_manager_id")
     private String subscriptionManagerId;
 
+    /**
+     * @deprecated use measurements instead
+     */
+    @Deprecated(forRemoval = true)
     private Integer cores;
 
+    /**
+     * @deprecated use measurements instead
+     */
+    @Deprecated(forRemoval = true)
     private Integer sockets;
 
     @ElementCollection(fetch = FetchType.EAGER)
@@ -121,7 +131,7 @@ public class Host implements Serializable {
         orphanRemoval = true,
         fetch = FetchType.EAGER
     )
-    private List<HostTallyBucket> buckets;
+    private List<HostTallyBucket> buckets = new ArrayList<>();
 
     @Column(name = "is_unmapped_guest")
     private boolean isUnmappedGuest;
@@ -135,8 +145,8 @@ public class Host implements Serializable {
     /**
      * The instance type represented by this record.
      */
-    @Column(name = "type")
-    private String type;
+    @Column(name = "instance_type")
+    private String instanceType;
 
     public Host() {
 
@@ -147,6 +157,7 @@ public class Host implements Serializable {
     }
 
     public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
+        this.instanceType = "HBI_HOST";
         this.inventoryId = inventoryId;
         this.insightsId = insightsId;
         this.accountNumber = accountNumber;
@@ -155,6 +166,7 @@ public class Host implements Serializable {
     }
 
     public Host(InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
+        this.instanceType = "HBI_HOST";
         populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
     }
 
@@ -237,39 +249,39 @@ public class Host implements Serializable {
     }
 
     /**
-     * @deprecated use getMeasurements().get(Measurement.Uom.CORES) in a future release
-     * @return core count for the host
+     * @deprecated use getMeasurement(Measurement.Uom.CORES) instead
+     *
+     * @return effective cores measured on the instance
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public Integer getCores() {
         return Optional.ofNullable(measurements.get(Measurement.Uom.CORES)).map(Double::intValue)
             .orElse(cores);
     }
 
     /**
-     *
-     * @param cores
+     * @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void setCores(Integer cores) {
         this.cores = cores;
     }
 
     /**
-     * @deprecated use getMeasurements().get(Measurement.Uom.SOCKETS) in a future release
-     * @return socket count for the host
+     * @deprecated use getMeasurement(Measurement.Uom.SOCKETS) instead
+     *
+     * @return effective sockets measured on the instance
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public Integer getSockets() {
         return Optional.ofNullable(measurements.get(Measurement.Uom.SOCKETS)).map(Double::intValue)
             .orElse(sockets);
     }
 
     /**
-     * @
-     * @param sockets
+     * @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public void setSockets(Integer sockets) {
         this.sockets = sockets;
     }
@@ -384,6 +396,22 @@ public class Host implements Serializable {
         this.cloudProvider = cloudProvider;
     }
 
+    public String getInstanceType() {
+        return instanceType;
+    }
+
+    public void setInstanceType(String type) {
+        this.instanceType = type;
+    }
+
+    public String getInstanceId() {
+        return instanceId;
+    }
+
+    public void setInstanceId(String instanceId) {
+        this.instanceId = instanceId;
+    }
+
     public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
         return new org.candlepin.subscriptions.utilization.api.model.Host()
                    .cores(cores)
@@ -418,7 +446,8 @@ public class Host implements Serializable {
             Objects.equals(cores, host.cores) && Objects.equals(sockets, host.sockets) &&
             Objects.equals(hypervisorUuid, host.hypervisorUuid) && hardwareType == host.hardwareType &&
             Objects.equals(numOfGuests, host.numOfGuests) && Objects.equals(lastSeen, host.lastSeen) &&
-            Objects.equals(buckets, host.buckets) && Objects.equals(cloudProvider, host.cloudProvider);
+            Objects.equals(buckets, host.buckets) && Objects.equals(cloudProvider, host.cloudProvider) &&
+            Objects.equals(instanceId, host.instanceId);
     }
 
     @Override
@@ -426,14 +455,6 @@ public class Host implements Serializable {
         return Objects
             .hash(id, inventoryId, insightsId, displayName, accountNumber, orgId, subscriptionManagerId,
                 cores, sockets, guest, hypervisorUuid, hardwareType, numOfGuests, lastSeen, buckets,
-                isUnmappedGuest, isHypervisor, cloudProvider);
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
+                isUnmappedGuest, isHypervisor, cloudProvider, instanceId, instanceType);
     }
 }

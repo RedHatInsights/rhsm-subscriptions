@@ -89,13 +89,6 @@ public class AccountUsageCalculation {
         products.add(key.getProductId());
     }
 
-    public void addBilledUsage(UsageCalculation.Key key, HardwareMeasurementType category,
-        Measurement.Uom uom, Double value) {
-        UsageCalculation usageCalculation = getOrCreateBilledCalculation(key);
-        usageCalculation.add(category, uom, value);
-        products.add(key.getProductId());
-    }
-
     public boolean containsCalculation(UsageCalculation.Key key) {
         return this.calculations.containsKey(key);
     }

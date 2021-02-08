@@ -29,7 +29,7 @@
                 <constraints referencedTableName="tally_snapshots" referencedColumnNames="id"
                     nullable="false" foreignKeyName="tally_measurement_snapshot_id_fk" deleteCascade="true"/>
             </column>
-            <column name="category" type="VARCHAR(255)">
+            <column name="measurement_type" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
             <column name="uom" type="VARCHAR(255)">
@@ -39,7 +39,7 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <addPrimaryKey tableName="tally_measurements" columnNames="snapshot_id,category,uom"/>
+        <addPrimaryKey tableName="tally_measurements" columnNames="snapshot_id,measurement_type,uom"/>
     </changeSet>
 
 </databaseChangeLog>

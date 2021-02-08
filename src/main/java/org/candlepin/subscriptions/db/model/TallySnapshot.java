@@ -45,7 +45,6 @@ import javax.persistence.MapKeyColumn;
 import javax.persistence.MapKeyEnumerated;
 import javax.persistence.Table;
 
-
 /**
  * Model object to represent pieces of tally data.
  */
@@ -79,7 +78,10 @@ public class TallySnapshot implements Serializable {
     @Column(name = "granularity")
     private Granularity granularity;
 
-    @Deprecated
+    /**
+     * @deprecated use tallyMeasurements instead
+     */
+    @Deprecated(forRemoval = true)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "hardware_measurements",
@@ -147,14 +149,30 @@ public class TallySnapshot implements Serializable {
         this.granularity = granularity;
     }
 
-    @Deprecated
+    /**
+     * @deprecated use getMeasurement instead
+     *
+     * @return HardwareMeasurement for the passed type
+     */
+    @Deprecated(forRemoval = true)
     public HardwareMeasurement getHardwareMeasurement(HardwareMeasurementType type) {
         return hardwareMeasurements.get(type);
     }
 
-    @Deprecated
+    /**
+     * @deprecated use setMeasurement instead
+     */
+    @Deprecated(forRemoval = true)
     public void setHardwareMeasurement(HardwareMeasurementType type, HardwareMeasurement measurement) {
         hardwareMeasurements.put(type, measurement);
+    }
+
+    public Map<TallyMeasurementKey, Double> getTallyMeasurements() {
+        return tallyMeasurements;
+    }
+
+    public void setTallyMeasurements(Map<TallyMeasurementKey, Double> tallyMeasurements) {
+        this.tallyMeasurements = tallyMeasurements;
     }
 
     public Double getMeasurement(HardwareMeasurementType type, Measurement.Uom uom) {
