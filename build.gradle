@@ -39,6 +39,7 @@ ext {
     aws_sdk_version = "1.11.32"
     kafka_avro_serializer_version = "5.2.1"
     avro_version = "1.8.2"
+    webjars_locator_version = "0.40"
 }
 
 allprojects {
@@ -57,6 +58,7 @@ allprojects {
             dependency "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:$jboss_jaxrs_api_version"
             dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
+            dependency "org.webjars:webjars-locator:$webjars_locator_version"
             dependency "net.logstash.logback:logstash-logback-encoder:$logstash_logback_encoder_version"
             dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
             dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
@@ -208,6 +210,7 @@ dependencies {
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
     compile "org.webjars:swagger-ui"
+    compile "org.webjars:webjars-locator"
     compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
     compile "io.hawt:hawtio-springboot"
