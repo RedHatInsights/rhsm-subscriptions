@@ -31,7 +31,7 @@ ext {
     swagger_ui_version = "3.42.0"
     resteasy_version = "3.6.2.Final"
     spring_boot_version = "2.4.2"
-    spring_data_releasetrain = "Moore-RELEASE"
+    spring_data_releasetrain = "Neumann-SR6"
     postgres_jdbc_driver_version = "42.2.5"
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
