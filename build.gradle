@@ -36,7 +36,7 @@ ext {
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     kafka_avro_serializer_version = "5.2.1"
-    avro_version = "1.8.2"
+    avro_version = "1.10.1"
     webjars_locator_version = "0.40"
 }
 
