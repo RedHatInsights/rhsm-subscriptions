@@ -34,6 +34,7 @@ import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
+import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
@@ -66,6 +67,7 @@ import org.springframework.retry.support.RetryTemplate;
   TaskConsumerConfiguration.class,
   ProductMappingConfiguration.class,
   InventoryDataSourceConfiguration.class,
+  ProductConfiguration.class,
   JmxBeansConfiguration.class
 })
 @ComponentScan(

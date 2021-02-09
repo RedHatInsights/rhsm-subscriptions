@@ -188,6 +188,7 @@ dependencies {
     compile project(":marketplace-client")
     compile project(":prometheus-client")
     compile project(":user-client")
+    compile project(":product-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -458,9 +459,19 @@ project(":user-client") {
     }
 }
 
+project(":product-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/product-api-spec.yaml"
+        config_file = "${projectDir}/product-client-config.json"
+    }
+}
+
 configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
                                             'insights-inventory-client', 'subscription-client',
-                                            'marketplace-client', 'prometheus-client', 'user-client']}) {
+                                            'marketplace-client', 'prometheus-client', 'user-client',
+                                            'product-client']}) {
     apply plugin: "org.openapi.generator"
 
     openApiValidate {
