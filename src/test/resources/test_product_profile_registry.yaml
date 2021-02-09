@@ -1,16 +1,96 @@
 name: RHELProduct
 productIds:
-  - 123
-  - 456
-  - 789
+  - id: 1
+    products:
+      - RHEL
+  - id: 2
+    products:
+      - RHEL
+  - id: 3
+    products:
+      - RHEL
+  - id: 4
+    products:
+      - NOT RHEL
+  - id: 5
+    products:
+      - NOT RHEL
+  - id: 6
+    products:
+      - NOT RHEL
+  - id: 9
+    products:
+      - RHEL
+      - RHEL Workstation
+  - id: 10
+    products:
+      - RHEL
+      - RHEL Server
+  - id: 13
+    products:
+      - OpenShift Container Platform
+  - id: 6789
+    products:
+      - RHEL for x86
 finestGranularity: DAILY
 burstable: false
-prometheusMetricName: metricName
-prometheusCounterName: counterName
+prometheusMetricName: rhelMetricName
+prometheusCounterName: rhelCounterName
+syspurposeRoles:
+  - name: Red Hat Enterprise Linux Server
+    products:
+      - RHEL
+      - RHEL Server
+  - name: Red Hat Enterprise Linux Workstation
+    products:
+      - RHEL
+      - RHEL Workstation
+  - name: Red Hat Enterprise Linux Compute Node
+    products:
+      - RHEL
+      - RHEL Compute Node
+architectureProductMap:
+  aarch64: RHEL for ARM
+  arm64: RHEL for ARM
+  i386: RHEL for x86
+  ppc64: RHEL for IBM Power
+  ppc64le: RHEL for IBM Power
+  s390x: RHEL for IBM z
+  x86_64: RHEL for x86
 ---
-name: OpenshiftProduct
+name: SatelliteProduct
 productIds:
-  - openshift_hourly_1
-  - openshift_hourly_2
-  - openshift_hourly_3
+  - id: 11
+    products:
+      - Satellite 6
+  - id: 12
+    products:
+      - RHEL
+      - Satellite 6 Capsule
+finestGranularity: DAILY
+burstable: false
+prometheusMetricName: satMetricName
+prometheusCounterName: satCounterName
+syspurposeRoles: []
+architectureProductMap: {}
+---
+name: OpenShiftHourlyProduct
+productIds:
+  - id: 999
+    products: []
+  - id: 1000
+    products: []
+  - id: 1001
+    products: []
 finestGranularity: HOURLY
+syspurposeRoles: []
+architectureProductMap: {}
+---
+name: OtherProduct
+productIds:
+  - id: 2000
+    products:
+      - OTHER PRODUCT
+finestGranularity: DAILY
+syspurposeRoles: []
+architectureProductMap: {}
