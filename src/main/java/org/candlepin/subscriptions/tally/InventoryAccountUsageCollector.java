@@ -178,6 +178,28 @@ public class InventoryAccountUsageCollector {
             }
         );
 
+        // apply data from guests to hypervisor records
+        collectHypervisorGuestData(hypervisorUsageKeys, accountHypervisorFacts, hypervisorHosts,
+            hypervisorGuestCounts, calcsByAccount);
+
+        log.info("Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
+        hostRepository.deleteAll(inventoryHostMap.values());
+
+        if (hypervisorHosts.size() > 0) {
+            log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
+            hostRepository.saveAll(hypervisorHosts.values());
+        }
+
+        if (log.isDebugEnabled()) {
+            calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
+        }
+
+        return calcsByAccount;
+    }
+
+    private void collectHypervisorGuestData(Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys,
+        Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts, Map<String, Host> hypervisorHosts,
+        Map<String, Integer> hypervisorGuestCounts, Map<String, AccountUsageCalculation> calcsByAccount) {
         accountHypervisorFacts.forEach((account, accountHypervisors) -> {
             AccountUsageCalculation accountCalc = calcsByAccount.get(account);
             accountHypervisors.forEach((hypervisorUuid, hypervisor) -> {
@@ -196,20 +218,6 @@ public class InventoryAccountUsageCollector {
                 });
             });
         });
-
-        log.info("Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
-        hostRepository.deleteAll(inventoryHostMap.values());
-
-        if (hypervisorHosts.size() > 0) {
-            log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
-            hostRepository.saveAll(hypervisorHosts.values());
-        }
-
-        if (log.isDebugEnabled()) {
-            calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
-        }
-
-        return calcsByAccount;
     }
 
     private List<Host> getAccountHosts(Collection<String> accounts) {
