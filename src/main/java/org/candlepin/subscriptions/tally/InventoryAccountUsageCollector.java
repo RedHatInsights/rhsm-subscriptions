@@ -27,7 +27,6 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -121,7 +120,12 @@ public class InventoryAccountUsageCollector {
                     accountCalc.setOwner(owner);
                 }
 
-                Host host = getOrCreateHost(inventoryHostMap, hostFacts, facts);
+                Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
+                Host host = existingHost == null ? new Host(hostFacts, facts) : existingHost;
+                if (existingHost != null) {
+                    host.getBuckets().clear(); // ensure we recalculate to remove any stale buckets
+                    host.populateFieldsFromHbi(hostFacts, facts);
+                }
 
                 if (facts.isHypervisor()) {
                     Map<String, NormalizedFacts> idToHypervisorMap = accountHypervisorFacts
@@ -213,22 +217,6 @@ public class InventoryAccountUsageCollector {
             .map(hostRepository::findByAccountNumber)
             .flatMap(List::stream)
             .collect(Collectors.toList());
-    }
-
-    private Host getOrCreateHost(Map<String, Host> inventoryHostMap, InventoryHostFacts hostFacts,
-        NormalizedFacts facts) {
-
-        Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
-        Host host;
-        if (existingHost == null) {
-            host = new Host(hostFacts, facts);
-        }
-        else {
-            host = existingHost;
-            host.getBuckets().clear(); // ensure we recalculate to remove any stale buckets
-            host.populateFieldsFromHbi(hostFacts, facts);
-        }
-        return host;
     }
 
 }
