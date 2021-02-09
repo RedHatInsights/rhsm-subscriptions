@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright (c) 2009 - 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +20,18 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 /**
- * Properties related to all metrics that are to be gathered from the prometheus service.
+ * An extension of the MetricProperties class specific to OpenShift metrics gathering.
  */
-@ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
-public class PrometheusMetricsPropeties {
+public class OpenshiftMetricProperties extends MetricProperties {
 
-    private OpenshiftMetricProperties openshift = new OpenshiftMetricProperties();
+    private String subscriptionLabelPromQL;
 
-    public OpenshiftMetricProperties getOpenshift() {
-        return openshift;
+    public String getSubscriptionLabelPromQL() {
+        return subscriptionLabelPromQL;
     }
 
-    public void setOpenshift(OpenshiftMetricProperties openshift) {
-        this.openshift = openshift;
+    public void setSubscriptionLabelPromQL(String subscriptionLabelPromQL) {
+        this.subscriptionLabelPromQL = subscriptionLabelPromQL;
     }
 }

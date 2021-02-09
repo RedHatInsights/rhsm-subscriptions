@@ -7,10 +7,8 @@ rhsm-subscriptions:
     prometheus:
       metric:
         openshift:
-          metricPromQL: >-
-            max(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) without(environment, region)*on(_id)
-            group_right(prometheus) group(subscription_labels{ebs_account='%s', support=~'Premium|Standard|Self-Support|None'})
-            by (_id,ebs_account, support, usage)
+          metricPromQL: group(subscription_labels{ebs_account='%s',support=~'Premium|Standard|Self-Support|None'})by(_id,ebs_account)*on(_id) group_right(ebs_account) cluster:usage:workload:capacity_physical_cpu_cores:min:5m
+          subscriptionLabelPromQL: group(cluster:usage:workload:capacity_physical_cpu_cores:min:5m) by (_id)*on(_id) group_right (ebs_acount) subscription_labels{ebs_account='%s',support=~'Premium|Standard|Self-Support|None'}
       client:
         token: ${PROM_AUTH_TOKEN:}
         url: ${PROM_URL:https://localhost/api/v1}
