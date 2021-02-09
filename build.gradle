@@ -32,7 +32,7 @@ ext {
     resteasy_version = "3.6.2.Final"
     spring_boot_version = "2.4.2"
     spring_data_releasetrain = "Moore-RELEASE"
-    postgres_jdbc_driver_version = "42.2.5"
+    postgres_jdbc_driver_version = "42.2.18"
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     kafka_avro_serializer_version = "5.2.1"
