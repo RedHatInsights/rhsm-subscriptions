@@ -9,28 +9,17 @@ services:
       - ./init_dbs.sh:/docker-entrypoint-initdb.d/init_dbs.sh:z
     ports:
       - "5432:5432"
-  zookeeper:
-    image: docker.io/confluentinc/cp-zookeeper
-    ports:
-      - "32181:32181"
-    environment:
-      - ZOOKEEPER_CLIENT_PORT=32181
-      - ZOOKEEPER_SERVER_ID=1
   kafka:
-    image: docker.io/confluentinc/cp-kafka
+    image: docker.io/lensesio/fast-data-dev
+    environment:
+      - ADV_HOST=localhost
+      - SAMPLEDATA=0
+      - RUNNING_SAMPLEDATA=0
+      - RUNTESTS=0
     ports:
+      - "3030:3030"
       - "9092:9092"
       - "29092:29092"
-    depends_on:
-      - zookeeper
-    environment:
-      - KAFKA_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:29092
-      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://localhost:9092,EXTERNAL://localhost:29092
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
-      - KAFKA_BROKER_ID=1
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
   inventory:
     build:
       context: insights-host-inventory
