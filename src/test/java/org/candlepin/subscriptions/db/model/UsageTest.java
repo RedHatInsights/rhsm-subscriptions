@@ -28,8 +28,6 @@ import com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Test;
 
-import net.logstash.logback.encoder.org.apache.commons.lang.StringUtils;
-
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,7 +57,7 @@ class UsageTest {
 
     @Test
     void testFromStringEmptyString() {
-        assertEquals(Usage.EMPTY, Usage.fromString(StringUtils.EMPTY));
+        assertEquals(Usage.EMPTY, Usage.fromString(""));
     }
 
     @Test
