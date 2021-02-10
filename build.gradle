@@ -31,8 +31,6 @@ ext {
     swagger_ui_version = "3.42.0"
     resteasy_version = "3.6.3.Final"
     spring_boot_version = "2.4.2"
-    spring_data_releasetrain = "Moore-RELEASE"
-    postgres_jdbc_driver_version = "42.2.5"
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
     kafka_avro_serializer_version = "6.1.0"
@@ -50,14 +48,12 @@ allprojects {
             // See https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies to
             // get listings of the contents of this BOM
             mavenBom "org.springframework.boot:spring-boot-dependencies:$spring_boot_version"
-            mavenBom "org.springframework.data:spring-data-releasetrain:$spring_data_releasetrain"
         }
         dependencies{
             dependency "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:$jboss_jaxrs_api_version"
             dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
             dependency "org.webjars:webjars-locator:$webjars_locator_version"
-            dependency "org.postgresql:postgresql:$postgres_jdbc_driver_version"
             dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
                 entry "resteasy-client"
