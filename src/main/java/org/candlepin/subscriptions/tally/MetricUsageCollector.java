@@ -119,7 +119,6 @@ public class MetricUsageCollector {
         Map<String, Host> existingInstances = account.getServiceInstances().values().stream()
             .filter(host -> productConfig.getServiceType().equals(host.getInstanceType()))
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
-        AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(accountNumber);
         Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber, begin, end)
             .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
 
@@ -127,51 +126,61 @@ public class MetricUsageCollector {
             String instanceId = event.getInstanceId();
             Host existing = existingInstances.remove(instanceId);
             Host host = existing == null ? new Host() : existing;
-            host.setAccountNumber(accountNumber);
-            host.setInstanceType(event.getServiceType());
-            host.setInstanceId(instanceId);
-            Optional.ofNullable(event.getCloudProvider())
-                .map(Event.CloudProvider::toString)
-                .ifPresent(host::setCloudProvider);
-            Optional.ofNullable(event.getHardwareType())
-                .map(this::getHostHardwareType)
-                .ifPresent(host::setHardwareType);
-            host.setDisplayName(Optional.ofNullable(event.getDisplayName())
-                .map(Optional::get)
-                .orElse(event.getInstanceId()));
-            host.setLastSeen(event.getTimestamp());
-            host.setGuest(host.getHardwareType() == HostHardwareType.VIRTUALIZED);
-            Optional.ofNullable(event.getInventoryId())
-                .map(Optional::get)
-                .ifPresent(host::setInventoryId);
-            Optional.ofNullable(event.getHypervisorUuid())
-                .map(Optional::get)
-                .ifPresent(host::setHypervisorUuid);
-            Optional.ofNullable(event.getSubscriptionManagerId())
-                .map(Optional::get)
-                .ifPresent(host::setSubscriptionManagerId);
-            HardwareMeasurementType hardwareMeasurementType = getHardwareMeasurementType(event);
-            Set<UsageCalculation.Key> usageKeys = getApplicableFilterCombinations(event);
-            Optional.ofNullable(event.getMeasurements())
-                .orElse(Collections.emptyList()).forEach(measurement -> {
-                    host.setMeasurement(measurement.getUom(), measurement.getValue());
-                    usageKeys.forEach(key ->
-                        accountUsageCalculation
-                        .addUsage(key, hardwareMeasurementType, measurement.getUom(), measurement.getValue())
-                    );
-                });
-            addBuckets(host, usageKeys);
+            updateInstanceFromEvent(event, host);
             account.getServiceInstances().put(instanceId, host);
         });
-
-        accountRepository.save(account);
 
         log.info("Removing {} stale {} records (metrics no longer present).",
             existingInstances.size(), productConfig.getServiceType());
         existingInstances.keySet().forEach(account.getServiceInstances()::remove);
 
         accountRepository.save(account);
+        return tallyCurrentAccountState(account);
+    }
+
+    private AccountUsageCalculation tallyCurrentAccountState(Account account) {
+        AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(
+            account.getAccountNumber());
+        account.getServiceInstances().values().forEach(instance -> instance.getBuckets().forEach(bucket -> {
+            UsageCalculation.Key usageKey = new UsageCalculation.Key(bucket.getKey().getProductId(),
+                bucket.getKey().getSla(), bucket.getKey().getUsage());
+            instance.getMeasurements().forEach((uom, value) -> {
+                accountUsageCalculation.addUsage(usageKey, getHardwareMeasurementType(instance), uom,
+                    value);
+            });
+        }));
         return accountUsageCalculation;
+    }
+
+    private void updateInstanceFromEvent(Event event, Host instance) {
+        instance.setAccountNumber(event.getAccountNumber());
+        instance.setInstanceType(event.getServiceType());
+        instance.setInstanceId(event.getInstanceId());
+        Optional.ofNullable(event.getCloudProvider())
+            .map(this::getCloudProvider)
+            .map(HardwareMeasurementType::toString)
+            .ifPresent(instance::setCloudProvider);
+        Optional.ofNullable(event.getHardwareType())
+            .map(this::getHostHardwareType)
+            .ifPresent(instance::setHardwareType);
+        instance.setDisplayName(Optional.ofNullable(event.getDisplayName())
+            .map(Optional::get)
+            .orElse(event.getInstanceId()));
+        instance.setLastSeen(event.getTimestamp());
+        instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
+        Optional.ofNullable(event.getInventoryId())
+            .map(Optional::get)
+            .ifPresent(instance::setInventoryId);
+        Optional.ofNullable(event.getHypervisorUuid())
+            .map(Optional::get)
+            .ifPresent(instance::setHypervisorUuid);
+        Optional.ofNullable(event.getSubscriptionManagerId())
+            .map(Optional::get)
+            .ifPresent(instance::setSubscriptionManagerId);
+        Optional.ofNullable(event.getMeasurements())
+            .orElse(Collections.emptyList())
+            .forEach(measurement -> instance.setMeasurement(measurement.getUom(), measurement.getValue()));
+        addBucketsFromEvent(instance, event);
     }
 
     private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
@@ -190,30 +199,32 @@ public class MetricUsageCollector {
         }
     }
 
-    private HardwareMeasurementType getHardwareMeasurementType(Event event) {
-        if (event.getHardwareType() == null) {
+    private HardwareMeasurementType getHardwareMeasurementType(Host instance) {
+        if (instance.getHardwareType() == null) {
             return HardwareMeasurementType.PHYSICAL;
         }
-        switch (event.getHardwareType()) {
-            case __EMPTY__:
-                return null;
+        switch (instance.getHardwareType()) {
             case CLOUD:
-                return getCloudProvider(event);
-            case VIRTUAL:
+                return getCloudProvider(instance);
+            case VIRTUALIZED:
                 return HardwareMeasurementType.VIRTUAL;
             case PHYSICAL:
                 return HardwareMeasurementType.PHYSICAL;
             default:
                 throw new IllegalArgumentException(String.format("Unsupported hardware type: %s",
-                    event.getHardwareType()));
+                    instance.getHardwareType()));
         }
     }
 
-    private HardwareMeasurementType getCloudProvider(Event event) {
-        if (event.getHardwareType() == Event.HardwareType.CLOUD && event.getCloudProvider() == null) {
+    private HardwareMeasurementType getCloudProvider(Host instance) {
+        if (instance.getCloudProvider() == null) {
             throw new IllegalArgumentException("Hardware type cloud, but no cloud provider specified");
         }
-        switch (event.getCloudProvider()) {
+        return HardwareMeasurementType.valueOf(instance.getCloudProvider());
+    }
+
+    private HardwareMeasurementType getCloudProvider(Event.CloudProvider cloudProvider) {
+        switch (cloudProvider) {
             case __EMPTY__:
                 return null;
             case AWS:
@@ -226,19 +237,11 @@ public class MetricUsageCollector {
                 return HardwareMeasurementType.GOOGLE;
             default:
                 throw new IllegalArgumentException(String.format("Unsupported value for cloud provider: %s",
-                    event.getCloudProvider().value()));
+                    cloudProvider.value()));
         }
     }
 
-    private void addBuckets(Host host, Set<UsageCalculation.Key> usageKeys) {
-        for (UsageCalculation.Key key : usageKeys) {
-            HostTallyBucket bucket = new HostTallyBucket();
-            bucket.setKey(new HostBucketKey(host, key.getProductId(), key.getSla(), key.getUsage(), false));
-            host.addBucket(bucket);
-        }
-    }
-
-    private Set<UsageCalculation.Key> getApplicableFilterCombinations(Event event) {
+    private void addBucketsFromEvent(Host host, Event event) {
         ServiceLevel effectiveSla = Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
@@ -249,15 +252,15 @@ public class MetricUsageCollector {
             .orElse(productConfig.getDefaultUsage());
         Set<String> productIds = getProductIds(event);
 
-        Set<UsageCalculation.Key> keys = new HashSet<>();
         for (String productId : productIds) {
             for (ServiceLevel sla : Set.of(effectiveSla, ServiceLevel._ANY)) {
                 for (Usage usage : Set.of(effectiveUsage, Usage._ANY)) {
-                    keys.add(new UsageCalculation.Key(productId, sla, usage));
+                    HostTallyBucket bucket = new HostTallyBucket();
+                    bucket.setKey(new HostBucketKey(host, productId, sla, usage, false));
+                    host.addBucket(bucket);
                 }
             }
         }
-        return keys;
     }
 
     private Set<String> getProductIds(Event event) {

@@ -238,4 +238,28 @@ class MetricUsageCollectorTest {
             accountUsageCalculation.getCalculation(usageCalculationKey).getTotals(
             HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
     }
+
+    @Test
+    void testHandlesDuplicateEvents() {
+        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+        Event event = new Event()
+            .withEventId(UUID.randomUUID())
+            .withServiceType(MetricUsageCollector.ProductConfig.SERVICE_TYPE)
+            .withInstanceId(UUID.randomUUID().toString())
+            .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
+        Account account = new Account();
+        account.setAccountNumber("account123");
+        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
+        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
+        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
+            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+        assertNotNull(accountUsageCalculation);
+        UsageCalculation.Key usageCalculationKey =
+            new UsageCalculation.Key(MetricUsageCollector.ProductConfig.OPENSHIFT_PRODUCT_ID,
+            ServiceLevel.PREMIUM, Usage._ANY);
+        assertEquals(Double.valueOf(42.0),
+            accountUsageCalculation.getCalculation(usageCalculationKey).getTotals(
+            HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
+    }
 }
