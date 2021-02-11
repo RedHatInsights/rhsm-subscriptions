@@ -23,13 +23,17 @@ package org.candlepin.subscriptions.db;
 import org.candlepin.subscriptions.db.model.Subscription;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for Subscription Entities
  */
-public interface SubscriptionRepository extends JpaRepository<Subscription, String> {
+public interface SubscriptionRepository extends JpaRepository<Subscription,
+    Subscription.SubscriptionCompoundId> {
 
     /**
      * Object a set of subscriptions
@@ -37,6 +41,12 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Stri
      * @param subscriptionIds the list of subscriptionIds to filter on
      * @return a list of subscriptions with the specified ownerId and a subscriptionId from the provided list
      */
-    List<Subscription> findByOwnerIdAndSubscriptionIdIn(String ownerId,
-        List<String> subscriptionIds);
+    @Query("SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP " +
+        "AND s.ownerId = :ownerId AND s.subscriptionId IN :subscriptionIds")
+    List<Subscription> findActiveByOwnerIdAndSubscriptionIdIn(@Param("ownerId") String ownerId,
+        @Param("subscriptionIds") List<String> subscriptionIds);
+
+    @Query("SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP " +
+        "AND s.subscriptionId = :subscriptionId")
+    Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 }

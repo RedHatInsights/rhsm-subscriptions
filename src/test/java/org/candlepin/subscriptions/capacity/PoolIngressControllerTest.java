@@ -134,7 +134,7 @@ class PoolIngressControllerTest {
     void testSavesNewSkus() {
         List<Subscription> subscriptionList = Arrays.asList(createSubscription("1", "product-1"));
 
-        when(subscriptionRepository.findByOwnerIdAndSubscriptionIdIn("1",
+        when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn("1",
             Arrays.asList("12345"))).thenReturn(subscriptionList);
         when(whitelist.productIdMatches(any())).thenReturn(true);
 
@@ -150,7 +150,7 @@ class PoolIngressControllerTest {
     void testUpdateExistingSkusWhileSavingNew() {
         Subscription subscription = createSubscription("1", "product-1");
 
-        when(subscriptionRepository.findByOwnerIdAndSubscriptionIdIn(anyString(),
+        when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn(anyString(),
             anyList())).thenReturn(Collections.singletonList(subscription));
         when(whitelist.productIdMatches(any())).thenReturn(true);
 
@@ -172,7 +172,7 @@ class PoolIngressControllerTest {
         Subscription subscription = createSubscription("1", "product-1");
         Subscription deletableSubscription = createSubscription("1", "product-3");
 
-        when(subscriptionRepository.findByOwnerIdAndSubscriptionIdIn(anyString(),
+        when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn(anyString(),
             anyList())).thenReturn(Arrays.asList(subscription, deletableSubscription));
         when(whitelist.productIdMatches(any())).thenReturn(true);
 
