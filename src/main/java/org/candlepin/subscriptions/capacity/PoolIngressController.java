@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
@@ -87,23 +88,19 @@ public class PoolIngressController {
         final Collection<Subscription> existingSubscriptionRecords = subscriptionRepository
             .findActiveByOwnerIdAndSubscriptionIdIn(orgId, subscriptionIds);
 
-        final Map<String, Subscription> skuToSubscription = new HashMap<>();
-        existingSubscriptionRecords
-            .forEach(subscription -> skuToSubscription.put(subscription.getSku(), subscription));
+        final Map<String, Subscription> idToSubscription = existingSubscriptionRecords
+            .stream()
+            .collect(Collectors.toMap(Subscription::getSubscriptionId, Function.identity()));
 
         final Collection<Subscription> needsSave = new ArrayList<>();
-        final Collection<Subscription> needsDelete = new ArrayList<>();
         pools.forEach(pool -> {
             final String poolSku = pool.getProductId();
             if (productWhitelist.productIdMatches(poolSku)) {
-                Subscription updatableSubscription = skuToSubscription.get(poolSku);
+                Subscription updatableSubscription = idToSubscription.remove(pool.getSubscriptionId());
                 if (updatableSubscription == null) {
                     updatableSubscription = new Subscription();
-                    updatableSubscription.setSku(poolSku);
                 }
-                else {
-                    skuToSubscription.remove(poolSku);
-                }
+                updatableSubscription.setSku(poolSku);
                 updatableSubscription.setSubscriptionId(pool.getSubscriptionId());
                 updatableSubscription.setStartDate(pool.getStartDate());
                 updatableSubscription.setEndDate(pool.getEndDate());
@@ -113,7 +110,7 @@ public class PoolIngressController {
             }
         });
 
-        needsDelete.addAll(skuToSubscription.values());
+        final List<Subscription> needsDelete = new ArrayList<>(idToSubscription.values());
         subscriptionRepository.saveAll(needsSave);
         subscriptionRepository.deleteAll(needsDelete);
     }

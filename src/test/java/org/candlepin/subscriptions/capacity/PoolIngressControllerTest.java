@@ -69,7 +69,7 @@ class PoolIngressControllerTest {
         when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(anyString(), anyList()))
             .thenReturn(Collections.emptyList());
 
-        CandlepinPool pool = createTestPool();
+        CandlepinPool pool = createTestPool("12345");
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
         verifyZeroInteractions(mapper);
@@ -85,7 +85,7 @@ class PoolIngressControllerTest {
         when(mapper.mapPoolToSubscriptionCapacity(anyString(), any(), eq(Collections.emptyMap())))
             .thenReturn(Collections.singletonList(capacity));
 
-        CandlepinPool pool = createTestPool();
+        CandlepinPool pool = createTestPool("12345");
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
         verify(subscriptionCapacityRepository).saveAll(Collections.singletonList(capacity));
@@ -103,7 +103,7 @@ class PoolIngressControllerTest {
         when(mapper.mapPoolToSubscriptionCapacity(anyString(), any(CandlepinPool.class), anyMap()))
             .thenReturn(Collections.singletonList(expected));
 
-        CandlepinPool pool = createTestPool();
+        CandlepinPool pool = createTestPool("12345");
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
         verify(subscriptionCapacityRepository).saveAll(Collections.singletonList(expected));
@@ -122,7 +122,7 @@ class PoolIngressControllerTest {
         when(mapper.mapPoolToSubscriptionCapacity(anyString(), any(CandlepinPool.class), anyMap()))
             .thenReturn(Arrays.asList(stale1, stale2));
 
-        CandlepinPool pool = createTestPool();
+        CandlepinPool pool = createTestPool("12345");
         controller.updateCapacityForOrg("org", Collections.singletonList(pool));
 
         verify(subscriptionCapacityRepository).saveAll(Collections.emptyList());
@@ -132,13 +132,13 @@ class PoolIngressControllerTest {
 
     @Test
     void testSavesNewSkus() {
-        List<Subscription> subscriptionList = Arrays.asList(createSubscription("1", "product-1"));
+        List<Subscription> subscriptionList = Arrays.asList(createSubscription("1", "product-1", "12345"));
 
         when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn("1",
             Arrays.asList("12345"))).thenReturn(subscriptionList);
         when(whitelist.productIdMatches(any())).thenReturn(true);
 
-        CandlepinPool pool = createTestPool();
+        CandlepinPool pool = createTestPool("12345");
         pool.setProductId("product-1");
         controller.updateSubscriptionsForOrg("1", Collections.singletonList(pool));
 
@@ -148,50 +148,71 @@ class PoolIngressControllerTest {
 
     @Test
     void testUpdateExistingSkusWhileSavingNew() {
-        Subscription subscription = createSubscription("1", "product-1");
+        Subscription subscription = createSubscription("1", "product-1", "12345");
 
         when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn(anyString(),
             anyList())).thenReturn(Collections.singletonList(subscription));
         when(whitelist.productIdMatches(any())).thenReturn(true);
 
-        CandlepinPool pool1 = createTestPool();
+        CandlepinPool pool1 = createTestPool("12345");
         pool1.setProductId("product-1");
 
-        CandlepinPool pool2 = createTestPool();
+        CandlepinPool pool2 = createTestPool("12345");
         pool2.setProductId("product-2");
 
         controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
 
         verify(subscriptionRepository).saveAll(Arrays.asList(subscription,
-            createSubscription("1", "product-2")));
+            createSubscription("1", "product-2", "12345")));
         verify(subscriptionRepository).deleteAll(Collections.emptyList());
     }
 
     @Test
     void testUpdateExistingSkusWhileSavingNewAndDeleteUnused() {
-        Subscription subscription = createSubscription("1", "product-1");
-        Subscription deletableSubscription = createSubscription("1", "product-3");
+        Subscription subscription = createSubscription("1", "product-1", "1");
+        Subscription deletableSubscription = createSubscription("1", "product-3", "3");
 
         when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn(anyString(),
             anyList())).thenReturn(Arrays.asList(subscription, deletableSubscription));
         when(whitelist.productIdMatches(any())).thenReturn(true);
 
-        CandlepinPool pool1 = createTestPool();
+        CandlepinPool pool1 = createTestPool("1");
         pool1.setProductId("product-1");
 
-        CandlepinPool pool2 = createTestPool();
+        CandlepinPool pool2 = createTestPool("2");
         pool2.setProductId("product-2");
 
         controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
 
         verify(subscriptionRepository).saveAll(Arrays.asList(subscription,
-            createSubscription("1", "product-2")));
+            createSubscription("1", "product-2", "2")));
         verify(subscriptionRepository).deleteAll(Collections.singletonList(deletableSubscription));
     }
 
-    private Subscription createSubscription(String orgId, String sku) {
+    @Test
+    void testCreatesSeparateRecordForMultipleSubscriptionsHavingSameSku() {
+        Subscription sub1 = createSubscription("1", "product-1", "1");
+        Subscription sub2 = createSubscription("1", "product-1", "2");
+
+        when(subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn(anyString(),
+            anyList())).thenReturn(Collections.emptyList());
+        when(whitelist.productIdMatches(any())).thenReturn(true);
+
+        CandlepinPool pool1 = createTestPool("1");
+        pool1.setProductId("product-1");
+
+        CandlepinPool pool2 = createTestPool("2");
+        pool2.setProductId("product-1");
+
+        controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
+
+        verify(subscriptionRepository).saveAll(Arrays.asList(sub1, sub2));
+        verify(subscriptionRepository).deleteAll(Collections.emptyList());
+    }
+
+    private Subscription createSubscription(String orgId, String sku, String subscriptionId) {
         final Subscription subscription = new Subscription();
-        subscription.setSubscriptionId("12345");
+        subscription.setSubscriptionId(subscriptionId);
         subscription.setOwnerId(orgId);
         subscription.setSku(sku);
 
@@ -208,11 +229,11 @@ class PoolIngressControllerTest {
         return capacity;
     }
 
-    private CandlepinPool createTestPool() {
+    private CandlepinPool createTestPool(String subscriptionId) {
         CandlepinPool pool = new CandlepinPool();
         pool.setAccountNumber("account-1234");
         pool.setActiveSubscription(true);
-        pool.setSubscriptionId("12345");
+        pool.setSubscriptionId(subscriptionId);
         CandlepinProvidedProduct providedProduct = new CandlepinProvidedProduct();
         providedProduct.setProductId("product-1");
         pool.setProvidedProducts(Collections.singletonList(providedProduct));
