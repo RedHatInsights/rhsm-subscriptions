@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.json.Measurement;
+
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,10 +40,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.MapKeyClass;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.MapKeyEnumerated;
 import javax.persistence.Table;
-
 
 /**
  * Model object to represent pieces of tally data.
@@ -75,6 +78,10 @@ public class TallySnapshot implements Serializable {
     @Column(name = "granularity")
     private Granularity granularity;
 
+    /**
+     * @deprecated use tallyMeasurements instead
+     */
+    @Deprecated(forRemoval = true)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "hardware_measurements",
@@ -84,6 +91,15 @@ public class TallySnapshot implements Serializable {
     @MapKeyColumn(name = "measurement_type")
     private Map<HardwareMeasurementType, HardwareMeasurement> hardwareMeasurements =
         new EnumMap<>(HardwareMeasurementType.class);
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "tally_measurements",
+        joinColumns = @JoinColumn(name = "snapshot_id")
+    )
+    @Column(name = "value")
+    @MapKeyClass(TallyMeasurementKey.class)
+    private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
     public UUID getId() {
         return id;
@@ -133,12 +149,40 @@ public class TallySnapshot implements Serializable {
         this.granularity = granularity;
     }
 
+    /**
+     * @deprecated use getMeasurement instead
+     *
+     * @return HardwareMeasurement for the passed type
+     */
+    @Deprecated(forRemoval = true)
     public HardwareMeasurement getHardwareMeasurement(HardwareMeasurementType type) {
         return hardwareMeasurements.get(type);
     }
 
+    /**
+     * @deprecated use setMeasurement instead
+     */
+    @Deprecated(forRemoval = true)
     public void setHardwareMeasurement(HardwareMeasurementType type, HardwareMeasurement measurement) {
         hardwareMeasurements.put(type, measurement);
+    }
+
+    public Map<TallyMeasurementKey, Double> getTallyMeasurements() {
+        return tallyMeasurements;
+    }
+
+    public void setTallyMeasurements(Map<TallyMeasurementKey, Double> tallyMeasurements) {
+        this.tallyMeasurements = tallyMeasurements;
+    }
+
+    public Double getMeasurement(HardwareMeasurementType type, Measurement.Uom uom) {
+        TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
+        return getTallyMeasurements().get(key);
+    }
+
+    public void setMeasurement(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
+        TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
+        tallyMeasurements.put(key, value);
     }
 
     public ServiceLevel getServiceLevel() {
