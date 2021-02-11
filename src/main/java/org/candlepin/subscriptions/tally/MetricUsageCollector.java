@@ -144,10 +144,8 @@ public class MetricUsageCollector {
         account.getServiceInstances().values().forEach(instance -> instance.getBuckets().forEach(bucket -> {
             UsageCalculation.Key usageKey = new UsageCalculation.Key(bucket.getKey().getProductId(),
                 bucket.getKey().getSla(), bucket.getKey().getUsage());
-            instance.getMeasurements().forEach((uom, value) -> {
-                accountUsageCalculation.addUsage(usageKey, getHardwareMeasurementType(instance), uom,
-                    value);
-            });
+            instance.getMeasurements().forEach((uom, value) -> accountUsageCalculation
+                .addUsage(usageKey, getHardwareMeasurementType(instance), uom, value));
         }));
         return accountUsageCalculation;
     }
