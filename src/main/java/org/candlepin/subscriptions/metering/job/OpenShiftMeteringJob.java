@@ -39,7 +39,7 @@ public class OpenShiftMeteringJob implements Runnable {
     private int rangeInMinutes;
 
     public OpenShiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-                                PrometheusMetricsPropeties metricProperties) {
+        PrometheusMetricsPropeties metricProperties) {
         this.tasks = tasks;
         this.clock = clock;
         this.rangeInMinutes = metricProperties.getOpenshift().getRangeInMinutes();

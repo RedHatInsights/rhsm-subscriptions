@@ -58,7 +58,7 @@ public class OpenShiftJmxBean {
         this.metricPropeties = metricPropeties;
     }
 
-    @ManagedOperation(description = "Perform openshift metering for a single account.")
+    @ManagedOperation(description = "Perform OpenShift metering for a single account.")
     @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
     public void performOpenshiftMeteringForAccount(String accountNumber) throws IllegalArgumentException {
         Object principal = ResourceUtils.getPrincipal();
@@ -72,12 +72,12 @@ public class OpenShiftJmxBean {
             tasks.updateOpenshiftMetricsForAccount(accountNumber, start, end);
         }
         catch (Exception e) {
-            log.error("Error triggering openshift metering for account {} via JMX.",
+            log.error("Error triggering OpenShift metering for account {} via JMX.",
                 accountNumber, e);
         }
     }
 
-    @ManagedOperation(description = "Perform custom openshift metering for a single account.")
+    @ManagedOperation(description = "Perform custom OpenShift metering for a single account.")
     @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
     @ManagedOperationParameter(
         name = "endDate", description =
@@ -99,12 +99,12 @@ public class OpenShiftJmxBean {
             tasks.updateOpenshiftMetricsForAccount(accountNumber, start, end);
         }
         catch (Exception e) {
-            log.error("Error triggering openshift metering for account {} via JMX.",
+            log.error("Error triggering OpenShift metering for account {} via JMX.",
                 accountNumber, e);
         }
     }
 
-    @ManagedOperation(description = "Perform openshift metering for all accounts.")
+    @ManagedOperation(description = "Perform OpenShift metering for all accounts.")
     public void performOpenshiftMetering()
         throws IllegalArgumentException {
         Object principal = ResourceUtils.getPrincipal();
@@ -118,11 +118,11 @@ public class OpenShiftJmxBean {
             tasks.updateOpenshiftMetricsForAllAccounts(start, end);
         }
         catch (Exception e) {
-            log.error("Error triggering openshift metering for all accounts via JMX.", e);
+            log.error("Error triggering OpenShift metering for all accounts via JMX.", e);
         }
     }
 
-    @ManagedOperation(description = "Perform custom openshift metering for all accounts.")
+    @ManagedOperation(description = "Perform custom OpenShift metering for all accounts.")
     @ManagedOperationParameter(
         name = "endDate", description =
         "The end date for metrics gathering. Must start at top of the hour. i.e 2018-03-20T09:00:00Z"
@@ -143,7 +143,7 @@ public class OpenShiftJmxBean {
             tasks.updateOpenshiftMetricsForAllAccounts(start, end);
         }
         catch (Exception e) {
-            log.error("Error triggering openshift metering for all accounts via JMX.", e);
+            log.error("Error triggering OpenShift metering for all accounts via JMX.", e);
         }
     }
 

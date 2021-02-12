@@ -71,9 +71,9 @@ public class PrometheusMetricsTaskManager {
     @Transactional
     public void updateOpenshiftMetricsForAllAccounts(OffsetDateTime start, OffsetDateTime end) {
         try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
-            log.info("Queuing openshift metrics update for all configured accounts.");
+            log.info("Queuing OpenShift metrics update for all configured accounts.");
             accountStream.forEach(account -> updateOpenshiftMetricsForAccount(account, start, end));
-            log.info("Done queuing updates of openshift metrics");
+            log.info("Done queuing updates of OpenShift metrics");
         }
         catch (AccountListSourceException e) {
             throw new TaskManagerException("Could not list accounts for openshift metrics update.", e);

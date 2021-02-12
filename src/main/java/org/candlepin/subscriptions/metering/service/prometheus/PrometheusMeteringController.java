@@ -78,7 +78,7 @@ public class PrometheusMeteringController {
         MetricProperties openshiftProperties = metricProperties.getOpenshift();
         openshiftRetry.execute(context -> {
             try {
-                log.info("Collecting openshift metrics");
+                log.info("Collecting OpenShift metrics");
 
                 QueryResult metricData = prometheusService.runRangeQuery(
                     // Substitute the account number into the query. The query is expected to
@@ -94,7 +94,7 @@ public class PrometheusMeteringController {
 
                 if (StatusType.ERROR.equals(metricData.getStatus())) {
                     throw new MeteringException(
-                        String.format("Unable to fetch openshift metrics: %s", metricData.getError())
+                        String.format("Unable to fetch OpenShift metrics: %s", metricData.getError())
                     );
                 }
 
@@ -139,7 +139,7 @@ public class PrometheusMeteringController {
                 return null;
             }
             catch (Exception e) {
-                log.warn("Exception thrown while updating openshift metrics. [Attempt: {}]: {}",
+                log.warn("Exception thrown while updating OpenShift metrics. [Attempt: {}]: {}",
                     context.getRetryCount() + 1, e.getMessage());
                 throw e;
             }

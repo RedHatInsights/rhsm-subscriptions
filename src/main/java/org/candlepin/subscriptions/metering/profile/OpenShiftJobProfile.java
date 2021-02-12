@@ -55,7 +55,7 @@ public class OpenShiftJobProfile {
 
     @Bean
     OpenShiftMeteringJob openshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-                                              PrometheusMetricsPropeties metricProperties) {
+        PrometheusMetricsPropeties metricProperties) {
         return new OpenShiftMeteringJob(tasks, clock, metricProperties);
     }
 
