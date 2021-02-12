@@ -26,12 +26,10 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,8 +37,6 @@ import java.util.Optional;
  * for various metrics.
  */
 public class MeteringEventFactory {
-
-    private static final Logger log = LoggerFactory.getLogger(MeteringEventFactory.class);
 
     public static final String OPENSHIFT_CLUSTER_EVENT_SOURCE = "prometheus-openshift";
     public static final String OPENSHIFT_CLUSTER_EVENT_TYPE = "snapshot";
@@ -71,7 +67,7 @@ public class MeteringEventFactory {
             .withTimestamp(measuredTime)
             .withDisplayName(Optional.of(clusterId))
             .withUsage(Usage.PRODUCTION) // Inferred
-            .withMeasurements(Arrays.asList(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
+            .withMeasurements(List.of(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
 
         /**
          * SLA values set by OCM:
