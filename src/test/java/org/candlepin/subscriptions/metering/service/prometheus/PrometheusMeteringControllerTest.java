@@ -26,7 +26,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
@@ -48,7 +47,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -75,6 +73,7 @@ class PrometheusMeteringControllerTest {
     private final String expectedAccount = "my-test-account";
     private final String expectedClusterId = "C1";
     private final String expectedSla = "Premium";
+    private final String expectedUsage = "Production";
 
     @Test
     void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
@@ -83,7 +82,7 @@ class PrometheusMeteringControllerTest {
         errorResponse.setError("FORCED!!");
 
         QueryResult good = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
-            Arrays.asList(Arrays.asList(new BigDecimal(12312.345), new BigDecimal(24))));
+            expectedUsage, List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
 
         when(service.runRangeQuery(anyString(), any(), any(), any(), any()))
             .thenReturn(errorResponse, errorResponse, good);
@@ -100,7 +99,7 @@ class PrometheusMeteringControllerTest {
         OffsetDateTime start = clock.now().withSecond(30).withMinute(22);
         OffsetDateTime end = start.plusHours(4);
         QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
-            Arrays.asList(Arrays.asList(new BigDecimal(12312.345), new BigDecimal(24))));
+            expectedUsage, List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
         when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
@@ -120,7 +119,7 @@ class PrometheusMeteringControllerTest {
         BigDecimal val2 = BigDecimal.valueOf(120L);
 
         QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
-            Arrays.asList(Arrays.asList(time1, val1), Arrays.asList(time2, val2)));
+            expectedUsage, List.of(List.of(time1, val1), List.of(time2, val2)));
         when(service.runRangeQuery(
             eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
             any(), any(), any(), any())).thenReturn(data);
@@ -128,11 +127,11 @@ class PrometheusMeteringControllerTest {
         OffsetDateTime start = clock.startOfCurrentHour();
         OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
-        List<Event> expectedEvents = Arrays.asList(
+        List<Event> expectedEvents = List.of(
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
-                clock.dateFromUnix(time1), val1.doubleValue()),
+                expectedUsage, clock.dateFromUnix(time1), val1.doubleValue()),
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
-                clock.dateFromUnix(time2), val2.doubleValue())
+                expectedUsage, clock.dateFromUnix(time2), val2.doubleValue())
         );
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
@@ -154,12 +153,12 @@ class PrometheusMeteringControllerTest {
         // an extra flush at the end.
         List<List<BigDecimal>> recordedMetrics = new LinkedList<>();
         for (int i = 0; i < props.getOpenshift().getEventBatchSize() * 2 + 2; i++) {
-            recordedMetrics.add(Arrays.asList(new BigDecimal(111111.111), new BigDecimal(12)));
+            recordedMetrics.add(List.of(new BigDecimal(111111.111), new BigDecimal(12)));
         }
         assertEquals(12, recordedMetrics.size());
 
         QueryResult data = buildOpenShiftClusterQueryResult("my-account", "my-cluster", expectedSla,
-            recordedMetrics);
+            expectedUsage, recordedMetrics);
         when(service.runRangeQuery(eq(String.format(props.getOpenshift().getMetricPromQL(),
             expectedAccount)), any(), any(), any(), any())).thenReturn(data);
 
@@ -168,34 +167,12 @@ class PrometheusMeteringControllerTest {
         verify(eventController, times(3)).saveAll(any());
     }
 
-    @Test
-    void openShiftEventsSkippedWhenSlaIsInvalid() throws Exception {
-        BigDecimal time1 = BigDecimal.valueOf(123456.234);
-        BigDecimal val1 = BigDecimal.valueOf(100L);
-
-        QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, "UNKNOWN_SLA",
-            Arrays.asList(Arrays.asList(time1, val1)));
-        when(service.runRangeQuery(
-            eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
-            any(), any(), any(), any())).thenReturn(data);
-
-        OffsetDateTime start = clock.startOfCurrentHour();
-        OffsetDateTime end = clock.endOfHour(start.plusDays(1));
-
-        controller.collectOpenshiftMetrics(expectedAccount, start, end);
-
-        verify(service).runRangeQuery(
-            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
-            start, end, props.getOpenshift().getStep(),
-            props.getOpenshift().getQueryTimeout());
-        verifyZeroInteractions(eventController);
-    }
-
     private QueryResult buildOpenShiftClusterQueryResult(String account, String clusterId, String sla,
-        List<List<BigDecimal>> timeValueTuples) {
+        String usage, List<List<BigDecimal>> timeValueTuples) {
         QueryResultDataResult dataResult = new QueryResultDataResult()
             .putMetricItem("_id", clusterId)
             .putMetricItem("support", sla)
+            .putMetricItem("usage", usage)
             .putMetricItem("ebs_account", account);
 
         // NOTE: A tuple is [unix_time,value]

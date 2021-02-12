@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.metering.EventCreationException;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -104,8 +103,9 @@ public class PrometheusMeteringController {
                 List<Event> events = new LinkedList<>();
                 metricData.getData().getResult().forEach(r -> {
                     Map<String, String> labels = r.getMetric();
-                    String clusterId = labels.getOrDefault("_id", "");
-                    String sla = labels.getOrDefault("support", "");
+                    String clusterId = labels.get("_id");
+                    String sla = labels.get("support");
+                    String usage = labels.get("usage");
 
                     // For the openshift metrics, we expect our results to be a 'matrix'
                     // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -114,23 +114,18 @@ public class PrometheusMeteringController {
                         BigDecimal time = measurement.get(0);
                         BigDecimal value = measurement.get(1);
 
-                        try {
-                            Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId,
-                                sla, clock.dateFromUnix(time), value.doubleValue());
-                            events.add(event);
+                        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId,
+                            sla, usage, clock.dateFromUnix(time), value.doubleValue());
+                        events.add(event);
 
-                            if (log.isDebugEnabled()) {
-                                log.debug(event.toString());
-                            }
-
-                            if (events.size() >= openshiftProperties.getEventBatchSize()) {
-                                log.info("Saving {} events", events.size());
-                                eventController.saveAll(events);
-                                events.clear();
-                            }
+                        if (log.isDebugEnabled()) {
+                            log.debug(event.toString());
                         }
-                        catch (EventCreationException e) {
-                            log.warn("Event will not be created. {}", e.getMessage());
+
+                        if (events.size() >= openshiftProperties.getEventBatchSize()) {
+                            log.info("Saving {} events", events.size());
+                            eventController.saveAll(events);
+                            events.clear();
                         }
                     });
                 });

@@ -21,10 +21,11 @@
 package org.candlepin.subscriptions.metering;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Sla;
+import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 
 import org.junit.jupiter.api.Test;
@@ -35,20 +36,22 @@ import java.util.Optional;
 class MeteringEventFactoryTest {
 
     @Test
-    void testOpenShiftClusterEventCreation() throws Exception {
+    void testOpenShiftClusterCoresEventCreation() throws Exception {
         String account = "my-account";
         String clusterId = "my-cluster";
         String sla = "Premium";
+        String usage = "Production";
         OffsetDateTime measuredTime = OffsetDateTime.now();
         Double measuredValue = 23.0;
 
-        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla, measuredTime,
+        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla, usage, measuredTime,
             measuredValue);
         assertEquals(account, event.getAccountNumber());
         assertEquals(measuredTime, event.getTimestamp());
         assertEquals(clusterId, event.getInstanceId());
         assertEquals(Optional.of(clusterId), event.getDisplayName());
         assertEquals(Sla.PREMIUM, event.getSla());
+        assertEquals(Usage.PRODUCTION, event.getUsage());
         assertEquals(MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE, event.getEventSource());
         assertEquals(MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE, event.getEventType());
         assertEquals(MeteringEventFactory.OPENSHIFT_CLUSTER_SERVICE_TYPE, event.getServiceType());
@@ -59,27 +62,38 @@ class MeteringEventFactoryTest {
     }
 
     @Test
-    void testOpenShiftClusterEventHandlesNullServiceLevel() throws Exception {
+    void testOpenShiftClusterCoresHandlesNullServiceLevel() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", null,
-            OffsetDateTime.now(), 12.5);
-        assertEquals(Sla.__EMPTY__, event.getSla());
+            "Production", OffsetDateTime.now(), 12.5);
+        assertNull(event.getSla());
     }
 
     @Test
-    void testOpenShiftClusterEventSlaSetToEmptyForSlaValueNone() throws Exception {
+    void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "None",
-            OffsetDateTime.now(), 12.5);
+            "Production", OffsetDateTime.now(), 12.5);
         assertEquals(Sla.__EMPTY__, event.getSla());
     }
 
     @Test
-    void testInvalidSlaCausesExceptionDuringOpenShiftClusterEventCreation() throws Exception {
-        Throwable e = assertThrows(EventCreationException.class, () -> {
-            MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "UNKNOWN_SLA",
-                OffsetDateTime.now(), 12.5);
-        });
-        assertEquals("Unsupported SLA 'UNKNOWN_SLA' specified for event. account/cluster: " +
-            "my-account/cluster-id", e.getMessage());
+    void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() throws Exception {
+        Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "UNKNOWN_SLA",
+            "Production", OffsetDateTime.now(), 12.5);
+        assertNull(event.getSla());
+    }
+
+    @Test
+    void testOpenShiftClusterCoresInvalidUsageSetsNullValue() throws Exception {
+        Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "Premium",
+            "UNKNOWN_USAGE", OffsetDateTime.now(), 12.5);
+        assertNull(event.getUsage());
+    }
+
+    @Test
+    void testOpenShiftClusterCoresHandlesNullUsage() throws Exception {
+        Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "Premium",
+            null, OffsetDateTime.now(), 12.5);
+        assertNull(event.getUsage());
     }
 
 }

@@ -26,6 +26,8 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
@@ -37,6 +39,8 @@ import java.util.Optional;
  * for various metrics.
  */
 public class MeteringEventFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(MeteringEventFactory.class);
 
     public static final String OPENSHIFT_CLUSTER_EVENT_SOURCE = "prometheus-openshift";
     public static final String OPENSHIFT_CLUSTER_EVENT_TYPE = "snapshot";
@@ -57,8 +61,8 @@ public class MeteringEventFactory {
      * @return a populated Event instance.
      */
     public static Event openShiftClusterCores(String accountNumber, String clusterId, String serviceLevel,
-        OffsetDateTime measuredTime, Double measuredValue) throws EventCreationException {
-        Event event = new Event()
+        String usage, OffsetDateTime measuredTime, Double measuredValue) {
+        return new Event()
             .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
             .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
             .withServiceType(OPENSHIFT_CLUSTER_SERVICE_TYPE)
@@ -66,9 +70,12 @@ public class MeteringEventFactory {
             .withInstanceId(clusterId)
             .withTimestamp(measuredTime)
             .withDisplayName(Optional.of(clusterId))
-            .withUsage(Usage.PRODUCTION) // Inferred
+            .withSla(getSla(serviceLevel, accountNumber, clusterId))
+            .withUsage(getUsage(usage, accountNumber, clusterId))
             .withMeasurements(List.of(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
+    }
 
+    private static Sla getSla(String serviceLevel, String account, String clusterId) {
         /**
          * SLA values set by OCM:
          *   - Eval (ignored for now)
@@ -78,18 +85,28 @@ public class MeteringEventFactory {
          *   - None (converted to be __EMPTY__)
          */
         try {
-            String sla = serviceLevel == null || "None".equalsIgnoreCase(serviceLevel) ? "" : serviceLevel;
-            event.setSla(Sla.fromValue(StringUtils.trimWhitespace(sla)));
+            String sla = "None".equalsIgnoreCase(serviceLevel) ? "" : serviceLevel;
+            return Sla.fromValue(StringUtils.trimWhitespace(sla));
         }
         catch (IllegalArgumentException e) {
-            throw new EventCreationException(
-                String.format(
-                    "Unsupported SLA '%s' specified for event. account/cluster: %s/%s",
-                    serviceLevel, accountNumber, clusterId
-                )
-            );
+            log.warn("Unsupported SLA '{}' specified for event. account/cluster: {}/{}",
+                serviceLevel, account, clusterId);
+        }
+        return null;
+    }
+
+    private static Usage getUsage(String usage, String account, String clusterId) {
+        if (usage == null) {
+            return null;
         }
 
-        return event;
+        try {
+            return Usage.fromValue(StringUtils.trimWhitespace(usage));
+        }
+        catch (IllegalArgumentException e) {
+            log.warn("Unsupported Usage '{}' specified for event. account/cluster: {}/{}",
+                usage, account, clusterId);
+        }
+        return null;
     }
 }
