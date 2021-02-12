@@ -159,7 +159,7 @@ parser.add_argument('--hbi', action='store_true', dest='is_hbi',
 parser.add_argument('--opt-in', action='store_true',
                     help='Opt in this account')
 parser.add_argument('--clear', action='store_true',
-                    help='Mock HBI data rather than tally data')
+                    help='Clear data in the hosts table and related tables')
 
 args = parser.parse_args()
 if args.is_hbi:
