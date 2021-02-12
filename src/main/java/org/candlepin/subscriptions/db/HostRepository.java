@@ -28,12 +28,10 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import javax.validation.constraints.NotNull;
@@ -99,9 +97,5 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
         Pageable pageable
     );
 
-    @Transactional
-    @Modifying
-    @Query("delete from Host where account_number in (:accounts)")
-    int deleteByAccountNumberIn(@Param("accounts") Collection<String> accounts);
-
+    List<Host> findByAccountNumber(String accountNumber);
 }

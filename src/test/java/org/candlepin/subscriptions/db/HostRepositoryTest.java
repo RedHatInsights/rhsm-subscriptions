@@ -207,7 +207,12 @@ class HostRepositoryTest {
         toUpdate.setSockets(4);
         toUpdate.setCores(8);
         toUpdate.setDisplayName(DEFAULT_DISPLAY_NAME);
-        toUpdate.removeBucket(host.getBuckets().get(0));
+
+        HostTallyBucket rhelBucket = host.getBuckets().stream()
+            .filter(h -> h.getKey().getProductId().equals("RHEL")).findFirst().orElse(null);
+        HostTallyBucket satelliteBucket = host.getBuckets().stream()
+            .filter(h -> h.getKey().getProductId().equals("Satellite")).findFirst().orElse(null);
+        toUpdate.removeBucket(rhelBucket);
         repo.saveAndFlush(toUpdate);
 
         Optional<Host> updateResult = repo.findById(toUpdate.getId());
@@ -217,7 +222,7 @@ class HostRepositoryTest {
         assertEquals(4, updated.getSockets().intValue());
         assertEquals(8, updated.getCores().intValue());
         assertEquals(1, updated.getBuckets().size());
-        assertTrue(updated.getBuckets().contains(host.getBuckets().get(0)));
+        assertTrue(updated.getBuckets().contains(satelliteBucket));
     }
 
     @Transactional
@@ -395,28 +400,6 @@ class HostRepositoryTest {
 
         assertEquals(1, found.size());
         assertTallyHostView(found.get(0), "inventory3");
-    }
-
-    @Transactional
-    @Test
-    void testDeleteByAccount() {
-        Host host1 = createHost("h1", "A1");
-        host1.setDisplayName(DEFAULT_DISPLAY_NAME);
-        Host h1 = repo.saveAndFlush(host1);
-
-        Host host2 = createHost("h2", "A2");
-        host2.setDisplayName(DEFAULT_DISPLAY_NAME);
-        Host h2 = repo.saveAndFlush(host2);
-
-        Host host3 = createHost("h3", "A3");
-        host3.setDisplayName(DEFAULT_DISPLAY_NAME);
-        Host h3 = repo.saveAndFlush(host3);
-
-        assertTrue(repo.findById(h1.getId()).isPresent());
-        assertTrue(repo.findById(h2.getId()).isPresent());
-        assertTrue(repo.findById(h3.getId()).isPresent());
-
-        assertEquals(2, repo.deleteByAccountNumberIn(Arrays.asList("A1", "A2")));
     }
 
     @Transactional
