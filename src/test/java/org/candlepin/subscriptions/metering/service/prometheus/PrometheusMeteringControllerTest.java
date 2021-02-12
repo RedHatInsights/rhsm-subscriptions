@@ -54,7 +54,7 @@ import java.util.List;
 
 
 @SpringBootTest
-@ActiveProfiles("openshift-metering-worker,test")
+@ActiveProfiles({"openshift-metering-worker", "test"})
 class PrometheusMeteringControllerTest {
 
     @MockBean

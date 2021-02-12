@@ -41,7 +41,7 @@ import java.time.OffsetDateTime;
 
 
 @SpringBootTest
-@ActiveProfiles("openshift-metering-worker,test")
+@ActiveProfiles({"openshift-metering-worker", "test"})
 class PrometheusServiceTest {
 
     @MockBean
