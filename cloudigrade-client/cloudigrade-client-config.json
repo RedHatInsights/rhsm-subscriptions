@@ -3,6 +3,5 @@
   "apiPackage": "org.candlepin.subscriptions.cloudigrade.api.resources",
   "invokerPackage": "org.candlepin.subscriptions.cloudigrade",
   "groupId": "org.candlepin",
-  "artifactId": "cloudigrade-client",
-  "java8": "true"
+  "artifactId": "cloudigrade-client"
 }
