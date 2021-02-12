@@ -290,7 +290,7 @@ project(":api") {
     task generateOpenApiJson(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
         generatorName = "openapi"
         inputSpec = api_spec_path
-        outputDir = "$buildDir/generated"
+        outputDir = "$buildDir/generated/openapijson"
         generateApiDocumentation = true
         generateModelDocumentation = true
         generateModelTests = false
@@ -299,7 +299,7 @@ project(":api") {
     }
 
     processResources {
-        from "$buildDir/generated/openapi.json"
+        from "$buildDir/generated/openapijson/openapi.json"
         from api_spec_path
         rename { String fileName ->
             api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
