@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
-import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
@@ -51,15 +51,18 @@ public class OpenShiftWorkerProfile {
 
     @Bean(name = "openshiftMetricRetryTemplate")
     public RetryTemplate openshiftRetryTemplate(PrometheusMetricsPropeties metricProperties) {
+        RetryTemplate retryTemplate = new RetryTemplate();
+
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
         retryPolicy.setMaxAttempts(metricProperties.getOpenshift().getMaxAttempts());
-
-        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
-        backOffPolicy.setBackOffPeriod(2000L);
-
-        RetryTemplate retryTemplate = new RetryTemplate();
         retryTemplate.setRetryPolicy(retryPolicy);
+
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setMaxInterval(metricProperties.getOpenshift().getBackOffMaxInterval());
+        backOffPolicy.setInitialInterval(metricProperties.getOpenshift().getBackOffInitialInterval());
+        backOffPolicy.setMultiplier(metricProperties.getOpenshift().getBackOffMultiplier());
         retryTemplate.setBackOffPolicy(backOffPolicy);
+
         return retryTemplate;
     }
 

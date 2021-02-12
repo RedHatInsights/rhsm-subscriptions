@@ -53,7 +53,22 @@ public class MetricProperties {
     /**
      * Number of times the metrics gathering should be retried if something fails.
      */
-    private int maxAttempts = 3;
+    private int maxAttempts = 5;
+
+    /**
+     * The maximum sleep interval between retries when retrying metrics gathering.
+     */
+    private long backOffMaxInterval = 30000L;
+
+    /**
+     * The initial sleep interval between retries when retrying metrics gathering.
+     */
+    private long backOffInitialInterval = 2000L;
+
+    /**
+     * The multiplier to use to generate the next backoff interval when retrying metrics gathering.
+     */
+    private double backOffMultiplier = 2;
 
     /**
      * Batch size to use while persisting events.
@@ -100,6 +115,30 @@ public class MetricProperties {
         this.maxAttempts = maxAttempts;
     }
 
+    public long getBackOffMaxInterval() {
+        return backOffMaxInterval;
+    }
+
+    public void setBackOffMaxInterval(long backOffMaxInterval) {
+        this.backOffMaxInterval = backOffMaxInterval;
+    }
+
+    public long getBackOffInitialInterval() {
+        return backOffInitialInterval;
+    }
+
+    public void setBackOffInitialInterval(long backOffInitialInterval) {
+        this.backOffInitialInterval = backOffInitialInterval;
+    }
+
+    public double getBackOffMultiplier() {
+        return backOffMultiplier;
+    }
+
+    public void setBackOffMultiplier(double backOffMultiplier) {
+        this.backOffMultiplier = backOffMultiplier;
+    }
+
     public int getEventBatchSize() {
         return eventBatchSize;
     }
@@ -107,4 +146,5 @@ public class MetricProperties {
     public void setEventBatchSize(int eventBatchSize) {
         this.eventBatchSize = eventBatchSize;
     }
+
 }
