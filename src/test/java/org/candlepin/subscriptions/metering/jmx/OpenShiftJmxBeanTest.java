@@ -45,7 +45,7 @@ class OpenShiftJmxBeanTest {
 
     private ApplicationClock clock;
     private PrometheusMetricsPropeties metricProps;
-    private OpenshiftJmxBean jmx;
+    private OpenShiftJmxBean jmx;
 
     @BeforeEach
     void setupTests() {
@@ -53,13 +53,13 @@ class OpenShiftJmxBeanTest {
         metricProps.getOpenshift().setRangeInMinutes(60);
 
         clock = new FixedClockConfiguration().fixedClock();
-        jmx = new OpenshiftJmxBean(clock, tasks, metricProps);
+        jmx = new OpenShiftJmxBean(clock, tasks, metricProps);
     }
 
     @Test
     void testMeteringForAccount() {
         String expectedAccount = "test-account";
-        OffsetDateTime endDate = clock.now();
+        OffsetDateTime endDate = clock.startOfCurrentHour();
         OffsetDateTime startDate =
             endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
         jmx.performOpenshiftMeteringForAccount(expectedAccount);
@@ -71,9 +71,10 @@ class OpenShiftJmxBeanTest {
     void testCustomMeteringForAccount() {
         String expectedAccount = "test-account";
         int rangeInMins = 20;
-        OffsetDateTime endDate = clock.now();
+        OffsetDateTime endDate = clock.startOfCurrentHour();
         OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
-        jmx.performCustomOpenshiftMeteringForAccount(expectedAccount, clock.now().toString(), rangeInMins);
+        jmx.performCustomOpenshiftMeteringForAccount(expectedAccount, clock.startOfCurrentHour().toString(),
+            rangeInMins);
 
         verify(tasks).updateOpenshiftMetricsForAccount(expectedAccount, startDate, endDate);
     }
@@ -81,26 +82,24 @@ class OpenShiftJmxBeanTest {
     @Test
     void testGetStartDateValidatesRequiredRangeInMinutes() {
         String account = "1234";
-        String endDate = clock.now().toString();
-        Throwable e = assertThrows(IllegalArgumentException.class, () -> {
-            jmx.performCustomOpenshiftMeteringForAccount(account, endDate, null);
-        });
+        String endDate = clock.startOfCurrentHour().toString();
+        Throwable e = assertThrows(IllegalArgumentException.class,
+            () -> jmx.performCustomOpenshiftMeteringForAccount(account, endDate, null));
         assertEquals("Required argument: rangeInMinutes", e.getMessage());
     }
 
     @Test
     void testGetStartDateValidatesRangeInMinutesGreaterEqualToZero() {
         String account = "1234";
-        String endDate = clock.now().toString();
-        Throwable e = assertThrows(IllegalArgumentException.class, () -> {
-            jmx.performCustomOpenshiftMeteringForAccount(account, endDate, -1);
-        });
+        String endDate = clock.startOfCurrentHour().toString();
+        Throwable e = assertThrows(IllegalArgumentException.class,
+            () -> jmx.performCustomOpenshiftMeteringForAccount(account, endDate, -1));
         assertEquals("Invalid value specified (Must be >= 0): rangeInMinutes", e.getMessage());
     }
 
     @Test
     void testPerformMeteringForAllAccounts() {
-        OffsetDateTime endDate = clock.now();
+        OffsetDateTime endDate = clock.startOfCurrentHour();
         OffsetDateTime startDate =
             endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
         jmx.performOpenshiftMetering();
@@ -111,10 +110,19 @@ class OpenShiftJmxBeanTest {
     @Test
     void testPerformCustomMeteringForAllAccounts() {
         int rangeInMins = 20;
-        OffsetDateTime endDate = clock.now();
+        OffsetDateTime endDate = clock.startOfCurrentHour();
         OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
-        jmx.performCustomOpenshiftMetering(clock.now().toString(), rangeInMins);
+        jmx.performCustomOpenshiftMetering(clock.startOfCurrentHour().toString(), rangeInMins);
 
         verify(tasks).updateOpenshiftMetricsForAllAccounts(startDate, endDate);
+    }
+
+    @Test
+    void testEndDateMustBeAtStartOfHour() {
+        String account = "1234";
+        String endDate = clock.now().toString();
+        Throwable e = assertThrows(IllegalArgumentException.class,
+            () -> jmx.performCustomOpenshiftMeteringForAccount(account, endDate, 24));
+        assertEquals("Date must start at top of the hour: " + endDate, e.getMessage());
     }
 }

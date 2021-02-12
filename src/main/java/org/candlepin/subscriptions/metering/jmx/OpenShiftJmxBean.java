@@ -34,14 +34,15 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 
 /**
  * Exposes the ability to trigger metering operations from JMX.
  */
 @ManagedResource
-public class OpenshiftJmxBean {
+public class OpenShiftJmxBean {
 
-    private static final Logger log = LoggerFactory.getLogger(OpenshiftJmxBean.class);
+    private static final Logger log = LoggerFactory.getLogger(OpenShiftJmxBean.class);
 
     private PrometheusMetricsTaskManager tasks;
 
@@ -50,7 +51,7 @@ public class OpenshiftJmxBean {
     private PrometheusMetricsPropeties metricPropeties;
 
     @Autowired
-    public OpenshiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager tasks,
+    public OpenShiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager tasks,
         PrometheusMetricsPropeties metricPropeties) {
         this.clock = clock;
         this.tasks = tasks;
@@ -63,7 +64,7 @@ public class OpenshiftJmxBean {
         Object principal = ResourceUtils.getPrincipal();
         log.info("Openshift metering for {} triggered via JMX by {}", accountNumber, principal);
 
-        OffsetDateTime end = clock.now();
+        OffsetDateTime end = getDate(null);
         OffsetDateTime start =
             getStartDate(end, metricPropeties.getOpenshift().getRangeInMinutes());
 
@@ -79,8 +80,8 @@ public class OpenshiftJmxBean {
     @ManagedOperation(description = "Perform custom openshift metering for a single account.")
     @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
     @ManagedOperationParameter(
-        name = "endDate",
-        description = "The end date for metrics gathering (default: now). i.e 2018-03-20T09:12:28Z"
+        name = "endDate", description =
+        "The end date for metrics gathering. Must start at top of the hour. i.e 2018-03-20T09:00:00Z"
     )
     @ManagedOperationParameter(
         name = "rangeInMinutes",
@@ -109,7 +110,7 @@ public class OpenshiftJmxBean {
         Object principal = ResourceUtils.getPrincipal();
         log.info("Metering for all accounts triggered via JMX by {}", principal);
 
-        OffsetDateTime end = clock.now();
+        OffsetDateTime end = getDate(null);
         OffsetDateTime start =
             getStartDate(end, metricPropeties.getOpenshift().getRangeInMinutes());
 
@@ -123,8 +124,8 @@ public class OpenshiftJmxBean {
 
     @ManagedOperation(description = "Perform custom openshift metering for all accounts.")
     @ManagedOperationParameter(
-        name = "endDate",
-        description = "The end date for metrics gathering. i.e 2018-03-20T09:12:28Z"
+        name = "endDate", description =
+        "The end date for metrics gathering. Must start at top of the hour. i.e 2018-03-20T09:00:00Z"
     )
     @ManagedOperationParameter(
         name = "rangeInMinutes",
@@ -147,14 +148,25 @@ public class OpenshiftJmxBean {
     }
 
     private OffsetDateTime getDate(String dateToParse) {
-        try {
-            // 2018-03-20T09:12:28Z
-            return StringUtils.hasText(dateToParse) ? OffsetDateTime.parse(dateToParse) : clock.now();
+        if (StringUtils.hasText(dateToParse)) {
+            try {
+                // 2018-03-20T09:00:00Z
+                OffsetDateTime parsed = OffsetDateTime.parse(dateToParse);
+                if (!parsed.isEqual(clock.startOfHour(parsed))) {
+                    throw new IllegalArgumentException(
+                        String.format("Date must start at top of the hour: %s", parsed)
+                    );
+                }
+                return parsed;
+            }
+            catch (DateTimeParseException e) {
+                throw new IllegalArgumentException(
+                    String.format("Unable to parse date arg '%s'. Invalid format.", dateToParse)
+                );
+            }
         }
-        catch (Exception e) {
-            throw new IllegalArgumentException(
-                String.format("Unable to parse date arg '%s'. Invalid format.", dateToParse)
-            );
+        else {
+            return clock.startOfCurrentHour();
         }
     }
 
