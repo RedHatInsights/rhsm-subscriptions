@@ -43,7 +43,7 @@ class OpenShiftMeteringJobTest {
 
     private ApplicationClock clock;
     private PrometheusMetricsPropeties metricProps;
-    private OpenshiftMeteringJob job;
+    private OpenShiftMeteringJob job;
 
     @BeforeEach
     void setupTests() {
@@ -51,7 +51,7 @@ class OpenShiftMeteringJobTest {
         metricProps.getOpenshift().setRangeInMinutes(60);
 
         clock = new FixedClockConfiguration().fixedClock();
-        job = new OpenshiftMeteringJob(tasks, clock, metricProps);
+        job = new OpenShiftMeteringJob(tasks, clock, metricProps);
     }
 
     @Test

@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.jobs.JobProperties;
-import org.candlepin.subscriptions.metering.job.OpenshiftMeteringJob;
+import org.candlepin.subscriptions.metering.job.OpenShiftMeteringJob;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
@@ -54,13 +54,13 @@ public class OpenShiftJobProfile {
     }
 
     @Bean
-    OpenshiftMeteringJob openshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-        PrometheusMetricsPropeties metricProperties) {
-        return new OpenshiftMeteringJob(tasks, clock, metricProperties);
+    OpenShiftMeteringJob openshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
+                                              PrometheusMetricsPropeties metricProperties) {
+        return new OpenShiftMeteringJob(tasks, clock, metricProperties);
     }
 
     @Bean
-    JobRunner jobRunner(OpenshiftMeteringJob job, ApplicationContext applicationContext) {
+    JobRunner jobRunner(OpenShiftMeteringJob job, ApplicationContext applicationContext) {
         return new JobRunner(job, applicationContext);
     }
 

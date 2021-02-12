@@ -32,21 +32,21 @@ import java.time.OffsetDateTime;
 /**
  * A cron job that sends a task message to capture metrics from prometheus for metering.
  */
-public class OpenshiftMeteringJob implements Runnable {
+public class OpenShiftMeteringJob implements Runnable {
 
     private PrometheusMetricsTaskManager tasks;
     private ApplicationClock clock;
     private int rangeInMinutes;
 
-    public OpenshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-        PrometheusMetricsPropeties metricProperties) {
+    public OpenShiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
+                                PrometheusMetricsPropeties metricProperties) {
         this.tasks = tasks;
         this.clock = clock;
         this.rangeInMinutes = metricProperties.getOpenshift().getRangeInMinutes();
     }
 
     @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.metering-schedule}")
+    @Scheduled(cron = "${rhsm-subscriptions.jobs.metering.openshift-metering-schedule}")
     public void run() {
         OffsetDateTime endDate = clock.now();
         OffsetDateTime startDate = endDate.minusMinutes(rangeInMinutes);
