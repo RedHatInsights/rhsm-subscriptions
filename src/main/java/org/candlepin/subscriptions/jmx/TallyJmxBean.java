@@ -51,10 +51,21 @@ public class TallyJmxBean {
         tasks.updateAccountSnapshots(accountNumber);
     }
 
+
     @ManagedOperation(description = "Trigger tally for all configured accounts")
     public void tallyConfiguredAccounts() {
         Object principal = ResourceUtils.getPrincipal();
         log.info("Tally for all accounts triggered over JMX by {}", principal);
         tasks.updateSnapshotsForAllAccounts();
+    }
+
+    @ManagedOperation(description = "Trigger hourly tally for an account within a timeframe." +
+        "  Date parameters expected to be in ISO 8601 format (e.g. 2017-08-01T17:32:28Z")
+    public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
+        log.info("Hourly tally between {} and {} for account {} triggered over JMX by {}",
+            startDateTime, endDateTime, accountNumber, ResourceUtils.getPrincipal());
+
+        tasks.tallyAccountByHourly(accountNumber, startDateTime, endDateTime);
+
     }
 }

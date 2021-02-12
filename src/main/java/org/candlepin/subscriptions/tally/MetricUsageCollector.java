@@ -109,8 +109,8 @@ public class MetricUsageCollector {
     }
 
     @Transactional
-    public AccountUsageCalculation collect(String accountNumber, OffsetDateTime begin,
-        OffsetDateTime end) {
+    public AccountUsageCalculation collect(String accountNumber, OffsetDateTime startDateTime,
+        OffsetDateTime endDateTime) {
 
         Account account = accountRepository.findById(accountNumber).orElseThrow(() ->
             new SubscriptionsException(ErrorCode.OPT_IN_REQUIRED, Response.Status.BAD_REQUEST,
@@ -120,8 +120,9 @@ public class MetricUsageCollector {
         Map<String, Host> existingInstances = account.getServiceInstances().values().stream()
             .filter(host -> productConfig.getServiceType().equals(host.getInstanceType()))
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
-        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber, begin, end)
-            .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
+        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
+            startDateTime,
+            endDateTime).filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
 
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();

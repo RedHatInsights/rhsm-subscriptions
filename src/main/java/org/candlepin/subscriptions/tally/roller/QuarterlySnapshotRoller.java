@@ -56,14 +56,15 @@ public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
 
     @Override
     @Transactional
-    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    public Collection<TallySnapshot> rollSnapshots(Collection<String> accounts,
+        Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentQuarterlySnaps = getCurrentSnapshotsByAccount(accounts,
             getApplicableProducts(accountCalcs, QUARTERLY), QUARTERLY, clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter());
 
-        updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
+        return updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
     }
 
 }

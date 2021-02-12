@@ -1,0 +1,47 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: TallySummary
+properties:
+  account_number:
+    description: Account identifier for the relevant account.
+    type: string
+    required: true
+  tally_snapshots:
+    description: List of tally snapshots produced in the range.
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        snapshot_date:
+          type: string
+          format: date-time
+        product_id:
+          type: string
+        sla:
+          $ref: 'event.yaml#properties/sla'
+        usage:
+          $ref: 'event.yaml#properties/usage'
+        granularity:
+          type: string
+          enum:
+            - Hourly
+            - Daily
+            - Monthly
+            - Quarterly
+            - Yearly
+        tally_measurements:
+          type: array
+          items:
+            type: object
+            properties:
+              hardware_measurement_type:
+                type: string
+                required: true
+              uom:
+                $ref: 'event.yaml#properties/measurements/items/properties/uom'
+              value:
+                description: Measurement value.
+                type: number
+                required: true

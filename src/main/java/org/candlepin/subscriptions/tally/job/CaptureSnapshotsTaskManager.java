@@ -114,6 +114,17 @@ public class CaptureSnapshotsTaskManager {
         }
     }
 
+    public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
+
+        log.info("Queuing hourly snapshot production for accountNumber {} between {} and {}",
+            accountNumber, startDateTime, endDateTime);
+
+        queue.enqueue(TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+            .setSingleValuedArg("accountNumber", accountNumber)
+            .setSingleValuedArg("startDateTime", startDateTime)
+            .setSingleValuedArg("endDateTime", endDateTime).build());
+    }
+
     /**
      * A class that is used to queue up account numbers as they are streamed from the DB
      * so that they can be sent for updates in the configured batches.
