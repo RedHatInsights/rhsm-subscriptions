@@ -26,12 +26,12 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.persistence.CascadeType;
@@ -131,7 +131,7 @@ public class Host implements Serializable {
         orphanRemoval = true,
         fetch = FetchType.EAGER
     )
-    private List<HostTallyBucket> buckets = new ArrayList<>();
+    private Set<HostTallyBucket> buckets = new HashSet<>();
 
     @Column(name = "is_unmapped_guest")
     private boolean isUnmappedGuest;
@@ -338,15 +338,11 @@ public class Host implements Serializable {
         this.lastSeen = lastSeen;
     }
 
-    public List<HostTallyBucket> getBuckets() {
-        if (this.buckets == null) {
-            this.buckets = new ArrayList<>();
-        }
-
+    public Set<HostTallyBucket> getBuckets() {
         return buckets;
     }
 
-    public void setBuckets(List<HostTallyBucket> buckets) {
+    public void setBuckets(Set<HostTallyBucket> buckets) {
         this.buckets = buckets;
     }
 
@@ -361,9 +357,7 @@ public class Host implements Serializable {
 
     public void addBucket(HostTallyBucket bucket) {
         bucket.getKey().setHost(this);
-        if (!getBuckets().contains(bucket)) {
-            getBuckets().add(bucket);
-        }
+        getBuckets().add(bucket);
     }
 
     public void removeBucket(HostTallyBucket bucket) {

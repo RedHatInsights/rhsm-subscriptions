@@ -207,7 +207,12 @@ class HostRepositoryTest {
         toUpdate.setSockets(4);
         toUpdate.setCores(8);
         toUpdate.setDisplayName(DEFAULT_DISPLAY_NAME);
-        toUpdate.removeBucket(host.getBuckets().get(0));
+
+        HostTallyBucket rhelBucket = host.getBuckets().stream()
+            .filter(h -> h.getKey().getProductId().equals("RHEL")).findFirst().orElse(null);
+        HostTallyBucket satelliteBucket = host.getBuckets().stream()
+            .filter(h -> h.getKey().getProductId().equals("Satellite")).findFirst().orElse(null);
+        toUpdate.removeBucket(rhelBucket);
         repo.saveAndFlush(toUpdate);
 
         Optional<Host> updateResult = repo.findById(toUpdate.getId());
@@ -217,7 +222,7 @@ class HostRepositoryTest {
         assertEquals(4, updated.getSockets().intValue());
         assertEquals(8, updated.getCores().intValue());
         assertEquals(1, updated.getBuckets().size());
-        assertTrue(updated.getBuckets().contains(host.getBuckets().get(0)));
+        assertTrue(updated.getBuckets().contains(satelliteBucket));
     }
 
     @Transactional
