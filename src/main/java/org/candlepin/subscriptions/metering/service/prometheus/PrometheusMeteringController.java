@@ -79,7 +79,6 @@ public class PrometheusMeteringController {
     @Timed("rhsm-subscriptions.metering.openshift")
     @Transactional
     public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
-        MetricProperties openshiftProperties = metricProperties.getOpenshift();
         openshiftRetry.execute(context -> {
             try {
                 // Reset the start/end dates to ensure they span a complete hour.
@@ -175,21 +174,14 @@ public class PrometheusMeteringController {
             for (List<BigDecimal> measurement : r.getValues()) {
                 BigDecimal time = measurement.get(0);
                 BigDecimal value = measurement.get(1);
-                if (time == null || value == null) {
-                    // Not likely to happen, but will log just in case.
-                    log.warn("Skipping metric since time/value pair was invalid: {}/{}", time, value);
+
+                if (!isMetricDataValid(labelSets, clusterId, time, value)) {
+                    // Validation already logs the issues. Skip to the next metric value.
                     continue;
                 }
 
+                // At this point we already know that the cluster labels exist.
                 Map<String, String> clusterLabels = labelSets.get(new LabelSetKey(clusterId, time));
-                if (clusterLabels == null) {
-                    // This could potentially happen if the metric existed but the
-                    // Labels weren't reported yet.
-                    log.warn("Found OpenShift metric but could not associate cluster {} " +
-                        "with any labels. Time: {} Value: {}", clusterId, time, value);
-                    continue;
-                }
-
                 Event event = MeteringEventFactory.openShiftClusterCores(
                     clusterLabels.get("ebs_account"),
                     clusterLabels.get("_id"),
@@ -215,6 +207,24 @@ public class PrometheusMeteringController {
             eventController.saveAll(events);
         }
         return totalEvents;
+    }
+
+    private boolean isMetricDataValid(Map<LabelSetKey, Map<String, String>> labelSets,
+        String clusterId, BigDecimal time, BigDecimal value) {
+        if (time == null || value == null) {
+            // Not likely to happen, but will log just in case.
+            log.warn("Skipping metric since time/value pair was invalid: {}/{}", time, value);
+            return false;
+        }
+
+        if (!labelSets.containsKey(new LabelSetKey(clusterId, time))) {
+            // This could potentially happen if the metric existed but the
+            // Labels weren't reported yet.
+            log.warn("Found OpenShift metric but could not associate cluster {} " +
+                "with any labels. Time: {} Value: {}", clusterId, time, value);
+            return false;
+        }
+        return true;
     }
 
     private class LabelSetKey {
