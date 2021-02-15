@@ -32,6 +32,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.util.concurrent.CountDownLatch;
@@ -51,6 +52,7 @@ public class KafkaTaskQueueTester {
     private CaptureSnapshotsTaskManager manager;
 
     @Autowired
+    @Qualifier("tallyTaskQueueProperties")
     private TaskQueueProperties taskQueueProperties;
 
     protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {

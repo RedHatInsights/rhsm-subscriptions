@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.subscription.jmx;
 
 /**
- * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
+ * JMX Bean catch-all for the subscription jmx bean's exceptions.
  */
-public enum TaskType {
-    UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY,
-    OPENSHIFT_METRICS_COLLECTION,
-    UPDATE_HOURLY_SNAPSHOTS,
-    SYNC_ORG_SUBSCRIPTIONS
+public class SubscriptionJmxException extends Exception {
+    public SubscriptionJmxException(Throwable t) {
+        super(t);
+    }
 }

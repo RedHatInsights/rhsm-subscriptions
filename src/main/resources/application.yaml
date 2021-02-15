@@ -114,3 +114,8 @@ rhsm-subscriptions:
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:4h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:24h}
+
+  subscriptions:
+    tasks:
+      topic: ${SUBSCRIPTION_TASK_TOPIC:platform.subscriptions.subscriptions-tasks}
+      kafka-group-id: ${SUBSCRIPTION_TASK_GROUP_ID:subscriptions-task-processor}

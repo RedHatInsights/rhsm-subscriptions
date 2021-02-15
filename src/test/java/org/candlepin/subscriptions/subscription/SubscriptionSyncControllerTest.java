@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.subscription;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.candlepin.subscriptions.subscription.job.SubscriptionTaskManager;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -42,11 +43,17 @@ class SubscriptionSyncControllerTest {
 
     private static final OffsetDateTime NOW = OffsetDateTime.now();
 
-    @Autowired
-    SubscriptionSyncController subject;
-
     @MockBean
     SubscriptionRepository subscriptionRepository;
+
+    @MockBean
+    SubscriptionTaskManager subscriptionTaskManager;
+
+    @MockBean
+    SubscriptionService subscriptionService;
+
+    @Autowired
+    SubscriptionSyncController subject;
 
     @Test
     void shouldCreateNewRecordOnQuantityChange() {
@@ -76,6 +83,25 @@ class SubscriptionSyncControllerTest {
         subject.syncSubscription(dto);
         Mockito.verify(subscriptionRepository, Mockito.times(1))
             .save(Mockito.any(Subscription.class));
+    }
+
+    @Test
+    void shouldSyncOrgWithPaginationCorrectly() throws ApiException {
+        Mockito.when(subscriptionService.getSubscriptionsByOrgId(
+            Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(Collections.singletonList(
+            createDto("123", 1)));
+        subject.syncSubscriptions("123", "0", "1");
+        Mockito.verify(subscriptionTaskManager).syncSubscriptionsForOrg("123", "1", 1L);
+    }
+
+    @Test
+    void shouldSyncOrgWithNoPaginationCorrectly() throws ApiException {
+        Mockito.when(subscriptionService.getSubscriptionsByOrgId(
+            Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(Collections.singletonList(
+            createDto("123", 1)));
+        subject.syncSubscriptions("123", "0", "2");
+        Mockito.verify(subscriptionTaskManager, Mockito.never())
+            .syncSubscriptionsForOrg("123", "1", 1L);
     }
 
     private Subscription createSubscription(String orgId, String sku, String subId) {

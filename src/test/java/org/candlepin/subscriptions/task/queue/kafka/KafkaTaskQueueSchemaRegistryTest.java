@@ -58,6 +58,8 @@ import java.util.Map;
 @EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
 public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 
+
+
     @Test
     public void testSendAndReceiveTaskMessage() throws InterruptedException {
         runSendAndReceiveTaskMessageTest();

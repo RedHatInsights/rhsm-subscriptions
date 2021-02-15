@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.tally.MetricUsageCollector;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,7 +56,7 @@ import java.util.Set;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"marketplace", "test"})
+@ActiveProfiles({"marketplace", "worker", "test"})
 class MarketplaceSubscriptionIdProviderTest {
 
     @MockBean
@@ -68,6 +70,10 @@ class MarketplaceSubscriptionIdProviderTest {
 
     @MockBean
     private ProductProfileRegistry profileRegistry;
+
+    @MockBean
+    @Qualifier("OpenShiftMetricsUsageCollector")
+    private MetricUsageCollector metricUsageCollector;
 
     @Mock
     private ProductProfile mockProfile;
