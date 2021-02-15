@@ -96,6 +96,8 @@ public abstract class BaseSnapshotRoller {
                 total.setSockets(calculatedTotals.getSockets());
                 total.setInstanceCount(calculatedTotals.getInstances());
                 snapshot.setHardwareMeasurement(type, total);
+                calculatedTotals.getMeasurements().forEach((uom, value) ->
+                    snapshot.setMeasurement(type, uom, value));
             }
             else {
                 log.debug("Skipping hardware measurement {} since it was not found.", type);
@@ -233,11 +235,29 @@ public abstract class BaseSnapshotRoller {
             changed = true;
         }
 
+        updateUomTotals(override, snap, measurementType, prodCalcTotals);
+
         if (changed) {
             snap.setHardwareMeasurement(measurementType, measurement);
         }
 
         return changed;
+    }
+
+    private void updateUomTotals(boolean override, TallySnapshot snap,
+        HardwareMeasurementType measurementType, Totals prodCalcTotals) {
+        if (prodCalcTotals != null) {
+            prodCalcTotals.getMeasurements().forEach((uom, value) -> {
+                Double prodCalcMeasurement = prodCalcTotals.getMeasurement(uom);
+                if (override || mustUpdate(snap.getMeasurement(measurementType, uom), prodCalcMeasurement)) {
+                    snap.setMeasurement(measurementType, uom, prodCalcMeasurement);
+                }
+            });
+        }
+    }
+
+    private boolean mustUpdate(Double existing, Double newMeasurment) {
+        return existing == null || newMeasurment > existing;
     }
 
     private boolean mustUpdate(Integer v1, Integer v2) {

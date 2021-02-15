@@ -27,8 +27,7 @@ import org.candlepin.subscriptions.cloudigrade.api.model.UsageCount;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.tally.files.ArchToProductMapSource;
-import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +38,9 @@ import io.micrometer.core.annotation.Timed;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Collects the max values from accounts in cloudigrade.
@@ -52,14 +51,14 @@ public class CloudigradeAccountUsageCollector {
     private static final Logger log = LoggerFactory.getLogger(CloudigradeAccountUsageCollector.class);
 
     private final CloudigradeService cloudigradeService;
-    private final RoleToProductsMapSource roleToProductsMapSource;
-    private final ArchToProductMapSource archToProductMapSource;
+    private final Map<String, String> archToProductMap;
+    private final Map<String, Set<String>> roleToProductsMap;
 
     public CloudigradeAccountUsageCollector(CloudigradeService cloudigradeService,
-        RoleToProductsMapSource roleToProductsMapSource, ArchToProductMapSource archToProductMapSource) {
+        ProductProfileRegistry productRegistry) {
         this.cloudigradeService = cloudigradeService;
-        this.roleToProductsMapSource = roleToProductsMapSource;
-        this.archToProductMapSource = archToProductMapSource;
+        this.roleToProductsMap = productRegistry.getRoleToProductsMap();
+        this.archToProductMap = productRegistry.getArchToProductMap();
     }
 
     /**
@@ -80,9 +79,7 @@ public class CloudigradeAccountUsageCollector {
     }
 
     private void enrichUsageWithCloudigradeData(Map<String, AccountUsageCalculation> accountCalcs,
-        String account) throws ApiException, IOException {
-        Map<String, String> archToProductMap = archToProductMapSource.getValue();
-        Map<String, List<String>> roleToProductsMap = roleToProductsMapSource.getValue();
+        String account) throws ApiException {
         ConcurrencyReport cloudigradeUsage =
             cloudigradeService.listDailyConcurrentUsages(account, null, null, null, null);
         accountCalcs.putIfAbsent(account, new AccountUsageCalculation(account));
@@ -111,7 +108,7 @@ public class CloudigradeAccountUsageCollector {
     }
 
     private UsageCalculation.Key extractKey(UsageCount usageCount, Map<String, String> archToProductMap,
-        Map<String, List<String>> roleToProductsMap) {
+        Map<String, Set<String>> roleToProductsMap) {
         String productId = extractProductId(usageCount, archToProductMap, roleToProductsMap);
         ServiceLevel sla = ServiceLevel.fromString(usageCount.getSla());
         Usage usage = Usage.fromString(usageCount.getUsage());
@@ -123,7 +120,7 @@ public class CloudigradeAccountUsageCollector {
     }
 
     private String extractProductId(UsageCount usageCount, Map<String, String> archToProductMap,
-        Map<String, List<String>> roleToProductsMap) {
+        Map<String, Set<String>> roleToProductsMap) {
         String role = usageCount.getRole();
         String arch = usageCount.getArch();
         if ("_ANY".equals(role) && "_ANY".equals(arch)) {
@@ -131,7 +128,7 @@ public class CloudigradeAccountUsageCollector {
         }
         else if ("_ANY".equals(arch)) {
             Optional<String> mapped =
-                roleToProductsMap.getOrDefault(role, Collections.emptyList())
+                roleToProductsMap.getOrDefault(role, Collections.emptySet())
                 .stream().filter(p -> !p.equals("RHEL")).findFirst();
 
             if (!mapped.isPresent()) {

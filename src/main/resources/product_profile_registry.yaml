@@ -1,22 +1,88 @@
 name: RHELProducts
 productIds:
-  - 68   # Red Hat Enterprise Linux Desktop
-  - 69   # Red Hat Enterprise Linux Server
-  - 71   # Red Hat Enterprise Linux Workstation
-  - 72   # Red Hat Enterprise Linux for IBM z Systems
-  - 74   # Red Hat Enterprise Linux for Power, big endian
-  - 76   # Red Hat Enterprise Linux for Scientific Computing
-  - 279  # Red Hat Enterprise Linux for Power, little endian
-  - 290  # Red Hat OpenShift Container Platform
-  - 419  # Red Hat Enterprise Linux for ARM 64
-  - 420  # Red Hat Enterprise Linux for Power 9
-  - 479  # Red Hat Enterprise Linux for x86_64 (RHEL8)
+  - id: 68 # Red Hat Enterprise Linux Desktop
+    products:
+      - RHEL
+      - RHEL for x86
+      - RHEL Desktop
+  - id: 69 # Red Hat Enterprise Linux Server
+    products:
+      - RHEL
+      - RHEL for x86
+      - RHEL Server
+  - id: 71 # Red Hat Enterprise Linux Workstation
+    products:
+      - RHEL
+      - RHEL for x86
+      - RHEL Workstation
+  - id: 72 # Red Hat Enterprise Linux for IBM z Systems
+    products:
+      - RHEL
+      - RHEL for IBM z
+  - id: 74 # Red Hat Enterprise Linux for Power, big endian
+    products:
+      - RHEL
+      - RHEL for IBM Power
+  - id: 76 # Red Hat Enterprise Linux for Scientific Computing
+    products:
+      - RHEL
+      - RHEL for x86
+      - RHEL Compute Node
+  - id: 279 # Red Hat Enterprise Linux for Power, little endian
+    products:
+      - RHEL
+      - RHEL for IBM Power
+  - id: 290 # Red Hat OpenShift Container Platform
+    products:
+      - OpenShift Container Platform
+  - id: 419 # Red Hat Enterprise Linux for ARM 64
+    products:
+      - RHEL
+      - RHEL for ARM
+  - id: 420 # Red Hat Enterprise Linux for Power 9
+    products:
+      - RHEL
+      - RHEL for IBM Power
+  - id: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
+    products:
+      - RHEL
+      - RHEL for x86
 finestGranularity: DAILY
 burstable: false
+syspurposeRoles:
+  - name: Red Hat Enterprise Linux Server
+    products:
+      - RHEL
+      - RHEL Server
+  - name: Red Hat Enterprise Linux Workstation
+    products:
+      - RHEL
+      - RHEL Workstation
+  - name: Red Hat Enterprise Linux Compute Node
+    products:
+      - RHEL
+      - RHEL Compute Node
+architectureProductMap:
+  aarch64: RHEL for ARM
+  arm64: RHEL for ARM
+  i386: RHEL for x86
+  ppc64: RHEL for IBM Power
+  ppc64le: RHEL for IBM Power
+  s390x: RHEL for IBM z
+  x86_64: RHEL for x86
 ---
 name: SatelliteProducts
 productIds:
-  - 250  # Red Hat Satellite
-  - 269  # Red Hat Satellite Capsule
+  - id: 250 # Red Hat Satellite
+    products:
+      - Satellite
+      - Satellite Server
+  - id: 269 # Red Hat Satellite Capsule
+    products:
+      - Satellite
+      - Satellite Capsule
 finestGranularity: DAILY
 burstable: false
+syspurposeRoles: []
+architectureProductMap: {}
+

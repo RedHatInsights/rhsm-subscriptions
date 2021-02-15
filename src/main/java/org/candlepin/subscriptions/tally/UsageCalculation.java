@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Measurement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * The calculated usage for a key where key is (productId, sla).
@@ -59,6 +61,14 @@ public class UsageCalculation {
 
         public String getProductId() {
             return productId;
+        }
+
+        public ServiceLevel getSla() {
+            return sla;
+        }
+
+        public Usage getUsage() {
+            return usage;
         }
 
         @Override
@@ -96,10 +106,25 @@ public class UsageCalculation {
     /**
      * Provides metric totals associated with each hardware type associated with a calculation.
      */
-    public class Totals {
+    public static class Totals {
+        /**
+         * @deprecated use measurements instead
+         */
+        @Deprecated(forRemoval = true)
         private int cores;
+
+        /**
+         * @deprecated use measurements instead
+         */
+        @Deprecated(forRemoval = true)
         private int sockets;
+
+        /**
+         * @deprecated use measurements instead
+         */
+        @Deprecated(forRemoval = true)
         private int instances;
+        private final Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
 
         public Totals() {
             cores = 0;
@@ -108,23 +133,61 @@ public class UsageCalculation {
         }
 
         public String toString() {
-            return String.format("[cores: %s, sockets: %s, instances: %s]", cores, sockets, instances);
+            String entries = measurements.entrySet().stream()
+                .map(e -> String.format("%s: %s", e.getKey(), e.getValue()))
+                .collect(Collectors.joining(", "));
+            String uomMeasurements = String.format("[%s]", entries);
+            return String.format("[uom_measurements: %s, cores: %s, sockets: %s, instances: %s]",
+                uomMeasurements, cores, sockets, instances);
         }
 
+        /**
+         * @deprecated use getMeasurement instead
+         *
+         * @return running cores measurement
+         */
+        @Deprecated(forRemoval = true)
         public int getCores() {
             return cores;
         }
 
+        /**
+         * @deprecated use getMeasurement instead
+         *
+         * @return running sockets measurement
+         */
+        @Deprecated(forRemoval = true)
         public int getSockets() {
             return sockets;
         }
 
+        /**
+         * @deprecated use getMeasurement instead
+         *
+         * @return running instances measurement
+         */
+        @Deprecated(forRemoval = true)
         public int getInstances() {
             return instances;
         }
+
+        public Map<Measurement.Uom, Double> getMeasurements() {
+            return measurements;
+        }
+
+        public Double getMeasurement(Measurement.Uom uom) {
+            return measurements.get(uom);
+        }
+
+        public void increment(Measurement.Uom uom, Double amount) {
+            Double existingValue = getMeasurement(uom);
+            double value = existingValue == null ? 0.0 : existingValue;
+            double newValue = value + amount;
+            measurements.put(uom, newValue);
+        }
     }
 
-    private Map<HardwareMeasurementType, Totals> mappedTotals;
+    private final Map<HardwareMeasurementType, Totals> mappedTotals;
 
     public UsageCalculation(Key key) {
         this.key = key;
@@ -147,20 +210,45 @@ public class UsageCalculation {
         return mappedTotals.get(type);
     }
 
+    public void add(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
+        increment(type, uom, value);
+        addToTotal(uom, value);
+    }
+
+    /**
+     * @deprecated use add instead
+     */
+    @Deprecated(forRemoval = true)
     public void addPhysical(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.PHYSICAL, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
     }
 
+    /**
+     * @deprecated use add instead
+     */
+    @Deprecated(forRemoval = true)
     public void addHypervisor(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
         addToTotal(cores, sockets, instances);
     }
 
+    /**
+     * @deprecated use addToTotal(Measurement.Uom, Double value) instead
+     */
+    @Deprecated(forRemoval = true)
     public void addToTotal(int cores, int sockets, int instances) {
         increment(HardwareMeasurementType.TOTAL, cores, sockets, instances);
     }
 
+    public void addToTotal(Measurement.Uom uom, Double value) {
+        increment(HardwareMeasurementType.TOTAL, uom, value);
+    }
+
+    /**
+     * @deprecated use add instead
+     */
+    @Deprecated(forRemoval = true)
     public void addCloudProvider(HardwareMeasurementType cloudType, int cores, int sockets, int instances) {
         if (!HardwareMeasurementType.isSupportedCloudProvider(cloudType.name())) {
             throw new IllegalArgumentException(String.format("%s is not a supported cloud provider type.",
@@ -171,6 +259,10 @@ public class UsageCalculation {
         addToTotal(cores, sockets, instances);
     }
 
+    /**
+     * @deprecated use add instead
+     */
+    @Deprecated(forRemoval = true)
     public void addCloudigrade(HardwareMeasurementType cloudType, int count) {
         increment(cloudType, 0, count, count);
         Totals awsTotals = getTotals(HardwareMeasurementType.AWS);
@@ -187,11 +279,20 @@ public class UsageCalculation {
         addToTotal(0, count, count);
     }
 
+    /**
+     * @deprecated use increment(HardwareMeasurementType, Measurement.Uom, Double) instead
+     */
+    @Deprecated(forRemoval = true)
     private void increment(HardwareMeasurementType type, int cores, int sockets, int instances) {
         Totals total = getOrDefault(type);
         total.cores += cores;
         total.sockets += sockets;
         total.instances += instances;
+    }
+
+    private void increment(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
+        Totals total = getOrDefault(type);
+        total.increment(uom, value);
     }
 
     private Totals getOrDefault(HardwareMeasurementType type) {

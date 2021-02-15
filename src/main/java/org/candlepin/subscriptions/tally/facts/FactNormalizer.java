@@ -25,21 +25,19 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -52,17 +50,15 @@ public class FactNormalizer {
 
     private final ApplicationClock clock;
     private final int hostSyncThresholdHours;
-    private final Map<Integer, List<String>> productIdToProductsMap;
-    private final Map<String, List<String>> roleToProductsMap;
+    private final Map<Integer, Set<String>> productIdToProductsMap;
+    private final Map<String, Set<String>> roleToProductsMap;
 
-    public FactNormalizer(ApplicationProperties props,
-        ProductIdToProductsMapSource productIdToProductsMapSource,
-        RoleToProductsMapSource roleToProductsMapSource,
-        ApplicationClock clock) throws IOException {
+    public FactNormalizer(ApplicationProperties props, ProductProfileRegistry profileRegistry,
+        ApplicationClock clock) {
         this.clock = clock;
         this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
-        this.productIdToProductsMap = productIdToProductsMapSource.getValue();
-        this.roleToProductsMap = roleToProductsMapSource.getValue();
+        this.productIdToProductsMap = profileRegistry.getProductIdToProductsMap();
+        this.roleToProductsMap = profileRegistry.getRoleToProductsMap();
     }
 
     public static boolean isRhelVariant(String product) {
@@ -211,7 +207,7 @@ public class FactNormalizer {
             try {
                 Integer numericProductId = Integer.parseInt(productId);
                 normalizedFacts.getProducts().addAll(
-                    productIdToProductsMap.getOrDefault(numericProductId, Collections.emptyList()));
+                    productIdToProductsMap.getOrDefault(numericProductId, Collections.emptySet()));
             }
             catch (NumberFormatException e) {
                 log.debug("Skipping non-numeric productId: {}", productId);
@@ -242,7 +238,7 @@ public class FactNormalizer {
             if (hostFacts.getSyspurposeRole() != null) {
                 normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
                 normalizedFacts.getProducts().addAll(
-                    roleToProductsMap.getOrDefault(hostFacts.getSyspurposeRole(), Collections.emptyList()));
+                    roleToProductsMap.getOrDefault(hostFacts.getSyspurposeRole(), Collections.emptySet()));
             }
 
             normalizedFacts.setSla(extractRhsmSla(hostFacts));

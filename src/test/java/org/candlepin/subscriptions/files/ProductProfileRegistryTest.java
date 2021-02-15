@@ -38,13 +38,31 @@ class ProductProfileRegistryTest {
     @BeforeEach
     void setUp() {
         registry = new ProductProfileRegistry();
-        ProductProfile p1 = new ProductProfile("p1", new HashSet<>(Arrays.asList("a", "b", "c")),
-            DAILY);
-        ProductProfile p2 = new ProductProfile("p2", new HashSet<>(Arrays.asList("d", "e", "f")),
-            HOURLY);
+
+        Set<SubscriptionWatchProductId> ids1 = new HashSet<>(Arrays.asList(
+            makeId("a"),
+            makeId("b"),
+            makeId("c")
+        ));
+        ProductProfile p1 = new ProductProfile("p1", ids1, DAILY);
+
+        Set<SubscriptionWatchProductId> ids2 = new HashSet<>(Arrays.asList(
+            makeId("d"),
+            makeId("e"),
+            makeId("f")
+        ));
+
+        ProductProfile p2 = new ProductProfile("p2", ids2, HOURLY);
+
         registry.addProductProfile(p1);
         registry.addProductProfile(p2);
+    }
 
+    SubscriptionWatchProductId makeId(String engineeringProductId) {
+        SubscriptionWatchProductId productId = new SubscriptionWatchProductId();
+        productId.setId(engineeringProductId);
+        productId.setProducts(new HashSet<>(Arrays.asList("RHEL")));
+        return productId;
     }
 
     @Test
@@ -72,10 +90,22 @@ class ProductProfileRegistryTest {
     @Test
     void productIdsCanExistOnlyOnce() {
         ProductProfileRegistry r = new ProductProfileRegistry();
-        ProductProfile p1 = new ProductProfile("p1", new HashSet<>(Arrays.asList("a", "b", "c")),
-            DAILY);
-        ProductProfile p2 = new ProductProfile("p2", new HashSet<>(Arrays.asList("a", "e", "f")),
-            DAILY);
+
+
+        Set<SubscriptionWatchProductId> ids1 = new HashSet<>(Arrays.asList(
+            makeId("a"),
+            makeId("b"),
+            makeId("c")
+        ));
+        ProductProfile p1 = new ProductProfile("p1", ids1, DAILY);
+
+        Set<SubscriptionWatchProductId> ids2 = new HashSet<>(Arrays.asList(
+            makeId("a"),
+            makeId("e"),
+            makeId("f")
+        ));
+        ProductProfile p2 = new ProductProfile("p2", ids2, DAILY);
+
         r.addProductProfile(p1);
         assertThrows(IllegalStateException.class, () -> r.addProductProfile(p2));
     }

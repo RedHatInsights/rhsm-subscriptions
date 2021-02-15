@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.db.model.Subscription;
 
@@ -29,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 
 import javax.transaction.Transactional;
@@ -36,6 +38,8 @@ import javax.transaction.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 class SubscriptionRepositoryTest {
+
+    private static final OffsetDateTime NOW = OffsetDateTime.now();
 
     @Autowired
     SubscriptionRepository subject;
@@ -46,9 +50,18 @@ class SubscriptionRepositoryTest {
         final Subscription subscription = createSubscription("1", "testsku", "123");
         subject.saveAndFlush(subscription);
 
-        final Subscription retrieved = subject.getOne("123");
+        final Subscription retrieved = subject.findActiveSubscription("123").orElse(null);
 
-        assertEquals(subscription, retrieved);
+        // because of an issue with precision related to findActiveSubscription passing the entity cache,
+        // we'll have to check fields
+        assertEquals(subscription.getSubscriptionId(), retrieved.getSubscriptionId());
+        assertEquals(subscription.getSku(), retrieved.getSku());
+        assertEquals(subscription.getOwnerId(), retrieved.getOwnerId());
+        assertEquals(subscription.getQuantity(), retrieved.getQuantity());
+        assertTrue(Duration.between(subscription.getStartDate(), retrieved.getStartDate())
+            .abs().getSeconds() < 1L);
+        assertTrue(Duration.between(subscription.getEndDate(), retrieved.getEndDate())
+            .abs().getSeconds() < 1L);
     }
 
     private Subscription createSubscription(String orgId, String sku, String subId) {
@@ -57,8 +70,8 @@ class SubscriptionRepositoryTest {
         subscription.setOwnerId(orgId);
         subscription.setQuantity(4L);
         subscription.setSku(sku);
-        subscription.setStartDate(OffsetDateTime.now());
-        subscription.setEndDate(OffsetDateTime.now());
+        subscription.setStartDate(NOW);
+        subscription.setEndDate(NOW.plusDays(30));
 
         return subscription;
     }

@@ -40,7 +40,7 @@ import java.time.LocalDate;
 import java.util.Base64;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
+@ActiveProfiles({"worker", "test"})
 class CloudigradeServiceTest {
     @MockBean
     ConcurrentApi concurrentApi;

@@ -29,7 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @DirtiesContext
-@ActiveProfiles("worker,test,kafka-test")
+@ActiveProfiles({"worker", "test", "kafka-test"})
 @EmbeddedKafka(partitions = 1, topics = {"${rhsm-subscriptions.tasks.topic}"})
 class KafkaTaskQueueTest extends KafkaTaskQueueTester {
 

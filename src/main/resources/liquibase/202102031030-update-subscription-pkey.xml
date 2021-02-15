@@ -1,0 +1,12 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202101081600-1" author="jharriso">
+        <comment>Change primary key</comment>
+        <dropPrimaryKey tableName="subscription" />
+        <addPrimaryKey tableName="subscription" columnNames="subscription_id,start_date" />
+    </changeSet>
+
+</databaseChangeLog>

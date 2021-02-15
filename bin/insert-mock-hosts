@@ -2,6 +2,7 @@
 import argparse
 import uuid
 import os
+import json
 import subprocess
 import sys
 
@@ -12,34 +13,62 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
-                  skip_buckets=False):
+                  skip_buckets=False, is_hbi=False):
     host_id = uuid.uuid4()
     inventory_id=inventory_id or uuid.uuid4()
     insights_id=insights_id or uuid.uuid4()
     if not is_guest:
         hypervisor_uuid = None
-    host_fields = {
-        'id': host_id,
-        'inventory_id': inventory_id,
-        'insights_id': insights_id,
-        'account_number': account_number or 'account123',
-        'org_id': org_id or 'org123',
-        'display_name': display_name or insights_id,
-        'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
-        'cores': cores,
-        'sockets': sockets,
-        'is_guest': is_guest or False,
-        'hypervisor_uuid': hypervisor_uuid or None,
-        'hardware_type': hardware_type or 'PHYSICAL',
-        'num_of_guests': num_of_guests,
-        'last_seen': last_seen or '1993-03-26',
-        'is_unmapped_guest': is_unmapped_guest or False,
-        'is_hypervisor': is_hypervisor or False,
-        'cloud_provider': cloud_provider or None
-    }
+    if is_hbi:
+        host_fields = {
+            'id': inventory_id,
+            'account': account_number or 'account123',
+            'display_name': display_name or insights_id,
+            'created_on': last_seen or '1993-03-26',
+            'modified_on': last_seen or '1993-03-26',
+            'facts': json.dumps({
+                'rhsm': {
+                    'orgId': f'org_{account_number or "account123"}',
+                    'VM_HOST_UUID': str(hypervisor_uuid) if hypervisor_uuid else None,
+                    'IS_VIRTUAL': is_guest,
+                },
+            }),
+            'canonical_facts': json.dumps({
+                'subscription_manager_id': subscription_manager_id,
+                'insights_id': str(insights_id),
+            }),
+            'system_profile_facts': json.dumps({
+                'installed_products': [{'id': '72'}],
+                'infrastructure_type': hardware_type or 'PHYSICAL',
+                'cores_per_socket': cores // sockets,
+                'number_of_sockets': sockets,
+            }),
+            'stale_timestamp': '2030-01-01',
+            'reporter': 'rhsm-conduit',
+        }
+    else:
+        host_fields = {
+            'id': host_id,
+            'inventory_id': inventory_id,
+            'insights_id': insights_id,
+            'account_number': account_number or 'account123',
+            'org_id': org_id or 'org123',
+            'display_name': display_name or insights_id,
+            'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
+            'cores': cores,
+            'sockets': sockets,
+            'is_guest': is_guest or False,
+            'hypervisor_uuid': hypervisor_uuid or None,
+            'hardware_type': hardware_type or 'PHYSICAL',
+            'num_of_guests': num_of_guests,
+            'last_seen': last_seen or '1993-03-26',
+            'is_unmapped_guest': is_unmapped_guest or False,
+            'is_hypervisor': is_hypervisor or False,
+            'cloud_provider': cloud_provider or None
+        }
 
     _generate_insert('hosts', **host_fields)
-    if not skip_buckets:
+    if not is_hbi and not skip_buckets:
         _generate_buckets(host_id, product, sla, usage, cores=cores, sockets=sockets, measurement_type=measurement_type)
     return host_fields
 
@@ -47,6 +76,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
 def db_repr(value):
     if value is None:
         return 'null'
+    if type(value) is uuid.UUID:
+        return f"'{str(value)}'"
     return repr(value)
 
 
@@ -83,13 +114,13 @@ parser.add_argument('--db-host',
                     default='localhost',
                     help='Database host')
 parser.add_argument('--db-user',
-                    default='rhsm-subscriptions',
+                    default=None,
                     help='Database user')
 parser.add_argument('--db-password',
-                    default='',
+                    default=None,
                     help='Database password')
 parser.add_argument('--db-name',
-                    default='rhsm-subscriptions',
+                    default=None,
                     help='Database name')
 parser.add_argument('--num-physical',
                     type=int,
@@ -108,6 +139,8 @@ parser.add_argument('--unmapped-guests',
                     help='Are the guests to be created unmapped?')
 parser.add_argument('--account',
                     help='Set the account for the inserted records')
+parser.add_argument('--num-accounts', type=int, default=1,
+                    help='treat "--account" as a prefix and generate a number of accounts')
 parser.add_argument('--hypervisor-id',
                     help='Set the hypervisor id for any hypervisors or guests inserted')
 parser.add_argument('--product',
@@ -121,49 +154,82 @@ parser.add_argument('--cores', default=4,
 parser.add_argument('--sockets', default=1,
                     help='Set the sockets for the inserted hosts')
 parser.add_argument('--output-sql', action='store_true')
+parser.add_argument('--hbi', action='store_true', dest='is_hbi',
+                    help='Mock HBI data rather than tally data')
+parser.add_argument('--opt-in', action='store_true',
+                    help='Opt in this account')
+parser.add_argument('--clear', action='store_true',
+                    help='Clear data in the hosts table and related tables')
 
 args = parser.parse_args()
+if args.is_hbi:
+    default_db = default_user = default_password = 'insights'
+else:
+    default_db = default_user = default_password = 'rhsm-subscriptions'
 os.environ['PGHOST'] = args.db_host
-os.environ['PGDATABASE'] = args.db_name
-os.environ['PGUSER'] = args.db_user
-os.environ['PGPASSWORD'] = args.db_password
+os.environ['PGDATABASE'] = args.db_name or default_db
+os.environ['PGUSER'] = args.db_user or default_user
+os.environ['PGPASSWORD'] = args.db_password or default_password
 
 psql = None
 if not args.output_sql:
     psql = subprocess.Popen('psql', stdin=subprocess.PIPE, shell=True, text=True)
     output = psql.stdin
 
-product = args.product or "RHEL"
+output.write('begin;')
+if args.clear:
+    if not args.is_hbi:
+        output.write('delete from host_tally_buckets;')
+    output.write('delete from hosts;')
 
-for i in range(args.num_physical):
-    generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
-                  product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets)
-
-hypervisor = None
-for i in range(args.num_hypervisors):
-    hypervisor = generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='VIRTUAL', product=args.product,
-                               sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
-    # create a physical entry for the host as well.
-    generate_host(account_number=args.account, hardware_type='PHYSICAL', measurement_type='PHYSICAL', product=args.product,
-                  sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
-
-create_unmapped = args.unmapped_guests
-for i in range(args.num_guests):
-    if args.hypervisor_id:
-        hypervisor_uuid = args.hypervisor_id
-    elif hypervisor is not None:
-        hypervisor_uuid = hypervisor['subscription_manager_id']
-        # If we are associating the guests with a created hypervisor host, don't allow it to be unmapped
-        # since it was considered as reported.
-        create_unmapped = False
+for i in range(args.num_accounts):
+    if args.num_accounts > 1:
+        account = f'{args.account}{i}'
     else:
-        hypervisor_uuid = None
+        account = args.account
+    if args.opt_in:
+        _generate_insert('account_config',
+            account_number=account,
+            sync_enabled=True,
+            reporting_enabled=True,
+            opt_in_type='API',
+            created='2021-01-01',
+            updated='2021-01-01'
+        )
 
-    skip_buckets = "RHEL" in product.upper()
-    generate_host(account_number=args.account, hardware_type='VIRTUALIZED', is_guest=True,
-                  product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
-                  cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
-                  skip_buckets=skip_buckets)
+    product = args.product or "RHEL"
+
+    for i in range(args.num_physical):
+        generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
+                    product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hbi=args.is_hbi)
+
+    hypervisor = None
+    for i in range(args.num_hypervisors):
+        hypervisor = generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='VIRTUAL', product=args.product,
+                                sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
+        # create a physical entry for the host as well.
+        generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL', product=args.product,
+                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True, is_hbi=args.is_hbi)
+
+    create_unmapped = args.unmapped_guests
+    for i in range(args.num_guests):
+        if args.hypervisor_id:
+            hypervisor_uuid = args.hypervisor_id
+        elif hypervisor is not None:
+            hypervisor_uuid = hypervisor['subscription_manager_id']
+            # If we are associating the guests with a created hypervisor host, don't allow it to be unmapped
+            # since it was considered as reported.
+            create_unmapped = False
+        else:
+            hypervisor_uuid = None
+
+        skip_buckets = "RHEL" in product.upper()
+        generate_host(account_number=account, hardware_type='VIRTUALIZED', is_guest=True,
+                    product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
+                    cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
+                    skip_buckets=skip_buckets, is_hbi=args.is_hbi)
+
+output.write('commit;')
 
 if psql:
     psql.stdin.close()

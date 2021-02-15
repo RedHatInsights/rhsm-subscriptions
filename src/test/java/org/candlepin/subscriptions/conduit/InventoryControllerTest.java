@@ -58,7 +58,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @SpringBootTest
-@ActiveProfiles("rhsm-conduit,test")
+@ActiveProfiles({"rhsm-conduit", "test"})
 class InventoryControllerTest {
     @MockBean
     InventoryService inventoryService;

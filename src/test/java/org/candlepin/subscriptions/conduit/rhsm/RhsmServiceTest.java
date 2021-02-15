@@ -43,7 +43,7 @@ import java.util.Collections;
 import javax.validation.ConstraintViolationException;
 
 @SpringBootTest
-@ActiveProfiles("rhsm-conduit,test")
+@ActiveProfiles({"rhsm-conduit", "test"})
 class RhsmServiceTest {
     @Autowired
     @Qualifier("rhsmRetryTemplate")

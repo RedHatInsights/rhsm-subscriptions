@@ -22,14 +22,13 @@ package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
-import org.candlepin.subscriptions.files.ProductIdToProductsMapSource;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.subscription.SearchApiFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
-import org.candlepin.subscriptions.tally.files.RoleToProductsMapSource;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
@@ -48,8 +47,8 @@ import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-import java.io.IOException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -85,12 +84,8 @@ public class TallyWorkerConfiguration {
 
     @Bean
     public FactNormalizer factNormalizer(ApplicationProperties applicationProperties,
-        ProductIdToProductsMapSource productIdToProductsMapSource,
-        RoleToProductsMapSource productToRolesMapSource,
-        ApplicationClock clock) throws IOException {
-
-        return new FactNormalizer(applicationProperties, productIdToProductsMapSource,
-                productToRolesMapSource, clock);
+        ProductProfileRegistry profileRegistry, ApplicationClock clock) {
+        return new FactNormalizer(applicationProperties, profileRegistry, clock);
     }
 
     @Bean(name = "collectorRetryTemplate")
@@ -122,12 +117,13 @@ public class TallyWorkerConfiguration {
     }
 
     @Bean(name = "applicableProducts")
-    public Set<String> applicableProducts(ProductIdToProductsMapSource productIdToProductsMapSource,
-        RoleToProductsMapSource roleToProductsMapSource) throws IOException {
-
+    public Set<String> applicableProducts(ProductProfileRegistry profileRegistry) {
         Set<String> products = new HashSet<>();
-        productIdToProductsMapSource.getValue().values().forEach(products::addAll);
-        roleToProductsMapSource.getValue().values().forEach(products::addAll);
+        Map<Integer, Set<String>> productIdToProducts = profileRegistry.getProductIdToProductsMap();
+        productIdToProducts.values().forEach(products::addAll);
+
+        Map<String, Set<String>> roleToProducts = profileRegistry.getRoleToProductsMap();
+        roleToProducts.values().forEach(products::addAll);
         return products;
     }
 

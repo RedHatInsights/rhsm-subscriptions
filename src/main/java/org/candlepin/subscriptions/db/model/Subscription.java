@@ -20,18 +20,21 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.IdClass;
 import javax.persistence.Table;
 
 /**
  * Subscription entities represent data from a Candlepin Pool
  */
 @Entity
+@IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
 public class Subscription {
 
@@ -48,6 +51,7 @@ public class Subscription {
     @Column(name = "quantity")
     private long quantity;
 
+    @Id
     @Column(name = "start_date")
     private OffsetDateTime startDate;
 
@@ -123,5 +127,56 @@ public class Subscription {
         return Objects
             .hash(getOwnerId(), getSubscriptionId(), getSku(), getQuantity(), getStartDate(),
                 getEndDate());
+    }
+
+    /**
+     * Composite ID class for Subscription entities.
+     */
+    public static class SubscriptionCompoundId implements Serializable {
+        private String subscriptionId;
+        private OffsetDateTime startDate;
+
+        public SubscriptionCompoundId(String subscriptionId, OffsetDateTime startDate) {
+            this.subscriptionId = subscriptionId;
+            this.startDate = startDate;
+        }
+
+        public SubscriptionCompoundId() {
+            // default
+        }
+
+        public String getSubscriptionId() {
+            return subscriptionId;
+        }
+
+        public void setSubscriptionId(String subscriptionId) {
+            this.subscriptionId = subscriptionId;
+        }
+
+        public OffsetDateTime getStartDate() {
+            return startDate;
+        }
+
+        public void setStartDate(OffsetDateTime startDate) {
+            this.startDate = startDate;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            SubscriptionCompoundId that = (SubscriptionCompoundId) o;
+            return Objects.equals(getSubscriptionId(), that.getSubscriptionId()) &&
+                Objects.equals(getStartDate(), that.getStartDate());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(getSubscriptionId(), getStartDate());
+        }
     }
 }

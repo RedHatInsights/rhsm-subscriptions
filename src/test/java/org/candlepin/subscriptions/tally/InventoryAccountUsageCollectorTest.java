@@ -33,7 +33,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.util.MockProductAndRoleConfiguration;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -42,7 +41,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import io.micrometer.core.instrument.Counter;
@@ -53,16 +51,17 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 @SpringBootTest
-@ActiveProfiles("worker,test")
-@Import(MockProductAndRoleConfiguration.class)
+@ActiveProfiles({"worker", "test"})
 public class InventoryAccountUsageCollectorTest {
 
     private static final String TEST_PRODUCT = "RHEL";
@@ -70,8 +69,8 @@ public class InventoryAccountUsageCollectorTest {
     private static final String NON_RHEL = "OTHER PRODUCT";
     public static final Integer NON_RHEL_PRODUCT_ID = 2000;
 
-    public static final List<String> RHEL_PRODUCTS = Collections.singletonList(TEST_PRODUCT);
-    public static final List<String> NON_RHEL_PRODUCTS = Collections.singletonList(NON_RHEL);
+    public static final Set<String> RHEL_PRODUCTS = new HashSet<>(Arrays.asList(TEST_PRODUCT));
+    public static final Set<String> NON_RHEL_PRODUCTS = new HashSet<>(Arrays.asList(NON_RHEL));
 
     @MockBean private BuildProperties buildProperties;
     @MockBean private InventoryRepository inventoryRepo;

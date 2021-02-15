@@ -1,7 +1,0 @@
-aarch64: RHEL for ARM
-arm64: RHEL for ARM
-i386: RHEL for x86
-ppc64: RHEL for IBM Power
-ppc64le: RHEL for IBM Power
-s390x: RHEL for IBM z
-x86_64: RHEL for x86

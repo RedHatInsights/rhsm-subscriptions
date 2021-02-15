@@ -7,8 +7,7 @@ rhsm-subscriptions:
       driver-class-name: org.postgresql.Driver
       platform: postgresql
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
-  role-to-products-map-resource-location: classpath:role_to_products_map.yaml
-  arch-to-product-map-resource-location: classpath:arch_to_product_map.yaml
+  product-profile-registry-resource-location: classpath:product_profile_registry.yaml
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
 
   cloudigrade-enabled: ${CLOUDIGRADE_ENABLED:false}
