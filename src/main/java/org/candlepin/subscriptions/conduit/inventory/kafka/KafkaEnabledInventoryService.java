@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2019 - 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,11 @@ import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -75,6 +78,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
     }
 
     @Override
+    @Retryable(value = KafkaException.class, maxAttempts = 4, backoff = @Backoff(delay = 100, maxDelay = 500))
     protected void sendHostUpdate(List<ConduitFacts> facts) {
         if (facts.isEmpty()) {
             log.info("No facts to report!");
