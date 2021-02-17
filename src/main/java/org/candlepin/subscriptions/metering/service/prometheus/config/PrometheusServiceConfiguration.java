@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
@@ -53,8 +53,8 @@ public class PrometheusServiceConfiguration {
     }
 
     @Bean
-    public PrometheusMetricsPropeties metricProperties() {
-        return new PrometheusMetricsPropeties();
+    public PrometheusMetricsProperties metricProperties() {
+        return new PrometheusMetricsProperties();
     }
 
     @Bean
@@ -63,7 +63,7 @@ public class PrometheusServiceConfiguration {
     }
 
     @Bean
-    PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsPropeties mProps,
+    PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsProperties mProps,
         PrometheusService service, EventController eventController,
         @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate) {
         return new PrometheusMeteringController(clock, mProps, service, eventController,

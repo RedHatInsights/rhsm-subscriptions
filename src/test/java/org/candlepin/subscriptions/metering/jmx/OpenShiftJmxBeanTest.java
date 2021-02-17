@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -44,12 +44,12 @@ class OpenShiftJmxBeanTest {
     private PrometheusMetricsTaskManager tasks;
 
     private ApplicationClock clock;
-    private PrometheusMetricsPropeties metricProps;
+    private PrometheusMetricsProperties metricProps;
     private OpenShiftJmxBean jmx;
 
     @BeforeEach
     void setupTests() {
-        metricProps = new PrometheusMetricsPropeties();
+        metricProps = new PrometheusMetricsProperties();
         metricProps.getOpenshift().setRangeInMinutes(60);
 
         clock = new FixedClockConfiguration().fixedClock();

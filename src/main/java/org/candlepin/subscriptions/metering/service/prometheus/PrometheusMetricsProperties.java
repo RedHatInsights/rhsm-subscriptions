@@ -26,7 +26,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Properties related to all metrics that are to be gathered from the prometheus service.
  */
 @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
-public class PrometheusMetricsPropeties {
+public class PrometheusMetricsProperties {
 
     private MetricProperties openshift = new MetricProperties();
 

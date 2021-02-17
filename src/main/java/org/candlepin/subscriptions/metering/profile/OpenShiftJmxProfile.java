@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.metering.jmx.OpenShiftJmxBean;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
@@ -50,7 +50,7 @@ public class OpenShiftJmxProfile {
 
     @Bean
     OpenShiftJmxBean openshiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager taskManager,
-        PrometheusMetricsPropeties metricProperties) {
+        PrometheusMetricsProperties metricProperties) {
         return new OpenShiftJmxBean(clock, taskManager, metricProperties);
     }
 

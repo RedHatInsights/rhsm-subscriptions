@@ -56,10 +56,10 @@ public class PrometheusMeteringController {
     private final PrometheusService prometheusService;
     private final EventController eventController;
     private final ApplicationClock clock;
-    private final PrometheusMetricsPropeties metricProperties;
+    private final PrometheusMetricsProperties metricProperties;
     private final RetryTemplate openshiftRetry;
 
-    public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricsPropeties metricProperties,
+    public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricsProperties metricProperties,
         PrometheusService service, EventController eventController,
         @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry) {
         this.clock = clock;
