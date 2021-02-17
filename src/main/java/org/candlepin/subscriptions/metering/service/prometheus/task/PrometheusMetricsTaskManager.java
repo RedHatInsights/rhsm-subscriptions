@@ -76,7 +76,7 @@ public class PrometheusMetricsTaskManager {
             log.info("Done queuing updates of OpenShift metrics");
         }
         catch (AccountListSourceException e) {
-            throw new TaskManagerException("Could not list accounts for openshift metrics update.", e);
+            throw new TaskManagerException("Could not list accounts for OpenShift metrics update.", e);
         }
     }
 
