@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,37 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.prometheus.api;
+
+import org.candlepin.subscriptions.prometheus.resources.QueryApi;
+import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
+
 
 /**
- * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
+ * A prometheus Query API provider that returns stubbed data.
  */
-public enum TaskType {
-    UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY,
-    OPENSHIFT_METRICS_COLLECTION
+public class StubApiProvider implements ApiProvider {
+
+    private QueryApi queryApi;
+    private QueryRangeApi rangeApi;
+
+    public StubApiProvider() {
+        this(new StubQueryApi(), new StubQueryRangeApi());
+    }
+
+    public StubApiProvider(QueryApi queryApi, QueryRangeApi rangeApi) {
+        this.queryApi = queryApi;
+        this.rangeApi = rangeApi;
+    }
+
+    @Override
+    public QueryApi queryApi() {
+        return this.queryApi;
+    }
+
+    @Override
+    public QueryRangeApi queryRangeApi() {
+        return this.rangeApi;
+    }
+
 }

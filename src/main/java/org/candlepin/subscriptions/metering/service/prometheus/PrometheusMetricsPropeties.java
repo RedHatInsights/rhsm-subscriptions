@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.metering.service.prometheus;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
+ * Properties related to all metrics that are to be gathered from the prometheus service.
  */
-public enum TaskType {
-    UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY,
-    OPENSHIFT_METRICS_COLLECTION
+@ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
+public class PrometheusMetricsPropeties {
+
+    private MetricProperties openshift = new MetricProperties();
+
+    public MetricProperties getOpenshift() {
+        return openshift;
+    }
+
+    public void setOpenshift(MetricProperties openshift) {
+        this.openshift = openshift;
+    }
 }

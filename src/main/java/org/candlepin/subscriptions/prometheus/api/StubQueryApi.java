@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.prometheus.api;
+
+import org.candlepin.subscriptions.prometheus.ApiException;
+import org.candlepin.subscriptions.prometheus.model.QueryResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultData;
+import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.prometheus.resources.QueryApi;
+
+import java.time.OffsetDateTime;
+import java.util.Arrays;
 
 /**
- * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
+ * A class that stubs out the QueryAPI endpoint calls.
  */
-public enum TaskType {
-    UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY,
-    OPENSHIFT_METRICS_COLLECTION
+public class StubQueryApi extends QueryApi {
+
+    @Override
+    public QueryResult query(String query, OffsetDateTime time, Integer timeout) throws ApiException {
+        return new QueryResult()
+            .status(StatusType.SUCCESS)
+            .data(new QueryResultData().result(Arrays.asList()));
+    }
+
 }

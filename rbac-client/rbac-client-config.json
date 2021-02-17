@@ -3,6 +3,5 @@
   "apiPackage": "org.candlepin.subscriptions.rbac.resources",
   "invokerPackage": "org.candlepin.subscriptions.rbac",
   "groupId": "org.candlepin",
-  "artifactId": "rbac-client",
-  "java8": true
+  "artifactId": "rbac-client"
 }

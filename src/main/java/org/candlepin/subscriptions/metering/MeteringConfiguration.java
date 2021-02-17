@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.metering;
+
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
 /**
- * An enumeration representing the types of tasks that can be handled by rhsm-subscriptions.
+ * Top level config class for metering. Beans are defined/configured
+ * on a profile basis via the profile package. This class serves as
+ * an application entry point for the metering components.
  */
-public enum TaskType {
-    UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY,
-    OPENSHIFT_METRICS_COLLECTION
+@Configuration
+@ComponentScan({"org.candlepin.subscriptions.metering.profile"})
+public class MeteringConfiguration {
+
 }
