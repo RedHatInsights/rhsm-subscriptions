@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.exception.ExternalServiceException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
@@ -56,7 +57,8 @@ public class TallySnapshotController {
 
     private final Set<String> applicableProducts;
 
-    public TallySnapshotController(//NOSONAR (exceeds allowed 7 params)
+    @Autowired
+    public TallySnapshotController(
         ApplicationProperties props,
         @Qualifier("applicableProducts") Set<String> applicableProducts,
         InventoryAccountUsageCollector usageCollector,

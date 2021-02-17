@@ -37,7 +37,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,6 +50,7 @@ import java.util.Map;
 @Profile("kafka-queue")
 @Import(KafkaConfiguration.class)
 public class KafkaTaskProducerConfiguration {
+
     @Autowired
     private KafkaConfigurator kafkaConfigurator;
 
@@ -67,7 +67,7 @@ public class KafkaTaskProducerConfiguration {
     }
 
     @Bean
-    public ProducerFactory<String, List<TallySummary>> tallySummaryProducerFactory(
+    public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
         KafkaProperties kafkaProperties) {
         Map<String, Object> configProps = Map.of(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
@@ -79,8 +79,8 @@ public class KafkaTaskProducerConfiguration {
     }
 
     @Bean
-    public KafkaTemplate<String, List<TallySummary>> tallySummaryKafkaTemplate(
-        ProducerFactory<String, List<TallySummary>> tallySummaryProducerFactory) {
+    public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
+        ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
         return new KafkaTemplate<>(tallySummaryProducerFactory);
     }
 

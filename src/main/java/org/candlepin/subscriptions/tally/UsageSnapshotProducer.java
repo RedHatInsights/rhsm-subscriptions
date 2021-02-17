@@ -64,12 +64,12 @@ public class UsageSnapshotProducer {
     private final YearlySnapshotRoller yearlyRoller;
     private final QuarterlySnapshotRoller quarterlyRoller;
     private final String tallySummaryTopic;
-    private final KafkaTemplate<String, List<TallySummary>> tallySummaryKafkaTemplate;
+    private final KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate;
 
     @Autowired
     public UsageSnapshotProducer(TallySnapshotRepository tallyRepo, ApplicationClock clock,
         ProductProfileRegistry registry, ApplicationProperties props,
-        KafkaTemplate<String, List<TallySummary>> tallySummaryKafkaTemplate) {
+        KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate) {
         hourlyRoller = new HourlySnapshotRoller(tallyRepo, clock, registry);
         dailyRoller = new DailySnapshotRoller(tallyRepo, clock, registry);
         weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock, registry);
@@ -97,7 +97,7 @@ public class UsageSnapshotProducer {
         newAndUpdatedSnapshots.entrySet().stream()
             .map(entry -> createTallySummary(entry.getKey(), entry.getValue())).forEach(tallySummary -> {
                 log.info("Producing message of List<TallySummary>");
-                tallySummaryKafkaTemplate.send(tallySummaryTopic, List.of(tallySummary));
+                tallySummaryKafkaTemplate.send(tallySummaryTopic, tallySummary);
             });
     }
 
