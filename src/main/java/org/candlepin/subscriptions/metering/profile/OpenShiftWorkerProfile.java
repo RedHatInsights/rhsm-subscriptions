@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsPropeties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
@@ -50,7 +50,7 @@ import org.springframework.retry.support.RetryTemplate;
 public class OpenShiftWorkerProfile {
 
     @Bean(name = "openshiftMetricRetryTemplate")
-    public RetryTemplate openshiftRetryTemplate(PrometheusMetricsPropeties metricProperties) {
+    public RetryTemplate openshiftRetryTemplate(PrometheusMetricsProperties metricProperties) {
         RetryTemplate retryTemplate = new RetryTemplate();
 
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();

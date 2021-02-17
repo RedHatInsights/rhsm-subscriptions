@@ -62,7 +62,7 @@ class PrometheusMeteringControllerTest {
     private EventController eventController;
 
     @Autowired
-    private PrometheusMetricsPropeties props;
+    private PrometheusMetricsProperties props;
 
     @Autowired
     private PrometheusMeteringController controller;

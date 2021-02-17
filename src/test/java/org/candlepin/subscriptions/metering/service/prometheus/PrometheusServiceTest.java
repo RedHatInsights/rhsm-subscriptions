@@ -51,7 +51,7 @@ class PrometheusServiceTest {
     private QueryRangeApi rangeApi;
 
     @Autowired
-    private PrometheusMetricsPropeties props;
+    private PrometheusMetricsProperties props;
 
     @Test
     void testGetOpenshiftMetrics() throws Exception {
