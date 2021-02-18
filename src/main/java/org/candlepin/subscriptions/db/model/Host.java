@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import jdk.jfr.DataAmount;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -177,8 +178,15 @@ public class Host implements Serializable {
         this.subscriptionManagerId = inventoryHostFacts.getSubscriptionManagerId();
         this.guest = normalizedFacts.isVirtual();
         this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
-        this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
-        this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
+
+        if(normalizedFacts.getCores() != null) {
+            this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
+        }
+
+        if(normalizedFacts.getSockets() != null) {
+            this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
+        }
+
         this.isHypervisor = normalizedFacts.isHypervisor();
         this.isUnmappedGuest = normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
         this.cloudProvider = normalizedFacts.getCloudProviderType() == null ?
