@@ -41,9 +41,12 @@ public class IngressResource implements IngressApi {
         this.controller = controller;
     }
 
+    @SuppressWarnings("java:S125")
     @Override
     public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> pools) {
         controller.updateCapacityForOrg(orgId, pools);
-        controller.updateSubscriptionsForOrg(orgId, pools);
+
+        //Card to address this: ENT-3573
+        //controller.updateSubscriptionsForOrg(orgId, pools);
     }
 }
