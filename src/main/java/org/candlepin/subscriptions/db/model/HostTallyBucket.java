@@ -28,6 +28,9 @@ import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.ManyToOne;
+import javax.persistence.MapsId;
 import javax.persistence.Table;
 
 
@@ -48,12 +51,17 @@ public class HostTallyBucket implements Serializable {
     @Column(name = "measurement_type")
     private HardwareMeasurementType measurementType;
 
+    @MapsId(value = "hostId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Host host;
+
     public HostTallyBucket() {
     }
 
     @SuppressWarnings("java:S107")
     public HostTallyBucket(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor,
         int cores, int sockets, HardwareMeasurementType type) {
+        this.host = host;
         setKey(new HostBucketKey(host, productId, sla, usage, asHypervisor));
         this.cores = cores;
         this.sockets = sockets;
@@ -90,6 +98,14 @@ public class HostTallyBucket implements Serializable {
 
     public void setMeasurementType(HardwareMeasurementType measurementType) {
         this.measurementType = measurementType;
+    }
+
+    public Host getHost() {
+        return host;
+    }
+
+    public void setHost(Host host) {
+        this.host = host;
     }
 
     @Override
