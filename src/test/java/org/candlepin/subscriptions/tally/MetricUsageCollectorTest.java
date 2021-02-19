@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountRepository;
 import org.candlepin.subscriptions.db.model.Account;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -39,10 +40,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -61,9 +64,12 @@ class MetricUsageCollectorTest {
     @Mock
     EventController eventController;
 
+    @Mock
+    ApplicationProperties applicationProperties;
+
     @BeforeEach
     void setup() {
-        metricUsageCollector = new MetricUsageCollector(accountRepo, eventController);
+        metricUsageCollector = new MetricUsageCollector(accountRepo, eventController, applicationProperties);
     }
 
     @Test
@@ -261,5 +267,22 @@ class MetricUsageCollectorTest {
         assertEquals(Double.valueOf(42.0),
             accountUsageCalculation.getCalculation(usageCalculationKey).getTotals(
             HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
+    }
+
+    @ParameterizedTest(name = "testAdjustTimeForLatency[{index}] {arguments}")
+    @CsvSource({
+        "2021-02-01T00:00:00Z, PT0H, 2021-02-01T00:00:00Z",
+        "2021-02-01T00:00:00Z, PT1H, 2021-01-31T23:00:00Z",
+        "2021-02-01T00:00:00Z, PT25H, 2021-01-30T23:00:00Z",
+        "2021-02-01T00:00:00Z, PT-1H, 2021-02-01T01:00:00Z",
+        "2021-02-01T00:00:00Z, PT1M, 2021-01-31T23:59:00Z",
+        "2021-02-01T00:00:00Z, P1D, 2021-01-31T00:00:00Z"
+    })
+    void testAdjustTimeForLatency(OffsetDateTime originalDateTime, Duration latencyDuration,
+        OffsetDateTime adjustedDateTime) {
+
+        OffsetDateTime actual = metricUsageCollector.adjustTimeForLatency(originalDateTime, latencyDuration);
+
+        assertEquals(adjustedDateTime, actual);
     }
 }
