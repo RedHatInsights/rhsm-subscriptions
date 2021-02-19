@@ -23,17 +23,14 @@ package org.candlepin.subscriptions.metering.service.prometheus.config;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
-import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.retry.support.RetryTemplate;
 
 /**
  * Defines all of the beans required to use the Prometheus metrics service.
@@ -60,14 +57,6 @@ public class PrometheusServiceConfiguration {
     @Bean
     public PrometheusService prometheusService(ApiProvider provider) {
         return new PrometheusService(provider);
-    }
-
-    @Bean
-    PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsProperties mProps,
-        PrometheusService service, EventController eventController,
-        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate) {
-        return new PrometheusMeteringController(clock, mProps, service, eventController,
-            openshiftRetryTemplate);
     }
 
     @Bean
