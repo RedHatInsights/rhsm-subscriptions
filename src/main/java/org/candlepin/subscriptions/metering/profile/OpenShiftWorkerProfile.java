@@ -20,15 +20,21 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
+import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
@@ -40,6 +46,7 @@ import org.springframework.retry.support.RetryTemplate;
  *
  * @see OpenShiftJmxProfile
  */
+@EnableRetry
 @Configuration
 @Profile("openshift-metering-worker")
 @Import({
@@ -66,4 +73,11 @@ public class OpenShiftWorkerProfile {
         return retryTemplate;
     }
 
+    @Bean
+    PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsProperties mProps,
+        PrometheusService service, EventController eventController,
+        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate) {
+        return new PrometheusMeteringController(clock, mProps, service, eventController,
+            openshiftRetryTemplate);
+    }
 }
