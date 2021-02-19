@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.metering.MeteringEventFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -100,12 +101,13 @@ public class MetricUsageCollector {
         }
     }
 
-    public MetricUsageCollector(AccountRepository accountRepository,
-        EventController eventController) {
+    @Autowired
+    public MetricUsageCollector(AccountRepository accountRepository, EventController eventController) {
 
         this.accountRepository = accountRepository;
         this.eventController = eventController;
         this.productConfig = new ProductConfig();
+
     }
 
     @Transactional
@@ -122,7 +124,8 @@ public class MetricUsageCollector {
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
         Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
             startDateTime,
-            endDateTime).filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
+            endDateTime)
+            .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
 
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();

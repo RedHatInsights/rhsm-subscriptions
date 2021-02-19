@@ -39,6 +39,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,18 +58,20 @@ import java.util.stream.Stream;
 public class CaptureSnapshotsTaskManager {
     private static final Logger log = LoggerFactory.getLogger(CaptureSnapshotsTaskManager.class);
 
-    @Autowired
-    private ApplicationProperties appProperties;
+    private final ApplicationProperties appProperties;
+    private final TaskQueueProperties taskQueueProperties;
+    private final TaskQueue queue;
+    private final AccountListSource accountListSource;
 
     @Autowired
-    @Qualifier("tallyTaskQueueProperties")
-    private TaskQueueProperties taskQueueProperties;
-
-    @Autowired
-    private TaskQueue queue;
-
-    @Autowired
-    private AccountListSource accountListSource;
+    public CaptureSnapshotsTaskManager(ApplicationProperties appProperties,
+        @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties, TaskQueue queue,
+        AccountListSource accountListSource) {
+        this.appProperties = appProperties;
+        this.taskQueueProperties = tallyTaskQueueProperties;
+        this.queue = queue;
+        this.accountListSource = accountListSource;
+    }
 
     /**
      * Initiates a task that will update the snapshots for the specified account.
@@ -123,6 +128,39 @@ public class CaptureSnapshotsTaskManager {
             .setSingleValuedArg("accountNumber", accountNumber)
             .setSingleValuedArg("startDateTime", startDateTime)
             .setSingleValuedArg("endDateTime", endDateTime).build());
+    }
+
+    @Transactional
+    public void updateHourlySnapshotsForAllAccounts() {
+        try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
+            AtomicInteger count = new AtomicInteger(0);
+
+            Duration metricRange = appProperties.getMetricLookupRangeDuration();
+            Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
+
+            OffsetDateTime endTime = adjustTimeForLatency(OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS),
+                prometheusLatencyDuration);
+            OffsetDateTime startTime = endTime.minus(metricRange);
+
+            accountStream.forEach(accountNumber -> {
+                tallyAccountByHourly(accountNumber, startTime.toString(), endTime.toString());
+
+                count.addAndGet(1);
+            });
+
+            log.info("Done queuing hourly snapshot production for {} accounts.", count.intValue());
+
+        }
+        catch (AccountListSourceException e) {
+            throw new TaskManagerException("Could not list accounts for update snapshot task generation", e);
+        }
+    }
+
+
+    protected OffsetDateTime adjustTimeForLatency(OffsetDateTime dateTime, Duration adjustmentAmount) {
+
+        return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
+
     }
 
     /**
