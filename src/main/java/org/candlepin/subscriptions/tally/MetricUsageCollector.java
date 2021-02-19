@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.metering.MeteringEventFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +70,8 @@ public class MetricUsageCollector {
      * collector.
      */
     public static class ProductConfig {
-        public static final String OPENSHIFT_PRODUCT_ID = "OpenShift Container Platform (metrics)";
-        public static final String SERVICE_TYPE = "OPENSHIFT_CLUSTER";
+        public static final String OPENSHIFT_PRODUCT_ID = "OpenShift-metrics";
+        public static final String SERVICE_TYPE = MeteringEventFactory.OPENSHIFT_CLUSTER_SERVICE_TYPE;
         private static final ServiceLevel DEFAULT_SLA = ServiceLevel.PREMIUM;
         private static final Usage DEFAULT_USAGE = Usage.PRODUCTION;
 
