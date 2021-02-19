@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2019 - 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.tally.tasks.CaptureMetricsSnapshotTask;
 import org.candlepin.subscriptions.tally.tasks.UpdateAccountSnapshotsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -27,7 +28,9 @@ import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskType;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
+import java.time.OffsetDateTime;
 
 /**
  * A class responsible for a TaskDescriptor into actual Task instances. Task instances are build via the
@@ -52,8 +55,31 @@ public class TallyTaskFactory implements TaskFactory {
         if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
             return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
         }
+
+        if (taskDescriptor.getTaskType() == TaskType.UPDATE_HOURLY_SNAPSHOTS) {
+            validateHourlySnapshotTaskArgs(taskDescriptor);
+
+            String accountNumber = taskDescriptor.getArg("accountNumber").get(0);
+            String startDateTime = taskDescriptor.getArg("startDateTime").get(0);
+            String endDateTime = taskDescriptor.getArg("endDateTime").get(0);
+
+            OffsetDateTime from = OffsetDateTime.parse(startDateTime);
+            OffsetDateTime to = OffsetDateTime.parse(endDateTime);
+
+            return new CaptureMetricsSnapshotTask(snapshotController, accountNumber, from, to);
+        }
+
         throw new IllegalArgumentException("Could not build task. Unknown task type: " +
             taskDescriptor.getTaskType());
     }
 
+    protected void validateHourlySnapshotTaskArgs(TaskDescriptor taskDescriptor) {
+        if (CollectionUtils.isEmpty(taskDescriptor.getArg("accountNumber")) ||
+            CollectionUtils.isEmpty(taskDescriptor.getArg("startDateTime")) ||
+            CollectionUtils.isEmpty(taskDescriptor.getArg("endDateTime"))) {
+            throw new IllegalArgumentException(String.format(
+                "Could not build %s task. accountNumber, startDateTime, endDateTime are all required",
+                TaskType.UPDATE_HOURLY_SNAPSHOTS));
+        }
+    }
 }

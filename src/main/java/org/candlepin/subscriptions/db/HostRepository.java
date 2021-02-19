@@ -57,6 +57,7 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
      * @param pageable             the current paging info for this query.
      * @return a page of Host entities matching the criteria.
      */
+    @SuppressWarnings("java:S107")
     @Query(
         value = "select b from HostTallyBucket b join fetch b.key.host h where " +
             "h.accountNumber = :account and " +
@@ -75,7 +76,7 @@ public interface HostRepository extends JpaRepository<Host, UUID> {
             "((lower(b.key.host.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
             "b.cores >= :minCores and b.sockets >= :minSockets"
     )
-    Page<TallyHostView> getTallyHostViews(//NOSONAR (exceeds allowed 7 params)
+    Page<TallyHostView> getTallyHostViews(
         @Param("account") String accountNumber,
         @Param("product") String productId,
         @Param("sla") ServiceLevel sla,

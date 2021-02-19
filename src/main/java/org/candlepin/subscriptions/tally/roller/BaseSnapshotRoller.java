@@ -68,11 +68,11 @@ public abstract class BaseSnapshotRoller {
 
     /**
      * Roll the snapshots for the given account.
-     *
-     * @param accounts the accounts of the snapshots to roll.
+     *  @param accounts the accounts of the snapshots to roll.
      * @param accountCalcs the current calculations from the host inventory.
+     * @return collection of snapshots
      */
-    public abstract void rollSnapshots(Collection<String> accounts,
+    public abstract Collection<TallySnapshot> rollSnapshots(Collection<String> accounts,
         Collection<AccountUsageCalculation> accountCalcs);
 
     protected TallySnapshot createSnapshotFromProductUsageCalculation(String account, String owner,
@@ -136,7 +136,7 @@ public abstract class BaseSnapshotRoller {
         }
     }
 
-    protected void updateSnapshots(Collection<AccountUsageCalculation> accountCalcs,
+    protected Collection<TallySnapshot> updateSnapshots(Collection<AccountUsageCalculation> accountCalcs,
         Map<String, List<TallySnapshot>> existingSnaps, Granularity targetGranularity) {
         List<TallySnapshot> snaps = new LinkedList<>();
         for (AccountUsageCalculation accountCalc : accountCalcs) {
@@ -164,7 +164,7 @@ public abstract class BaseSnapshotRoller {
             }
         }
         log.debug("Persisting {} {} snapshots.", snaps.size(), targetGranularity);
-        tallyRepo.saveAll(snaps);
+        return tallyRepo.saveAll(snaps);
     }
 
     protected Set<String> getApplicableProducts(Collection<AccountUsageCalculation> accountCalcs,
@@ -182,16 +182,24 @@ public abstract class BaseSnapshotRoller {
         return prods;
     }
 
+    private boolean isFinestGranularity(TallySnapshot snap) {
+        Granularity finestGranularity = getFinestGranularity(snap);
+        return finestGranularity.equals(snap.getGranularity());
+    }
+
     private boolean updateMaxValues(TallySnapshot snap, UsageCalculation calc) {
         boolean changed = false;
-        Granularity finestGranularity =
-            productProfileRegistry.findProfile(snap.getProductId()).getFinestGranularity();
-        boolean overrideMaxCheck = finestGranularity.equals(snap.getGranularity());
+
+        boolean overrideMaxCheck = isFinestGranularity(snap);
 
         for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
             changed |= updateTotals(overrideMaxCheck, snap, type, calc);
         }
         return changed;
+    }
+
+    private Granularity getFinestGranularity(TallySnapshot snap) {
+        return productProfileRegistry.findProfile(snap.getProductId()).getFinestGranularity();
     }
 
     private boolean updateTotals(boolean override, TallySnapshot snap,

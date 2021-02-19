@@ -55,14 +55,15 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
 
     @Override
     @Transactional
-    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    public Collection<TallySnapshot> rollSnapshots(Collection<String> accounts,
+        Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> currentForWeek = getCurrentSnapshotsByAccount(accounts,
             getApplicableProducts(accountCalcs, WEEKLY), WEEKLY, clock.startOfCurrentWeek(),
             clock.endOfCurrentWeek());
 
-        updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
+        return updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
     }
 
 }

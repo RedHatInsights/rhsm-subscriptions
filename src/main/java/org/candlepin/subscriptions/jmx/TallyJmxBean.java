@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
@@ -45,16 +46,45 @@ public class TallyJmxBean {
     }
 
     @ManagedOperation(description = "Trigger a tally for an account")
+    @ManagedOperationParameter(
+        name = "accountNumber", description =
+        "Which account to tally."
+    )
     public void tallyAccount(String accountNumber) {
         Object principal = ResourceUtils.getPrincipal();
         log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
         tasks.updateAccountSnapshots(accountNumber);
     }
 
+
     @ManagedOperation(description = "Trigger tally for all configured accounts")
     public void tallyConfiguredAccounts() {
         Object principal = ResourceUtils.getPrincipal();
         log.info("Tally for all accounts triggered over JMX by {}", principal);
         tasks.updateSnapshotsForAllAccounts();
+    }
+
+    @ManagedOperation(description = "Trigger hourly tally for an account within a timeframe.")
+    @ManagedOperationParameter(
+        name = "accountNumber", description =
+        "Which account to tally."
+    )
+    @ManagedOperationParameter(
+        name = "startDateTime", description =
+        "Beginning of the range of time the tally should include. " +
+        "Expected to be in ISO 8601 format (e.g. 2017-08-01T17:32:28Z)."
+    )
+
+    @ManagedOperationParameter(
+        name = "endDateTime", description =
+        "Ending of the range of time the tally should include. " +
+        "Expected to be in ISO 8601 format (e.g. 2017-08-01T17:32:28Z)."
+    )
+    public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
+        log.info("Hourly tally between {} and {} for account {} triggered over JMX by {}",
+            startDateTime, endDateTime, accountNumber, ResourceUtils.getPrincipal());
+
+        tasks.tallyAccountByHourly(accountNumber, startDateTime, endDateTime);
+
     }
 }
