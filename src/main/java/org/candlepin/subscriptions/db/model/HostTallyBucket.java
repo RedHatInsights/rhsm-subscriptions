@@ -51,7 +51,7 @@ public class HostTallyBucket implements Serializable {
     @Column(name = "measurement_type")
     private HardwareMeasurementType measurementType;
 
-    @MapsId(value = "hostId")
+    @MapsId("hostId")
     @ManyToOne(fetch = FetchType.LAZY)
     private Host host;
 
