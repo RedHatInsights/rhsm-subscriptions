@@ -49,7 +49,7 @@ public class HostBucketKey implements Serializable {
     }
 
     public HostBucketKey(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
-        this.hostId = host.getId();
+        this.hostId = host == null ? null : host.getId();
         this.productId = productId;
         this.sla = sla;
         this.usage = usage;
@@ -111,7 +111,7 @@ public class HostBucketKey implements Serializable {
             sla == that.sla &&
             usage == that.usage &&
             asHypervisor.equals(that.asHypervisor) &&
-            hostId.equals(that.hostId);
+            Objects.equals(hostId, that.hostId);
     }
 
     @Override
