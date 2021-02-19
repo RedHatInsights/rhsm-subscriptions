@@ -65,11 +65,11 @@ public class HostsResource implements HostsApi {
     @SuppressWarnings("linelength")
     public static final Map<HostReportSort, String> SORT_PARAM_MAPPING = ImmutableMap.<HostReportSort, String>builderWithExpectedSize(
         5)
-        .put(HostReportSort.DISPLAY_NAME, "key.host.displayName")
+        .put(HostReportSort.DISPLAY_NAME, "host.displayName")
         .put(HostReportSort.CORES, "cores")
-        .put(HostReportSort.HARDWARE_TYPE, "key.host.hardwareType")
+        .put(HostReportSort.HARDWARE_TYPE, "host.hardwareType")
         .put(HostReportSort.SOCKETS, "sockets")
-        .put(HostReportSort.LAST_SEEN, "key.host.lastSeen")
+        .put(HostReportSort.LAST_SEEN, "host.lastSeen")
         .put(HostReportSort.MEASUREMENT_TYPE, "measurementType")
         .build();
     private final HostRepository repository;
