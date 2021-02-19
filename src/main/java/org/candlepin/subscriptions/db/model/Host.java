@@ -126,7 +126,7 @@ public class Host implements Serializable {
     private OffsetDateTime lastSeen;
 
     @OneToMany(
-        mappedBy = "key.host",
+        mappedBy = "host",
         cascade = CascadeType.ALL,
         orphanRemoval = true,
         fetch = FetchType.EAGER
@@ -356,7 +356,7 @@ public class Host implements Serializable {
     }
 
     public void addBucket(HostTallyBucket bucket) {
-        bucket.getKey().setHost(this);
+        bucket.setHost(this);
         getBuckets().add(bucket);
     }
 

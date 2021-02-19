@@ -23,7 +23,11 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.Account;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 
@@ -108,6 +112,9 @@ class AccountRepositoryTest {
         host.setAccountNumber("account123");
         host.setDisplayName("name");
         host.setInstanceType("Test");
+        HostTallyBucket bucket = new HostTallyBucket(host, "product", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, false, 4, 4, HardwareMeasurementType.PHYSICAL);
+        host.getBuckets().add(bucket);
 
         account.getServiceInstances().put(instanceId, host);
         repo.save(account);

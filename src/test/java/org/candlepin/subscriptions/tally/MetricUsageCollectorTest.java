@@ -178,11 +178,11 @@ class MetricUsageCollectorTest {
         Set.of(Usage._ANY, Usage.PRODUCTION).forEach(usage ->
             Set.of(ServiceLevel._ANY, ServiceLevel.PREMIUM).forEach(sla -> {
                 HostTallyBucket bucket = new HostTallyBucket();
+                bucket.setHost(instance);
                 HostBucketKey key = new HostBucketKey();
                 key.setProductId(MetricUsageCollector.ProductConfig.OPENSHIFT_PRODUCT_ID);
                 key.setSla(sla);
                 key.setUsage(usage);
-                key.setHost(instance);
                 key.setAsHypervisor(false);
                 bucket.setKey(key);
                 expected.add(bucket);

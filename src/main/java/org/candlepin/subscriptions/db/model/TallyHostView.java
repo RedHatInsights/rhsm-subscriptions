@@ -32,19 +32,19 @@ import java.time.OffsetDateTime;
  */
 public interface TallyHostView {
 
-    @Value("#{target.key.host.inventoryId}")
+    @Value("#{target.host.inventoryId}")
     String getInventoryId();
 
-    @Value("#{target.key.host.insightsId}")
+    @Value("#{target.host.insightsId}")
     String getInsightsId();
 
-    @Value("#{target.key.host.displayName}")
+    @Value("#{target.host.displayName}")
     String getDisplayName();
 
     @Value("#{target.measurementType}")
     String getHardwareMeasurementType();
 
-    @Value("#{target.key.host.hardwareType}")
+    @Value("#{target.host.hardwareType}")
     String getHardwareType();
 
     @Value("#{target.cores}")
@@ -53,22 +53,22 @@ public interface TallyHostView {
     @Value("#{target.sockets}")
     int getSockets();
 
-    @Value("#{target.key.host.numOfGuests}")
+    @Value("#{target.host.numOfGuests}")
     Integer getNumberOfGuests();
 
-    @Value("#{target.key.host.subscriptionManagerId}")
+    @Value("#{target.host.subscriptionManagerId}")
     String getSubscriptionManagerId();
 
-    @Value("#{target.key.host.lastSeen}")
+    @Value("#{target.host.lastSeen}")
     OffsetDateTime getLastSeen();
 
-    @Value("#{target.key.host.unmappedGuest}")
+    @Value("#{target.host.unmappedGuest}")
     boolean isUnmappedGuest();
 
-    @Value("#{target.key.host.hypervisor}")
+    @Value("#{target.host.hypervisor}")
     boolean isHypervisor();
 
-    @Value("#{target.key.host.cloudProvider}")
+    @Value("#{target.host.cloudProvider}")
     String getCloudProvider();
 
     default Host asApiHost() {
