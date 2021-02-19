@@ -33,11 +33,15 @@ import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -139,5 +143,22 @@ class CaptureSnapshotsTaskManagerTest {
         return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
             .setArg("accounts", accounts)
             .build();
+    }
+
+    @ParameterizedTest(name = "testAdjustTimeForLatency[{index}] {arguments}")
+    @CsvSource({
+        "2021-02-01T00:00:00Z, PT0H, 2021-02-01T00:00:00Z",
+        "2021-02-01T00:00:00Z, PT1H, 2021-01-31T23:00:00Z",
+        "2021-02-01T00:00:00Z, PT25H, 2021-01-30T23:00:00Z",
+        "2021-02-01T00:00:00Z, PT-1H, 2021-02-01T01:00:00Z",
+        "2021-02-01T00:00:00Z, PT1M, 2021-01-31T23:59:00Z",
+        "2021-02-01T00:00:00Z, P1D, 2021-01-31T00:00:00Z"
+    })
+    void testAdjustTimeForLatency(OffsetDateTime originalDateTime, Duration latencyDuration,
+        OffsetDateTime adjustedDateTime) {
+
+        OffsetDateTime actual = manager.adjustTimeForLatency(originalDateTime, latencyDuration);
+
+        assertEquals(adjustedDateTime, actual);
     }
 }

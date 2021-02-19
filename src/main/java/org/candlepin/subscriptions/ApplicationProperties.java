@@ -38,6 +38,9 @@ import java.time.Duration;
  *
  * @see ApplicationConfiguration
  */
+
+@Getter
+@Setter
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
     private String version;
@@ -183,233 +186,14 @@ public class ApplicationProperties {
     private String tallySummaryTopic = "platform.rhsm-subscriptions.tally";
 
     /**
-     * Determine the "window" to look at metrics
+     * Offsets the range to look at metrics to account for delay in prometheus having metrics available
      */
-    @Getter
-    @Setter
     private Duration prometheusLatencyDuration = Duration.ofHours(4L);
 
-    public String getVersion() {
-        return version;
-    }
+    /**
+     * Amount of time from current timestamp to start looking for metrics during a tally,
+     * indepedent of the prometheus latency duration
+     */
+    private Duration metricLookupRangeDuration = Duration.ofHours(24L);
 
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public boolean isPrettyPrintJson() {
-        return prettyPrintJson;
-    }
-
-    public void setPrettyPrintJson(boolean prettyPrintJson) {
-        this.prettyPrintJson = prettyPrintJson;
-    }
-
-    public String getProductIdToProductsMapResourceLocation() {
-        return productIdToProductsMapResourceLocation;
-    }
-
-    public void setProductIdToProductsMapResourceLocation(String productIdToProductsMapResourceLocation) {
-        this.productIdToProductsMapResourceLocation = productIdToProductsMapResourceLocation;
-    }
-
-    public String getRoleToProductsMapResourceLocation() {
-        return roleToProductsMapResourceLocation;
-    }
-
-    public void setRoleToProductsMapResourceLocation(String roleToProductsMapResourceLocation) {
-        this.roleToProductsMapResourceLocation = roleToProductsMapResourceLocation;
-    }
-
-    public String getAccountListResourceLocation() {
-        return accountListResourceLocation;
-    }
-
-    public void setAccountListResourceLocation(String accountListResourceLocation) {
-        this.accountListResourceLocation = accountListResourceLocation;
-    }
-
-    public int getHostLastSyncThresholdHours() {
-        return hostLastSyncThresholdHours;
-    }
-
-    public void setHostLastSyncThresholdHours(int hostLastSyncThresholdHours) {
-        this.hostLastSyncThresholdHours = hostLastSyncThresholdHours;
-    }
-
-    public int getAccountBatchSize() {
-        return this.accountBatchSize;
-    }
-
-    public void setAccountBatchSize(int accountBatchSize) {
-        this.accountBatchSize = accountBatchSize;
-    }
-
-    public boolean isDevMode() {
-        return devMode;
-    }
-
-    public void setDevMode(boolean devMode) {
-        this.devMode = devMode;
-    }
-
-    public String getProductWhitelistResourceLocation() {
-        return productWhitelistResourceLocation;
-    }
-
-    public void setProductWhitelistResourceLocation(String productWhitelistResourceLocation) {
-        this.productWhitelistResourceLocation = productWhitelistResourceLocation;
-    }
-
-    public String getReportingAccountWhitelistResourceLocation() {
-        return reportingAccountWhitelistResourceLocation;
-    }
-
-    public void setReportingAccountWhitelistResourceLocation(String location) {
-        this.reportingAccountWhitelistResourceLocation = location;
-    }
-
-    public Duration getAccountListCacheTtl() {
-        return accountListCacheTtl;
-    }
-
-    public void setAccountListCacheTtl(Duration accountListCacheTtl) {
-        this.accountListCacheTtl = accountListCacheTtl;
-    }
-
-    public Duration getProductIdToProductsMapCacheTtl() {
-        return productIdToProductsMapCacheTtl;
-    }
-
-    public void setProductIdToProductsMapCacheTtl(Duration productIdToProductsMapCacheTtl) {
-        this.productIdToProductsMapCacheTtl = productIdToProductsMapCacheTtl;
-    }
-
-    public Duration getProductWhiteListCacheTtl() {
-        return productWhiteListCacheTtl;
-    }
-
-    public void setProductWhiteListCacheTtl(Duration productWhiteListCacheTtl) {
-        this.productWhiteListCacheTtl = productWhiteListCacheTtl;
-    }
-
-    public Duration getRoleToProductsMapCacheTtl() {
-        return roleToProductsMapCacheTtl;
-    }
-
-    public void setRoleToProductsMapCacheTtl(Duration roleToProductsMapCacheTtl) {
-        this.roleToProductsMapCacheTtl = roleToProductsMapCacheTtl;
-    }
-
-    public Duration getReportingAccountWhitelistCacheTtl() {
-        return reportingAccountWhitelistCacheTtl;
-    }
-
-    public void setReportingAccountWhitelistCacheTtl(Duration reportingAccountWhitelistCacheTtl) {
-        this.reportingAccountWhitelistCacheTtl = reportingAccountWhitelistCacheTtl;
-    }
-
-    public int getCullingOffsetDays() {
-        return cullingOffsetDays;
-    }
-
-    public void setCullingOffsetDays(int cullingOffsetDays) {
-        this.cullingOffsetDays = cullingOffsetDays;
-    }
-
-    public String getAntiCsrfDomainSuffix() {
-        return antiCsrfDomainSuffix;
-    }
-
-    public void setAntiCsrfDomainSuffix(String antiCsrfDomainSuffix) {
-        this.antiCsrfDomainSuffix = antiCsrfDomainSuffix;
-    }
-
-    public int getAntiCsrfPort() {
-        return antiCsrfPort;
-    }
-
-    public void setAntiCsrfPort(int antiCsrfPort) {
-        this.antiCsrfPort = antiCsrfPort;
-    }
-
-    public String getRbacApplicationName() {
-        return rbacApplicationName;
-    }
-
-    public void setRbacApplicationName(String rbacApplicationName) {
-        this.rbacApplicationName = rbacApplicationName;
-    }
-
-    public String getHawtioBasePath() {
-        return hawtioBasePath;
-    }
-
-    public void setHawtioBasePath(String hawtioBasePath) {
-        this.hawtioBasePath = hawtioBasePath;
-    }
-
-    public boolean isCloudigradeEnabled() {
-        return cloudigradeEnabled;
-    }
-
-    public void setCloudigradeEnabled(boolean cloudigradeEnabled) {
-        this.cloudigradeEnabled = cloudigradeEnabled;
-    }
-
-    public String getArchToProductMapResourceLocation() {
-        return archToProductMapResourceLocation;
-    }
-
-    public void setArchToProductMapResourceLocation(String archToProductMapResourceLocation) {
-        this.archToProductMapResourceLocation = archToProductMapResourceLocation;
-    }
-
-    public Duration getArchToProductMapCacheTtl() {
-        return archToProductMapCacheTtl;
-    }
-
-    public void setArchToProductMapCacheTtl(Duration archToProductMapCacheTtl) {
-        this.archToProductMapCacheTtl = archToProductMapCacheTtl;
-    }
-
-    public int getCloudigradeMaxAttempts() {
-        return cloudigradeMaxAttempts;
-    }
-
-    public void setCloudigradeMaxAttempts(int cloudigradeMaxAttempts) {
-        this.cloudigradeMaxAttempts = cloudigradeMaxAttempts;
-    }
-
-    public JobProperties getJobs() {
-        return jobs;
-    }
-
-    public void setJobs(JobProperties jobs) {
-        this.jobs = jobs;
-    }
-
-    public String getProductProfileRegistryResourceLocation() {
-        return productProfileRegistryResourceLocation;
-    }
-
-    public void setProductProfileRegistryResourceLocation(String productProfileRegistryResourceLocation) {
-        this.productProfileRegistryResourceLocation = productProfileRegistryResourceLocation;
-    }
-
-    public Duration getProductProfileListCacheTtl() {
-        return productProfileListCacheTtl;
-    }
-
-    public void setProductProfileListCacheTtl(Duration productProfileListCacheTtl) {
-        this.productProfileListCacheTtl = productProfileListCacheTtl;
-    }
-
-    public String getTallySummaryTopic() {
-        return tallySummaryTopic;
-    }
-
-    public void setTallySummaryTopic(String tallySummaryTopic) {
-        this.tallySummaryTopic = tallySummaryTopic;
-    }
 }

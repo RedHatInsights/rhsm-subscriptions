@@ -87,4 +87,11 @@ public class TallyJmxBean {
         tasks.tallyAccountByHourly(accountNumber, startDateTime, endDateTime);
 
     }
+
+    @ManagedOperation(description = "Trigger hourly tally for all configured accounts")
+    public void tallyAllAccountsByHourly() {
+        log.info("Hourly tally for all accounts triggered over JMX by {}", ResourceUtils.getPrincipal());
+
+        tasks.updateHourlySnapshotsForAllAccounts();
+    }
 }

@@ -44,6 +44,7 @@ public class CaptureSnapshotsJob implements Runnable {
     public void run() {
         try {
             tasks.updateSnapshotsForAllAccounts();
+            tasks.updateHourlySnapshotsForAllAccounts();
         }
         catch (Exception e) {
             throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
