@@ -98,4 +98,4 @@ rhsm-subscriptions:
       tasks:
         topic: ${OPENSHIFT_METERING_TASK_TOPIC:platform.rhsm-subscriptions.openshift-metering-tasks}
         kafka-group-id: ${OPENSHIFT_METERING_TASK_GROUP_ID:openshift-metering-task-processor}
-
+  prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:4h}

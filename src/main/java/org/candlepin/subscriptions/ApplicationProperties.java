@@ -25,6 +25,9 @@ import org.candlepin.subscriptions.security.AntiCsrfFilter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Duration;
 
 /**
@@ -178,6 +181,13 @@ public class ApplicationProperties {
      * Kafka topic for sending tally summaries.
      */
     private String tallySummaryTopic = "platform.rhsm-subscriptions.tally";
+
+    /**
+     * Determine the "window" to look at metrics
+     */
+    @Getter
+    @Setter
+    private Duration prometheusLatencyDuration = Duration.ofHours(4L);
 
     public String getVersion() {
         return version;

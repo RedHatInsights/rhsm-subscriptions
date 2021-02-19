@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountRepository;
 import org.candlepin.subscriptions.db.model.Account;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -37,9 +38,11 @@ import org.candlepin.subscriptions.metering.MeteringEventFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,6 +67,7 @@ public class MetricUsageCollector {
     private final AccountRepository accountRepository;
     private final EventController eventController;
     private final ProductConfig productConfig;
+    private final ApplicationProperties applicationProperties;
 
     /**
      * Encapsulates all per-product information we anticipate putting into configuration used by this
@@ -100,17 +104,39 @@ public class MetricUsageCollector {
         }
     }
 
+    @Autowired
     public MetricUsageCollector(AccountRepository accountRepository,
-        EventController eventController) {
+        EventController eventController, ApplicationProperties applicationProperties) {
 
         this.accountRepository = accountRepository;
         this.eventController = eventController;
         this.productConfig = new ProductConfig();
+        this.applicationProperties = applicationProperties;
+
+    }
+
+    protected OffsetDateTime adjustTimeForLatency(OffsetDateTime dateTime, Duration adjustmentAmount) {
+
+        return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
+
     }
 
     @Transactional
     public AccountUsageCalculation collect(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime) {
+
+        Duration latencyAdjustment = applicationProperties.getPrometheusLatencyDuration();
+
+        OffsetDateTime modifiedStartDateTime = startDateTime.toZonedDateTime().minus(
+            latencyAdjustment).toOffsetDateTime();
+        OffsetDateTime modifiedEndDateTime = endDateTime.toZonedDateTime().minus(
+            latencyAdjustment).toOffsetDateTime();
+
+        log.info(
+            "Adjusting timeframe of query to account for prometheus latency.  " +
+            "startDateTime: {} -> {}, endDateTime: {} -> {}",
+            startDateTime, modifiedStartDateTime, endDateTime, modifiedEndDateTime
+        );
 
         Account account = accountRepository.findById(accountNumber).orElseThrow(() ->
             new SubscriptionsException(ErrorCode.OPT_IN_REQUIRED, Response.Status.BAD_REQUEST,
@@ -121,8 +147,9 @@ public class MetricUsageCollector {
             .filter(host -> productConfig.getServiceType().equals(host.getInstanceType()))
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
         Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
-            startDateTime,
-            endDateTime).filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
+            modifiedStartDateTime,
+            modifiedEndDateTime)
+            .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
 
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();

@@ -186,7 +186,7 @@
     <module name="ImportOrder">
       <!-- Static imports should go at the top of the import list -->
       <property name="option" value="top"/>
-      <property name="groups" value="/^org\.candlepin/,com,org,net,ch,io,liquibase,java,javax"/>
+      <property name="groups" value="/^org\.candlepin/,com,org,net,ch,io,liquibase,lombok,java,javax"/>
       <property name="separated" value="true"/>
     </module>
 
