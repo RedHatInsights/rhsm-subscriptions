@@ -43,6 +43,7 @@ properties:
           enum:
             - Hourly
             - Daily
+            - Weekly
             - Monthly
             - Quarterly
             - Yearly
