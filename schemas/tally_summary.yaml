@@ -37,6 +37,7 @@ properties:
             - Production
             - Development/Test
             - Disaster Recovery
+            - _ANY
           required: false
         granularity:
           type: string
