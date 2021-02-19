@@ -527,6 +527,35 @@ public class InventoryAccountUsageCollectorTest {
         assertEquals(1, counter.count() - initialCount);
     }
 
+    @Test
+    void accountsWithNullInventoryIdFiltered() {
+        String account = "A1";
+        List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
+        List<String> targetAccounts = Arrays.asList(account);
+        InventoryHostFacts host = createRhsmHost(account, "O1", products, 12, 3, "",
+            OffsetDateTime.now());
+
+        when(hostRepo.findByAccountNumber("A1")).thenReturn(List.of(
+            new Host(null, "insights1", host.getAccount(), host.getOrgId(), null),
+            new Host(null, "insights2", host.getAccount(), host.getOrgId(), null)
+        ));
+
+        mockReportedHypervisors(targetAccounts, new HashMap<>());
+
+        when(inventoryRepo.getFacts(eq(targetAccounts), anyInt())).thenReturn(Arrays.asList(host).stream());
+
+        Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, targetAccounts);
+        assertEquals(1, calcs.size());
+        assertThat(calcs, Matchers.hasKey("A1"));
+
+        AccountUsageCalculation calc = calcs.get("A1");
+        // odd sockets are rounded up.
+        checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+        assertNull(calc.getCalculation(createUsageKey(TEST_PRODUCT))
+            .getTotals(HardwareMeasurementType.VIRTUAL));
+    }
+
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, int cores, int sockets, int instances) {
         checkTotalsCalculation(calc, account, owner, product, ServiceLevel._ANY, cores, sockets, instances);
