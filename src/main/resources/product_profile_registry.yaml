@@ -32,9 +32,6 @@ productIds:
     products:
       - RHEL
       - RHEL for IBM Power
-  - id: 290 # Red Hat OpenShift Container Platform
-    products:
-      - OpenShift Container Platform
   - id: 419 # Red Hat Enterprise Linux for ARM 64
     products:
       - RHEL
@@ -87,9 +84,10 @@ syspurposeRoles: []
 architectureProductMap: {}
 ---
 name: OpenShift-metrics
-finestGranularity: HOURLY
-burstable: false
-productIds: []
+productIds:
+  - id: 290 # Red Hat OpenShift Container Platform
+    products:
+      - OpenShift Container Platform
 syspurposeRoles:
   - name: ocp
     products:
@@ -97,4 +95,6 @@ syspurposeRoles:
   - name: osd
     products:
       - OpenShift-dedicated-metrics
+finestGranularity: HOURLY
+burstable: false
 architectureProductMap: {}
