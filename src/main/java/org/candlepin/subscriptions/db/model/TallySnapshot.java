@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -271,6 +272,9 @@ public class TallySnapshot implements Serializable {
         snapshot.setCloudInstanceCount(cloudInstances);
         snapshot.setCloudCores(cloudCores);
         snapshot.setCloudSockets(cloudSockets);
+
+        snapshot.setCoreHours(tallyMeasurements.get(
+            new TallyMeasurementKey(HardwareMeasurementType.TOTAL, Uom.CORES)));
 
         snapshot.setHasData(id != null);
         return snapshot;
