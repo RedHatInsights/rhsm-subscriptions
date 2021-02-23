@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2019 - 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -169,7 +169,10 @@ public class Host implements Serializable {
     public void populateFieldsFromHbi(InventoryHostFacts inventoryHostFacts,
         NormalizedFacts normalizedFacts) {
 
-        this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+        if (inventoryHostFacts.getInventoryId() != null) {
+            this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+        }
+
         this.insightsId = inventoryHostFacts.getInsightsId();
         this.accountNumber = inventoryHostFacts.getAccount();
         this.orgId = inventoryHostFacts.getOrgId();
@@ -177,8 +180,15 @@ public class Host implements Serializable {
         this.subscriptionManagerId = inventoryHostFacts.getSubscriptionManagerId();
         this.guest = normalizedFacts.isVirtual();
         this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
-        this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
-        this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
+
+        if (normalizedFacts.getCores() != null) {
+            this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
+        }
+
+        if (normalizedFacts.getSockets() != null) {
+            this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
+        }
+
         this.isHypervisor = normalizedFacts.isHypervisor();
         this.isUnmappedGuest = normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
         this.cloudProvider = normalizedFacts.getCloudProviderType() == null ?
