@@ -25,6 +25,9 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -33,6 +36,8 @@ import java.util.Set;
 /**
  * A normalized version of an inventory host's facts.
  */
+@Getter
+@Setter
 public class NormalizedFacts {
 
     public static final String PRODUCTS_KEY = "products";
@@ -58,32 +63,8 @@ public class NormalizedFacts {
         products = new HashSet<>();
     }
 
-    public Set<String> getProducts() {
-        return products;
-    }
-
-    public void setProducts(Set<String> products) {
-        this.products = products;
-    }
-
     public void addProduct(String product) {
         products.add(product);
-    }
-
-    public Integer getCores() {
-        return cores;
-    }
-
-    public void setCores(Integer cores) {
-        this.cores = cores;
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
     }
 
     /**
@@ -102,70 +83,6 @@ public class NormalizedFacts {
      */
     public void setHypervisorUuid(String hypervisorUuid) {
         this.hypervisorUuid = hypervisorUuid;
-    }
-
-    public Integer getSockets() {
-        return sockets;
-    }
-
-    public void setSockets(Integer sockets) {
-        this.sockets = sockets;
-    }
-
-    public boolean isVirtual() {
-        return isVirtual;
-    }
-
-    public void setVirtual(boolean virtual) {
-        isVirtual = virtual;
-    }
-
-    public boolean isHypervisor() {
-        return isHypervisor;
-    }
-
-    public void setHypervisor(boolean hypervisor) {
-        isHypervisor = hypervisor;
-    }
-
-    public boolean isHypervisorUnknown() {
-        return isHypervisorUnknown;
-    }
-
-    public void setHypervisorUnknown(boolean hypervisorUnknown) {
-        isHypervisorUnknown = hypervisorUnknown;
-    }
-
-    public HardwareMeasurementType getCloudProviderType() {
-        return cloudProviderType;
-    }
-
-    public void setCloudProviderType(HardwareMeasurementType cloudProviderType) {
-        this.cloudProviderType = cloudProviderType;
-    }
-
-    public ServiceLevel getSla() {
-        return sla;
-    }
-
-    public void setSla(ServiceLevel sla) {
-        this.sla = sla;
-    }
-
-    public Usage getUsage() {
-        return usage;
-    }
-
-    public void setUsage(Usage usage) {
-        this.usage = usage;
-    }
-
-    public HostHardwareType getHardwareType() {
-        return hardwareType;
-    }
-
-    public void setHardwareType(HostHardwareType hardwareType) {
-        this.hardwareType = hardwareType;
     }
 
     public Map<String, Object> toInventoryPayload() {

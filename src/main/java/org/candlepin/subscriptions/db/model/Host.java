@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2019 - 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import jdk.jfr.DataAmount;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -170,7 +169,10 @@ public class Host implements Serializable {
     public void populateFieldsFromHbi(InventoryHostFacts inventoryHostFacts,
         NormalizedFacts normalizedFacts) {
 
-        this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+        if (inventoryHostFacts.getInventoryId() != null) {
+            this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+        }
+
         this.insightsId = inventoryHostFacts.getInsightsId();
         this.accountNumber = inventoryHostFacts.getAccount();
         this.orgId = inventoryHostFacts.getOrgId();
@@ -179,11 +181,11 @@ public class Host implements Serializable {
         this.guest = normalizedFacts.isVirtual();
         this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
 
-        if(normalizedFacts.getCores() != null) {
+        if (normalizedFacts.getCores() != null) {
             this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
         }
 
-        if(normalizedFacts.getSockets() != null) {
+        if (normalizedFacts.getSockets() != null) {
             this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
         }
 
