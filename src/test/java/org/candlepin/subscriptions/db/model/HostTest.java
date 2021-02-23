@@ -31,7 +31,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 
-public class HostTest {
+class HostTest {
 
     InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
     NormalizedFacts normalizedFacts = new NormalizedFacts();
@@ -50,7 +50,7 @@ public class HostTest {
         assertNull(host.getSubscriptionManagerId());
         assertFalse(host.getGuest());
         assertNull(host.getHypervisorUuid());
-        assertEquals(host.getMeasurements().size(), 0);
+        assertEquals(0, host.getMeasurements().size());
         assertFalse(host.isHypervisor());
         assertNull(host.getCloudProvider());
         assertNull(host.getLastSeen());
@@ -74,7 +74,7 @@ public class HostTest {
         assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
         assertTrue(host.getGuest());
         assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
-        assertEquals(host.getMeasurements().size(), 2);
+        assertEquals(2, host.getMeasurements().size());
         assertTrue(host.isHypervisor());
         assertEquals(host.getCloudProvider(), normalizedFacts.getCloudProviderType().name());
         assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
