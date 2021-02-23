@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering.job;
 
 import static org.mockito.Mockito.verify;
 
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
@@ -33,7 +34,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 
 @ExtendWith(MockitoExtension.class)
 class OpenShiftMeteringJobTest {
@@ -43,22 +46,31 @@ class OpenShiftMeteringJobTest {
 
     private ApplicationClock clock;
     private PrometheusMetricsProperties metricProps;
+    private ApplicationProperties appProps;
     private OpenShiftMeteringJob job;
 
     @BeforeEach
     void setupTests() {
         metricProps = new PrometheusMetricsProperties();
-        metricProps.getOpenshift().setRangeInMinutes(60);
+        metricProps.getOpenshift().setRangeInMinutes(180); // 3h
+
+        appProps = new ApplicationProperties();
+        appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
         clock = new FixedClockConfiguration().fixedClock();
-        job = new OpenShiftMeteringJob(tasks, clock, metricProps);
+        job = new OpenShiftMeteringJob(tasks, clock, metricProps, appProps);
     }
 
     @Test
     void testRunJob() {
-        OffsetDateTime expEndDate = clock.now();
-        OffsetDateTime expStartDate =
-            expEndDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
+        Duration latency = appProps.getPrometheusLatencyDuration();
+        int range = metricProps.getOpenshift().getRangeInMinutes();
+
+        // NOW: 2019-05-24T12:35Z
+        // Metric Period: 2019-05-24T03:00Z -> 2019-05-24T06:00Z
+        OffsetDateTime expStartDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
+        OffsetDateTime expEndDate =
+            clock.endOfHour(expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
         job.run();
 
         verify(tasks).updateOpenshiftMetricsForAllAccounts(expStartDate, expEndDate);
