@@ -85,4 +85,16 @@ finestGranularity: DAILY
 burstable: false
 syspurposeRoles: []
 architectureProductMap: {}
-
+---
+name: OpenShift-metrics
+finestGranularity: HOURLY
+burstable: false
+productIds: []
+syspurposeRoles:
+  - name: ocp
+    products:
+      - OpenShift-metrics
+  - name: osd
+    products:
+      - OpenShift-dedicated-metrics
+architectureProductMap: {}
