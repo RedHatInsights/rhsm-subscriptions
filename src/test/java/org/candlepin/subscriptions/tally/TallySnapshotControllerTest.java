@@ -109,8 +109,12 @@ class TallySnapshotControllerTest {
     void testUsageMetricControllerDoes24Hours() {
         OffsetDateTime begin = OffsetDateTime.parse("2007-12-03T00:00:00Z");
         OffsetDateTime end = OffsetDateTime.parse("2007-12-03T23:59:59.999Z");
+
+        AccountUsageCalculation foo = new AccountUsageCalculation("foo");
+        foo.getProducts().add("OpenShift Hourly");
+
         when(metricUsageCollector.collect(eq("foo"), any(), any()))
-            .thenReturn(new AccountUsageCalculation("foo"));
+            .thenReturn(foo);
         controller.produceHourlySnapshotsForAccount("foo", begin, end);
         verify(metricUsageCollector, times(24)).collect(eq("foo"), any(), any());
     }

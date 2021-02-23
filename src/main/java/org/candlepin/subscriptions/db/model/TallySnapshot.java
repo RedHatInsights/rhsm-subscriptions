@@ -23,11 +23,17 @@ package org.candlepin.subscriptions.db.model;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import javax.persistence.CollectionTable;
@@ -49,6 +55,10 @@ import javax.persistence.Table;
 /**
  * Model object to represent pieces of tally data.
  */
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "tally_snapshots")
 public class TallySnapshot implements Serializable {
@@ -90,6 +100,7 @@ public class TallySnapshot implements Serializable {
     )
     @MapKeyEnumerated(EnumType.STRING)
     @MapKeyColumn(name = "measurement_type")
+    @Builder.Default
     private Map<HardwareMeasurementType, HardwareMeasurement> hardwareMeasurements =
         new EnumMap<>(HardwareMeasurementType.class);
 
@@ -100,6 +111,7 @@ public class TallySnapshot implements Serializable {
     )
     @Column(name = "value")
     @MapKeyClass(TallyMeasurementKey.class)
+    @Builder.Default
     private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
     public UUID getId() {
@@ -281,14 +293,26 @@ public class TallySnapshot implements Serializable {
     }
 
     @Override
-    public String toString() {
-        return "TallySnapshot{" +
-            "id=" + id +
-            ", snapshotDate=" + snapshotDate +
-            ", granularity=" + granularity +
-            ", accountNumber='" + accountNumber + '\'' +
-            ", productId='" + productId + '\'' +
-            ", serviceLevel='" + serviceLevel + '\'' +
-            ", usage='" + usage + '\'' + '}';
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TallySnapshot)) {
+            return false;
+        }
+        TallySnapshot that = (TallySnapshot) o;
+        return Objects.equals(snapshotDate, that.snapshotDate) &&
+            Objects.equals(productId, that.productId) &&
+            Objects.equals(ownerId, that.ownerId) &&
+            Objects.equals(accountNumber, that.accountNumber) &&
+            serviceLevel == that.serviceLevel &&
+            usage == that.usage &&
+            granularity == that.granularity;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects
+            .hash(snapshotDate, productId, ownerId, accountNumber, serviceLevel, usage, granularity);
     }
 }
