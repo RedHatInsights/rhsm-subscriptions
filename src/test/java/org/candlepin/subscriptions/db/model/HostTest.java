@@ -33,12 +33,11 @@ import java.util.UUID;
 
 class HostTest {
 
-    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
-    NormalizedFacts normalizedFacts = new NormalizedFacts();
-
     @Test
     void populateFieldsFromHbiNull() {
-        final Host host = new Host();
+        Host host = new Host();
+        InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+        NormalizedFacts normalizedFacts = new NormalizedFacts();
 
         host.populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
 
@@ -59,10 +58,9 @@ class HostTest {
 
     @Test
     void populateFieldsFromHbiFull() {
-        final Host host = new Host();
-
-        inventoryHostFacts = getInventoryHostFactsFull();
-        normalizedFacts = getNormalizedFactsFull();
+        Host host = new Host();
+        InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+        NormalizedFacts normalizedFacts = getNormalizedFactsFull();
 
         host.populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
 
@@ -82,6 +80,8 @@ class HostTest {
     }
 
     private InventoryHostFacts getInventoryHostFactsFull() {
+        InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+
         inventoryHostFacts.setInventoryId(UUID.randomUUID());
         inventoryHostFacts.setInsightsId("123");
         inventoryHostFacts.setAccount("234");
@@ -94,6 +94,8 @@ class HostTest {
     }
 
     private NormalizedFacts getNormalizedFactsFull() {
+        NormalizedFacts normalizedFacts = new NormalizedFacts();
+
         normalizedFacts.setVirtual(true);
         normalizedFacts.setHypervisorUuid(UUID.randomUUID().toString());
         normalizedFacts.setCores(1);
