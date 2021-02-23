@@ -1,36 +1,36 @@
-name: RHELProduct
-productIds:
-  - id: 1
-    products:
+name: RHELProducts
+products:
+  - product: 1
+    productIds:
       - RHEL
-  - id: 2
-    products:
+  - product: 2
+    productIds:
       - RHEL
-  - id: 3
-    products:
-      - RHEL
-  - id: 4
-    products:
+  - product: 3
+    productIds:
+       - RHEL
+  - product: 4
+    productIds:
       - NOT RHEL
-  - id: 5
-    products:
+  - product: 5
+    productIds:
       - NOT RHEL
-  - id: 6
-    products:
+  - product: 6
+    productIds:
       - NOT RHEL
-  - id: 9
-    products:
+  - product: 9
+    productIds:
       - RHEL
       - RHEL Workstation
-  - id: 10
-    products:
+  - product: 10
+    productIds:
       - RHEL
       - RHEL Server
-  - id: 13
-    products:
+  - product: 13
+    productIds:
       - OpenShift Container Platform
-  - id: 6789
-    products:
+  - product: 6789
+    productIds:
       - RHEL for x86
 finestGranularity: DAILY
 burstable: false
@@ -38,18 +38,18 @@ prometheusMetricName: rhelMetricName
 prometheusCounterName: rhelCounterName
 syspurposeRoles:
   - name: Red Hat Enterprise Linux Server
-    products:
+    productIds:
       - RHEL
       - RHEL Server
   - name: Red Hat Enterprise Linux Workstation
-    products:
+    productIds:
       - RHEL
       - RHEL Workstation
   - name: Red Hat Enterprise Linux Compute Node
-    products:
+    productIds:
       - RHEL
       - RHEL Compute Node
-architectureProductMap:
+architectureProductIdMap:
   aarch64: RHEL for ARM
   arm64: RHEL for ARM
   i386: RHEL for x86
@@ -58,39 +58,38 @@ architectureProductMap:
   s390x: RHEL for IBM z
   x86_64: RHEL for x86
 ---
-name: SatelliteProduct
-productIds:
-  - id: 11
-    products:
-      - Satellite 6
-  - id: 12
-    products:
-      - RHEL
-      - Satellite 6 Capsule
+name: SatelliteProducts
+products:
+  - product: 250 # Red Hat Satellite
+    productIds:
+      - Satellite
+      - Satellite Server
+  - product: 269 # Red Hat Satellite Capsule
+    productIds:
+      - Satellite
+      - Satellite Capsule
 finestGranularity: DAILY
 burstable: false
 prometheusMetricName: satMetricName
 prometheusCounterName: satCounterName
 syspurposeRoles: []
-architectureProductMap: {}
+architectureProductIdMap: {}
 ---
-name: OpenShiftHourlyProduct
-productIds:
-  - id: 999
-    products: []
-  - id: 1000
-    products: []
-  - id: 1001
-    products: []
+name: OpenShiftHourlyProducts
+products:
+  - product: 999
+    productIds:
+      - OpenShift Hourly
 finestGranularity: HOURLY
+burstable: false
 syspurposeRoles: []
-architectureProductMap: {}
+architectureProductIdMap: {}
 ---
-name: OtherProduct
-productIds:
-  - id: 2000
-    products:
+name: OtherProducts
+products:
+  - product: 2000
+    productIds:
       - OTHER PRODUCT
 finestGranularity: DAILY
 syspurposeRoles: []
-architectureProductMap: {}
+architectureProductIdMap: {}

@@ -49,7 +49,7 @@ import java.util.stream.Stream;
  */
 @SuppressWarnings("linelength")
 public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
-    private String testProduct = "TEST_PROD";
+    private String testProduct = "RHEL";
 
     private TallySnapshotRepository repository;
     private R roller;

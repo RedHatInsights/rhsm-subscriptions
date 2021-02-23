@@ -173,8 +173,8 @@ public abstract class BaseSnapshotRoller {
 
         for (AccountUsageCalculation calc : accountCalcs) {
             Stream<String> prodStream = calc.getProducts().stream();
-            Set<String> matchingProds = prodStream
-                .filter(p -> productProfileRegistry.findProfile(p).supportsGranularity(rollerGranularity))
+            Set<String> matchingProds = prodStream.filter(
+                p -> productProfileRegistry.findProfileForProductId(p).supportsGranularity(rollerGranularity))
                 .collect(Collectors.toSet());
             prods.addAll(matchingProds);
         }
@@ -199,7 +199,7 @@ public abstract class BaseSnapshotRoller {
     }
 
     private Granularity getFinestGranularity(TallySnapshot snap) {
-        return productProfileRegistry.findProfile(snap.getProductId()).getFinestGranularity();
+        return productProfileRegistry.findProfileForProductId(snap.getProductId()).getFinestGranularity();
     }
 
     private boolean updateTotals(boolean override, TallySnapshot snap,

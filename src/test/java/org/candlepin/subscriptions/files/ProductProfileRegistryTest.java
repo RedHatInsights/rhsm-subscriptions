@@ -21,7 +21,10 @@
 package org.candlepin.subscriptions.files;
 
 import static org.candlepin.subscriptions.db.model.Granularity.*;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,35 +42,50 @@ class ProductProfileRegistryTest {
     void setUp() {
         registry = new ProductProfileRegistry();
 
-        Set<SubscriptionWatchProductId> ids1 = new HashSet<>(Arrays.asList(
-            makeId("a"),
-            makeId("b"),
-            makeId("c")
-        ));
+        Set<SubscriptionWatchProduct> ids1 = Set.of(
+            makeId("1", Set.of(RHEL)),
+            makeId("2", Set.of(RHEL, RHEL_COMPUTE_NODE)),
+            makeId("3", Set.of(RHEL, RHEL_FOR_X86))
+        );
         ProductProfile p1 = new ProductProfile("p1", ids1, DAILY);
 
-        Set<SubscriptionWatchProductId> ids2 = new HashSet<>(Arrays.asList(
-            makeId("d"),
-            makeId("e"),
-            makeId("f")
-        ));
-
+        Set<SubscriptionWatchProduct> ids2 = Set.of(
+            makeId("4", Set.of(SATELLITE)),
+            makeId("5", Set.of(SATELLITE, SATELLITE_SERVER)),
+            makeId("6", Set.of(SATELLITE, SATELLITE_CAPSULE))
+        );
         ProductProfile p2 = new ProductProfile("p2", ids2, HOURLY);
+
+        Set<SubscriptionWatchProduct> ids3 = Set.of(
+            makeId("7", Set.of(OPENSHIFT_CONTAINER_PLATFORM))
+        );
+        ProductProfile p3 = new ProductProfile("p3", ids3, DAILY);
 
         registry.addProductProfile(p1);
         registry.addProductProfile(p2);
+        registry.addProductProfile(p3);
     }
 
-    SubscriptionWatchProductId makeId(String engineeringProductId) {
-        SubscriptionWatchProductId productId = new SubscriptionWatchProductId();
-        productId.setId(engineeringProductId);
-        productId.setProducts(new HashSet<>(Arrays.asList("RHEL")));
+    SubscriptionWatchProduct makeId(String engineeringProductId, Set<ProductId> productIds) {
+        SubscriptionWatchProduct productId = new SubscriptionWatchProduct();
+        productId.setProduct(engineeringProductId);
+        productId.setProductIds(productIds.stream().map(ProductId::toString).collect(Collectors.toSet()));
         return productId;
     }
 
     @Test
+    void testFindProfileForProductId() {
+        assertEquals("p1", registry.findProfileForProductId("RHEL").getName());
+    }
+
+    @Test
+    void testFindProfileForProduct() {
+        assertEquals("p2", registry.findProfileForProduct("4").getName());
+    }
+
+    @Test
     void testListProfiles() {
-        Set<String> expected = new HashSet<>(Arrays.asList("p1", "p2"));
+        Set<String> expected = Set.of("p1", "p2", "p3");
         Set<String> actual = registry.listProfiles();
         assertEquals(expected, actual);
     }
@@ -75,34 +93,30 @@ class ProductProfileRegistryTest {
     @Test
     void testGetAllProductProfiles() {
         Set<ProductProfile> profiles = registry.getAllProductProfiles();
-        assertEquals(2, profiles.size());
-        assertEquals(new HashSet<>(Arrays.asList(DAILY, HOURLY)),
+        assertEquals(3, profiles.size());
+        assertEquals(Set.of(HOURLY, DAILY),
             profiles.stream().map(ProductProfile::getFinestGranularity).collect(Collectors.toSet()));
     }
 
     @Test
     void testReturnsDefault() {
-        ProductProfile actual = registry.findProfile("DoesNotExist");
+        ProductProfile actual = registry.findProfileForProductId(RHEL_FOR_ARM);
         ProductProfile expected = ProductProfile.getDefault();
         assertEquals(actual, expected);
     }
 
     @Test
-    void productIdsCanExistOnlyOnce() {
+    void productsCanExistOnlyOnce() {
         ProductProfileRegistry r = new ProductProfileRegistry();
 
-
-        Set<SubscriptionWatchProductId> ids1 = new HashSet<>(Arrays.asList(
-            makeId("a"),
-            makeId("b"),
-            makeId("c")
-        ));
+        String sameProduct = "1";
+        Set<SubscriptionWatchProduct> ids1 = Set.of(
+            makeId(sameProduct, Set.of(RHEL))
+        );
         ProductProfile p1 = new ProductProfile("p1", ids1, DAILY);
 
-        Set<SubscriptionWatchProductId> ids2 = new HashSet<>(Arrays.asList(
-            makeId("a"),
-            makeId("e"),
-            makeId("f")
+        Set<SubscriptionWatchProduct> ids2 = new HashSet<>(Arrays.asList(
+            makeId(sameProduct, Set.of(SATELLITE))
         ));
         ProductProfile p2 = new ProductProfile("p2", ids2, DAILY);
 
@@ -110,4 +124,22 @@ class ProductProfileRegistryTest {
         assertThrows(IllegalStateException.class, () -> r.addProductProfile(p2));
     }
 
+    @Test
+    void productIdsCanExistOnlyOnce() {
+        ProductProfileRegistry r = new ProductProfileRegistry();
+
+        Set<ProductId> sameProductId = Set.of(RHEL);
+        Set<SubscriptionWatchProduct> ids1 = Set.of(
+            makeId("1", sameProductId)
+        );
+        ProductProfile p1 = new ProductProfile("p1", ids1, DAILY);
+
+        Set<SubscriptionWatchProduct> ids2 = new HashSet<>(Arrays.asList(
+            makeId("2", sameProductId)
+        ));
+        ProductProfile p2 = new ProductProfile("p2", ids2, DAILY);
+
+        r.addProductProfile(p1);
+        assertThrows(IllegalStateException.class, () -> r.addProductProfile(p2));
+    }
 }

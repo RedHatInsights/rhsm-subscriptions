@@ -50,14 +50,14 @@ public class FactNormalizer {
 
     private final ApplicationClock clock;
     private final int hostSyncThresholdHours;
-    private final Map<Integer, Set<String>> productIdToProductsMap;
+    private final Map<Integer, Set<String>> productToProductIdsMap;
     private final Map<String, Set<String>> roleToProductsMap;
 
     public FactNormalizer(ApplicationProperties props, ProductProfileRegistry profileRegistry,
         ApplicationClock clock) {
         this.clock = clock;
         this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
-        this.productIdToProductsMap = profileRegistry.getProductIdToProductsMap();
+        this.productToProductIdsMap = profileRegistry.getProductToProductIdsMap();
         this.roleToProductsMap = profileRegistry.getRoleToProductsMap();
     }
 
@@ -207,7 +207,7 @@ public class FactNormalizer {
             try {
                 Integer numericProductId = Integer.parseInt(productId);
                 normalizedFacts.getProducts().addAll(
-                    productIdToProductsMap.getOrDefault(numericProductId, Collections.emptySet()));
+                    productToProductIdsMap.getOrDefault(numericProductId, Collections.emptySet()));
             }
             catch (NumberFormatException e) {
                 log.debug("Skipping non-numeric productId: {}", productId);

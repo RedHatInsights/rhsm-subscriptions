@@ -1,65 +1,65 @@
 name: RHELProducts
-productIds:
-  - id: 68 # Red Hat Enterprise Linux Desktop
-    products:
+products:
+  - product: 68 # Red Hat Enterprise Linux Desktop
+    productIds:
       - RHEL
       - RHEL for x86
       - RHEL Desktop
-  - id: 69 # Red Hat Enterprise Linux Server
-    products:
+  - product: 69 # Red Hat Enterprise Linux Server
+    productIds:
       - RHEL
       - RHEL for x86
       - RHEL Server
-  - id: 71 # Red Hat Enterprise Linux Workstation
-    products:
+  - product: 71 # Red Hat Enterprise Linux Workstation
+    productIds:
       - RHEL
       - RHEL for x86
       - RHEL Workstation
-  - id: 72 # Red Hat Enterprise Linux for IBM z Systems
-    products:
+  - product: 72 # Red Hat Enterprise Linux for IBM z Systems
+    productIds:
       - RHEL
       - RHEL for IBM z
-  - id: 74 # Red Hat Enterprise Linux for Power, big endian
-    products:
+  - product: 74 # Red Hat Enterprise Linux for Power, big endian
+    productIds:
       - RHEL
       - RHEL for IBM Power
-  - id: 76 # Red Hat Enterprise Linux for Scientific Computing
-    products:
+  - product: 76 # Red Hat Enterprise Linux for Scientific Computing
+    productIds:
       - RHEL
       - RHEL for x86
       - RHEL Compute Node
-  - id: 279 # Red Hat Enterprise Linux for Power, little endian
-    products:
+  - product: 279 # Red Hat Enterprise Linux for Power, little endian
+    productIds:
       - RHEL
       - RHEL for IBM Power
-  - id: 419 # Red Hat Enterprise Linux for ARM 64
-    products:
+  - product: 419 # Red Hat Enterprise Linux for ARM 64
+    productIds:
       - RHEL
       - RHEL for ARM
-  - id: 420 # Red Hat Enterprise Linux for Power 9
-    products:
+  - product: 420 # Red Hat Enterprise Linux for Power 9
+    productIds:
       - RHEL
       - RHEL for IBM Power
-  - id: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
-    products:
+  - product: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
+    productIds:
       - RHEL
       - RHEL for x86
 finestGranularity: DAILY
 burstable: false
 syspurposeRoles:
   - name: Red Hat Enterprise Linux Server
-    products:
+    productIds:
       - RHEL
       - RHEL Server
   - name: Red Hat Enterprise Linux Workstation
-    products:
+    productIds:
       - RHEL
       - RHEL Workstation
   - name: Red Hat Enterprise Linux Compute Node
-    products:
+    productIds:
       - RHEL
       - RHEL Compute Node
-architectureProductMap:
+architectureProductIdMap:
   aarch64: RHEL for ARM
   arm64: RHEL for ARM
   i386: RHEL for x86
@@ -69,32 +69,32 @@ architectureProductMap:
   x86_64: RHEL for x86
 ---
 name: SatelliteProducts
-productIds:
-  - id: 250 # Red Hat Satellite
-    products:
+products:
+  - product: 250 # Red Hat Satellite
+    productIds:
       - Satellite
       - Satellite Server
-  - id: 269 # Red Hat Satellite Capsule
-    products:
+  - product: 269 # Red Hat Satellite Capsule
+    productIds:
       - Satellite
       - Satellite Capsule
 finestGranularity: DAILY
 burstable: false
 syspurposeRoles: []
-architectureProductMap: {}
+architectureProductIdMap: {}
 ---
 name: OpenShift-metrics
-productIds:
-  - id: 290 # Red Hat OpenShift Container Platform
-    products:
+products:
+  - product: 290 # Red Hat OpenShift Container Platform
+    productIds:
       - OpenShift Container Platform
 syspurposeRoles:
   - name: ocp
-    products:
+    productIds:
       - OpenShift-metrics
   - name: osd
-    products:
+    productIds:
       - OpenShift-dedicated-metrics
 finestGranularity: HOURLY
 burstable: false
-architectureProductMap: {}
+architectureProductIdMap: {}

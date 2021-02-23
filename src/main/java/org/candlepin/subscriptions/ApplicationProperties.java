@@ -55,16 +55,6 @@ public class ApplicationProperties {
     private JobProperties jobs;
 
     /**
-     * Resource location of a file containing a mapping of product IDs to product IDs that identify them.
-     */
-    private String productIdToProductsMapResourceLocation;
-
-    /**
-     * Resource location of a file containing a mapping of syspurpose roles to products.
-     */
-    private String roleToProductsMapResourceLocation;
-
-    /**
      * Resource location of a file containing a list of accounts to process.
      */
     private String accountListResourceLocation;
@@ -79,11 +69,6 @@ public class ApplicationProperties {
      * Resource location of a file containing the whitelisted accounts allowed to run reports.
      */
     private String reportingAccountWhitelistResourceLocation;
-
-    /**
-     * Resource location of a file containing the map of arch to product.
-     */
-    private String archToProductMapResourceLocation;
 
     /**
      * Resource location of a file containing the list of product profiles
@@ -108,30 +93,14 @@ public class ApplicationProperties {
     private Duration accountListCacheTtl = Duration.ofMinutes(5);
 
     /**
-     * Amount of time to cache the product mapping, before allowing a re-read from the filesystem.
-     */
-    private Duration productIdToProductsMapCacheTtl = Duration.ofMinutes(5);
-
-    /**
      * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
      */
     private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
 
     /**
-     * Amount of time to cache the syspurpose role to products map, before allowing a re-read from the
-     * filesystem.
-     */
-    private Duration roleToProductsMapCacheTtl = Duration.ofMinutes(5);
-
-    /**
      * Amount of time to cache the API access whitelist, before allowing a re-read from the filesystem.
      */
     private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
-
-    /**
-     * Amount of time to cache the arch to product map, before allowing a re-read from the filesystem.
-     */
-    private Duration archToProductMapCacheTtl = Duration.ofMinutes(5);
 
     /**
      * Amount of time to cache the list of product profiles before allowing a re-read from the filesystem
