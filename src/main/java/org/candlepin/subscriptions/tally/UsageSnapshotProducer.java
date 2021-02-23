@@ -43,6 +43,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class UsageSnapshotProducer {
     }
 
     @Transactional
-    public void produceSnapshotsFromCalculations(Collection<String> accounts,
+    public Map<String, List<TallySnapshot>> produceSnapshotsFromCalculations(Collection<String> accounts,
         Collection<AccountUsageCalculation> accountCalcs) {
         Stream<BaseSnapshotRoller> rollers = Stream.of(hourlyRoller, dailyRoller, weeklyRoller, monthlyRoller,
             quarterlyRoller, yearlyRoller);
@@ -91,6 +92,7 @@ public class UsageSnapshotProducer {
             .collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
         produceTallySummaryMessages(newAndUpdatedSnapshots);
         log.info("Finished producing snapshots for all accounts.");
+        return newAndUpdatedSnapshots;
     }
 
     public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
@@ -134,5 +136,15 @@ public class UsageSnapshotProducer {
             .withUom(TallyMeasurement.Uom.fromValue(entry.getKey().getUom().value()))
             .withValue(entry.getValue()))
             .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void produceSnapshotsFromCalculations(OffsetDateTime offset, Collection<String> accounts,
+        Collection<AccountUsageCalculation> calculations) {
+        Map<String, List<TallySnapshot>> newAndUpdatedSnapshots = produceSnapshotsFromCalculations(accounts,
+            calculations);
+        newAndUpdatedSnapshots.values().stream()
+            .flatMap(List::stream)
+            .forEach(s -> s.setSnapshotDate(offset));
     }
 }
