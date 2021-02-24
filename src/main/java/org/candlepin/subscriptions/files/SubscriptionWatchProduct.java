@@ -25,23 +25,23 @@ import java.util.Set;
 
 /** Represents the idea of products in Subscription Watch and what family they slot into. */
 public class SubscriptionWatchProduct {
-    private String product;
-    private Set<String> productIds;
+    private String engProductId;
+    private Set<String> swatchProductIds;
 
-    public String getProduct() {
-        return product;
+    public String getEngProductId() {
+        return engProductId;
     }
 
-    public void setProduct(String product) {
-        this.product = product;
+    public void setEngProductId(String engProductId) {
+        this.engProductId = engProductId;
     }
 
-    public Set<String> getProductIds() {
-        return productIds;
+    public Set<String> getSwatchProductIds() {
+        return swatchProductIds;
     }
 
-    public void setProductIds(Set<String> productIds) {
-        this.productIds = productIds;
+    public void setSwatchProductIds(Set<String> swatchProductIds) {
+        this.swatchProductIds = swatchProductIds;
     }
 
     @Override
@@ -53,12 +53,12 @@ public class SubscriptionWatchProduct {
             return false;
         }
         SubscriptionWatchProduct that = (SubscriptionWatchProduct) obj;
-        return product.equals(that.product) &&
-            productIds.equals(that.productIds);
+        return engProductId.equals(that.engProductId) &&
+            swatchProductIds.equals(that.swatchProductIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(product, productIds);
+        return Objects.hash(engProductId, swatchProductIds);
     }
 }

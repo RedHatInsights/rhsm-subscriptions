@@ -50,15 +50,15 @@ public class FactNormalizer {
 
     private final ApplicationClock clock;
     private final int hostSyncThresholdHours;
-    private final Map<Integer, Set<String>> productToProductIdsMap;
+    private final Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap;
     private final Map<String, Set<String>> roleToProductsMap;
 
     public FactNormalizer(ApplicationProperties props, ProductProfileRegistry profileRegistry,
         ApplicationClock clock) {
         this.clock = clock;
         this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
-        this.productToProductIdsMap = profileRegistry.getProductToProductIdsMap();
-        this.roleToProductsMap = profileRegistry.getRoleToProductsMap();
+        this.engProductIdToSwatchProductIdsMap = profileRegistry.getEngProductIdToSwatchProductIdsMap();
+        this.roleToProductsMap = profileRegistry.getRoleToSwatchProductIdsMap();
     }
 
     public static boolean isRhelVariant(String product) {
@@ -207,7 +207,7 @@ public class FactNormalizer {
             try {
                 Integer numericProductId = Integer.parseInt(productId);
                 normalizedFacts.getProducts().addAll(
-                    productToProductIdsMap.getOrDefault(numericProductId, Collections.emptySet()));
+                    engProductIdToSwatchProductIdsMap.getOrDefault(numericProductId, Collections.emptySet()));
             }
             catch (NumberFormatException e) {
                 log.debug("Skipping non-numeric productId: {}", productId);

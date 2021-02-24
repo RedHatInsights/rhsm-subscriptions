@@ -1,36 +1,36 @@
 name: RHELProducts
 products:
-  - product: 1
-    productIds:
+  - engProductId: 1
+    swatchProductIds:
       - RHEL
-  - product: 2
-    productIds:
+  - engProductId: 2
+    swatchProductIds:
       - RHEL
-  - product: 3
-    productIds:
+  - engProductId: 3
+    swatchProductIds:
        - RHEL
-  - product: 4
-    productIds:
+  - engProductId: 4
+    swatchProductIds:
       - NOT RHEL
-  - product: 5
-    productIds:
+  - engProductId: 5
+    swatchProductIds:
       - NOT RHEL
-  - product: 6
-    productIds:
+  - engProductId: 6
+    swatchProductIds:
       - NOT RHEL
-  - product: 9
-    productIds:
+  - engProductId: 9
+    swatchProductIds:
       - RHEL
       - RHEL Workstation
-  - product: 10
-    productIds:
+  - engProductId: 10
+    swatchProductIds:
       - RHEL
       - RHEL Server
-  - product: 13
-    productIds:
+  - engProductId: 13
+    swatchProductIds:
       - OpenShift Container Platform
-  - product: 6789
-    productIds:
+  - engProductId: 6789
+    swatchProductIds:
       - RHEL for x86
 finestGranularity: DAILY
 burstable: false
@@ -38,18 +38,18 @@ prometheusMetricName: rhelMetricName
 prometheusCounterName: rhelCounterName
 syspurposeRoles:
   - name: Red Hat Enterprise Linux Server
-    productIds:
+    swatchProductIds:
       - RHEL
       - RHEL Server
   - name: Red Hat Enterprise Linux Workstation
-    productIds:
+    swatchProductIds:
       - RHEL
       - RHEL Workstation
   - name: Red Hat Enterprise Linux Compute Node
-    productIds:
+    swatchProductIds:
       - RHEL
       - RHEL Compute Node
-architectureProductIdMap:
+architectureSwatchProductIdMap:
   aarch64: RHEL for ARM
   arm64: RHEL for ARM
   i386: RHEL for x86
@@ -60,12 +60,12 @@ architectureProductIdMap:
 ---
 name: SatelliteProducts
 products:
-  - product: 250 # Red Hat Satellite
-    productIds:
+  - engProductId: 250 # Red Hat Satellite
+    swatchProductIds:
       - Satellite
       - Satellite Server
-  - product: 269 # Red Hat Satellite Capsule
-    productIds:
+  - engProductId: 269 # Red Hat Satellite Capsule
+    swatchProductIds:
       - Satellite
       - Satellite Capsule
 finestGranularity: DAILY
@@ -73,23 +73,23 @@ burstable: false
 prometheusMetricName: satMetricName
 prometheusCounterName: satCounterName
 syspurposeRoles: []
-architectureProductIdMap: {}
+architectureSwatchProductIdMap: {}
 ---
 name: OpenShiftHourlyProducts
 products:
-  - product: 999
-    productIds:
+  - engProductId: 999
+    swatchProductIds:
       - OpenShift Hourly
 finestGranularity: HOURLY
 burstable: false
 syspurposeRoles: []
-architectureProductIdMap: {}
+architectureSwatchProductIdMap: {}
 ---
 name: OtherProducts
 products:
-  - product: 2000
-    productIds:
+  - engProductId: 2000
+    swatchProductIds:
       - OTHER PRODUCT
 finestGranularity: DAILY
 syspurposeRoles: []
-architectureProductIdMap: {}
+architectureSwatchProductIdMap: {}

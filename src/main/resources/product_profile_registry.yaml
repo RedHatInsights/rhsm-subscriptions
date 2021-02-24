@@ -1,65 +1,65 @@
 name: RHELProducts
 products:
-  - product: 68 # Red Hat Enterprise Linux Desktop
-    productIds:
+  - engProductId: 68 # Red Hat Enterprise Linux Desktop
+    swatchProductIds:
       - RHEL
       - RHEL for x86
       - RHEL Desktop
-  - product: 69 # Red Hat Enterprise Linux Server
-    productIds:
+  - engProductId: 69 # Red Hat Enterprise Linux Server
+    swatchProductIds:
       - RHEL
       - RHEL for x86
       - RHEL Server
-  - product: 71 # Red Hat Enterprise Linux Workstation
-    productIds:
+  - engProductId: 71 # Red Hat Enterprise Linux Workstation
+    swatchProductIds:
       - RHEL
       - RHEL for x86
       - RHEL Workstation
-  - product: 72 # Red Hat Enterprise Linux for IBM z Systems
-    productIds:
+  - engProductId: 72 # Red Hat Enterprise Linux for IBM z Systems
+    swatchProductIds:
       - RHEL
       - RHEL for IBM z
-  - product: 74 # Red Hat Enterprise Linux for Power, big endian
-    productIds:
+  - engProductId: 74 # Red Hat Enterprise Linux for Power, big endian
+    swatchProductIds:
       - RHEL
       - RHEL for IBM Power
-  - product: 76 # Red Hat Enterprise Linux for Scientific Computing
-    productIds:
+  - engProductId: 76 # Red Hat Enterprise Linux for Scientific Computing
+    swatchProductIds:
       - RHEL
       - RHEL for x86
       - RHEL Compute Node
-  - product: 279 # Red Hat Enterprise Linux for Power, little endian
-    productIds:
+  - engProductId: 279 # Red Hat Enterprise Linux for Power, little endian
+    swatchProductIds:
       - RHEL
       - RHEL for IBM Power
-  - product: 419 # Red Hat Enterprise Linux for ARM 64
-    productIds:
+  - engProductId: 419 # Red Hat Enterprise Linux for ARM 64
+    swatchProductIds:
       - RHEL
       - RHEL for ARM
-  - product: 420 # Red Hat Enterprise Linux for Power 9
-    productIds:
+  - engProductId: 420 # Red Hat Enterprise Linux for Power 9
+    swatchProductIds:
       - RHEL
       - RHEL for IBM Power
-  - product: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
-    productIds:
+  - engProductId: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
+    swatchProductIds:
       - RHEL
       - RHEL for x86
 finestGranularity: DAILY
 burstable: false
 syspurposeRoles:
   - name: Red Hat Enterprise Linux Server
-    productIds:
+    swatchProductIds:
       - RHEL
       - RHEL Server
   - name: Red Hat Enterprise Linux Workstation
-    productIds:
+    swatchProductIds:
       - RHEL
       - RHEL Workstation
   - name: Red Hat Enterprise Linux Compute Node
-    productIds:
+    swatchProductIds:
       - RHEL
       - RHEL Compute Node
-architectureProductIdMap:
+architectureSwatchProductIdMap:
   aarch64: RHEL for ARM
   arm64: RHEL for ARM
   i386: RHEL for x86
@@ -70,31 +70,31 @@ architectureProductIdMap:
 ---
 name: SatelliteProducts
 products:
-  - product: 250 # Red Hat Satellite
-    productIds:
+  - engProductId: 250 # Red Hat Satellite
+    swatchProductIds:
       - Satellite
       - Satellite Server
-  - product: 269 # Red Hat Satellite Capsule
-    productIds:
+  - engProductId: 269 # Red Hat Satellite Capsule
+    swatchProductIds:
       - Satellite
       - Satellite Capsule
 finestGranularity: DAILY
 burstable: false
 syspurposeRoles: []
-architectureProductIdMap: {}
+architectureSwatchProductIdMap: {}
 ---
 name: OpenShift-metrics
 products:
-  - product: 290 # Red Hat OpenShift Container Platform
-    productIds:
+  - engProductId: 290 # Red Hat OpenShift Container Platform
+    swatchProductIds:
       - OpenShift Container Platform
 syspurposeRoles:
   - name: ocp
-    productIds:
+    swatchProductIds:
       - OpenShift-metrics
   - name: osd
-    productIds:
+    swatchProductIds:
       - OpenShift-dedicated-metrics
 finestGranularity: HOURLY
 burstable: false
-architectureProductIdMap: {}
+architectureSwatchProductIdMap: {}

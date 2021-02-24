@@ -26,7 +26,7 @@ import java.util.Set;
 /** Represents Syspurpose Roles and the product families they slot into. */
 public class SyspurposeRole {
     private String name;
-    private Set<String> productIds;
+    private Set<String> swatchProductIds;
 
     public String getName() {
         return name;
@@ -36,12 +36,12 @@ public class SyspurposeRole {
         this.name = name;
     }
 
-    public Set<String> getProductIds() {
-        return productIds;
+    public Set<String> getSwatchProductIds() {
+        return swatchProductIds;
     }
 
-    public void setProductIds(Set<String> productIds) {
-        this.productIds = productIds;
+    public void setSwatchProductIds(Set<String> swatchProductIds) {
+        this.swatchProductIds = swatchProductIds;
     }
 
     @Override
@@ -53,11 +53,11 @@ public class SyspurposeRole {
             return false;
         }
         SyspurposeRole that = (SyspurposeRole) o;
-        return name.equals(that.name) && productIds.equals(that.productIds);
+        return name.equals(that.name) && swatchProductIds.equals(that.swatchProductIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, productIds);
+        return Objects.hash(name, swatchProductIds);
     }
 }

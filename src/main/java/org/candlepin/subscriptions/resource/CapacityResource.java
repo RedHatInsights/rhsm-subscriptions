@@ -190,7 +190,7 @@ public class CapacityResource implements CapacityApi {
      *  DAILY granularity, we can't meaningfully fulfill that request.
      */
     protected void validateGranularityCompatibility(ProductId productId, Granularity requestedGranularity) {
-        ProductProfile productProfile = productProfileRegistry.findProfileForProductId(productId);
+        ProductProfile productProfile = productProfileRegistry.findProfileForSwatchProductId(productId);
         String msg = String.format("%s does not support any granularity finer than %s", productId.toString(),
             productProfile.getFinestGranularity());
         Assert.isTrue(productProfile.supportsGranularity(requestedGranularity), msg);

@@ -68,19 +68,21 @@ class ProductProfileRegistryTest {
 
     SubscriptionWatchProduct makeId(String engineeringProductId, Set<ProductId> productIds) {
         SubscriptionWatchProduct productId = new SubscriptionWatchProduct();
-        productId.setProduct(engineeringProductId);
-        productId.setProductIds(productIds.stream().map(ProductId::toString).collect(Collectors.toSet()));
+        productId.setEngProductId(engineeringProductId);
+        productId.setSwatchProductIds(productIds.stream()
+            .map(ProductId::toString)
+            .collect(Collectors.toSet()));
         return productId;
     }
 
     @Test
     void testFindProfileForProductId() {
-        assertEquals("p1", registry.findProfileForProductId("RHEL").getName());
+        assertEquals("p1", registry.findProfileForSwatchProductId("RHEL").getName());
     }
 
     @Test
     void testFindProfileForProduct() {
-        assertEquals("p2", registry.findProfileForProduct("4").getName());
+        assertEquals("p2", registry.findProfileForEngProductId("4").getName());
     }
 
     @Test
@@ -100,7 +102,7 @@ class ProductProfileRegistryTest {
 
     @Test
     void testReturnsDefault() {
-        ProductProfile actual = registry.findProfileForProductId(RHEL_FOR_ARM);
+        ProductProfile actual = registry.findProfileForSwatchProductId(RHEL_FOR_ARM);
         ProductProfile expected = ProductProfile.getDefault();
         assertEquals(actual, expected);
     }

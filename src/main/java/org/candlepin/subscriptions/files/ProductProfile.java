@@ -49,7 +49,7 @@ public class ProductProfile {
     private boolean burstable = false;
     private String prometheusMetricName;
     private String prometheusCounterName;
-    private Map<String, String> architectureProductIdMap;
+    private Map<String, String> architectureSwatchProductIdMap;
 
     public ProductProfile() {
         // Default used for YAML deserialization
@@ -93,12 +93,12 @@ public class ProductProfile {
         this.finestGranularity = finestGranularity;
     }
 
-    public Map<String, String> getArchitectureProductIdMap() {
-        return architectureProductIdMap;
+    public Map<String, String> getArchitectureSwatchProductIdMap() {
+        return architectureSwatchProductIdMap;
     }
 
-    public void setArchitectureProductIdMap(Map<String, String> architectureProductIdMap) {
-        this.architectureProductIdMap = architectureProductIdMap;
+    public void setArchitectureSwatchProductIdMap(Map<String, String> architectureSwatchProductIdMap) {
+        this.architectureSwatchProductIdMap = architectureSwatchProductIdMap;
     }
 
     public boolean isBurstable() {
@@ -126,7 +126,7 @@ public class ProductProfile {
     }
 
     public boolean supportsProduct(String product) {
-        return products.stream().anyMatch(x -> product.equals(x.getProduct()));
+        return products.stream().anyMatch(x -> product.equals(x.getEngProductId()));
     }
 
     public boolean prometheusEnabled() {
@@ -150,7 +150,7 @@ public class ProductProfile {
             Objects.equals(products, that.products) && finestGranularity == that.finestGranularity &&
             Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
             Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
-            Objects.equals(architectureProductIdMap, that.architectureProductIdMap);
+            Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap);
     }
 
     @Override
@@ -161,7 +161,7 @@ public class ProductProfile {
             finestGranularity,
             burstable,
             prometheusMetricName,
-            prometheusCounterName, architectureProductIdMap
+            prometheusCounterName, architectureSwatchProductIdMap
         );
     }
 }
