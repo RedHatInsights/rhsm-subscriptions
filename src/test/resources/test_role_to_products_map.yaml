@@ -1,6 +1,0 @@
-role1:
-  - RHEL
-  - RHEL Server
-role2:
-  - RHEL
-  - RHEL Workstation
