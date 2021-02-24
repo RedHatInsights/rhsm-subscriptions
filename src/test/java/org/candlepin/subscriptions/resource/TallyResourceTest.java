@@ -465,10 +465,10 @@ public class TallyResourceTest {
     void testShouldAddHypervisorAndVirtual() {
         TallySnapshot snapshot = new TallySnapshot();
         HardwareMeasurement hypervisorMeasurement = new HardwareMeasurement();
-        hypervisorMeasurement.setSockets(3);
+        hypervisorMeasurement.setSockets(30);
         hypervisorMeasurement.setInstanceCount(3);
         HardwareMeasurement virtualMeasurement = new HardwareMeasurement();
-        virtualMeasurement.setSockets(7);
+        virtualMeasurement.setSockets(70);
         virtualMeasurement.setInstanceCount(7);
         snapshot.setHardwareMeasurement(HardwareMeasurementType.HYPERVISOR, hypervisorMeasurement);
         snapshot.setHardwareMeasurement(HardwareMeasurementType.VIRTUAL, virtualMeasurement);
@@ -477,7 +477,7 @@ public class TallyResourceTest {
             .asApiSnapshot();
 
         assertEquals(10, apiSnapshot.getHypervisorInstanceCount().intValue());
-        assertEquals(10, apiSnapshot.getHypervisorSockets().intValue());
+        assertEquals(100, apiSnapshot.getHypervisorSockets().intValue());
     }
 
     @Test

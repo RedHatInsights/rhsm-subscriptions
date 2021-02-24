@@ -231,12 +231,12 @@ public class TallySnapshot implements Serializable {
         if (virtual != null) {
             totalVirtualCores += virtual.getCores();
             totalVirtualSockets += virtual.getSockets();
-            totalVirtualInstanceCount += virtual.getSockets();
+            totalVirtualInstanceCount += virtual.getInstanceCount();
         }
         if (hypervisor != null) {
             totalVirtualCores += hypervisor.getCores();
             totalVirtualSockets += hypervisor.getSockets();
-            totalVirtualInstanceCount += hypervisor.getSockets();
+            totalVirtualInstanceCount += hypervisor.getInstanceCount();
         }
         if (hypervisor != null || virtual != null) {
             snapshot.setHypervisorCores(totalVirtualCores);
