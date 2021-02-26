@@ -34,6 +34,7 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,14 +44,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.ws.rs.core.Response;
@@ -64,6 +64,7 @@ public class MetricUsageCollector {
 
     private final AccountRepository accountRepository;
     private final EventController eventController;
+    private final ApplicationClock clock;
     private final ProductConfig productConfig;
 
     /**
@@ -102,10 +103,12 @@ public class MetricUsageCollector {
     }
 
     @Autowired
-    public MetricUsageCollector(AccountRepository accountRepository, EventController eventController) {
+    public MetricUsageCollector(AccountRepository accountRepository, EventController eventController,
+        ApplicationClock clock) {
 
         this.accountRepository = accountRepository;
         this.eventController = eventController;
+        this.clock = clock;
         this.productConfig = new ProductConfig();
 
     }
@@ -119,25 +122,48 @@ public class MetricUsageCollector {
             "Account not found!",
             String.format("Account %s was not found. Account not opted in?", accountNumber))
         );
-        Map<String, Host> existingInstances = account.getServiceInstances().values().stream()
-            .filter(host -> productConfig.getServiceType().equals(host.getInstanceType()))
-            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+        Map<String, Host> serviceInstances = new HashMap<>();
+        OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
+        for (Host host : account.getServiceInstances().values()) {
+            if (productConfig.getServiceType().equals(host.getInstanceType())) {
+                serviceInstances.put(host.getInstanceId(), host);
+                newestInstanceTimestamp = newestInstanceTimestamp.isAfter(host.getLastSeen()) ?
+                    newestInstanceTimestamp : host.getLastSeen();
+            }
+        }
+        OffsetDateTime effectiveStartDateTime;
+        OffsetDateTime effectiveEndDateTime;
+        boolean recalculatingMonthlyTotals;
+        if (newestInstanceTimestamp.isAfter(startDateTime)) {
+            effectiveStartDateTime = clock.startOfMonth(startDateTime);
+            effectiveEndDateTime = clock.endOfMonth(endDateTime);
+            recalculatingMonthlyTotals = true;
+        }
+        else {
+            effectiveStartDateTime = startDateTime;
+            effectiveEndDateTime = endDateTime;
+            recalculatingMonthlyTotals = false;
+        }
+
+        if (recalculatingMonthlyTotals) {
+            log.info("Clearing monthly totals for {} instances", serviceInstances.size());
+            serviceInstances.values().forEach(instance -> instance.clearMonthlyTotals(effectiveStartDateTime,
+                effectiveEndDateTime));
+        }
+
         Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
-            startDateTime,
-            endDateTime)
+            effectiveStartDateTime,
+            effectiveEndDateTime)
             .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
 
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();
-            Host existing = existingInstances.remove(instanceId);
+            Host existing = serviceInstances.get(instanceId);
             Host host = existing == null ? new Host() : existing;
             updateInstanceFromEvent(event, host);
+            serviceInstances.put(instanceId, host);
             account.getServiceInstances().put(instanceId, host);
         });
-
-        log.info("Removing {} stale {} records (metrics no longer present).",
-            existingInstances.size(), productConfig.getServiceType());
-        existingInstances.keySet().forEach(account.getServiceInstances()::remove);
 
         accountRepository.save(account);
         return tallyCurrentAccountState(account);
@@ -182,7 +208,11 @@ public class MetricUsageCollector {
             .ifPresent(instance::setSubscriptionManagerId);
         Optional.ofNullable(event.getMeasurements())
             .orElse(Collections.emptyList())
-            .forEach(measurement -> instance.setMeasurement(measurement.getUom(), measurement.getValue()));
+            .forEach(measurement -> {
+                instance.setMeasurement(measurement.getUom(), measurement.getValue());
+                instance.addToMonthlyTotal(event.getTimestamp(), measurement.getUom(),
+                    measurement.getValue());
+            });
         addBucketsFromEvent(instance, event);
     }
 
