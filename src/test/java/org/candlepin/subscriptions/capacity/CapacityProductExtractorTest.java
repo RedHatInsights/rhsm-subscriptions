@@ -76,7 +76,7 @@ class CapacityProductExtractorTest {
     void productSetIsInvalid() {
         Set<String> products = new HashSet<>();
         products.add("RHEL Workstation");
-        products.add("Satellite 6");
+        products.add("Satellite");
         assertThat(extractor.setIsInvalid(products), Matchers.is(true));
     }
 
@@ -99,8 +99,8 @@ class CapacityProductExtractorTest {
 
     @Test
     void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
-        Set<String> products = extractor.getProducts(Arrays.asList("1", "12"));
-        assertThat(products, Matchers.containsInAnyOrder("Satellite 6 Capsule"));
+        Set<String> products = extractor.getProducts(Arrays.asList("1", "269"));
+        assertThat(products, Matchers.containsInAnyOrder("Satellite", "Satellite Capsule"));
     }
 
     @Test

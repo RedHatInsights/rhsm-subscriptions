@@ -57,8 +57,8 @@ public class CloudigradeAccountUsageCollector {
     public CloudigradeAccountUsageCollector(CloudigradeService cloudigradeService,
         ProductProfileRegistry productRegistry) {
         this.cloudigradeService = cloudigradeService;
-        this.roleToProductsMap = productRegistry.getRoleToProductsMap();
-        this.archToProductMap = productRegistry.getArchToProductMap();
+        this.roleToProductsMap = productRegistry.getRoleToSwatchProductIdsMap();
+        this.archToProductMap = productRegistry.getArchToSwatchProductIdsMap();
     }
 
     /**

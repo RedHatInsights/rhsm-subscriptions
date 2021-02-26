@@ -40,10 +40,10 @@ class ProductProfileRegistrySourceTest {
         ProductProfileRegistry registry = source.getValue();
 
         HashSet<String> expected = new HashSet<>(Arrays.asList(
-            "RHELProduct",
-            "SatelliteProduct",
-            "OpenShiftHourlyProduct",
-            "OtherProduct"
+            "RHELProducts",
+            "SatelliteProducts",
+            "OpenShiftHourlyProducts",
+            "OtherProducts"
         ));
         assertEquals(expected, registry.listProfiles());
     }

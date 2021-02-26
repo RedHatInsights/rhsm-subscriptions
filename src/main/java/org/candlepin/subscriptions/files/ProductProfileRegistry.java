@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.files;
 
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +35,9 @@ import java.util.stream.Collectors;
 public class ProductProfileRegistry {
     private static final Logger log = LoggerFactory.getLogger(ProductProfileRegistry.class);
 
-    private final Map<String, ProductProfile> profileMap;
+    private final Map<Integer, ProductProfile> engProductIdToProfileMap;
+    // NB: We should use ProductId as the key for type safety but that requires test updates
+    private final Map<String, ProductProfile> swatchProductIdToProfileMap;
     private static final ProductProfileRegistry DEFAULT_REGISTRY = new ProductProfileRegistry();
 
     public static ProductProfileRegistry getDefaultRegistry() {
@@ -41,64 +45,104 @@ public class ProductProfileRegistry {
     }
 
     public ProductProfileRegistry() {
-        profileMap = new HashMap<>();
+        engProductIdToProfileMap = new HashMap<>();
+        swatchProductIdToProfileMap = new HashMap<>();
     }
 
     // Only classes in this package should have any need to add product profiles
     void addProductProfile(ProductProfile profile) {
-        Set<SubscriptionWatchProductId> profileIds = profile.getProductIds();
-        if (profileIds.isEmpty()) {
-            log.warn("No product IDs are set in product profile {}. This is probably a mistake.",
+        Set<SubscriptionWatchProduct> profileProducts = profile.getProducts();
+        if (profileProducts.isEmpty()) {
+            log.warn("No products are set in product profile {}. This is probably a mistake.",
                 profile.getName());
         }
 
-        Set<SubscriptionWatchProductId> duplicates =
-            profileIds.stream()
-            .filter(x -> profileMap.containsKey(x.getId()))
+        try {
+            Set<Integer> duplicateProducts = profileProducts.stream()
+                .map(SubscriptionWatchProduct::getEngProductId)
+                .map(Integer::parseInt)
+                .filter(engProductIdToProfileMap::containsKey)
+                .collect(Collectors.toSet());
+
+            if (!duplicateProducts.isEmpty()) {
+                throw new IllegalStateException("Failed to add profile " + profile.getName() + ".  The " +
+                    "following engineering product IDs are already defined: " + duplicateProducts);
+            }
+        }
+        catch (NumberFormatException e) {
+            throw new IllegalStateException("Could not parse product: " + e.getMessage());
+        }
+
+        profileProducts.forEach(x -> engProductIdToProfileMap
+            .put(Integer.parseInt(x.getEngProductId()), profile));
+
+        Set<String> duplicateIds = profileProducts.stream()
+            .flatMap(x -> x.getSwatchProductIds().stream())
+            .filter(swatchProductIdToProfileMap::containsKey)
             .collect(Collectors.toSet());
 
-        if (!duplicates.isEmpty()) {
-            throw new IllegalStateException("Failed to add profile " + profile.getName() + ".  The " +
-                "following product IDs are already defined: " + duplicates);
+        if (!duplicateIds.isEmpty()) {
+            throw new IllegalStateException("Failed to add profile " + profile.getName() +
+                ". The following Subscription Watch product IDs are already defined: " + duplicateIds);
         }
 
-        profileIds.forEach(x -> profileMap.put(x.getId(), profile));
+        profileProducts.stream()
+            .flatMap(x -> x.getSwatchProductIds().stream())
+            .forEach(x -> swatchProductIdToProfileMap.put(x, profile));
     }
 
-    public ProductProfile findProfile(String productId) {
-        if (profileMap.containsKey(productId)) {
-            return profileMap.get(productId);
+    public ProductProfile findProfileForSwatchProductId(String productId) {
+        if (swatchProductIdToProfileMap.containsKey(productId)) {
+            return swatchProductIdToProfileMap.get(productId);
         }
-        log.debug("Product {} not found in product profile registry. Returning default.", productId);
+        log.warn("ProductId {} not found in product profile registry. Returning default.", productId);
+        return ProductProfile.getDefault();
+    }
+
+    public ProductProfile findProfileForSwatchProductId(ProductId productId) {
+        return findProfileForSwatchProductId(productId.toString());
+    }
+
+    public ProductProfile findProfileForEngProductId(String product) {
+        return findProfileForEngProductId(Integer.parseInt(product));
+    }
+
+    public ProductProfile findProfileForEngProductId(Integer product) {
+        if (engProductIdToProfileMap.containsKey(product)) {
+            return engProductIdToProfileMap.get(product);
+        }
+        log.warn("Product {} not found in product profile registry. Returning default.", product);
         return ProductProfile.getDefault();
     }
 
     public Set<String> listProfiles() {
-        return profileMap.values().stream().map(ProductProfile::getName).collect(Collectors.toSet());
+        return engProductIdToProfileMap.values().stream()
+            .map(ProductProfile::getName)
+            .collect(Collectors.toSet());
     }
 
     public Set<ProductProfile> getAllProductProfiles() {
-        return new HashSet<>(profileMap.values());
+        return new HashSet<>(engProductIdToProfileMap.values());
     }
 
-    public Map<Integer, Set<String>> getProductIdToProductsMap() {
-        Map<Integer, Set<String>> productIdToProductsMap = new HashMap<>();
-        profileMap.values().stream()
+    public Map<Integer, Set<String>> getEngProductIdToSwatchProductIdsMap() {
+        Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap = new HashMap<>();
+        engProductIdToProfileMap.values().stream()
             .distinct()
-            .flatMap(x -> x.getProductIds().stream())
+            .flatMap(x -> x.getProducts().stream())
             .forEach(x -> {
-                Integer id = Integer.parseInt(x.getId());
-                if (productIdToProductsMap.containsKey(id)) {
-                    throw new IllegalStateException("Duplicate productId found: " + id);
+                Integer engId = Integer.parseInt(x.getEngProductId());
+                if (engProductIdToSwatchProductIdsMap.containsKey(engId)) {
+                    throw new IllegalStateException("Duplicate engineering product ID found: " + engId);
                 }
-                productIdToProductsMap.put(id, x.getProducts());
+                engProductIdToSwatchProductIdsMap.put(engId, x.getSwatchProductIds());
             });
-        return productIdToProductsMap;
+        return engProductIdToSwatchProductIdsMap;
     }
 
-    public Map<String, Set<String>> getRoleToProductsMap() {
+    public Map<String, Set<String>> getRoleToSwatchProductIdsMap() {
         Map<String, Set<String>> roleToProductsMap = new HashMap<>();
-        profileMap.values().stream()
+        engProductIdToProfileMap.values().stream()
             .distinct()
             .flatMap(x -> x.getSyspurposeRoles().stream())
             .forEach(x -> {
@@ -106,16 +150,16 @@ public class ProductProfileRegistry {
                 if (roleToProductsMap.containsKey(role)) {
                     throw new IllegalStateException("Duplicate role found: " + role);
                 }
-                roleToProductsMap.put(role, x.getProducts());
+                roleToProductsMap.put(role, x.getSwatchProductIds());
             });
         return roleToProductsMap;
     }
 
-    public Map<String, String> getArchToProductMap() {
+    public Map<String, String> getArchToSwatchProductIdsMap() {
         Map<String, String> archToProductMap = new HashMap<>();
-        profileMap.values().stream()
+        engProductIdToProfileMap.values().stream()
             .distinct()
-            .map(ProductProfile::getArchitectureProductMap)
+            .map(ProductProfile::getArchitectureSwatchProductIdMap)
             .forEach(archToProductMap::putAll);
         return archToProductMap;
     }

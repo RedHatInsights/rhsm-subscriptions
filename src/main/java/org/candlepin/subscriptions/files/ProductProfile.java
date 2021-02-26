@@ -43,21 +43,21 @@ public class ProductProfile {
     }
 
     private String name;
-    private Set<SubscriptionWatchProductId> productIds;
+    private Set<SubscriptionWatchProduct> products;
     private Set<SyspurposeRole> syspurposeRoles;
     private Granularity finestGranularity;
     private boolean burstable = false;
     private String prometheusMetricName;
     private String prometheusCounterName;
-    private Map<String, String> architectureProductMap;
+    private Map<String, String> architectureSwatchProductIdMap;
 
     public ProductProfile() {
         // Default used for YAML deserialization
     }
 
-    public ProductProfile(String name, Set<SubscriptionWatchProductId> productIds, Granularity granularity) {
+    public ProductProfile(String name, Set<SubscriptionWatchProduct> products, Granularity granularity) {
         this.name = name;
-        this.productIds = productIds;
+        this.products = products;
         this.finestGranularity = granularity;
     }
 
@@ -69,12 +69,12 @@ public class ProductProfile {
         this.name = name;
     }
 
-    public Set<SubscriptionWatchProductId> getProductIds() {
-        return productIds;
+    public Set<SubscriptionWatchProduct> getProducts() {
+        return products;
     }
 
-    public void setProductIds(Set<SubscriptionWatchProductId> productIds) {
-        this.productIds = productIds;
+    public void setProducts(Set<SubscriptionWatchProduct> products) {
+        this.products = products;
     }
 
     public Set<SyspurposeRole> getSyspurposeRoles() {
@@ -93,12 +93,12 @@ public class ProductProfile {
         this.finestGranularity = finestGranularity;
     }
 
-    public Map<String, String> getArchitectureProductMap() {
-        return architectureProductMap;
+    public Map<String, String> getArchitectureSwatchProductIdMap() {
+        return architectureSwatchProductIdMap;
     }
 
-    public void setArchitectureProductMap(Map<String, String> architectureProductMap) {
-        this.architectureProductMap = architectureProductMap;
+    public void setArchitectureSwatchProductIdMap(Map<String, String> architectureSwatchProductIdMap) {
+        this.architectureSwatchProductIdMap = architectureSwatchProductIdMap;
     }
 
     public boolean isBurstable() {
@@ -125,8 +125,8 @@ public class ProductProfile {
         this.prometheusCounterName = prometheusCounterName;
     }
 
-    public boolean supportsProduct(String productId) {
-        return productIds.stream().anyMatch(x -> productId.equals(x.getId()));
+    public boolean supportsProduct(String product) {
+        return products.stream().anyMatch(x -> product.equals(x.getEngProductId()));
     }
 
     public boolean prometheusEnabled() {
@@ -147,21 +147,21 @@ public class ProductProfile {
         }
         ProductProfile that = (ProductProfile) o;
         return burstable == that.burstable && Objects.equals(name, that.name) &&
-            Objects.equals(productIds, that.productIds) && finestGranularity == that.finestGranularity &&
+            Objects.equals(products, that.products) && finestGranularity == that.finestGranularity &&
             Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
             Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
-            Objects.equals(architectureProductMap, that.architectureProductMap);
+            Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(
             name,
-            productIds,
+            products,
             finestGranularity,
             burstable,
             prometheusMetricName,
-            prometheusCounterName, architectureProductMap
+            prometheusCounterName, architectureSwatchProductIdMap
         );
     }
 }

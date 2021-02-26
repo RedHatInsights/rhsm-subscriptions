@@ -24,24 +24,24 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Represents the idea of products in Subscription Watch and what family they slot into. */
-public class SubscriptionWatchProductId {
-    private String id;
-    private Set<String> products;
+public class SubscriptionWatchProduct {
+    private String engProductId;
+    private Set<String> swatchProductIds;
 
-    public String getId() {
-        return id;
+    public String getEngProductId() {
+        return engProductId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setEngProductId(String engProductId) {
+        this.engProductId = engProductId;
     }
 
-    public Set<String> getProducts() {
-        return products;
+    public Set<String> getSwatchProductIds() {
+        return swatchProductIds;
     }
 
-    public void setProducts(Set<String> products) {
-        this.products = products;
+    public void setSwatchProductIds(Set<String> swatchProductIds) {
+        this.swatchProductIds = swatchProductIds;
     }
 
     @Override
@@ -52,13 +52,13 @@ public class SubscriptionWatchProductId {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        SubscriptionWatchProductId that = (SubscriptionWatchProductId) obj;
-        return id.equals(that.id) &&
-            products.equals(that.products);
+        SubscriptionWatchProduct that = (SubscriptionWatchProduct) obj;
+        return engProductId.equals(that.engProductId) &&
+            swatchProductIds.equals(that.swatchProductIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, products);
+        return Objects.hash(engProductId, swatchProductIds);
     }
 }
