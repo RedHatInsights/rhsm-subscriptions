@@ -20,14 +20,9 @@
  */
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
@@ -39,17 +34,30 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.retry.backoff.NoBackOffPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+@SpringBootTest
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles({"rhsm-conduit", "test"})
 class KafkaEnabledInventoryServiceTest {
+    @Autowired
+    @Qualifier("kafkaRetryTemplate")
+    private RetryTemplate retryTemplate;
 
     @Mock
     private KafkaTemplate producer;
@@ -63,6 +71,9 @@ class KafkaEnabledInventoryServiceTest {
     @BeforeEach
     void setup() {
         when(meterRegistry.counter(any())).thenReturn(mockCounter);
+
+        // Make the tests run faster!
+        retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
     }
 
     @Test
@@ -82,7 +93,7 @@ class KafkaEnabledInventoryServiceTest {
 
         InventoryServiceProperties props = new InventoryServiceProperties();
         KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
+            meterRegistry, retryTemplate);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
@@ -110,10 +121,28 @@ class KafkaEnabledInventoryServiceTest {
     }
 
     @Test
+    void ensureSendHostRetries() {
+        ConduitFacts conduitFacts = new ConduitFacts();
+        conduitFacts.setAccountNumber("my_account");
+        List<ConduitFacts> expectedFacts = Arrays.asList(conduitFacts);
+
+        when(producer.send(anyString(), any(CreateUpdateHostMessage.class))).thenThrow(KafkaException.class);
+
+        InventoryServiceProperties props = new InventoryServiceProperties();
+        KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
+            meterRegistry, retryTemplate);
+        service.sendHostUpdate(expectedFacts);
+
+        // This 4 is based on the RetryTemplate.  I don't know of a way to get the value at runtime, so it's
+        // hardcoded here.
+        verify(producer, times(4)).send(anyString(), any(CreateUpdateHostMessage.class));
+    }
+
+    @Test
     void ensureNoMessageWithEmptyFactList() {
         InventoryServiceProperties props = new InventoryServiceProperties();
         KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
+            meterRegistry, retryTemplate);
         service.sendHostUpdate(Arrays.asList());
 
         verifyZeroInteractions(producer);
@@ -123,7 +152,7 @@ class KafkaEnabledInventoryServiceTest {
     void ensureMessageSentWhenHostUpdateScheduled() {
         InventoryServiceProperties props = new InventoryServiceProperties();
         KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
+            meterRegistry, retryTemplate);
         service.scheduleHostUpdate(new ConduitFacts());
         service.scheduleHostUpdate(new ConduitFacts());
 
@@ -145,7 +174,7 @@ class KafkaEnabledInventoryServiceTest {
         props.setStaleHostOffsetInDays(24);
 
         KafkaEnabledInventoryService service = new KafkaEnabledInventoryService(props, producer,
-            meterRegistry);
+            meterRegistry, retryTemplate);
         service.sendHostUpdate(Arrays.asList(expectedFacts));
 
         CreateUpdateHostMessage message = messageCaptor.getValue();

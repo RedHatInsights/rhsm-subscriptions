@@ -27,11 +27,9 @@ import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.support.RetryTemplate;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -54,10 +52,12 @@ public class KafkaEnabledInventoryService extends InventoryService {
     private final Counter sentMessageCounter;
     private final Counter failedMessageCounter;
     private final Counter messageSizeCounter;
+    private final RetryTemplate retryTemplate;
 
     @SuppressWarnings("java:S3740")
     public KafkaEnabledInventoryService(InventoryServiceProperties serviceProperties,
-        KafkaTemplate<String, CreateUpdateHostMessage> producer, MeterRegistry meterRegistry) {
+        KafkaTemplate<String, CreateUpdateHostMessage> producer, MeterRegistry meterRegistry,
+        RetryTemplate retryTemplate) {
         // Flush updates as soon as they get scheduled.
         super(serviceProperties, 1);
         this.producer = producer;
@@ -65,6 +65,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
         this.sentMessageCounter = meterRegistry.counter("rhsm-conduit.send.inventory-message");
         this.failedMessageCounter = meterRegistry.counter("rhsm.conduit.send.inventory-message.failed");
         this.messageSizeCounter = meterRegistry.counter("rhsm-conduit.inventory-message.size.bytes");
+        this.retryTemplate = retryTemplate;
     }
 
     @Override
@@ -78,7 +79,6 @@ public class KafkaEnabledInventoryService extends InventoryService {
     }
 
     @Override
-    @Retryable(value = KafkaException.class, maxAttempts = 4, backoff = @Backoff(delay = 100, maxDelay = 500))
     protected void sendHostUpdate(List<ConduitFacts> facts) {
         if (facts.isEmpty()) {
             log.info("No facts to report!");
@@ -92,13 +92,22 @@ public class KafkaEnabledInventoryService extends InventoryService {
             try {
                 log.debug("Sending host inventory message: {}:{}:{}", factSet.getAccountNumber(),
                     factSet.getOrgId(), factSet.getSubscriptionManagerId());
-                producer.send(hostIngressTopic, new CreateUpdateHostMessage(createHost(factSet, now)))
-                    .addCallback(this::recordSuccess, this::recordFailure);
+                // After the retry limit is reached, the exception will bubble up to the catch clause and the
+                // loop will move on.
+                retryTemplate.execute(context -> {
+                    sendToKafka(now, factSet);
+                    return null;
+                });
             }
             catch (Exception e) {
                 recordFailure(e);
             }
         }
+    }
+
+    private void sendToKafka(OffsetDateTime now, ConduitFacts factSet) {
+        CreateUpdateHostMessage message = new CreateUpdateHostMessage(createHost(factSet, now));
+        producer.send(hostIngressTopic, message).addCallback(this::recordSuccess, this::recordFailure);
     }
 
     private void recordFailure(Throwable throwable) {
