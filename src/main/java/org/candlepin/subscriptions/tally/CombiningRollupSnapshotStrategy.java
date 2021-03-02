@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,19 +78,6 @@ public class CombiningRollupSnapshotStrategy {
         this.clock = clock;
     }
 
-    public static void updateSnapshotWithHardwareMeasurements(TallySnapshot snapshot,
-        HardwareMeasurementType type, UsageCalculation.Totals calculatedTotals) {
-        if (calculatedTotals != null) {
-            log.debug("Updating snapshot with hardware measurement: {}", type);
-            calculatedTotals.getMeasurements()
-                .forEach((uom, value) -> snapshot.setMeasurement(type, uom, value));
-        }
-    }
-
-    protected Granularity lookupFinestGranularity(String swatchProductId) {
-        return registry.findProfileForSwatchProductId(swatchProductId).getFinestGranularity();
-    }
-
     /**
      * @param accountCalcs Map of times and account calculations at that time
      * @param reductionFunction how to reduce the set of lower granularity snapshots its higher granularity
@@ -101,50 +89,24 @@ public class CombiningRollupSnapshotStrategy {
         DoubleBinaryOperator reductionFunction) {
 
         String swatchProductId = getSwatchProductId(accountCalcs);
-
         Granularity finestGranularity = lookupFinestGranularity(swatchProductId);
 
-        Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup = new HashMap<>();
-        Map<TallySnapshotNaturalKey, List<TallySnapshot>> rollupLookup = new HashMap<>();
+        Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots = new HashMap<>();
+        Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots = new HashMap<>();
 
-        for (Granularity granularity : GRANULARITIES) {
-            Granularity rollupGranularity = calculateNextGranularity(granularity);
-            boolean granularityWillBeRolledUp =
-                Arrays.asList(GRANULARITIES).contains(rollupGranularity) && rollupGranularity != null;
-            OffsetDateTime effectiveStartTime;
-            OffsetDateTime effectiveEndTime;
-            if (granularityWillBeRolledUp) {
-                // need to fetch all component snapshots of the rollups affected
-                effectiveStartTime = clock.calculateStartOfRange(startDateTime, rollupGranularity);
-                effectiveEndTime = clock.calculateEndOfRange(endDateTime, rollupGranularity);
-            }
-            else {
-                effectiveStartTime = clock.calculateStartOfRange(startDateTime, granularity);
-                effectiveEndTime = endDateTime;
-            }
-            var existingSnapshots = getCurrentSnapshotsByAccount(List.of(accountNumber),
-                List.of("OpenShift-metrics"), granularity, effectiveStartTime, effectiveEndTime)
-                .getOrDefault(accountNumber, Collections.emptyList());
-
-            existingSnapshots
-                .forEach(snap -> existingSnapshotLookup.put(new TallySnapshotNaturalKey(snap), snap));
-
-            if (granularityWillBeRolledUp) {
-                rollupLookup.putAll(existingSnapshots.stream()
-                    .collect(Collectors.groupingBy(s -> calculateRollupKey(rollupGranularity, s))));
-            }
-        }
+        catalogExistingSnapshots(accountNumber, startDateTime, endDateTime, totalExistingSnapshots,
+            derivedExistingSnapshots);
 
         List<TallySnapshot> finestGranularitySnapshots = produceFinestGranularitySnapshots(
-            existingSnapshotLookup, accountCalcs, finestGranularity);
+            totalExistingSnapshots, accountCalcs, finestGranularity);
 
         Map<TallySnapshotNaturalKey, List<TallySnapshot>> groupedFinestSnapshots = finestGranularitySnapshots
             .stream().collect(Collectors
             .groupingBy(s -> calculateRollupKey(calculateNextGranularity(finestGranularity), s)));
 
         List<TallySnapshot> rollupSnapshots = Arrays.stream(GRANULARITIES)
-            .filter(g -> g != finestGranularity)
-            .map(granularity -> produceRollups(existingSnapshotLookup, rollupLookup, granularity,
+            .filter(g -> !Objects.equals(g, finestGranularity))
+            .map(granularity -> produceRollups(totalExistingSnapshots, derivedExistingSnapshots, granularity,
             groupedFinestSnapshots, reductionFunction)).flatMap(List::stream).collect(Collectors.toList());
 
         Map<String, List<TallySnapshot>> totalSnapshots = Stream
@@ -154,6 +116,42 @@ public class CombiningRollupSnapshotStrategy {
         summaryProducer.produceTallySummaryMessages(totalSnapshots);
 
         log.info("Finished producing finestGranularitySnapshots for all accounts.");
+    }
+
+    private void catalogExistingSnapshots(String accountNumber, OffsetDateTime startDateTime,
+        OffsetDateTime endDateTime, Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots,
+        Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots) {
+        for (Granularity granularity : GRANULARITIES) {
+            Granularity rollupGranularity = calculateNextGranularity(granularity);
+
+            boolean granularityWillBeRolledUp = Arrays.asList(GRANULARITIES).contains(rollupGranularity) &&
+                Objects.nonNull(rollupGranularity);
+
+            OffsetDateTime effectiveStartTime;
+            OffsetDateTime effectiveEndTime;
+
+            if (granularityWillBeRolledUp) {
+                // need to fetch all component snapshots of the rollups affected
+                effectiveStartTime = clock.calculateStartOfRange(startDateTime, rollupGranularity);
+                effectiveEndTime = clock.calculateEndOfRange(endDateTime, rollupGranularity);
+            }
+            else {
+                effectiveStartTime = clock.calculateStartOfRange(startDateTime, granularity);
+                effectiveEndTime = endDateTime;
+            }
+
+            var existingSnapshots = getCurrentSnapshotsByAccount(List.of(accountNumber),
+                List.of(ProductId.OPENSHIFT_METRICS.toString()), granularity, effectiveStartTime,
+                effectiveEndTime).getOrDefault(accountNumber, Collections.emptyList());
+
+            existingSnapshots
+                .forEach(snap -> totalExistingSnapshots.put(new TallySnapshotNaturalKey(snap), snap));
+
+            if (granularityWillBeRolledUp) {
+                derivedExistingSnapshots.putAll(existingSnapshots.stream()
+                    .collect(Collectors.groupingBy(s -> calculateRollupKey(rollupGranularity, s))));
+            }
+        }
     }
 
     /**
@@ -172,12 +170,34 @@ public class CombiningRollupSnapshotStrategy {
         return accountUsageCalculation.getProducts().stream().findFirst().orElseThrow();
     }
 
-    private TallySnapshotNaturalKey calculateRollupKey(Granularity rollupGranularity,
-        TallySnapshot snapshot) {
-        TallySnapshotNaturalKey key = new TallySnapshotNaturalKey(snapshot);
-        key.setReferenceDate(clock.calculateStartOfRange(snapshot.getSnapshotDate(), rollupGranularity));
-        key.setGranularity(rollupGranularity);
-        return key;
+    protected Granularity lookupFinestGranularity(String swatchProductId) {
+        return registry.findProfileForSwatchProductId(swatchProductId).getFinestGranularity();
+    }
+
+    @SuppressWarnings("indentation")
+    protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(Collection<String> accounts,
+        Collection<String> products, Granularity granularity, OffsetDateTime begin, OffsetDateTime end) {
+        try (Stream<TallySnapshot> snapStream = tallyRepo
+            .findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(accounts, products,
+                granularity, begin, end)) {
+            return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+        }
+    }
+
+    protected void populateSnapshotFromProductUsageCalculation(TallySnapshot snapshot, String account,
+        String owner, UsageCalculation productCalc, Granularity granularity) {
+        snapshot.setProductId(productCalc.getProductId());
+        snapshot.setServiceLevel(productCalc.getSla());
+        snapshot.setUsage(productCalc.getUsage());
+        snapshot.setGranularity(granularity);
+        snapshot.setOwnerId(owner);
+        snapshot.setAccountNumber(account);
+
+        // Copy the calculated hardware measurements to the snapshots
+        for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
+            UsageCalculation.Totals calculatedTotals = productCalc.getTotals(type);
+            updateSnapshotWithHardwareMeasurements(snapshot, type, calculatedTotals);
+        }
     }
 
     private Granularity calculateNextGranularity(Granularity granularity) {
@@ -197,11 +217,47 @@ public class CombiningRollupSnapshotStrategy {
         }
     }
 
+    private TallySnapshotNaturalKey calculateRollupKey(Granularity rollupGranularity,
+        TallySnapshot snapshot) {
+        TallySnapshotNaturalKey key = new TallySnapshotNaturalKey(snapshot);
+        key.setReferenceDate(clock.calculateStartOfRange(snapshot.getSnapshotDate(), rollupGranularity));
+        key.setGranularity(rollupGranularity);
+        return key;
+    }
+
+    private List<TallySnapshot> produceFinestGranularitySnapshots(
+        Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup,
+        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs, Granularity granularity) {
+
+        List<TallySnapshot> saved = new ArrayList<>();
+
+        accountCalcs.forEach((offset, accountCalc) -> accountCalc.getProducts().forEach(product -> {
+            for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
+                var snapshotKey = new TallySnapshotNaturalKey(accountCalc.getAccount(),
+                    product, granularity, usageKey.getSla(), usageKey.getUsage(), offset);
+
+                TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
+                TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
+
+                UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+
+                populateSnapshotFromProductUsageCalculation(snapshot, accountCalc.getAccount(),
+                    accountCalc.getOwner(), productCalc, granularity);
+
+                snapshot.setSnapshotDate(offset);
+                saved.add(tallyRepo.save(snapshot));
+            }
+        }));
+        return saved;
+    }
+
     private List<TallySnapshot> produceRollups(
         Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup,
-        Map<TallySnapshotNaturalKey, List<TallySnapshot>> rollupLookup, Granularity granularity,
+        Map<TallySnapshotNaturalKey, List<TallySnapshot>> rollupLookup,
+        Granularity granularity,
         Map<TallySnapshotNaturalKey, List<TallySnapshot>> snapshotMapping,
         DoubleBinaryOperator reductionFunction) {
+
         List<TallySnapshot> rollupsProduced = new ArrayList<>();
         snapshotMapping.forEach((rollupKey, newAndUpdatedSnapshots) -> {
             List<TallySnapshot> existingContributingSnapshots = rollupLookup
@@ -210,12 +266,15 @@ public class CombiningRollupSnapshotStrategy {
                 produceRollups(existingSnapshotLookup, granularity, existingContributingSnapshots,
                 newAndUpdatedSnapshots, reductionFunction));
         });
+
         return rollupsProduced;
     }
 
     private List<TallySnapshot> produceRollups(
-        Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup, Granularity granularity,
-        List<TallySnapshot> existingContributingSnapshots, List<TallySnapshot> newAndUpdatedSnapshots,
+        Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup,
+        Granularity granularity,
+        List<TallySnapshot> existingContributingSnapshots,
+        List<TallySnapshot> newAndUpdatedSnapshots,
         DoubleBinaryOperator reductionFunction) {
 
         Map<UsageCalculation.Key, Map<TallyMeasurementKey, Double>> reducedMeasurements = new HashMap<>();
@@ -242,6 +301,23 @@ public class CombiningRollupSnapshotStrategy {
             });
         });
 
+        return updateTallySnapshots(existingSnapshotLookup, granularity, reducedMeasurements,
+            firstFinestGranularitySnapshot);
+    }
+
+    private void updateSnapshotWithHardwareMeasurements(TallySnapshot snapshot,
+        HardwareMeasurementType type, UsageCalculation.Totals calculatedTotals) {
+        if (calculatedTotals != null) {
+            log.debug("Updating snapshot with hardware measurement: {}", type);
+            calculatedTotals.getMeasurements()
+                .forEach((uom, value) -> snapshot.setMeasurement(type, uom, value));
+        }
+    }
+
+    private List<TallySnapshot> updateTallySnapshots(
+        Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup, Granularity granularity,
+        Map<UsageCalculation.Key, Map<TallyMeasurementKey, Double>> reducedMeasurements,
+        TallySnapshot firstFinestGranularitySnapshot) {
         List<TallySnapshot> saved = new ArrayList<>();
 
         reducedMeasurements.forEach((usageKey, measurements) -> {
@@ -268,55 +344,6 @@ public class CombiningRollupSnapshotStrategy {
         });
 
         return saved;
-    }
-
-    private List<TallySnapshot> produceFinestGranularitySnapshots(
-        Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup,
-        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs, Granularity granularity) {
-        List<TallySnapshot> saved = new ArrayList<>();
-        accountCalcs.forEach((offset, accountCalc) -> accountCalc.getProducts().forEach(product -> {
-            for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
-                var snapshotKey = new TallySnapshotNaturalKey(accountCalc.getAccount(),
-                    product, granularity, usageKey.getSla(), usageKey.getUsage(), offset);
-
-                TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
-                TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
-                UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
-
-                populateSnapshotFromProductUsageCalculation(snapshot, accountCalc.getAccount(),
-                    accountCalc.getOwner(), productCalc, granularity);
-
-                snapshot.setSnapshotDate(offset);
-                saved.add(tallyRepo.save(snapshot));
-            }
-        }));
-        return saved;
-    }
-
-    protected void populateSnapshotFromProductUsageCalculation(TallySnapshot snapshot, String account,
-        String owner, UsageCalculation productCalc, Granularity granularity) {
-        snapshot.setProductId(productCalc.getProductId());
-        snapshot.setServiceLevel(productCalc.getSla());
-        snapshot.setUsage(productCalc.getUsage());
-        snapshot.setGranularity(granularity);
-        snapshot.setOwnerId(owner);
-        snapshot.setAccountNumber(account);
-
-        // Copy the calculated hardware measurements to the snapshots
-        for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
-            UsageCalculation.Totals calculatedTotals = productCalc.getTotals(type);
-            updateSnapshotWithHardwareMeasurements(snapshot, type, calculatedTotals);
-        }
-    }
-
-    @SuppressWarnings("indentation")
-    protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(Collection<String> accounts,
-        Collection<String> products, Granularity granularity, OffsetDateTime begin, OffsetDateTime end) {
-        try (Stream<TallySnapshot> snapStream = tallyRepo
-            .findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(accounts, products,
-                granularity, begin, end)) {
-            return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
-        }
     }
 
 }

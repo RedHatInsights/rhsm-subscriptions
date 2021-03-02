@@ -41,6 +41,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -51,6 +52,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @SpringBootTest
+@ActiveProfiles({"worker", "test"})
 class CombiningRollupSnapshotStrategyTest {
 
     private static final String OPEN_SHIFT_HOURLY = "OpenShift Hourly";
