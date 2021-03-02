@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,9 @@ import java.util.UUID;
 
 public class HostTallyBucketTest {
 
+    // This is necessary to avoid duplicate keys with null hostId.
     @Test
-    void setHostId() {
+    void testBucketSetHostAlsoSetsBucketKeyHostId() {
         Host host = Mockito.mock(Host.class);
         HostTallyBucket hostTallyBucket = new HostTallyBucket(host, "product123", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, false, 4, 4, HardwareMeasurementType.PHYSICAL);
@@ -41,5 +42,16 @@ public class HostTallyBucketTest {
         hostTallyBucket.setHost(host);
 
         assertEquals(host.getId(), hostTallyBucket.getKey().getHostId());
+    }
+
+     // Set bucket key host ID to null when the host is null.
+    @Test
+    void testBucketSetNullHostAlsoSetsBucketKeyHostId() {
+        HostTallyBucket hostTallyBucket = new HostTallyBucket(null, "product123", ServiceLevel.PREMIUM,
+            Usage.PRODUCTION, false, 4, 4, HardwareMeasurementType.PHYSICAL);
+
+        hostTallyBucket.setHost(null);
+
+        assertNull(hostTallyBucket.getKey().getHostId());
     }
 }

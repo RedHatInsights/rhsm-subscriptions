@@ -106,7 +106,7 @@ public class HostTallyBucket implements Serializable {
 
     public void setHost(Host host) {
         this.host = host;
-        this.key.setHostId(host.getId());
+        this.key.setHostId(host == null ? null : host.getId());
     }
 
     @Override
