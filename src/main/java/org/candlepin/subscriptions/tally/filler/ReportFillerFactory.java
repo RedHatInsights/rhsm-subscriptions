@@ -42,7 +42,7 @@ public class ReportFillerFactory {
      */
     public static ReportFiller getInstance(ApplicationClock clock, Granularity granularity) {
         SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
-        return new ReportFiller(clock, timeAdjuster);
+        return new ReportFiller(timeAdjuster);
     }
 
 
