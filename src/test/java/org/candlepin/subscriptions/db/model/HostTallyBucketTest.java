@@ -28,7 +28,7 @@ import org.mockito.Mockito;
 
 import java.util.UUID;
 
-public class HostTallyBucketTest {
+class HostTallyBucketTest {
 
     // This is necessary to avoid duplicate keys with null hostId.
     @Test
