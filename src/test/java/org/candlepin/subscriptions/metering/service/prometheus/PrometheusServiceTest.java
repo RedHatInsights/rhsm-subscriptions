@@ -29,14 +29,14 @@ import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 
+import com.google.common.net.UrlEscapers;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.util.StringUtils;
 
-import java.net.URLEncoder;
 import java.time.OffsetDateTime;
 
 
@@ -57,7 +57,7 @@ class PrometheusServiceTest {
     void testGetOpenshiftMetrics() throws Exception {
 
         String expectedQuery =
-            URLEncoder.encode(StringUtils.trimAllWhitespace(props.getOpenshift().getMetricPromQL()), "UTF-8");
+            UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
         QueryResult expectedResult = new QueryResult();
 
         OffsetDateTime end = OffsetDateTime.now();
