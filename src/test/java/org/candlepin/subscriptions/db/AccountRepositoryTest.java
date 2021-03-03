@@ -30,6 +30,8 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -79,6 +82,19 @@ class AccountRepositoryTest {
 
         hostRepo.flush();
         accountConfigRepo.flush();
+    }
+
+    @Test
+    void testHbiHostCanBeLoaded() {
+        NormalizedFacts normalizedFacts = new NormalizedFacts();
+        InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+        inventoryHostFacts.setInventoryId(UUID.randomUUID());
+        inventoryHostFacts.setDisplayName("foo");
+        inventoryHostFacts.setAccount("account123");
+        Host host = new Host(inventoryHostFacts, normalizedFacts);
+        hostRepo.save(host);
+
+        assertTrue(repo.findById("account123").isPresent());
     }
 
     @Test

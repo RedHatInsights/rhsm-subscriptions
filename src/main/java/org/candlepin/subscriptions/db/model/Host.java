@@ -169,6 +169,7 @@ public class Host implements Serializable {
     public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
         this.instanceType = "HBI_HOST";
         this.inventoryId = inventoryId;
+        this.instanceId = inventoryId;
         this.insightsId = insightsId;
         this.accountNumber = accountNumber;
         this.orgId = orgId;
@@ -185,6 +186,7 @@ public class Host implements Serializable {
 
         if (inventoryHostFacts.getInventoryId() != null) {
             this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+            this.instanceId = inventoryHostFacts.getInventoryId().toString();
         }
 
         this.insightsId = inventoryHostFacts.getInsightsId();
