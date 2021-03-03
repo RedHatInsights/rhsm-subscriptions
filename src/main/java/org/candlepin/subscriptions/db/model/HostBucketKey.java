@@ -22,17 +22,18 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.UUID;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.FetchType;
-import javax.persistence.ManyToOne;
 
 /**
  * An embeddable composite key for a host bucket.
  */
 @Embeddable
 public class HostBucketKey implements Serializable {
+    @Column(name = "host_id")
+    private UUID hostId;
 
     @Column(name = "product_id")
     private String productId;
@@ -44,18 +45,23 @@ public class HostBucketKey implements Serializable {
     @Column(name = "as_hypervisor")
     private Boolean asHypervisor;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Host host;
-
     public HostBucketKey() {
     }
 
     public HostBucketKey(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
-        this.host = host;
+        this.hostId = host == null ? null : host.getId();
         this.productId = productId;
         this.sla = sla;
         this.usage = usage;
         this.asHypervisor = asHypervisor;
+    }
+
+    public UUID getHostId() {
+        return hostId;
+    }
+
+    public void setHostId(UUID hostId) {
+        this.hostId = hostId;
     }
 
     public String getProductId() {
@@ -90,14 +96,6 @@ public class HostBucketKey implements Serializable {
         this.asHypervisor = asHypervisor;
     }
 
-    public Host getHost() {
-        return host;
-    }
-
-    public void setHost(Host host) {
-        this.host = host;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -113,7 +111,7 @@ public class HostBucketKey implements Serializable {
             sla == that.sla &&
             usage == that.usage &&
             asHypervisor.equals(that.asHypervisor) &&
-            host.equals(that.host);
+            Objects.equals(hostId, that.hostId);
     }
 
     @Override

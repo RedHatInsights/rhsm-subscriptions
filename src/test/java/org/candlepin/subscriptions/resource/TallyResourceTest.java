@@ -26,8 +26,6 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurement;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -383,104 +381,6 @@ public class TallyResourceTest {
     }
 
     @Test
-    void testShouldIgnoreHbiAwsWhenCloudigradeAwsPresent() {
-        TallySnapshot snapshot = new TallySnapshot();
-        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-        hbiMeasurement.setSockets(3);
-        hbiMeasurement.setInstanceCount(3);
-        HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-        cloudigradeMeasurement.setSockets(7);
-        cloudigradeMeasurement.setInstanceCount(7);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
-
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
-            .asApiSnapshot();
-
-        assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
-        assertEquals(7, apiSnapshot.getCloudSockets().intValue());
-        assertTrue(apiSnapshot.getHasCloudigradeData());
-        assertTrue(apiSnapshot.getHasCloudigradeMismatch());
-    }
-
-    @Test
-    void testShouldNotFlagCloudigradeDataIfNotPresent() {
-        TallySnapshot snapshot = new TallySnapshot();
-        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-        hbiMeasurement.setSockets(3);
-        hbiMeasurement.setInstanceCount(3);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
-
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
-            .asApiSnapshot();
-
-        assertEquals(3, apiSnapshot.getCloudInstanceCount().intValue());
-        assertEquals(3, apiSnapshot.getCloudSockets().intValue());
-        assertFalse(apiSnapshot.getHasCloudigradeData());
-        assertFalse(apiSnapshot.getHasCloudigradeMismatch());
-    }
-
-    @Test
-    void testShouldNotFlagCloudigradeMismatchIfMatching() {
-        TallySnapshot snapshot = new TallySnapshot();
-        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-        hbiMeasurement.setSockets(7);
-        hbiMeasurement.setInstanceCount(7);
-        HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-        cloudigradeMeasurement.setSockets(7);
-        cloudigradeMeasurement.setInstanceCount(7);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
-
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
-            .asApiSnapshot();
-
-        assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
-        assertEquals(7, apiSnapshot.getCloudSockets().intValue());
-        assertTrue(apiSnapshot.getHasCloudigradeData());
-        assertFalse(apiSnapshot.getHasCloudigradeMismatch());
-    }
-
-    @Test
-    void testShouldTolerateAccountWithOnlyCloudigrade() {
-        TallySnapshot snapshot = new TallySnapshot();
-        HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-        hbiMeasurement.setSockets(7);
-        hbiMeasurement.setInstanceCount(7);
-        HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-        cloudigradeMeasurement.setSockets(7);
-        cloudigradeMeasurement.setInstanceCount(7);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
-
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
-            .asApiSnapshot();
-
-        assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
-        assertEquals(7, apiSnapshot.getCloudSockets().intValue());
-        assertTrue(apiSnapshot.getHasCloudigradeData());
-        assertFalse(apiSnapshot.getHasCloudigradeMismatch());
-    }
-
-    @Test
-    void testShouldAddHypervisorAndVirtual() {
-        TallySnapshot snapshot = new TallySnapshot();
-        HardwareMeasurement hypervisorMeasurement = new HardwareMeasurement();
-        hypervisorMeasurement.setSockets(3);
-        hypervisorMeasurement.setInstanceCount(3);
-        HardwareMeasurement virtualMeasurement = new HardwareMeasurement();
-        virtualMeasurement.setSockets(7);
-        virtualMeasurement.setInstanceCount(7);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.HYPERVISOR, hypervisorMeasurement);
-        snapshot.setHardwareMeasurement(HardwareMeasurementType.VIRTUAL, virtualMeasurement);
-
-        org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot = snapshot
-            .asApiSnapshot();
-
-        assertEquals(10, apiSnapshot.getHypervisorInstanceCount().intValue());
-        assertEquals(10, apiSnapshot.getHypervisorSockets().intValue());
-    }
-
-    @Test
     public void testShouldThrowExceptionOnBadOffset() throws IOException {
         SubscriptionsException e = assertThrows(SubscriptionsException.class, () -> resource.getTallyReport(
             RHEL_PRODUCT_ID,
@@ -531,6 +431,7 @@ public class TallyResourceTest {
         assertEquals(0, snapshot.getCloudInstanceCount().intValue());
         assertEquals(0, snapshot.getCloudCores().intValue());
         assertEquals(0, snapshot.getCloudSockets().intValue());
+        assertEquals(0.0, snapshot.getCoreHours());
     }
 
     @Test

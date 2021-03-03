@@ -119,10 +119,11 @@ public class TallyWorkerConfiguration {
     @Bean(name = "applicableProducts")
     public Set<String> applicableProducts(ProductProfileRegistry profileRegistry) {
         Set<String> products = new HashSet<>();
-        Map<Integer, Set<String>> productIdToProducts = profileRegistry.getProductIdToProductsMap();
-        productIdToProducts.values().forEach(products::addAll);
+        Map<Integer, Set<String>> productToProductIds =
+            profileRegistry.getEngProductIdToSwatchProductIdsMap();
+        productToProductIds.values().forEach(products::addAll);
 
-        Map<String, Set<String>> roleToProducts = profileRegistry.getRoleToProductsMap();
+        Map<String, Set<String>> roleToProducts = profileRegistry.getRoleToSwatchProductIdsMap();
         roleToProducts.values().forEach(products::addAll);
         return products;
     }

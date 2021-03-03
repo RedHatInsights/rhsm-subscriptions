@@ -25,5 +25,7 @@ package org.candlepin.subscriptions.task;
  */
 public enum TaskType {
     UPDATE_SNAPSHOTS,
-    UPDATE_ORG_INVENTORY
+    UPDATE_ORG_INVENTORY,
+    OPENSHIFT_METRICS_COLLECTION,
+    UPDATE_HOURLY_SNAPSHOTS
 }

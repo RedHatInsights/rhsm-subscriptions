@@ -51,7 +51,9 @@ public class Account {
         fetch = FetchType.EAGER,
         orphanRemoval = true
     )
-    @MapKeyColumn(name = "instance_id")
+    // NOTE: insertable = false and updatable=false prevents extraneous update statements (they're handled
+    // in hosts table)
+    @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
     private Map<String, Host> serviceInstances = new HashMap<>();
 
     public String getAccountNumber() {

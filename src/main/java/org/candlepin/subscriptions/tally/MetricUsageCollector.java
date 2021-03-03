@@ -33,9 +33,11 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.metering.MeteringEventFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,8 +71,8 @@ public class MetricUsageCollector {
      * collector.
      */
     public static class ProductConfig {
-        public static final String OPENSHIFT_PRODUCT_ID = "OpenShift Container Platform (metrics)";
-        public static final String SERVICE_TYPE = "OPENSHIFT_CLUSTER";
+        public static final String OPENSHIFT_PRODUCT_ID = "OpenShift-metrics";
+        public static final String SERVICE_TYPE = MeteringEventFactory.OPENSHIFT_CLUSTER_SERVICE_TYPE;
         private static final ServiceLevel DEFAULT_SLA = ServiceLevel.PREMIUM;
         private static final Usage DEFAULT_USAGE = Usage.PRODUCTION;
 
@@ -99,17 +101,18 @@ public class MetricUsageCollector {
         }
     }
 
-    public MetricUsageCollector(AccountRepository accountRepository,
-        EventController eventController) {
+    @Autowired
+    public MetricUsageCollector(AccountRepository accountRepository, EventController eventController) {
 
         this.accountRepository = accountRepository;
         this.eventController = eventController;
         this.productConfig = new ProductConfig();
+
     }
 
     @Transactional
-    public AccountUsageCalculation collect(String accountNumber, OffsetDateTime begin,
-        OffsetDateTime end) {
+    public AccountUsageCalculation collect(String accountNumber, OffsetDateTime startDateTime,
+        OffsetDateTime endDateTime) {
 
         Account account = accountRepository.findById(accountNumber).orElseThrow(() ->
             new SubscriptionsException(ErrorCode.OPT_IN_REQUIRED, Response.Status.BAD_REQUEST,
@@ -119,7 +122,9 @@ public class MetricUsageCollector {
         Map<String, Host> existingInstances = account.getServiceInstances().values().stream()
             .filter(host -> productConfig.getServiceType().equals(host.getInstanceType()))
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
-        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber, begin, end)
+        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
+            startDateTime,
+            endDateTime)
             .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
 
         eventStream.forEach(event -> {

@@ -19,6 +19,10 @@ parameters:
     value: 0 3 * * *
   - name: CAPTURE_SNAPSHOT_SCHEDULE
     value: 0 1 * * *
+  - name: OPENSHIFT_METERING_SCHEDULE
+    value: 0 * * * *
+  - name: OPENSHIFT_METERING_RANGE
+    value: '60'
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
@@ -35,6 +39,93 @@ parameters:
     value: 1900m
 
 objects:
+  - apiVersion: batch/v1beta1
+    kind: CronJob
+    metadata:
+      name: openshift-metrics-cron
+    spec:
+      schedule: ${OPENSHIFT_METERING_SCHEDULE}
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 1800
+          template:
+            spec:
+              activeDeadlineSeconds: 1800
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: ${IMAGE_PULL_SECRET}
+                - name: quay-cloudservices-pull
+              containers:
+                - image: ${IMAGE}:${IMAGE_TAG}
+                  name: rhsm-subscriptions-openshift-metering
+                  env:
+                    - name: SPRING_PROFILES_ACTIVE
+                      value: openshift-metering-job,kafka-queue
+                    - name: JAVA_MAX_MEM_RATIO
+                      value: '85'
+                    - name: GC_MAX_METASPACE_SIZE
+                      value: '256'
+                    - name: LOGGING_LEVEL_ROOT
+                      value: ${LOGGING_LEVEL_ROOT}
+                    - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                      value: ${LOGGING_LEVEL}
+                    - name: KAFKA_BOOTSTRAP_HOST
+                      value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: OPENSHIFT_METERING_RANGE
+                      value: ${OPENSHIFT_METERING_RANGE}
+                    - name: DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.host
+                    - name: DATABASE_PORT
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.port
+                    - name: DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.user
+                    - name: DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.password
+                    - name: DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.name
+                    - name: INVENTORY_DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.host
+                    - name: INVENTORY_DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.name
+                    - name: INVENTORY_DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.user
+                    - name: INVENTORY_DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.password
+                  resources:
+                    requests:
+                      cpu: ${CPU_REQUEST}
+                      memory: ${MEMORY_REQUEST}
+                    limits:
+                      cpu: ${CPU_LIMIT}
+                      memory: ${MEMORY_LIMIT}
+
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:

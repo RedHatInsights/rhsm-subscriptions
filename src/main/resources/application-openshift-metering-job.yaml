@@ -1,0 +1,9 @@
+rhsm-subscriptions:
+  account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
+  account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
+
+  metering:
+    prometheus:
+      metric:
+        openshift:
+          rangeInMinutes: ${OPENSHIFT_METERING_RANGE:60}

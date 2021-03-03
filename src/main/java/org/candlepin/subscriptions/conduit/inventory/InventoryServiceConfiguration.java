@@ -39,9 +39,11 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.retry.support.RetryTemplate;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -100,8 +102,22 @@ public class InventoryServiceConfiguration {
     public InventoryService kafkaInventoryService(
         @Qualifier("inventoryServiceKafkaProducerTemplate")
         KafkaTemplate<String, CreateUpdateHostMessage> producer,
-        InventoryServiceProperties serviceProperties,
-        MeterRegistry meterRegistry) {
-        return new KafkaEnabledInventoryService(serviceProperties, producer, meterRegistry);
+        InventoryServiceProperties serviceProperties, MeterRegistry meterRegistry,
+        RetryTemplate kafkaRetryTemplate) {
+        return new KafkaEnabledInventoryService(
+            serviceProperties,
+            producer,
+            meterRegistry,
+            kafkaRetryTemplate
+        );
+    }
+
+    @Bean(name = "kafkaRetryTemplate")
+    public RetryTemplate kafkaRetryTemplate() {
+        return RetryTemplate.builder()
+            .retryOn(KafkaException.class)
+            .maxAttempts(4)
+            .uniformRandomBackoff(100, 500)
+            .build();
     }
 }

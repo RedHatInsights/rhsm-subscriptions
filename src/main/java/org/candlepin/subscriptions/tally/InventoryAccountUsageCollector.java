@@ -82,8 +82,9 @@ public class InventoryAccountUsageCollector {
         Collection<String> accounts) {
 
         List<Host> existing = getAccountHosts(accounts);
-        Map<String, Host> inventoryHostMap =
-            existing.stream().collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
+        Map<String, Host> inventoryHostMap = existing.stream()
+            .filter(host -> host.getInventoryId() != null)
+            .collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
 
         Map<String, String> hypMapping = new HashMap<>();
         Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();

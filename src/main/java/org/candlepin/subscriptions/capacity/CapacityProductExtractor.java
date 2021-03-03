@@ -41,17 +41,18 @@ import java.util.stream.Collectors;
 public class CapacityProductExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
-    private final Map<Integer, Set<String>> productIdToProductsMap;
+    private final Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap;
 
     public CapacityProductExtractor(ProductProfileRegistry productProfileRegistry) {
-        this.productIdToProductsMap = productProfileRegistry.getProductIdToProductsMap();
+        this.engProductIdToSwatchProductIdsMap =
+            productProfileRegistry.getEngProductIdToSwatchProductIdsMap();
     }
 
     public Set<String> getProducts(Collection<String> productIds) {
         Set<String> products = productIds.stream()
             .map(CapacityProductExtractor::parseIntSkipUnparseable)
             .filter(Objects::nonNull)
-            .map(productIdToProductsMap::get)
+            .map(engProductIdToSwatchProductIdsMap::get)
             .filter(Objects::nonNull)
             .flatMap(Set::stream)
             .collect(Collectors.toSet());

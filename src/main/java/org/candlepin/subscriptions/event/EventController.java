@@ -27,8 +27,10 @@ import org.candlepin.subscriptions.json.Event;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.persistence.EntityNotFoundException;
@@ -71,6 +73,15 @@ public class EventController {
         EventRecord eventRecord = new EventRecord(event);
         repo.save(eventRecord);
         return eventRecord.getId();
+    }
+
+    /**
+     * Validates and saves a list of event JSON objects in the DB.
+     * @param events the event JSON objects to save.
+     */
+    @Transactional
+    public void saveAll(Collection<Event> events) {
+        repo.saveAll(events.stream().map(EventRecord::new).collect(Collectors.toList()));
     }
 
     /**

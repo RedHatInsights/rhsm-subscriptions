@@ -53,13 +53,14 @@ public class HourlySnapshotRoller extends BaseSnapshotRoller {
 
     @Override
     @Transactional
-    public void rollSnapshots(Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    public Collection<TallySnapshot> rollSnapshots(Collection<String> accounts,
+        Collection<AccountUsageCalculation> accountCalcs) {
         log.debug("Producing hourly snapshots for {} account(s).", accounts.size());
 
         Map<String, List<TallySnapshot>> existingSnapsForTheHour = getCurrentSnapshotsByAccount(accounts,
             getApplicableProducts(accountCalcs, HOURLY), HOURLY, clock.startOfCurrentHour(),
             clock.endOfCurrentHour());
 
-        updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
+        return updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
     }
 }

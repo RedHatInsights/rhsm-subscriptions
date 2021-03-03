@@ -22,6 +22,9 @@ package org.candlepin.subscriptions.inventory.db.model;
 
 import org.springframework.util.StringUtils;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +33,8 @@ import java.util.UUID;
 /**
  * Represents an inventory host's facts.
  */
+@Getter
+@Setter
 public class InventoryHostFacts {
     private UUID inventoryId;
     private OffsetDateTime modifiedOn;
@@ -101,76 +106,12 @@ public class InventoryHostFacts {
         this.staleTimestamp = staleTimestamp;
     }
 
-    public UUID getInventoryId() {
-        return inventoryId;
-    }
-
-    public void setInventoryId(UUID inventoryId) {
-        this.inventoryId = inventoryId;
-    }
-
-    public OffsetDateTime getModifiedOn() {
-        return modifiedOn;
-    }
-
-    public void setModifiedOn(OffsetDateTime modifiedOn) {
-        this.modifiedOn = modifiedOn;
-    }
-
-    public String getAccount() {
-        return account;
-    }
-
-    public void setAccount(String account) {
-        this.account = account;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getOrgId() {
-        return orgId;
-    }
-
-    public void setOrgId(String orgId) {
-        this.orgId = orgId;
-    }
-
     public Integer getCores() {
         return cores == null ? 0 : cores;
     }
 
-    public void setCores(Integer cores) {
-        this.cores = cores;
-    }
-
     public Integer getSockets() {
         return sockets == null ? 0 : sockets;
-    }
-
-    public void setSockets(Integer sockets) {
-        this.sockets = sockets;
-    }
-
-    public String getSyncTimestamp() {
-        return syncTimestamp;
-    }
-
-    public void setSyncTimestamp(String syncTimestamp) {
-        this.syncTimestamp = syncTimestamp;
-    }
-
-    public Set<String> getProducts() {
-        return products;
-    }
-
-    public void setProducts(Set<String> products) {
-        this.products = products;
     }
 
     public void setProducts(String products) {
@@ -197,147 +138,23 @@ public class InventoryHostFacts {
         return StringUtils.commaDelimitedListToSet(productJson);
     }
 
-    public String getSystemProfileInfrastructureType() {
-        return systemProfileInfrastructureType;
-    }
-
-    public void setSystemProfileInfrastructureType(String systemProfileInfrastructureType) {
-        this.systemProfileInfrastructureType = systemProfileInfrastructureType;
-    }
-
     public Integer getSystemProfileCoresPerSocket() {
         return systemProfileCoresPerSocket == null ? 0 : systemProfileCoresPerSocket;
-    }
-
-    public void setSystemProfileCoresPerSocket(Integer coresPerSocket) {
-        this.systemProfileCoresPerSocket = coresPerSocket;
     }
 
     public Integer getSystemProfileSockets() {
         return systemProfileSockets == null ? 0 : systemProfileSockets;
     }
 
-    public void setSystemProfileSockets(Integer sockets) {
-        this.systemProfileSockets = sockets;
-    }
-
-    public Set<String> getQpcProducts() {
-        return qpcProducts;
-    }
-
     public void setQpcProducts(String qpcProducts) {
         this.qpcProducts = asStringSet(qpcProducts);
-    }
-
-    public Set<String> getQpcProductIds() {
-        return qpcProductIds;
     }
 
     public void setQpcProductIds(String qpcProductIds) {
         this.qpcProductIds = asStringSet(qpcProductIds);
     }
 
-    public Set<String> getSystemProfileProductIds() {
-        return systemProfileProductIds;
-    }
-
     public void setSystemProfileProductIds(String productIds) {
         this.systemProfileProductIds = asStringSet(productIds);
-    }
-
-    public String getSyspurposeRole() {
-        return syspurposeRole;
-    }
-
-    public void setSyspurposeRole(String syspurposeRole) {
-        this.syspurposeRole = syspurposeRole;
-    }
-
-    public boolean isVirtual() {
-        return isVirtual;
-    }
-
-    public void setVirtual(boolean virtual) {
-        isVirtual = virtual;
-    }
-
-    public String getHypervisorUuid() {
-        return hypervisorUuid;
-    }
-
-    public void setHypervisorUuid(String hypervisorUuid) {
-        this.hypervisorUuid = hypervisorUuid;
-    }
-
-    public String getGuestId() {
-        return guestId;
-    }
-
-    public void setGuestId(String guestId) {
-        this.guestId = guestId;
-    }
-
-    public String getSubscriptionManagerId() {
-        return subscriptionManagerId;
-    }
-
-    public void setSubscriptionManagerId(String subscriptionManagerId) {
-        this.subscriptionManagerId = subscriptionManagerId;
-    }
-
-    public String getInsightsId() {
-        return insightsId;
-    }
-
-    public void setInsightsId(String insightsId) {
-        this.insightsId = insightsId;
-    }
-
-    public String getCloudProvider() {
-        return cloudProvider;
-    }
-
-    public void setCloudProvider(String cloudProvider) {
-        this.cloudProvider = cloudProvider;
-    }
-
-    public OffsetDateTime getStaleTimestamp() {
-        return staleTimestamp;
-    }
-
-    public void setStaleTimestamp(OffsetDateTime staleTimestamp) {
-        this.staleTimestamp = staleTimestamp;
-    }
-
-    public String getSyspurposeSla() {
-        return syspurposeSla;
-    }
-
-    public void setSyspurposeSla(String syspurposeSla) {
-        this.syspurposeSla = syspurposeSla;
-    }
-
-    public String getSyspurposeUsage() {
-        return syspurposeUsage;
-    }
-
-    public void setSyspurposeUsage(String syspurposeUsage) {
-        this.syspurposeUsage = syspurposeUsage;
-    }
-
-    public String getSyspurposeUnits() {
-        return syspurposeUnits;
-    }
-
-    public void setSyspurposeUnits(String syspurposeUnits) {
-        this.syspurposeUnits = syspurposeUnits;
-    }
-
-    public String getSatelliteHypervisorUuid() {
-        return satelliteHypervisorUuid;
-    }
-
-    public void setSatelliteHypervisorUuid(String satelliteHypervisorUuid) {
-        this.satelliteHypervisorUuid = satelliteHypervisorUuid;
     }
 }

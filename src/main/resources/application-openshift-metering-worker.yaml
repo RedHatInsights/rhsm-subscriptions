@@ -1,0 +1,20 @@
+rhsm-subscriptions:
+  # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
+  account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
+  account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
+
+  metering:
+    prometheus:
+      metric:
+        openshift:
+          maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
+          backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
+          backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
+          backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
+          metricPromQL: >-
+            max(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) without(environment, region)*on(_id)
+            group_right(prometheus) group(subscription_labels{ebs_account='%s', support=~'Premium|Standard|Self-Support|None'})
+            by (_id,ebs_account, support, usage)
+      client:
+        token: ${PROM_AUTH_TOKEN:}
+        url: ${PROM_URL:https://localhost/api/v1}

@@ -75,6 +75,10 @@ public class TaskDescriptor {
         return this.args.get(key);
     }
 
+    public boolean hasArg(String arg) {
+        return this.args.containsKey(arg) && !this.args.get(arg).isEmpty();
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

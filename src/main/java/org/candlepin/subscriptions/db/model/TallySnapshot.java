@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -231,12 +232,12 @@ public class TallySnapshot implements Serializable {
         if (virtual != null) {
             totalVirtualCores += virtual.getCores();
             totalVirtualSockets += virtual.getSockets();
-            totalVirtualInstanceCount += virtual.getSockets();
+            totalVirtualInstanceCount += virtual.getInstanceCount();
         }
         if (hypervisor != null) {
             totalVirtualCores += hypervisor.getCores();
             totalVirtualSockets += hypervisor.getSockets();
-            totalVirtualInstanceCount += hypervisor.getSockets();
+            totalVirtualInstanceCount += hypervisor.getInstanceCount();
         }
         if (hypervisor != null || virtual != null) {
             snapshot.setHypervisorCores(totalVirtualCores);
@@ -271,6 +272,9 @@ public class TallySnapshot implements Serializable {
         snapshot.setCloudInstanceCount(cloudInstances);
         snapshot.setCloudCores(cloudCores);
         snapshot.setCloudSockets(cloudSockets);
+
+        snapshot.setCoreHours(tallyMeasurements.get(
+            new TallyMeasurementKey(HardwareMeasurementType.TOTAL, Uom.CORES)));
 
         snapshot.setHasData(id != null);
         return snapshot;

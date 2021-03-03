@@ -1,0 +1,70 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: TallySummary
+properties:
+  account_number:
+    description: Account identifier for the relevant account.
+    type: string
+    required: true
+  tally_snapshots:
+    description: List of tally snapshots produced in the range.
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        snapshot_date:
+          type: string
+          format: date-time
+        product_id:
+          type: string
+        sla:
+          description: Service level for the subject.
+          type: string
+          enum:
+            - ''  # UNSPECIFIED
+            - Premium
+            - Standard
+            - Self-Support
+            - _ANY
+          required: false
+        usage:
+          description: Intended usage for the subject.
+          type: string
+          enum:
+            - ''  # UNSPECIFIED
+            - Production
+            - Development/Test
+            - Disaster Recovery
+            - _ANY
+          required: false
+        granularity:
+          type: string
+          enum:
+            - Hourly
+            - Daily
+            - Weekly
+            - Monthly
+            - Quarterly
+            - Yearly
+        tally_measurements:
+          type: array
+          items:
+            type: object
+            properties:
+              hardware_measurement_type:
+                type: string
+                required: true
+              uom:
+                description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+                type: string
+                enum:
+                  - ''  # UNSPECIFIED
+                  - Cores
+                  - Sockets
+                required: false
+              value:
+                description: Measurement value.
+                type: number
+                required: true

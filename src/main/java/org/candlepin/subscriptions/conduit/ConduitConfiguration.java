@@ -35,6 +35,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.annotation.EnableRetry;
 
 /**
  * Configuration for the "rhsm-conduit" profile.
@@ -43,6 +44,7 @@ import org.springframework.context.annotation.Profile;
  * production and consumption of tasks from the rhsm-conduit task queue.
  */
 @Configuration
+@EnableRetry
 @Profile("rhsm-conduit")
 @EnableConfigurationProperties(OrgSyncProperties.class)
 @Import({

@@ -29,6 +29,8 @@ public class JobProperties {
     // Once a day at 3am
     private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
+    private String meteringSchedule = "0 0 * ? * *"; // Every hour, on the hour.
+
     public String getCaptureSnapshotSchedule() {
         return captureSnapshotSchedule;
     }
@@ -44,4 +46,13 @@ public class JobProperties {
     public void setPurgeSnapshotSchedule(String purgeSnapshotSchedule) {
         this.purgeSnapshotSchedule = purgeSnapshotSchedule;
     }
+
+    public String getMeteringSchedule() {
+        return meteringSchedule;
+    }
+
+    public void setMeteringSchedule(String meteringSchedule) {
+        this.meteringSchedule = meteringSchedule;
+    }
+
 }

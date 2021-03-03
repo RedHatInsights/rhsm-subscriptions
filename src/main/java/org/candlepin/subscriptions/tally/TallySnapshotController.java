@@ -26,13 +26,16 @@ import org.candlepin.subscriptions.exception.ExternalServiceException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 import io.micrometer.core.annotation.Timed;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,12 +51,14 @@ public class TallySnapshotController {
     private final ApplicationProperties props;
     private final InventoryAccountUsageCollector usageCollector;
     private final CloudigradeAccountUsageCollector cloudigradeCollector;
+    private final MetricUsageCollector metricUsageCollector;
     private final UsageSnapshotProducer snapshotProducer;
     private final RetryTemplate retryTemplate;
     private final RetryTemplate cloudigradeRetryTemplate;
 
     private final Set<String> applicableProducts;
 
+    @Autowired
     public TallySnapshotController(
         ApplicationProperties props,
         @Qualifier("applicableProducts") Set<String> applicableProducts,
@@ -61,7 +66,8 @@ public class TallySnapshotController {
         CloudigradeAccountUsageCollector cloudigradeCollector,
         UsageSnapshotProducer snapshotProducer,
         @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
-        @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate) {
+        @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
+        MetricUsageCollector metricUsageCollector) {
 
         this.props = props;
         this.applicableProducts = applicableProducts;
@@ -70,6 +76,7 @@ public class TallySnapshotController {
         this.snapshotProducer = snapshotProducer;
         this.retryTemplate = retryTemplate;
         this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
+        this.metricUsageCollector = metricUsageCollector;
     }
 
     @Timed("rhsm-subscriptions.snapshots.single")
@@ -106,6 +113,30 @@ public class TallySnapshotController {
         }
 
         snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+    }
+
+    @Timed("rhsm-subscriptions.snapshots.single.hourly")
+    public void produceHourlySnapshotsForAccount(String accountNumber, OffsetDateTime startDateTime,
+        OffsetDateTime endDateTime) {
+
+        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
+        try {
+            for (OffsetDateTime offset = startDateTime; offset.isBefore(endDateTime); offset =
+                offset.plusHours(1)) {
+                OffsetDateTime finalOffset = offset;
+                accountCalcs.put(offset, retryTemplate
+                    .execute(context -> metricUsageCollector.collect(accountNumber, finalOffset,
+                    finalOffset.plusHours(1))));
+            }
+        }
+        catch (Exception e) {
+            log.error("Could not collect existing usage snapshots for account {}", accountNumber, e);
+            return;
+        }
+
+        accountCalcs.forEach((offset, calculation) ->
+            snapshotProducer.produceSnapshotsFromCalculations(offset, List.of(accountNumber),
+            List.of(calculation)));
     }
 
     private void attemptCloudigradeEnrichment(List<String> accounts,
