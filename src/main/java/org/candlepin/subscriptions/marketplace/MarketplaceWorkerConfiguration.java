@@ -66,4 +66,15 @@ public class MarketplaceWorkerConfiguration {
         factory.setConsumerFactory(consumerFactory);
         return factory;
     }
+
+    /**
+     * Build the BeanFactory implementation ourselves since the docs say "Implementations are not supposed
+     * to rely on annotation-driven injection or other reflective facilities."
+     * @param properties containing the MarketplaceProperties needed by the factory
+     * @return a configured MarketplaceApiFactory
+     */
+    @Bean
+    public MarketplaceApiFactory marketplaceApiFactory(MarketplaceProperties properties) {
+        return new MarketplaceApiFactory(properties);
+    }
 }
