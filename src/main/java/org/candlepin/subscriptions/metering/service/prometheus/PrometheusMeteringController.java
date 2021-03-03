@@ -116,8 +116,15 @@ public class PrometheusMeteringController {
                         BigDecimal time = measurement.get(0);
                         BigDecimal value = measurement.get(1);
 
+                        OffsetDateTime eventTermDate = clock.dateFromUnix(time);
+                        // Need to subtract the step because we are averaging and the metric value
+                        // actually represents the end of the measured period. The start of the event
+                        // should be at the beginning.
+                        OffsetDateTime eventDate =
+                            eventTermDate.minusSeconds(metricProperties.getOpenshift().getStep());
+
                         Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId,
-                            sla, usage, clock.dateFromUnix(time), value.doubleValue());
+                            sla, usage, eventDate, eventTermDate, value.doubleValue());
                         events.add(event);
                         eventCount++;
 

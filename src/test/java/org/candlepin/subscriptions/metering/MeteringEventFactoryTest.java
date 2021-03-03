@@ -41,13 +41,15 @@ class MeteringEventFactoryTest {
         String clusterId = "my-cluster";
         String sla = "Premium";
         String usage = "Production";
-        OffsetDateTime measuredTime = OffsetDateTime.now();
+        OffsetDateTime expiry = OffsetDateTime.now();
+        OffsetDateTime measuredTime = expiry.minusHours(1);
         Double measuredValue = 23.0;
 
-        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla, usage, measuredTime,
-            measuredValue);
+        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId, sla, usage,
+            measuredTime, expiry, measuredValue);
         assertEquals(account, event.getAccountNumber());
         assertEquals(measuredTime, event.getTimestamp());
+        assertEquals(expiry, event.getExpiration().get());
         assertEquals(clusterId, event.getInstanceId());
         assertEquals(Optional.of(clusterId), event.getDisplayName());
         assertEquals(Sla.PREMIUM, event.getSla());
@@ -64,35 +66,35 @@ class MeteringEventFactoryTest {
     @Test
     void testOpenShiftClusterCoresHandlesNullServiceLevel() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", null,
-            "Production", OffsetDateTime.now(), 12.5);
+            "Production", OffsetDateTime.now(), OffsetDateTime.now(), 12.5);
         assertNull(event.getSla());
     }
 
     @Test
     void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "None",
-            "Production", OffsetDateTime.now(), 12.5);
+            "Production", OffsetDateTime.now(), OffsetDateTime.now(), 12.5);
         assertEquals(Sla.__EMPTY__, event.getSla());
     }
 
     @Test
     void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "UNKNOWN_SLA",
-            "Production", OffsetDateTime.now(), 12.5);
+            "Production", OffsetDateTime.now(), OffsetDateTime.now(), 12.5);
         assertNull(event.getSla());
     }
 
     @Test
     void testOpenShiftClusterCoresInvalidUsageSetsNullValue() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "Premium",
-            "UNKNOWN_USAGE", OffsetDateTime.now(), 12.5);
+            "UNKNOWN_USAGE", OffsetDateTime.now(), OffsetDateTime.now(), 12.5);
         assertNull(event.getUsage());
     }
 
     @Test
     void testOpenShiftClusterCoresHandlesNullUsage() throws Exception {
         Event event = MeteringEventFactory.openShiftClusterCores("my-account", "cluster-id", "Premium",
-            null, OffsetDateTime.now(), 12.5);
+            null, OffsetDateTime.now(), OffsetDateTime.now(), 12.5);
         assertNull(event.getUsage());
     }
 

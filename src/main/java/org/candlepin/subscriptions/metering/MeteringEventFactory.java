@@ -61,7 +61,7 @@ public class MeteringEventFactory {
      * @return a populated Event instance.
      */
     public static Event openShiftClusterCores(String accountNumber, String clusterId, String serviceLevel,
-        String usage, OffsetDateTime measuredTime, Double measuredValue) {
+        String usage, OffsetDateTime measuredTime, OffsetDateTime expired, Double measuredValue) {
         return new Event()
             .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
             .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
@@ -69,6 +69,7 @@ public class MeteringEventFactory {
             .withAccountNumber(accountNumber)
             .withInstanceId(clusterId)
             .withTimestamp(measuredTime)
+            .withExpiration(Optional.of(expired))
             .withDisplayName(Optional.of(clusterId))
             .withSla(getSla(serviceLevel, accountNumber, clusterId))
             .withUsage(getUsage(usage, accountNumber, clusterId))
