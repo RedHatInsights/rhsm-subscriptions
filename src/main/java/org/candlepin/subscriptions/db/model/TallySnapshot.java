@@ -79,9 +79,11 @@ public class TallySnapshot implements Serializable {
     @Column(name = "account_number")
     private String accountNumber;
 
+    @Builder.Default
     @Column(name = "sla")
     private ServiceLevel serviceLevel = ServiceLevel._ANY;
 
+    @Builder.Default
     @Column(name = "usage")
     private Usage usage = Usage._ANY;
 

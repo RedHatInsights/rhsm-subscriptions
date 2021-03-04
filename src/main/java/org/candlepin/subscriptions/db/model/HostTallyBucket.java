@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -37,6 +42,10 @@ import javax.persistence.Table;
 /**
  * Represents a bucket that this host contributes to.
  */
+@ToString
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "host_tally_buckets")
 public class HostTallyBucket implements Serializable {
@@ -51,12 +60,10 @@ public class HostTallyBucket implements Serializable {
     @Column(name = "measurement_type")
     private HardwareMeasurementType measurementType;
 
+    @ToString.Exclude
     @MapsId("hostId")
     @ManyToOne(fetch = FetchType.LAZY)
     private Host host;
-
-    public HostTallyBucket() {
-    }
 
     @SuppressWarnings("java:S107")
     public HostTallyBucket(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor,
@@ -66,42 +73,6 @@ public class HostTallyBucket implements Serializable {
         this.cores = cores;
         this.sockets = sockets;
         this.measurementType = type;
-    }
-
-    public HostBucketKey getKey() {
-        return key;
-    }
-
-    public void setKey(HostBucketKey key) {
-        this.key = key;
-    }
-
-    public int getCores() {
-        return cores;
-    }
-
-    public void setCores(int cores) {
-        this.cores = cores;
-    }
-
-    public int getSockets() {
-        return sockets;
-    }
-
-    public void setSockets(int sockets) {
-        this.sockets = sockets;
-    }
-
-    public HardwareMeasurementType getMeasurementType() {
-        return measurementType;
-    }
-
-    public void setMeasurementType(HardwareMeasurementType measurementType) {
-        this.measurementType = measurementType;
-    }
-
-    public Host getHost() {
-        return host;
     }
 
     public void setHost(Host host) {
