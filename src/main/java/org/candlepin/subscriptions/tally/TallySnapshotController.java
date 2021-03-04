@@ -52,31 +52,32 @@ public class TallySnapshotController {
     private final InventoryAccountUsageCollector usageCollector;
     private final CloudigradeAccountUsageCollector cloudigradeCollector;
     private final MetricUsageCollector metricUsageCollector;
-    private final UsageSnapshotProducer snapshotProducer;
+    private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
+    private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
     private final RetryTemplate retryTemplate;
     private final RetryTemplate cloudigradeRetryTemplate;
 
     private final Set<String> applicableProducts;
 
     @Autowired
-    public TallySnapshotController(
-        ApplicationProperties props,
+    public TallySnapshotController(ApplicationProperties props,
         @Qualifier("applicableProducts") Set<String> applicableProducts,
-        InventoryAccountUsageCollector usageCollector,
-        CloudigradeAccountUsageCollector cloudigradeCollector,
-        UsageSnapshotProducer snapshotProducer,
+        InventoryAccountUsageCollector usageCollector, CloudigradeAccountUsageCollector cloudigradeCollector,
+        MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
         @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
         @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
-        MetricUsageCollector metricUsageCollector) {
+        MetricUsageCollector metricUsageCollector,
+        CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy) {
 
         this.props = props;
         this.applicableProducts = applicableProducts;
         this.usageCollector = usageCollector;
         this.cloudigradeCollector = cloudigradeCollector;
-        this.snapshotProducer = snapshotProducer;
+        this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
         this.retryTemplate = retryTemplate;
         this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
         this.metricUsageCollector = metricUsageCollector;
+        this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     }
 
     @Timed("rhsm-subscriptions.snapshots.single")
@@ -112,7 +113,7 @@ public class TallySnapshotController {
             return;
         }
 
-        snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+        maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
     }
 
     @Timed("rhsm-subscriptions.snapshots.single.hourly")
@@ -134,9 +135,9 @@ public class TallySnapshotController {
             return;
         }
 
-        accountCalcs.forEach((offset, calculation) ->
-            snapshotProducer.produceSnapshotsFromCalculations(offset, List.of(accountNumber),
-            List.of(calculation)));
+        combiningRollupSnapshotStrategy
+            .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
+            accountCalcs, Double::sum);
     }
 
     private void attemptCloudigradeEnrichment(List<String> accounts,

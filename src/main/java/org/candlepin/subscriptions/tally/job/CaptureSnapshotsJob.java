@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class CaptureSnapshotsJob implements Runnable {
 
-    private CaptureSnapshotsTaskManager tasks;
+    private final CaptureSnapshotsTaskManager tasks;
 
     @Autowired
     public CaptureSnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
