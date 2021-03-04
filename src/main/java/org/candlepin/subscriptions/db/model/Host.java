@@ -72,6 +72,9 @@ public class Host implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    /**
+     * The canonical natural identifier for this instance.
+     */
     @Column(name = "instance_id")
     private String instanceId;
 
@@ -171,6 +174,7 @@ public class Host implements Serializable {
     public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
         this.instanceType = "HBI_HOST";
         this.inventoryId = inventoryId;
+        this.instanceId = inventoryId;
         this.insightsId = insightsId;
         this.accountNumber = accountNumber;
         this.orgId = orgId;
@@ -187,6 +191,9 @@ public class Host implements Serializable {
 
         if (inventoryHostFacts.getInventoryId() != null) {
             this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+            // We assume that the instance ID for any given HBI host record is the inventory ID; compare to
+            // an OpenShift Cluster from Prometheus data, where we use the cluster ID.
+            this.instanceId = inventoryHostFacts.getInventoryId().toString();
         }
 
         this.insightsId = inventoryHostFacts.getInsightsId();
