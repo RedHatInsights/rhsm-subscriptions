@@ -12,9 +12,9 @@ rhsm-subscriptions:
           backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
           backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
           metricPromQL: >-
-            max(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) without(environment, region)*on(_id)
-            group_right(prometheus) group(subscription_labels{ebs_account='%s', support=~'Premium|Standard|Self-Support|None'})
-            by (_id,ebs_account, support, usage)
+            max(sum_over_time(cluster:usage:workload:capacity_physical_cpu_cores:max:5m[1h:5m]) / 13.0) by (_id)
+            * on(_id) group_right
+            min_over_time(subscription_labels{ebs_account="%s", support=~"Premium|Standard|Self-Support|None"}[1h])
       client:
         token: ${PROM_AUTH_TOKEN:}
         url: ${PROM_URL:https://localhost/api/v1}
