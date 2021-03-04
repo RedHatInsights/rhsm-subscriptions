@@ -41,14 +41,15 @@ public class SubscriptionService {
 
     /**
      * Obtain Subscription Service Subscription Models for an orgId.
-     * @param orgId the orgId of the customer.
+     * @param accountNumber the account number of the customer. Also refered to as the Oracle account number.
      * @return a list of Subscription models.
      * @throws ApiException if an error occurrs in fulfilling this request.
      */
-    public List<Subscription> getSubscriptions(String orgId) throws ApiException {
-        return searchApi.searchSubscriptions(
-                String.format("criteria;web_customer_id=%s;statusList=active;statusList=temporary", orgId),
-                "options;products=ALL"
+    public List<Subscription> getSubscriptions(String accountNumber) throws ApiException {
+        String criteria = String.format(
+            "criteria;oracle_account_number=%s;statusList=active;statusList=temporary", accountNumber
         );
+        String options = "options;products=ALL";
+        return searchApi.searchSubscriptions(criteria, options);
     }
 }

@@ -20,8 +20,11 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -31,6 +34,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @SpringBootTest
@@ -49,8 +55,7 @@ class SubscriptionSyncControllerTest {
     void shouldCreateNewRecordOnQuantityChange() {
         Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
             .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
-        final org.candlepin.subscriptions.subscription.api.model.Subscription dto = createDto("456",
-            10);
+        var dto = createDto("456", 10);
         subject.syncSubscription(dto);
         Mockito.verify(subscriptionRepository, Mockito.times(2))
             .save(Mockito.any(Subscription.class));
@@ -60,8 +65,7 @@ class SubscriptionSyncControllerTest {
     void shouldUpdateRecordOnNoQuantityChange() {
         Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
             .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
-        final org.candlepin.subscriptions.subscription.api.model.Subscription dto = createDto("456",
-            4);
+        var dto = createDto("456", 4);
         subject.syncSubscription(dto);
         Mockito.verify(subscriptionRepository, Mockito.times(1))
             .save(Mockito.any(Subscription.class));
@@ -71,11 +75,36 @@ class SubscriptionSyncControllerTest {
     void shouldCreateNewRecordOnNotFound() {
         Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
             .thenReturn(Optional.empty());
-        final org.candlepin.subscriptions.subscription.api.model.Subscription dto = createDto("456",
-            10);
+        var dto = createDto("456", 10);
         subject.syncSubscription(dto);
         Mockito.verify(subscriptionRepository, Mockito.times(1))
             .save(Mockito.any(Subscription.class));
+    }
+
+    @Test
+    void testExtractSku() {
+        var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+        SubscriptionProduct product = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
+            "testSku");
+        SubscriptionProduct childSku = new SubscriptionProduct().parentSubscriptionProductId(123).sku(
+            "childSku");
+        List<SubscriptionProduct> products = Arrays.asList(product, childSku);
+        dto.setSubscriptionProducts(products);
+
+        assertEquals("testSku", subject.extractSku(dto));
+    }
+
+    @Test
+    void testExtractSkuFailsWithImproperSubscription() {
+        var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+        SubscriptionProduct product = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
+            "testSku");
+        SubscriptionProduct childSku = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
+            "childSku");
+        List<SubscriptionProduct> products = Arrays.asList(product, childSku);
+        dto.setSubscriptionProducts(products);
+
+        assertThrows(IllegalStateException.class, () -> subject.extractSku(dto));
     }
 
     private Subscription createSubscription(String orgId, String sku, String subId) {
@@ -92,13 +121,17 @@ class SubscriptionSyncControllerTest {
 
     private org.candlepin.subscriptions.subscription.api.model.Subscription createDto(String subId,
         int quantity) {
-        final org.candlepin.subscriptions.subscription.api.model.Subscription dto =
-            new org.candlepin.subscriptions.subscription.api.model.Subscription();
+        final var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
         dto.setQuantity(quantity);
         dto.setId(Integer.valueOf(subId));
         dto.setSubscriptionNumber("123");
         dto.setEffectiveStartDate(NOW.toEpochSecond());
         dto.setEffectiveEndDate(NOW.plusDays(30).toEpochSecond());
+
+        var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
+            "testsku");
+        List<SubscriptionProduct> products = Collections.singletonList(product);
+        dto.setSubscriptionProducts(products);
 
         return dto;
     }

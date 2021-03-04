@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -49,4 +50,12 @@ public interface SubscriptionRepository extends JpaRepository<Subscription,
     @Query("SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP " +
         "AND s.subscriptionId = :subscriptionId")
     Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
+
+    @Query("SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND " +
+        "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE " +
+        ":#{#key.usage} = o.usage AND " +
+        ":#{#key.sla} = o.serviceLevel AND " +
+        ":#{T(java.lang.Integer).parseInt(#key.productId)} MEMBER OF o.productIds)")
+    Optional<Subscription> findSubscriptionByAccountAndUsageKey(@Param("accountNumber") String accountNumber,
+        @Param("key") UsageCalculation.Key usageKey);
 }

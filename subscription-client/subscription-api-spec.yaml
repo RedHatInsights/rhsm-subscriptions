@@ -46,6 +46,7 @@ components:
         - subscriptionProducts
         - webCustomerId
         - quantity
+        - oracleAccountNumber
       properties:
         id:
           type: integer
@@ -54,6 +55,8 @@ components:
         quantity:
           type: integer
         webCustomerId:
+          type: integer
+        oracleAccountNumber:
           type: integer
         effectiveStartDate:
           type: integer
@@ -67,6 +70,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SubscriptionProduct"
+        externalReferences:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ExternalReference"
     SubscriptionProduct:
       required:
         - sku
@@ -75,3 +82,9 @@ components:
           type: string
         parentSubscriptionProductId:
           type: integer
+    ExternalReference:
+      properties:
+        accountID:
+          type: string
+        subscriptionID:
+          type: string

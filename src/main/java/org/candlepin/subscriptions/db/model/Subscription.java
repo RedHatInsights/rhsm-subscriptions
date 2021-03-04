@@ -58,6 +58,12 @@ public class Subscription {
     @Column(name = "end_date")
     private OffsetDateTime endDate;
 
+    @Column(name = "marketplace_subscription_id")
+    private String marketplaceSubscriptionId;
+
+    @Column(name = "account_number")
+    private String accountNumber;
+
     public String getOwnerId() {
         return ownerId;
     }
@@ -106,6 +112,22 @@ public class Subscription {
         this.endDate = endDate;
     }
 
+    public String getMarketplaceSubscriptionId() {
+        return marketplaceSubscriptionId;
+    }
+
+    public void setMarketplaceSubscriptionId(String marketplaceSubscriptionId) {
+        this.marketplaceSubscriptionId = marketplaceSubscriptionId;
+    }
+
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -119,14 +141,16 @@ public class Subscription {
             Objects.equals(getSubscriptionId(), that.getSubscriptionId()) &&
             Objects.equals(getSku(), that.getSku()) &&
             Objects.equals(getStartDate(), that.getStartDate()) &&
-            Objects.equals(getEndDate(), that.getEndDate());
+            Objects.equals(getEndDate(), that.getEndDate()) &&
+            Objects.equals(getAccountNumber(), that.getAccountNumber()) &&
+            Objects.equals(getMarketplaceSubscriptionId(), this.getMarketplaceSubscriptionId());
     }
 
     @Override
     public int hashCode() {
         return Objects
             .hash(getOwnerId(), getSubscriptionId(), getSku(), getQuantity(), getStartDate(),
-                getEndDate());
+                getEndDate(), getAccountNumber(), getMarketplaceSubscriptionId());
     }
 
     /**
