@@ -22,18 +22,16 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
-import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 
+import com.google.common.net.UrlEscapers;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.time.OffsetDateTime;
 
 /**
@@ -58,11 +56,7 @@ public class PrometheusService {
             // NOTE: While the ApiClient **should** in theory already encode the query,
             //       it does not handle the curly braces correctly causing issues
             //       when the request is made.
-            //
-            //       Also, the Prometheus APIs do not seem to like whitespace, even when encoded.
-            String accountQuery = StringUtils.trimAllWhitespace(promQuery);
-            log.debug("RAW Query: {}", accountQuery);
-            String query = URLEncoder.encode(accountQuery, "UTF-8");
+            String query = UrlEscapers.urlFragmentEscaper().escape(promQuery);
             log.debug("Running prometheus query: Start: {} End: {} Step: {}, Query: {}",
                 start.toEpochSecond(), end.toEpochSecond(), step, query);
             return apiProvider.queryRangeApi().queryRange(query, start.toEpochSecond(),
@@ -77,10 +71,6 @@ public class PrometheusService {
                 new ApiException(String.format("Prometheus API response code: %s", apie.getCode()))
             );
         }
-        catch (UnsupportedEncodingException e) {
-            throw new MeteringException("Unsupported encoding for specified PromQL.", e);
-        }
-
     }
 
 }

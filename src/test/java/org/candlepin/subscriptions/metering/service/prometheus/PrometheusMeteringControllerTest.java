@@ -129,9 +129,11 @@ class PrometheusMeteringControllerTest {
 
         List<Event> expectedEvents = List.of(
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
-                expectedUsage, clock.dateFromUnix(time1), val1.doubleValue()),
+                expectedUsage, clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
+                clock.dateFromUnix(time1), val1.doubleValue()),
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
-                expectedUsage, clock.dateFromUnix(time2), val2.doubleValue())
+                expectedUsage, clock.dateFromUnix(time2).minusSeconds(props.getOpenshift().getStep()),
+                clock.dateFromUnix(time2), val2.doubleValue())
         );
 
         controller.collectOpenshiftMetrics(expectedAccount, start, end);
