@@ -21,7 +21,10 @@
 package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.json.TallySnapshot;
+import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
+import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 
@@ -35,12 +38,15 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * Exposes admin functions for Marketplace integration.
  */
 @Component
 @ManagedResource
 public class MarketplaceJmxBean {
+
     private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
 
     private final ApplicationProperties properties;
@@ -67,7 +73,46 @@ public class MarketplaceJmxBean {
         if (!properties.isDevMode()) {
             throw new JmxException("Unsupported outside dev-mode");
         }
-        UsageEvent usageEvent = mapper.readValue(payloadJson, UsageEvent.class);
+
+        TallySummary tallySummary = mapper.readValue(payloadJson, TallySummary.class);
+
+        var accountNumber = tallySummary.getAccountNumber();
+
+        UsageEvent usageEvent = null;
+        for (TallySnapshot x : tallySummary.getTallySnapshots()) {
+            usageEvent = new UsageEvent();
+
+            UsageMeasurement usageMeasurement = new UsageMeasurement();
+            usageMeasurement.setValue(0.0);
+            usageMeasurement.setChargeId("chargeId");
+            List<UsageMeasurement> usageMeasurement1 = List.of(usageMeasurement);
+            long end = x.getSnapshotDate().toEpochSecond();
+            long start = x.getSnapshotDate().toEpochSecond();
+            String resourceType = "resourceType";
+            Object additionalAttributes = null;
+            String subscriptionId = "subscriptionId";
+
+            usageEvent.addMeasuredUsageItem(usageMeasurement);
+            usageEvent.setMeasuredUsage(usageMeasurement1);
+            usageEvent.setEnd(end);
+            usageEvent.setStart(start);
+            usageEvent.setResourceType(resourceType);
+            usageEvent.setAdditionalAttributes(additionalAttributes);
+            usageEvent.setSubscriptionId(subscriptionId);
+
+            x.getGranularity();
+            x.getId();
+            x.getUsage();
+            x.getProductId();
+            x.getSla();
+            x.getSnapshotDate();
+            x.getTallyMeasurements().forEach(y -> {
+                y.getValue();
+                y.getUom();
+                y.getHardwareMeasurementType();
+            });
+        }
+
         UsageRequest usageRequest = new UsageRequest().addDataItem(usageEvent);
         return marketplaceService.submitUsageEvents(usageRequest).toString();
     }
