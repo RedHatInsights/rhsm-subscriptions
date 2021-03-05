@@ -81,7 +81,7 @@ public class HostsResource implements HostsApi {
     @SuppressWarnings("linelength")
     public static final Map<HostReportSort, String> INSTANCE_SORT_PARAM_MAPPING = ImmutableMap.<HostReportSort, String>builder()
         .put(HostReportSort.DISPLAY_NAME, "displayName")
-        .put(HostReportSort.CORES, "monthlyTotals")
+        .put(HostReportSort.CORE_HOURS, "monthlyTotals")
         .put(HostReportSort.LAST_SEEN, "lastSeen")
         .build();
 
