@@ -38,7 +38,9 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Exposes admin functions for Marketplace integration.
@@ -78,42 +80,63 @@ public class MarketplaceJmxBean {
 
         var accountNumber = tallySummary.getAccountNumber();
 
-        UsageEvent usageEvent = null;
+        List<UsageEvent> usageEvents = new ArrayList<>();
+
         for (TallySnapshot x : tallySummary.getTallySnapshots()) {
-            usageEvent = new UsageEvent();
+            /*
+                Tally snapshot not having usage != '_ANY', sla != '_ANY',
+                productId in ('OpenShift-metrics','OpenShift-dedicated-metrics') should be transformed (all others should be skipped).
+            */
+            if (!Objects.equals(x.getUsage(), TallySnapshot.Usage.ANY) &&
+                !Objects.equals(x.getSla(), TallySnapshot.Sla.ANY)) {
+                UsageEvent usageEvent = new UsageEvent();
 
-            UsageMeasurement usageMeasurement = new UsageMeasurement();
-            usageMeasurement.setValue(0.0);
-            usageMeasurement.setChargeId("chargeId");
-            List<UsageMeasurement> usageMeasurement1 = List.of(usageMeasurement);
-            long end = x.getSnapshotDate().toEpochSecond();
-            long start = x.getSnapshotDate().toEpochSecond();
-            String resourceType = "resourceType";
-            Object additionalAttributes = null;
-            String subscriptionId = "subscriptionId";
+                long end = x.getSnapshotDate().toEpochSecond();
+                long start = x.getSnapshotDate().toEpochSecond();
+                String resourceType = "resourceType";
+                Object additionalAttributes = null;
+                String subscriptionId = "subscriptionId";
 
-            usageEvent.addMeasuredUsageItem(usageMeasurement);
-            usageEvent.setMeasuredUsage(usageMeasurement1);
-            usageEvent.setEnd(end);
-            usageEvent.setStart(start);
-            usageEvent.setResourceType(resourceType);
-            usageEvent.setAdditionalAttributes(additionalAttributes);
-            usageEvent.setSubscriptionId(subscriptionId);
+                usageEvent.setEnd(end);
+                usageEvent.setStart(start);
+                usageEvent.setResourceType(resourceType);
+                usageEvent.setAdditionalAttributes(additionalAttributes);
+                usageEvent.setSubscriptionId(subscriptionId);
 
-            x.getGranularity();
-            x.getId();
-            x.getUsage();
-            x.getProductId();
-            x.getSla();
-            x.getSnapshotDate();
-            x.getTallyMeasurements().forEach(y -> {
-                y.getValue();
-                y.getUom();
-                y.getHardwareMeasurementType();
-            });
+                //available fields
+                x.getUsage();
+                x.getSla();
+                x.getGranularity();
+                x.getId();
+                x.getProductId();
+                x.getSnapshotDate();
+
+                List<UsageMeasurement> measurements = new ArrayList<>();
+
+                x.getTallyMeasurements().forEach(y -> {
+                    var value = y.getValue();
+
+                    //TODO where does this come from
+                    var chargeId = y.getUom();
+                    y.getHardwareMeasurementType();
+
+                    UsageMeasurement usageMeasurement = new UsageMeasurement();
+                    usageMeasurement.setValue(value);
+                    usageMeasurement.setChargeId(chargeId.toString());
+
+                    measurements.add(usageMeasurement);
+
+                });
+                usageEvent.setMeasuredUsage(measurements);
+                usageEvents.add(usageEvent);
+            }
         }
 
-        UsageRequest usageRequest = new UsageRequest().addDataItem(usageEvent);
+        UsageRequest usageRequest = null;
+        for (UsageEvent event : usageEvents) {
+            usageRequest = new UsageRequest().addDataItem(event);
+        }
+
         return marketplaceService.submitUsageEvents(usageRequest).toString();
     }
 
