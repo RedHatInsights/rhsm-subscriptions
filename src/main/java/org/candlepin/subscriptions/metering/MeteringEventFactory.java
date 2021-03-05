@@ -62,7 +62,17 @@ public class MeteringEventFactory {
      */
     public static Event openShiftClusterCores(String accountNumber, String clusterId, String serviceLevel,
         String usage, OffsetDateTime measuredTime, OffsetDateTime expired, Double measuredValue) {
-        return new Event()
+        Event event = new Event();
+        updateOpenShiftClusterCores(event, accountNumber, clusterId, serviceLevel, usage,
+            measuredTime, expired, measuredValue);
+        return event;
+    }
+
+    @SuppressWarnings("java:S107")
+    public static void updateOpenShiftClusterCores(Event toUpdate, String accountNumber, String clusterId,
+        String serviceLevel, String usage, OffsetDateTime measuredTime, OffsetDateTime expired,
+        Double measuredValue) {
+        toUpdate
             .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
             .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
             .withServiceType(OPENSHIFT_CLUSTER_SERVICE_TYPE)

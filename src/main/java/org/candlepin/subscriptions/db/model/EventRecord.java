@@ -63,6 +63,9 @@ public class EventRecord {
         this.id = event.getEventId();
         this.event = event;
         this.accountNumber = event.getAccountNumber();
+        this.eventType = event.getEventType();
+        this.eventSource = event.getEventSource();
+        this.instanceId = event.getInstanceId();
         this.timestamp = event.getTimestamp();
     }
 
@@ -71,6 +74,15 @@ public class EventRecord {
 
     @Column(name = "account_number")
     private String accountNumber;
+
+    @Column(name = "event_type")
+    private String eventType;
+
+    @Column(name = "event_source")
+    private String eventSource;
+
+    @Column(name = "instance_id")
+    private String instanceId;
 
     private OffsetDateTime timestamp;
 
@@ -95,6 +107,22 @@ public class EventRecord {
         this.accountNumber = accountNumber;
     }
 
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public String getEventSource() {
+        return eventSource;
+    }
+
+    public void setEventSource(String eventSource) {
+        this.eventSource = eventSource;
+    }
+
     public OffsetDateTime getTimestamp() {
         return timestamp;
     }
@@ -116,16 +144,19 @@ public class EventRecord {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof EventRecord)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         EventRecord that = (EventRecord) o;
-        return Objects.equals(id, that.id) && Objects.equals(event, that.event);
+        return Objects.equals(accountNumber, that.accountNumber) &&
+            Objects.equals(eventType, that.eventType) &&
+            Objects.equals(eventSource, that.eventSource) &&
+            Objects.equals(instanceId, that.instanceId) &&
+            Objects.equals(timestamp, that.timestamp);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, event);
+        return Objects.hash(accountNumber, eventType, eventSource, instanceId, timestamp);
     }
-
 }

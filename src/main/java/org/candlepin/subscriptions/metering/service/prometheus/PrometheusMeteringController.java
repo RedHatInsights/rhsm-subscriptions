@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -40,7 +41,8 @@ import io.micrometer.core.annotation.Timed;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.LinkedList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,6 +79,10 @@ public class PrometheusMeteringController {
     @Transactional
     public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
         MetricProperties openshiftProperties = metricProperties.getOpenshift();
+        // Reset the start/end dates to ensure they span a complete hour.
+        // NOTE: If the prometheus query step changes, we will need to adjust this.
+        OffsetDateTime startDate = clock.startOfHour(start);
+        OffsetDateTime endDate = clock.endOfHour(end);
         openshiftRetry.execute(context -> {
             try {
                 log.info("Collecting OpenShift metrics");
@@ -85,10 +91,8 @@ public class PrometheusMeteringController {
                     // Substitute the account number into the query. The query is expected to
                     // contain %s for replacement.
                     String.format(openshiftProperties.getMetricPromQL(), account),
-                    // Reset the start/end dates to ensure they span a complete hour.
-                    // NOTE: If the prometheus query step changes, we will need to adjust this.
-                    clock.startOfHour(start),
-                    clock.endOfHour(end),
+                    startDate,
+                    endDate,
                     openshiftProperties.getStep(),
                     openshiftProperties.getQueryTimeout()
                 );
@@ -99,10 +103,16 @@ public class PrometheusMeteringController {
                     );
                 }
 
-                // Given the possibility of a very large number of events, we will batch persist them
-                // to provide the ability to tweak them.
-                List<Event> events = new LinkedList<>();
-                int eventCount = 0;
+                Map<EventKey, Event> existing = eventController.mapEventsInTimeRange(
+                    account,
+                    MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
+                    MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+                    startDate,
+                    endDate
+                );
+                log.debug("Found {} existing events.", existing.size());
+
+                Map<EventKey, Event> events = new HashMap<>();
                 for (QueryResultDataResult r : metricData.getData().getResult()) {
                     Map<String, String> labels = r.getMetric();
                     String clusterId = labels.get("_id");
@@ -123,25 +133,17 @@ public class PrometheusMeteringController {
                         OffsetDateTime eventDate =
                             eventTermDate.minusSeconds(metricProperties.getOpenshift().getStep());
 
-                        Event event = MeteringEventFactory.openShiftClusterCores(account, clusterId,
-                            sla, usage, eventDate, eventTermDate, value.doubleValue());
-                        events.add(event);
-                        eventCount++;
-
-                        if (events.size() >= openshiftProperties.getEventBatchSize()) {
-                            log.info("Saving {} events", events.size());
-                            eventController.saveAll(events);
-                            events.clear();
-                        }
+                        Event event = createOrUpdateEvent(existing, account, clusterId, sla, usage,
+                            eventDate, eventTermDate, value);
+                        events.put(EventKey.fromEvent(event), event);
                     }
                 }
 
-                // Flush the remainder
-                if (!events.isEmpty()) {
-                    log.debug("Saving remaining events: {}", events.size());
-                    eventController.saveAll(events);
-                }
-                log.info("Created {} Events for OpenShift metrics.", eventCount);
+                eventController.saveAll(events.values());
+                log.info("Persisted {} events for OpenShift metrics.", events.size());
+
+                // Delete any stale events found during the period.
+                deleteStaleEvents(existing.values());
                 return null;
             }
             catch (Exception e) {
@@ -152,4 +154,30 @@ public class PrometheusMeteringController {
         });
     }
 
+    @SuppressWarnings("java:S107")
+    private Event createOrUpdateEvent(Map<EventKey, Event> existing, String account, String instanceId,
+        String sla, String usage, OffsetDateTime measuredDate, OffsetDateTime expired, BigDecimal value) {
+        EventKey lookupKey = new EventKey(
+            account,
+            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
+            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+            instanceId,
+            measuredDate
+        );
+
+        Event event = existing.remove(lookupKey);
+        if (event == null) {
+            event = new Event();
+        }
+        MeteringEventFactory.updateOpenShiftClusterCores(event, account, instanceId, sla, usage,
+            measuredDate, expired, value.doubleValue());
+        return event;
+    }
+
+    private void deleteStaleEvents(Collection<Event> toDelete) {
+        if (!toDelete.isEmpty()) {
+            log.info("Deleting {} stale OpenShift metric events.", toDelete.size());
+            eventController.deleteEvents(toDelete);
+        }
+    }
 }

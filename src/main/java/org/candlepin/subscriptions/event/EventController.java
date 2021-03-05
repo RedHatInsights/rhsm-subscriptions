@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 
@@ -28,8 +29,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -60,6 +63,16 @@ public class EventController {
         return repo
             .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
             accountNumber, begin, end).map(EventRecord::getEvent);
+    }
+
+    @SuppressWarnings({"linelength", "indentation"})
+    public Map<EventKey, Event> mapEventsInTimeRange(String accountNumber, String eventSource,
+        String eventType, OffsetDateTime begin, OffsetDateTime end) {
+        return repo
+            .findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                accountNumber, eventSource, eventType, begin, end)
+            .map(EventRecord::getEvent)
+            .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
     }
 
     /**
@@ -98,5 +111,10 @@ public class EventController {
         catch (EntityNotFoundException e) {
             return Optional.empty();
         }
+    }
+
+    @Transactional
+    public void deleteEvents(Collection<Event> toDelete) {
+        repo.deleteInBatch(toDelete.stream().map(EventRecord::new).collect(Collectors.toList()));
     }
 }
