@@ -93,7 +93,7 @@ class HostsResourceTest {
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1, Sort.by(
-                Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
+                Sort.Order.asc(HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
                 IMPLICIT_ORDER)))
         );
     }
@@ -114,7 +114,7 @@ class HostsResourceTest {
             eq(0),
             eq(
             PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)),
+            Sort.by(Sort.Order.asc(HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.CORES)),
             IMPLICIT_ORDER)))
         );
     }
@@ -134,7 +134,7 @@ class HostsResourceTest {
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)),
+            Sort.by(Sort.Order.asc(HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)),
             IMPLICIT_ORDER)))
         );
     }
@@ -154,7 +154,7 @@ class HostsResourceTest {
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)),
+            Sort.by(Sort.Order.asc(HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)),
             IMPLICIT_ORDER)))
         );
     }
@@ -174,7 +174,7 @@ class HostsResourceTest {
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)),
+            Sort.by(Sort.Order.asc(HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)),
             IMPLICIT_ORDER)))
         );
     }
@@ -212,7 +212,7 @@ class HostsResourceTest {
             eq(0),
             eq(0),
             eq(PageRequest.of(0, 1,
-            Sort.by(Sort.Order.asc(HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
+            Sort.by(Sort.Order.asc(HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)),
             IMPLICIT_ORDER)))
         );
     }

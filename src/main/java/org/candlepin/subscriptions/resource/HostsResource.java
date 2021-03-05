@@ -68,7 +68,7 @@ import javax.ws.rs.core.UriInfo;
 public class HostsResource implements HostsApi {
 
     @SuppressWarnings("linelength")
-    public static final Map<HostReportSort, String> SORT_PARAM_MAPPING = ImmutableMap.<HostReportSort, String>builderWithExpectedSize(
+    public static final Map<HostReportSort, String> HOST_SORT_PARAM_MAPPING = ImmutableMap.<HostReportSort, String>builderWithExpectedSize(
         5)
         .put(HostReportSort.DISPLAY_NAME, "host.displayName")
         .put(HostReportSort.CORES, "cores")
@@ -77,6 +77,14 @@ public class HostsResource implements HostsApi {
         .put(HostReportSort.LAST_SEEN, "host.lastSeen")
         .put(HostReportSort.MEASUREMENT_TYPE, "measurementType")
         .build();
+
+    @SuppressWarnings("linelength")
+    public static final Map<HostReportSort, String> INSTANCE_SORT_PARAM_MAPPING = ImmutableMap.<HostReportSort, String>builder()
+        .put(HostReportSort.DISPLAY_NAME, "displayName")
+        .put(HostReportSort.CORE_HOURS, "monthlyTotals")
+        .put(HostReportSort.LAST_SEEN, "lastSeen")
+        .build();
+
     private final HostRepository repository;
     private final PageLinkCreator pageLinkCreator;
     @Context
@@ -102,11 +110,6 @@ public class HostsResource implements HostsApi {
         Sort.Order implicitOrder = Sort.Order.by("id");
         Sort sortValue = Sort.by(implicitOrder);
 
-        if (sort != null) {
-            Sort.Order userDefinedOrder = new Sort.Order(dirValue, SORT_PARAM_MAPPING.get(sort));
-            sortValue = Sort.by(userDefinedOrder, implicitOrder);
-        }
-
         int minCores = 0;
         int minSockets = 0;
         if (uom == Uom.CORES) {
@@ -122,7 +125,6 @@ public class HostsResource implements HostsApi {
         String sanitizedDisplayNameSubstring = Objects.nonNull(displayNameContains) ?
             displayNameContains :
             "";
-        Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
 
         boolean isSpecial = Objects.equals(productId, ProductId.OPENSHIFT_DEDICATED_METRICS) ||
             Objects.equals(productId, ProductId.OPENSHIFT_METRICS);
@@ -130,6 +132,11 @@ public class HostsResource implements HostsApi {
         List<org.candlepin.subscriptions.utilization.api.model.Host> payload;
         Page<?> hosts;
         if (isSpecial) {
+            if (sort != null) {
+                Sort.Order userDefinedOrder = new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));
+                sortValue = Sort.by(userDefinedOrder, implicitOrder);
+            }
+            Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
 
             OffsetDateTime now = OffsetDateTime.now();
             OffsetDateTime start = Optional.ofNullable(beginning).orElse(now);
@@ -145,6 +152,12 @@ public class HostsResource implements HostsApi {
                 .collect(Collectors.toList());
         }
         else {
+            if (sort != null) {
+                Sort.Order userDefinedOrder = new Sort.Order(dirValue,
+                    HOST_SORT_PARAM_MAPPING.get(sort));
+                sortValue = Sort.by(userDefinedOrder, implicitOrder);
+            }
+            Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
             hosts = repository
                 .getTallyHostViews(accountNumber, productId.toString(), sanitizedSla, sanitizedUsage,
                     sanitizedDisplayNameSubstring, minCores, minSockets, page);
