@@ -132,8 +132,8 @@ public class HostsResource implements HostsApi {
         if (isSpecial) {
 
             OffsetDateTime now = OffsetDateTime.now();
-            OffsetDateTime start = Optional.of(beginning).orElse(now);
-            OffsetDateTime end = Optional.of(ending).orElse(now);
+            OffsetDateTime start = Optional.ofNullable(beginning).orElse(now);
+            OffsetDateTime end = Optional.ofNullable(ending).orElse(now);
 
             validateBeginningAndEndingDates(start, end);
 
