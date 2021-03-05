@@ -83,11 +83,18 @@ burstable: false
 syspurposeRoles: []
 architectureSwatchProductIdMap: {}
 ---
-name: OpenShift-metrics
+name: OpenShiftContainerPlatform
 products:
   - engProductId: 290 # Red Hat OpenShift Container Platform
     swatchProductIds:
       - OpenShift Container Platform
+finestGranularity: DAILY
+burstable: false
+syspurposeRoles: []
+architectureSwatchProductIdMap: {}
+---
+name: OpenShiftMetrics
+products: []
 syspurposeRoles:
   - name: ocp
     swatchProductIds:
