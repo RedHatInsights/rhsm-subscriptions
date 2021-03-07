@@ -54,6 +54,7 @@ import java.util.List;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -149,7 +150,12 @@ public class CapacityResource implements CapacityApi {
          * supported by the product.  The reports created would be technically accurate, but would convey the
          * false impression that we have capacity information at that fine of a granularity.  This decision is
          * on of personal judgment and it may be appropriate to reverse it at a later date. */
-        validateGranularityCompatibility(productId, granularity);
+        try {
+            productProfileRegistry.validateGranularityCompatibility(productId, granularity);
+        }
+        catch (IllegalStateException e) {
+            throw new BadRequestException(e.getMessage());
+        }
 
         List<SubscriptionCapacity> matches = repository.findByOwnerAndProductId(
             ownerId,

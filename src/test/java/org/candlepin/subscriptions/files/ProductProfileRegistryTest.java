@@ -76,6 +76,22 @@ class ProductProfileRegistryTest {
     }
 
     @Test
+    void testValidateProductGranularityTooFine() {
+        assertThrows(IllegalStateException.class, () -> registry.validateGranularityCompatibility(RHEL,
+            HOURLY));
+    }
+
+    @Test
+    void testValidateProductGranularityEqual() {
+        assertDoesNotThrow(() -> registry.validateGranularityCompatibility(RHEL, DAILY));
+    }
+
+    @Test
+    void testValidateProductGranularityCoarser() {
+        assertDoesNotThrow(() -> registry.validateGranularityCompatibility(RHEL, YEARLY));
+    }
+
+    @Test
     void testFindProfileForProductId() {
         assertEquals("p1", registry.findProfileForSwatchProductId("RHEL").getName());
     }

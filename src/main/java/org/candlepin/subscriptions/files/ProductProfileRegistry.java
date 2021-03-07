@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.files;
 
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
@@ -162,5 +163,20 @@ public class ProductProfileRegistry {
             .map(ProductProfile::getArchitectureSwatchProductIdMap)
             .forEach(archToProductMap::putAll);
         return archToProductMap;
+    }
+
+    /** Verify that the granularity requested is compatible with the finest granularity supported by the
+     *  product.  For example, if the requester asks for HOURLY granularity but the product only supports
+     *  DAILY granularity, we can't meaningfully fulfill that request.
+     *
+     * @throws IllegalStateException if the granularities are not compatible
+     */
+    public void validateGranularityCompatibility(ProductId productId, Granularity requestedGranularity) {
+        ProductProfile productProfile = findProfileForSwatchProductId(productId);
+        if (!productProfile.supportsGranularity(requestedGranularity)) {
+            String msg = String.format("%s does not support any granularity finer than %s",
+                productId.toString(), productProfile.getFinestGranularity());
+            throw new IllegalStateException(msg);
+        }
     }
 }
