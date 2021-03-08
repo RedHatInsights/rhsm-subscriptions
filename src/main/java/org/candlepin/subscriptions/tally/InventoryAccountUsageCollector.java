@@ -84,7 +84,7 @@ public class InventoryAccountUsageCollector {
         List<Host> existing = getAccountHosts(accounts);
         Map<String, Host> inventoryHostMap = existing.stream()
             .filter(host -> host.getInventoryId() != null)
-            .collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
+            .collect(Collectors.toMap(Host::getInventoryId, Function.identity(), this::handleDuplicateHost));
 
         Map<String, String> hypMapping = new HashMap<>();
         Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
@@ -196,6 +196,12 @@ public class InventoryAccountUsageCollector {
         }
 
         return calcsByAccount;
+    }
+
+    private Host handleDuplicateHost(Host host1, Host host2) {
+        log.warn("Removing duplicate host record w/ inventory ID: {}", host2.getInventoryId());
+        hostRepository.delete(host2);
+        return host1;
     }
 
     private void collectHypervisorGuestData(Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys,

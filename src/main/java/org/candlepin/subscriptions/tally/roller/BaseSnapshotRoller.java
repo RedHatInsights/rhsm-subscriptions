@@ -147,7 +147,7 @@ public abstract class BaseSnapshotRoller {
                 accountSnapsByUsageKey = existingSnaps.get(account)
                     .stream()
                     .collect(Collectors.toMap(UsageCalculation.Key::fromTallySnapshot,
-                        Function.identity()));
+                        Function.identity(), this::handleDuplicateSnapshot));
             }
 
             for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
@@ -165,6 +165,13 @@ public abstract class BaseSnapshotRoller {
         }
         log.debug("Persisting {} {} snapshots.", snaps.size(), targetGranularity);
         return tallyRepo.saveAll(snaps);
+    }
+
+    private TallySnapshot handleDuplicateSnapshot(TallySnapshot snap1, TallySnapshot snap2) {
+        log.warn("Removing duplicate TallySnapshot granularity: {}, key: {}",
+            snap2.getGranularity(), UsageCalculation.Key.fromTallySnapshot(snap2));
+        tallyRepo.delete(snap2);
+        return snap1;
     }
 
     protected Set<String> getApplicableProducts(Collection<AccountUsageCalculation> accountCalcs,
