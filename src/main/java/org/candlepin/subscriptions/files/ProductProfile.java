@@ -128,7 +128,7 @@ public class ProductProfile {
         this.prometheusCounterName = prometheusCounterName;
     }
 
-    public boolean supportsProduct(String product) {
+    public boolean supportsEngProduct(String product) {
         return products.stream().anyMatch(x -> product.equals(x.getEngProductId()));
     }
 

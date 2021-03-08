@@ -58,6 +58,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 
 @SuppressWarnings("linelength")
@@ -82,6 +83,20 @@ public class TallyResourceTest {
     @BeforeEach
     public void setupTests() throws AccountListSourceException {
         when(accountListSource.containsReportingAccount(eq("account123456"))).thenReturn(true);
+    }
+
+    @Test
+    void doesNotAllowReportsForUnsupportedGranularity() {
+        assertThrows(BadRequestException.class, () ->
+            resource.getTallyReport(RHEL_PRODUCT_ID,
+            GranularityType.HOURLY,
+            min,
+            max,
+            10,
+            10,
+            null,
+            UsageType.PRODUCTION
+        ));
     }
 
     @Test
