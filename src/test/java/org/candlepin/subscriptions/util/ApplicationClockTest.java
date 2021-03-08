@@ -20,23 +20,65 @@
  */
 package org.candlepin.subscriptions.util;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.candlepin.subscriptions.FixedClockConfiguration.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
-
+@SpringBootTest
+@ActiveProfiles("test")
+@ContextConfiguration(classes = FixedClockConfiguration.class)
 class ApplicationClockTest {
 
+    @Autowired
+    // 2019-5-24 12:35:00 UTC or 1558701300 seconds since the epoch
     private ApplicationClock clock;
 
-    public ApplicationClockTest() {
-        // 2019-5-24 12:35:00 UTC
-        clock = new FixedClockConfiguration().fixedClock();
+    @Autowired
+    @Qualifier("EDTSpringClock")
+    // Clock set to SPRING_TIME with America/New York zone.  Will be in Daylight Saving Time.
+    private ApplicationClock dstClock;
+
+    @Autowired
+    @Qualifier("ESTWinterClock")
+    // Clock set to WINTER_TIME with America/New York zone.  Will be in Standard Time.
+    private ApplicationClock standardClock;
+
+    @Autowired
+    @Qualifier("ZuluWinterClock")
+    // Clock set to WINTER_TIME in UTC
+    private ApplicationClock zuluWinterClock;
+
+    @Test
+    void testConvertToUnixTime() {
+        assertEquals(OffsetDateTime.from(SPRING_TIME_UTC), clock.dateFromUnix(SPRING_EPOCH_UTC));
+        assertEquals(OffsetDateTime.from(WINTER_TIME_UTC), clock.dateFromUnix(WINTER_EPOCH_UTC));
+
+        assertEquals(OffsetDateTime.from(SPRING_TIME_UTC), zuluWinterClock.dateFromUnix(SPRING_EPOCH_UTC));
+        assertEquals(OffsetDateTime.from(WINTER_TIME_UTC), zuluWinterClock.dateFromUnix(WINTER_EPOCH_UTC));
+
+        // Neither of the America/New York clocks should equal the UTC epoch values due to their offsets.
+        assertNotEquals(OffsetDateTime.from(SPRING_TIME_EDT), dstClock.dateFromUnix(SPRING_EPOCH_UTC));
+        assertNotEquals(OffsetDateTime.from(WINTER_TIME_EST), standardClock.dateFromUnix(WINTER_EPOCH_UTC));
+
+        // Clocks should convert times accurately according to their zone's offset rules.  Since both
+        // standardClock and dstClock use the same zone, America/New_York, they should both correctly handle
+        // the SPRING_TIME and WINTER_TIME.
+        assertEquals(OffsetDateTime.from(WINTER_TIME_EST), standardClock.dateFromUnix(WINTER_EPOCH_EST));
+        assertEquals(OffsetDateTime.from(WINTER_TIME_EST), dstClock.dateFromUnix(WINTER_EPOCH_EST));
+
+        assertEquals(OffsetDateTime.from(SPRING_TIME_EDT), standardClock.dateFromUnix(SPRING_EPOCH_EDT));
+        assertEquals(OffsetDateTime.from(SPRING_TIME_EDT), dstClock.dateFromUnix(SPRING_EPOCH_EDT));
     }
 
     @Test
@@ -165,8 +207,7 @@ class ApplicationClockTest {
     @Test
     void testStartOfCurrentHour() {
         // 2019-5-24 12:35:00 UTC
-        assertDate(2019, 5, 24, 12, 0, 0, 0,
-            clock.startOfCurrentHour());
+        assertDate(2019, 5, 24, 12, 0, 0, 0, clock.startOfCurrentHour());
     }
 
     @Test

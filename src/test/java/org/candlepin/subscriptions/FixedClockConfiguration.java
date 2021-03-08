@@ -28,19 +28,52 @@ import org.springframework.context.annotation.Primary;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 
 @TestConfiguration
 public class FixedClockConfiguration {
+    // A zoneless time
+    public static final LocalDateTime SPRING_TIME = LocalDateTime.of(2019, 5, 24, 12, 35, 0, 0);
+    public static final ZonedDateTime SPRING_TIME_UTC = SPRING_TIME.atZone(ZoneId.of("UTC"));
+    public static final ZonedDateTime SPRING_TIME_EDT = SPRING_TIME.atZone(ZoneId.of("America/New_York"));
+
+    // date --utc -d '2019-5-24T12:35:00 UTC' +%s
+    public static final long SPRING_EPOCH_UTC = 1558701300L;
+    // date --utc -d '2019-5-24T12:35:00 EDT' +%s
+    public static final long SPRING_EPOCH_EDT = 1558715700L;
+
+    public static final LocalDateTime WINTER_TIME = LocalDateTime.of(2019, 1, 3, 14, 15, 0, 0);
+    public static final ZonedDateTime WINTER_TIME_UTC = WINTER_TIME.atZone(ZoneId.of("UTC"));
+    public static final ZonedDateTime WINTER_TIME_EST = WINTER_TIME.atZone(ZoneId.of("America/New_York"));
+
+    // date --utc -d '2019-1-3T14:15:00 UTC' +%s
+    public static final Long WINTER_EPOCH_UTC = 1546524900L;
+    //date --utc -d '2019-1-3T14:15:00 EST' +%s
+    public static final Long WINTER_EPOCH_EST = 1546542900L;
 
     @Bean
     @Primary
     public ApplicationClock fixedClock() {
-        return new ApplicationClock(Clock.fixed(
-            Instant.from(OffsetDateTime.of(2019, 5, 24, 12, 35, 0, 0, ZoneOffset.UTC)),
-            ZoneId.of("UTC"))
+        return new ApplicationClock(Clock.fixed(Instant.from(SPRING_TIME_UTC), ZoneId.of("UTC")));
+    }
+
+    @Bean(name = "ZuluWinterClock")
+    public ApplicationClock utcWinterClock() {
+        return new ApplicationClock(Clock.fixed(Instant.from(WINTER_TIME_UTC), ZoneId.of("UTC")));
+    }
+
+    @Bean(name = "EDTSpringClock")
+    public ApplicationClock edtSpringClock() {
+        return new ApplicationClock(
+            Clock.fixed(Instant.from(SPRING_TIME_EDT), ZoneId.of("America/New_York")));
+    }
+
+    @Bean(name = "ESTWinterClock")
+    public ApplicationClock estWinterClock() {
+        return new ApplicationClock(
+            Clock.fixed(Instant.from(WINTER_TIME_EST), ZoneId.of("America/New_York"))
         );
     }
 
