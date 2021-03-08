@@ -25,7 +25,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.DayOfWeek;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -178,9 +178,12 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime dateFromUnix(BigDecimal time) {
+        return dateFromUnix(time.longValue());
+    }
+
+    public OffsetDateTime dateFromUnix(Long time) {
         ZoneId zone = this.clock.getZone();
-        ZonedDateTime zonedDateTime = LocalDateTime.ofEpochSecond(time.longValue(), 0,
-            OffsetDateTime.now(zone).getOffset()).atZone(zone);
+        ZonedDateTime zonedDateTime = Instant.ofEpochSecond(time).atZone(zone);
         return zonedDateTime.toOffsetDateTime();
     }
 
