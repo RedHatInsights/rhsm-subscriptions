@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.files;
 import static org.candlepin.subscriptions.db.model.Granularity.*;
 
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
 import org.springframework.util.StringUtils;
 
@@ -30,7 +32,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Represents information telling capacity and tally how to handle certain products
@@ -48,6 +52,9 @@ public class ProductProfile {
     private Set<SyspurposeRole> syspurposeRoles;
     private Granularity finestGranularity;
     private boolean burstable = false;
+    private String serviceType;
+    private ServiceLevel defaultSla;
+    private Usage defaultUsage;
     private String prometheusMetricName;
     private String prometheusCounterName;
     private Map<String, String> architectureSwatchProductIdMap;
@@ -128,6 +135,30 @@ public class ProductProfile {
         this.prometheusCounterName = prometheusCounterName;
     }
 
+    public String getServiceType() {
+        return serviceType;
+    }
+
+    public void setServiceType(String serviceType) {
+        this.serviceType = serviceType;
+    }
+
+    public ServiceLevel getDefaultSla() {
+        return defaultSla;
+    }
+
+    public void setDefaultSla(ServiceLevel defaultSla) {
+        this.defaultSla = defaultSla;
+    }
+
+    public Usage getDefaultUsage() {
+        return defaultUsage;
+    }
+
+    public void setDefaultUsage(Usage defaultUsage) {
+        this.defaultUsage = defaultUsage;
+    }
+
     public boolean supportsEngProduct(String product) {
         return products.stream().anyMatch(x -> product.equals(x.getEngProductId()));
     }
@@ -138,6 +169,17 @@ public class ProductProfile {
 
     public boolean supportsGranularity(Granularity granularity) {
         return granularity.compareTo(finestGranularity) < 1;
+    }
+
+    public Map<String, Set<String>> mapSwatchProductsByRole() {
+        return Optional.ofNullable(this.getSyspurposeRoles()).orElse(Collections.emptySet()).stream()
+            .collect(Collectors.toMap(SyspurposeRole::getName, SyspurposeRole::getSwatchProductIds));
+    }
+
+    public Map<String, Set<String>> mapSwatchProductsByEngProducts() {
+        return Optional.ofNullable(this.getProducts()).orElse(Collections.emptySet()).stream()
+            .collect(Collectors.toMap(SubscriptionWatchProduct::getEngProductId,
+                SubscriptionWatchProduct::getSwatchProductIds));
     }
 
     @Override
@@ -151,6 +193,9 @@ public class ProductProfile {
         ProductProfile that = (ProductProfile) o;
         return burstable == that.burstable && Objects.equals(name, that.name) &&
             Objects.equals(products, that.products) && finestGranularity == that.finestGranularity &&
+            Objects.equals(serviceType, that.serviceType) &&
+            defaultSla == that.defaultSla &&
+            defaultUsage == that.defaultUsage &&
             Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
             Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
             Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap);
@@ -162,6 +207,9 @@ public class ProductProfile {
             name,
             products,
             finestGranularity,
+            serviceType,
+            defaultSla,
+            defaultUsage,
             burstable,
             prometheusMetricName,
             prometheusCounterName, architectureSwatchProductIdMap

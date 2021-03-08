@@ -95,6 +95,9 @@ syspurposeRoles:
   - name: osd
     swatchProductIds:
       - OpenShift-dedicated-metrics
+serviceType: OpenShift Cluster
 finestGranularity: HOURLY
+defaultSla: PREMIUM
+defaultUsage: PRODUCTION
 burstable: false
 architectureSwatchProductIdMap: {}

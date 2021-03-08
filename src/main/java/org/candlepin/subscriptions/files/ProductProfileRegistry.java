@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,6 +42,7 @@ public class ProductProfileRegistry {
     private final Map<Integer, ProductProfile> engProductIdToProfileMap;
     // NB: We should use ProductId as the key for type safety but that requires test updates
     private final Map<String, ProductProfile> swatchProductIdToProfileMap;
+    private final Map<String, ProductProfile> productProfilesByName;
     private static final ProductProfileRegistry DEFAULT_REGISTRY = new ProductProfileRegistry();
 
     public static ProductProfileRegistry getDefaultRegistry() {
@@ -48,12 +50,19 @@ public class ProductProfileRegistry {
     }
 
     public ProductProfileRegistry() {
+        productProfilesByName = new HashMap<>();
         engProductIdToProfileMap = new HashMap<>();
         swatchProductIdToProfileMap = new HashMap<>();
     }
 
     // Only classes in this package should have any need to add product profiles
     void addProductProfile(ProductProfile profile) {
+        if (this.productProfilesByName.containsKey(profile.getName())) {
+            throw new IllegalStateException(String.format("A profile is already registered with name: %s",
+                profile.getName()));
+        }
+        this.productProfilesByName.put(profile.getName(), profile);
+
         Set<SubscriptionWatchProduct> profileProducts = profile.getProducts();
         if (profileProducts.isEmpty()) {
             log.warn("No products are set in product profile {}. This is probably a mistake.",
@@ -97,7 +106,6 @@ public class ProductProfileRegistry {
         }
 
         swatchProdIds.forEach(x -> swatchProductIdToProfileMap.put(x, profile));
-
     }
 
     public ProductProfile findProfileForSwatchProductId(String productId) {
@@ -124,14 +132,16 @@ public class ProductProfileRegistry {
         return ProductProfile.getDefault();
     }
 
+    public Optional<ProductProfile> getProfileByName(String name) {
+        return Optional.ofNullable(productProfilesByName.get(name));
+    }
+
     public Set<String> listProfiles() {
-        return engProductIdToProfileMap.values().stream()
-            .map(ProductProfile::getName)
-            .collect(Collectors.toSet());
+        return productProfilesByName.keySet();
     }
 
     public Set<ProductProfile> getAllProductProfiles() {
-        return new HashSet<>(engProductIdToProfileMap.values());
+        return new HashSet<>(productProfilesByName.values());
     }
 
     public Map<Integer, Set<String>> getEngProductIdToSwatchProductIdsMap() {
@@ -151,7 +161,7 @@ public class ProductProfileRegistry {
 
     public Map<String, Set<String>> getRoleToSwatchProductIdsMap() {
         Map<String, Set<String>> roleToProductsMap = new HashMap<>();
-        engProductIdToProfileMap.values().stream()
+        productProfilesByName.values().stream()
             .distinct()
             .flatMap(x -> x.getSyspurposeRoles().stream())
             .forEach(x -> {
@@ -166,7 +176,7 @@ public class ProductProfileRegistry {
 
     public Map<String, String> getArchToSwatchProductIdsMap() {
         Map<String, String> archToProductMap = new HashMap<>();
-        engProductIdToProfileMap.values().stream()
+        productProfilesByName.values().stream()
             .distinct()
             .map(ProductProfile::getArchitectureSwatchProductIdMap)
             .forEach(archToProductMap::putAll);

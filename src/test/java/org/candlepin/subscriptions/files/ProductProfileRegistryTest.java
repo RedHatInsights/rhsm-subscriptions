@@ -32,8 +32,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class ProductProfileRegistryTest {
 
@@ -116,7 +118,7 @@ class ProductProfileRegistryTest {
 
     @Test
     void testListProfiles() {
-        Set<String> expected = Set.of("p1", "p2", "p3");
+        Set<String> expected = Set.of("p1", "p2", "p3", "p4");
         Set<String> actual = registry.listProfiles();
         assertEquals(expected, actual);
     }
@@ -124,7 +126,7 @@ class ProductProfileRegistryTest {
     @Test
     void testGetAllProductProfiles() {
         Set<ProductProfile> profiles = registry.getAllProductProfiles();
-        assertEquals(3, profiles.size());
+        assertEquals(4, profiles.size());
         assertEquals(Set.of(HOURLY, DAILY),
             profiles.stream().map(ProductProfile::getFinestGranularity).collect(Collectors.toSet()));
     }
@@ -184,5 +186,14 @@ class ProductProfileRegistryTest {
     void mapsSwatchProductIdToProfileByRole() {
         ProductProfile actual = registry.findProfileForSwatchProductId(OPENSHIFT_METRICS);
         assertEquals("p4", actual.getName());
+    }
+
+    @Test
+    void mapsProfileByName() {
+        Stream.of("p1", "p2", "p3", "p4").forEach(n -> {
+            Optional<ProductProfile> profile = registry.getProfileByName(n);
+            assertTrue(profile.isPresent(), "Profile not found with name: " + n);
+            assertEquals(n, profile.get().getName());
+        });
     }
 }
