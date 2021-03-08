@@ -79,4 +79,11 @@ public class QuarterlySnapshotRollerTest {
             clock.endOfCurrentQuarter(), true);
     }
 
+    @Test
+    @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
+    void testHandlesDuplicates() {
+        tester.performRemovesDuplicates(Granularity.QUARTERLY, clock.startOfCurrentQuarter(),
+            clock.endOfCurrentQuarter());
+    }
+
 }
