@@ -165,4 +165,12 @@ public class ApplicationProperties {
      */
     private Duration metricLookupRangeDuration = Duration.ofHours(24L);
 
+    /**
+     * Latency offset: how far back to set the hourly tally window.
+     *
+     * The offset is subtracted from the beginning and ending times of the latency window, to delay the entire
+     * processing window.  This ensures more metering tasks finish and report their totals before tallying
+     * begins.
+     */
+    private Duration hourlyTallyOffset = Duration.ofMinutes(60L);
 }
