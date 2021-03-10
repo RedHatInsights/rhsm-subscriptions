@@ -16,5 +16,4 @@ rhsm-subscriptions:
 logging:
   level:
     org:
-      springframework:
-        retry: DEBUG
+      candlepin: INFO
