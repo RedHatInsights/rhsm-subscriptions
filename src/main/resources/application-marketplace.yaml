@@ -3,3 +3,8 @@ rhsm-subscriptions:
     api-key: ${MARKETPLACE_API_KEY}
     url: ${MARKETPLACE_URL}
     token-refresh-period: ${MARKETPLACE_TOKEN_REFRESH_PERIOD:1m}
+    # 9 retries -> 1s + 2s + 4s + 8s + 16s + 32s + 64s + 64s + 64s = 255s (~5 minutes)
+    max-attempts: ${MARKETPLACE_MAX_ATTEMPTS:10}
+    back-off-max-interval: ${MARKETPLACE_BACK_OFF_MAX_INTERVAL:64s}
+    back-off-initial-interval: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL:1s}
+    back-off-multiplier: ${MARKETPLACE_BACK_OFF_MULTIPLIER:2}

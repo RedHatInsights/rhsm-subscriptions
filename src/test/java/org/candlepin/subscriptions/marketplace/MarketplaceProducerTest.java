@@ -20,27 +20,33 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Profile;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
+
+import org.junit.jupiter.api.Test;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
-/**
- * Configuration for the Marketplace integration worker.
- */
-@Profile("marketplace")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.marketplace")
-public class MarketplaceWorkerConfiguration {
-    @Bean
-    @Qualifier("marketplaceRetryTemplate")
-    public RetryTemplate marketplaceRetryTemplate(MarketplaceProperties properties) {
-        return new RetryTemplateBuilder()
-            .maxAttempts(properties.getMaxAttempts())
-            .exponentialBackoff(properties.getBackOffInitialInterval().toMillis(),
-                properties.getBackOffMultiplier(),
-                properties.getBackOffMaxInterval().toMillis())
+class MarketplaceProducerTest {
+
+    @Test
+    void testMarketplaceProducerRetry() throws Exception {
+        RetryTemplate retryTemplate = new RetryTemplateBuilder()
+            .maxAttempts(2)
+            .noBackoff()
             .build();
+        MarketplaceService marketplaceService = mock(MarketplaceService.class);
+        MarketplaceProducer marketplaceProducer = new MarketplaceProducer(marketplaceService, retryTemplate);
+
+        when(marketplaceService.submitUsageEvents(any())).thenThrow(ApiException.class);
+
+        assertThrows(ApiException.class, () ->
+            marketplaceProducer.submitUsageRequest(new UsageRequest())
+        );
+
+        verify(marketplaceService, times(2)).submitUsageEvents(any());
     }
 }

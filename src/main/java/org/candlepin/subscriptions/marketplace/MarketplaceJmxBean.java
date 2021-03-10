@@ -45,13 +45,15 @@ public class MarketplaceJmxBean {
 
     private final ApplicationProperties properties;
     private final MarketplaceService marketplaceService;
+    private final MarketplaceProducer marketplaceProducer;
     private final ObjectMapper mapper;
 
     MarketplaceJmxBean(ApplicationProperties properties, MarketplaceService marketplaceService,
-        ObjectMapper mapper) {
+        MarketplaceProducer marketplaceProducer, ObjectMapper mapper) {
 
         this.properties = properties;
         this.marketplaceService = marketplaceService;
+        this.marketplaceProducer = marketplaceProducer;
         this.mapper = mapper;
     }
 
@@ -69,7 +71,7 @@ public class MarketplaceJmxBean {
         }
         UsageEvent usageEvent = mapper.readValue(payloadJson, UsageEvent.class);
         UsageRequest usageRequest = new UsageRequest().addDataItem(usageEvent);
-        return marketplaceService.submitUsageEvents(usageRequest).toString();
+        return marketplaceProducer.submitUsageRequest(usageRequest).toString();
     }
 
     @ManagedOperation(description = "Fetch a usage event status")
