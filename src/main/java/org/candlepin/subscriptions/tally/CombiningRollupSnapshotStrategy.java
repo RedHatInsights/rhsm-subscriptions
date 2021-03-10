@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.DoubleBinaryOperator;
 import java.util.stream.Collectors;
@@ -89,6 +90,12 @@ public class CombiningRollupSnapshotStrategy {
         DoubleBinaryOperator reductionFunction) {
 
         String swatchProductId = getSwatchProductId(accountCalcs);
+
+        if (Objects.isNull(swatchProductId)) {
+            log.warn("No account calculations found for provided timeframe");
+            return;
+        }
+
         Granularity finestGranularity = lookupFinestGranularity(swatchProductId);
 
         Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots = new HashMap<>();
@@ -155,8 +162,9 @@ public class CombiningRollupSnapshotStrategy {
     }
 
     /**
-     * Get the effective Swatch Product ID for the account calculations.
-     *
+     * Get the effective Swatch Product ID for the account calculations.  Null is returned if there are no
+     * calculations for the account or if there are no product ids for a calculation
+     * <p>
      * NOTE: this method grabs the first AccountUsageCalculation's first Swatch Product ID (we assume that
      * the Swatch Product ID is representative. (If this changes there will be bugs).
      *
@@ -164,10 +172,14 @@ public class CombiningRollupSnapshotStrategy {
      * @return Swatch Product ID
      */
     protected String getSwatchProductId(Map<OffsetDateTime, AccountUsageCalculation> accountCalcs) {
-        AccountUsageCalculation accountUsageCalculation = accountCalcs.values().stream().findFirst()
-            .orElseThrow();
+        Optional<AccountUsageCalculation> accountUsageCalculation = accountCalcs.values().stream()
+            .findFirst();
 
-        return accountUsageCalculation.getProducts().stream().findFirst().orElseThrow();
+        if (accountUsageCalculation.isEmpty()) {
+            return null;
+        }
+
+        return accountUsageCalculation.get().getProducts().stream().findFirst().orElse(null);
     }
 
     protected Granularity lookupFinestGranularity(String swatchProductId) {
