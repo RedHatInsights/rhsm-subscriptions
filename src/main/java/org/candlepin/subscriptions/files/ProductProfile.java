@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -53,9 +54,11 @@ public class ProductProfile {
 
     public ProductProfile() {
         // Default used for YAML deserialization
+        this.syspurposeRoles = new HashSet<>();
     }
 
     public ProductProfile(String name, Set<SubscriptionWatchProduct> products, Granularity granularity) {
+        this();
         this.name = name;
         this.products = products;
         this.finestGranularity = granularity;
@@ -125,7 +128,7 @@ public class ProductProfile {
         this.prometheusCounterName = prometheusCounterName;
     }
 
-    public boolean supportsProduct(String product) {
+    public boolean supportsEngProduct(String product) {
         return products.stream().anyMatch(x -> product.equals(x.getEngProductId()));
     }
 

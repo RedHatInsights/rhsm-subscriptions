@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
@@ -60,15 +62,17 @@ public class TallyResource implements TallyApi {
     private final TallySnapshotRepository repository;
     private final PageLinkCreator pageLinkCreator;
     private final ApplicationClock clock;
+    private final ProductProfileRegistry productProfileRegistry;
 
     @Context
     private UriInfo uriInfo;
 
     public TallyResource(TallySnapshotRepository repository, PageLinkCreator pageLinkCreator,
-        ApplicationClock clock) {
+        ApplicationClock clock, ProductProfileRegistry productProfileRegistry) {
         this.repository = repository;
         this.pageLinkCreator = pageLinkCreator;
         this.clock = clock;
+        this.productProfileRegistry = productProfileRegistry;
     }
 
     @SuppressWarnings("linelength")
@@ -89,6 +93,16 @@ public class TallyResource implements TallyApi {
         ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
         Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
         Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
+
+        try {
+            /* Throw an error if we are asked to return reports at a finer grain than what is supported by
+             * product.  Ideally, those reports should not even exist, but we want to inform the user that
+             * their request is a non sequitur. */
+            productProfileRegistry.validateGranularityCompatibility(productId, granularityFromValue);
+        }
+        catch (IllegalStateException e) {
+            throw new BadRequestException(e.getMessage());
+        }
 
         Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage = repository.findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
             accountNumber,

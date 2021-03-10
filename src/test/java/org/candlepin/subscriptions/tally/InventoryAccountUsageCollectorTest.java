@@ -556,6 +556,27 @@ public class InventoryAccountUsageCollectorTest {
             .getTotals(HardwareMeasurementType.VIRTUAL));
     }
 
+    @Test
+    void removesDuplicateHostRecords() {
+        String account = "A1";
+        List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
+        List<String> targetAccounts = Arrays.asList(account);
+        InventoryHostFacts host = createRhsmHost(account, "O1", products, 12, 3, "",
+            OffsetDateTime.now());
+
+        Host orig = new Host("inventoryId", "insights1", host.getAccount(), host.getOrgId(), null);
+        Host dupe = new Host("inventoryId", "insights2", host.getAccount(), host.getOrgId(), null);
+
+        when(hostRepo.findByAccountNumber("A1")).thenReturn(List.of(
+            orig,
+            dupe
+        ));
+
+        collector.collect(RHEL_PRODUCTS, targetAccounts);
+
+        verify(hostRepo).delete(dupe);
+    }
+
     private void checkTotalsCalculation(AccountUsageCalculation calc, String account, String owner,
         String product, int cores, int sockets, int instances) {
         checkTotalsCalculation(calc, account, owner, product, ServiceLevel._ANY, cores, sockets, instances);

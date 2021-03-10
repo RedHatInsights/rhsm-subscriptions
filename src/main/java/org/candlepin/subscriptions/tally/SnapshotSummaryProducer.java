@@ -91,11 +91,12 @@ public class SnapshotSummaryProducer {
 
     public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
         AtomicInteger totalTallies = new AtomicInteger();
-        newAndUpdatedSnapshots.entrySet().stream()
-            .map(entry -> createTallySummary(entry.getKey(), entry.getValue())).forEach(tallySummary -> {
-                tallySummaryKafkaTemplate.send(tallySummaryTopic, tallySummary);
+        newAndUpdatedSnapshots.forEach((account, snapshots) -> snapshots.stream()
+            .map(snapshot -> createTallySummary(account, List.of(snapshot)))
+            .forEach(summary -> {
+                tallySummaryKafkaTemplate.send(tallySummaryTopic, summary);
                 totalTallies.getAndIncrement();
-            });
+            }));
 
         log.info("Produced {} TallySummary messages", totalTallies);
     }

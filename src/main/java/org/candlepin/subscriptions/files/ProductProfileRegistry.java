@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.files;
 
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
@@ -29,7 +30,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Registry of product profiles.  Essentially a map of profile names to profile objects */
 public class ProductProfileRegistry {
@@ -76,8 +79,15 @@ public class ProductProfileRegistry {
         profileProducts.forEach(x -> engProductIdToProfileMap
             .put(Integer.parseInt(x.getEngProductId()), profile));
 
-        Set<String> duplicateIds = profileProducts.stream()
-            .flatMap(x -> x.getSwatchProductIds().stream())
+        Stream<String> fromProducts = profileProducts.stream()
+            .flatMap(x -> x.getSwatchProductIds().stream());
+        Stream<String> fromRoles = profile.getSyspurposeRoles().stream()
+            .flatMap(r -> r.getSwatchProductIds().stream());
+        Set<String> swatchProdIds = Stream.of(fromProducts, fromRoles)
+            .flatMap(Function.identity())
+            .collect(Collectors.toSet());
+
+        Set<String> duplicateIds = swatchProdIds.stream()
             .filter(swatchProductIdToProfileMap::containsKey)
             .collect(Collectors.toSet());
 
@@ -86,9 +96,8 @@ public class ProductProfileRegistry {
                 ". The following Subscription Watch product IDs are already defined: " + duplicateIds);
         }
 
-        profileProducts.stream()
-            .flatMap(x -> x.getSwatchProductIds().stream())
-            .forEach(x -> swatchProductIdToProfileMap.put(x, profile));
+        swatchProdIds.forEach(x -> swatchProductIdToProfileMap.put(x, profile));
+
     }
 
     public ProductProfile findProfileForSwatchProductId(String productId) {
@@ -162,5 +171,20 @@ public class ProductProfileRegistry {
             .map(ProductProfile::getArchitectureSwatchProductIdMap)
             .forEach(archToProductMap::putAll);
         return archToProductMap;
+    }
+
+    /** Verify that the granularity requested is compatible with the finest granularity supported by the
+     *  product.  For example, if the requester asks for HOURLY granularity but the product only supports
+     *  DAILY granularity, we can't meaningfully fulfill that request.
+     *
+     * @throws IllegalStateException if the granularities are not compatible
+     */
+    public void validateGranularityCompatibility(ProductId productId, Granularity requestedGranularity) {
+        ProductProfile productProfile = findProfileForSwatchProductId(productId);
+        if (!productProfile.supportsGranularity(requestedGranularity)) {
+            String msg = String.format("%s does not support any granularity finer than %s",
+                productId.toString(), productProfile.getFinestGranularity());
+            throw new IllegalStateException(msg);
+        }
     }
 }
