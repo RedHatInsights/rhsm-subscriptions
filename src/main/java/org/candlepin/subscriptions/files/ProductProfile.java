@@ -29,10 +29,10 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -58,17 +58,23 @@ public class ProductProfile {
     private String prometheusMetricName;
     private String prometheusCounterName;
     private Map<String, String> architectureSwatchProductIdMap;
+    private Map<String, Set<String>> swatchProductsByRoles;
+    private Map<String, Set<String>> swatchProductsByEngProducts;
+
 
     public ProductProfile() {
         // Default used for YAML deserialization
         this.syspurposeRoles = new HashSet<>();
+        this.swatchProductsByRoles = new HashMap<>();
+        this.swatchProductsByEngProducts = new HashMap<>();
     }
 
     public ProductProfile(String name, Set<SubscriptionWatchProduct> products, Granularity granularity) {
         this();
         this.name = name;
-        this.products = products;
         this.finestGranularity = granularity;
+        // Setter required to populate swatch products by role.
+        setProducts(products);
     }
 
     public String getName() {
@@ -85,6 +91,9 @@ public class ProductProfile {
 
     public void setProducts(Set<SubscriptionWatchProduct> products) {
         this.products = products;
+        this.swatchProductsByEngProducts = this.products.stream()
+            .collect(Collectors.toMap(SubscriptionWatchProduct::getEngProductId,
+            SubscriptionWatchProduct::getSwatchProductIds));
     }
 
     public Set<SyspurposeRole> getSyspurposeRoles() {
@@ -93,6 +102,8 @@ public class ProductProfile {
 
     public void setSyspurposeRoles(Set<SyspurposeRole> syspurposeRoles) {
         this.syspurposeRoles = syspurposeRoles;
+        this.swatchProductsByRoles = this.syspurposeRoles.stream()
+            .collect(Collectors.toMap(SyspurposeRole::getName, SyspurposeRole::getSwatchProductIds));
     }
 
     public Granularity getFinestGranularity() {
@@ -171,15 +182,12 @@ public class ProductProfile {
         return granularity.compareTo(finestGranularity) < 1;
     }
 
-    public Map<String, Set<String>> mapSwatchProductsByRole() {
-        return Optional.ofNullable(this.getSyspurposeRoles()).orElse(Collections.emptySet()).stream()
-            .collect(Collectors.toMap(SyspurposeRole::getName, SyspurposeRole::getSwatchProductIds));
+    public Map<String, Set<String>> getSwatchProductsByRoles() {
+        return this.swatchProductsByRoles;
     }
 
-    public Map<String, Set<String>> mapSwatchProductsByEngProducts() {
-        return Optional.ofNullable(this.getProducts()).orElse(Collections.emptySet()).stream()
-            .collect(Collectors.toMap(SubscriptionWatchProduct::getEngProductId,
-                SubscriptionWatchProduct::getSwatchProductIds));
+    public Map<String, Set<String>> getSwatchProductsByEngProducts() {
+        return this.swatchProductsByEngProducts;
     }
 
     @Override
@@ -198,7 +206,9 @@ public class ProductProfile {
             defaultUsage == that.defaultUsage &&
             Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
             Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
-            Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap);
+            Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap) &&
+            Objects.equals(swatchProductsByRoles, that.swatchProductsByRoles) &&
+            Objects.equals(swatchProductsByEngProducts, that.swatchProductsByEngProducts);
     }
 
     @Override
@@ -212,7 +222,10 @@ public class ProductProfile {
             defaultUsage,
             burstable,
             prometheusMetricName,
-            prometheusCounterName, architectureSwatchProductIdMap
+            prometheusCounterName,
+            architectureSwatchProductIdMap,
+            swatchProductsByRoles,
+            swatchProductsByEngProducts
         );
     }
 }

@@ -258,12 +258,12 @@ public class MetricUsageCollector {
         Set<String> productIds = new HashSet<>();
         Stream.of(event.getRole())
             .filter(Objects::nonNull)
-            .map(role -> productProfile.mapSwatchProductsByRole().getOrDefault(role.value(),
+            .map(role -> productProfile.getSwatchProductsByRoles().getOrDefault(role.value(),
                 Collections.emptySet()))
             .forEach(productIds::addAll);
 
         Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList()).stream()
-            .map(productProfile.mapSwatchProductsByEngProducts()::get)
+            .map(productProfile.getSwatchProductsByEngProducts()::get)
             .filter(Objects::nonNull)
             .forEach(productIds::addAll);
 

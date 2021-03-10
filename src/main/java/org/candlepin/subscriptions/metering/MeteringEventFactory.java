@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.metering;
 
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
@@ -56,21 +57,26 @@ public class MeteringEventFactory {
      * @param accountNumber the account number.
      * @param clusterId the ID of the cluster that was measured.
      * @param serviceLevel the service level of the cluster.
+     * @param usage the usage of the cluster.
+     * @param role the role of the cluster.
      * @param measuredTime the time the measurement was taken.
+     * @param expired the time the measurement had ended.
      * @param measuredValue the value that was measured./
      * @return a populated Event instance.
      */
+    @SuppressWarnings("java:S107")
     public static Event openShiftClusterCores(String accountNumber, String clusterId, String serviceLevel,
-        String usage, OffsetDateTime measuredTime, OffsetDateTime expired, Double measuredValue) {
+        String usage, String role, OffsetDateTime measuredTime, OffsetDateTime expired,
+        Double measuredValue) {
         Event event = new Event();
-        updateOpenShiftClusterCores(event, accountNumber, clusterId, serviceLevel, usage,
+        updateOpenShiftClusterCores(event, accountNumber, clusterId, serviceLevel, usage, role,
             measuredTime, expired, measuredValue);
         return event;
     }
 
     @SuppressWarnings("java:S107")
     public static void updateOpenShiftClusterCores(Event toUpdate, String accountNumber, String clusterId,
-        String serviceLevel, String usage, OffsetDateTime measuredTime, OffsetDateTime expired,
+        String serviceLevel, String usage, String role, OffsetDateTime measuredTime, OffsetDateTime expired,
         Double measuredValue) {
         toUpdate
             .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
@@ -83,7 +89,8 @@ public class MeteringEventFactory {
             .withDisplayName(Optional.of(clusterId))
             .withSla(getSla(serviceLevel, accountNumber, clusterId))
             .withUsage(getUsage(usage, accountNumber, clusterId))
-            .withMeasurements(List.of(new Measurement().withUom(Uom.CORES).withValue(measuredValue)));
+            .withMeasurements(List.of(new Measurement().withUom(Uom.CORES).withValue(measuredValue)))
+            .withRole(getRole(role, accountNumber, clusterId));
     }
 
     private static Sla getSla(String serviceLevel, String account, String clusterId) {
@@ -117,6 +124,21 @@ public class MeteringEventFactory {
         catch (IllegalArgumentException e) {
             log.warn("Unsupported Usage '{}' specified for event. account/cluster: {}/{}",
                 usage, account, clusterId);
+        }
+        return null;
+    }
+
+    private static Role getRole(String role, String account, String clusterId) {
+        if (role == null) {
+            return null;
+        }
+
+        try {
+            return Role.fromValue(StringUtils.trimWhitespace(role));
+        }
+        catch (IllegalArgumentException e) {
+            log.warn("Unsupported Role '{}' specified for event. account/cluster: {}/{}",
+                role, account, clusterId);
         }
         return null;
     }

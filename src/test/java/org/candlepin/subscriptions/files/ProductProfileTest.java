@@ -55,7 +55,8 @@ class ProductProfileTest {
             new SyspurposeRole("ROLE_1", swatchProds1),
             new SyspurposeRole("ROLE_2", swatchProds2)
         ));
-        Map<String, Set<String>> mapping = p.mapSwatchProductsByRole();
+
+        Map<String, Set<String>> mapping = p.getSwatchProductsByRoles();
         assertTrue(mapping.containsKey("ROLE_1"));
         assertThat(mapping.get("ROLE_1"), Matchers.containsInAnyOrder(swatchProds1.toArray()));
         assertTrue(mapping.containsKey("ROLE_2"));
@@ -63,10 +64,12 @@ class ProductProfileTest {
     }
 
     @Test
-    void mapSwatchProductsByRoleHandlesNull() {
-        ProductProfile p = new ProductProfile("test", Collections.emptySet(), Granularity.DAILY);
-        Map<String, Set<String>> mapping = p.mapSwatchProductsByRole();
-        assertTrue(mapping.isEmpty());
+    void mapSwatchProductsByRoleHandlesEmptySet() {
+        ProductProfile profile1 = new ProductProfile("test", Collections.emptySet(), Granularity.DAILY);
+        assertTrue(profile1.getSwatchProductsByRoles().isEmpty());
+
+        ProductProfile profile2 = new ProductProfile();
+        assertTrue(profile2.getSwatchProductsByRoles().isEmpty());
     }
 
     @Test
@@ -79,20 +82,31 @@ class ProductProfileTest {
             new SubscriptionWatchProduct("PROD_2", swatchProds2)
         );
 
-        ProductProfile p = new ProductProfile("test", products, Granularity.DAILY);
-
-        Map<String, Set<String>> mapping = p.mapSwatchProductsByEngProducts();
+        ProductProfile profile1 = new ProductProfile("test", products, Granularity.DAILY);
+        Map<String, Set<String>> mapping = profile1.getSwatchProductsByEngProducts();
         assertTrue(mapping.containsKey("PROD_1"));
         assertThat(mapping.get("PROD_1"), Matchers.containsInAnyOrder(swatchProds1.toArray()));
         assertTrue(mapping.containsKey("PROD_2"));
         assertThat(mapping.get("PROD_2"), Matchers.containsInAnyOrder(swatchProds2.toArray()));
+
+        ProductProfile profile2 = new ProductProfile();
+        profile2.setProducts(products);
+        Map<String, Set<String>> mapping2 = profile2.getSwatchProductsByEngProducts();
+        assertTrue(mapping2.containsKey("PROD_1"));
+        assertThat(mapping2.get("PROD_1"), Matchers.containsInAnyOrder(swatchProds1.toArray()));
+        assertTrue(mapping2.containsKey("PROD_2"));
+        assertThat(mapping2.get("PROD_2"), Matchers.containsInAnyOrder(swatchProds2.toArray()));
+
+        assertEquals(mapping, mapping2);
     }
 
     @Test
-    void mapSwatchProductsByEngProductsHandlesNull() {
-        ProductProfile p = new ProductProfile("test", Collections.emptySet(), Granularity.DAILY);
-        Map<String, Set<String>> mapping = p.mapSwatchProductsByEngProducts();
-        assertTrue(mapping.isEmpty());
+    void mapSwatchProductsByEngProductsHandlesEmptySet() {
+        ProductProfile profile1 = new ProductProfile("test", Collections.emptySet(), Granularity.DAILY);
+        assertTrue(profile1.getSwatchProductsByEngProducts().isEmpty());
+
+        ProductProfile profile2 = new ProductProfile();
+        assertTrue(profile2.getSwatchProductsByEngProducts().isEmpty());
     }
 
 }
