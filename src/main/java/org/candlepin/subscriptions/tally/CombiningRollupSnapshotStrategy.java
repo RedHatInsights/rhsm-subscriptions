@@ -27,7 +27,6 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.DoubleBinaryOperator;
 import java.util.stream.Collectors;
@@ -89,13 +89,15 @@ public class CombiningRollupSnapshotStrategy {
         DoubleBinaryOperator reductionFunction) {
 
         String swatchProductId = getSwatchProductId(accountCalcs);
+        Set<String> swatchProductIds = getSwatchProductIds(accountCalcs);
+
         Granularity finestGranularity = lookupFinestGranularity(swatchProductId);
 
         Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots = new HashMap<>();
         Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots = new HashMap<>();
 
         catalogExistingSnapshots(accountNumber, startDateTime, endDateTime, totalExistingSnapshots,
-            derivedExistingSnapshots);
+            derivedExistingSnapshots, swatchProductIds);
 
         List<TallySnapshot> finestGranularitySnapshots = produceFinestGranularitySnapshots(
             totalExistingSnapshots, accountCalcs, finestGranularity);
@@ -120,7 +122,8 @@ public class CombiningRollupSnapshotStrategy {
 
     private void catalogExistingSnapshots(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime, Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots,
-        Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots) {
+        Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots,
+        Set<String> swatchProductIds) {
         for (Granularity granularity : GRANULARITIES) {
             Granularity rollupGranularity = calculateNextGranularity(granularity);
 
@@ -141,8 +144,8 @@ public class CombiningRollupSnapshotStrategy {
             }
 
             var existingSnapshots = getCurrentSnapshotsByAccount(List.of(accountNumber),
-                List.of(ProductId.OPENSHIFT_METRICS.toString()), granularity, effectiveStartTime,
-                effectiveEndTime).getOrDefault(accountNumber, Collections.emptyList());
+                swatchProductIds, granularity, effectiveStartTime, effectiveEndTime)
+                .getOrDefault(accountNumber, Collections.emptyList());
 
             existingSnapshots
                 .forEach(snap -> totalExistingSnapshots.put(new TallySnapshotNaturalKey(snap), snap));
@@ -155,8 +158,9 @@ public class CombiningRollupSnapshotStrategy {
     }
 
     /**
-     * Get the effective Swatch Product ID for the account calculations.
-     *
+     * Get the effective Swatch Product ID for the account calculations.  Null is returned if there are no
+     * calculations for the account or if there are no product ids for a calculation
+     * <p>
      * NOTE: this method grabs the first AccountUsageCalculation's first Swatch Product ID (we assume that
      * the Swatch Product ID is representative. (If this changes there will be bugs).
      *
@@ -164,10 +168,19 @@ public class CombiningRollupSnapshotStrategy {
      * @return Swatch Product ID
      */
     protected String getSwatchProductId(Map<OffsetDateTime, AccountUsageCalculation> accountCalcs) {
-        AccountUsageCalculation accountUsageCalculation = accountCalcs.values().stream().findFirst()
-            .orElseThrow();
+        Optional<AccountUsageCalculation> accountUsageCalculation = accountCalcs.values().stream()
+            .findFirst();
 
-        return accountUsageCalculation.getProducts().stream().findFirst().orElseThrow();
+        if (accountUsageCalculation.isEmpty()) {
+            return null;
+        }
+
+        return accountUsageCalculation.get().getProducts().stream().findFirst().orElse(null);
+    }
+
+    private Set<String> getSwatchProductIds(Map<OffsetDateTime, AccountUsageCalculation> accountCalcs) {
+        return accountCalcs.values().stream().map(AccountUsageCalculation::getProducts).flatMap(Set::stream)
+            .collect(Collectors.toSet());
     }
 
     protected Granularity lookupFinestGranularity(String swatchProductId) {
@@ -231,10 +244,10 @@ public class CombiningRollupSnapshotStrategy {
 
         List<TallySnapshot> saved = new ArrayList<>();
 
-        accountCalcs.forEach((offset, accountCalc) -> accountCalc.getProducts().forEach(product -> {
+        accountCalcs.forEach((offset, accountCalc) ->  {
             for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
                 var snapshotKey = new TallySnapshotNaturalKey(accountCalc.getAccount(),
-                    product, granularity, usageKey.getSla(), usageKey.getUsage(), offset);
+                    usageKey.getProductId(), granularity, usageKey.getSla(), usageKey.getUsage(), offset);
 
                 TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
                 TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
@@ -247,7 +260,7 @@ public class CombiningRollupSnapshotStrategy {
                 snapshot.setSnapshotDate(offset);
                 saved.add(tallyRepo.save(snapshot));
             }
-        }));
+        });
         return saved;
     }
 

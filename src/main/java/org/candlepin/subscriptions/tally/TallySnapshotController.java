@@ -35,7 +35,6 @@ import io.micrometer.core.annotation.Timed;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -120,24 +119,16 @@ public class TallySnapshotController {
     public void produceHourlySnapshotsForAccount(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime) {
 
-        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
         try {
-            for (OffsetDateTime offset = startDateTime; offset.isBefore(endDateTime); offset =
-                offset.plusHours(1)) {
-                OffsetDateTime finalOffset = offset;
-                accountCalcs.put(offset, retryTemplate
-                    .execute(context -> metricUsageCollector.collect(accountNumber, finalOffset,
-                    finalOffset.plusHours(1))));
-            }
+            Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = retryTemplate.execute(
+                context -> metricUsageCollector.collect(accountNumber, startDateTime, endDateTime));
+            combiningRollupSnapshotStrategy
+                .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
+                accountCalcs, Double::sum);
         }
         catch (Exception e) {
             log.error("Could not collect existing usage snapshots for account {}", accountNumber, e);
-            return;
         }
-
-        combiningRollupSnapshotStrategy
-            .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
-            accountCalcs, Double::sum);
     }
 
     private void attemptCloudigradeEnrichment(List<String> accounts,

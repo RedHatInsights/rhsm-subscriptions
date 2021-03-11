@@ -103,10 +103,9 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement));
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
 
-        metricUsageCollector.collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
         Host instance = account.getServiceInstances().get(event.getInstanceId());
         assertNotNull(instance);
     }
@@ -123,10 +122,9 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement));
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
         UsageCalculation.Key usageCalculationKey =
             new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
@@ -148,10 +146,9 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString());
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
     }
 
@@ -167,10 +164,9 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString());
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
     }
 
@@ -187,10 +183,9 @@ class MetricUsageCollectorTest {
             .withSla(Event.Sla.PREMIUM);
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         Host instance = account.getServiceInstances().get(event.getInstanceId());
         assertNotNull(instance);
         Set<HostTallyBucket> expected = new HashSet<>();
@@ -223,10 +218,9 @@ class MetricUsageCollectorTest {
             .withSla(Event.Sla.PREMIUM);
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
         UsageCalculation.Key usageCalculationKey = new UsageCalculation.Key(RHEL, ServiceLevel._ANY,
             Usage.PRODUCTION);
@@ -249,10 +243,9 @@ class MetricUsageCollectorTest {
             .withUsage(Event.Usage.PRODUCTION);
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
         UsageCalculation.Key usageCalculationKey = new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM,
             Usage._ANY);
@@ -275,11 +268,10 @@ class MetricUsageCollectorTest {
 
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
 
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
 
         UsageCalculation.Key serverKey = new UsageCalculation.Key(RHEL_SERVER_SWATCH_PRODUCT_ID,
@@ -308,11 +300,10 @@ class MetricUsageCollectorTest {
 
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
 
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
 
         UsageCalculation.Key engIdKey = new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
@@ -342,10 +333,9 @@ class MetricUsageCollectorTest {
             .withUsage(Event.Usage.PRODUCTION);
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
         AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+            .collectHour(account, OffsetDateTime.MIN);
         assertNotNull(accountUsageCalculation);
         UsageCalculation.Key usageCalculationKey =
             new UsageCalculation.Key(RHEL,
@@ -368,10 +358,9 @@ class MetricUsageCollectorTest {
             .withUsage(Event.Usage.PRODUCTION);
         Account account = new Account();
         account.setAccountNumber("account123");
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
 
-        metricUsageCollector.collect("account123", OffsetDateTime.MIN, OffsetDateTime.MAX);
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
         Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
         assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
     }
@@ -396,41 +385,13 @@ class MetricUsageCollectorTest {
         existing.setLastSeen(OffsetDateTime.parse("2021-02-25T00:00:01Z"));
         account.getServiceInstances().put(instanceId, existing);
         when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
+        when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+            .thenAnswer(m -> Stream.of(event, event));
 
-        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-01-01T00:00:00Z"),
-            OffsetDateTime.parse("2021-03-01T00:00:00Z"));
+        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-02-25T00:00:00Z"),
+            OffsetDateTime.parse("2021-02-25T01:00:00Z"));
         Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
         assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
-    }
-
-    @Test
-    void testRecalculationQueriesEventsForAllAffectedMonths() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        String instanceId = UUID.randomUUID().toString();
-        Event event = new Event()
-            .withEventId(UUID.randomUUID())
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
-            .withMeasurements(Collections.singletonList(measurement))
-            .withUsage(Event.Usage.PRODUCTION);
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        Host existing = new Host();
-        existing.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 10.0);
-        existing.setInstanceId(instanceId);
-        existing.setInstanceType(SERVICE_TYPE);
-        existing.setLastSeen(OffsetDateTime.parse("2021-02-25T00:00:01Z"));
-        account.getServiceInstances().put(instanceId, existing);
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
-
-        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-01-29T00:00:00Z"),
-            OffsetDateTime.parse("2021-02-01T00:00:00Z"));
-        verify(eventController).fetchEventsInTimeRange("account123",
-            OffsetDateTime.parse("2021-01-01T00:00:00Z"),
-            OffsetDateTime.parse("2021-02-28T23:59:59.999999999Z"));
     }
 
     @Test
@@ -461,10 +422,11 @@ class MetricUsageCollectorTest {
         account.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
 
         when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
+        when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+            .thenAnswer(m -> Stream.of(event, event));
 
-        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-01-01T00:00:00Z"),
-            OffsetDateTime.parse("2021-03-01T00:00:00Z"));
+        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-02-25T00:00:00Z"),
+            OffsetDateTime.parse("2021-02-25T01:00:00Z"));
         assertEquals(Double.valueOf(84.0), activeInstance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
         assertNull(staleInstance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
     }
