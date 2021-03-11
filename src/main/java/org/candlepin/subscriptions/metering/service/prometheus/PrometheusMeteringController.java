@@ -82,7 +82,10 @@ public class PrometheusMeteringController {
         // Reset the start/end dates to ensure they span a complete hour.
         // NOTE: If the prometheus query step changes, we will need to adjust this.
         OffsetDateTime startDate = clock.startOfHour(start);
-        OffsetDateTime endDate = clock.endOfHour(end);
+        // Subtract 1 minute off the end date so that the date is guaranteed to never be
+        // at the top of an hour. Otherwise we would get an extra hour added onto the date
+        // when we moved it to the end of the hour.
+        OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
         openshiftRetry.execute(context -> {
             try {
                 log.info("Collecting OpenShift metrics");
@@ -107,8 +110,10 @@ public class PrometheusMeteringController {
                     account,
                     MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
                     MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
-                    startDate,
-                    endDate
+                    // We need to shift the start and end dates by the step, to account for the shift
+                    // in the event start date when it is created. See note about eventDate below.
+                    startDate.minusSeconds(metricProperties.getOpenshift().getStep()),
+                    endDate.minusSeconds(metricProperties.getOpenshift().getStep())
                 );
                 log.debug("Found {} existing events.", existing.size());
 
