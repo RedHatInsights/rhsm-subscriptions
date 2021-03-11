@@ -56,7 +56,11 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-
+//
+// NOTE: We should really turn these into integration tests when
+//       we have time. All of the mocking here is getting hard
+//       to follow.
+//
 @SpringBootTest
 @ActiveProfiles({"openshift-metering-worker", "test"})
 class PrometheusMeteringControllerTest {
@@ -73,6 +77,8 @@ class PrometheusMeteringControllerTest {
     @Autowired
     private PrometheusMeteringController controller;
 
+    @Autowired
+    private PrometheusMetricsProperties promProps;
 
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
@@ -204,8 +210,8 @@ class PrometheusMeteringControllerTest {
         when(eventController.mapEventsInTimeRange(expectedAccount,
             MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
             MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
-            start,
-            end
+            start.minusSeconds(promProps.getOpenshift().getStep()),
+            end.minusSeconds(promProps.getOpenshift().getStep())
         ))
             .thenReturn(existingEvents.stream().collect(Collectors.toMap(
             EventKey::fromEvent, Function.identity())));
