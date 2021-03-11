@@ -66,7 +66,7 @@ public class TallySnapshotController {
         MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
         @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
         @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
-        MetricUsageCollector metricUsageCollector,
+        @Qualifier("OpenShiftMetricsUsageCollector") MetricUsageCollector metricUsageCollector,
         CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy) {
 
         this.props = props;

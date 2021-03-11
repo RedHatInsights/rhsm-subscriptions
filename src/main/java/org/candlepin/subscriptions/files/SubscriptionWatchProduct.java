@@ -28,6 +28,15 @@ public class SubscriptionWatchProduct {
     private String engProductId;
     private Set<String> swatchProductIds;
 
+    public SubscriptionWatchProduct() {
+        // Required for YAML
+    }
+
+    public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
+        this.engProductId = engProductId;
+        this.swatchProductIds = swatchProductIds;
+    }
+
     public String getEngProductId() {
         return engProductId;
     }
