@@ -38,7 +38,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 
 @SpringBootTest
@@ -107,17 +106,4 @@ class TallySnapshotControllerTest {
         verifyZeroInteractions(inventoryCollector);
     }
 
-    @Test
-    void testUsageMetricControllerDoes24Hours() {
-        OffsetDateTime begin = OffsetDateTime.parse("2007-12-03T00:00:00Z");
-        OffsetDateTime end = OffsetDateTime.parse("2007-12-03T23:59:59.999Z");
-
-        AccountUsageCalculation foo = new AccountUsageCalculation("foo");
-        foo.getProducts().add("OpenShift Hourly");
-
-        when(metricUsageCollector.collect(eq("foo"), any(), any()))
-            .thenReturn(foo);
-        controller.produceHourlySnapshotsForAccount("foo", begin, end);
-        verify(metricUsageCollector, times(24)).collect(eq("foo"), any(), any());
-    }
 }

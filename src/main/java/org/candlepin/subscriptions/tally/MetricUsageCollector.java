@@ -72,65 +72,95 @@ public class MetricUsageCollector {
     }
 
     @Transactional
-    public AccountUsageCalculation collect(String accountNumber, OffsetDateTime startDateTime,
-        OffsetDateTime endDateTime) {
-
+    public Map<OffsetDateTime, AccountUsageCalculation> collect(String accountNumber,
+        OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
+        /* load the latest account state, so we can update host records conveniently */
         Account account = accountRepository.findById(accountNumber).orElseThrow(() ->
             new SubscriptionsException(ErrorCode.OPT_IN_REQUIRED, Response.Status.BAD_REQUEST,
             "Account not found!",
             String.format("Account %s was not found. Account not opted in?", accountNumber))
         );
-        Map<String, Host> serviceInstances = new HashMap<>();
+
+        /*
+        Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
+        the product profile we're working on
+        */
+        Map<String, Host> existingInstances = new HashMap<>();
         OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
         for (Host host : account.getServiceInstances().values()) {
             if (productProfile.getServiceType().equals(host.getInstanceType())) {
-                serviceInstances.put(host.getInstanceId(), host);
+                existingInstances.put(host.getInstanceId(), host);
                 newestInstanceTimestamp = newestInstanceTimestamp.isAfter(host.getLastSeen()) ?
                     newestInstanceTimestamp : host.getLastSeen();
             }
         }
         OffsetDateTime effectiveStartDateTime;
         OffsetDateTime effectiveEndDateTime;
-        boolean recalculatingMonthlyTotals;
+        boolean isRecalculating;
+        /*
+        We need to recalculate several things if we are re-tallying, namely monthly totals need to be
+        cleared and re-updated for each host record
+         */
         if (newestInstanceTimestamp.isAfter(startDateTime)) {
             effectiveStartDateTime = clock.startOfMonth(startDateTime);
-            effectiveEndDateTime = clock.endOfMonth(endDateTime);
-            recalculatingMonthlyTotals = true;
+            effectiveEndDateTime = clock.now();
+            log.info("We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
+                startDateTime, endDateTime, effectiveStartDateTime, effectiveEndDateTime);
+            isRecalculating = true;
         }
         else {
             effectiveStartDateTime = startDateTime;
             effectiveEndDateTime = endDateTime;
-            recalculatingMonthlyTotals = false;
+            isRecalculating = false;
         }
 
-        if (recalculatingMonthlyTotals) {
-            log.info("Clearing monthly totals for {} instances", serviceInstances.size());
-            serviceInstances.values().forEach(instance -> instance.clearMonthlyTotals(effectiveStartDateTime,
-                effectiveEndDateTime));
+        if (isRecalculating) {
+            log.info("Clearing monthly totals for {} instances", existingInstances.size());
+            existingInstances.values().forEach(
+                instance -> instance.clearMonthlyTotals(effectiveStartDateTime, effectiveEndDateTime));
         }
 
-        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
-            effectiveStartDateTime,
-            effectiveEndDateTime)
+        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
+        for (OffsetDateTime offset = startDateTime; offset.isBefore(endDateTime); offset =
+            offset.plusHours(1)) {
+            AccountUsageCalculation accountUsageCalculation = collectHour(account, offset);
+            if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
+                accountCalcs.put(offset, accountUsageCalculation);
+            }
+        }
+        accountRepository.save(account);
+        return accountCalcs;
+    }
+
+    @Transactional
+    public AccountUsageCalculation collectHour(Account account, OffsetDateTime startDateTime) {
+        OffsetDateTime endDateTime = startDateTime.plusHours(1);
+
+        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(account.getAccountNumber(),
+            startDateTime,
+            endDateTime)
             .filter(event -> event.getServiceType().equals(productProfile.getServiceType()));
 
+        Map<String, Host> thisHoursInstances = new HashMap<>();
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();
-            Host existing = serviceInstances.get(instanceId);
+            Host existing = account.getServiceInstances().get(instanceId);
             Host host = existing == null ? new Host() : existing;
             updateInstanceFromEvent(event, host);
-            serviceInstances.put(instanceId, host);
+            thisHoursInstances.put(instanceId, host);
             account.getServiceInstances().put(instanceId, host);
         });
 
-        accountRepository.save(account);
-        return tallyCurrentAccountState(account);
+        return tallyCurrentAccountState(account.getAccountNumber(), thisHoursInstances);
     }
 
-    private AccountUsageCalculation tallyCurrentAccountState(Account account) {
-        AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(
-            account.getAccountNumber());
-        account.getServiceInstances().values().forEach(instance -> instance.getBuckets().forEach(bucket -> {
+    private AccountUsageCalculation tallyCurrentAccountState(String accountNumber,
+        Map<String, Host> thisHoursInstances) {
+        if (thisHoursInstances.isEmpty()) {
+            return null;
+        }
+        AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(accountNumber);
+        thisHoursInstances.values().forEach(instance -> instance.getBuckets().forEach(bucket -> {
             UsageCalculation.Key usageKey = new UsageCalculation.Key(bucket.getKey().getProductId(),
                 bucket.getKey().getSla(), bucket.getKey().getUsage());
             instance.getMeasurements().forEach((uom, value) -> accountUsageCalculation

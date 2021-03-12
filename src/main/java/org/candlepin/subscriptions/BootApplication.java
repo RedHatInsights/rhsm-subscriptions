@@ -27,6 +27,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
 
+import java.time.ZoneOffset;
+import java.util.TimeZone;
+
 /** Bootstrapper for Spring Boot. */
 @SpringBootConfiguration
 @EnableAspectJAutoProxy
@@ -36,6 +39,13 @@ import org.springframework.context.annotation.Import;
 @SuppressWarnings("checkstyle:hideutilityclassconstructor")
 public class BootApplication {
     public static void main(String[] args) {
+        /*
+        Force the JVM to operate in UTC, see org.candlepin.subscriptions.util.ApplicationClock
+
+        Hibernate will return OffsetDateTime in the system timezone, while we coerce dates into UTC in
+        ApplicationClock! Setting it here means the whole application deals exclusively with UTC.
+         */
+        TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
         SpringApplication app = new SpringApplication(BootApplication.class);
         app.run(args);
     }

@@ -82,7 +82,7 @@ class CombiningRollupSnapshotStrategyTest {
             OffsetDateTime.parse("2021-02-25T11:00:00Z"),
             OffsetDateTime.parse("2021-02-25T14:00:00Z"),
             Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), noonUsage,
-            OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Double::sum);
+            OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Granularity.HOURLY, Double::sum);
 
         TallySnapshot noonSnapshot = createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
         TallySnapshot afternoonSnapshot = createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z",
@@ -116,7 +116,8 @@ class CombiningRollupSnapshotStrategyTest {
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations("account123",
             hourlyTimestamp1,
             hourlyTimestamp2,
-            Map.of(hourlyTimestamp1, day1Usage, hourlyTimestamp2, day2Usage), Double::sum);
+            Map.of(hourlyTimestamp1, day1Usage, hourlyTimestamp2, day2Usage), Granularity.HOURLY,
+            Double::sum);
 
         TallySnapshot day1HourlySnapshot = createTallySnapshot(Granularity.HOURLY, hourlyTimestamp1, 4.0);
         TallySnapshot day2HourlySnapshot = createTallySnapshot(Granularity.HOURLY, hourlyTimestamp2, 3.0);
@@ -159,7 +160,7 @@ class CombiningRollupSnapshotStrategyTest {
             OffsetDateTime.parse("2021-02-25T11:00:00Z"),
             OffsetDateTime.parse("2021-02-25T14:00:00Z"),
             Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), noonUsage,
-            OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Double::sum);
+            OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Granularity.HOURLY, Double::sum);
 
         TallySnapshot afternoonSnapshot = createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z",
             3.0);
@@ -194,7 +195,7 @@ class CombiningRollupSnapshotStrategyTest {
             OffsetDateTime.parse("2021-02-25T11:00:00Z"),
             OffsetDateTime.parse("2021-02-25T14:00:00Z"),
             Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), noonUsage,
-            OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Double::sum);
+            OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Granularity.HOURLY, Double::sum);
 
         TallySnapshot noonSnapshot = createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
         TallySnapshot afternoonSnapshot = createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z",
@@ -216,16 +217,6 @@ class CombiningRollupSnapshotStrategyTest {
         usage.getProducts().add(OPEN_SHIFT_HOURLY);
 
         return usage;
-    }
-
-    @Test
-    void testLookupFinestGranularity() {
-
-        Granularity expected = Granularity.HOURLY;
-        Granularity actual = combiningRollupSnapshotStrategy.lookupFinestGranularity(OPEN_SHIFT_HOURLY);
-
-        assertEquals(expected, actual);
-
     }
 
     private TallySnapshot createTallySnapshot(Granularity granularity, String snapshotDate, double value) {
