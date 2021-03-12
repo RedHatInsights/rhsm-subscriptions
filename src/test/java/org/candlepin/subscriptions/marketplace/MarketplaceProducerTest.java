@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 
 import org.junit.jupiter.api.Test;
@@ -41,9 +42,9 @@ class MarketplaceProducerTest {
         MarketplaceService marketplaceService = mock(MarketplaceService.class);
         MarketplaceProducer marketplaceProducer = new MarketplaceProducer(marketplaceService, retryTemplate);
 
-        when(marketplaceService.submitUsageEvents(any())).thenThrow(ApiException.class);
+        when(marketplaceService.submitUsageEvents(any())).thenThrow(SubscriptionsException.class);
 
-        assertThrows(ApiException.class, () ->
+        assertThrows(SubscriptionsException.class, () ->
             marketplaceProducer.submitUsageRequest(new UsageRequest())
         );
 

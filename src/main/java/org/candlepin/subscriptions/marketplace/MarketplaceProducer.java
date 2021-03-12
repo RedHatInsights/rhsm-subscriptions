@@ -20,7 +20,10 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
+import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 
 import org.slf4j.Logger;
@@ -31,6 +34,10 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 import io.micrometer.core.annotation.Timed;
+
+import java.util.stream.Collectors;
+
+import javax.ws.rs.core.Response;
 
 /**
  * Component that is responsible for emitting usage info to Marketplace, including handling retries.
@@ -51,15 +58,33 @@ public class MarketplaceProducer {
     }
 
     @Timed("rhsm-subscriptions.marketplace.usage")
-    public StatusResponse submitUsageRequest(UsageRequest usageRequest) throws ApiException {
+    public StatusResponse submitUsageRequest(UsageRequest usageRequest) {
         // NOTE: https://issues.redhat.com/browse/ENT-3609 will address failures
         return retryTemplate.execute(context -> tryRequest(usageRequest));
     }
 
     @Timed("rhsm-subscriptions.marketplace.usage.request")
-    private StatusResponse tryRequest(UsageRequest usageRequest) throws ApiException {
-        StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
-        log.debug("Marketplace response: {}", status);
-        return status;
+    private StatusResponse tryRequest(UsageRequest usageRequest) {
+        try {
+            StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
+            log.debug("Marketplace response: {}", status);
+            if (status.getData() != null) {
+                status.getData().forEach(batchStatus -> {
+                    log.info("Marketplace Batch: {} for Tally Snapshot IDs: {}", batchStatus.getBatchId(),
+                        usageRequest.getData().stream()
+                        .map(UsageEvent::getEventId).collect(Collectors.joining(",")));
+                });
+            }
+            return status;
+        }
+        // handle checked exceptions here, so that submitUsageRequest can be easily used in lambdas etc.
+        catch (ApiException e) {
+            throw new SubscriptionsException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                Response.Status.fromStatusCode(e.getCode()),
+                "Exception submitting usage record to Marketplace",
+                e
+            );
+        }
     }
 }
