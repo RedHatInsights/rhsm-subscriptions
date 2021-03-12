@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
@@ -36,6 +37,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @SpringBootTest
@@ -46,42 +52,58 @@ class MarketplaceSubscriptionIdProviderTest {
     private SubscriptionRepository repo;
 
     @MockBean
-    private MarketplaceSubscriptionIdCollector collector;
+    private SubscriptionSyncController syncController;
+
+    @MockBean
+    private MarketplaceSubscriptionCollector collector;
 
     @Autowired
     private MarketplaceSubscriptionIdProvider idProvider;
+
+    private OffsetDateTime rangeStart = OffsetDateTime.of(2020, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    private OffsetDateTime rangeEnd = OffsetDateTime.MAX;
 
     @Test
     void doesNotAllowReservedValuesInKey() {
         UsageCalculation.Key key1 = new Key(String.valueOf(1), ServiceLevel._ANY, Usage.PRODUCTION);
         UsageCalculation.Key key2 = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage._ANY);
 
-        assertThrows(IllegalArgumentException.class, () -> idProvider.findSubscriptionId("1000", key1));
-        assertThrows(IllegalArgumentException.class, () -> idProvider.findSubscriptionId("1000", key2));
+        assertThrows(IllegalArgumentException.class, () -> idProvider.findSubscriptionId("1000", key1,
+            rangeStart, rangeEnd));
+        assertThrows(IllegalArgumentException.class, () -> idProvider.findSubscriptionId("1000", key2,
+            rangeStart, rangeEnd));
     }
 
     @Test
     void findsSubscriptionId() {
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
         Subscription s = new Subscription();
+        s.setStartDate(OffsetDateTime.now());
+        s.setEndDate(OffsetDateTime.now().plusDays(7));
         s.setMarketplaceSubscriptionId("xyz");
-        Optional<Subscription> result = Optional.of(s);
+        List<Subscription> result = Collections.singletonList(s);
 
         when(repo.findSubscriptionByAccountAndUsageKey("1000", key)).thenReturn(result);
 
-        assertEquals("xyz", idProvider.findSubscriptionId("1000", key).get());
+        Optional<Object> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+        assertEquals("xyz", actual.get());
     }
 
     @Test
     void memoizesSubscriptionId() {
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
         Subscription s = new Subscription();
-        Optional<Subscription> result = Optional.of(s);
+        s.setStartDate(OffsetDateTime.now());
+        s.setEndDate(OffsetDateTime.now().plusDays(7));
+        s.setMarketplaceSubscriptionId("abc");
+        List<Subscription> result = Collections.singletonList(s);
 
-        when(repo.findSubscriptionByAccountAndUsageKey("1000", key)).thenReturn(result);
-        when(collector.fetchSubscriptionId("1000", key)).thenReturn("abc");
+        when(repo.findSubscriptionByAccountAndUsageKey("1000", key))
+            .thenReturn(new ArrayList<>())
+            .thenReturn(result);
 
-        assertEquals("abc", idProvider.findSubscriptionId("1000", key).get());
-        verify(repo).save(s);
+        Optional<Object> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+        assertEquals("abc", actual.get());
+        verify(collector).fetchSubscription("1000", key);
     }
 }

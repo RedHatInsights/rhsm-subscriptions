@@ -13,3 +13,4 @@ rhsm-subscriptions:
     eligible-swatch-product-ids:
       - OpenShift-metrics
       - OpenShift-dedicated-metrics
+    dummyId: ${MARKETPLACE_DUMMY_ID:DUMMY}

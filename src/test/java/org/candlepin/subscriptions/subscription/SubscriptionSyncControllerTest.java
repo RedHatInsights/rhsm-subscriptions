@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -34,7 +32,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -79,32 +76,6 @@ class SubscriptionSyncControllerTest {
         subject.syncSubscription(dto);
         Mockito.verify(subscriptionRepository, Mockito.times(1))
             .save(Mockito.any(Subscription.class));
-    }
-
-    @Test
-    void testExtractSku() {
-        var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
-        SubscriptionProduct product = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
-            "testSku");
-        SubscriptionProduct childSku = new SubscriptionProduct().parentSubscriptionProductId(123).sku(
-            "childSku");
-        List<SubscriptionProduct> products = Arrays.asList(product, childSku);
-        dto.setSubscriptionProducts(products);
-
-        assertEquals("testSku", subject.extractSku(dto));
-    }
-
-    @Test
-    void testExtractSkuFailsWithImproperSubscription() {
-        var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
-        SubscriptionProduct product = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
-            "testSku");
-        SubscriptionProduct childSku = new SubscriptionProduct().parentSubscriptionProductId(null).sku(
-            "childSku");
-        List<SubscriptionProduct> products = Arrays.asList(product, childSku);
-        dto.setSubscriptionProducts(products);
-
-        assertThrows(IllegalStateException.class, () -> subject.extractSku(dto));
     }
 
     private Subscription createSubscription(String orgId, String sku, String subId) {

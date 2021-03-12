@@ -21,27 +21,45 @@
 package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
+import org.candlepin.subscriptions.subscription.SubscriptionDtoUtil;
+import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
+import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Class responsible for communicating with the Marketplace API and fetching the subscription ID.
  */
 @Component
-public class MarketplaceSubscriptionIdCollector {
-    public static final String DUMMY = "DUMMY";
+public class MarketplaceSubscriptionCollector {
     @SuppressWarnings("java:S1068") // Unused field; Remove after implementing
     private final MarketplaceApi marketplaceApi;
+    private final MarketplaceProperties properties;
 
     @Autowired
-    public MarketplaceSubscriptionIdCollector(MarketplaceApi marketplaceApi) {
+    public MarketplaceSubscriptionCollector(MarketplaceApi marketplaceApi,
+        MarketplaceProperties properties) {
         this.marketplaceApi = marketplaceApi;
+        this.properties = properties;
     }
 
     @SuppressWarnings("java:S1172") // Unused parameters; remove after implementing
-    public String fetchSubscriptionId(String orgId, Key usageKey) {
-        return DUMMY;
+    public List<Subscription> fetchSubscription(String orgId, Key usageKey) {
+        var s = new Subscription();
+        var ref = new ExternalReference();
+        ref.setSubscriptionID(properties.getDummyId());
+
+        Map<String, ExternalReference> refMap = new HashMap<>();
+        refMap.put(SubscriptionDtoUtil.MARKETPLACE, ref);
+        s.setExternalReferences(refMap);
+
+        return Collections.singletonList(s);
     }
 }

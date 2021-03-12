@@ -30,7 +30,7 @@ import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
-import org.candlepin.subscriptions.subscription.SearchApiFactory;
+import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
@@ -63,14 +63,13 @@ import java.util.Set;
 @EnableRetry
 @Configuration
 @Profile("worker")
-@Import({TallyTaskQueueConfiguration.class, TaskConsumerConfiguration.class,
+@Import({TallyTaskQueueConfiguration.class, TaskConsumerConfiguration.class, SubscriptionConfiguration.class,
     ProductMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
 @ComponentScan(basePackages = {
     "org.candlepin.subscriptions.cloudigrade",
     "org.candlepin.subscriptions.event",
     "org.candlepin.subscriptions.inventory.db",
     "org.candlepin.subscriptions.jmx",
-    "org.candlepin.subscriptions.subscription",
     "org.candlepin.subscriptions.tally"
 })
 public class TallyWorkerConfiguration {
@@ -144,18 +143,6 @@ public class TallyWorkerConfiguration {
         TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory, TallyTaskFactory taskFactory) {
 
         return taskConsumerFactory.createTaskConsumer(taskFactory, taskQueueProperties);
-    }
-
-    @Bean
-    @Qualifier("subscription")
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
-    public HttpClientProperties subscriptionServiceProperties() {
-        return new HttpClientProperties();
-    }
-
-    @Bean
-    public SearchApiFactory searchApiFactory(@Qualifier("subscription") HttpClientProperties props) {
-        return new SearchApiFactory(props);
     }
 
     @Bean

@@ -56,6 +56,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription,
         ":#{#key.usage} = o.usage AND " +
         ":#{#key.sla} = o.serviceLevel AND " +
         ":#{T(java.lang.Integer).parseInt(#key.productId)} MEMBER OF o.productIds)")
-    Optional<Subscription> findSubscriptionByAccountAndUsageKey(@Param("accountNumber") String accountNumber,
+    List<Subscription> findSubscriptionByAccountAndUsageKey(@Param("accountNumber") String accountNumber,
         @Param("key") UsageCalculation.Key usageKey);
 }

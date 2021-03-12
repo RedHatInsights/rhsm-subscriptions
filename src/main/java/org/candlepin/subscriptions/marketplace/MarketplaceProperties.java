@@ -47,6 +47,12 @@ public class MarketplaceProperties extends HttpClientProperties {
     private String apiKey;
 
     /**
+     * TEMPORARY setting for returning a dummy subscription ID. Remove once
+     * MarketplaceSubscriptionCollector is fully implemented.
+     */
+    private String dummyId = "DUMMY";
+
+    /**
      * Amount of time prior to token expiration to request a new token anyways.
      */
     private Duration tokenRefreshPeriod = Duration.ofMinutes(1);

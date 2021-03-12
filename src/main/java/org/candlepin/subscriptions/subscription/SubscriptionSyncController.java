@@ -21,20 +21,13 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
-import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
 
@@ -43,7 +36,6 @@ import javax.transaction.Transactional;
  */
 @Component
 public class SubscriptionSyncController {
-    public static final String MARKETPLACE = "ibmmarketplace";
     private final SubscriptionRepository subscriptionRepository;
     private final ApplicationClock clock;
 
@@ -76,7 +68,7 @@ public class SubscriptionSyncController {
                     newSub.setEndDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
                 }
 
-                newSub.setMarketplaceSubscriptionId(extractMarketplaceId(subscription));
+                newSub.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
 
                 subscriptionRepository.save(newSub);
             }
@@ -91,8 +83,8 @@ public class SubscriptionSyncController {
                 new org.candlepin.subscriptions.db.model.Subscription();
             newSub.setSubscriptionId(String.valueOf(subscription.getId()));
             newSub.setAccountNumber(String.valueOf(subscription.getOracleAccountNumber()));
-            newSub.setMarketplaceSubscriptionId(extractMarketplaceId(subscription));
-            newSub.setSku(extractSku(subscription));
+            newSub.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
+            newSub.setSku(SubscriptionDtoUtil.extractSku(subscription));
             newSub.setQuantity(subscription.getQuantity());
             if (subscription.getEffectiveStartDate() != null) {
                 newSub.setStartDate(clock.dateFromUnix(subscription.getEffectiveStartDate()));
@@ -102,39 +94,6 @@ public class SubscriptionSyncController {
             }
             subscriptionRepository.save(newSub);
         }
-    }
-
-    /**
-     * The subscription JSON coming from the service includes a list of every product associated with the
-     * subscription.  In order to find the operative SKU, we need the top-level product which is the one
-     * with a null parentSubscriptionProductId.
-     * @param subscription Subscription object from SubscriptionService
-     * @return the SKU that has a parentSubscriptionProductId of null
-     */
-    protected String extractSku(Subscription subscription) {
-        List<SubscriptionProduct> products = subscription.getSubscriptionProducts();
-        Objects.requireNonNull(products, "No subscription products found");
-        List<String> skus = products.stream()
-            .filter(x -> x.getParentSubscriptionProductId() == null)
-            .distinct()
-            .map(SubscriptionProduct::getSku)
-            .collect(Collectors.toList());
-
-        if (skus.size() == 1) {
-            return skus.get(0);
-        }
-        throw new IllegalStateException("Could not find top level SKU for subscription " + subscription);
-    }
-
-    protected String extractMarketplaceId(Subscription subscription) {
-        Map<String, ExternalReference> externalRefs = subscription.getExternalReferences();
-        String subId = null;
-        if (externalRefs != null && !externalRefs.isEmpty()) {
-            ExternalReference marketplace = externalRefs
-                .getOrDefault(MARKETPLACE, new ExternalReference());
-            subId = marketplace.getSubscriptionID();
-        }
-        return (StringUtils.hasText(subId)) ? subId : null;
     }
 
     protected static boolean needNewRecord(Subscription dto,

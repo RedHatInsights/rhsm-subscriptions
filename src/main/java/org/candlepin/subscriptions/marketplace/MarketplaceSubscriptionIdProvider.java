@@ -24,54 +24,73 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Class responsible for searching Swatch database for subscriptionIds corresponding to usage keys and if
- * none is found, delegates fetching the subscriptionId to the {@link MarketplaceSubscriptionIdCollector}.
+ * none is found, delegates fetching the subscriptionId to the {@link MarketplaceSubscriptionCollector}.
  */
 @Component
 public class MarketplaceSubscriptionIdProvider {
+    private static final Logger log = LoggerFactory.getLogger(MarketplaceSubscriptionIdProvider.class);
 
-    private final MarketplaceSubscriptionIdCollector collector;
+    private final MarketplaceSubscriptionCollector collector;
     private final SubscriptionRepository subscriptionRepo;
+    private final SubscriptionSyncController syncController;
 
     @Autowired
-    public MarketplaceSubscriptionIdProvider(MarketplaceSubscriptionIdCollector collector,
-        SubscriptionRepository subscriptionRepo) {
+    public MarketplaceSubscriptionIdProvider(MarketplaceSubscriptionCollector collector,
+        SubscriptionRepository subscriptionRepo, SubscriptionSyncController syncController) {
         this.collector = collector;
         this.subscriptionRepo = subscriptionRepo;
+        this.syncController = syncController;
     }
 
-    public Optional<String> findSubscriptionId(String accountNumber, UsageCalculation.Key usageKey) {
+    public Optional<Object> findSubscriptionId(String accountNumber, Key usageKey,
+        OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
         Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
         Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
-        Optional<Subscription> result =
+        List<Subscription> result =
             subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey);
+        result = filterByDateRange(result, rangeStart, rangeEnd);
 
-        if (result.isPresent()) {
-            Subscription s = result.get();
-
-            /* If we have the subscription, but the marketplace subscription ID didn't come with the initial
-               fetch from SubscriptionService, then we call out to the MarketplaceSubscriptionIdCollector
-               to fetch the ID directly from Marketplace.  Then we'll update the Subscription record so we
-               only need to do the fetch once. */
-            if (!StringUtils.hasText(s.getMarketplaceSubscriptionId())) {
-                String missingId = collector.fetchSubscriptionId(accountNumber, usageKey);
-                s.setMarketplaceSubscriptionId(missingId);
-                subscriptionRepo.save(s);
-            }
-            return Optional.of(s.getMarketplaceSubscriptionId());
+        if (result.isEmpty()) {
+            /* If we are missing the subscription, call out to the MarketplaceSubscriptionCollector
+               to fetch from Marketplace.  Sync all those subscriptions. Query again. */
+            var subscriptions = collector.fetchSubscription(accountNumber, usageKey);
+            subscriptions.forEach(syncController::syncSubscription);
+            result = subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey);
+            result = filterByDateRange(result, rangeStart, rangeEnd);
         }
 
-        return Optional.empty();
+        if (result.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (result.size() > 1) {
+            log.warn("Multiple subscriptions found for account {} with key {}. Selecting first result",
+                accountNumber, usageKey);
+        }
+        return Optional.of(result.get(0).getMarketplaceSubscriptionId());
+    }
+
+    private List<Subscription> filterByDateRange(List<Subscription> result, OffsetDateTime rangeStart,
+        OffsetDateTime rangeEnd) {
+        return result.stream()
+            .filter(x -> rangeStart.isBefore(x.getStartDate()) && rangeEnd.isAfter(x.getEndDate()))
+            .collect(Collectors.toList());
     }
 }

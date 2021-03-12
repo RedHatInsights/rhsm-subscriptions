@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
 import org.junit.jupiter.api.Test;
-import org.opentest4j.AssertionFailedError;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,7 +37,6 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.Optional;
 
 import javax.transaction.Transactional;
 
@@ -86,9 +84,10 @@ class SubscriptionRepositoryTest {
         offeringRepo.saveAndFlush(o2);
 
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-        Subscription result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key)
-            .orElseThrow(() -> new AssertionFailedError("No record found"));
+        var resultList = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key);
+        assertEquals(1, resultList.size());
 
+        var result = resultList.get(0);
         assertEquals("testSku1", result.getSku());
         assertEquals("1000", result.getAccountNumber());
     }
@@ -105,8 +104,8 @@ class SubscriptionRepositoryTest {
         offeringRepo.saveAndFlush(o2);
 
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-        Optional<Subscription> result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key);
-        assertTrue(result.isEmpty());
+        var result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key);
+        assertEquals(0, result.size());
     }
 
     private Offering createOffering(String sku, int productId, ServiceLevel sla, Usage usage,
