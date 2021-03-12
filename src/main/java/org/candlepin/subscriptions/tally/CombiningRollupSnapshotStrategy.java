@@ -88,6 +88,11 @@ public class CombiningRollupSnapshotStrategy {
         OffsetDateTime endDateTime, Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
         DoubleBinaryOperator reductionFunction) {
 
+        if (accountCalcs.isEmpty()) {
+            // nothing to do here, return early to avoid a null swatch product ID lookup
+            return;
+        }
+
         String swatchProductId = getSwatchProductId(accountCalcs);
         Set<String> swatchProductIds = getSwatchProductIds(accountCalcs);
 
