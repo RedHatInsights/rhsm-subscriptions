@@ -20,12 +20,21 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import org.candlepin.subscriptions.json.TallySummary;
+
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 /**
  * Configuration for the Marketplace integration worker.
@@ -42,5 +51,20 @@ public class MarketplaceWorkerConfiguration {
                 properties.getBackOffMultiplier(),
                 properties.getBackOffMaxInterval().toMillis())
             .build();
+    }
+
+    @Bean
+    ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(KafkaProperties kafkaProperties) {
+        return new DefaultKafkaConsumerFactory<>(kafkaProperties.buildConsumerProperties(),
+            new StringDeserializer(), new JsonDeserializer<>(TallySummary.class));
+    }
+
+    @Bean
+    ConcurrentKafkaListenerContainerFactory<String, TallySummary> kafkaTallySummaryListenerContainerFactory(
+        ConsumerFactory<String, TallySummary> consumerFactory) {
+
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, TallySummary>();
+        factory.setConsumerFactory(consumerFactory);
+        return factory;
     }
 }

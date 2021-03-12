@@ -69,6 +69,7 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `capture-snapshots`: Run the tally job and exit
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
 - `rhsm-conduit`: Run the worker for syncing systems between Hosted Candlepin and HBI
+- `marketplace`: Run the worker responsible for processing tally summaries and emitting usage to Marketplace.
 
 These can be specified most easily via the `SPRING_PROFILES_ACTIVE` environment variable. For example:
 
