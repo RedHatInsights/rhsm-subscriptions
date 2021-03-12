@@ -56,7 +56,11 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-
+//
+// NOTE: We should really turn these into integration tests when
+//       we have time. All of the mocking here is getting hard
+//       to follow.
+//
 @SpringBootTest
 @ActiveProfiles({"openshift-metering-worker", "test"})
 class PrometheusMeteringControllerTest {
@@ -73,6 +77,8 @@ class PrometheusMeteringControllerTest {
     @Autowired
     private PrometheusMeteringController controller;
 
+    @Autowired
+    private PrometheusMetricsProperties promProps;
 
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
@@ -80,6 +86,7 @@ class PrometheusMeteringControllerTest {
     private final String expectedClusterId = "C1";
     private final String expectedSla = "Premium";
     private final String expectedUsage = "Production";
+    private final String expectedRole = "ocm";
 
     @Test
     void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
@@ -135,10 +142,12 @@ class PrometheusMeteringControllerTest {
 
         List<Event> expectedEvents = List.of(
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
-                expectedUsage, clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
+                expectedUsage, expectedRole,
+                clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
                 clock.dateFromUnix(time1), val1.doubleValue()),
             MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla,
-                expectedUsage, clock.dateFromUnix(time2).minusSeconds(props.getOpenshift().getStep()),
+                expectedUsage, expectedRole,
+                clock.dateFromUnix(time2).minusSeconds(props.getOpenshift().getStep()),
                 clock.dateFromUnix(time2), val2.doubleValue())
         );
 
@@ -177,26 +186,26 @@ class PrometheusMeteringControllerTest {
         OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
         Event updatedEvent = MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId,
-            expectedSla, expectedUsage,
+            expectedSla, expectedUsage, expectedRole,
             clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
             clock.dateFromUnix(time1),
             val1.doubleValue());
 
         List<Event> expectedEvents = List.of(updatedEvent,
             MeteringEventFactory.openShiftClusterCores(expectedAccount,
-            expectedClusterId, expectedSla, expectedUsage,
+            expectedClusterId, expectedSla, expectedUsage, expectedRole,
             clock.dateFromUnix(time2).minusSeconds(props.getOpenshift().getStep()),
             clock.dateFromUnix(time2), val2.doubleValue()));
 
         Event purgedEvent = MeteringEventFactory.openShiftClusterCores(expectedAccount,
-            "CLUSTER_NO_LONGER_EXISTS", expectedSla, expectedUsage,
+            "CLUSTER_NO_LONGER_EXISTS", expectedSla, expectedUsage, expectedRole,
             clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
             clock.dateFromUnix(time1), val1.doubleValue());
 
         List<Event> existingEvents = List.of(
             // This event will get updated by the incoming data from prometheus.
             MeteringEventFactory.openShiftClusterCores(expectedAccount,
-            expectedClusterId, expectedSla, expectedUsage, updatedEvent.getTimestamp(),
+            expectedClusterId, expectedSla, expectedUsage, expectedRole, updatedEvent.getTimestamp(),
             updatedEvent.getExpiration().get(), 144.4),
             // This event should get purged because prometheus did not report this cluster.
             purgedEvent
@@ -204,8 +213,8 @@ class PrometheusMeteringControllerTest {
         when(eventController.mapEventsInTimeRange(expectedAccount,
             MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
             MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
-            start,
-            end
+            start.minusSeconds(promProps.getOpenshift().getStep()),
+            end.minusSeconds(promProps.getOpenshift().getStep())
         ))
             .thenReturn(existingEvents.stream().collect(Collectors.toMap(
             EventKey::fromEvent, Function.identity())));

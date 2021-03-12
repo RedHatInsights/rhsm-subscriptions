@@ -93,3 +93,19 @@ products:
 finestGranularity: DAILY
 syspurposeRoles: []
 architectureSwatchProductIdMap: {}
+---
+name: OpenShiftMetrics
+products: []
+syspurposeRoles:
+  - name: ocp
+    swatchProductIds:
+      - OpenShift-metrics
+  - name: osd
+    swatchProductIds:
+      - OpenShift-dedicated-metrics
+serviceType: OpenShift Cluster
+finestGranularity: HOURLY
+defaultSla: PREMIUM
+defaultUsage: PRODUCTION
+burstable: false
+architectureSwatchProductIdMap: {}

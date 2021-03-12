@@ -82,7 +82,10 @@ public class PrometheusMeteringController {
         // Reset the start/end dates to ensure they span a complete hour.
         // NOTE: If the prometheus query step changes, we will need to adjust this.
         OffsetDateTime startDate = clock.startOfHour(start);
-        OffsetDateTime endDate = clock.endOfHour(end);
+        // Subtract 1 minute off the end date so that the date is guaranteed to never be
+        // at the top of an hour. Otherwise we would get an extra hour added onto the date
+        // when we moved it to the end of the hour.
+        OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
         openshiftRetry.execute(context -> {
             try {
                 log.info("Collecting OpenShift metrics");
@@ -107,8 +110,10 @@ public class PrometheusMeteringController {
                     account,
                     MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
                     MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
-                    startDate,
-                    endDate
+                    // We need to shift the start and end dates by the step, to account for the shift
+                    // in the event start date when it is created. See note about eventDate below.
+                    startDate.minusSeconds(metricProperties.getOpenshift().getStep()),
+                    endDate.minusSeconds(metricProperties.getOpenshift().getStep())
                 );
                 log.debug("Found {} existing events.", existing.size());
 
@@ -118,6 +123,10 @@ public class PrometheusMeteringController {
                     String clusterId = labels.get("_id");
                     String sla = labels.get("support");
                     String usage = labels.get("usage");
+                    // NOTE: Role comes from the product label despite its name. The values set here
+                    //       are NOT engineering or swatch product IDs. They map to the roles in the
+                    //       product profile. For openshift, the values will be 'ocp' or 'osd'.
+                    String role = labels.get("product");
 
                     // For the openshift metrics, we expect our results to be a 'matrix'
                     // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -133,7 +142,7 @@ public class PrometheusMeteringController {
                         OffsetDateTime eventDate =
                             eventTermDate.minusSeconds(metricProperties.getOpenshift().getStep());
 
-                        Event event = createOrUpdateEvent(existing, account, clusterId, sla, usage,
+                        Event event = createOrUpdateEvent(existing, account, clusterId, sla, usage, role,
                             eventDate, eventTermDate, value);
                         events.put(EventKey.fromEvent(event), event);
                     }
@@ -156,7 +165,8 @@ public class PrometheusMeteringController {
 
     @SuppressWarnings("java:S107")
     private Event createOrUpdateEvent(Map<EventKey, Event> existing, String account, String instanceId,
-        String sla, String usage, OffsetDateTime measuredDate, OffsetDateTime expired, BigDecimal value) {
+        String sla, String usage, String role, OffsetDateTime measuredDate, OffsetDateTime expired,
+        BigDecimal value) {
         EventKey lookupKey = new EventKey(
             account,
             MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
@@ -169,7 +179,7 @@ public class PrometheusMeteringController {
         if (event == null) {
             event = new Event();
         }
-        MeteringEventFactory.updateOpenShiftClusterCores(event, account, instanceId, sla, usage,
+        MeteringEventFactory.updateOpenShiftClusterCores(event, account, instanceId, sla, usage, role,
             measuredDate, expired, value.doubleValue());
         return event;
     }

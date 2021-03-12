@@ -121,6 +121,8 @@ properties:
       - Red Hat Enterprise Linux Server
       - Red Hat Enterprise Linux Workstation
       - Red Hat Enterprise Linux Compute Node
+      - ocp
+      - osd
     required: false
   sla:
     description: Service level for the subject.

@@ -32,21 +32,18 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -58,59 +55,20 @@ import javax.ws.rs.core.Response;
 /**
  * Collects instances and tallies based on hourly metrics.
  */
-@Component
 public class MetricUsageCollector {
     private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
     private final AccountRepository accountRepository;
     private final EventController eventController;
     private final ApplicationClock clock;
-    private final ProductConfig productConfig;
+    private final ProductProfile productProfile;
 
-    /**
-     * Encapsulates all per-product information we anticipate putting into configuration used by this
-     * collector.
-     */
-    public static class ProductConfig {
-        public static final String OPENSHIFT_PRODUCT_ID = "OpenShift-metrics";
-        public static final String SERVICE_TYPE = MeteringEventFactory.OPENSHIFT_CLUSTER_SERVICE_TYPE;
-        private static final ServiceLevel DEFAULT_SLA = ServiceLevel.PREMIUM;
-        private static final Usage DEFAULT_USAGE = Usage.PRODUCTION;
-
-        public String getServiceType() {
-            return SERVICE_TYPE;
-        }
-
-        public String getProductId() {
-            return OPENSHIFT_PRODUCT_ID;
-        }
-
-        public Usage getDefaultUsage() {
-            return DEFAULT_USAGE;
-        }
-
-        public ServiceLevel getDefaultSla() {
-            return DEFAULT_SLA;
-        }
-
-        public Map<Event.Role, List<String>> getRoleProductIdMapping() {
-            return Collections.emptyMap();
-        }
-
-        public Map<String, List<String>> getEngineeringProductIdToSwatchProductMapping() {
-            return Collections.emptyMap();
-        }
-    }
-
-    @Autowired
-    public MetricUsageCollector(AccountRepository accountRepository, EventController eventController,
-        ApplicationClock clock) {
-
+    public MetricUsageCollector(ProductProfile productProfile, AccountRepository accountRepository,
+        EventController eventController, ApplicationClock clock) {
         this.accountRepository = accountRepository;
         this.eventController = eventController;
         this.clock = clock;
-        this.productConfig = new ProductConfig();
-
+        this.productProfile = productProfile;
     }
 
     @Transactional
@@ -125,7 +83,7 @@ public class MetricUsageCollector {
         Map<String, Host> serviceInstances = new HashMap<>();
         OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
         for (Host host : account.getServiceInstances().values()) {
-            if (productConfig.getServiceType().equals(host.getInstanceType())) {
+            if (productProfile.getServiceType().equals(host.getInstanceType())) {
                 serviceInstances.put(host.getInstanceId(), host);
                 newestInstanceTimestamp = newestInstanceTimestamp.isAfter(host.getLastSeen()) ?
                     newestInstanceTimestamp : host.getLastSeen();
@@ -154,7 +112,7 @@ public class MetricUsageCollector {
         Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
             effectiveStartDateTime,
             effectiveEndDateTime)
-            .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
+            .filter(event -> event.getServiceType().equals(productProfile.getServiceType()));
 
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();
@@ -278,11 +236,11 @@ public class MetricUsageCollector {
         ServiceLevel effectiveSla = Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
-            .orElse(productConfig.getDefaultSla());
+            .orElse(productProfile.getDefaultSla());
         Usage effectiveUsage = Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
             .map(Usage::fromString)
-            .orElse(productConfig.getDefaultUsage());
+            .orElse(productProfile.getDefaultUsage());
         Set<String> productIds = getProductIds(event);
 
         for (String productId : productIds) {
@@ -298,15 +256,17 @@ public class MetricUsageCollector {
 
     private Set<String> getProductIds(Event event) {
         Set<String> productIds = new HashSet<>();
-        productIds.add(productConfig.getProductId()); // this product ID always applies
         Stream.of(event.getRole())
             .filter(Objects::nonNull)
-            .map(role -> productConfig.getRoleProductIdMapping().getOrDefault(role, Collections.emptyList()))
+            .map(role -> productProfile.getSwatchProductsByRoles().getOrDefault(role.value(),
+                Collections.emptySet()))
             .forEach(productIds::addAll);
+
         Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList()).stream()
-            .map(productConfig.getEngineeringProductIdToSwatchProductMapping()::get)
+            .map(productProfile.getSwatchProductsByEngProducts()::get)
             .filter(Objects::nonNull)
             .forEach(productIds::addAll);
+
         return productIds;
     }
 
