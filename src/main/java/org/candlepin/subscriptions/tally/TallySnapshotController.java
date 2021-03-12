@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 
@@ -124,7 +125,7 @@ public class TallySnapshotController {
                 context -> metricUsageCollector.collect(accountNumber, startDateTime, endDateTime));
             combiningRollupSnapshotStrategy
                 .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
-                accountCalcs, Double::sum);
+                accountCalcs, Granularity.HOURLY, Double::sum);
         }
         catch (Exception e) {
             log.error("Could not collect existing usage snapshots for account {}", accountNumber, e);

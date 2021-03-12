@@ -25,7 +25,6 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -44,7 +43,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.DoubleBinaryOperator;
 import java.util.stream.Collectors;
@@ -64,39 +62,34 @@ public class CombiningRollupSnapshotStrategy {
     private static final Granularity[] GRANULARITIES = { Granularity.HOURLY, Granularity.DAILY };
 
     private final TallySnapshotRepository tallyRepo;
-    private final ProductProfileRegistry registry;
     private final SnapshotSummaryProducer summaryProducer;
     private final ApplicationClock clock;
 
     @Autowired
-    public CombiningRollupSnapshotStrategy(TallySnapshotRepository tallyRepo, ProductProfileRegistry registry,
+    public CombiningRollupSnapshotStrategy(TallySnapshotRepository tallyRepo,
         SnapshotSummaryProducer summaryProducer, ApplicationClock clock) {
 
         this.tallyRepo = tallyRepo;
-        this.registry = registry;
         this.summaryProducer = summaryProducer;
         this.clock = clock;
     }
 
     /**
      * @param accountCalcs Map of times and account calculations at that time
+     * @param finestGranularity the base granularity to be used for the calculations
      * @param reductionFunction how to reduce the set of lower granularity snapshots its higher granularity
-     *                         rollup
      */
     @Transactional
     public void produceSnapshotsFromCalculations(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime, Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
-        DoubleBinaryOperator reductionFunction) {
+        Granularity finestGranularity, DoubleBinaryOperator reductionFunction) {
 
         if (accountCalcs.isEmpty()) {
-            // nothing to do here, return early to avoid a null swatch product ID lookup
+            // nothing to do here, return early
             return;
         }
 
-        String swatchProductId = getSwatchProductId(accountCalcs);
         Set<String> swatchProductIds = getSwatchProductIds(accountCalcs);
-
-        Granularity finestGranularity = lookupFinestGranularity(swatchProductId);
 
         Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots = new HashMap<>();
         Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots = new HashMap<>();
@@ -162,34 +155,9 @@ public class CombiningRollupSnapshotStrategy {
         }
     }
 
-    /**
-     * Get the effective Swatch Product ID for the account calculations.  Null is returned if there are no
-     * calculations for the account or if there are no product ids for a calculation
-     * <p>
-     * NOTE: this method grabs the first AccountUsageCalculation's first Swatch Product ID (we assume that
-     * the Swatch Product ID is representative. (If this changes there will be bugs).
-     *
-     * @param accountCalcs calculations
-     * @return Swatch Product ID
-     */
-    protected String getSwatchProductId(Map<OffsetDateTime, AccountUsageCalculation> accountCalcs) {
-        Optional<AccountUsageCalculation> accountUsageCalculation = accountCalcs.values().stream()
-            .findFirst();
-
-        if (accountUsageCalculation.isEmpty()) {
-            return null;
-        }
-
-        return accountUsageCalculation.get().getProducts().stream().findFirst().orElse(null);
-    }
-
     private Set<String> getSwatchProductIds(Map<OffsetDateTime, AccountUsageCalculation> accountCalcs) {
         return accountCalcs.values().stream().map(AccountUsageCalculation::getProducts).flatMap(Set::stream)
             .collect(Collectors.toSet());
-    }
-
-    protected Granularity lookupFinestGranularity(String swatchProductId) {
-        return registry.findProfileForSwatchProductId(swatchProductId).getFinestGranularity();
     }
 
     @SuppressWarnings("indentation")
