@@ -94,6 +94,15 @@ rhsm-subscriptions:
   # Base path override for reverse proxy support
   hawtio-base-path: ${HAWTIO_BASE_PATH:}
   metering:
+    prometheus:
+      client:
+        token: ${PROM_AUTH_TOKEN:}
+        url: ${PROM_URL:https://localhost/api/v1}
+      metric:
+        openshift:
+          enabledAccountPromQL: >-
+            group(min_over_time(subscription_labels{ebs_account != '', billing_model='marketplace'}[1h]))
+            by (ebs_account)
     openshift:
       tasks:
         topic: ${OPENSHIFT_METERING_TASK_TOPIC:platform.rhsm-subscriptions.openshift-metering-tasks}

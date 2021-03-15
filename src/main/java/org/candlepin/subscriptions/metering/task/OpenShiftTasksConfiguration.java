@@ -20,8 +20,10 @@
  */
 package org.candlepin.subscriptions.metering.task;
 
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMeteringTaskFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.task.TaskFactory;
@@ -47,6 +49,12 @@ import org.springframework.context.annotation.Profile;
  */
 public class OpenShiftTasksConfiguration {
 
+    @Bean
+    PrometheusAccountSource accountSource(PrometheusService service,
+        PrometheusMetricsProperties metricProperties) {
+        return new PrometheusAccountSource(service, metricProperties);
+    }
+
     // Qualify this bean so that a new instance is created in the case that another
     // queue is configured for another topic.
     @Bean
@@ -59,8 +67,8 @@ public class OpenShiftTasksConfiguration {
     @Bean
     public PrometheusMetricsTaskManager metricsTaskManager(TaskQueue queue,
         @Qualifier("openshiftTaskQueueProperties") TaskQueueProperties queueProps,
-        AccountListSource accounts) {
-        return new PrometheusMetricsTaskManager(queue, queueProps, accounts);
+        PrometheusAccountSource accountSource) {
+        return new PrometheusMetricsTaskManager(queue, queueProps, accountSource);
     }
 
     // The following beans are defined for the worker profile only allowing

@@ -48,16 +48,13 @@ public class PrometheusService {
         this.apiProvider = prometheusApiProvider;
     }
 
-    public QueryResult runRangeQuery(String promQuery, OffsetDateTime start, OffsetDateTime end,
+    public QueryResult runRangeQuery(String promQL, OffsetDateTime start, OffsetDateTime end,
         Integer step, Integer timeout)
         throws ExternalServiceException {
         log.info("Fetching metrics from prometheus: {} -> {} [Step: {}]", start, end, step);
         try {
-            // NOTE: While the ApiClient **should** in theory already encode the query,
-            //       it does not handle the curly braces correctly causing issues
-            //       when the request is made.
-            String query = UrlEscapers.urlFragmentEscaper().escape(promQuery);
-            log.debug("Running prometheus query: Start: {} End: {} Step: {}, Query: {}",
+            String query = sanatizeQuery(promQL);
+            log.debug("Running prometheus range query: Start: {} End: {} Step: {}, Query: {}",
                 start.toEpochSecond(), end.toEpochSecond(), step, query);
             return apiProvider.queryRangeApi().queryRange(query, start.toEpochSecond(),
                 end.toEpochSecond(), Integer.toString(step), timeout);
@@ -73,4 +70,29 @@ public class PrometheusService {
         }
     }
 
+    public QueryResult runQuery(String promQL, OffsetDateTime time, Integer timeout)
+        throws ExternalServiceException {
+        log.info("Fetching metrics from prometheus: {}", time);
+        try {
+            String query = sanatizeQuery(promQL);
+            log.debug("Running prometheus query: Time: {}, Query: {}", time.toEpochSecond(), query);
+            return apiProvider.queryApi().query(query, time, timeout);
+        }
+        catch (ApiException apie) {
+            // ApiException message returned from prometheus server are huge and include the
+            // HTML error page body. Just output the code here.
+            throw new ExternalServiceException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                String.format("Prometheus API Error! CODE: %s", apie.getCode()),
+                new ApiException(String.format("Prometheus API response code: %s", apie.getCode()))
+            );
+        }
+    }
+
+    private String sanatizeQuery(String promQL) {
+        // NOTE: While the ApiClient **should** in theory already encode the query,
+        //       it does not handle the curly braces correctly causing issues
+        //       when the request is made.
+        return UrlEscapers.urlFragmentEscaper().escape(promQL);
+    }
 }

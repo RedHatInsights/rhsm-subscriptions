@@ -21,12 +21,14 @@
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -46,4 +48,17 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
         "where c.optInType='API' and c.created between :startOfWeek and :endOfWeek")
     int getCountOfOptInsForDateRange(OffsetDateTime startOfWeek, OffsetDateTime endOfWeek);
 
+    default Optional<AccountConfig> createOrUpdateAccountConfig(String account, OffsetDateTime current,
+        OptInType optInType, boolean enableSync, boolean enableReporting) {
+        Optional<AccountConfig> found = findById(account);
+        AccountConfig accountConfig = found.orElse(new AccountConfig(account));
+        if (!found.isPresent()) {
+            accountConfig.setOptInType(optInType);
+            accountConfig.setCreated(current);
+        }
+        accountConfig.setSyncEnabled(enableSync);
+        accountConfig.setReportingEnabled(enableReporting);
+        accountConfig.setUpdated(current);
+        return Optional.of(save(accountConfig));
+    }
 }

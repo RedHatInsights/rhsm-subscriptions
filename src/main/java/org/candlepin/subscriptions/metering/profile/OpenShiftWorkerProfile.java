@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
@@ -76,8 +77,9 @@ public class OpenShiftWorkerProfile {
     @Bean
     PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsProperties mProps,
         PrometheusService service, EventController eventController,
-        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate) {
+        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
+        AccountConfigRepository accountConfigRepo) {
         return new PrometheusMeteringController(clock, mProps, service, eventController,
-            openshiftRetryTemplate);
+            openshiftRetryTemplate, accountConfigRepo);
     }
 }

@@ -21,8 +21,6 @@
 package org.candlepin.subscriptions.security;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -37,21 +35,21 @@ import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataOrg;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
+import java.util.TimeZone;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class OptInControllerTest {
 
-    @MockBean
+    @Autowired
     private AccountConfigRepository accountRepo;
 
-    @MockBean
+    @Autowired
     private OrgConfigRepository orgRepo;
 
     private OptInController controller;
@@ -60,13 +58,14 @@ class OptInControllerTest {
     @BeforeEach
     void setupTest() {
         clock = new FixedClockConfiguration().fixedClock();
+        TimeZone.setDefault(TimeZone.getTimeZone(clock.getClock().getZone()));
         controller = new OptInController(clock, accountRepo, orgRepo);
     }
 
     @Test
     void testOptInWithNewEntity() {
-        when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
+        String expectedAccount = "my-account";
+        String expectedOrg = "my-org";
 
         OptInConfig saved = controller.optIn(
             "my-account", "my-org", OptInType.API, true, true, true);
@@ -77,12 +76,12 @@ class OptInControllerTest {
         assertNotNull(saved.getData().getAccount());
         assertNotNull(saved.getData().getOrg());
 
-        assertEquals("my-account", saved.getMeta().getAccountNumber());
-        assertEquals("my-org", saved.getMeta().getOrgId());
+        assertEquals(expectedAccount, saved.getMeta().getAccountNumber());
+        assertEquals(expectedOrg, saved.getMeta().getOrgId());
 
         OptInConfigDataAccount accountConig = saved.getData().getAccount();
         assertNotNull(accountConig);
-        assertEquals("my-account", accountConig.getAccountNumber());
+        assertEquals(expectedAccount, accountConig.getAccountNumber());
         assertTrue(accountConig.getTallyReportingEnabled());
         assertTrue(accountConig.getTallySyncEnabled());
         assertEquals(clock.now(), accountConig.getCreated());
@@ -91,7 +90,7 @@ class OptInControllerTest {
 
         OptInConfigDataOrg orgConfig = saved.getData().getOrg();
         assertNotNull(orgConfig);
-        assertEquals("my-org", orgConfig.getOrgId());
+        assertEquals(expectedOrg, orgConfig.getOrgId());
         assertTrue(orgConfig.getConduitSyncEnabled());
         assertEquals(clock.now(), orgConfig.getCreated());
         assertEquals(clock.now(), orgConfig.getLastUpdated());
@@ -100,11 +99,8 @@ class OptInControllerTest {
 
     @Test
     void testOptInWithExistingEntity() {
-        AccountConfig existingAccountConfig = setupExistingAccountConfig();
-        OrgConfig existingOrgConfig = setupExistingOrgConfig();
-
-        when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
+        AccountConfig existingAccountConfig = setupExistingAccountConfig("TEST_ACCOUNT1");
+        OrgConfig existingOrgConfig = setupExistingOrgConfig("TEST_ORG1");
 
         OptInConfig modified = controller.optIn(
             existingAccountConfig.getAccountNumber(),
@@ -147,14 +143,11 @@ class OptInControllerTest {
 
     @Test
     void testOptInCreatesOrgConfigIfItDoesNotExist() {
-        AccountConfig existingAccountConfig = setupExistingAccountConfig();
-
-        when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
+        AccountConfig existingAccountConfig = setupExistingAccountConfig("TEST_ACCOUNT2");
 
         OptInConfig saved = controller.optIn(
             existingAccountConfig.getAccountNumber(),
-            "my-org",
+            "TEST_ORG2",
             OptInType.API,
             false,
             false,
@@ -168,7 +161,7 @@ class OptInControllerTest {
         assertNotNull(saved.getData().getOrg());
 
         assertEquals(existingAccountConfig.getAccountNumber(), saved.getMeta().getAccountNumber());
-        assertEquals("my-org", saved.getMeta().getOrgId());
+        assertEquals("TEST_ORG2", saved.getMeta().getOrgId());
 
         OptInConfigDataAccount savedAccountConfig = saved.getData().getAccount();
         assertEquals(existingAccountConfig.getAccountNumber(), savedAccountConfig.getAccountNumber());
@@ -182,7 +175,7 @@ class OptInControllerTest {
         assertEquals(OptInType.DB.name(), savedAccountConfig.getOptInType());
 
         OptInConfigDataOrg savedOrgConfig = saved.getData().getOrg();
-        assertEquals("my-org", savedOrgConfig.getOrgId());
+        assertEquals("TEST_ORG2", savedOrgConfig.getOrgId());
         assertFalse(savedOrgConfig.getConduitSyncEnabled());
         assertEquals(clock.now(), savedOrgConfig.getCreated());
         assertEquals(clock.now(), savedOrgConfig.getLastUpdated());
@@ -192,13 +185,10 @@ class OptInControllerTest {
 
     @Test
     void testOptInCreatesAccountConfigIfItDoesntExist() {
-        OrgConfig existingOrgConfig = setupExistingOrgConfig();
-
-        when(accountRepo.save(any(AccountConfig.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(orgRepo.save(any(OrgConfig.class))).thenAnswer(i -> i.getArguments()[0]);
+        OrgConfig existingOrgConfig = setupExistingOrgConfig("TEST_ORG3");
 
         OptInConfig saved = controller.optIn(
-            "my-account",
+            "TEST_ACCOUNT3",
             existingOrgConfig.getOrgId(),
             OptInType.API,
             false,
@@ -212,11 +202,11 @@ class OptInControllerTest {
         assertNotNull(saved.getData().getAccount());
         assertNotNull(saved.getData().getOrg());
 
-        assertEquals("my-account", saved.getMeta().getAccountNumber());
+        assertEquals("TEST_ACCOUNT3", saved.getMeta().getAccountNumber());
         assertEquals(existingOrgConfig.getOrgId(), saved.getMeta().getOrgId());
 
         OptInConfigDataAccount savedAccountConfig = saved.getData().getAccount();
-        assertEquals("my-account", savedAccountConfig.getAccountNumber());
+        assertEquals("TEST_ACCOUNT3", savedAccountConfig.getAccountNumber());
         assertFalse(savedAccountConfig.getTallyReportingEnabled());
         assertFalse(savedAccountConfig.getTallySyncEnabled());
         // Created date should not change
@@ -240,12 +230,9 @@ class OptInControllerTest {
         String expectedAccountNumber = "my-account";
         String expectedOrgId = "my-org";
 
-        when(accountRepo.existsById(eq(expectedAccountNumber))).thenReturn(true);
-        when(orgRepo.existsById(eq(expectedOrgId))).thenReturn(true);
-
         controller.optOut(expectedAccountNumber, expectedOrgId);
-        verify(accountRepo).deleteById(eq(expectedAccountNumber));
-        verify(orgRepo).deleteById(eq(expectedOrgId));
+        assertTrue(accountRepo.findById(expectedAccountNumber).isEmpty());
+        assertTrue(orgRepo.findById(expectedOrgId).isEmpty());
     }
 
     @Test
@@ -264,14 +251,14 @@ class OptInControllerTest {
         accountConfig.setOptInType(expectedOptIn);
         accountConfig.setCreated(expectedOptInDate);
         accountConfig.setUpdated(expectedUpdatedDate);
-        when(accountRepo.findById(eq(expectedAccount))).thenReturn(Optional.of(accountConfig));
+        accountRepo.save(accountConfig);
 
         OrgConfig orgConfig = new OrgConfig(expectedOrg);
         orgConfig.setSyncEnabled(expectedSyncEnabled);
         orgConfig.setOptInType(expectedOptIn);
         orgConfig.setCreated(expectedOptInDate);
         orgConfig.setUpdated(expectedUpdatedDate);
-        when(orgRepo.findById(eq(expectedOrg))).thenReturn(Optional.of(orgConfig));
+        orgRepo.save(orgConfig);
 
         OptInConfig dto = controller.getOptInConfig(expectedAccount, expectedOrg);
         assertNotNull(dto.getData());
@@ -302,11 +289,10 @@ class OptInControllerTest {
 
     @Test
     void optInConfigNotCompleteWhenOnlyAccountConfigExists() {
-        String expectedAccountNumber = "account123456";
-        String expectedOrgId = "owner123456";
-        AccountConfig accountConfig = new AccountConfig(expectedAccountNumber);
-        when(accountRepo.findById(eq(expectedAccountNumber))).thenReturn(Optional.of(accountConfig));
-        when(orgRepo.findById(eq(expectedOrgId))).thenReturn(Optional.empty());
+        String expectedAccountNumber = "TEST_ACCOUNT296";
+        String expectedOrgId = "TEST_OWNER297";
+        AccountConfig accountConfig = setupExistingAccountConfig(expectedAccountNumber);
+        accountRepo.save(accountConfig);
 
         OptInConfig dto = controller.getOptInConfig(expectedAccountNumber, expectedOrgId);
         assertNotNull(dto.getData().getAccount());
@@ -316,12 +302,11 @@ class OptInControllerTest {
 
     @Test
     void optInConfigNotCompleteWhenOnlyOrgConfigExists() {
-        String expectedAccountNumber = "account123456";
-        String expectedOrgId = "owner123456";
+        String expectedAccountNumber = "TEST_ACCOUNT309";
+        String expectedOrgId = "TEST_OWNER310";
 
-        OrgConfig orgConfig = new OrgConfig(expectedOrgId);
-        when(accountRepo.findById(eq(expectedAccountNumber))).thenReturn(Optional.empty());
-        when(orgRepo.findById(eq(expectedOrgId))).thenReturn(Optional.of(orgConfig));
+        OrgConfig orgConfig = setupExistingOrgConfig(expectedOrgId);
+        orgRepo.save(orgConfig);
 
         OptInConfig dto = controller.getOptInConfig(expectedAccountNumber, expectedOrgId);
         assertNull(dto.getData().getAccount());
@@ -329,24 +314,22 @@ class OptInControllerTest {
         assertFalse(dto.getData().getOptInComplete());
     }
 
-    private AccountConfig setupExistingAccountConfig() {
-        AccountConfig config = new AccountConfig("my-account");
+    private AccountConfig setupExistingAccountConfig(String account) {
+        AccountConfig config = new AccountConfig(account);
         config.setReportingEnabled(true);
         config.setSyncEnabled(true);
         config.setCreated(clock.now().minusDays(1));
-        config.setUpdated(clock.now().minusDays(1));
+        config.setUpdated(clock.now());
         config.setOptInType(OptInType.DB);
-        when(accountRepo.findById(eq("my-account"))).thenReturn(Optional.of(config));
-        return config;
+        return accountRepo.save(config);
     }
 
-    private OrgConfig setupExistingOrgConfig() {
-        OrgConfig config = new OrgConfig("my-org");
+    private OrgConfig setupExistingOrgConfig(String org) {
+        OrgConfig config = new OrgConfig(org);
         config.setSyncEnabled(true);
-        config.setUpdated(clock.now().minusDays(1));
         config.setCreated(clock.now().minusDays(1));
+        config.setUpdated(clock.now());
         config.setOptInType(OptInType.DB);
-        when(orgRepo.findById(eq("my-org"))).thenReturn(Optional.of(config));
-        return config;
+        return orgRepo.save(config);
     }
 }
