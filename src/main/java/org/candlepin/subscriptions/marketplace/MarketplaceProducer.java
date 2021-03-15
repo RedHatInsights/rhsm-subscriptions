@@ -69,11 +69,10 @@ public class MarketplaceProducer {
             StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
             log.debug("Marketplace response: {}", status);
             if (status.getData() != null) {
-                status.getData().forEach(batchStatus -> {
+                status.getData().forEach(batchStatus ->
                     log.info("Marketplace Batch: {} for Tally Snapshot IDs: {}", batchStatus.getBatchId(),
-                        usageRequest.getData().stream()
-                        .map(UsageEvent::getEventId).collect(Collectors.joining(",")));
-                });
+                    usageRequest.getData().stream()
+                    .map(UsageEvent::getEventId).collect(Collectors.joining(","))));
             }
             return status;
         }

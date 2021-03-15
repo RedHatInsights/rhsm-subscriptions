@@ -41,6 +41,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ManagedResource
+// must log, then throw because the exception is passed to client and not logged.
+@SuppressWarnings("java:S2139")
 public class MarketplaceJmxBean {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
 
