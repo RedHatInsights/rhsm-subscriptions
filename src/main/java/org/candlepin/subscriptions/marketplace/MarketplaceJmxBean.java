@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.conduit.jmx.RhsmJmxException;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -65,13 +66,19 @@ public class MarketplaceJmxBean {
     }
 
     @ManagedOperation(description = "Submit usage event JSON (dev-mode only)")
-    public String submitUsageEvent(String payloadJson) throws JsonProcessingException, ApiException {
+    public String submitUsageEvent(String payloadJson) throws JsonProcessingException, RhsmJmxException {
         if (!properties.isDevMode()) {
             throw new JmxException("Unsupported outside dev-mode");
         }
         UsageEvent usageEvent = mapper.readValue(payloadJson, UsageEvent.class);
         UsageRequest usageRequest = new UsageRequest().addDataItem(usageEvent);
-        return marketplaceProducer.submitUsageRequest(usageRequest).toString();
+        try {
+            return marketplaceProducer.submitUsageRequest(usageRequest).toString();
+        }
+        catch (Exception e) {
+            log.error("Error submitting usage info via JMX", e);
+            throw new RhsmJmxException(e);
+        }
     }
 
     @ManagedOperation(description = "Fetch a usage event status")
