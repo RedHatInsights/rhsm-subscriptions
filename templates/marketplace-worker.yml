@@ -51,6 +51,15 @@ parameters:
     value: 100m
   - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
     value: 1m
+  - name: MARKETPLACE_MAX_ATTEMPTS
+    value: '10'
+  - name: MARKETPLACE_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: MARKETPLACE_BACK_OFF_MULTIPLIER
+    value: '2'
+
 
 objects:
   - apiVersion: apps.openshift.io/v1
@@ -181,6 +190,14 @@ objects:
                       key: url
                 - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
                   value: ${MARKETPLACE_TOKEN_REFRESH_PERIOD}
+                - name: MARKETPLACE_MAX_ATTEMPTS
+                  value: ${MARKETPLACE_MAX_ATTEMPTS}
+                - name: MARKETPLACE_BACK_OFF_MAX_INTERVAL
+                  value: ${MARKETPLACE_BACK_OFF_MAX_INTERVAL}
+                - name: MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+                  value: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
+                - name: MARKETPLACE_BACK_OFF_MULTIPLIER
+                  value: ${MARKETPLACE_BACK_OFF_MULTIPLIER}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
