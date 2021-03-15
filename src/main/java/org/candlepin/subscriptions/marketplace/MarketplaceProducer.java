@@ -57,13 +57,12 @@ public class MarketplaceProducer {
         this.retryTemplate = retryTemplate;
     }
 
-    @Timed("rhsm-subscriptions.marketplace.usage")
+    @Timed("rhsm-subscriptions.marketplace.usage.submission")
     public StatusResponse submitUsageRequest(UsageRequest usageRequest) {
         // NOTE: https://issues.redhat.com/browse/ENT-3609 will address failures
         return retryTemplate.execute(context -> tryRequest(usageRequest));
     }
 
-    @Timed("rhsm-subscriptions.marketplace.usage.request")
     private StatusResponse tryRequest(UsageRequest usageRequest) {
         try {
             StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
