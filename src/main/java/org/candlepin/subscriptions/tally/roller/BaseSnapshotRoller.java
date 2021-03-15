@@ -151,15 +151,21 @@ public abstract class BaseSnapshotRoller {
             }
 
             for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
-                TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
-                UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
-                if (snap == null && productCalc.hasMeasurements()) {
-                    snap = createSnapshotFromProductUsageCalculation(accountCalc.getAccount(),
-                        accountCalc.getOwner(), productCalc, targetGranularity);
-                    snaps.add(snap);
-                }
-                else if (snap != null && updateMaxValues(snap, productCalc)) {
-                    snaps.add(snap);
+                boolean isGranularitySupported = productProfileRegistry
+                    .findProfileForSwatchProductId(usageKey.getProductId())
+                    .supportsGranularity(targetGranularity);
+
+                if (isGranularitySupported) {
+                    TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
+                    UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+                    if (snap == null && productCalc.hasMeasurements()) {
+                        snap = createSnapshotFromProductUsageCalculation(accountCalc.getAccount(),
+                            accountCalc.getOwner(), productCalc, targetGranularity);
+                        snaps.add(snap);
+                    }
+                    else if (snap != null && updateMaxValues(snap, productCalc)) {
+                        snaps.add(snap);
+                    }
                 }
             }
         }

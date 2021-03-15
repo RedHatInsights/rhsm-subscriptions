@@ -36,6 +36,7 @@ ext {
     kafka_avro_serializer_version = "6.1.0"
     avro_version = "1.10.1"
     webjars_locator_version = "0.40"
+    generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
 }
 
 allprojects {
@@ -101,6 +102,7 @@ allprojects {
         annotationProcessor "org.projectlombok:lombok"
         testCompileOnly "org.projectlombok:lombok"
         testAnnotationProcessor "org.projectlombok:lombok"
+        annotationProcessor('org.hibernate:hibernate-jpamodelgen')
 
         testCompile "org.springframework.boot:spring-boot-starter-test"
         testCompile "org.springframework:spring-test"
@@ -250,6 +252,14 @@ tasks.register('dependencyJson') {
             dependents: artifactInstances.collect { it.dependent },
         ]
     }.sort { "${it.group}:${it.name}:${it.version}" })
+}
+
+sourceSets {
+    main.java.srcDir generatedMetamodels
+}
+
+compileJava {
+    options.annotationProcessorGeneratedSourcesDirectory = file(generatedMetamodels)
 }
 
 compileJava.dependsOn(processResources)

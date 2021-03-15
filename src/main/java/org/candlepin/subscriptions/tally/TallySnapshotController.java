@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Provides the logic for updating Tally snapshots.
@@ -56,7 +58,6 @@ public class TallySnapshotController {
     private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
     private final RetryTemplate retryTemplate;
     private final RetryTemplate cloudigradeRetryTemplate;
-
     private final Set<String> applicableProducts;
 
     @Autowired
@@ -119,16 +120,20 @@ public class TallySnapshotController {
     @Timed("rhsm-subscriptions.snapshots.single.hourly")
     public void produceHourlySnapshotsForAccount(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime) {
-
         try {
-            Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = retryTemplate.execute(
+            var accountCalcs = retryTemplate.execute(
                 context -> metricUsageCollector.collect(accountNumber, startDateTime, endDateTime));
+
+            var applicableUsageCalculations = accountCalcs.entrySet().stream()
+                .filter(TallySnapshotController::isCombiningRollupStrategySupported)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
             combiningRollupSnapshotStrategy
                 .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
-                accountCalcs, Granularity.HOURLY, Double::sum);
+                applicableUsageCalculations, Granularity.HOURLY, Double::sum);
         }
         catch (Exception e) {
-            log.error("Could not collect existing usage snapshots for account {}", accountNumber, e);
+            log.error("Could not collect metrics and/or produce snapshots for account {}", accountNumber, e);
         }
     }
 
@@ -153,6 +158,15 @@ public class TallySnapshotController {
         catch (Exception e) {
             log.warn("Exception during cloudigrade enrichment, tally will not be enriched.", e);
         }
+    }
+
+    private static boolean isCombiningRollupStrategySupported(
+        Map.Entry<OffsetDateTime, AccountUsageCalculation> usageCalculations) {
+
+        var calculatedProducts = usageCalculations.getValue().getProducts();
+
+        return calculatedProducts.contains(ProductId.OPENSHIFT_METRICS.toString()) ||
+                calculatedProducts.contains(ProductId.OPENSHIFT_DEDICATED_METRICS.toString());
     }
 
 }
