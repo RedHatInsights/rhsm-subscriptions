@@ -28,6 +28,15 @@ public class SyspurposeRole {
     private String name;
     private Set<String> swatchProductIds;
 
+    public SyspurposeRole() {
+        // required for YAML
+    }
+
+    public SyspurposeRole(String name, Set<String> swatchProductIds) {
+        this.name = name;
+        this.swatchProductIds = swatchProductIds;
+    }
+
     public String getName() {
         return name;
     }

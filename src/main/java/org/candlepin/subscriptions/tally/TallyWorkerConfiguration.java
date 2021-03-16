@@ -22,7 +22,10 @@ package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
+import org.candlepin.subscriptions.db.AccountRepository;
+import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
+import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
@@ -49,6 +52,7 @@ import org.springframework.retry.support.RetryTemplate;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -152,5 +156,16 @@ public class TallyWorkerConfiguration {
     @Bean
     public SearchApiFactory searchApiFactory(@Qualifier("subscription") HttpClientProperties props) {
         return new SearchApiFactory(props);
+    }
+
+    @Bean
+    @Qualifier("OpenShiftMetricsUsageCollector")
+    public MetricUsageCollector openShiftMetricsUsageCollector(ProductProfileRegistry registry,
+        AccountRepository accountRepo, EventController eventController, ApplicationClock clock) {
+        Optional<ProductProfile> profile = registry.getProfileByName("OpenShiftMetrics");
+        if (!profile.isPresent()) {
+            throw new IllegalStateException("Could not find product profile for OpenShiftMetrics!");
+        }
+        return new MetricUsageCollector(profile.get(), accountRepo, eventController, clock);
     }
 }

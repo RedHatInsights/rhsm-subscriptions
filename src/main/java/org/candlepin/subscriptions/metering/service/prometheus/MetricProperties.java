@@ -70,11 +70,6 @@ public class MetricProperties {
      */
     private double backOffMultiplier = 2;
 
-    /**
-     * Batch size to use while persisting events.
-     */
-    private int eventBatchSize = 1000;
-
     public String getMetricPromQL() {
         return metricPromQL;
     }
@@ -137,14 +132,6 @@ public class MetricProperties {
 
     public void setBackOffMultiplier(double backOffMultiplier) {
         this.backOffMultiplier = backOffMultiplier;
-    }
-
-    public int getEventBatchSize() {
-        return eventBatchSize;
-    }
-
-    public void setEventBatchSize(int eventBatchSize) {
-        this.eventBatchSize = eventBatchSize;
     }
 
 }

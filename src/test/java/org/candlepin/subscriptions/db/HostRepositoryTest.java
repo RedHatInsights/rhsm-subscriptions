@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 
@@ -38,10 +39,12 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,12 +179,16 @@ class HostRepositoryTest {
         host.setDisplayName(DEFAULT_DISPLAY_NAME);
         host.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false, 4, 2,
             HardwareMeasurementType.PHYSICAL);
+        host.setMeasurement(Measurement.Uom.CORES, 4.0);
+        host.addToMonthlyTotal(OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 5.0);
         repo.saveAndFlush(host);
 
         Optional<Host> result = repo.findById(host.getId());
         assertTrue(result.isPresent());
         Host saved = result.get();
         assertEquals(1, saved.getBuckets().size());
+        assertEquals(4.0, saved.getMeasurement(Measurement.Uom.CORES));
+        assertEquals(5.0, saved.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
     }
 
     @Transactional
@@ -191,6 +198,9 @@ class HostRepositoryTest {
         host.setDisplayName(DEFAULT_DISPLAY_NAME);
         host.setSockets(1);
         host.setCores(1);
+        host.setMeasurement(Measurement.Uom.CORES, 2.0);
+        host.addToMonthlyTotal(OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 3.0);
+        host.addToMonthlyTotal(OffsetDateTime.parse("2021-01-26T01:00:00Z"), Measurement.Uom.SOCKETS, 10.0);
 
         host.addBucket("RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION, false, 4, 2,
             HardwareMeasurementType.PHYSICAL);
@@ -213,6 +223,9 @@ class HostRepositoryTest {
         HostTallyBucket satelliteBucket = host.getBuckets().stream()
             .filter(h -> h.getKey().getProductId().equals("Satellite")).findFirst().orElse(null);
         toUpdate.removeBucket(rhelBucket);
+        toUpdate.setMeasurement(Measurement.Uom.CORES, 8.0);
+        toUpdate.addToMonthlyTotal(OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 4.0);
+        toUpdate.clearMonthlyTotal(OffsetDateTime.parse("2021-01-02T00:00:00Z"));
         repo.saveAndFlush(toUpdate);
 
         Optional<Host> updateResult = repo.findById(toUpdate.getId());
@@ -223,6 +236,9 @@ class HostRepositoryTest {
         assertEquals(8, updated.getCores().intValue());
         assertEquals(1, updated.getBuckets().size());
         assertTrue(updated.getBuckets().contains(satelliteBucket));
+        assertEquals(8.0, updated.getMeasurement(Measurement.Uom.CORES));
+        assertEquals(7.0, updated.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
+        assertNull(updated.getMonthlyTotal("2021-02", Measurement.Uom.SOCKETS));
     }
 
     @Transactional
@@ -335,7 +351,7 @@ class HostRepositoryTest {
     void testCanSortByDisplayName() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
+            HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -347,7 +363,7 @@ class HostRepositoryTest {
     void testCanSortByMeasurementType() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account3", RHEL, ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
+            HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -359,7 +375,7 @@ class HostRepositoryTest {
     void testCanSortByCores() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest
-            .of(0, 10, Sort.Direction.ASC, HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.CORES)));
+            .of(0, 10, Sort.Direction.ASC, HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.CORES)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -371,7 +387,8 @@ class HostRepositoryTest {
     void testCanSortBySockets() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest
-            .of(0, 10, Sort.Direction.ASC, HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)));
+            .of(0, 10, Sort.Direction.ASC,
+            HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -383,7 +400,7 @@ class HostRepositoryTest {
     void testCanSortByLastSeen() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)));
+            HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -395,7 +412,7 @@ class HostRepositoryTest {
     void testCanSortByHardwareType() {
         Page<TallyHostView> hosts = repo.getTallyHostViews("account2", "RHEL", ServiceLevel.PREMIUM,
             Usage.PRODUCTION, SANITIZED_MISSING_DISPLAY_NAME, 0, 0, PageRequest.of(0, 10, Sort.Direction.ASC,
-            HostsResource.SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)));
+            HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)));
         List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
 
         assertEquals(1, found.size());
@@ -449,6 +466,32 @@ class HostRepositoryTest {
         assertEquals(host1.getNumOfGuests(), hypervisor.getNumberOfGuests());
         assertEquals(10, hypervisor.getSockets());
         assertEquals(5, hypervisor.getCores());
+    }
+
+    static String[] instanceSortParams() {
+        return HostsResource.INSTANCE_SORT_PARAM_MAPPING.values().toArray(new String[0]);
+    }
+
+    @Transactional
+    @ParameterizedTest
+    @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#instanceSortParams")
+    void canSortByInstanceBasedSortMethods(String sort) {
+        Pageable page = PageRequest.of(0, 1, Sort.by(sort));
+        assertNotNull(repo.findAllBy("account123", "product", ServiceLevel._ANY, Usage._ANY, "", 1, 0, null,
+            page));
+    }
+
+    static String[] tallyViewSortParams() {
+        return HostsResource.HOST_SORT_PARAM_MAPPING.values().toArray(new String[0]);
+    }
+
+    @Transactional
+    @ParameterizedTest
+    @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#tallyViewSortParams")
+    void canSortByHostBasedSortMethods(String sort) {
+        Pageable page = PageRequest.of(0, 1, Sort.by(sort));
+        assertNotNull(repo.getTallyHostViews("account123", "product", ServiceLevel._ANY, Usage._ANY, "", 1,
+            0, page));
     }
 
     @Transactional

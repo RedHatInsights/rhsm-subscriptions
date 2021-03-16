@@ -21,8 +21,10 @@
 package org.candlepin.subscriptions.tally;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +37,10 @@ import io.micrometer.core.annotation.Timed;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Provides the logic for updating Tally snapshots.
@@ -52,31 +54,31 @@ public class TallySnapshotController {
     private final InventoryAccountUsageCollector usageCollector;
     private final CloudigradeAccountUsageCollector cloudigradeCollector;
     private final MetricUsageCollector metricUsageCollector;
-    private final UsageSnapshotProducer snapshotProducer;
+    private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
+    private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
     private final RetryTemplate retryTemplate;
     private final RetryTemplate cloudigradeRetryTemplate;
-
     private final Set<String> applicableProducts;
 
     @Autowired
-    public TallySnapshotController(
-        ApplicationProperties props,
+    public TallySnapshotController(ApplicationProperties props,
         @Qualifier("applicableProducts") Set<String> applicableProducts,
-        InventoryAccountUsageCollector usageCollector,
-        CloudigradeAccountUsageCollector cloudigradeCollector,
-        UsageSnapshotProducer snapshotProducer,
+        InventoryAccountUsageCollector usageCollector, CloudigradeAccountUsageCollector cloudigradeCollector,
+        MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
         @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
         @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
-        MetricUsageCollector metricUsageCollector) {
+        @Qualifier("OpenShiftMetricsUsageCollector") MetricUsageCollector metricUsageCollector,
+        CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy) {
 
         this.props = props;
         this.applicableProducts = applicableProducts;
         this.usageCollector = usageCollector;
         this.cloudigradeCollector = cloudigradeCollector;
-        this.snapshotProducer = snapshotProducer;
+        this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
         this.retryTemplate = retryTemplate;
         this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
         this.metricUsageCollector = metricUsageCollector;
+        this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     }
 
     @Timed("rhsm-subscriptions.snapshots.single")
@@ -112,31 +114,27 @@ public class TallySnapshotController {
             return;
         }
 
-        snapshotProducer.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+        maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
     }
 
     @Timed("rhsm-subscriptions.snapshots.single.hourly")
     public void produceHourlySnapshotsForAccount(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime) {
-
-        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
         try {
-            for (OffsetDateTime offset = startDateTime; offset.isBefore(endDateTime); offset =
-                offset.plusHours(1)) {
-                OffsetDateTime finalOffset = offset;
-                accountCalcs.put(offset, retryTemplate
-                    .execute(context -> metricUsageCollector.collect(accountNumber, finalOffset,
-                    finalOffset.plusHours(1))));
-            }
+            var accountCalcs = retryTemplate.execute(
+                context -> metricUsageCollector.collect(accountNumber, startDateTime, endDateTime));
+
+            var applicableUsageCalculations = accountCalcs.entrySet().stream()
+                .filter(TallySnapshotController::isCombiningRollupStrategySupported)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+            combiningRollupSnapshotStrategy
+                .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
+                applicableUsageCalculations, Granularity.HOURLY, Double::sum);
         }
         catch (Exception e) {
-            log.error("Could not collect existing usage snapshots for account {}", accountNumber, e);
-            return;
+            log.error("Could not collect metrics and/or produce snapshots for account {}", accountNumber, e);
         }
-
-        accountCalcs.forEach((offset, calculation) ->
-            snapshotProducer.produceSnapshotsFromCalculations(offset, List.of(accountNumber),
-            List.of(calculation)));
     }
 
     private void attemptCloudigradeEnrichment(List<String> accounts,
@@ -160,6 +158,15 @@ public class TallySnapshotController {
         catch (Exception e) {
             log.warn("Exception during cloudigrade enrichment, tally will not be enriched.", e);
         }
+    }
+
+    private static boolean isCombiningRollupStrategySupported(
+        Map.Entry<OffsetDateTime, AccountUsageCalculation> usageCalculations) {
+
+        var calculatedProducts = usageCalculations.getValue().getProducts();
+
+        return calculatedProducts.contains(ProductId.OPENSHIFT_METRICS.toString()) ||
+                calculatedProducts.contains(ProductId.OPENSHIFT_DEDICATED_METRICS.toString());
     }
 
 }

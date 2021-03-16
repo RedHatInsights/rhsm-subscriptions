@@ -185,6 +185,50 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         assertEquals(0, currentSnaps.size());
     }
 
+    public void performRemovesDuplicates(Granularity granularity, OffsetDateTime startOfGranularPeriod,
+        OffsetDateTime endOfGranularPeriod) {
+
+        AccountUsageCalculation a1Calc = createTestData();
+        String account = a1Calc.getAccount();
+
+        TallySnapshot orig = new TallySnapshot();
+        orig.setAccountNumber("my_account");
+        orig.setServiceLevel(ServiceLevel.EMPTY);
+        orig.setUsage(Usage.EMPTY);
+        orig.setGranularity(granularity);
+        orig.setSnapshotDate(startOfGranularPeriod);
+        orig.setProductId(getTestProduct());
+
+        TallySnapshot dupe = new TallySnapshot();
+        dupe.setAccountNumber("my_account");
+        dupe.setServiceLevel(ServiceLevel.EMPTY);
+        dupe.setUsage(Usage.EMPTY);
+        dupe.setGranularity(granularity);
+        dupe.setSnapshotDate(startOfGranularPeriod);
+        dupe.setProductId(getTestProduct());
+
+        repository.saveAll(List.of(orig, dupe));
+
+        List<TallySnapshot> currentSnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
+            getTestProduct(), granularity, ServiceLevel.EMPTY, Usage.EMPTY,
+            startOfGranularPeriod, endOfGranularPeriod,
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(2, currentSnaps.size());
+
+        UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(getTestProduct()));
+        assertNotNull(a1ProductCalc);
+
+        roller.rollSnapshots(List.of(account), List.of(a1Calc));
+
+        List<TallySnapshot> updatedSnaps = repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(account,
+            getTestProduct(), granularity, ServiceLevel.EMPTY, Usage.EMPTY,
+            startOfGranularPeriod, endOfGranularPeriod,
+            PageRequest.of(0, 100)).stream().collect(Collectors.toList());
+        assertEquals(1, updatedSnaps.size());
+    }
+
     private UsageCalculation.Key createUsageKey(String product) {
         return new UsageCalculation.Key(product, ServiceLevel.EMPTY, Usage.EMPTY);
     }

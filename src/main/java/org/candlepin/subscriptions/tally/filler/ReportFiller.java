@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.filler;
 
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
@@ -43,11 +42,9 @@ import java.util.Optional;
 public class ReportFiller {
     private static final Logger log = LoggerFactory.getLogger(ReportFiller.class);
 
-    private final ApplicationClock clock;
     private final SnapshotTimeAdjuster timeAdjuster;
 
-    public ReportFiller(ApplicationClock clock, SnapshotTimeAdjuster timeAdjuster) {
-        this.clock = clock;
+    public ReportFiller(SnapshotTimeAdjuster timeAdjuster) {
         this.timeAdjuster = timeAdjuster;
     }
 
@@ -147,7 +144,7 @@ public class ReportFiller {
         List<TallySnapshot> result = new ArrayList<>();
         OffsetDateTime next = timeAdjuster.adjustToPeriodStart(OffsetDateTime.from(start));
         while (next.isBefore(end) || next.isEqual(end)) {
-            result.add(createDefaultSnapshot(clock.startOfDay(next)));
+            result.add(createDefaultSnapshot(next));
             next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
         }
         return result;

@@ -1,0 +1,27 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202102260917-1" author="khowell">
+        <comment>Add table to track per-month cumulative total measurements</comment>
+        <createTable tableName="instance_monthly_totals">
+            <column name="instance_id" type="uuid">
+                <constraints referencedTableName="hosts" referencedColumnNames="id"
+                    nullable="false" foreignKeyName="instance_monthly_totals_host_id_fk"
+                    deleteCascade="true"/>
+            </column>
+            <column name="month" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uom" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="double precision">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="instance_monthly_totals" columnNames="instance_id,month,uom"/>
+    </changeSet>
+
+</databaseChangeLog>

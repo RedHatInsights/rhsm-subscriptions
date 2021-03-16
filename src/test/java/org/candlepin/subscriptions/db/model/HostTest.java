@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ class HostTest {
         assertNull(host.getOrgId());
         assertNull(host.getDisplayName());
         assertNull(host.getSubscriptionManagerId());
-        assertFalse(host.getGuest());
+        assertFalse(host.isGuest());
         assertNull(host.getHypervisorUuid());
         assertEquals(0, host.getMeasurements().size());
         assertFalse(host.isHypervisor());
@@ -70,13 +71,23 @@ class HostTest {
         assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
         assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
         assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
-        assertTrue(host.getGuest());
+        assertTrue(host.isGuest());
         assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
         assertEquals(2, host.getMeasurements().size());
         assertTrue(host.isHypervisor());
         assertEquals(host.getCloudProvider(), normalizedFacts.getCloudProviderType().name());
         assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
         assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+    }
+
+    @Test
+    void testRemoveRangeRemovesMultipleMonths() {
+        Host host = new Host();
+        host.addToMonthlyTotal("2021-01", Measurement.Uom.CORES, 1.0);
+        host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 2.0);
+        host.clearMonthlyTotals(OffsetDateTime.parse("2021-01-01T00:00:00Z"),
+            OffsetDateTime.parse("2021-02-01T00:00:00Z"));
+        assertTrue(host.getMonthlyTotals().isEmpty());
     }
 
     private InventoryHostFacts getInventoryHostFactsFull() {

@@ -49,6 +49,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
     else:
         host_fields = {
             'id': host_id,
+            'instance_id': inventory_id,
             'inventory_id': inventory_id,
             'insights_id': insights_id,
             'account_number': account_number or 'account123',

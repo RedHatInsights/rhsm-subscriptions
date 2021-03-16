@@ -55,7 +55,9 @@ public class CaptureMetricsSnapshotTask implements Task {
             throw new IllegalArgumentException(
                 "Cannot produce hourly snapshot for account {}.  Invalid date range provided.");
         }
-        log.info("Producing hourly snapshot for account {} in timeframe {}-{}", accountNumber, startDateTime,
+        log.info("Producing hourly snapshot for account {} between startDateTime {} and endDateTime {}",
+            accountNumber,
+            startDateTime,
             endDateTime);
 
         snapshotController.produceHourlySnapshotsForAccount(accountNumber, startDateTime, endDateTime);

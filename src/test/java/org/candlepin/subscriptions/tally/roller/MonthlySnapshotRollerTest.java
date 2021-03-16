@@ -81,4 +81,11 @@ public class MonthlySnapshotRollerTest {
             clock.endOfCurrentMonth(), true);
     }
 
+    @Test
+    @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
+    void testHandlesDuplicates() {
+        tester.performRemovesDuplicates(Granularity.MONTHLY, clock.startOfCurrentMonth(),
+            clock.endOfCurrentMonth());
+    }
+
 }

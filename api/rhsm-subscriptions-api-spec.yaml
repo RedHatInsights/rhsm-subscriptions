@@ -431,6 +431,24 @@ paths:
             #Default to empty string to prevent complex jpql statement later
             default: ''
           in: query
+        - name: beginning
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+            format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
+            Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+        - name: ending
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period. Dates should be provided in ISO 8601
+            format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
+            Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
         - name: sort
           in: query
           schema:
@@ -688,6 +706,7 @@ components:
         - Satellite Capsule
         - Satellite Server
         - OpenShift-metrics
+        - OpenShift-dedicated-metrics
     Uom:
       type: string
       enum:
@@ -1031,6 +1050,7 @@ components:
         - sockets
         - last_seen
         - measurement_type
+        - core_hours
     HostReport:
       properties:
         data:
@@ -1128,6 +1148,9 @@ components:
           type: integer
           format: int32
           minimum: 0
+        core_hours:
+          type: number
+          format: double
         hardware_type:
           description: What the type of the host is (e.g. hypervisor, physical, etc.).
           type: string

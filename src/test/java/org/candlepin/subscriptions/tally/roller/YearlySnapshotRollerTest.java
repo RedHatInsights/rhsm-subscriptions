@@ -78,4 +78,12 @@ public class YearlySnapshotRollerTest {
         this.tester.performUpdateWithLesserValueTest(Granularity.YEARLY, clock.startOfCurrentYear(),
             clock.endOfCurrentYear(), true);
     }
+
+    @Test
+    @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
+    void testHandlesDuplicates() {
+        tester.performRemovesDuplicates(Granularity.YEARLY, clock.startOfCurrentYear(),
+            clock.endOfCurrentYear());
+    }
+
 }

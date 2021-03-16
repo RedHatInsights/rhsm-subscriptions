@@ -32,25 +32,22 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.metering.MeteringEventFactory;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.ws.rs.core.Response;
@@ -58,95 +55,112 @@ import javax.ws.rs.core.Response;
 /**
  * Collects instances and tallies based on hourly metrics.
  */
-@Component
 public class MetricUsageCollector {
     private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
     private final AccountRepository accountRepository;
     private final EventController eventController;
-    private final ProductConfig productConfig;
+    private final ApplicationClock clock;
+    private final ProductProfile productProfile;
 
-    /**
-     * Encapsulates all per-product information we anticipate putting into configuration used by this
-     * collector.
-     */
-    public static class ProductConfig {
-        public static final String OPENSHIFT_PRODUCT_ID = "OpenShift-metrics";
-        public static final String SERVICE_TYPE = MeteringEventFactory.OPENSHIFT_CLUSTER_SERVICE_TYPE;
-        private static final ServiceLevel DEFAULT_SLA = ServiceLevel.PREMIUM;
-        private static final Usage DEFAULT_USAGE = Usage.PRODUCTION;
-
-        public String getServiceType() {
-            return SERVICE_TYPE;
-        }
-
-        public String getProductId() {
-            return OPENSHIFT_PRODUCT_ID;
-        }
-
-        public Usage getDefaultUsage() {
-            return DEFAULT_USAGE;
-        }
-
-        public ServiceLevel getDefaultSla() {
-            return DEFAULT_SLA;
-        }
-
-        public Map<Event.Role, List<String>> getRoleProductIdMapping() {
-            return Collections.emptyMap();
-        }
-
-        public Map<String, List<String>> getEngineeringProductIdToSwatchProductMapping() {
-            return Collections.emptyMap();
-        }
-    }
-
-    @Autowired
-    public MetricUsageCollector(AccountRepository accountRepository, EventController eventController) {
-
+    public MetricUsageCollector(ProductProfile productProfile, AccountRepository accountRepository,
+        EventController eventController, ApplicationClock clock) {
         this.accountRepository = accountRepository;
         this.eventController = eventController;
-        this.productConfig = new ProductConfig();
-
+        this.clock = clock;
+        this.productProfile = productProfile;
     }
 
     @Transactional
-    public AccountUsageCalculation collect(String accountNumber, OffsetDateTime startDateTime,
-        OffsetDateTime endDateTime) {
-
+    public Map<OffsetDateTime, AccountUsageCalculation> collect(String accountNumber,
+        OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
+        /* load the latest account state, so we can update host records conveniently */
         Account account = accountRepository.findById(accountNumber).orElseThrow(() ->
             new SubscriptionsException(ErrorCode.OPT_IN_REQUIRED, Response.Status.BAD_REQUEST,
             "Account not found!",
             String.format("Account %s was not found. Account not opted in?", accountNumber))
         );
-        Map<String, Host> existingInstances = account.getServiceInstances().values().stream()
-            .filter(host -> productConfig.getServiceType().equals(host.getInstanceType()))
-            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
-        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(accountNumber,
+
+        /*
+        Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
+        the product profile we're working on
+        */
+        Map<String, Host> existingInstances = new HashMap<>();
+        OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
+        for (Host host : account.getServiceInstances().values()) {
+            if (productProfile.getServiceType().equals(host.getInstanceType())) {
+                existingInstances.put(host.getInstanceId(), host);
+                newestInstanceTimestamp = newestInstanceTimestamp.isAfter(host.getLastSeen()) ?
+                    newestInstanceTimestamp : host.getLastSeen();
+            }
+        }
+        OffsetDateTime effectiveStartDateTime;
+        OffsetDateTime effectiveEndDateTime;
+        boolean isRecalculating;
+        /*
+        We need to recalculate several things if we are re-tallying, namely monthly totals need to be
+        cleared and re-updated for each host record
+         */
+        if (newestInstanceTimestamp.isAfter(startDateTime)) {
+            effectiveStartDateTime = clock.startOfMonth(startDateTime);
+            effectiveEndDateTime = clock.now();
+            log.info("We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
+                startDateTime, endDateTime, effectiveStartDateTime, effectiveEndDateTime);
+            isRecalculating = true;
+        }
+        else {
+            effectiveStartDateTime = startDateTime;
+            effectiveEndDateTime = endDateTime;
+            isRecalculating = false;
+        }
+
+        if (isRecalculating) {
+            log.info("Clearing monthly totals for {} instances", existingInstances.size());
+            existingInstances.values().forEach(
+                instance -> instance.clearMonthlyTotals(effectiveStartDateTime, effectiveEndDateTime));
+        }
+
+        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
+        for (OffsetDateTime offset = startDateTime; offset.isBefore(endDateTime); offset =
+            offset.plusHours(1)) {
+            AccountUsageCalculation accountUsageCalculation = collectHour(account, offset);
+            if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
+                accountCalcs.put(offset, accountUsageCalculation);
+            }
+        }
+        accountRepository.save(account);
+        return accountCalcs;
+    }
+
+    @Transactional
+    public AccountUsageCalculation collectHour(Account account, OffsetDateTime startDateTime) {
+        OffsetDateTime endDateTime = startDateTime.plusHours(1);
+
+        Stream<Event> eventStream = eventController.fetchEventsInTimeRange(account.getAccountNumber(),
             startDateTime,
             endDateTime)
-            .filter(event -> event.getServiceType().equals(productConfig.getServiceType()));
+            .filter(event -> event.getServiceType().equals(productProfile.getServiceType()));
 
+        Map<String, Host> thisHoursInstances = new HashMap<>();
         eventStream.forEach(event -> {
             String instanceId = event.getInstanceId();
-            Host existing = existingInstances.remove(instanceId);
+            Host existing = account.getServiceInstances().get(instanceId);
             Host host = existing == null ? new Host() : existing;
             updateInstanceFromEvent(event, host);
+            thisHoursInstances.put(instanceId, host);
             account.getServiceInstances().put(instanceId, host);
         });
 
-        log.info("Removing {} stale {} records (metrics no longer present).",
-            existingInstances.size(), productConfig.getServiceType());
-        existingInstances.keySet().forEach(account.getServiceInstances()::remove);
-
-        accountRepository.save(account);
-        return tallyCurrentAccountState(account);
+        return tallyCurrentAccountState(account.getAccountNumber(), thisHoursInstances);
     }
 
-    private AccountUsageCalculation tallyCurrentAccountState(Account account) {
-        AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(
-            account.getAccountNumber());
-        account.getServiceInstances().values().forEach(instance -> instance.getBuckets().forEach(bucket -> {
+    private AccountUsageCalculation tallyCurrentAccountState(String accountNumber,
+        Map<String, Host> thisHoursInstances) {
+        if (thisHoursInstances.isEmpty()) {
+            return null;
+        }
+        AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(accountNumber);
+        thisHoursInstances.values().forEach(instance -> instance.getBuckets().forEach(bucket -> {
             UsageCalculation.Key usageKey = new UsageCalculation.Key(bucket.getKey().getProductId(),
                 bucket.getKey().getSla(), bucket.getKey().getUsage());
             instance.getMeasurements().forEach((uom, value) -> accountUsageCalculation
@@ -182,7 +196,11 @@ public class MetricUsageCollector {
             .ifPresent(instance::setSubscriptionManagerId);
         Optional.ofNullable(event.getMeasurements())
             .orElse(Collections.emptyList())
-            .forEach(measurement -> instance.setMeasurement(measurement.getUom(), measurement.getValue()));
+            .forEach(measurement -> {
+                instance.setMeasurement(measurement.getUom(), measurement.getValue());
+                instance.addToMonthlyTotal(event.getTimestamp(), measurement.getUom(),
+                    measurement.getValue());
+            });
         addBucketsFromEvent(instance, event);
     }
 
@@ -248,11 +266,11 @@ public class MetricUsageCollector {
         ServiceLevel effectiveSla = Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
-            .orElse(productConfig.getDefaultSla());
+            .orElse(productProfile.getDefaultSla());
         Usage effectiveUsage = Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
             .map(Usage::fromString)
-            .orElse(productConfig.getDefaultUsage());
+            .orElse(productProfile.getDefaultUsage());
         Set<String> productIds = getProductIds(event);
 
         for (String productId : productIds) {
@@ -268,15 +286,17 @@ public class MetricUsageCollector {
 
     private Set<String> getProductIds(Event event) {
         Set<String> productIds = new HashSet<>();
-        productIds.add(productConfig.getProductId()); // this product ID always applies
         Stream.of(event.getRole())
             .filter(Objects::nonNull)
-            .map(role -> productConfig.getRoleProductIdMapping().getOrDefault(role, Collections.emptyList()))
+            .map(role -> productProfile.getSwatchProductsByRoles().getOrDefault(role.value(),
+                Collections.emptySet()))
             .forEach(productIds::addAll);
+
         Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList()).stream()
-            .map(productConfig.getEngineeringProductIdToSwatchProductMapping()::get)
+            .map(productProfile.getSwatchProductsByEngProducts()::get)
             .filter(Objects::nonNull)
             .forEach(productIds::addAll);
+
         return productIds;
     }
 

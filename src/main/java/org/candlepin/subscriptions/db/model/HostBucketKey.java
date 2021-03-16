@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,6 +36,10 @@ import javax.persistence.Embeddable;
  * An embeddable composite key for a host bucket.
  */
 @Embeddable
+@ToString
+@NoArgsConstructor
+@Getter
+@Setter
 public class HostBucketKey implements Serializable {
     @Column(name = "host_id")
     private UUID hostId;
@@ -45,47 +54,12 @@ public class HostBucketKey implements Serializable {
     @Column(name = "as_hypervisor")
     private Boolean asHypervisor;
 
-    public HostBucketKey() {
-    }
-
     public HostBucketKey(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
         this.hostId = host == null ? null : host.getId();
         this.productId = productId;
         this.sla = sla;
         this.usage = usage;
         this.asHypervisor = asHypervisor;
-    }
-
-    public UUID getHostId() {
-        return hostId;
-    }
-
-    public void setHostId(UUID hostId) {
-        this.hostId = hostId;
-    }
-
-    public String getProductId() {
-        return productId;
-    }
-
-    public void setProductId(String productId) {
-        this.productId = productId;
-    }
-
-    public ServiceLevel getSla() {
-        return sla;
-    }
-
-    public void setSla(ServiceLevel sla) {
-        this.sla = sla;
-    }
-
-    public Usage getUsage() {
-        return usage;
-    }
-
-    public void setUsage(Usage usage) {
-        this.usage = usage;
     }
 
     public Boolean getAsHypervisor() {

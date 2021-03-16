@@ -79,4 +79,11 @@ public class WeeklySnapshotRollerTest {
             clock.startOfCurrentWeek(), clock.endOfCurrentWeek(), true);
     }
 
+    @Test
+    @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
+    void testHandlesDuplicates() {
+        tester.performRemovesDuplicates(Granularity.WEEKLY, clock.startOfCurrentWeek(),
+            clock.endOfCurrentWeek());
+    }
+
 }

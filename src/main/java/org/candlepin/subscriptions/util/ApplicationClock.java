@@ -20,10 +20,12 @@
  */
 package org.candlepin.subscriptions.util;
 
+import org.candlepin.subscriptions.db.model.Granularity;
+
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.DayOfWeek;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -41,6 +43,7 @@ import java.time.temporal.WeekFields;
  * All end* methods return the max time of the day - 2019-04-19 23:59:59.999999999Z
  */
 public class ApplicationClock {
+    private static final String BAD_GRANULARITY_MESSAGE = "Unsupported granularity: %s";
 
     private Clock clock;
 
@@ -175,10 +178,50 @@ public class ApplicationClock {
     }
 
     public OffsetDateTime dateFromUnix(BigDecimal time) {
+        return dateFromUnix(time.longValue());
+    }
+
+    public OffsetDateTime dateFromUnix(Long time) {
         ZoneId zone = this.clock.getZone();
-        ZonedDateTime zonedDateTime = LocalDateTime.ofEpochSecond(time.longValue(), 0,
-            OffsetDateTime.now(zone).getOffset()).atZone(zone);
+        ZonedDateTime zonedDateTime = Instant.ofEpochSecond(time).atZone(zone);
         return zonedDateTime.toOffsetDateTime();
     }
 
+    public OffsetDateTime calculateStartOfRange(OffsetDateTime toAdjust, Granularity granularity) {
+        switch (granularity) {
+            case HOURLY:
+                return startOfHour(toAdjust);
+            case DAILY:
+                return startOfDay(toAdjust);
+            case WEEKLY:
+                return startOfWeek(toAdjust);
+            case MONTHLY:
+                return startOfMonth(toAdjust);
+            case QUARTERLY:
+                return startOfQuarter(toAdjust);
+            case YEARLY:
+                return startOfYear(toAdjust);
+            default:
+                throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
+        }
+    }
+
+    public OffsetDateTime calculateEndOfRange(OffsetDateTime toAdjust, Granularity granularity) {
+        switch (granularity) {
+            case HOURLY:
+                return endOfHour(toAdjust);
+            case DAILY:
+                return endOfDay(toAdjust);
+            case WEEKLY:
+                return endOfWeek(toAdjust);
+            case MONTHLY:
+                return endOfMonth(toAdjust);
+            case QUARTERLY:
+                return endOfQuarter(toAdjust);
+            case YEARLY:
+                return endOfYear(toAdjust);
+            default:
+                throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
+        }
+    }
 }

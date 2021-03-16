@@ -24,9 +24,14 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -56,7 +61,10 @@ import javax.validation.constraints.NotNull;
  * Represents a reported Host from inventory. This entity stores normalized facts for a
  * Host returned from HBI.
  */
+@Setter
+@Getter
 @Entity
+@ToString
 @Table(name = "hosts")
 public class Host implements Serializable {
 
@@ -64,6 +72,9 @@ public class Host implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    /**
+     * The canonical natural identifier for this instance.
+     */
     @Column(name = "instance_id")
     private String instanceId;
 
@@ -108,6 +119,14 @@ public class Host implements Serializable {
     @MapKeyColumn(name = "uom")
     @Column(name = "value")
     private Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "instance_monthly_totals",
+        joinColumns = @JoinColumn(name = "instance_id")
+    )
+    @Column(name = "value")
+    private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
 
     @Column(name = "is_guest")
     private boolean guest;
@@ -155,6 +174,7 @@ public class Host implements Serializable {
     public Host(String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
         this.instanceType = "HBI_HOST";
         this.inventoryId = inventoryId;
+        this.instanceId = inventoryId;
         this.insightsId = insightsId;
         this.accountNumber = accountNumber;
         this.orgId = orgId;
@@ -171,6 +191,9 @@ public class Host implements Serializable {
 
         if (inventoryHostFacts.getInventoryId() != null) {
             this.inventoryId = inventoryHostFacts.getInventoryId().toString();
+            // We assume that the instance ID for any given HBI host record is the inventory ID; compare to
+            // an OpenShift Cluster from Prometheus data, where we use the cluster ID.
+            this.instanceId = inventoryHostFacts.getInventoryId().toString();
         }
 
         this.insightsId = inventoryHostFacts.getInsightsId();
@@ -196,62 +219,6 @@ public class Host implements Serializable {
 
         this.lastSeen = inventoryHostFacts.getModifiedOn();
         this.hardwareType = normalizedFacts.getHardwareType();
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getInventoryId() {
-        return inventoryId;
-    }
-
-    public void setInventoryId(String inventoryId) {
-        this.inventoryId = inventoryId;
-    }
-
-    public String getInsightsId() {
-        return insightsId;
-    }
-
-    public void setInsightsId(String insightsId) {
-        this.insightsId = insightsId;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public String getOrgId() {
-        return orgId;
-    }
-
-    public void setOrgId(String orgId) {
-        this.orgId = orgId;
-    }
-
-    public String getSubscriptionManagerId() {
-        return subscriptionManagerId;
-    }
-
-    public void setSubscriptionManagerId(String subscriptionManagerId) {
-        this.subscriptionManagerId = subscriptionManagerId;
     }
 
     /**
@@ -292,68 +259,12 @@ public class Host implements Serializable {
         this.sockets = sockets;
     }
 
-    public Map<Measurement.Uom, Double> getMeasurements() {
-        return measurements;
-    }
-
-    public void setMeasurements(Map<Measurement.Uom, Double> measurements) {
-        this.measurements = measurements;
-    }
-
     public Double getMeasurement(Measurement.Uom uom) {
         return measurements.get(uom);
     }
 
     public void setMeasurement(Measurement.Uom uom, Double value) {
         measurements.put(uom, value);
-    }
-
-    public Boolean getGuest() {
-        return guest;
-    }
-
-    public void setGuest(Boolean guest) {
-        this.guest = guest;
-    }
-
-    public String getHypervisorUuid() {
-        return hypervisorUuid;
-    }
-
-    public void setHypervisorUuid(String hypervisorUuid) {
-        this.hypervisorUuid = hypervisorUuid;
-    }
-
-    public HostHardwareType getHardwareType() {
-        return hardwareType;
-    }
-
-    public void setHardwareType(HostHardwareType hardwareType) {
-        this.hardwareType = hardwareType;
-    }
-
-    public Integer getNumOfGuests() {
-        return numOfGuests;
-    }
-
-    public void setNumOfGuests(Integer numOfGuests) {
-        this.numOfGuests = numOfGuests;
-    }
-
-    public OffsetDateTime getLastSeen() {
-        return lastSeen;
-    }
-
-    public void setLastSeen(OffsetDateTime lastSeen) {
-        this.lastSeen = lastSeen;
-    }
-
-    public Set<HostTallyBucket> getBuckets() {
-        return buckets;
-    }
-
-    public void setBuckets(Set<HostTallyBucket> buckets) {
-        this.buckets = buckets;
     }
 
     public HostTallyBucket addBucket(String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor,
@@ -374,44 +285,39 @@ public class Host implements Serializable {
         getBuckets().remove(bucket);
     }
 
-    public boolean isUnmappedGuest() {
-        return isUnmappedGuest;
+    public Double getMonthlyTotal(String monthId, Measurement.Uom uom) {
+        var key = new InstanceMonthlyTotalKey(monthId, uom);
+        return monthlyTotals.get(key);
     }
 
-    public void setUnmappedGuest(boolean unmappedGuest) {
-        isUnmappedGuest = unmappedGuest;
+    public Double getMonthlyTotal(OffsetDateTime reference, Measurement.Uom uom) {
+        var key = new InstanceMonthlyTotalKey(reference, uom);
+        return monthlyTotals.get(key);
     }
 
-    public boolean isHypervisor() {
-        return isHypervisor;
+    public void addToMonthlyTotal(String monthId, Measurement.Uom uom, Double value) {
+        var key = new InstanceMonthlyTotalKey(monthId, uom);
+        Double currentValue = monthlyTotals.getOrDefault(key, 0.0);
+        monthlyTotals.put(key, currentValue + value);
     }
 
-    public void setHypervisor(boolean hypervisor) {
-        isHypervisor = hypervisor;
+    public void addToMonthlyTotal(OffsetDateTime timestamp, Measurement.Uom uom, Double value) {
+        var key = new InstanceMonthlyTotalKey(timestamp, uom);
+        Double currentValue = monthlyTotals.getOrDefault(key, 0.0);
+        monthlyTotals.put(key, currentValue + value);
     }
 
-    public String getCloudProvider() {
-        return cloudProvider;
+    public void clearMonthlyTotals(OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
+        for (OffsetDateTime offset = startDateTime; !offset.isAfter(endDateTime); offset =
+            offset.plusMonths(1)) {
+            clearMonthlyTotal(offset);
+        }
     }
 
-    public void setCloudProvider(String cloudProvider) {
-        this.cloudProvider = cloudProvider;
-    }
-
-    public String getInstanceType() {
-        return instanceType;
-    }
-
-    public void setInstanceType(String type) {
-        this.instanceType = type;
-    }
-
-    public String getInstanceId() {
-        return instanceId;
-    }
-
-    public void setInstanceId(String instanceId) {
-        this.instanceId = instanceId;
+    public void clearMonthlyTotal(OffsetDateTime timestamp) {
+        String monthIdentifier = InstanceMonthlyTotalKey.formatMonthId(timestamp);
+        Set<InstanceMonthlyTotalKey> keys = monthlyTotals.keySet();
+        keys.removeIf(key -> Objects.equals(key.getMonth(), monthIdentifier));
     }
 
     public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
@@ -459,4 +365,46 @@ public class Host implements Serializable {
                 cores, sockets, guest, hypervisorUuid, hardwareType, numOfGuests, lastSeen, buckets,
                 isUnmappedGuest, isHypervisor, cloudProvider, instanceId, instanceType);
     }
+
+    public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost() {
+        var host = new org.candlepin.subscriptions.utilization.api.model.Host();
+
+        host.inventoryId(getInventoryId());
+        host.insightsId(getInsightsId());
+
+        host.hardwareType(
+            Objects.requireNonNullElse(getHardwareType(), HostHardwareType.PHYSICAL).toString());
+        host.cores(Objects.requireNonNullElse(getMeasurement(Measurement.Uom.CORES), 0.0).intValue());
+        host.sockets(Objects.requireNonNullElse(getMeasurement(Measurement.Uom.SOCKETS), 0.0).intValue());
+
+        host.displayName(getDisplayName());
+        host.subscriptionManagerId(getSubscriptionManagerId());
+        host.numberOfGuests(getNumOfGuests());
+        host.lastSeen(getLastSeen());
+        host.isUnmappedGuest(isUnmappedGuest());
+        host.cloudProvider(getCloudProvider());
+
+        //These generally come off of the TallyHostBuckets, but it's different for the OpenShift-metrics
+        // and OpenShift-dedicated-metrics products, since they're not using the deprecated unit of measure
+        // model.  Note there's no asHypervisor here either.
+
+        host.isHypervisor(isHypervisor());
+
+        HardwareMeasurementType measurementType = buckets.stream().findFirst().orElseThrow()
+            .getMeasurementType();
+
+        host.measurementType(
+            Objects.requireNonNullElse(measurementType, HardwareMeasurementType.PHYSICAL).toString());
+
+
+        // Core Hours is currently only applicable to the OpenShift-metrics OpenShift-dedicated-metrics
+        // ProductIDs, and the UI is only query the host api in one month timeframes.  If the
+        // granularity of that API changes in the future, other work will have to be done first to
+        // capture relationships between hosts & snapshots to derive coreHours within dynamic timeframes
+
+        host.coreHours(getMonthlyTotals().values().stream().findFirst().orElse(null));
+
+        return host;
+    }
+
 }

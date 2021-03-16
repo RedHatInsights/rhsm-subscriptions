@@ -32,12 +32,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 
 @SpringBootTest
@@ -53,6 +53,7 @@ class TallySnapshotControllerTest {
     CloudigradeAccountUsageCollector cloudigradeCollector;
 
     @MockBean
+    @Qualifier("OpenShiftMetricsUsageCollector")
     MetricUsageCollector metricUsageCollector;
 
     @MockBean
@@ -105,13 +106,4 @@ class TallySnapshotControllerTest {
         verifyZeroInteractions(inventoryCollector);
     }
 
-    @Test
-    void testUsageMetricControllerDoes24Hours() {
-        OffsetDateTime begin = OffsetDateTime.parse("2007-12-03T00:00:00Z");
-        OffsetDateTime end = OffsetDateTime.parse("2007-12-03T23:59:59.999Z");
-        when(metricUsageCollector.collect(eq("foo"), any(), any()))
-            .thenReturn(new AccountUsageCalculation("foo"));
-        controller.produceHourlySnapshotsForAccount("foo", begin, end);
-        verify(metricUsageCollector, times(24)).collect(eq("foo"), any(), any());
-    }
 }

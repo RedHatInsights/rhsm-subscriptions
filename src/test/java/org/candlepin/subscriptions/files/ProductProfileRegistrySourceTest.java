@@ -43,7 +43,8 @@ class ProductProfileRegistrySourceTest {
             "RHELProducts",
             "SatelliteProducts",
             "OpenShiftHourlyProducts",
-            "OtherProducts"
+            "OtherProducts",
+            "OpenShiftMetrics"
         ));
         assertEquals(expected, registry.listProfiles());
     }

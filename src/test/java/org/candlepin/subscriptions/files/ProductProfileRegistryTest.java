@@ -30,9 +30,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class ProductProfileRegistryTest {
 
@@ -61,9 +64,15 @@ class ProductProfileRegistryTest {
         );
         ProductProfile p3 = new ProductProfile("p3", ids3, DAILY);
 
+        ProductProfile p4 = new ProductProfile("p4", Collections.emptySet(), DAILY);
+        p4.setSyspurposeRoles(Set.of(
+            makeRole("os-metrics", Set.of(OPENSHIFT_METRICS)),
+            makeRole("ocp", Set.of(OPENSHIFT_DEDICATED_METRICS))
+        ));
         registry.addProductProfile(p1);
         registry.addProductProfile(p2);
         registry.addProductProfile(p3);
+        registry.addProductProfile(p4);
     }
 
     SubscriptionWatchProduct makeId(String engineeringProductId, Set<ProductId> productIds) {
@@ -73,6 +82,28 @@ class ProductProfileRegistryTest {
             .map(ProductId::toString)
             .collect(Collectors.toSet()));
         return productId;
+    }
+
+    SyspurposeRole makeRole(String name, Set<ProductId> swatchProdIds) {
+        SyspurposeRole role = new SyspurposeRole();
+        role.setName(name);
+        role.setSwatchProductIds(swatchProdIds.stream().map(ProductId::toString).collect(Collectors.toSet()));
+        return role;
+    }
+    @Test
+    void testValidateProductGranularityTooFine() {
+        assertThrows(IllegalStateException.class, () -> registry.validateGranularityCompatibility(RHEL,
+            HOURLY));
+    }
+
+    @Test
+    void testValidateProductGranularityEqual() {
+        assertDoesNotThrow(() -> registry.validateGranularityCompatibility(RHEL, DAILY));
+    }
+
+    @Test
+    void testValidateProductGranularityCoarser() {
+        assertDoesNotThrow(() -> registry.validateGranularityCompatibility(RHEL, YEARLY));
     }
 
     @Test
@@ -87,7 +118,7 @@ class ProductProfileRegistryTest {
 
     @Test
     void testListProfiles() {
-        Set<String> expected = Set.of("p1", "p2", "p3");
+        Set<String> expected = Set.of("p1", "p2", "p3", "p4");
         Set<String> actual = registry.listProfiles();
         assertEquals(expected, actual);
     }
@@ -95,7 +126,7 @@ class ProductProfileRegistryTest {
     @Test
     void testGetAllProductProfiles() {
         Set<ProductProfile> profiles = registry.getAllProductProfiles();
-        assertEquals(3, profiles.size());
+        assertEquals(4, profiles.size());
         assertEquals(Set.of(HOURLY, DAILY),
             profiles.stream().map(ProductProfile::getFinestGranularity).collect(Collectors.toSet()));
     }
@@ -141,7 +172,28 @@ class ProductProfileRegistryTest {
         ));
         ProductProfile p2 = new ProductProfile("p2", ids2, DAILY);
 
+        ProductProfile p3 = new ProductProfile("p3", Collections.emptySet(), DAILY);
+        p3.setSyspurposeRoles(Set.of(
+            makeRole("test_role", sameProductId)
+        ));
+
         r.addProductProfile(p1);
         assertThrows(IllegalStateException.class, () -> r.addProductProfile(p2));
+        assertThrows(IllegalStateException.class, () -> r.addProductProfile(p3));
+    }
+
+    @Test
+    void mapsSwatchProductIdToProfileByRole() {
+        ProductProfile actual = registry.findProfileForSwatchProductId(OPENSHIFT_METRICS);
+        assertEquals("p4", actual.getName());
+    }
+
+    @Test
+    void mapsProfileByName() {
+        Stream.of("p1", "p2", "p3", "p4").forEach(n -> {
+            Optional<ProductProfile> profile = registry.getProfileByName(n);
+            assertTrue(profile.isPresent(), "Profile not found with name: " + n);
+            assertEquals(n, profile.get().getName());
+        });
     }
 }

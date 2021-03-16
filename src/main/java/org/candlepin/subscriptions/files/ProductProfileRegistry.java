@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.files;
 
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
@@ -28,8 +29,11 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Registry of product profiles.  Essentially a map of profile names to profile objects */
 public class ProductProfileRegistry {
@@ -38,6 +42,7 @@ public class ProductProfileRegistry {
     private final Map<Integer, ProductProfile> engProductIdToProfileMap;
     // NB: We should use ProductId as the key for type safety but that requires test updates
     private final Map<String, ProductProfile> swatchProductIdToProfileMap;
+    private final Map<String, ProductProfile> productProfilesByName;
     private static final ProductProfileRegistry DEFAULT_REGISTRY = new ProductProfileRegistry();
 
     public static ProductProfileRegistry getDefaultRegistry() {
@@ -45,12 +50,19 @@ public class ProductProfileRegistry {
     }
 
     public ProductProfileRegistry() {
+        productProfilesByName = new HashMap<>();
         engProductIdToProfileMap = new HashMap<>();
         swatchProductIdToProfileMap = new HashMap<>();
     }
 
     // Only classes in this package should have any need to add product profiles
     void addProductProfile(ProductProfile profile) {
+        if (this.productProfilesByName.containsKey(profile.getName())) {
+            throw new IllegalStateException(String.format("A profile is already registered with name: %s",
+                profile.getName()));
+        }
+        this.productProfilesByName.put(profile.getName(), profile);
+
         Set<SubscriptionWatchProduct> profileProducts = profile.getProducts();
         if (profileProducts.isEmpty()) {
             log.warn("No products are set in product profile {}. This is probably a mistake.",
@@ -76,8 +88,15 @@ public class ProductProfileRegistry {
         profileProducts.forEach(x -> engProductIdToProfileMap
             .put(Integer.parseInt(x.getEngProductId()), profile));
 
-        Set<String> duplicateIds = profileProducts.stream()
-            .flatMap(x -> x.getSwatchProductIds().stream())
+        Stream<String> fromProducts = profileProducts.stream()
+            .flatMap(x -> x.getSwatchProductIds().stream());
+        Stream<String> fromRoles = profile.getSyspurposeRoles().stream()
+            .flatMap(r -> r.getSwatchProductIds().stream());
+        Set<String> swatchProdIds = Stream.of(fromProducts, fromRoles)
+            .flatMap(Function.identity())
+            .collect(Collectors.toSet());
+
+        Set<String> duplicateIds = swatchProdIds.stream()
             .filter(swatchProductIdToProfileMap::containsKey)
             .collect(Collectors.toSet());
 
@@ -86,9 +105,7 @@ public class ProductProfileRegistry {
                 ". The following Subscription Watch product IDs are already defined: " + duplicateIds);
         }
 
-        profileProducts.stream()
-            .flatMap(x -> x.getSwatchProductIds().stream())
-            .forEach(x -> swatchProductIdToProfileMap.put(x, profile));
+        swatchProdIds.forEach(x -> swatchProductIdToProfileMap.put(x, profile));
     }
 
     public ProductProfile findProfileForSwatchProductId(String productId) {
@@ -115,14 +132,16 @@ public class ProductProfileRegistry {
         return ProductProfile.getDefault();
     }
 
+    public Optional<ProductProfile> getProfileByName(String name) {
+        return Optional.ofNullable(productProfilesByName.get(name));
+    }
+
     public Set<String> listProfiles() {
-        return engProductIdToProfileMap.values().stream()
-            .map(ProductProfile::getName)
-            .collect(Collectors.toSet());
+        return productProfilesByName.keySet();
     }
 
     public Set<ProductProfile> getAllProductProfiles() {
-        return new HashSet<>(engProductIdToProfileMap.values());
+        return new HashSet<>(productProfilesByName.values());
     }
 
     public Map<Integer, Set<String>> getEngProductIdToSwatchProductIdsMap() {
@@ -142,7 +161,7 @@ public class ProductProfileRegistry {
 
     public Map<String, Set<String>> getRoleToSwatchProductIdsMap() {
         Map<String, Set<String>> roleToProductsMap = new HashMap<>();
-        engProductIdToProfileMap.values().stream()
+        productProfilesByName.values().stream()
             .distinct()
             .flatMap(x -> x.getSyspurposeRoles().stream())
             .forEach(x -> {
@@ -157,10 +176,25 @@ public class ProductProfileRegistry {
 
     public Map<String, String> getArchToSwatchProductIdsMap() {
         Map<String, String> archToProductMap = new HashMap<>();
-        engProductIdToProfileMap.values().stream()
+        productProfilesByName.values().stream()
             .distinct()
             .map(ProductProfile::getArchitectureSwatchProductIdMap)
             .forEach(archToProductMap::putAll);
         return archToProductMap;
+    }
+
+    /** Verify that the granularity requested is compatible with the finest granularity supported by the
+     *  product.  For example, if the requester asks for HOURLY granularity but the product only supports
+     *  DAILY granularity, we can't meaningfully fulfill that request.
+     *
+     * @throws IllegalStateException if the granularities are not compatible
+     */
+    public void validateGranularityCompatibility(ProductId productId, Granularity requestedGranularity) {
+        ProductProfile productProfile = findProfileForSwatchProductId(productId);
+        if (!productProfile.supportsGranularity(requestedGranularity)) {
+            String msg = String.format("%s does not support any granularity finer than %s",
+                productId.toString(), productProfile.getFinestGranularity());
+            throw new IllegalStateException(msg);
+        }
     }
 }

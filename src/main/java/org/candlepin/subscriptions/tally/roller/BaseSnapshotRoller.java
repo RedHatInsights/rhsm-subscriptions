@@ -147,24 +147,37 @@ public abstract class BaseSnapshotRoller {
                 accountSnapsByUsageKey = existingSnaps.get(account)
                     .stream()
                     .collect(Collectors.toMap(UsageCalculation.Key::fromTallySnapshot,
-                        Function.identity()));
+                        Function.identity(), this::handleDuplicateSnapshot));
             }
 
             for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
-                TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
-                UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
-                if (snap == null && productCalc.hasMeasurements()) {
-                    snap = createSnapshotFromProductUsageCalculation(accountCalc.getAccount(),
-                        accountCalc.getOwner(), productCalc, targetGranularity);
-                    snaps.add(snap);
-                }
-                else if (snap != null && updateMaxValues(snap, productCalc)) {
-                    snaps.add(snap);
+                boolean isGranularitySupported = productProfileRegistry
+                    .findProfileForSwatchProductId(usageKey.getProductId())
+                    .supportsGranularity(targetGranularity);
+
+                if (isGranularitySupported) {
+                    TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
+                    UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+                    if (snap == null && productCalc.hasMeasurements()) {
+                        snap = createSnapshotFromProductUsageCalculation(accountCalc.getAccount(),
+                            accountCalc.getOwner(), productCalc, targetGranularity);
+                        snaps.add(snap);
+                    }
+                    else if (snap != null && updateMaxValues(snap, productCalc)) {
+                        snaps.add(snap);
+                    }
                 }
             }
         }
         log.debug("Persisting {} {} snapshots.", snaps.size(), targetGranularity);
         return tallyRepo.saveAll(snaps);
+    }
+
+    private TallySnapshot handleDuplicateSnapshot(TallySnapshot snap1, TallySnapshot snap2) {
+        log.warn("Removing duplicate TallySnapshot granularity: {}, key: {}",
+            snap2.getGranularity(), UsageCalculation.Key.fromTallySnapshot(snap2));
+        tallyRepo.delete(snap2);
+        return snap1;
     }
 
     protected Set<String> getApplicableProducts(Collection<AccountUsageCalculation> accountCalcs,

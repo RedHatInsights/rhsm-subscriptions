@@ -20,8 +20,12 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 
 /**
  * Configuration for the Marketplace integration worker.
@@ -29,5 +33,14 @@ import org.springframework.context.annotation.Profile;
 @Profile("marketplace")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.marketplace")
 public class MarketplaceWorkerConfiguration {
-    /* intentionally empty */
+    @Bean
+    @Qualifier("marketplaceRetryTemplate")
+    public RetryTemplate marketplaceRetryTemplate(MarketplaceProperties properties) {
+        return new RetryTemplateBuilder()
+            .maxAttempts(properties.getMaxAttempts())
+            .exponentialBackoff(properties.getBackOffInitialInterval().toMillis(),
+                properties.getBackOffMultiplier(),
+                properties.getBackOffMaxInterval().toMillis())
+            .build();
+    }
 }
