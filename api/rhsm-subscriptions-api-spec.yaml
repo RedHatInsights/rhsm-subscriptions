@@ -1121,7 +1121,6 @@ components:
             - count
     Host:
       required:
-        - inventory_id
         - display_name
         - hardware_type
         - last_seen
