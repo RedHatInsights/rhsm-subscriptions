@@ -59,7 +59,8 @@ parameters:
     value: 1s
   - name: MARKETPLACE_BACK_OFF_MULTIPLIER
     value: '2'
-
+  - name: MARKETPLACE_DUMMY_ID
+    value: DUMMY
 
 objects:
   - apiVersion: apps.openshift.io/v1
@@ -198,6 +199,8 @@ objects:
                   value: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
                 - name: MARKETPLACE_BACK_OFF_MULTIPLIER
                   value: ${MARKETPLACE_BACK_OFF_MULTIPLIER}
+                - name: MARKETPLACE_DUMMY_ID
+                  value: ${MARKETPLACE_DUMMY_ID}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
