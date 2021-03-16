@@ -99,7 +99,6 @@ components:
       required:
         - start
         - end
-        - resourceType
         - subscriptionId
         - eventId
         - additionalAttributes
@@ -113,8 +112,6 @@ components:
           description: End time of the usage in millseconds since Unix epoch.
           type: integer
           format: int64
-        resourceType:
-          type: string
         subscriptionId:
           type: string
         eventId:
@@ -128,10 +125,10 @@ components:
             $ref: "#/components/schemas/UsageMeasurement"
     UsageMeasurement:
       required:
-        - chargeId
+        - metricId
         - value
       properties:
-        chargeId:
+        metricId:
           type: string
         value:
           type: number

@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.conduit.jmx.RhsmJmxException;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -40,18 +41,22 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ManagedResource
+// must log, then throw because the exception is passed to client and not logged.
+@SuppressWarnings("java:S2139")
 public class MarketplaceJmxBean {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
 
     private final ApplicationProperties properties;
     private final MarketplaceService marketplaceService;
+    private final MarketplaceProducer marketplaceProducer;
     private final ObjectMapper mapper;
 
     MarketplaceJmxBean(ApplicationProperties properties, MarketplaceService marketplaceService,
-        ObjectMapper mapper) {
+        MarketplaceProducer marketplaceProducer, ObjectMapper mapper) {
 
         this.properties = properties;
         this.marketplaceService = marketplaceService;
+        this.marketplaceProducer = marketplaceProducer;
         this.mapper = mapper;
     }
 
@@ -63,13 +68,19 @@ public class MarketplaceJmxBean {
     }
 
     @ManagedOperation(description = "Submit usage event JSON (dev-mode only)")
-    public String submitUsageEvent(String payloadJson) throws JsonProcessingException, ApiException {
+    public String submitUsageEvent(String payloadJson) throws JsonProcessingException, RhsmJmxException {
         if (!properties.isDevMode()) {
             throw new JmxException("Unsupported outside dev-mode");
         }
         UsageEvent usageEvent = mapper.readValue(payloadJson, UsageEvent.class);
         UsageRequest usageRequest = new UsageRequest().addDataItem(usageEvent);
-        return marketplaceService.submitUsageEvents(usageRequest).toString();
+        try {
+            return marketplaceProducer.submitUsageRequest(usageRequest).toString();
+        }
+        catch (Exception e) {
+            log.error("Error submitting usage info via JMX", e);
+            throw new RhsmJmxException(e);
+        }
     }
 
     @ManagedOperation(description = "Fetch a usage event status")

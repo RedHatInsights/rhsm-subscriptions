@@ -25,11 +25,16 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Duration;
 
 /**
  * Properties for the Marketplace integration.
  */
+@Getter
+@Setter
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.marketplace")
 public class MarketplaceProperties extends HttpClientProperties {
@@ -44,19 +49,23 @@ public class MarketplaceProperties extends HttpClientProperties {
      */
     private Duration tokenRefreshPeriod = Duration.ofMinutes(1);
 
-    public String getApiKey() {
-        return apiKey;
-    }
+    /**
+     * How many attempts before giving up.
+     */
+    private Integer maxAttempts;
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+    /**
+     * Retry backoff interval.
+     */
+    private Duration backOffInitialInterval;
 
-    public Duration getTokenRefreshPeriod() {
-        return tokenRefreshPeriod;
-    }
+    /**
+     * Retry backoff interval.
+     */
+    private Duration backOffMaxInterval;
 
-    public void setTokenRefreshPeriod(Duration tokenRefreshPeriod) {
-        this.tokenRefreshPeriod = tokenRefreshPeriod;
-    }
+    /**
+     * Retry exponential backoff multiplier.
+     */
+    private Double backOffMultiplier;
 }

@@ -30,6 +30,8 @@ import org.candlepin.subscriptions.marketplace.auth.HttpBearerAuth;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.annotation.Timed;
+
 import java.time.OffsetDateTime;
 
 /**
@@ -70,6 +72,7 @@ public class MarketplaceService {
         }
     }
 
+    @Timed("rhsm-subscriptions.marketplace.usage.request")
     public StatusResponse submitUsageEvents(UsageRequest usageRequest) throws ApiException {
         ensureAccessToken();
         return api.submitUsageEvents(usageRequest);
