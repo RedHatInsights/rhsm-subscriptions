@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.tally.job;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -31,6 +33,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,13 +42,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
 @SpringBootTest
+@ContextConfiguration(classes = FixedClockConfiguration.class)
 @ActiveProfiles({"worker", "test"})
 class CaptureSnapshotsTaskManagerTest {
 
@@ -63,6 +70,12 @@ class CaptureSnapshotsTaskManagerTest {
 
     @Autowired
     private TaskQueueProperties taskQueueProperties;
+
+    @Autowired
+    private ApplicationProperties appProperties;
+
+    @Autowired
+    ApplicationClock applicationClock;
 
     @Test
     void testUpdateForSingleAccount() {
@@ -135,6 +148,39 @@ class CaptureSnapshotsTaskManagerTest {
         verify(queue, never()).enqueue(any());
     }
 
+    /**
+     * Test hourly snapshots using the minutes offset.  The offset is designed to ensure the snapshot
+     * includes as many finished tallies as possible, and allows an additional hour for them to finish.
+     *
+     * @throws Exception
+     */
+    @Test
+    void testHourlySnapshotTallyOffset() throws Exception {
+        List<String> expectedAccounts = Arrays.asList("a1", "a2");
+        when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+
+        Duration metricRange = appProperties.getMetricLookupRangeDuration();
+        Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
+        Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
+
+        OffsetDateTime endDateTime = adjustTimeForLatency(applicationClock.now()
+            .minus(hourlyTallyOffsetMinutes).truncatedTo(ChronoUnit.HOURS), prometheusLatencyDuration);
+        OffsetDateTime startDateTime = endDateTime.minus(metricRange);
+
+        manager.updateHourlySnapshotsForAllAccounts();
+
+        expectedAccounts.forEach(accountNumber -> {
+            verify(queue, times(1)).enqueue(
+                TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+                .setSingleValuedArg("accountNumber", accountNumber)
+                // 2019-05-24T12:35Z truncated to top of the hour - 4 hours prometheus latency - 1 hour
+                // tally latency - 24 hour metric range
+                .setSingleValuedArg("startDateTime", "2019-05-23T07:00Z")
+                .setSingleValuedArg("endDateTime", "2019-05-24T07:00Z")
+                .build());
+        });
+    }
+
     private TaskDescriptor createDescriptor(String account) {
         return createDescriptor(Arrays.asList(account));
     }
@@ -143,6 +189,10 @@ class CaptureSnapshotsTaskManagerTest {
         return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
             .setArg("accounts", accounts)
             .build();
+    }
+
+    protected OffsetDateTime adjustTimeForLatency(OffsetDateTime dateTime, Duration adjustmentAmount) {
+        return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
     }
 
     @ParameterizedTest(name = "testAdjustTimeForLatency[{index}] {arguments}")

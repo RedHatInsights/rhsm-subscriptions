@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,15 +63,18 @@ public class CaptureSnapshotsTaskManager {
     private final TaskQueueProperties taskQueueProperties;
     private final TaskQueue queue;
     private final AccountListSource accountListSource;
+    private final ApplicationClock applicationClock;
 
     @Autowired
     public CaptureSnapshotsTaskManager(ApplicationProperties appProperties,
         @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties, TaskQueue queue,
-        AccountListSource accountListSource) {
+        AccountListSource accountListSource, ApplicationClock applicationClock) {
+
         this.appProperties = appProperties;
         this.taskQueueProperties = tallyTaskQueueProperties;
         this.queue = queue;
         this.accountListSource = accountListSource;
+        this.applicationClock = applicationClock;
     }
 
     /**
@@ -127,7 +131,8 @@ public class CaptureSnapshotsTaskManager {
         queue.enqueue(TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
             .setSingleValuedArg("accountNumber", accountNumber)
             .setSingleValuedArg("startDateTime", startDateTime)
-            .setSingleValuedArg("endDateTime", endDateTime).build());
+            .setSingleValuedArg("endDateTime", endDateTime)
+            .build());
     }
 
     @Transactional
@@ -137,13 +142,14 @@ public class CaptureSnapshotsTaskManager {
 
             Duration metricRange = appProperties.getMetricLookupRangeDuration();
             Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
+            Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
 
-            OffsetDateTime endTime = adjustTimeForLatency(OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS),
-                prometheusLatencyDuration);
-            OffsetDateTime startTime = endTime.minus(metricRange);
+            OffsetDateTime endDateTime = adjustTimeForLatency(applicationClock.now()
+                .minus(hourlyTallyOffsetMinutes).truncatedTo(ChronoUnit.HOURS), prometheusLatencyDuration);
+            OffsetDateTime startDateTime = endDateTime.minus(metricRange);
 
             accountStream.forEach(accountNumber -> {
-                tallyAccountByHourly(accountNumber, startTime.toString(), endTime.toString());
+                tallyAccountByHourly(accountNumber, startDateTime.toString(), endDateTime.toString());
 
                 count.addAndGet(1);
             });
@@ -158,9 +164,7 @@ public class CaptureSnapshotsTaskManager {
 
 
     protected OffsetDateTime adjustTimeForLatency(OffsetDateTime dateTime, Duration adjustmentAmount) {
-
         return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
-
     }
 
     /**
