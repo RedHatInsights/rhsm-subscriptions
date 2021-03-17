@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +36,7 @@ import io.micrometer.core.annotation.Timed;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,23 +49,26 @@ public class MarketplaceWorker {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceWorker.class);
 
     /**
-     * placeholder class, to be removed w/ https://issues.redhat.com/browse/ENT-3265
-     */
-    @Service
-    static class MarketplaceProducer {
-        void submitUsageRequest(UsageRequest request) {
-            log.info("submitUsageRequest called w/ request: {}", request);
-        }
-    }
-
-    /**
      * placeholder class, to be removed w/ https://issues.redhat.com/browse/ENT-3264
      */
     @Service
     static class MarketplacePayloadMapper {
+        private final MarketplaceProperties properties;
+
+        @Autowired
+        MarketplacePayloadMapper(MarketplaceProperties properties) {
+            this.properties = properties;
+        }
+
         UsageRequest mapTallySummary(TallySummary summary) {
             log.info("mapTallySummary called w/ summary: {}", summary);
-            return new UsageRequest().data(List.of(new UsageEvent()));
+            if (properties.isMapperStubEmpty()) {
+                return new UsageRequest().data(Collections.emptyList());
+            }
+            else {
+                // NOTE: this payload will fail marketplace validation
+                return new UsageRequest().data(List.of(new UsageEvent()));
+            }
         }
     }
 

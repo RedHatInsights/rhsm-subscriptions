@@ -25,7 +25,6 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.MarketplaceWorker.MarketplacePayloadMapper;
-import org.candlepin.subscriptions.marketplace.MarketplaceWorker.MarketplaceProducer;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 
