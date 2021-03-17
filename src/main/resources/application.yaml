@@ -83,10 +83,10 @@ rhsm-subscriptions:
     driver-class-name: org.postgresql.Driver
     platform: postgresql
   jobs:
-    capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
-    purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
+    capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
+    purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     metering:
-      openshift-metering-schedule: ${METERING_SCHEDULE:0 0 * ? * *}
+      openshift-metering-schedule: ${METERING_SCHEDULE:0 0 1 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   tasks:
     topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}
