@@ -24,6 +24,8 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.files.ProductProfile;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
@@ -34,8 +36,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -49,13 +53,16 @@ public class MarketplaceSubscriptionIdProvider {
     private final MarketplaceSubscriptionCollector collector;
     private final SubscriptionRepository subscriptionRepo;
     private final SubscriptionSyncController syncController;
+    private final ProductProfileRegistry profileRegistry;
 
     @Autowired
     public MarketplaceSubscriptionIdProvider(MarketplaceSubscriptionCollector collector,
-        SubscriptionRepository subscriptionRepo, SubscriptionSyncController syncController) {
+        SubscriptionRepository subscriptionRepo, SubscriptionSyncController syncController,
+        ProductProfileRegistry profileRegistry) {
         this.collector = collector;
         this.subscriptionRepo = subscriptionRepo;
         this.syncController = syncController;
+        this.profileRegistry = profileRegistry;
     }
 
     public Optional<Object> findSubscriptionId(String accountNumber, Key usageKey,
@@ -63,8 +70,12 @@ public class MarketplaceSubscriptionIdProvider {
         Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
         Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
+        String productId = usageKey.getProductId();
+        ProductProfile profile = profileRegistry.findProfileForSwatchProductId(productId);
+        Set<String> roles = profile.getRolesBySwatchProduct().getOrDefault(productId, Collections.emptySet());
+
         List<Subscription> result =
-            subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey);
+            subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey, roles);
         result = filterByDateRange(result, rangeStart, rangeEnd);
 
         if (result.isEmpty()) {
@@ -72,7 +83,7 @@ public class MarketplaceSubscriptionIdProvider {
                to fetch from Marketplace.  Sync all those subscriptions. Query again. */
             var subscriptions = collector.fetchSubscription(accountNumber, usageKey);
             subscriptions.forEach(syncController::syncSubscription);
-            result = subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey);
+            result = subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey, roles);
             result = filterByDateRange(result, rangeStart, rangeEnd);
         }
 

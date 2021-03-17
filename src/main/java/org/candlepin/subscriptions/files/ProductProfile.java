@@ -66,6 +66,7 @@ public class ProductProfile {
     private Map<String, String> architectureSwatchProductIdMap;
     private Map<String, Set<String>> swatchProductsByRoles;
     private Map<String, Set<String>> swatchProductsByEngProducts;
+    private Map<String, Set<String>> rolesBySwatchProduct;
 
 
     // there's a card dedicated to putting this value in the product registry yaml (ENT-3610)
@@ -113,8 +114,18 @@ public class ProductProfile {
 
     public void setSyspurposeRoles(Set<SyspurposeRole> syspurposeRoles) {
         this.syspurposeRoles = syspurposeRoles;
-        this.swatchProductsByRoles = this.syspurposeRoles.stream()
+        this.swatchProductsByRoles = syspurposeRoles.stream()
             .collect(Collectors.toMap(SyspurposeRole::getName, SyspurposeRole::getSwatchProductIds));
+
+        this.rolesBySwatchProduct = new HashMap<>();
+        // Loop across all the SwatchProductIds in the syspurpose list. Add each swatchProductId to the map
+        // and append the associated role to an associated set (creating the set if necessary).
+        for (SyspurposeRole syspurposeRole : syspurposeRoles) {
+            syspurposeRole.getSwatchProductIds().forEach(key -> this.rolesBySwatchProduct
+                .computeIfAbsent(key, k -> new HashSet<>())
+                .add(syspurposeRole.getName())
+            );
+        }
     }
 
     public Granularity getFinestGranularity() {
@@ -195,6 +206,10 @@ public class ProductProfile {
 
     public Map<String, Set<String>> getSwatchProductsByRoles() {
         return this.swatchProductsByRoles;
+    }
+
+    public Map<String, Set<String>> getRolesBySwatchProduct() {
+        return this.rolesBySwatchProduct;
     }
 
     public Map<String, Set<String>> getSwatchProductsByEngProducts() {

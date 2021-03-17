@@ -27,11 +27,15 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.files.ProductProfile;
+import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -41,8 +45,11 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @SpringBootTest
 @ActiveProfiles({"marketplace", "test"})
@@ -57,11 +64,22 @@ class MarketplaceSubscriptionIdProviderTest {
     @MockBean
     private MarketplaceSubscriptionCollector collector;
 
+    @MockBean
+    private ProductProfileRegistry profileRegistry;
+
+    @Mock
+    private ProductProfile mockProfile;
+
     @Autowired
     private MarketplaceSubscriptionIdProvider idProvider;
 
     private OffsetDateTime rangeStart = OffsetDateTime.of(2020, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     private OffsetDateTime rangeEnd = OffsetDateTime.MAX;
+
+    @BeforeEach
+    void setUp() {
+        when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(mockProfile);
+    }
 
     @Test
     void doesNotAllowReservedValuesInKey() {
@@ -83,7 +101,12 @@ class MarketplaceSubscriptionIdProviderTest {
         s.setMarketplaceSubscriptionId("xyz");
         List<Subscription> result = Collections.singletonList(s);
 
-        when(repo.findSubscriptionByAccountAndUsageKey("1000", key)).thenReturn(result);
+        Map<String, Set<String>> roleMap = new HashMap<>();
+        Set<String> ocpRoles = Set.of("ocp");
+        roleMap.put(String.valueOf(1), ocpRoles);
+
+        when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
+        when(repo.findSubscriptionByAccountAndUsageKey("1000", key, ocpRoles)).thenReturn(result);
 
         Optional<Object> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
         assertEquals("xyz", actual.get());
@@ -98,7 +121,12 @@ class MarketplaceSubscriptionIdProviderTest {
         s.setMarketplaceSubscriptionId("abc");
         List<Subscription> result = Collections.singletonList(s);
 
-        when(repo.findSubscriptionByAccountAndUsageKey("1000", key))
+        Map<String, Set<String>> roleMap = new HashMap<>();
+        Set<String> ocpRoles = Set.of("ocp");
+        roleMap.put(String.valueOf(1), ocpRoles);
+
+        when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
+        when(repo.findSubscriptionByAccountAndUsageKey("1000", key, ocpRoles))
             .thenReturn(new ArrayList<>())
             .thenReturn(result);
 

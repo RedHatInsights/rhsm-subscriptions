@@ -37,6 +37,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.Set;
 
 import javax.transaction.Transactional;
 
@@ -78,13 +79,14 @@ class SubscriptionRepositoryTest {
         Subscription subscription = createSubscription("1", "1000", "testSku1", "123");
         subscriptionRepo.saveAndFlush(subscription);
 
-        Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "testRole");
+        Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
         offeringRepo.save(o1);
-        Offering o2 = createOffering("testSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "premiumRole");
+        Offering o2 = createOffering("testSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
         offeringRepo.saveAndFlush(o2);
 
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-        var resultList = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key);
+        Set<String> roles = Set.of("ocp");
+        var resultList = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key, roles);
         assertEquals(1, resultList.size());
 
         var result = resultList.get(0);
@@ -98,13 +100,14 @@ class SubscriptionRepositoryTest {
         Subscription subscription = createSubscription("1", "1000", "testSku", "123");
         subscriptionRepo.saveAndFlush(subscription);
 
-        Offering o1 = createOffering("otherSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "testRole");
+        Offering o1 = createOffering("otherSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
         offeringRepo.saveAndFlush(o1);
-        Offering o2 = createOffering("otherSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "premiumRole");
+        Offering o2 = createOffering("otherSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
         offeringRepo.saveAndFlush(o2);
 
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-        var result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key);
+        Set<String> roles = Set.of("ocp");
+        var result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key, roles);
         assertEquals(0, result.size());
     }
 

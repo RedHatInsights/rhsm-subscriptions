@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
 
@@ -42,7 +43,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
  */
 @Profile("marketplace")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.marketplace")
-@Import(SubscriptionConfiguration.class)
+@Import({SubscriptionConfiguration.class, ProductMappingConfiguration.class})
 public class MarketplaceWorkerConfiguration {
     @Bean
     @Qualifier("marketplaceRetryTemplate")

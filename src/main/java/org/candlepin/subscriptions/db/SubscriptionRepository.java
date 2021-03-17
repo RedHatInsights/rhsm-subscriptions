@@ -29,6 +29,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Repository for Subscription Entities
@@ -55,7 +56,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription,
         "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE " +
         ":#{#key.usage} = o.usage AND " +
         ":#{#key.sla} = o.serviceLevel AND " +
-        ":#{T(java.lang.Integer).parseInt(#key.productId)} MEMBER OF o.productIds)")
+        "o.role IN :#{#roles})")
     List<Subscription> findSubscriptionByAccountAndUsageKey(@Param("accountNumber") String accountNumber,
-        @Param("key") UsageCalculation.Key usageKey);
+        @Param("key") UsageCalculation.Key usageKey, @Param("roles") Set<String> roles);
 }
