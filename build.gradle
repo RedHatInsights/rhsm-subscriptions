@@ -63,7 +63,7 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
-            dependency "io.hawt:hawtio-springboot:2.13.0"
+            dependency "io.hawt:hawtio-springboot:2.13.1"
         }
     }
 
