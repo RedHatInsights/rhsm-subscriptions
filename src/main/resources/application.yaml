@@ -42,6 +42,7 @@ spring:
       - rhsm-conduit
       - worker
       - openshift-metering-worker
+      - marketplace
       - kafka-queue
   liquibase:
     change-log: classpath:/liquibase/changelog.xml

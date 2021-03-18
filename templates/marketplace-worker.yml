@@ -1,0 +1,279 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: marketplace-worker
+metadata:
+  annotations:
+    description: Components that handle submitting usage info to Marketplace.
+  name: marketplace-worker
+
+parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /app/rhsm-subscriptions/actuator/hawtio
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_BOOTSTRAP_HOST
+    required: true
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1700Mi
+  - name: CPU_REQUEST
+    value: 450m
+  - name: CPU_LIMIT
+    value: 1800m
+  - name: SPLUNK_FORWARDER_IMAGE
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
+  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
+    value: 128Mi
+  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
+    value: 150Mi
+  - name: SPLUNK_FORWARDER_CPU_REQUEST
+    value: 50m
+  - name: SPLUNK_FORWARDER_CPU_LIMIT
+    value: 100m
+  - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
+    value: 1m
+  - name: MARKETPLACE_MAX_ATTEMPTS
+    value: '10'
+  - name: MARKETPLACE_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: MARKETPLACE_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: MARKETPLACE_DUMMY_ID
+    value: DUMMY
+
+objects:
+  - apiVersion: apps.openshift.io/v1
+    kind: DeploymentConfig
+    metadata:
+      name: marketplace-worker
+    spec:
+      replicas: ${{REPLICAS}}
+      selector:
+        deploymentconfig: marketplace-worker
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            deploymentconfig: marketplace-worker
+            prometheus: rhsm
+          annotations:
+            prometheus.io/path: /actuator/prometheus
+            prometheus.io/port: '8080'
+            prometheus.io/scrape: 'true'
+        spec:
+          initContainers:
+            - image: ${IMAGE}:${IMAGE_TAG}
+              name: liquibase
+              env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.name
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          containers:
+            - image: ${IMAGE}:${IMAGE_TAG}
+              name: marketplace-worker
+              env:
+                # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+                - name: AB_JOLOKIA_OFF
+                  value: 'true'
+                - name: SERVER_MAX_HTTP_HEADER_SIZE
+                  value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+                - name: HAWTIO_BASE_PATH
+                  value: ${HAWTIO_BASE_PATH}
+                - name: LOG_FILE
+                  value: /logs/server.log
+                - name: SPRING_PROFILES_ACTIVE
+                  value: marketplace,kafka-queue
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: LOGGING_LEVEL_ROOT
+                  value: ${LOGGING_LEVEL_ROOT}
+                - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                  value: ${LOGGING_LEVEL}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: KAFKA_MESSAGE_THREADS
+                  value: ${KAFKA_MESSAGE_THREADS}
+                - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                  value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.name
+                - name: MARKETPLACE_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: marketplace
+                      key: key
+                - name: MARKETPLACE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: marketplace
+                      key: url
+                - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
+                  value: ${MARKETPLACE_TOKEN_REFRESH_PERIOD}
+                - name: MARKETPLACE_MAX_ATTEMPTS
+                  value: ${MARKETPLACE_MAX_ATTEMPTS}
+                - name: MARKETPLACE_BACK_OFF_MAX_INTERVAL
+                  value: ${MARKETPLACE_BACK_OFF_MAX_INTERVAL}
+                - name: MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+                  value: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
+                - name: MARKETPLACE_BACK_OFF_MULTIPLIER
+                  value: ${MARKETPLACE_BACK_OFF_MULTIPLIER}
+                - name: MARKETPLACE_DUMMY_ID
+                  value: ${MARKETPLACE_DUMMY_ID}
+              livenessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 90
+                periodSeconds: 20
+                successThreshold: 1
+                timeoutSeconds: 3
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              volumeMounts:
+                - name: logs
+                  mountPath: /logs
+              workingDir: /
+            - name: splunk
+              env:
+                - name: SPLUNKMETA_namespace
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.namespace
+              image: ${SPLUNK_FORWARDER_IMAGE}
+              resources:
+                requests:
+                  cpu: ${SPLUNK_FORWARDER_CPU_REQUEST}
+                  memory: ${SPLUNK_FORWARDER_MEMORY_REQUEST}
+                limits:
+                  cpu: ${SPLUNK_FORWARDER_CPU_LIMIT}
+                  memory: ${SPLUNK_FORWARDER_MEMORY_LIMIT}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/log/app
+                  name: logs
+                  readOnly: true
+                - mountPath: /tls/splunk.pem
+                  name: splunk
+                  subPath: splunk.pem
+          volumes:
+            - name: splunk
+              secret:
+                secretName: splunk
+            - name: logs
+              emptyDir: {}
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 75
+          imagePullSecrets:
+            - name: ${IMAGE_PULL_SECRET}
+            - name: quay-cloudservices-pull
+      triggers:
+        - type: ConfigChange
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: marketplace-worker-monitoring
+      labels:
+        prometheus: rhsm
+    spec:
+      ports:
+        - port: 8080
+          name: "8080"
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: marketplace-worker

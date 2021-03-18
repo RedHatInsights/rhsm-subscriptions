@@ -68,4 +68,9 @@ public class MarketplaceProperties extends HttpClientProperties {
      * Retry exponential backoff multiplier.
      */
     private Double backOffMultiplier;
+
+    /**
+     * Have the stub mapper emit empty usage requests (vs. full one) to be removed by ENT-3264
+     */
+    private boolean mapperStubEmpty;
 }
