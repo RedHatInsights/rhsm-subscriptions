@@ -83,6 +83,7 @@ burstable: false
 syspurposeRoles: []
 architectureSwatchProductIdMap: {}
 ---
+# Profile for OpenShift sold as a product
 name: OpenShiftContainerPlatform
 products:
   - engProductId: 290 # Red Hat OpenShift Container Platform
@@ -93,6 +94,9 @@ burstable: false
 syspurposeRoles: []
 architectureSwatchProductIdMap: {}
 ---
+# Profile for pay-as-you-go OpenShift consumption
+# The SKUs for OpenShiftMetrics do not have engineering product ids. Instead we rely on a syspurpose role
+# being set to determine which Swatch product ID is applicable.
 name: OpenShiftMetrics
 products: []
 syspurposeRoles:

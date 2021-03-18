@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -74,17 +75,14 @@ public class MarketplaceSubscriptionIdProvider {
         ProductProfile profile = profileRegistry.findProfileForSwatchProductId(productId);
         Set<String> roles = profile.getRolesBySwatchProduct().getOrDefault(productId, Collections.emptySet());
 
-        List<Subscription> result =
-            subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey, roles);
-        result = filterByDateRange(result, rangeStart, rangeEnd);
+        List<Subscription> result = fetchSubscriptions(accountNumber, usageKey, roles, rangeStart, rangeEnd);
 
         if (result.isEmpty()) {
             /* If we are missing the subscription, call out to the MarketplaceSubscriptionCollector
                to fetch from Marketplace.  Sync all those subscriptions. Query again. */
             var subscriptions = collector.fetchSubscription(accountNumber, usageKey);
             subscriptions.forEach(syncController::syncSubscription);
-            result = subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey, roles);
-            result = filterByDateRange(result, rangeStart, rangeEnd);
+            result = fetchSubscriptions(accountNumber, usageKey, roles, rangeStart, rangeEnd);
         }
 
         if (result.isEmpty()) {
@@ -92,10 +90,25 @@ public class MarketplaceSubscriptionIdProvider {
         }
 
         if (result.size() > 1) {
-            log.warn("Multiple subscriptions found for account {} with key {}. Selecting first result",
-                accountNumber, usageKey);
+            log.warn("Multiple subscriptions found for account {} with key {} and roles {}. Selecting first" +
+                " result", accountNumber, usageKey, roles);
         }
         return Optional.of(result.get(0).getMarketplaceSubscriptionId());
+    }
+
+    protected List<Subscription> fetchSubscriptions(String accountNumber, Key usageKey, Set<String> roles,
+        OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
+        List<Subscription> result =
+            subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey, roles);
+        result = filterByDateRange(result, rangeStart, rangeEnd);
+        result = filterByMissingMarketplaceSubscriptionId(result);
+        return result;
+    }
+
+    private List<Subscription> filterByMissingMarketplaceSubscriptionId(List<Subscription> result) {
+        return result.stream()
+            .filter(x -> StringUtils.hasText(x.getMarketplaceSubscriptionId()))
+            .collect(Collectors.toList());
     }
 
     private List<Subscription> filterByDateRange(List<Subscription> result, OffsetDateTime rangeStart,
