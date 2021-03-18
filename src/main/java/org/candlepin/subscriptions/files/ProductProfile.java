@@ -68,7 +68,7 @@ public class ProductProfile {
     private Map<String, Set<String>> swatchProductsByEngProducts;
 
 
-    // TODO there's a card dedicated to putting this value in the product registry yaml (ENT-3610)
+    // there's a card dedicated to putting this value in the product registry yaml (ENT-3610)
     @Getter
     @Setter
     private String metricId = "redhat.com:openshiftdedicated:cpu_hour";
