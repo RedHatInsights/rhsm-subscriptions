@@ -55,18 +55,20 @@ public class MarketplaceSubscriptionIdProvider {
     private final SubscriptionRepository subscriptionRepo;
     private final SubscriptionSyncController syncController;
     private final ProductProfileRegistry profileRegistry;
+    private final MarketplaceProperties properties;
 
     @Autowired
     public MarketplaceSubscriptionIdProvider(MarketplaceSubscriptionCollector collector,
         SubscriptionRepository subscriptionRepo, SubscriptionSyncController syncController,
-        ProductProfileRegistry profileRegistry) {
+        ProductProfileRegistry profileRegistry, MarketplaceProperties properties) {
         this.collector = collector;
         this.subscriptionRepo = subscriptionRepo;
         this.syncController = syncController;
         this.profileRegistry = profileRegistry;
+        this.properties = properties;
     }
 
-    public Optional<Object> findSubscriptionId(String accountNumber, Key usageKey,
+    public Optional<String> findSubscriptionId(String accountNumber, Key usageKey,
         OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
         Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
         Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
@@ -86,7 +88,7 @@ public class MarketplaceSubscriptionIdProvider {
         }
 
         if (result.isEmpty()) {
-            return Optional.empty();
+            return Optional.of(properties.getDummyId());
         }
 
         if (result.size() > 1) {

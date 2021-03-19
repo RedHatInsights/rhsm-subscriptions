@@ -35,7 +35,9 @@ import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -51,6 +53,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @SpringBootTest
+@ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"marketplace", "test"})
 class MarketplaceSubscriptionIdProviderTest {
 
@@ -107,7 +110,7 @@ class MarketplaceSubscriptionIdProviderTest {
         when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
         when(repo.findSubscriptionByAccountAndUsageKey("1000", key, ocpRoles)).thenReturn(result);
 
-        Optional<Object> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+        Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
         assertEquals("xyz", actual.get());
     }
 
@@ -129,7 +132,7 @@ class MarketplaceSubscriptionIdProviderTest {
             .thenReturn(new ArrayList<>())
             .thenReturn(result);
 
-        Optional<Object> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+        Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
         assertEquals("abc", actual.get());
         verify(collector).fetchSubscription("1000", key);
     }
