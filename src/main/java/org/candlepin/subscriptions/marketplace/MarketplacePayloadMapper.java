@@ -73,6 +73,8 @@ public class MarketplacePayloadMapper {
         var usageEvents = produceUsageEvents(tallySummary);
         usageEvents.forEach(usageRequest::addDataItem);
 
+        log.debug("UsageRequest {}", usageRequest);
+
         return usageRequest;
     }
 
@@ -89,10 +91,14 @@ public class MarketplacePayloadMapper {
         var applicableProducts = List.of("OpenShift-metrics", "OpenShift-dedicated-metrics");
         boolean isApplicableProduct = applicableProducts.contains(productId);
 
-        boolean isHourlyGranularity = Objects
-            .equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
-        boolean isSpecificUsage = !Objects.equals(snapshot.getUsage(), TallySnapshot.Usage.ANY);
-        boolean isSpecificServiceLevel = !Objects.equals(snapshot.getSla(), TallySnapshot.Sla.ANY);
+        boolean isHourlyGranularity = Objects.nonNull(snapshot.getGranularity()) &&
+            Objects.equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
+
+        boolean isSpecificUsage = Objects.nonNull(snapshot.getUsage()) &&
+            !Objects.equals(snapshot.getUsage(), TallySnapshot.Usage.ANY);
+
+        boolean isSpecificServiceLevel =
+            Objects.nonNull(snapshot.getSla()) && !Objects.equals(snapshot.getSla(), TallySnapshot.Sla.ANY);
 
         boolean isSnapshotPAYGEligible =
             isHourlyGranularity && isApplicableProduct && isSpecificUsage && isSpecificServiceLevel;
@@ -110,6 +116,10 @@ public class MarketplacePayloadMapper {
      * @return List<UsageEvent>
      */
     protected List<UsageEvent> produceUsageEvents(TallySummary tallySummary) {
+        if (Objects.isNull(tallySummary.getTallySnapshots())) {
+            tallySummary.setTallySnapshots(new ArrayList<>());
+        }
+
         return tallySummary.getTallySnapshots().stream().filter(this::isSnapshotPAYGEligible)
             .map(snapshot -> {
                 String productId = snapshot.getProductId();
@@ -160,6 +170,10 @@ public class MarketplacePayloadMapper {
         var productProfile = profileRegistry.findProfileForSwatchProductId(productId);
 
         List<UsageMeasurement> usageMeasurements = new ArrayList<>();
+
+        if (Objects.isNull(snapshot.getTallyMeasurements())) {
+            snapshot.setTallyMeasurements(new ArrayList<>());
+        }
 
         //Filter out any HardwareMeasurementType.TOTAL measurments to prevent duplicates
         snapshot.getTallyMeasurements().stream().filter(measurement -> !Objects

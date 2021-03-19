@@ -22,12 +22,7 @@ package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -36,8 +31,6 @@ import io.micrometer.core.annotation.Timed;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -46,51 +39,25 @@ import java.util.Optional;
 @Service
 public class MarketplaceWorker {
 
-    private static final Logger log = LoggerFactory.getLogger(MarketplaceWorker.class);
-
-    /**
-     * placeholder class, to be removed w/ https://issues.redhat.com/browse/ENT-3264
-     */
-    @Service
-    static class MarketplacePayloadMapper {
-        private final MarketplaceProperties properties;
-
-        @Autowired
-        MarketplacePayloadMapper(MarketplaceProperties properties) {
-            this.properties = properties;
-        }
-
-        UsageRequest mapTallySummary(TallySummary summary) {
-            log.info("mapTallySummary called w/ summary: {}", summary);
-            if (properties.isMapperStubEmpty()) {
-                return new UsageRequest().data(Collections.emptyList());
-            }
-            else {
-                // NOTE: this payload will fail marketplace validation
-                return new UsageRequest().data(List.of(new UsageEvent()));
-            }
-        }
-    }
-
     @Getter
     @Setter
     private String topic;
 
     private final MarketplaceProducer producer;
-    private final MarketplacePayloadMapper payloadMapper;
+    private final MarketplacePayloadMapper marketplacePayloadMapper;
 
     public MarketplaceWorker(ApplicationProperties properties, MarketplaceProducer producer,
-        MarketplacePayloadMapper payloadMapper) {
+        MarketplacePayloadMapper marketplacePayloadMapper) {
         topic = properties.getTallySummaryTopic();
         this.producer = producer;
-        this.payloadMapper = payloadMapper;
+        this.marketplacePayloadMapper = marketplacePayloadMapper;
     }
 
     @Timed("rhsm-subscriptions.marketplace.tally-summary")
     @KafkaListener(id = "marketplace-worker", topics = "#{__listener.topic}",
         containerFactory = "kafkaTallySummaryListenerContainerFactory")
     public void receive(TallySummary tallySummary) {
-        Optional.ofNullable(payloadMapper.mapTallySummary(tallySummary))
+        Optional.ofNullable(marketplacePayloadMapper.createUsageRequest(tallySummary))
             .filter(s -> !s.getData().isEmpty())
             .ifPresent(producer::submitUsageRequest);
     }

@@ -24,7 +24,6 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.marketplace.MarketplaceWorker.MarketplacePayloadMapper;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 
@@ -46,7 +45,7 @@ class MarketplaceWorkerTest {
         var worker = new MarketplaceWorker(properties, producer, payloadMapper);
 
         UsageRequest usageRequest = new UsageRequest().data(List.of(new UsageEvent()));
-        when(payloadMapper.mapTallySummary(any())).thenReturn(usageRequest);
+        when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
 
         worker.receive(new TallySummary());
 
@@ -61,7 +60,7 @@ class MarketplaceWorkerTest {
         var worker = new MarketplaceWorker(properties, producer, payloadMapper);
 
         UsageRequest usageRequest = new UsageRequest().data(Collections.emptyList());
-        when(payloadMapper.mapTallySummary(any())).thenReturn(usageRequest);
+        when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
 
         worker.receive(new TallySummary());
 
@@ -75,7 +74,7 @@ class MarketplaceWorkerTest {
         MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
         var worker = new MarketplaceWorker(properties, producer, payloadMapper);
 
-        when(payloadMapper.mapTallySummary(any())).thenReturn(null);
+        when(payloadMapper.createUsageRequest(any())).thenReturn(null);
 
         worker.receive(new TallySummary());
 
