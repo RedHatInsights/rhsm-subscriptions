@@ -72,13 +72,12 @@ public class TallyJmxBean {
     @ManagedOperationParameter(
         name = "startDateTime", description =
         "Beginning of the range of time the tally should include. " +
-        "Expected to be in ISO 8601 format (e.g. 2017-08-01T17:32:28Z)."
+        "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z)."
     )
-
     @ManagedOperationParameter(
         name = "endDateTime", description =
         "Ending of the range of time the tally should include. " +
-        "Expected to be in ISO 8601 format (e.g. 2017-08-01T17:32:28Z)."
+        "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z)."
     )
     public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
         log.info("Hourly tally between {} and {} for account {} triggered over JMX by {}",

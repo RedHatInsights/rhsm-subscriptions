@@ -74,6 +74,12 @@ public class MetricUsageCollector {
     @Transactional
     public Map<OffsetDateTime, AccountUsageCalculation> collect(String accountNumber,
         OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
+        if (!clock.isHourlyRange(startDateTime, endDateTime)) {
+            throw new IllegalArgumentException(String.format(
+                "Start and end dates must be at the top of the hour: [%s -> %s]",
+                startDateTime, endDateTime));
+        }
+
         /* load the latest account state, so we can update host records conveniently */
         Account account = accountRepository.findById(accountNumber).orElseThrow(() ->
             new SubscriptionsException(ErrorCode.OPT_IN_REQUIRED, Response.Status.BAD_REQUEST,
@@ -103,7 +109,7 @@ public class MetricUsageCollector {
          */
         if (newestInstanceTimestamp.isAfter(startDateTime)) {
             effectiveStartDateTime = clock.startOfMonth(startDateTime);
-            effectiveEndDateTime = clock.now();
+            effectiveEndDateTime = clock.endOfCurrentHour();
             log.info("We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
                 startDateTime, endDateTime, effectiveStartDateTime, effectiveEndDateTime);
             isRecalculating = true;
@@ -111,17 +117,19 @@ public class MetricUsageCollector {
         else {
             effectiveStartDateTime = startDateTime;
             effectiveEndDateTime = endDateTime;
+            log.info("New tally! Adjusting start and end from [{} : {}] to [{} : {}]",
+                startDateTime, endDateTime, effectiveStartDateTime, effectiveEndDateTime);
             isRecalculating = false;
         }
 
         if (isRecalculating) {
             log.info("Clearing monthly totals for {} instances", existingInstances.size());
-            existingInstances.values().forEach(
-                instance -> instance.clearMonthlyTotals(effectiveStartDateTime, effectiveEndDateTime));
+            existingInstances.values().forEach(instance ->
+                instance.clearMonthlyTotals(effectiveStartDateTime, effectiveEndDateTime));
         }
 
         Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
-        for (OffsetDateTime offset = startDateTime; offset.isBefore(endDateTime); offset =
+        for (OffsetDateTime offset = effectiveStartDateTime; offset.isBefore(effectiveEndDateTime); offset =
             offset.plusHours(1)) {
             AccountUsageCalculation accountUsageCalculation = collectHour(account, offset);
             if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
