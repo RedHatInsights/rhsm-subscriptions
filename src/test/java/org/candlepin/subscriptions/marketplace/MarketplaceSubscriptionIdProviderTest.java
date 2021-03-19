@@ -42,7 +42,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,8 +72,8 @@ class MarketplaceSubscriptionIdProviderTest {
     @Autowired
     private MarketplaceSubscriptionIdProvider idProvider;
 
-    private OffsetDateTime rangeStart = OffsetDateTime.of(2020, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-    private OffsetDateTime rangeEnd = OffsetDateTime.MAX;
+    private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
+    private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
     @BeforeEach
     void setUp() {
@@ -96,7 +95,7 @@ class MarketplaceSubscriptionIdProviderTest {
     void findsSubscriptionId() {
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
         Subscription s = new Subscription();
-        s.setStartDate(OffsetDateTime.now());
+        s.setStartDate(OffsetDateTime.now().minusDays(7));
         s.setEndDate(OffsetDateTime.now().plusDays(7));
         s.setMarketplaceSubscriptionId("xyz");
         List<Subscription> result = Collections.singletonList(s);
@@ -116,7 +115,7 @@ class MarketplaceSubscriptionIdProviderTest {
     void memoizesSubscriptionId() {
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
         Subscription s = new Subscription();
-        s.setStartDate(OffsetDateTime.now());
+        s.setStartDate(OffsetDateTime.now().minusDays(7));
         s.setEndDate(OffsetDateTime.now().plusDays(7));
         s.setMarketplaceSubscriptionId("abc");
         List<Subscription> result = Collections.singletonList(s);

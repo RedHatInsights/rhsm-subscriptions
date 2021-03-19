@@ -114,7 +114,10 @@ public class MarketplaceSubscriptionIdProvider {
     private List<Subscription> filterByDateRange(List<Subscription> result, OffsetDateTime rangeStart,
         OffsetDateTime rangeEnd) {
         return result.stream()
-            .filter(x -> rangeStart.isBefore(x.getStartDate()) && rangeEnd.isAfter(x.getEndDate()))
+            // Ensure that the subscription range covers at least the entire time range we're given
+            // !isBefore => rangeStart is either equal to or after subscription.getStartDate()
+            // !isAfter => rangeEnd is either equal to or before subscription.getEndDate()
+            .filter(x -> !rangeStart.isBefore(x.getStartDate()) && !rangeEnd.isAfter(x.getEndDate()))
             .collect(Collectors.toList());
     }
 }
