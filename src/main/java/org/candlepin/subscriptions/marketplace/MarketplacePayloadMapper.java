@@ -124,41 +124,52 @@ public class MarketplacePayloadMapper {
             tallySummary.setTallySnapshots(new ArrayList<>());
         }
 
-        return tallySummary.getTallySnapshots().stream().filter(this::isSnapshotPAYGEligible)
-            .map(snapshot -> {
-                String productId = snapshot.getProductId();
-                OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
-                String eventId = snapshot.getId().toString();
+        var eligibleSnapshots = tallySummary.getTallySnapshots().stream()
+            .filter(this::isSnapshotPAYGEligible).collect(Collectors.toList());
 
-                // call MarketplaceIdProvider.findSubscriptionId once available
-                UsageCalculation.Key usageKey = new UsageCalculation.Key(productId,
-                    ServiceLevel.fromString(snapshot.getSla().toString()),
-                    Usage.fromString(snapshot.getUsage().toString()));
+        List<UsageEvent> events = new ArrayList<>();
 
+        for (TallySnapshot snapshot : eligibleSnapshots) {
+            String productId = snapshot.getProductId();
+            OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
+            String eventId = snapshot.getId().toString();
 
-                /*
-                This will need to be updated if we expand the criteria defined in the
-                isSnapshotPAYGEligible method to allow for Granularities other than HOURLY
-                 */
-                OffsetDateTime startDate = snapshotDate.minus(Duration.of(1, ChronoUnit.HOURS));
+            // call MarketplaceIdProvider.findSubscriptionId once available
+            UsageCalculation.Key usageKey = new UsageCalculation.Key(productId,
+                ServiceLevel.fromString(snapshot.getSla().toString()),
+                Usage.fromString(snapshot.getUsage().toString()));
 
-                long start = startDate.toEpochSecond();
-                long end = snapshotDate.toEpochSecond();
+            /*
+            This will need to be updated if we expand the criteria defined in the
+            isSnapshotPAYGEligible method to allow for Granularities other than HOURLY
+             */
+            OffsetDateTime startDate = snapshotDate.minus(Duration.of(1, ChronoUnit.HOURS));
 
-                var subscriptionId = findSubscriptionId(tallySummary.getAccountNumber(), usageKey,
-                    startDate, snapshotDate).orElseThrow();
+            long start = startDate.toEpochSecond();
+            long end = snapshotDate.toEpochSecond();
 
-                var usageMeasurements = produceUsageMeasurements(snapshot, productId);
+            var subscriptionIdOpt = findSubscriptionId(tallySummary.getAccountNumber(), usageKey, startDate,
+                snapshotDate);
 
-                UsageEvent event = new UsageEvent();
-                event.setMeasuredUsage(usageMeasurements);
-                event.setEnd(end);
-                event.setStart(start);
-                event.setSubscriptionId(subscriptionId);
-                event.setEventId(eventId);
+            /*
+            The //NOSONAR flag is Suppressing warning java:S2583 - Conditionally executed code should be
+            reachable.  Since findSubscriptionId is stubbed out right now, it's never returning Optional
+            .empty(), so this if statemant can't be evaluated to true, which is making sonar unhappy.
+             */
+            if (subscriptionIdOpt.isEmpty()) { //NOSONAR
+                log.error("Couldn't find subscription id. Error code here eventually?");
+                continue;
+            }
 
-                return event;
-            }).collect(Collectors.toList());
+            var usageMeasurements = produceUsageMeasurements(snapshot, productId);
+
+            UsageEvent event = new UsageEvent().measuredUsage(usageMeasurements).end(end).start(start)
+                .subscriptionId(subscriptionIdOpt.get()).eventId(eventId);
+
+            events.add(event);
+
+        }
+        return events;
     }
 
     /**
