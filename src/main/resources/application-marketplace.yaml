@@ -10,3 +10,6 @@ rhsm-subscriptions:
     back-off-multiplier: ${MARKETPLACE_BACK_OFF_MULTIPLIER:2}
     # temporary; remove once https://issues.redhat.com/browse/ENT-3264 is implemented
     mapper-stub-empty: ${MARKETPLACE_MAPPER_STUB_EMPTY:true}
+    eligible-swatch-product-ids:
+      - OpenShift-metrics
+      - OpenShift-dedicated-metrics

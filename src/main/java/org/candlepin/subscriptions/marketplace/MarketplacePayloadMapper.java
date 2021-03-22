@@ -54,10 +54,13 @@ public class MarketplacePayloadMapper {
     private static final Logger log = LoggerFactory.getLogger(MarketplacePayloadMapper.class);
 
     private final ProductProfileRegistry profileRegistry;
+    private final MarketplaceProperties marketplaceProperties;
 
     @Autowired
-    public MarketplacePayloadMapper(ProductProfileRegistry profileRegistry) {
+    public MarketplacePayloadMapper(ProductProfileRegistry profileRegistry,
+        MarketplaceProperties marketplaceProperties) {
         this.profileRegistry = profileRegistry;
+        this.marketplaceProperties = marketplaceProperties;
     }
 
     /**
@@ -88,7 +91,8 @@ public class MarketplacePayloadMapper {
      */
     protected boolean isSnapshotPAYGEligible(TallySnapshot snapshot) {
         String productId = snapshot.getProductId();
-        var applicableProducts = List.of("OpenShift-metrics", "OpenShift-dedicated-metrics");
+
+        var applicableProducts = marketplaceProperties.getEligibleSwatchProductIds();
         boolean isApplicableProduct = applicableProducts.contains(productId);
 
         boolean isHourlyGranularity = Objects

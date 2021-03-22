@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.context.annotation.Profile;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -51,6 +53,8 @@ class MarketplacePayloadMapperTest {
 
     @Mock
     ProductProfileRegistry profileRegistry;
+    @Mock
+    MarketplaceProperties marketplaceProperties;
     @InjectMocks
     MarketplacePayloadMapper marketplacePayloadMapper;
 
@@ -62,6 +66,8 @@ class MarketplacePayloadMapperTest {
         MockitoAnnotations.openMocks(this);
 
         when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(productProfile);
+        when(marketplaceProperties.getEligibleSwatchProductIds()).thenReturn(List.of(
+            ProductId.OPENSHIFT_METRICS.toString(), ProductId.OPENSHIFT_DEDICATED_METRICS.toString()));
     }
 
     @ParameterizedTest
