@@ -91,14 +91,14 @@ public class MarketplacePayloadMapper {
         var applicableProducts = List.of("OpenShift-metrics", "OpenShift-dedicated-metrics");
         boolean isApplicableProduct = applicableProducts.contains(productId);
 
-        boolean isHourlyGranularity = Objects.nonNull(snapshot.getGranularity()) &&
-            Objects.equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
+        boolean isHourlyGranularity = Objects
+            .equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
 
-        boolean isSpecificUsage = Objects.nonNull(snapshot.getUsage()) &&
-            !Objects.equals(snapshot.getUsage(), TallySnapshot.Usage.ANY);
+        boolean isSpecificUsage = !List.of(TallySnapshot.Usage.ANY, TallySnapshot.Usage.__EMPTY__)
+            .contains(snapshot.getUsage());
 
-        boolean isSpecificServiceLevel =
-            Objects.nonNull(snapshot.getSla()) && !Objects.equals(snapshot.getSla(), TallySnapshot.Sla.ANY);
+        boolean isSpecificServiceLevel = !List.of(TallySnapshot.Sla.ANY, TallySnapshot.Sla.__EMPTY__)
+            .contains(snapshot.getSla());
 
         boolean isSnapshotPAYGEligible =
             isHourlyGranularity && isApplicableProduct && isSpecificUsage && isSpecificServiceLevel;
