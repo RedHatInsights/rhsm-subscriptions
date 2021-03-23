@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static org.junit.jupiter.params.ParameterizedTest.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.AccountListSource;
@@ -252,7 +253,7 @@ class HostsResourceTest {
         );
     }
 
-    @ParameterizedTest(name = "testInvalidBeginningAndEndingDates[{index}] {arguments}")
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @CsvSource({
         "2000-01-01T00:00:00Z, 1999-01-01T00:00:00Z",
         "2021-02-01T00:00:00Z, 2021-03-01T00:00:00Z"
@@ -262,7 +263,7 @@ class HostsResourceTest {
             () -> resource.validateBeginningAndEndingDates(beginning, ending));
     }
 
-    @ParameterizedTest(name = "testValidBeginningAndEndingDates[{index}] {arguments}")
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @CsvSource({
         "2000-01-01T00:00:00Z, 2000-01-01T00:00:00Z",
         "2000-01-01T00:00:00Z, 2000-01-31T00:00:00Z"

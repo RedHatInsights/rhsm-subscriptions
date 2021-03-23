@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.job;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.ParameterizedTest.*;
 import static org.mockito.BDDMockito.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -195,7 +196,7 @@ class CaptureSnapshotsTaskManagerTest {
         return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
     }
 
-    @ParameterizedTest(name = "testAdjustTimeForLatency[{index}] {arguments}")
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @CsvSource({
         "2021-02-01T00:00:00Z, PT0H, 2021-02-01T00:00:00Z",
         "2021-02-01T00:00:00Z, PT1H, 2021-01-31T23:00:00Z",

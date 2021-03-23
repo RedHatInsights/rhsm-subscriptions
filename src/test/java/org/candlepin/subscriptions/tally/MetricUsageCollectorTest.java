@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.ParameterizedTest.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.db.AccountRepository;
@@ -134,7 +135,7 @@ class MetricUsageCollectorTest {
             HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @EnumSource(Event.HardwareType.class)
     void testCollectHandlesAllHardwareTypes(Event.HardwareType hardwareType) {
         Event event = new Event()
@@ -152,7 +153,7 @@ class MetricUsageCollectorTest {
         assertNotNull(accountUsageCalculation);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @EnumSource(Event.CloudProvider.class)
     void testCollectHandlesAllCloudProviders(Event.CloudProvider cloudProvider) {
         Event event = new Event()

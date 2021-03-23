@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.ParameterizedTest.*;
 
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
@@ -473,7 +474,7 @@ class HostRepositoryTest {
     }
 
     @Transactional
-    @ParameterizedTest
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#instanceSortParams")
     void canSortByInstanceBasedSortMethods(String sort) {
         Pageable page = PageRequest.of(0, 1, Sort.by(sort));
@@ -486,7 +487,7 @@ class HostRepositoryTest {
     }
 
     @Transactional
-    @ParameterizedTest
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#tallyViewSortParams")
     void canSortByHostBasedSortMethods(String sort) {
         Pageable page = PageRequest.of(0, 1, Sort.by(sort));
@@ -595,7 +596,7 @@ class HostRepositoryTest {
     }
 
     @Transactional
-    @ParameterizedTest
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @CsvSource({
         "'',3",
         "banana,1",
