@@ -36,6 +36,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -56,16 +59,23 @@ public class MarketplaceSubscriptionIdProvider {
     private final SubscriptionSyncController syncController;
     private final ProductProfileRegistry profileRegistry;
     private final MarketplaceProperties properties;
+    private final Counter missingSubscriptionCounter;
+    private final Counter ambiguousSubscriptionCounter;
 
     @Autowired
     public MarketplaceSubscriptionIdProvider(MarketplaceSubscriptionCollector collector,
         SubscriptionRepository subscriptionRepo, SubscriptionSyncController syncController,
-        ProductProfileRegistry profileRegistry, MarketplaceProperties properties) {
+        ProductProfileRegistry profileRegistry, MarketplaceProperties properties,
+        MeterRegistry meterRegistry) {
         this.collector = collector;
         this.subscriptionRepo = subscriptionRepo;
         this.syncController = syncController;
         this.profileRegistry = profileRegistry;
         this.properties = properties;
+        this.missingSubscriptionCounter =
+            meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
+        this.ambiguousSubscriptionCounter =
+            meterRegistry.counter("rhsm-subscriptions.marketplace.ambiguous.subscription");
     }
 
     public Optional<String> findSubscriptionId(String accountNumber, Key usageKey,
@@ -88,10 +98,14 @@ public class MarketplaceSubscriptionIdProvider {
         }
 
         if (result.isEmpty()) {
+            missingSubscriptionCounter.increment();
+            log.warn("No subscription found for account {} with key {} and roles {}", accountNumber, usageKey,
+                roles);
             return Optional.of(properties.getDummyId());
         }
 
         if (result.size() > 1) {
+            ambiguousSubscriptionCounter.increment();
             log.warn("Multiple subscriptions found for account {} with key {} and roles {}. Selecting first" +
                 " result", accountNumber, usageKey, roles);
         }
