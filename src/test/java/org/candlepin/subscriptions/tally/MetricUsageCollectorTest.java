@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountRepository;
 import org.candlepin.subscriptions.db.model.Account;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -30,6 +31,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.event.EventController;
@@ -68,7 +70,7 @@ class MetricUsageCollectorTest {
     @Mock
     EventController eventController;
 
-    ApplicationClock clock = new ApplicationClock();
+    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
     static final String SERVICE_TYPE = "SERVICE TYPE";
     static final String RHEL_SERVER_SWATCH_PRODUCT_ID = "RHEL_SERVER";
@@ -369,38 +371,48 @@ class MetricUsageCollectorTest {
     void testRecalculatesMonthlyTotalWhenEventsAreOld() {
         Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
         String instanceId = UUID.randomUUID().toString();
+        OffsetDateTime eventDate = clock.startOfCurrentHour();
         Event event = new Event()
             .withEventId(UUID.randomUUID())
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
         Account account = new Account();
         account.setAccountNumber("account123");
-        Host existing = new Host();
-        existing.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 10.0);
-        existing.setInstanceId(instanceId);
-        existing.setInstanceType(SERVICE_TYPE);
-        existing.setLastSeen(OffsetDateTime.parse("2021-02-25T00:00:01Z"));
-        account.getServiceInstances().put(instanceId, existing);
+
+        OffsetDateTime instanceDate = eventDate.minusDays(1);
+        Host activeInstance = new Host();
+        activeInstance.setInstanceId(instanceId);
+        activeInstance.setInstanceType(SERVICE_TYPE);
+        activeInstance.setLastSeen(instanceDate);
+        account.getServiceInstances().put(instanceId, activeInstance);
+
+        String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
         when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any()))
-            .thenAnswer(m -> Stream.of(event, event));
+            .thenAnswer(m -> {
+                OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
+                OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
+                if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
+                    return Stream.of(event);
+                }
+                return Stream.of();
+            });
 
-        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-02-25T00:00:00Z"),
-            OffsetDateTime.parse("2021-02-25T01:00:00Z"));
-        Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
-        assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
+        metricUsageCollector.collect("account123", instanceDate.minusHours(1), instanceDate.plusHours(1));
+        assertEquals(Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
     }
 
     @Test
     void testClearsMeasurementsOnInactiveInstancesWhenRecalculating() {
         Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
         String instanceId = UUID.randomUUID().toString();
+        OffsetDateTime eventDate = clock.startOfCurrentHour();
         Event event = new Event()
             .withEventId(UUID.randomUUID())
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
@@ -408,26 +420,43 @@ class MetricUsageCollectorTest {
         Account account = new Account();
         account.setAccountNumber("account123");
 
+        OffsetDateTime instanceDate = eventDate.minusDays(1);
         Host activeInstance = new Host();
         activeInstance.setInstanceId(instanceId);
         activeInstance.setInstanceType(SERVICE_TYPE);
-        activeInstance.setLastSeen(OffsetDateTime.parse("2021-02-25T00:00:01Z"));
+        activeInstance.setLastSeen(instanceDate);
         account.getServiceInstances().put(instanceId, activeInstance);
 
+        String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
         Host staleInstance = new Host();
-        staleInstance.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 11.0);
+        staleInstance.addToMonthlyTotal(monthId, Measurement.Uom.CORES, 11.0);
         staleInstance.setInstanceType(SERVICE_TYPE);
         staleInstance.setInstanceId(UUID.randomUUID().toString());
-        staleInstance.setLastSeen(OffsetDateTime.parse("2021-02-25T00:00:01Z"));
+        staleInstance.setLastSeen(instanceDate);
         account.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
 
         when(accountRepo.findById(any())).thenReturn(Optional.of(account));
         when(eventController.fetchEventsInTimeRange(any(), any(), any()))
-            .thenAnswer(m -> Stream.of(event, event));
+            .thenAnswer(m -> {
+                OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
+                OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
+                if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
+                    return Stream.of(event);
+                }
+                return Stream.of();
+            });
 
-        metricUsageCollector.collect("account123", OffsetDateTime.parse("2021-02-25T00:00:00Z"),
-            OffsetDateTime.parse("2021-02-25T01:00:00Z"));
-        assertEquals(Double.valueOf(84.0), activeInstance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
-        assertNull(staleInstance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
+        metricUsageCollector.collect("account123", instanceDate.minusHours(1), instanceDate.plusHours(1));
+        assertEquals(Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+        assertNull(staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+    }
+
+    @Test
+    void collectionThrowsExceptionWhenDateRangeIsNotRounded() {
+        OffsetDateTime start = clock.startOfCurrentHour();
+        OffsetDateTime end = clock.now();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> metricUsageCollector.collect("account123", start, end));
     }
 }

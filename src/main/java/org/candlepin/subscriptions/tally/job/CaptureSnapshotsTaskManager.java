@@ -42,7 +42,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -128,6 +127,13 @@ public class CaptureSnapshotsTaskManager {
         log.info("Queuing hourly snapshot production for accountNumber {} between {} and {}",
             accountNumber, startDateTime, endDateTime);
 
+        if (!applicationClock.isHourlyRange(
+            OffsetDateTime.parse(startDateTime), OffsetDateTime.parse(endDateTime))) {
+            throw new IllegalArgumentException(String.format(
+                "Date range must start at top of the hour and end at the bottom of the hour: [%s -> %s]",
+                startDateTime, endDateTime));
+        }
+
         queue.enqueue(TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
             .setSingleValuedArg("accountNumber", accountNumber)
             .setSingleValuedArg("startDateTime", startDateTime)
@@ -144,9 +150,10 @@ public class CaptureSnapshotsTaskManager {
             Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
             Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
 
-            OffsetDateTime endDateTime = adjustTimeForLatency(applicationClock.now()
-                .minus(hourlyTallyOffsetMinutes).truncatedTo(ChronoUnit.HOURS), prometheusLatencyDuration);
-            OffsetDateTime startDateTime = endDateTime.minus(metricRange);
+            OffsetDateTime endDateTime = adjustTimeForLatency(
+                applicationClock.startOfHour(applicationClock.now().minus(hourlyTallyOffsetMinutes)),
+                prometheusLatencyDuration);
+            OffsetDateTime startDateTime = applicationClock.startOfHour(endDateTime.minus(metricRange));
 
             accountStream.forEach(accountNumber -> {
                 tallyAccountByHourly(accountNumber, startDateTime.toString(), endDateTime.toString());
