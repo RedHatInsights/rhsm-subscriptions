@@ -1,5 +1,5 @@
 pipeline {
-    options { buildDiscarder(logRotator(numToKeepStr: '50')) }
+    options { buildDiscarder(logRotator(numToKeepStr: '10')) }
     agent {
         label 'rhsm'
     }
