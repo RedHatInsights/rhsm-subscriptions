@@ -71,12 +71,16 @@ public class SnapshotSummaryProducer {
         var sla = org.candlepin.subscriptions.json.TallySnapshot.Sla
             .fromValue(tallySnapshot.getServiceLevel().getValue());
 
+        var usage = org.candlepin.subscriptions.json.TallySnapshot.Usage
+            .fromValue(tallySnapshot.getUsage().getValue());
+
         return new org.candlepin.subscriptions.json.TallySnapshot()
             .withGranularity(granularity)
             .withId(tallySnapshot.getId())
             .withProductId(tallySnapshot.getProductId())
             .withSnapshotDate(tallySnapshot.getSnapshotDate())
             .withSla(sla)
+            .withUsage(usage)
             .withTallyMeasurements(mapMeasurements(tallySnapshot.getTallyMeasurements()));
     }
 

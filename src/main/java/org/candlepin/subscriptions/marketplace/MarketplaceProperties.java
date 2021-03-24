@@ -29,6 +29,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Properties for the Marketplace integration.
@@ -73,4 +75,7 @@ public class MarketplaceProperties extends HttpClientProperties {
      * Have the stub mapper emit empty usage requests (vs. full one) to be removed by ENT-3264
      */
     private boolean mapperStubEmpty;
+
+    private List<String> eligibleSwatchProductIds = new ArrayList<>();
+
 }

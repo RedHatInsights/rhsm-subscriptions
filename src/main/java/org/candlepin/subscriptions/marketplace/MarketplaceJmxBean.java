@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.conduit.jmx.RhsmJmxException;
-import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
+import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 
@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
@@ -50,14 +51,17 @@ public class MarketplaceJmxBean {
     private final MarketplaceService marketplaceService;
     private final MarketplaceProducer marketplaceProducer;
     private final ObjectMapper mapper;
+    private final MarketplacePayloadMapper marketplacePayloadMapper;
 
     MarketplaceJmxBean(ApplicationProperties properties, MarketplaceService marketplaceService,
-        MarketplaceProducer marketplaceProducer, ObjectMapper mapper) {
+        MarketplaceProducer marketplaceProducer, ObjectMapper mapper,
+        MarketplacePayloadMapper marketplacePayloadMapper) {
 
         this.properties = properties;
         this.marketplaceService = marketplaceService;
         this.marketplaceProducer = marketplaceProducer;
         this.mapper = mapper;
+        this.marketplacePayloadMapper = marketplacePayloadMapper;
     }
 
     @ManagedOperation(description = "Force a refresh of the access token")
@@ -67,13 +71,22 @@ public class MarketplaceJmxBean {
         marketplaceService.forceRefreshAccessToken();
     }
 
-    @ManagedOperation(description = "Submit usage event JSON (dev-mode only)")
-    public String submitUsageEvent(String payloadJson) throws JsonProcessingException, RhsmJmxException {
+    @ManagedOperation(description = "Submit tally summary JSON to be converted to a usage event and send to" +
+        " RHM as a UsageRequest (dev-mode only)")
+    @ManagedOperationParameter(name = "tallySummaryJson", description = "String representation of Tally " +
+        "Summary json. Don't forget to escape quotation marks if you're trying to invoke this endpoint via " +
+        "curl command")
+    public String submitTallySummary(String tallySummaryJson)
+        throws JsonProcessingException, RhsmJmxException {
         if (!properties.isDevMode()) {
             throw new JmxException("Unsupported outside dev-mode");
         }
-        UsageEvent usageEvent = mapper.readValue(payloadJson, UsageEvent.class);
-        UsageRequest usageRequest = new UsageRequest().addDataItem(usageEvent);
+
+        TallySummary tallySummary = mapper.readValue(tallySummaryJson, TallySummary.class);
+        UsageRequest usageRequest = marketplacePayloadMapper.createUsageRequest(tallySummary);
+
+        log.info("usageRequest to be sent: {}", usageRequest);
+
         try {
             return marketplaceProducer.submitUsageRequest(usageRequest).toString();
         }

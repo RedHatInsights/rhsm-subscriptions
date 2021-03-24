@@ -28,17 +28,23 @@ import org.candlepin.subscriptions.db.model.Usage;
 
 import org.springframework.util.StringUtils;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Represents information telling capacity and tally how to handle certain products
  */
+@ToString
+@EqualsAndHashCode
 public class ProductProfile {
     private static final ProductProfile DEFAULT_PROFILE = new ProductProfile("DEFAULT",
         Collections.emptySet(), DAILY);
@@ -61,6 +67,11 @@ public class ProductProfile {
     private Map<String, Set<String>> swatchProductsByRoles;
     private Map<String, Set<String>> swatchProductsByEngProducts;
 
+
+    // there's a card dedicated to putting this value in the product registry yaml (ENT-3610)
+    @Getter
+    @Setter
+    private String metricId = "redhat.com:openshiftdedicated:cpu_hour";
 
     public ProductProfile() {
         // Default used for YAML deserialization
@@ -190,42 +201,4 @@ public class ProductProfile {
         return this.swatchProductsByEngProducts;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ProductProfile that = (ProductProfile) o;
-        return burstable == that.burstable && Objects.equals(name, that.name) &&
-            Objects.equals(products, that.products) && finestGranularity == that.finestGranularity &&
-            Objects.equals(serviceType, that.serviceType) &&
-            defaultSla == that.defaultSla &&
-            defaultUsage == that.defaultUsage &&
-            Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
-            Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
-            Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap) &&
-            Objects.equals(swatchProductsByRoles, that.swatchProductsByRoles) &&
-            Objects.equals(swatchProductsByEngProducts, that.swatchProductsByEngProducts);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(
-            name,
-            products,
-            finestGranularity,
-            serviceType,
-            defaultSla,
-            defaultUsage,
-            burstable,
-            prometheusMetricName,
-            prometheusCounterName,
-            architectureSwatchProductIdMap,
-            swatchProductsByRoles,
-            swatchProductsByEngProducts
-        );
-    }
 }
