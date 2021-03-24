@@ -66,8 +66,10 @@ public class OptInController {
         OffsetDateTime now = clock.now();
 
         Optional<AccountConfig> accountData =
-            createOrUpdateAccountConfig(accountNumber, now, optInType, enableTallySync, enableTallyReporting);
-        Optional<OrgConfig> orgData = createOrUpdateOrgConfig(orgId, now, optInType, enableConduitSync);
+            accountConfigRepository.createOrUpdateAccountConfig(accountNumber, now, optInType,
+            enableTallySync, enableTallyReporting);
+        Optional<OrgConfig> orgData = orgConfigRepository.createOrUpdateOrgConfig(orgId, now, optInType,
+            enableConduitSync);
         return buildDto(
             buildMeta(accountNumber, orgId),
             buildOptInAccountDTO(accountData),
@@ -94,33 +96,6 @@ public class OptInController {
             buildOptInAccountDTO(accountConfigRepository.findById(accountNumber)),
             buildOptInOrgDTO(orgConfigRepository.findById(orgId))
         );
-    }
-
-    private Optional<AccountConfig> createOrUpdateAccountConfig(String account, OffsetDateTime current,
-        OptInType optInType, boolean enableSync, boolean enableReporting) {
-        Optional<AccountConfig> found = accountConfigRepository.findById(account);
-        AccountConfig accountConfig = found.orElse(new AccountConfig(account));
-        if (!found.isPresent()) {
-            accountConfig.setOptInType(optInType);
-            accountConfig.setCreated(current);
-        }
-        accountConfig.setSyncEnabled(enableSync);
-        accountConfig.setReportingEnabled(enableReporting);
-        accountConfig.setUpdated(current);
-        return Optional.of(accountConfigRepository.save(accountConfig));
-    }
-
-    private Optional<OrgConfig> createOrUpdateOrgConfig(String orgId, OffsetDateTime current,
-        OptInType optInType, boolean enableSync) {
-        Optional<OrgConfig> found = orgConfigRepository.findById(orgId);
-        OrgConfig orgConfig = found.orElse(new OrgConfig(orgId));
-        if (!found.isPresent()) {
-            orgConfig.setOptInType(optInType);
-            orgConfig.setCreated(current);
-        }
-        orgConfig.setSyncEnabled(enableSync);
-        orgConfig.setUpdated(current);
-        return Optional.of(orgConfigRepository.save(orgConfig));
     }
 
     private OptInConfig buildDto(OptInConfigMeta meta, OptInConfigDataAccount accountData,

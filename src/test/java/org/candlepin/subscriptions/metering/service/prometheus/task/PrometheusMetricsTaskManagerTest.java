@@ -20,11 +20,12 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
@@ -37,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
+import java.util.Set;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -49,10 +50,10 @@ class PrometheusMetricsTaskManagerTest {
     private TaskQueue queue;
 
     @Mock
-    private AccountListSource accountSource;
+    private TaskQueueProperties queueProperties;
 
     @Mock
-    private TaskQueueProperties queueProperties;
+    private PrometheusAccountSource accountSource;
 
     private PrometheusMetricsTaskManager manager;
 
@@ -83,7 +84,7 @@ class PrometheusMetricsTaskManagerTest {
         OffsetDateTime end = OffsetDateTime.now();
         OffsetDateTime start = end.minusDays(1);
 
-        when(accountSource.syncableAccounts()).thenReturn(Arrays.asList("a1", "a2").stream());
+        when(accountSource.getOpenShiftMarketplaceAccounts(any())).thenReturn(Set.of("a1", "a2"));
         TaskDescriptor account1Task =
             TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", "a1")

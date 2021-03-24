@@ -28,7 +28,10 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -39,7 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+@TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
@@ -48,6 +51,11 @@ public class OrgConfigRepositoryTest {
     @Autowired
     private OrgConfigRepository repository;
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+
+    @BeforeAll
+    void cleanUpDatabase() {
+        repository.deleteAll();
+    }
 
     @Test
     public void saveAndUpdate() {
@@ -87,7 +95,7 @@ public class OrgConfigRepositoryTest {
         repository.delete(toDelete);
         repository.flush();
 
-        assertEquals(0, repository.count());
+        assertTrue(repository.findById(config.getOrgId()).isEmpty());
     }
 
     @Test

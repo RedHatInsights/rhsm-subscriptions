@@ -36,6 +36,11 @@ public class MetricProperties {
     private String metricPromQL;
 
     /**
+     * The PromQL to run when gathering a list of accounts to enable for this metric.
+     */
+    private String enabledAccountPromQL;
+
+    /**
      * How long to wait for results from the query.
      */
     private int queryTimeout = 10000;

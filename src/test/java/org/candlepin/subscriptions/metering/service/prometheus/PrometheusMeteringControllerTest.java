@@ -31,7 +31,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -42,11 +44,14 @@ import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
@@ -71,14 +76,22 @@ class PrometheusMeteringControllerTest {
     @MockBean
     private EventController eventController;
 
+    @MockBean
+    AccountConfigRepository accountConfigRepository;
+
+    @MockBean
+    private PrometheusAccountSource accountSource;
+
     @Autowired
     private PrometheusMetricsProperties props;
 
     @Autowired
-    private PrometheusMeteringController controller;
+    private PrometheusMetricsProperties promProps;
 
     @Autowired
-    private PrometheusMetricsProperties promProps;
+    @Qualifier("openshiftMetricRetryTemplate")
+    RetryTemplate openshiftRetry;
+
 
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
@@ -88,6 +101,13 @@ class PrometheusMeteringControllerTest {
     private final String expectedUsage = "Production";
     private final String expectedRole = "ocm";
 
+    private PrometheusMeteringController controller;
+
+    @BeforeEach
+    void setupTest() {
+        controller = new PrometheusMeteringController(clock, promProps, service,
+            eventController, openshiftRetry, accountConfigRepository);
+    }
     @Test
     void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
         QueryResult errorResponse = new QueryResult();
@@ -121,6 +141,24 @@ class PrometheusMeteringControllerTest {
             clock.startOfHour(start), clock.endOfHour(end),
             props.getOpenshift().getStep(),
             props.getOpenshift().getQueryTimeout());
+    }
+
+    @Test
+    void accountGetsOptedInWhenReportingMetrics() {
+        OffsetDateTime start = clock.now();
+        OffsetDateTime end = start.plusHours(4);
+        QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
+            expectedUsage, List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
+        when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
+
+        controller.collectOpenshiftMetrics(expectedAccount, start, end);
+        verify(service).runRangeQuery(
+            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            clock.startOfHour(start), clock.endOfHour(end),
+            props.getOpenshift().getStep(),
+            props.getOpenshift().getQueryTimeout());
+        verify(accountConfigRepository).createOrUpdateAccountConfig(expectedAccount, clock.now(),
+            OptInType.PROMETHEUS, true, true);
     }
 
     @Test

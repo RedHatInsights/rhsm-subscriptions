@@ -20,11 +20,9 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
-import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
-import org.candlepin.subscriptions.task.TaskManagerException;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
@@ -52,15 +50,15 @@ public class PrometheusMetricsTaskManager {
 
     private TaskQueue queue;
 
-    private AccountListSource accountListSource;
+    private PrometheusAccountSource accountSource;
 
     public PrometheusMetricsTaskManager(TaskQueue queue,
         @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
-        AccountListSource accountListSource) {
+        PrometheusAccountSource accountSource) {
         log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
         this.queue = queue;
         this.topic = queueProps.getTopic();
-        this.accountListSource = accountListSource;
+        this.accountSource = accountSource;
     }
 
     public void updateOpenshiftMetricsForAccount(String account, OffsetDateTime start,
@@ -70,13 +68,10 @@ public class PrometheusMetricsTaskManager {
 
     @Transactional
     public void updateOpenshiftMetricsForAllAccounts(OffsetDateTime start, OffsetDateTime end) {
-        try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
+        try (Stream<String> accountStream = accountSource.getOpenShiftMarketplaceAccounts(end).stream()) {
             log.info("Queuing OpenShift metrics update for all configured accounts.");
             accountStream.forEach(account -> updateOpenshiftMetricsForAccount(account, start, end));
             log.info("Done queuing updates of OpenShift metrics");
-        }
-        catch (AccountListSourceException e) {
-            throw new TaskManagerException("Could not list accounts for OpenShift metrics update.", e);
         }
     }
 

@@ -20,11 +20,14 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -35,4 +38,16 @@ public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
     @Query("select distinct c.orgId from OrgConfig c where c.syncEnabled = TRUE")
     Stream<String> findSyncEnabledOrgs();
 
+    default Optional<OrgConfig> createOrUpdateOrgConfig(String orgId, OffsetDateTime current,
+        OptInType optInType, boolean enableSync) {
+        Optional<OrgConfig> found = findById(orgId);
+        OrgConfig orgConfig = found.orElse(new OrgConfig(orgId));
+        if (!found.isPresent()) {
+            orgConfig.setOptInType(optInType);
+            orgConfig.setCreated(current);
+        }
+        orgConfig.setSyncEnabled(enableSync);
+        orgConfig.setUpdated(current);
+        return Optional.of(save(orgConfig));
+    }
 }

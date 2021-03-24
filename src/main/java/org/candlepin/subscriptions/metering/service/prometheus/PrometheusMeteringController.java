@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -60,15 +62,18 @@ public class PrometheusMeteringController {
     private final ApplicationClock clock;
     private final PrometheusMetricsProperties metricProperties;
     private final RetryTemplate openshiftRetry;
+    private final AccountConfigRepository accountConfigRepo;
 
     public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricsProperties metricProperties,
         PrometheusService service, EventController eventController,
-        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry) {
+        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
+        AccountConfigRepository accountConfigRepo) {
         this.clock = clock;
         this.metricProperties = metricProperties;
         this.prometheusService = service;
         this.eventController = eventController;
         this.openshiftRetry = openshiftRetry;
+        this.accountConfigRepo = accountConfigRepo;
     }
 
     // Suppressing this sonar issue because we need to log plus throw an exception on retry
@@ -88,8 +93,11 @@ public class PrometheusMeteringController {
         OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
         openshiftRetry.execute(context -> {
             try {
-                log.info("Collecting OpenShift metrics");
+                log.info("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
+                accountConfigRepo.createOrUpdateAccountConfig(account, clock.now(), OptInType.PROMETHEUS,
+                    true, true);
 
+                log.info("Collecting OpenShift metrics");
                 QueryResult metricData = prometheusService.runRangeQuery(
                     // Substitute the account number into the query. The query is expected to
                     // contain %s for replacement.
