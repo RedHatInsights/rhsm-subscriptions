@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
-import org.candlepin.subscriptions.db.PostgresTlsDataSourceProperties;
-import org.candlepin.subscriptions.db.PostgresTlsHikariDataSourceFactoryBean;
+import com.zaxxer.hikari.HikariDataSource;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
@@ -51,16 +51,15 @@ public class InventoryDataSourceConfiguration {
     @Bean
     @Validated
     @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service.datasource")
-    public PostgresTlsDataSourceProperties inventoryDataSourceProperties() {
-        return new PostgresTlsDataSourceProperties();
+    public DataSourceProperties inventoryDataSourceProperties() {
+        return new DataSourceProperties();
     }
 
     @Bean(name = "inventoryDataSource")
-    public PostgresTlsHikariDataSourceFactoryBean inventoryDataSource(
-        @Qualifier("inventoryDataSourceProperties") PostgresTlsDataSourceProperties dataSourceProperties) {
-        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
-        factory.setTlsDataSourceProperties(dataSourceProperties);
-        return factory;
+    @ConfigurationProperties("rhsm-subscriptions.inventory-service.datasource.hikari")
+    public HikariDataSource inventoryDataSource(
+        @Qualifier("inventoryDataSourceProperties") DataSourceProperties dataSourceProperties) {
+        return (HikariDataSource) dataSourceProperties.initializeDataSourceBuilder().build();
     }
 
     @Bean(name = "inventoryEntityManagerFactory")

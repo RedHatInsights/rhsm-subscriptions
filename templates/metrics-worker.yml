@@ -67,6 +67,10 @@ parameters:
     value: 150Mi
   - name: PROM_URL
     value: http://localhost:8082
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '25'
 
 objects:
   - apiVersion: v1
@@ -185,6 +189,10 @@ objects:
                     secretKeyRef:
                       name: rhsm-db
                       key: db.name
+                - name: DATABASE_CONNECTION_TIMEOUT_MS
+                  value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+                - name: DATABASE_MAX_POOL_SIZE
+                  value: ${DATABASE_MAX_POOL_SIZE}
                 - name: INVENTORY_DATABASE_HOST
                   valueFrom:
                     secretKeyRef:

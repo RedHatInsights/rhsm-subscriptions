@@ -6,6 +6,9 @@ rhsm-subscriptions:
       password: ${INVENTORY_DATABASE_PASSWORD:insights}
       driver-class-name: org.postgresql.Driver
       platform: postgresql
+      hikari:
+        connection-timeout: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS:30000}
+        maximum-pool-size: ${INVENTORY_DATABASE_MAX_POOL_SIZE:10}
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
   product-profile-registry-resource-location: classpath:product_profile_registry.yaml
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
