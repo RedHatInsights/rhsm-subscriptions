@@ -112,3 +112,8 @@ defaultSla: PREMIUM
 defaultUsage: PRODUCTION
 burstable: false
 architectureSwatchProductIdMap: {}
+marketplaceMetrics:
+  - metricId: redhat.com:openshiftdedicated:cpu_hour
+    uom: Cores
+    swatchProductIds:
+      - OpenShift-dedicated-metrics

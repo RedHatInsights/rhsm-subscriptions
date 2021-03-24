@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.files;
 
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class ProductProfileRegistry {
     // NB: We should use ProductId as the key for type safety but that requires test updates
     private final Map<String, ProductProfile> swatchProductIdToProfileMap;
     private final Map<String, ProductProfile> productProfilesByName;
+    private final Map<ProductUom, String> metricBySwatchProductAndUom;
     private static final ProductProfileRegistry DEFAULT_REGISTRY = new ProductProfileRegistry();
 
     public static ProductProfileRegistry getDefaultRegistry() {
@@ -53,6 +55,7 @@ public class ProductProfileRegistry {
         productProfilesByName = new HashMap<>();
         engProductIdToProfileMap = new HashMap<>();
         swatchProductIdToProfileMap = new HashMap<>();
+        metricBySwatchProductAndUom = new HashMap<>();
     }
 
     // Only classes in this package should have any need to add product profiles
@@ -106,6 +109,8 @@ public class ProductProfileRegistry {
         }
 
         swatchProdIds.forEach(x -> swatchProductIdToProfileMap.put(x, profile));
+
+        metricBySwatchProductAndUom.putAll(profile.getMetricByProductAndUom());
     }
 
     public ProductProfile findProfileForSwatchProductId(String productId) {
@@ -196,5 +201,17 @@ public class ProductProfileRegistry {
                 productId.toString(), productProfile.getFinestGranularity());
             throw new IllegalStateException(msg);
         }
+    }
+
+
+    /**
+     * Look up a metric ID from its swatch profile ID and measurement UOM.
+     *
+     * @param swatchProfileId swatch profile ID
+     * @param uom measurement UOM
+     * @return the metric
+     */
+    public String lookupMetricId(String swatchProfileId, Measurement.Uom uom) {
+        return this.metricBySwatchProductAndUom.get(new ProductUom(swatchProfileId, uom.toString()));
     }
 }

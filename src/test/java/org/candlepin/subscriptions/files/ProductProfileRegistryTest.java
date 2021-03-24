@@ -24,6 +24,7 @@ import static org.candlepin.subscriptions.db.model.Granularity.*;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -69,10 +70,19 @@ class ProductProfileRegistryTest {
             makeRole("os-metrics", Set.of(OPENSHIFT_METRICS)),
             makeRole("ocp", Set.of(OPENSHIFT_DEDICATED_METRICS))
         ));
+
+        ProductProfile p5 = new ProductProfile("p5", Collections.emptySet(), HOURLY);
+
+        p5.setMarketplaceMetrics(Set.of(
+            new MarketplaceMetric("redhat.com:openshiftdedicated:cpu_hour",
+            Measurement.Uom.CORES.toString(), Set.of(OPENSHIFT_DEDICATED_METRICS.toString()))
+        ));
+
         registry.addProductProfile(p1);
         registry.addProductProfile(p2);
         registry.addProductProfile(p3);
         registry.addProductProfile(p4);
+        registry.addProductProfile(p5);
     }
 
     SubscriptionWatchProduct makeId(String engineeringProductId, Set<ProductId> productIds) {
@@ -90,6 +100,7 @@ class ProductProfileRegistryTest {
         role.setSwatchProductIds(swatchProdIds.stream().map(ProductId::toString).collect(Collectors.toSet()));
         return role;
     }
+
     @Test
     void testValidateProductGranularityTooFine() {
         assertThrows(IllegalStateException.class, () -> registry.validateGranularityCompatibility(RHEL,
@@ -118,7 +129,7 @@ class ProductProfileRegistryTest {
 
     @Test
     void testListProfiles() {
-        Set<String> expected = Set.of("p1", "p2", "p3", "p4");
+        Set<String> expected = Set.of("p1", "p2", "p3", "p4", "p5");
         Set<String> actual = registry.listProfiles();
         assertEquals(expected, actual);
     }
@@ -126,7 +137,7 @@ class ProductProfileRegistryTest {
     @Test
     void testGetAllProductProfiles() {
         Set<ProductProfile> profiles = registry.getAllProductProfiles();
-        assertEquals(4, profiles.size());
+        assertEquals(5, profiles.size());
         assertEquals(Set.of(HOURLY, DAILY),
             profiles.stream().map(ProductProfile::getFinestGranularity).collect(Collectors.toSet()));
     }
@@ -195,5 +206,17 @@ class ProductProfileRegistryTest {
             assertTrue(profile.isPresent(), "Profile not found with name: " + n);
             assertEquals(n, profile.get().getName());
         });
+    }
+
+
+    @Test
+    void lookupMetric() {
+        assertEquals("redhat.com:openshiftdedicated:cpu_hour",
+            registry.lookupMetricId("OpenShift-dedicated-metrics", Measurement.Uom.CORES));
+    }
+
+    @Test
+    void lookupMetricNoMapping() {
+        assertNull(registry.lookupMetricId("OpenShift--metrics", Measurement.Uom.CORES));
     }
 }
