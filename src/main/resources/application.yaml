@@ -78,11 +78,14 @@ rhsm-subscriptions:
     org.candlepin.subscriptions.resteasy: ${PATH_PREFIX:api}/${APP_NAME:rhsm-subscriptions}/v1
   product-profile-registry-resource-location: classpath:product_profile_registry.yaml
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true&stringtype=unspecified
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true&stringtype=unspecified&sslmode=${DATABASE_SSL_MODE:disable}&sslrootcert=${DATABASE_SSL_CERT:/dev/null}
     username: ${DATABASE_USERNAME:rhsm-subscriptions}
     password: ${DATABASE_PASSWORD:rhsm-subscriptions}
     driver-class-name: org.postgresql.Driver
     platform: postgresql
+    hikari:
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT_MS:30000}
+      maximum-pool-size: ${DATABASE_MAX_POOL_SIZE:10}
   jobs:
     capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
