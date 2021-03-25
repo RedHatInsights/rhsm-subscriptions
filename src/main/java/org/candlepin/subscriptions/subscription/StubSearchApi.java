@@ -32,7 +32,19 @@ import java.util.List;
 public class StubSearchApi extends SearchApi {
 
     @Override
-    public List<Subscription> searchSubscriptions(String criteria, String options) throws ApiException {
+    public Subscription getSubscriptionById(String id) throws ApiException {
+        return createData();
+    }
+
+    @Override
+    public List<Subscription> searchSubscriptionsByAccountNumber(String accountNumber, Integer index,
+        Integer pageSize) throws ApiException {
+        return Collections.singletonList(createData());
+    }
+
+    @Override
+    public List<Subscription> searchSubscriptionsByOrgId(String orgId, Integer index, Integer pageSize)
+        throws ApiException {
         return Collections.singletonList(createData());
     }
 

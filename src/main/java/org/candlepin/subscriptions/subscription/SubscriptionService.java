@@ -40,16 +40,38 @@ public class SubscriptionService {
     }
 
     /**
+     * Object a subscription model by ID.
+     * @param id the Subscription ID.
+     * @return a subscription model.
+     * @throws ApiException if an error occurs in fulfilling this request.
+     */
+    public Subscription getSubscriptionById(String id) throws ApiException {
+        return searchApi.getSubscriptionById(id);
+    }
+
+    /**
      * Obtain Subscription Service Subscription Models for an orgId.
      * @param accountNumber the account number of the customer. Also refered to as the Oracle account number.
+     * @param index the starting index for results.
+     * @param pageSize the number of results in the page.
      * @return a list of Subscription models.
-     * @throws ApiException if an error occurrs in fulfilling this request.
+     * @throws ApiException if an error occurs in fulfilling this request.
      */
-    public List<Subscription> getSubscriptions(String accountNumber) throws ApiException {
-        String criteria = String.format(
-            "criteria;oracle_account_number=%s;statusList=active;statusList=temporary", accountNumber
-        );
-        String options = "options;products=ALL";
-        return searchApi.searchSubscriptions(criteria, options);
+    public List<Subscription> getSubscriptionsByAccountNumber(String accountNumber, int index, int pageSize)
+        throws ApiException {
+        return searchApi.searchSubscriptionsByAccountNumber(accountNumber, index, pageSize);
+    }
+
+    /**
+     * Obtain Subscription Service Subscription Models for an orgId.
+     * @param orgId the orgId of the customer.
+     * @param index the starting index for results.
+     * @param pageSize the number of results in the page.
+     * @return a list of Subscription models.
+     * @throws ApiException if an error occurs in fulfilling this request.
+     */
+    public List<Subscription> getSubscriptionsByOrgId(String orgId, int index, int pageSize)
+        throws ApiException {
+        return searchApi.searchSubscriptionsByOrgId(orgId, index, pageSize);
     }
 }

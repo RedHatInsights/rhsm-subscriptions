@@ -7,24 +7,86 @@ info:
   version: 1.0.0
 
 paths:
-  /search/{criteria}/{options}:
-    description: "Search based on criteria"
+  /id={id}:
+    description: "Get a subscription by ID"
     parameters:
-    - name: criteria
-      required: true
-      in: path
-      description: "The criteria for searching the data."
-      schema:
-        type: string
-    - name: options
-      required: true
-      in: path
-      description: "The options for response data."
-      schema:
-        type: string
+      - name: id
+        required: true
+        in: path
+        description: "The ID of the subscription entity"
+        schema:
+          type: string
+    get:
+      summary: "Get a single subscription"
+      operationId: "GetSubscriptionById"
+      tags:
+        - search
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+  /search/criteria;oracle_account_number={accountNumber};statusList=active;statusList=temporary/options;products=ALL;firstResultIndex={index};maxResults={pageSize}:
+    description: "Search subscriptions on owner, index, and pageSize"
+    parameters:
+      - name: accountNumber
+        required: true
+        in: path
+        description: "The oracle account number of the organization"
+        schema:
+          type: string
+      - name: index
+        required: true
+        in: path
+        description: "The starting index of results"
+        schema:
+          type: integer
+      - name: pageSize
+        required: true
+        in: path
+        description: "The number of results per page"
+        schema:
+          type: integer
     get:
       summary: "List the requested data"
-      operationId: "SearchSubscriptions"
+      operationId: "SearchSubscriptionsByAccountNumber"
+      tags:
+        - search
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+  /search/criteria;web_customer_id={orgId}/options;products=ALL;isCustomer=false;firstResultIndex={index};maxResults={pageSize}:
+    description: "Search subscriptions on owner, index, and pageSize"
+    parameters:
+      - name: orgId
+        required: true
+        in: path
+        description: "The web customer ID of the org"
+        schema:
+          type: string
+      - name: index
+        required: true
+        in: path
+        description: "The starting index of results"
+        schema:
+          type: integer
+      - name: pageSize
+        required: true
+        in: path
+        description: "The number of results per page"
+        schema:
+          type: integer
+    get:
+      summary: "List the requested data"
+      operationId: "SearchSubscriptionsByOrgId"
       tags:
         - search
       responses:
