@@ -18,38 +18,34 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package org.candlepin.subscriptions.marketplace;
 
+import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
-import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
- * The Subscription Service wrapper for all subscription service interfaces.
+ * Class responsible for communicating with the Marketplace API and fetching the subscription ID.
  */
 @Component
-public class SubscriptionService {
+public class MarketplaceSubscriptionCollector {
+    @SuppressWarnings("java:S1068") // Unused field; Remove after implementing
+    private final MarketplaceApi marketplaceApi;
 
-    private final SearchApi searchApi;
-
-    public SubscriptionService(SearchApi searchApi) {
-        this.searchApi = searchApi;
+    @Autowired
+    public MarketplaceSubscriptionCollector(MarketplaceApi marketplaceApi,
+        MarketplaceProperties properties) {
+        this.marketplaceApi = marketplaceApi;
     }
 
-    /**
-     * Obtain Subscription Service Subscription Models for an orgId.
-     * @param accountNumber the account number of the customer. Also refered to as the Oracle account number.
-     * @return a list of Subscription models.
-     * @throws ApiException if an error occurrs in fulfilling this request.
-     */
-    public List<Subscription> getSubscriptions(String accountNumber) throws ApiException {
-        String criteria = String.format(
-            "criteria;oracle_account_number=%s;statusList=active;statusList=temporary", accountNumber
-        );
-        String options = "options;products=ALL";
-        return searchApi.searchSubscriptions(criteria, options);
+    @SuppressWarnings("java:S1172") // Unused parameters; remove after implementing
+    public List<Subscription> fetchSubscription(String orgId, Key usageKey) {
+        return Collections.emptyList();
     }
 }

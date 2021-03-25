@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.marketplace;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.ParameterizedTest.*;
 import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.files.ProductProfile;
@@ -30,46 +31,52 @@ import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+@ExtendWith(MockitoExtension.class)
 class MarketplacePayloadMapperTest {
 
     @Mock
     ProductProfileRegistry profileRegistry;
     @Mock
     MarketplaceProperties marketplaceProperties;
+    @Mock
+    MarketplaceSubscriptionIdProvider mockProvider;
+
     @InjectMocks
     MarketplacePayloadMapper marketplacePayloadMapper;
 
     @BeforeEach
     void init() {
-
         ProductProfile productProfile = new ProductProfile();
         productProfile.setMetricId("redhat.com:openshiftdedicated:cpu_hour");
-        MockitoAnnotations.openMocks(this);
 
-        when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(productProfile);
-        when(marketplaceProperties.getEligibleSwatchProductIds()).thenReturn(List.of(
+        // Tell Mockito not to complain if some of these mocks aren't used in a particular test
+        lenient().when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(productProfile);
+        lenient().when(marketplaceProperties.getEligibleSwatchProductIds()).thenReturn(List.of(
             ProductId.OPENSHIFT_METRICS.toString(), ProductId.OPENSHIFT_DEDICATED_METRICS.toString()));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @MethodSource("generateHardwareMeasurementPermutations")
     void testProduceUsageMeasurements(
         List<TallyMeasurement> tallyMeasurements, List<UsageMeasurement> expected) {
@@ -116,10 +123,9 @@ class MarketplacePayloadMapperTest {
             .of(physical, virtual, physicalTotal, virtualTotal, physicalVirtual, physicalVirtualTotal);
     }
 
-    @ParameterizedTest(name = "testIsSnapshotPAYGEligible [{index}]")
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @MethodSource("generateIsSnapshotPaygEligibleData")
     void testIsSnapshotPAYGEligible(TallySnapshot snapshot, boolean isEligible) {
-
         boolean actual = marketplacePayloadMapper.isSnapshotPAYGEligible(snapshot);
         assertEquals(isEligible, actual);
     }
@@ -162,6 +168,10 @@ class MarketplacePayloadMapperTest {
     void testProduceUsageEvents() {
         TallyMeasurement physicalCoreMeasurement = new TallyMeasurement()
             .withHardwareMeasurementType("PHYSICAL").withUom(TallyMeasurement.Uom.CORES).withValue(36.0);
+
+        when(mockProvider
+            .findSubscriptionId(any(String.class), any(UsageCalculation.Key.class), any(OffsetDateTime.class),
+                any(OffsetDateTime.class))).thenReturn(Optional.of("DUMMY"));
 
         var snapshotDateLong = 1616100754L;
 

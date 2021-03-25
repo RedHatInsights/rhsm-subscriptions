@@ -38,7 +38,7 @@ import java.util.Collections;
 @ActiveProfiles({"worker", "test"})
 class SubscriptionServiceTest {
     private static final String CRITERIA =
-        "criteria;web_customer_id=123;statusList=active;statusList=temporary";
+        "criteria;oracle_account_number=123;statusList=active;statusList=temporary";
     private static final String OPTIONS = "options;products=ALL";
 
     @MockBean

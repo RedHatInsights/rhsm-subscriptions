@@ -22,26 +22,29 @@ package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
+
+import javax.transaction.Transactional;
 
 /**
  * Update subscriptions from subscription service responses.
  */
 @Component
 public class SubscriptionSyncController {
-
     private final SubscriptionRepository subscriptionRepository;
+    private final ApplicationClock clock;
 
-    public SubscriptionSyncController(SubscriptionRepository subscriptionRepository) {
+    public SubscriptionSyncController(SubscriptionRepository subscriptionRepository, ApplicationClock clock) {
         this.subscriptionRepository = subscriptionRepository;
+        this.clock = clock;
     }
 
+    @Transactional
     public void syncSubscription(Subscription subscription) {
         final Optional<org.candlepin.subscriptions.db.model.Subscription> entity =
             subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
@@ -57,11 +60,16 @@ public class SubscriptionSyncController {
                 newSub.setSubscriptionId(dbSub.getSubscriptionId());
                 newSub.setSku(dbSub.getSku());
                 newSub.setOwnerId(dbSub.getOwnerId());
+                newSub.setAccountNumber(dbSub.getAccountNumber());
                 newSub.setQuantity(subscription.getQuantity());
+
                 newSub.setStartDate(OffsetDateTime.now());
                 if (subscription.getEffectiveEndDate() != null) {
-                    newSub.setEndDate(convertLongTime(subscription.getEffectiveEndDate()));
+                    newSub.setEndDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
                 }
+
+                newSub.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
+
                 subscriptionRepository.save(newSub);
             }
             else {
@@ -74,34 +82,29 @@ public class SubscriptionSyncController {
             final org.candlepin.subscriptions.db.model.Subscription newSub =
                 new org.candlepin.subscriptions.db.model.Subscription();
             newSub.setSubscriptionId(String.valueOf(subscription.getId()));
+            newSub.setAccountNumber(String.valueOf(subscription.getOracleAccountNumber()));
+            newSub.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
+            newSub.setSku(SubscriptionDtoUtil.extractSku(subscription));
             newSub.setQuantity(subscription.getQuantity());
             if (subscription.getEffectiveStartDate() != null) {
-                newSub.setStartDate(convertLongTime(subscription.getEffectiveStartDate()));
+                newSub.setStartDate(clock.dateFromUnix(subscription.getEffectiveStartDate()));
             }
             if (subscription.getEffectiveEndDate() != null) {
-                newSub.setEndDate(convertLongTime(subscription.getEffectiveEndDate()));
+                newSub.setEndDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
             }
             subscriptionRepository.save(newSub);
         }
     }
 
-    private static boolean needNewRecord(Subscription dto,
+    protected static boolean needNewRecord(Subscription dto,
         org.candlepin.subscriptions.db.model.Subscription entity) {
         return dto.getQuantity() != entity.getQuantity();
     }
 
-    private static void updateSubscription(Subscription dto,
+    protected void updateSubscription(Subscription dto,
         org.candlepin.subscriptions.db.model.Subscription entity) {
         if (dto.getEffectiveEndDate() != null) {
-            entity.setEndDate(
-                convertLongTime(dto.getEffectiveEndDate())
-            );
+            entity.setEndDate(clock.dateFromUnix(dto.getEffectiveEndDate()));
         }
-    }
-
-    private static OffsetDateTime convertLongTime(Long time) {
-        return OffsetDateTime.of(LocalDateTime.ofEpochSecond(
-            time, 0, ZoneOffset.UTC),
-            ZoneOffset.UTC);
     }
 }

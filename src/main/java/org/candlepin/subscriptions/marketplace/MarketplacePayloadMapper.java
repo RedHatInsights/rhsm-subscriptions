@@ -42,8 +42,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -55,12 +53,14 @@ public class MarketplacePayloadMapper {
 
     private final ProductProfileRegistry profileRegistry;
     private final MarketplaceProperties marketplaceProperties;
+    private final MarketplaceSubscriptionIdProvider idProvider;
 
     @Autowired
     public MarketplacePayloadMapper(ProductProfileRegistry profileRegistry,
-        MarketplaceProperties marketplaceProperties) {
+        MarketplaceSubscriptionIdProvider idProvider, MarketplaceProperties marketplaceProperties) {
         this.profileRegistry = profileRegistry;
         this.marketplaceProperties = marketplaceProperties;
+        this.idProvider = idProvider;
     }
 
     /**
@@ -148,8 +148,8 @@ public class MarketplacePayloadMapper {
             long start = startDate.toEpochSecond();
             long end = snapshotDate.toEpochSecond();
 
-            var subscriptionIdOpt = findSubscriptionId(tallySummary.getAccountNumber(), usageKey, startDate,
-                snapshotDate);
+            var subscriptionIdOpt = idProvider.findSubscriptionId(
+                tallySummary.getAccountNumber(), usageKey, startDate, snapshotDate);
 
             /*
             The //NOSONAR flag is Suppressing warning java:S2583 - Conditionally executed code should be
@@ -200,15 +200,5 @@ public class MarketplacePayloadMapper {
                 usageMeasurements.add(usageMeasurement);
             });
         return usageMeasurements;
-    }
-
-    private Optional<String> findSubscriptionId(String accountNumber, UsageCalculation.Key usageKey,
-        OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
-
-        log.debug("looking up subscription id for {}, {}, range {} to {}", accountNumber, usageKey,
-            rangeStart, rangeEnd);
-
-        return Optional.of("bananas" + UUID.randomUUID().toString());
-
     }
 }

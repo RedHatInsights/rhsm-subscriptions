@@ -41,6 +41,7 @@
     <include file="liquibase/202101260823-add-measurements-tables.xml" />
     <include file="liquibase/202101291558-modify-hosts-for-non-hbi-sources.xml" />
     <include file="liquibase/202102260917-add-instance-monthly-totals.xml" />
+    <include file="liquibase/202102261751-add-marketplace-subscription-id.xml" />
     <include file="liquibase/202103031601-modify-hosts-instance-id-not-null.xml" />
     <include file="liquibase/202102251446-add-constraints-indexes-fields-to-events.xml" />
 </databaseChangeLog>
