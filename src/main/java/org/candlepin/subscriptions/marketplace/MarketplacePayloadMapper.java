@@ -146,8 +146,8 @@ public class MarketplacePayloadMapper {
              */
             OffsetDateTime startDate = snapshotDate.minus(Duration.of(1, ChronoUnit.HOURS));
 
-            long start = startDate.toEpochSecond();
-            long end = snapshotDate.toEpochSecond();
+            long start = startDate.toInstant().toEpochMilli();
+            long end = snapshotDate.toInstant().toEpochMilli();
 
             var subscriptionIdOpt = idProvider.findSubscriptionId(
                 tallySummary.getAccountNumber(), usageKey, startDate, snapshotDate);
