@@ -39,6 +39,16 @@ parameters:
     value: 1900m
   - name: HOURLY_TALLY_OFFSET
     value: 60m
+  - name: TOKEN_REFRESHER_IMAGE
+    value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
+  - name: TOKEN_REFRESHER_CPU_REQUEST
+    value: 50m
+  - name: TOKEN_REFRESHER_CPU_LIMIT
+    value: 100m
+  - name: TOKEN_REFRESHER_MEMORY_REQUEST
+    value: 128Mi
+  - name: TOKEN_REFRESHER_MEMORY_LIMIT
+    value: 150Mi
 
 objects:
   - apiVersion: batch/v1beta1
@@ -122,6 +132,8 @@ objects:
                         secretKeyRef:
                           name: host-inventory-db-readonly
                           key: db.password
+                    - name: PROM_URL
+                      value: http://localhost:8082
                   resources:
                     requests:
                       cpu: ${CPU_REQUEST}
@@ -130,6 +142,43 @@ objects:
                       cpu: ${CPU_LIMIT}
                       memory: ${MEMORY_LIMIT}
 
+                - name: token-refresher
+                  image: ${TOKEN_REFRESHER_IMAGE}
+                  args:
+                    - '--oidc.audience=observatorium-telemeter'
+                    - '--oidc.client-id=$(CLIENT_ID)'
+                    - '--oidc.client-secret=$(CLIENT_SECRET)'
+                    - '--oidc.issuer-url=$(ISSUER_URL)'
+                    - '--url=$(URL)'
+                    - '--web.listen=:8082'
+                  env:
+                    - name: CLIENT_ID
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: CLIENT_ID
+                    - name: CLIENT_SECRET
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: CLIENT_SECRET
+                    - name: ISSUER_URL
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: ISSUER_URL
+                    - name: URL
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: URL
+                  resources:
+                    requests:
+                      cpu: ${TOKEN_REFRESHER_CPU_REQUEST}
+                      memory: ${TOKEN_REFRESHER_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${TOKEN_REFRESHER_CPU_LIMIT}
+                      memory: ${TOKEN_REFRESHER_MEMORY_LIMIT}
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:
