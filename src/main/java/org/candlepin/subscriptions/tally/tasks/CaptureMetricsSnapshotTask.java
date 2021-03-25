@@ -23,17 +23,12 @@ package org.candlepin.subscriptions.tally.tasks;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.OffsetDateTime;
 
 /**
  * Captures hourly metrics between a given timeframe for a given account
  */
 public class CaptureMetricsSnapshotTask implements Task {
-
-    private static final Logger log = LoggerFactory.getLogger(CaptureMetricsSnapshotTask.class);
 
     private final String accountNumber;
     private final TallySnapshotController snapshotController;
@@ -55,11 +50,6 @@ public class CaptureMetricsSnapshotTask implements Task {
             throw new IllegalArgumentException(
                 "Cannot produce hourly snapshot for account {}.  Invalid date range provided.");
         }
-        log.info("Producing hourly snapshot for account {} between startDateTime {} and endDateTime {}",
-            accountNumber,
-            startDateTime,
-            endDateTime);
-
         snapshotController.produceHourlySnapshotsForAccount(accountNumber, startDateTime, endDateTime);
     }
 }

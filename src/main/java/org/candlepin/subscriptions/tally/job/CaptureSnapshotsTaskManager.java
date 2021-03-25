@@ -124,15 +124,17 @@ public class CaptureSnapshotsTaskManager {
 
     public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
 
-        log.info("Queuing hourly snapshot production for accountNumber {} between {} and {}",
-            accountNumber, startDateTime, endDateTime);
-
         if (!applicationClock.isHourlyRange(
             OffsetDateTime.parse(startDateTime), OffsetDateTime.parse(endDateTime))) {
+            log.error("Hourly snapshot production for accountNumber {} will not be queued. " +
+                "Invalid start/end times specified.", accountNumber);
             throw new IllegalArgumentException(String.format(
-                "Date range must start at top of the hour and end at the bottom of the hour: [%s -> %s]",
+                "Start/End times must be at the top of the hour: [%s -> %s]",
                 startDateTime, endDateTime));
         }
+
+        log.info("Queuing hourly snapshot production for accountNumber {} between {} and {}",
+            accountNumber, startDateTime, endDateTime);
 
         queue.enqueue(TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
             .setSingleValuedArg("accountNumber", accountNumber)

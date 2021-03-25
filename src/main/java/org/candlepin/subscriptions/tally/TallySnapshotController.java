@@ -120,6 +120,8 @@ public class TallySnapshotController {
     @Timed("rhsm-subscriptions.snapshots.single.hourly")
     public void produceHourlySnapshotsForAccount(String accountNumber, OffsetDateTime startDateTime,
         OffsetDateTime endDateTime) {
+        log.info("Producing hourly snapshot for account {} between startDateTime {} and endDateTime {}",
+            accountNumber, startDateTime, endDateTime);
         try {
             var accountCalcs = retryTemplate.execute(
                 context -> metricUsageCollector.collect(accountNumber, startDateTime, endDateTime));
@@ -131,6 +133,7 @@ public class TallySnapshotController {
             combiningRollupSnapshotStrategy
                 .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
                 applicableUsageCalculations, Granularity.HOURLY, Double::sum);
+            log.info("Finished producing hourly snapshots for account: {}", accountNumber);
         }
         catch (Exception e) {
             log.error("Could not collect metrics and/or produce snapshots for account {}", accountNumber, e);
