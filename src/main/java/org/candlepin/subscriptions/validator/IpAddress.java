@@ -18,14 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.validator.ip;
+package org.candlepin.subscriptions.validator;
 
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-import org.candlepin.subscriptions.validator.ip.IpAddress.List;
+import org.candlepin.subscriptions.validator.IpAddress.List;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Repeatable;
