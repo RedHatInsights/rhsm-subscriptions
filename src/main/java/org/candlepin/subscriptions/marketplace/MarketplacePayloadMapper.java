@@ -40,6 +40,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -164,7 +165,8 @@ public class MarketplacePayloadMapper {
             var usageMeasurements = produceUsageMeasurements(snapshot, productId);
 
             UsageEvent event = new UsageEvent().measuredUsage(usageMeasurements).end(end).start(start)
-                .subscriptionId(subscriptionIdOpt.get()).eventId(eventId);
+                .subscriptionId(subscriptionIdOpt.get()).eventId(eventId)
+                .additionalAttributes(Collections.emptyMap());
 
             events.add(event);
 
