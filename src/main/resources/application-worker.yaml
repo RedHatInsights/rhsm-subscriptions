@@ -1,4 +1,7 @@
 rhsm-subscriptions:
+  jmx:
+    tallyBean:
+      hourlyTallyDurationLimitDays: 90d
   inventory-service:
     datasource:
       url: jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:insights}
