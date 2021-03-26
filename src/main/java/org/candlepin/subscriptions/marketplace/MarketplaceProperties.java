@@ -78,9 +78,9 @@ public class MarketplaceProperties extends HttpClientProperties {
     private Double backOffMultiplier;
 
     /**
-     * Have the stub mapper emit empty usage requests (vs. full one) to be removed by ENT-3264
+     * Verify that batches were accepted by Marketplace.
      */
-    private boolean mapperStubEmpty;
+    private boolean verifyBatches = true;
 
     private List<String> eligibleSwatchProductIds = new ArrayList<>();
 

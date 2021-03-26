@@ -8,9 +8,8 @@ rhsm-subscriptions:
     back-off-max-interval: ${MARKETPLACE_BACK_OFF_MAX_INTERVAL:64s}
     back-off-initial-interval: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-multiplier: ${MARKETPLACE_BACK_OFF_MULTIPLIER:2}
-    # temporary; remove once https://issues.redhat.com/browse/ENT-3264 is implemented
-    mapper-stub-empty: ${MARKETPLACE_MAPPER_STUB_EMPTY:true}
     eligible-swatch-product-ids:
       - OpenShift-metrics
       - OpenShift-dedicated-metrics
     dummyId: ${MARKETPLACE_DUMMY_ID:DUMMY}
+    verify-batches: ${MARKETPLACE_VERIFY_BATCHES:true}

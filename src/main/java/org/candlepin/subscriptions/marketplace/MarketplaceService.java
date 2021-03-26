@@ -78,6 +78,7 @@ public class MarketplaceService {
         return api.submitUsageEvents(usageRequest);
     }
 
+    @Timed("rhsm-subscriptions.marketplace.usage.batch-check")
     public StatusResponse getUsageBatchStatus(String batchId) throws ApiException {
         ensureAccessToken();
         return api.getUsageBatchStatus(batchId);
