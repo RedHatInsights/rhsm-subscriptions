@@ -38,8 +38,8 @@ import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -54,7 +54,10 @@ import javax.ws.rs.core.Response;
 public class MarketplaceProducer {
 
     private static final Logger log = LoggerFactory.getLogger(MarketplaceProducer.class);
-    private static final String[] SUCCESSFUL_SUBMISSION_STATUSES = new String[]{"accepted", "inprogress"};
+    public static final String ACCEPTED_STATUS = "accepted";
+    public static final String IN_PROGRESS_STATUS = "inprogress";
+    private static final List<String> SUCCESSFUL_SUBMISSION_STATUSES = List.of(ACCEPTED_STATUS,
+        IN_PROGRESS_STATUS);
 
     private final MarketplaceService marketplaceService;
     private final RetryTemplate retryTemplate;
@@ -110,11 +113,11 @@ public class MarketplaceProducer {
         try {
             StatusResponse response = marketplaceService.getUsageBatchStatus(batchId);
             String status = Objects.requireNonNull(response.getStatus());
-            if ("inprogress".equals(status)) {
+            if (IN_PROGRESS_STATUS.equals(status)) {
                 // throw an exception so that retry logic re-checks the batch
                 throw new MarketplaceUsageSubmissionException(response.getMessage(), status);
             }
-            else if (!"accepted".equals(status)) {
+            else if (!ACCEPTED_STATUS.equals(status)) {
                 log.error("Marketplace rejected batch {} with status {} and message {}", batchId, status,
                     response.getMessage());
                 rejectedCounter.increment();
@@ -138,7 +141,7 @@ public class MarketplaceProducer {
         try {
             StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
             log.debug("Marketplace response: {}", status);
-            if (!Arrays.asList(SUCCESSFUL_SUBMISSION_STATUSES).contains(status.getStatus())) {
+            if (!SUCCESSFUL_SUBMISSION_STATUSES.contains(status.getStatus())) {
                 throw new MarketplaceUsageSubmissionException(status.getStatus(), status.getMessage());
             }
             if (status.getData() != null) {
