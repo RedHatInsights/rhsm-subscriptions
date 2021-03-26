@@ -48,16 +48,18 @@ public class MarketplaceJmxBean {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
 
     private final ApplicationProperties properties;
+    private final MarketplaceProperties mktProperties;
     private final MarketplaceService marketplaceService;
     private final MarketplaceProducer marketplaceProducer;
     private final ObjectMapper mapper;
     private final MarketplacePayloadMapper marketplacePayloadMapper;
 
-    MarketplaceJmxBean(ApplicationProperties properties, MarketplaceService marketplaceService,
-        MarketplaceProducer marketplaceProducer, ObjectMapper mapper,
+    MarketplaceJmxBean(ApplicationProperties properties, MarketplaceProperties mktProperties,
+        MarketplaceService marketplaceService, MarketplaceProducer marketplaceProducer, ObjectMapper mapper,
         MarketplacePayloadMapper marketplacePayloadMapper) {
 
         this.properties = properties;
+        this.mktProperties = mktProperties;
         this.marketplaceService = marketplaceService;
         this.marketplaceProducer = marketplaceProducer;
         this.mapper = mapper;
@@ -72,14 +74,15 @@ public class MarketplaceJmxBean {
     }
 
     @ManagedOperation(description = "Submit tally summary JSON to be converted to a usage event and send to" +
-        " RHM as a UsageRequest (dev-mode only)")
+        " RHM as a UsageRequest (available when enabled " +
+        "via MarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
     @ManagedOperationParameter(name = "tallySummaryJson", description = "String representation of Tally " +
         "Summary json. Don't forget to escape quotation marks if you're trying to invoke this endpoint via " +
         "curl command")
     public String submitTallySummary(String tallySummaryJson)
         throws JsonProcessingException, RhsmJmxException {
-        if (!properties.isDevMode()) {
-            throw new JmxException("Unsupported outside dev-mode");
+        if (!properties.isDevMode() && !mktProperties.isManualMarketplaceSubmissionEnabled()) {
+            throw new JmxException("This feature is not currently enabled.");
         }
 
         TallySummary tallySummary = mapper.readValue(tallySummaryJson, TallySummary.class);

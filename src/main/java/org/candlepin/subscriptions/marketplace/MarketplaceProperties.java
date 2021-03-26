@@ -84,4 +84,9 @@ public class MarketplaceProperties extends HttpClientProperties {
 
     private List<String> eligibleSwatchProductIds = new ArrayList<>();
 
+    /**
+     * Allows manually submitting marketplace tally summary.
+     */
+    private boolean isManualMarketplaceSubmissionEnabled;
+
 }
