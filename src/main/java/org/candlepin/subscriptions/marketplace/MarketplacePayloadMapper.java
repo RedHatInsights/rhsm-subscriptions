@@ -198,9 +198,11 @@ public class MarketplacePayloadMapper {
             .forEach(measurement -> {
                 UsageMeasurement usageMeasurement = new UsageMeasurement();
                 usageMeasurement.setValue(measurement.getValue());
-                usageMeasurement.setMetricId(productProfile.getMetricId());
+                usageMeasurement.setMetricId(
+                    productProfile.metricByProductAndUom(productId, measurement.getUom()));
                 usageMeasurements.add(usageMeasurement);
             });
         return usageMeasurements;
     }
+
 }

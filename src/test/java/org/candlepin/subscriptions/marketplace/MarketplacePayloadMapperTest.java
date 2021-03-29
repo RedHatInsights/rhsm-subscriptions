@@ -24,8 +24,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.ParameterizedTest.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.files.MarketplaceMetric;
 import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -49,6 +51,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -68,7 +71,9 @@ class MarketplacePayloadMapperTest {
     @BeforeEach
     void init() {
         ProductProfile productProfile = new ProductProfile();
-        productProfile.setMetricId("redhat.com:openshiftdedicated:cpu_hour");
+        MarketplaceMetric marketplaceMetric = new MarketplaceMetric("redhat.com:openshiftdedicated:cpu_hour",
+            Measurement.Uom.CORES.toString(), Set.of(ProductId.OPENSHIFT_METRICS.toString()));
+        productProfile.setMarketplaceMetrics(Set.of(marketplaceMetric));
 
         // Tell Mockito not to complain if some of these mocks aren't used in a particular test
         lenient().when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(productProfile);
