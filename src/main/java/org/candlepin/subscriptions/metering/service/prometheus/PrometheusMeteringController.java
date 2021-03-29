@@ -152,7 +152,7 @@ public class PrometheusMeteringController {
 
                         Event event = createOrUpdateEvent(existing, account, clusterId, sla, usage, role,
                             eventDate, eventTermDate, value);
-                        events.put(EventKey.fromEvent(event), event);
+                        events.putIfAbsent(EventKey.fromEvent(event), event);
                     }
                 }
 
