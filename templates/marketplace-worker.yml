@@ -63,6 +63,8 @@ parameters:
     value: DUMMY
   - name: MARKETPLACE_VERIFY_BATCHES
     value: 'true'
+  - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
+    value: 'false'
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
@@ -213,6 +215,8 @@ objects:
                   value: ${MARKETPLACE_DUMMY_ID}
                 - name: MARKETPLACE_VERIFY_BATCHES
                   value: ${MARKETPLACE_VERIFY_BATCHES}
+                - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
+                  value: ${MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
