@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
@@ -30,6 +29,7 @@ import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
@@ -48,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 /**
  * A controller class that defines the business logic related to any metrics that are gathered.
  */
@@ -62,18 +61,18 @@ public class PrometheusMeteringController {
     private final ApplicationClock clock;
     private final PrometheusMetricsProperties metricProperties;
     private final RetryTemplate openshiftRetry;
-    private final AccountConfigRepository accountConfigRepo;
+    private final OptInController optInController;
 
     public PrometheusMeteringController(ApplicationClock clock, PrometheusMetricsProperties metricProperties,
         PrometheusService service, EventController eventController,
         @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
-        AccountConfigRepository accountConfigRepo) {
+        OptInController optInController) {
         this.clock = clock;
         this.metricProperties = metricProperties;
         this.prometheusService = service;
         this.eventController = eventController;
         this.openshiftRetry = openshiftRetry;
-        this.accountConfigRepo = accountConfigRepo;
+        this.optInController = optInController;
     }
 
     // Suppressing this sonar issue because we need to log plus throw an exception on retry
@@ -93,9 +92,8 @@ public class PrometheusMeteringController {
         OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
         openshiftRetry.execute(context -> {
             try {
-                log.info("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
-                accountConfigRepo.createOrUpdateAccountConfig(account, clock.now(), OptInType.PROMETHEUS,
-                    true, true);
+                log.debug("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
+                ensureOptIn(account);
 
                 log.info("Collecting OpenShift metrics");
                 QueryResult metricData = prometheusService.runRangeQuery(
@@ -169,6 +167,15 @@ public class PrometheusMeteringController {
                 throw e;
             }
         });
+    }
+
+    private void ensureOptIn(String account) {
+        try {
+            optInController.optInByAccountNumber(account, OptInType.PROMETHEUS, true, true, true);
+        }
+        catch (Exception e) {
+            log.warn("Error while attempting to automatically opt-in account {}", account, e);
+        }
     }
 
     @SuppressWarnings("java:S107")

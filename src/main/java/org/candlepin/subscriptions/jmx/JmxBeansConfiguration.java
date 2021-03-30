@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.jmx;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.security.OptInController;
+import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -40,7 +41,7 @@ public class JmxBeansConfiguration {
     @Bean
     @ConditionalOnMissingBean(OptInController.class)
     OptInController optInController(ApplicationClock clock, AccountConfigRepository accountConfigRepo,
-        OrgConfigRepository orgConfigRepo) {
-        return new OptInController(clock, accountConfigRepo, orgConfigRepo);
+        OrgConfigRepository orgConfigRepo, AccountService accountService) {
+        return new OptInController(clock, accountConfigRepo, orgConfigRepo, accountService);
     }
 }

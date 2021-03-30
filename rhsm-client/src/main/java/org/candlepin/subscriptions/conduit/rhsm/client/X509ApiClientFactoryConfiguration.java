@@ -22,6 +22,7 @@
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -110,7 +111,7 @@ public class X509ApiClientFactoryConfiguration {
     }
 
     public boolean usesDefaultTruststore() {
-        return getTruststoreFile() == null;
+        return !StringUtils.hasText(getTruststoreFile());
     }
 
     public String toString() {

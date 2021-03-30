@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigData;
@@ -32,13 +33,14 @@ import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataAccount;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataOrg;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigMeta;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-
 
 /**
  * Responsible for all opt-in functionality logic. Provides a means to tie both
@@ -47,17 +49,20 @@ import java.util.Optional;
  */
 @Component
 public class OptInController {
+    private static final Logger log = LoggerFactory.getLogger(OptInController.class);
 
     private AccountConfigRepository accountConfigRepository;
     private OrgConfigRepository orgConfigRepository;
     private ApplicationClock clock;
+    private AccountService accountService;
 
     @Autowired
     public OptInController(ApplicationClock clock, AccountConfigRepository accountConfigRepo,
-        OrgConfigRepository orgConfigRepo) {
+        OrgConfigRepository orgConfigRepo, AccountService accountService) {
         this.clock = clock;
         this.accountConfigRepository = accountConfigRepo;
         this.orgConfigRepository = orgConfigRepo;
+        this.accountService = accountService;
     }
 
     @Transactional
@@ -75,6 +80,28 @@ public class OptInController {
             buildOptInAccountDTO(accountData),
             buildOptInOrgDTO(orgData)
         );
+    }
+
+    @Transactional
+    public void optInByAccountNumber(String accountNumber, OptInType optInType,
+        boolean enableTallySync, boolean enableTallyReporting, boolean enableConduitSync) {
+        if (accountConfigRepository.existsById(accountNumber)) {
+            return;
+        }
+        String orgId = accountService.lookupOrgId(accountNumber);
+        log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
+        optIn(accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+    }
+
+    @Transactional
+    public void optInByOrgId(String orgId, OptInType optInType,
+        boolean enableTallySync, boolean enableTallyReporting, boolean enableConduitSync) {
+        if (orgConfigRepository.existsById(orgId)) {
+            return;
+        }
+        String accountNumber = accountService.lookupAccountNumber(orgId);
+        log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
+        optIn(accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
     }
 
     @Transactional
@@ -96,6 +123,16 @@ public class OptInController {
             buildOptInAccountDTO(accountConfigRepository.findById(accountNumber)),
             buildOptInOrgDTO(orgConfigRepository.findById(orgId))
         );
+    }
+
+    @Transactional
+    public OptInConfig getOptInConfigForAccountNumber(String accountNumber) {
+        return getOptInConfig(accountNumber, accountService.lookupOrgId(accountNumber));
+    }
+
+    @Transactional
+    public OptInConfig getOptInConfigForOrgId(String orgId) {
+        return getOptInConfig(accountService.lookupAccountNumber(orgId), orgId);
     }
 
     private OptInConfig buildDto(OptInConfigMeta meta, OptInConfigDataAccount accountData,
