@@ -71,6 +71,8 @@ parameters:
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
     value: '25'
+  - name: OPENSHIFT_BILLING_MODEL_FILTER
+    value: 'marketplace'
 
 objects:
   - apiVersion: v1
@@ -221,6 +223,8 @@ objects:
                   value: ${CLOUDIGRADE_PORT}
                 - name: PROM_URL
                   value: ${PROM_URL}
+                - name: OPENSHIFT_BILLING_MODEL_FILTER
+                  value: ${OPENSHIFT_BILLING_MODEL_FILTER}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
