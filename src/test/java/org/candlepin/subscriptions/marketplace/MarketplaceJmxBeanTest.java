@@ -20,13 +20,9 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -47,9 +43,6 @@ class MarketplaceJmxBeanTest {
 
     @Test
     void testSubmitTallySummaryEnablement() throws Exception {
-
-        when(producer.submitUsageRequest(any())).thenReturn(new StatusResponse());
-
         ApplicationProperties appProps = new ApplicationProperties();
         MarketplaceProperties mktProps = new MarketplaceProperties();
         MarketplaceJmxBean bean = new MarketplaceJmxBean(appProps, mktProps, service, producer, objMapper,
