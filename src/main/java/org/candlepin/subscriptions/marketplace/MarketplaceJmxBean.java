@@ -79,7 +79,7 @@ public class MarketplaceJmxBean {
     @ManagedOperationParameter(name = "tallySummaryJson", description = "String representation of Tally " +
         "Summary json. Don't forget to escape quotation marks if you're trying to invoke this endpoint via " +
         "curl command")
-    public String submitTallySummary(String tallySummaryJson)
+    public void submitTallySummary(String tallySummaryJson)
         throws JsonProcessingException, RhsmJmxException {
         if (!properties.isDevMode() && !mktProperties.isManualMarketplaceSubmissionEnabled()) {
             throw new JmxException("This feature is not currently enabled.");
@@ -91,7 +91,7 @@ public class MarketplaceJmxBean {
         log.info("usageRequest to be sent: {}", usageRequest);
 
         try {
-            return marketplaceProducer.submitUsageRequest(usageRequest).toString();
+            marketplaceProducer.submitUsageRequest(usageRequest);
         }
         catch (Exception e) {
             log.error("Error submitting usage info via JMX", e);

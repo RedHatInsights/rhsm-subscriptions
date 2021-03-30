@@ -53,9 +53,8 @@ class MarketplaceProducerTest {
         when(marketplaceService.submitUsageEvents(any())).thenThrow(SubscriptionsException.class);
 
         var usageRequest = new UsageRequest();
-        assertThrows(SubscriptionsException.class, () ->
-            marketplaceProducer.submitUsageRequest(usageRequest)
-        );
+
+        marketplaceProducer.submitUsageRequest(usageRequest);
 
         verify(marketplaceService, times(2)).submitUsageEvents(any());
         assertEquals(1.0, rejectedCounter.count());

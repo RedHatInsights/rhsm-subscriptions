@@ -79,7 +79,7 @@ public class MarketplaceProducer {
     }
 
     @Timed("rhsm-subscriptions.marketplace.usage.submission")
-    public StatusResponse submitUsageRequest(UsageRequest usageRequest) {
+    public void submitUsageRequest(UsageRequest usageRequest) {
         try {
             StatusResponse status = retryTemplate.execute(context -> tryRequest(usageRequest));
             Set<String> batchIds = Optional.ofNullable(status.getData()).orElse(Collections.emptyList())
@@ -89,11 +89,12 @@ public class MarketplaceProducer {
             if (properties.isVerifyBatches()) {
                 verifyBatchIds(batchIds);
             }
-            return status;
         }
         catch (Exception e) {
             rejectedCounter.increment();
-            throw e;
+            String snapshotIds = usageRequest.getData().stream().map(UsageEvent::getEventId)
+                .collect(Collectors.joining(","));
+            log.error("Error submitting usage for snapshot IDs: {}", snapshotIds, e);
         }
     }
 
