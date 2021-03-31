@@ -49,7 +49,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,6 +61,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -103,7 +106,22 @@ class HostRepositoryTest {
         Host host7 = createHost("inventory7", "account3");
         addBucketToHost(host7, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, HardwareMeasurementType.VIRTUAL);
 
-        persistHosts(host1, host2, host3, host4, host5, host6, host7);
+        Host host8 = createHost("inventory8", "account123");
+        Host host9 = createHost("inventory9", "account123");
+        Host host10 = createHost("inventory10", "account123");
+
+        host8.addToMonthlyTotal(OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC),
+            Measurement.Uom.CORES, 100.0);
+        host9.addToMonthlyTotal(OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC),
+            Measurement.Uom.CORES, 0.0);
+        host10.addToMonthlyTotal(OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC),
+            Measurement.Uom.CORES, 50.0);
+
+        addBucketToHost(host8, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
+        addBucketToHost(host9, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
+        addBucketToHost(host10, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
+
+        persistHosts(host1, host2, host3, host4, host5, host6, host7, host8, host9, host10);
     }
 
     private void persistHosts(Host ... hosts) {
@@ -476,9 +494,18 @@ class HostRepositoryTest {
     @ParameterizedTest
     @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#instanceSortParams")
     void canSortByInstanceBasedSortMethods(String sort) {
-        Pageable page = PageRequest.of(0, 1, Sort.by(sort));
-        assertNotNull(repo.findAllBy("account123", "product", ServiceLevel._ANY, Usage._ANY, "", 1, 0, null,
-            page));
+
+        Pageable page = PageRequest.of(0, 2, Sort.by(sort));
+        Page<Host> results =
+            repo.findAllBy("account123", "RHEL", ServiceLevel._ANY, Usage._ANY, "", 0, 0, "2021-01", page);
+
+        assertEquals(2, results.getTotalElements());
+
+        if (sort.equals("monthlyTotals")) {
+            List<Host> payload = results.toList();
+            assertEquals(0.0, payload.get(0).getMonthlyTotal("2021-01", Measurement.Uom.CORES));
+            assertEquals(100.0, payload.get(1).getMonthlyTotal("2021-01", Measurement.Uom.CORES));
+        }
     }
 
     static String[] tallyViewSortParams() {
@@ -490,7 +517,7 @@ class HostRepositoryTest {
     @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#tallyViewSortParams")
     void canSortByHostBasedSortMethods(String sort) {
         Pageable page = PageRequest.of(0, 1, Sort.by(sort));
-        assertNotNull(repo.getTallyHostViews("account123", "product", ServiceLevel._ANY, Usage._ANY, "", 1,
+        assertNotNull(repo.getTallyHostViews("account1234", "product", ServiceLevel._ANY, Usage._ANY, "", 1,
             0, page));
     }
 

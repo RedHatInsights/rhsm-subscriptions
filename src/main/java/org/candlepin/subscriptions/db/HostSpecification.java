@@ -65,7 +65,7 @@ public class HostSpecification implements Specification<Host> {
 
         Join<Host, HostTallyBucket> bucketListJoin = root.join(Host_.buckets, JoinType.INNER);
         MapJoin<Host, InstanceMonthlyTotalKey, Double> instanceMonthlyTotalRoot = root
-            .joinMap(Host_.MONTHLY_TOTALS);
+            .joinMap(Host_.MONTHLY_TOTALS, JoinType.LEFT);
 
         List<Predicate> predicates = new ArrayList<>();
 
