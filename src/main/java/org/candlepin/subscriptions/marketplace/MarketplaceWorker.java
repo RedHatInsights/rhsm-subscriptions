@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.marketplace;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
 
+import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -37,11 +39,14 @@ import java.util.Optional;
  * Worker that maps tally summaries and submits them to Marketplace.
  */
 @Service
+@ManagedResource
 public class MarketplaceWorker {
 
     @Getter
     @Setter
     private String topic;
+
+    private volatile boolean skipMessages = false;
 
     private final MarketplaceProducer producer;
     private final MarketplacePayloadMapper marketplacePayloadMapper;
@@ -57,8 +62,16 @@ public class MarketplaceWorker {
     @KafkaListener(id = "marketplace-worker", topics = "#{__listener.topic}",
         containerFactory = "kafkaTallySummaryListenerContainerFactory")
     public void receive(TallySummary tallySummary) {
+        if (skipMessages) {
+            return;
+        }
         Optional.ofNullable(marketplacePayloadMapper.createUsageRequest(tallySummary))
             .filter(s -> !s.getData().isEmpty())
             .ifPresent(producer::submitUsageRequest);
+    }
+
+    @ManagedOperation
+    public void setSkipMessages(boolean value) {
+        this.skipMessages = value;
     }
 }

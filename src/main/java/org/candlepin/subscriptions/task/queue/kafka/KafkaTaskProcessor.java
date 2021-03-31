@@ -30,6 +30,8 @@ import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 
@@ -38,12 +40,15 @@ import io.micrometer.core.annotation.Timed;
 /**
  * Responsible for receiving task messages from Kafka when they become available.
  */
+@ManagedResource
 public class KafkaTaskProcessor implements TaskConsumer {
     private static final Logger log = LoggerFactory.getLogger(KafkaTaskProcessor.class);
 
     private final TaskWorker worker;
     private final String groupId;
     private final String topic;
+
+    private volatile boolean skipMessages = false;
 
     public KafkaTaskProcessor(TaskFactory taskFactory, String groupId, String topic) {
         worker = new TaskWorker(taskFactory);
@@ -55,6 +60,10 @@ public class KafkaTaskProcessor implements TaskConsumer {
         topics = "#{__listener.topic}")
     @Timed("rhsm-subscriptions.task.execution")
     public void receive(TaskMessage taskMessage, Acknowledgment acknowledgment) {
+        if (skipMessages) {
+            acknowledgment.acknowledge();
+            return;
+        }
         try {
             log.info("Message received from kafka: {}", taskMessage);
             worker.executeTask(describe(taskMessage));
@@ -89,5 +98,10 @@ public class KafkaTaskProcessor implements TaskConsumer {
 
     public String getTopic() {
         return topic;
+    }
+
+    @ManagedOperation
+    public void setSkipMessages(boolean value) {
+        this.skipMessages = value;
     }
 }
