@@ -55,7 +55,7 @@ allprojects {
             dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
             dependency "org.webjars:swagger-ui:$swagger_ui_version"
             // NOTE(khowell): please remove this override when https://issues.redhat.com/browse/ENT-3686 is addressed
-            dependency "org.springframework.data:spring-data-jpa:2.4.5"
+            dependency "org.springframework.data:spring-data-jpa:2.4.7"
             dependency "org.webjars:webjars-locator:$webjars_locator_version"
             dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
             dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
