@@ -117,3 +117,5 @@ marketplaceMetrics:
     uom: Cores
     swatchProductIds:
       - OpenShift-dedicated-metrics
+      # NOTE(khowell): remove when https://issues.redhat.com/browse/ENT-3737 is implemented
+      - OpenShift-metrics
