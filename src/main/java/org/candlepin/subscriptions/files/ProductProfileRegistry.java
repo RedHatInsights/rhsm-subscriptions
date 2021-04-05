@@ -45,6 +45,7 @@ public class ProductProfileRegistry {
     private final Map<String, ProductProfile> swatchProductIdToProfileMap;
     private final Map<String, ProductProfile> productProfilesByName;
     private final Map<ProductUom, String> metricBySwatchProductAndUom;
+    private final Map<String, String> swatchProductIdByOfferingProductName;
     private static final ProductProfileRegistry DEFAULT_REGISTRY = new ProductProfileRegistry();
 
     public static ProductProfileRegistry getDefaultRegistry() {
@@ -56,6 +57,7 @@ public class ProductProfileRegistry {
         engProductIdToProfileMap = new HashMap<>();
         swatchProductIdToProfileMap = new HashMap<>();
         metricBySwatchProductAndUom = new HashMap<>();
+        swatchProductIdByOfferingProductName = new HashMap<>();
     }
 
     // Only classes in this package should have any need to add product profiles
@@ -64,6 +66,7 @@ public class ProductProfileRegistry {
             throw new IllegalStateException(String.format("A profile is already registered with name: %s",
                 profile.getName()));
         }
+
         this.productProfilesByName.put(profile.getName(), profile);
 
         Set<SubscriptionWatchProduct> profileProducts = profile.getProducts();
@@ -111,6 +114,8 @@ public class ProductProfileRegistry {
         swatchProdIds.forEach(x -> swatchProductIdToProfileMap.put(x, profile));
 
         metricBySwatchProductAndUom.putAll(profile.getMetricByProductAndUom());
+
+        swatchProductIdByOfferingProductName.putAll(profile.getSwatchProductIdsByOfferingProductName());
     }
 
     public ProductProfile findProfileForSwatchProductId(String productId) {
@@ -203,7 +208,6 @@ public class ProductProfileRegistry {
         }
     }
 
-
     /**
      * Look up a metric ID from its swatch profile ID and measurement UOM.
      *
@@ -213,5 +217,15 @@ public class ProductProfileRegistry {
      */
     public String lookupMetricId(String swatchProfileId, Measurement.Uom uom) {
         return this.metricBySwatchProductAndUom.get(new ProductUom(swatchProfileId, uom.toString()));
+    }
+
+    /**
+     * Look up a product ID by its offering product name
+     *
+     * @param offeringProductName the offering (often OpenShift) product name
+     * @return the product ID
+     */
+    public String getProductIdByOfferingProductName(String offeringProductName) {
+        return this.swatchProductIdByOfferingProductName.get(offeringProductName);
     }
 }
