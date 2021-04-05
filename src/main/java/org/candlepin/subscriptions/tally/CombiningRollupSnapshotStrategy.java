@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,9 +81,9 @@ public class CombiningRollupSnapshotStrategy {
      * @param reductionFunction how to reduce the set of lower granularity snapshots its higher granularity
      */
     @Transactional
-    public void produceSnapshotsFromCalculations(String accountNumber, OffsetDateTime startDateTime,
-        OffsetDateTime endDateTime, Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
-        Granularity finestGranularity, DoubleBinaryOperator reductionFunction) {
+    public void produceSnapshotsFromCalculations(String accountNumber,
+        Map<OffsetDateTime, AccountUsageCalculation> accountCalcs, Granularity finestGranularity,
+        DoubleBinaryOperator reductionFunction) {
 
         if (accountCalcs.isEmpty()) {
             // nothing to do here, return early
@@ -96,8 +97,9 @@ public class CombiningRollupSnapshotStrategy {
         Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots = new HashMap<>();
         Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots = new HashMap<>();
 
-        catalogExistingSnapshots(accountNumber, startDateTime, endDateTime, totalExistingSnapshots,
-            derivedExistingSnapshots, swatchProductIds);
+        DateRange reportRange = DateRange.from(accountCalcs.keySet());
+        catalogExistingSnapshots(accountNumber, reportRange.getStartDate(), reportRange.getEndDate(),
+            totalExistingSnapshots, derivedExistingSnapshots, swatchProductIds);
 
         List<TallySnapshot> finestGranularitySnapshots = produceFinestGranularitySnapshots(
             totalExistingSnapshots, accountCalcs, finestGranularity);
@@ -148,7 +150,13 @@ public class CombiningRollupSnapshotStrategy {
                 .getOrDefault(accountNumber, Collections.emptyList());
 
             existingSnapshots
-                .forEach(snap -> totalExistingSnapshots.put(new TallySnapshotNaturalKey(snap), snap));
+                .forEach(snap -> {
+                    TallySnapshotNaturalKey key = new TallySnapshotNaturalKey(snap);
+                    if (totalExistingSnapshots.containsKey(key)) {
+                        log.warn("A snapshot with this key already exists. {}", snap);
+                    }
+                    totalExistingSnapshots.put(key, snap);
+                });
 
             if (granularityWillBeRolledUp) {
                 derivedExistingSnapshots.putAll(existingSnapshots.stream()

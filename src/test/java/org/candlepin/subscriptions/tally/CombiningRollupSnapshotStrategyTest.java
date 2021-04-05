@@ -79,8 +79,6 @@ class CombiningRollupSnapshotStrategyTest {
         AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
         AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations("account123",
-            OffsetDateTime.parse("2021-02-25T11:00:00Z"),
-            OffsetDateTime.parse("2021-02-25T14:00:00Z"),
             Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), noonUsage,
             OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Granularity.HOURLY, Double::sum);
 
@@ -114,8 +112,6 @@ class CombiningRollupSnapshotStrategyTest {
         AccountUsageCalculation day1Usage = createAccountUsageCalculation(usageKey, 4.0);
         AccountUsageCalculation day2Usage = createAccountUsageCalculation(usageKey, 3.0);
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations("account123",
-            hourlyTimestamp1,
-            hourlyTimestamp2,
             Map.of(hourlyTimestamp1, day1Usage, hourlyTimestamp2, day2Usage), Granularity.HOURLY,
             Double::sum);
 
@@ -157,8 +153,6 @@ class CombiningRollupSnapshotStrategyTest {
         AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
         AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations("account123",
-            OffsetDateTime.parse("2021-02-25T11:00:00Z"),
-            OffsetDateTime.parse("2021-02-25T14:00:00Z"),
             Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), noonUsage,
             OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Granularity.HOURLY, Double::sum);
 
@@ -192,8 +186,6 @@ class CombiningRollupSnapshotStrategyTest {
         AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
 
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations("account123",
-            OffsetDateTime.parse("2021-02-25T11:00:00Z"),
-            OffsetDateTime.parse("2021-02-25T14:00:00Z"),
             Map.of(OffsetDateTime.parse("2021-02-25T12:00:00Z"), noonUsage,
             OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage), Granularity.HOURLY, Double::sum);
 
