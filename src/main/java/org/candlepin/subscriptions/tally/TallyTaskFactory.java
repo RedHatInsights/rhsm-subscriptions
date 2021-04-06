@@ -27,21 +27,37 @@ import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.time.OffsetDateTime;
+import java.lang.reflect.Constructor;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Validator;
+import javax.validation.executable.ExecutableValidator;
 
 /**
  * A class responsible for a TaskDescriptor into actual Task instances. Task instances are build via the
  * build(TaskDescriptor) method. The type of Task that will be built is determined by the descriptor's
  * TaskType property.
  */
-
+@Component
 public class TallyTaskFactory implements TaskFactory {
+    private static final Logger log = LoggerFactory.getLogger(TallyTaskFactory.class);
+    private final TallySnapshotController snapshotController;
+    private final ExecutableValidator validator;
 
     @Autowired
-    private TallySnapshotController snapshotController;
+    public TallyTaskFactory(Validator validator, TallySnapshotController snapshotController) {
+        this.validator = validator.forExecutables();
+        this.snapshotController = snapshotController;
+    }
 
     /**
      * Builds a Task instance based on the specified TaskDescriptor.
@@ -63,10 +79,23 @@ public class TallyTaskFactory implements TaskFactory {
             String startDateTime = taskDescriptor.getArg("startDateTime").get(0);
             String endDateTime = taskDescriptor.getArg("endDateTime").get(0);
 
-            OffsetDateTime from = OffsetDateTime.parse(startDateTime);
-            OffsetDateTime to = OffsetDateTime.parse(endDateTime);
+            // CaptureMetricsSnapshotTask is not a Spring managed bean, so we have to invoke the validator
+            // ourselves. This code relies on the CaptureMetricSnapshotTask only having one constructor.
+            Constructor<?> ctor = CaptureMetricsSnapshotTask.class.getConstructors()[0];
+            Object[] args = new Object[] { snapshotController, accountNumber, startDateTime, endDateTime };
+            Set<? extends ConstraintViolation<?>> constraintViolations = validator
+                .validateConstructorParameters(ctor, args);
 
-            return new CaptureMetricsSnapshotTask(snapshotController, accountNumber, from, to);
+            if (constraintViolations.isEmpty()) {
+                return new CaptureMetricsSnapshotTask(snapshotController, accountNumber, startDateTime,
+                    endDateTime);
+            }
+            else {
+                String message = constraintViolations.stream().map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining("; "));
+                log.error("CaptureMetricsSnapshotTask failed validation: {}", message);
+                throw new ConstraintViolationException(constraintViolations);
+            }
         }
 
         throw new IllegalArgumentException("Could not build task. Unknown task type: " +

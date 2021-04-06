@@ -132,11 +132,6 @@ public class TallyWorkerConfiguration {
     }
 
     @Bean
-    TallyTaskFactory taskFactory() {
-        return new TallyTaskFactory();
-    }
-
-    @Bean
     @Qualifier("tallyTaskConsumer")
     public TaskConsumer taskProcessor(
         @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties,
