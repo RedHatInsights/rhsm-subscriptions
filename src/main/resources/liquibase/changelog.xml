@@ -44,5 +44,6 @@
     <include file="liquibase/202102261751-add-marketplace-subscription-id.xml" />
     <include file="liquibase/202103031601-modify-hosts-instance-id-not-null.xml" />
     <include file="liquibase/202102251446-add-constraints-indexes-fields-to-events.xml" />
+    <include file="liquibase/202104051823-add-constraints-to-tally-snapshots.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
