@@ -20,7 +20,11 @@
  */
 package org.candlepin.subscriptions.task;
 
+import java.time.OffsetDateTime;
+import lombok.Data;
+
 /** Settings particular to the task queue framework. */
+@Data
 public class TaskQueueProperties {
 
   private String kafkaGroupId;
@@ -29,27 +33,7 @@ public class TaskQueueProperties {
 
   private int executorTaskQueueThreadLimit = 20;
 
-  public int getExecutorTaskQueueThreadLimit() {
-    return executorTaskQueueThreadLimit;
-  }
+  private OffsetDateTime seekOverrideTimestamp = null;
 
-  public void setExecutorTaskQueueThreadLimit(int executorTaskQueueThreadLimit) {
-    this.executorTaskQueueThreadLimit = executorTaskQueueThreadLimit;
-  }
-
-  public String getKafkaGroupId() {
-    return kafkaGroupId;
-  }
-
-  public void setKafkaGroupId(String kafkaGroupId) {
-    this.kafkaGroupId = kafkaGroupId;
-  }
-
-  public String getTopic() {
-    return topic;
-  }
-
-  public void setTopic(String topic) {
-    this.topic = topic;
-  }
+  private boolean seekOverrideEnd = false;
 }

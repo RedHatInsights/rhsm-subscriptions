@@ -24,32 +24,30 @@ import io.micrometer.core.annotation.Timed;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskExecutionException;
 import org.candlepin.subscriptions.task.TaskFactory;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.TaskWorker;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.Acknowledgment;
 
 /** Responsible for receiving task messages from Kafka when they become available. */
-public class KafkaTaskProcessor implements TaskConsumer {
+public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskConsumer {
   private static final Logger log = LoggerFactory.getLogger(KafkaTaskProcessor.class);
 
   private final TaskWorker worker;
-  private final String groupId;
-  private final String topic;
 
-  public KafkaTaskProcessor(TaskFactory taskFactory, String groupId, String topic) {
+  public KafkaTaskProcessor(TaskFactory taskFactory, TaskQueueProperties taskQueueProperties) {
+    super(taskQueueProperties);
     worker = new TaskWorker(taskFactory);
-    this.groupId = groupId;
-    this.topic = topic;
   }
 
   @KafkaListener(id = "#{__listener.groupId}", topics = "#{__listener.topic}")
   @Timed("rhsm-subscriptions.task.execution")
-  public void receive(TaskMessage taskMessage, Acknowledgment acknowledgment) {
+  public void receive(TaskMessage taskMessage) {
     try {
       log.info("Message received from kafka: {}", taskMessage);
       worker.executeTask(describe(taskMessage));
@@ -57,11 +55,6 @@ public class KafkaTaskProcessor implements TaskConsumer {
       // If a task fails to execute for any reason, it is logged and will
       // not get retried.
       log.error("Failed to execute task: {}", taskMessage, e);
-    } finally {
-      // We always ack the message regardless of if there are failures.
-      // There is no need to retry the message on failure since the task
-      // can either be manually re-triggered or will run on the next schedule.
-      acknowledgment.acknowledge();
     }
   }
 
@@ -74,13 +67,5 @@ public class KafkaTaskProcessor implements TaskConsumer {
       throw new TaskExecutionException(
           String.format("Unknown TaskType received from message: %s", message.getType()));
     }
-  }
-
-  public String getGroupId() {
-    return groupId;
-  }
-
-  public String getTopic() {
-    return topic;
   }
 }

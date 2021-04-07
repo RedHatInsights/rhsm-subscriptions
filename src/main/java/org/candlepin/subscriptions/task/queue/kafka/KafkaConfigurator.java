@@ -101,8 +101,8 @@ public class KafkaConfigurator {
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
 
-    // Task message offsets will be manually committed as soon as the message has been acked.
-    factory.getContainerProperties().setAckMode(AckMode.MANUAL_IMMEDIATE);
+    // commit the offset automatically after the listener method finishes
+    factory.getContainerProperties().setAckMode(AckMode.RECORD);
     return factory;
   }
 

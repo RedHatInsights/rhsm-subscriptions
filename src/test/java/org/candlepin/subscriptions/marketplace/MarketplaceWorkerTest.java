@@ -24,10 +24,10 @@ import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,7 +37,7 @@ class MarketplaceWorkerTest {
 
   @Test
   void testWorkerCallsProduceForNonEmptyPayload() {
-    ApplicationProperties properties = new ApplicationProperties();
+    TaskQueueProperties properties = new TaskQueueProperties();
     MarketplaceProducer producer = mock(MarketplaceProducer.class);
     MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
     var worker = new MarketplaceWorker(properties, producer, payloadMapper);
@@ -52,7 +52,7 @@ class MarketplaceWorkerTest {
 
   @Test
   void testWorkerSkipsEmptyPayloads() {
-    ApplicationProperties properties = new ApplicationProperties();
+    TaskQueueProperties properties = new TaskQueueProperties();
     MarketplaceProducer producer = mock(MarketplaceProducer.class);
     MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
     var worker = new MarketplaceWorker(properties, producer, payloadMapper);
@@ -67,7 +67,7 @@ class MarketplaceWorkerTest {
 
   @Test
   void testWorkerSkipsNullPayloads() {
-    ApplicationProperties properties = new ApplicationProperties();
+    TaskQueueProperties properties = new TaskQueueProperties();
     MarketplaceProducer producer = mock(MarketplaceProducer.class);
     MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
     var worker = new MarketplaceWorker(properties, producer, payloadMapper);

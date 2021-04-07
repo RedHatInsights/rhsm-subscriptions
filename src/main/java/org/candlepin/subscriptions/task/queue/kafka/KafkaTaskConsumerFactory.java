@@ -30,7 +30,6 @@ public class KafkaTaskConsumerFactory implements TaskConsumerFactory<KafkaTaskPr
   public KafkaTaskProcessor createTaskConsumer(
       TaskFactory taskFactory, TaskQueueProperties taskQueueProperties) {
 
-    return new KafkaTaskProcessor(
-        taskFactory, taskQueueProperties.getKafkaGroupId(), taskQueueProperties.getTopic());
+    return new KafkaTaskProcessor(taskFactory, taskQueueProperties);
   }
 }

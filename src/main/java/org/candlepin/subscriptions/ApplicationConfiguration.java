@@ -44,15 +44,19 @@ import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureHourlySnapshotsConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -81,6 +85,13 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   ApplicationProperties applicationProperties() {
     return new ApplicationProperties();
+  }
+
+  @Bean
+  @Qualifier("marketplaceTasks")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.marketplace-tasks")
+  TaskQueueProperties tallySummaryQueueProperties() {
+    return new TaskQueueProperties();
   }
 
   @Bean

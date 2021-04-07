@@ -55,7 +55,7 @@ import org.springframework.retry.annotation.EnableRetry;
 @ComponentScan(basePackages = "org.candlepin.subscriptions.conduit")
 public class ConduitConfiguration {
   @Bean
-  TaskConsumer taskConsumer(
+  TaskConsumer conduitTaskProcessor(
       TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
       ConduitTaskFactory conduitTaskFactory,
       @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
