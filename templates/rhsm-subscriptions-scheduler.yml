@@ -37,6 +37,21 @@ parameters:
     value: 500m
   - name: CPU_LIMIT
     value: 1900m
+  - name: HOURLY_TALLY_OFFSET
+    value: 60m
+  - name: TOKEN_REFRESHER_IMAGE
+    value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
+  - name: TOKEN_REFRESHER_CPU_REQUEST
+    value: 50m
+  - name: TOKEN_REFRESHER_CPU_LIMIT
+    value: 100m
+  - name: TOKEN_REFRESHER_MEMORY_REQUEST
+    value: 128Mi
+  - name: TOKEN_REFRESHER_MEMORY_LIMIT
+    value: 150Mi
+  # TODO: this should be removed once OCM has non-standard billing_model clusters
+  - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
+    value: "group(min_over_time(subscription_labels{ebs_account != '', billing_model='standard'}[1h])) by (ebs_account)"
 
 objects:
   - apiVersion: batch/v1beta1
@@ -73,6 +88,8 @@ objects:
                       value: ${KAFKA_BOOTSTRAP_HOST}
                     - name: OPENSHIFT_METERING_RANGE
                       value: ${OPENSHIFT_METERING_RANGE}
+                    - name: HOURLY_TALLY_OFFSET
+                      value: ${HOURLY_TALLY_OFFSET}
                     - name: DATABASE_HOST
                       valueFrom:
                         secretKeyRef:
@@ -118,6 +135,11 @@ objects:
                         secretKeyRef:
                           name: host-inventory-db-readonly
                           key: db.password
+                    - name: PROM_URL
+                      value: http://localhost:8082
+                    # TODO remove once non-standard billing_model lands in OCM
+                    - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
+                      value: ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL}
                   resources:
                     requests:
                       cpu: ${CPU_REQUEST}
@@ -126,6 +148,43 @@ objects:
                       cpu: ${CPU_LIMIT}
                       memory: ${MEMORY_LIMIT}
 
+                - name: token-refresher
+                  image: ${TOKEN_REFRESHER_IMAGE}
+                  args:
+                    - '--oidc.audience=observatorium-telemeter'
+                    - '--oidc.client-id=$(CLIENT_ID)'
+                    - '--oidc.client-secret=$(CLIENT_SECRET)'
+                    - '--oidc.issuer-url=$(ISSUER_URL)'
+                    - '--url=$(URL)'
+                    - '--web.listen=:8082'
+                  env:
+                    - name: CLIENT_ID
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: CLIENT_ID
+                    - name: CLIENT_SECRET
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: CLIENT_SECRET
+                    - name: ISSUER_URL
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: ISSUER_URL
+                    - name: URL
+                      valueFrom:
+                        secretKeyRef:
+                          name: token-refresher
+                          key: URL
+                  resources:
+                    requests:
+                      cpu: ${TOKEN_REFRESHER_CPU_REQUEST}
+                      memory: ${TOKEN_REFRESHER_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${TOKEN_REFRESHER_CPU_LIMIT}
+                      memory: ${TOKEN_REFRESHER_MEMORY_LIMIT}
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:

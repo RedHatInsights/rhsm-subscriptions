@@ -20,18 +20,14 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -42,17 +38,22 @@ import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.retry.backoff.NoBackOffPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -71,14 +72,22 @@ class PrometheusMeteringControllerTest {
     @MockBean
     private EventController eventController;
 
+    @MockBean
+    AccountConfigRepository accountConfigRepository;
+
+    @MockBean
+    private PrometheusAccountSource accountSource;
+
     @Autowired
     private PrometheusMetricsProperties props;
 
     @Autowired
-    private PrometheusMeteringController controller;
+    private PrometheusMetricsProperties promProps;
 
     @Autowired
-    private PrometheusMetricsProperties promProps;
+    @Qualifier("openshiftMetricRetryTemplate")
+    RetryTemplate openshiftRetry;
+
 
     private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
@@ -88,6 +97,14 @@ class PrometheusMeteringControllerTest {
     private final String expectedUsage = "Production";
     private final String expectedRole = "ocm";
 
+    private PrometheusMeteringController controller;
+
+    @BeforeEach
+    void setupTest() {
+        openshiftRetry.setBackOffPolicy(new NoBackOffPolicy());
+        controller = new PrometheusMeteringController(clock, promProps, service,
+            eventController, openshiftRetry, accountConfigRepository);
+    }
     @Test
     void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
         QueryResult errorResponse = new QueryResult();
@@ -121,6 +138,24 @@ class PrometheusMeteringControllerTest {
             clock.startOfHour(start), clock.endOfHour(end),
             props.getOpenshift().getStep(),
             props.getOpenshift().getQueryTimeout());
+    }
+
+    @Test
+    void accountGetsOptedInWhenReportingMetrics() {
+        OffsetDateTime start = clock.now();
+        OffsetDateTime end = start.plusHours(4);
+        QueryResult data = buildOpenShiftClusterQueryResult(expectedAccount, expectedClusterId, expectedSla,
+            expectedUsage, List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
+        when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
+
+        controller.collectOpenshiftMetrics(expectedAccount, start, end);
+        verify(service).runRangeQuery(
+            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            clock.startOfHour(start), clock.endOfHour(end),
+            props.getOpenshift().getStep(),
+            props.getOpenshift().getQueryTimeout());
+        verify(accountConfigRepository).createOrUpdateAccountConfig(expectedAccount, clock.now(),
+            OptInType.PROMETHEUS, true, true);
     }
 
     @Test
@@ -242,6 +277,84 @@ class PrometheusMeteringControllerTest {
 
         assertEquals(1, purgeCaptor.getValue().size());
         assertTrue(purgeCaptor.getValue().contains(purgedEvent));
+    }
+
+    @Test
+    void verifyConflictingSlaCausesSavesFirstValue() {
+        QueryResultDataResult standardResultItem = new QueryResultDataResult()
+            .putMetricItem("_id", expectedClusterId)
+            .putMetricItem("support", "Standard")
+            .putMetricItem("usage", "Production")
+            .putMetricItem("role", "osd")
+            .putMetricItem("ebs_account", expectedAccount)
+            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
+        QueryResultDataResult premiumResultItem = new QueryResultDataResult()
+            .putMetricItem("_id", expectedClusterId)
+            .putMetricItem("support", "Standard")
+            .putMetricItem("usage", "Production")
+            .putMetricItem("role", "osd")
+            .putMetricItem("ebs_account", expectedAccount)
+            .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
+        QueryResultData queryResultData = new QueryResultData()
+            .addResultItem(standardResultItem)
+            .addResultItem(premiumResultItem);
+        QueryResult data = new QueryResult()
+            .data(queryResultData);
+
+        when(service.runRangeQuery(
+            eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
+            any(), any(), any(), any())).thenReturn(data);
+
+        OffsetDateTime start = clock.startOfCurrentHour();
+        OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+
+        Event updatedEvent = MeteringEventFactory.openShiftClusterCores(expectedAccount, expectedClusterId,
+            "Standard", expectedUsage, expectedRole,
+            clock.dateFromUnix(1616787308L).minusSeconds(props.getOpenshift().getStep()),
+            clock.dateFromUnix(1616787308L),
+            4.0);
+
+        var eventId = UUID.randomUUID();
+        updatedEvent.setEventId(eventId);
+
+        List<Event> expectedEvents = List.of(updatedEvent);
+
+        var existingEvent = MeteringEventFactory
+            .openShiftClusterCores(expectedAccount, expectedClusterId, expectedSla, expectedUsage,
+            expectedRole, updatedEvent.getTimestamp(), updatedEvent.getExpiration().get(), 144.4);
+        existingEvent.setEventId(eventId);
+        List<Event> existingEvents = List.of(
+            // This event will get updated by the incoming data from prometheus.
+            existingEvent
+        );
+        when(eventController.mapEventsInTimeRange(expectedAccount,
+            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
+            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+            start.minusSeconds(promProps.getOpenshift().getStep()),
+            end.minusSeconds(promProps.getOpenshift().getStep())
+        ))
+            .thenReturn(existingEvents.stream().collect(Collectors.toMap(
+            EventKey::fromEvent, Function.identity())));
+
+        var saveCaptor = ArgumentCaptor.forClass(Collection.class);
+        doNothing().when(eventController).saveAll(saveCaptor.capture());
+
+        var purgeCaptor = ArgumentCaptor.forClass(Collection.class);
+        doNothing().when(eventController).deleteEvents(purgeCaptor.capture());
+
+        controller.collectOpenshiftMetrics(expectedAccount, start, end);
+
+        verify(service).runRangeQuery(
+            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            start, end, props.getOpenshift().getStep(),
+            props.getOpenshift().getQueryTimeout());
+        verify(eventController).saveAll(any());
+
+        // Attempted to verify the eventController calls below, but
+        // couldn't find a way to get mockito to match on collection of HashMap.Value.
+        // Using a capture works just as well, but is a less convenient.
+        assertEquals(expectedEvents.size(), saveCaptor.getValue().size());
+        assertTrue(saveCaptor.getValue().containsAll(expectedEvents));
     }
 
     private QueryResult buildOpenShiftClusterQueryResult(String account, String clusterId, String sla,

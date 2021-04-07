@@ -224,4 +224,9 @@ public class ApplicationClock {
                 throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
         }
     }
+
+    public boolean isHourlyRange(OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
+        return startDateTime.isEqual(startOfHour(startDateTime)) &&
+            endDateTime.isEqual(startOfHour(endDateTime));
+    }
 }

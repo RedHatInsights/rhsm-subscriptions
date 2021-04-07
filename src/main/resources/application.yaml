@@ -42,6 +42,7 @@ spring:
       - rhsm-conduit
       - worker
       - openshift-metering-worker
+      - marketplace
       - kafka-queue
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
@@ -77,16 +78,19 @@ rhsm-subscriptions:
     org.candlepin.subscriptions.resteasy: ${PATH_PREFIX:api}/${APP_NAME:rhsm-subscriptions}/v1
   product-profile-registry-resource-location: classpath:product_profile_registry.yaml
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true&stringtype=unspecified
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true&stringtype=unspecified&sslmode=${DATABASE_SSL_MODE:disable}&sslrootcert=${DATABASE_SSL_CERT:/dev/null}
     username: ${DATABASE_USERNAME:rhsm-subscriptions}
     password: ${DATABASE_PASSWORD:rhsm-subscriptions}
     driver-class-name: org.postgresql.Driver
     platform: postgresql
+    hikari:
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT_MS:30000}
+      maximum-pool-size: ${DATABASE_MAX_POOL_SIZE:10}
   jobs:
-    capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
-    purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0/5 * * * ?}
+    capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
+    purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     metering:
-      openshift-metering-schedule: ${METERING_SCHEDULE:0 0 * ? * *}
+      openshift-metering-schedule: ${METERING_SCHEDULE:0 0 1 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   tasks:
     topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}
@@ -94,9 +98,19 @@ rhsm-subscriptions:
   # Base path override for reverse proxy support
   hawtio-base-path: ${HAWTIO_BASE_PATH:}
   metering:
+    prometheus:
+      client:
+        token: ${PROM_AUTH_TOKEN:}
+        url: ${PROM_URL:https://localhost/api/v1}
+      metric:
+        openshift:
+          enabledAccountPromQL: >-
+            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(subscription_labels{ebs_account != '', billing_model='marketplace'}[1h]))
+            by (ebs_account)}
     openshift:
       tasks:
         topic: ${OPENSHIFT_METERING_TASK_TOPIC:platform.rhsm-subscriptions.openshift-metering-tasks}
         kafka-group-id: ${OPENSHIFT_METERING_TASK_GROUP_ID:openshift-metering-task-processor}
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:4h}
+  hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:24h}

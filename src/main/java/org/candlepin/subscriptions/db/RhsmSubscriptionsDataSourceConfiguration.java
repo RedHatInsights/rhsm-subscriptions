@@ -25,7 +25,10 @@ import org.candlepin.subscriptions.tally.files.FileAccountSyncListSource;
 import org.candlepin.subscriptions.tally.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
@@ -59,18 +62,17 @@ public class RhsmSubscriptionsDataSourceConfiguration {
     @Validated
     @Primary
     @ConfigurationProperties("rhsm-subscriptions.datasource")
-    public PostgresTlsDataSourceProperties rhsmDataSourceProperties() {
-        return new PostgresTlsDataSourceProperties();
+    public DataSourceProperties rhsmDataSourceProperties() {
+        return new DataSourceProperties();
     }
 
     @Bean(name = "rhsmSubscriptionsDataSource")
+    @ConfigurationProperties("rhsm-subscriptions.datasource.hikari")
     @Primary
-    public PostgresTlsHikariDataSourceFactoryBean rhsmSubscriptionsDataSource(
-        @Qualifier("rhsmDataSourceProperties") PostgresTlsDataSourceProperties rhsmDataSourceProperties) {
+    public HikariDataSource rhsmSubscriptionsDataSource(
+        @Qualifier("rhsmDataSourceProperties") DataSourceProperties rhsmDataSourceProperties) {
 
-        PostgresTlsHikariDataSourceFactoryBean factory = new PostgresTlsHikariDataSourceFactoryBean();
-        factory.setTlsDataSourceProperties(rhsmDataSourceProperties);
-        return factory;
+        return (HikariDataSource) rhsmDataSourceProperties.initializeDataSourceBuilder().build();
     }
 
     @Bean(name = "rhsmSubscriptionsEntityManagerFactory")

@@ -29,6 +29,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Properties for the Marketplace integration.
@@ -43,6 +45,12 @@ public class MarketplaceProperties extends HttpClientProperties {
      * Marketplace API key (from https://marketplace.redhat.com/en-us/account/service-ids)
      */
     private String apiKey;
+
+    /**
+     * TEMPORARY setting for returning a dummy subscription ID. Remove once
+     * MarketplaceSubscriptionCollector is fully implemented.
+     */
+    private String dummyId = "DUMMY";
 
     /**
      * Amount of time prior to token expiration to request a new token anyways.
@@ -68,4 +76,17 @@ public class MarketplaceProperties extends HttpClientProperties {
      * Retry exponential backoff multiplier.
      */
     private Double backOffMultiplier;
+
+    /**
+     * Verify that batches were accepted by Marketplace.
+     */
+    private boolean verifyBatches = true;
+
+    private List<String> eligibleSwatchProductIds = new ArrayList<>();
+
+    /**
+     * Allows manually submitting marketplace tally summary.
+     */
+    private boolean isManualMarketplaceSubmissionEnabled;
+
 }

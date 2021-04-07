@@ -20,10 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +36,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.Set;
 
 import javax.transaction.Transactional;
 
@@ -42,15 +48,18 @@ class SubscriptionRepositoryTest {
     private static final OffsetDateTime NOW = OffsetDateTime.now();
 
     @Autowired
-    SubscriptionRepository subject;
+    SubscriptionRepository subscriptionRepo;
+
+    @Autowired
+    OfferingRepository offeringRepo;
 
     @Transactional
     @Test
     void canInsertAndRetrieveSubscriptions() {
-        final Subscription subscription = createSubscription("1", "testsku", "123");
-        subject.saveAndFlush(subscription);
+        Subscription subscription = createSubscription("1", "1000", "testsku", "123");
+        subscriptionRepo.saveAndFlush(subscription);
 
-        final Subscription retrieved = subject.findActiveSubscription("123").orElse(null);
+        Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
 
         // because of an issue with precision related to findActiveSubscription passing the entity cache,
         // we'll have to check fields
@@ -64,10 +73,60 @@ class SubscriptionRepositoryTest {
             .abs().getSeconds() < 1L);
     }
 
-    private Subscription createSubscription(String orgId, String sku, String subId) {
-        final Subscription subscription = new Subscription();
+    @Transactional
+    @Test
+    void canMatchOfferings() {
+        Subscription subscription = createSubscription("1", "1000", "testSku1", "123");
+        subscriptionRepo.saveAndFlush(subscription);
+
+        Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        offeringRepo.save(o1);
+        Offering o2 = createOffering("testSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+        offeringRepo.saveAndFlush(o2);
+
+        UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+        Set<String> roles = Set.of("ocp");
+        var resultList = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key, roles);
+        assertEquals(1, resultList.size());
+
+        var result = resultList.get(0);
+        assertEquals("testSku1", result.getSku());
+        assertEquals("1000", result.getAccountNumber());
+    }
+
+    @Transactional
+    @Test
+    void doesNotMatchMismatchedSkusOfferings() {
+        Subscription subscription = createSubscription("1", "1000", "testSku", "123");
+        subscriptionRepo.saveAndFlush(subscription);
+
+        Offering o1 = createOffering("otherSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        offeringRepo.saveAndFlush(o1);
+        Offering o2 = createOffering("otherSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+        offeringRepo.saveAndFlush(o2);
+
+        UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+        Set<String> roles = Set.of("ocp");
+        var result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key, roles);
+        assertEquals(0, result.size());
+    }
+
+    private Offering createOffering(String sku, int productId, ServiceLevel sla, Usage usage,
+        String role) {
+        Offering o = new Offering();
+        o.setSku(sku);
+        o.setProductIds(Collections.singletonList(productId));
+        o.setServiceLevel(sla);
+        o.setUsage(usage);
+        o.setRole(role);
+        return o;
+    }
+
+    private Subscription createSubscription(String orgId, String accountNumber, String sku, String subId) {
+        Subscription subscription = new Subscription();
         subscription.setSubscriptionId(subId);
         subscription.setOwnerId(orgId);
+        subscription.setAccountNumber(accountNumber);
         subscription.setQuantity(4L);
         subscription.setSku(sku);
         subscription.setStartDate(NOW);
@@ -75,4 +134,6 @@ class SubscriptionRepositoryTest {
 
         return subscription;
     }
+
+
 }

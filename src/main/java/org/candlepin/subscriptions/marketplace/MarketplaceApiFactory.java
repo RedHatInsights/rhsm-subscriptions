@@ -26,12 +26,10 @@ import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.stereotype.Component;
 
 /**
  * Factory that produces marketplace API clients.
  */
-@Component
 public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
 
     private static Logger log = LoggerFactory.getLogger(MarketplaceApiFactory.class);

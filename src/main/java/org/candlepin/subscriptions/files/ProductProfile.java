@@ -25,20 +25,30 @@ import static org.candlepin.subscriptions.db.model.Granularity.*;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.TallyMeasurement;
 
 import org.springframework.util.StringUtils;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Represents information telling capacity and tally how to handle certain products
  */
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
 public class ProductProfile {
     private static final ProductProfile DEFAULT_PROFILE = new ProductProfile("DEFAULT",
         Collections.emptySet(), DAILY);
@@ -50,6 +60,7 @@ public class ProductProfile {
     private String name;
     private Set<SubscriptionWatchProduct> products;
     private Set<SyspurposeRole> syspurposeRoles;
+    private Set<MarketplaceMetric> marketplaceMetrics;
     private Granularity finestGranularity;
     private boolean burstable = false;
     private String serviceType;
@@ -60,13 +71,17 @@ public class ProductProfile {
     private Map<String, String> architectureSwatchProductIdMap;
     private Map<String, Set<String>> swatchProductsByRoles;
     private Map<String, Set<String>> swatchProductsByEngProducts;
+    private Map<ProductUom, String> metricByProductAndUom;
+    private Map<String, Set<String>> rolesBySwatchProduct;
 
 
     public ProductProfile() {
         // Default used for YAML deserialization
         this.syspurposeRoles = new HashSet<>();
+        this.marketplaceMetrics = new HashSet<>();
         this.swatchProductsByRoles = new HashMap<>();
         this.swatchProductsByEngProducts = new HashMap<>();
+        this.metricByProductAndUom = new HashMap<>();
     }
 
     public ProductProfile(String name, Set<SubscriptionWatchProduct> products, Granularity granularity) {
@@ -102,72 +117,28 @@ public class ProductProfile {
 
     public void setSyspurposeRoles(Set<SyspurposeRole> syspurposeRoles) {
         this.syspurposeRoles = syspurposeRoles;
-        this.swatchProductsByRoles = this.syspurposeRoles.stream()
+        this.swatchProductsByRoles = syspurposeRoles.stream()
             .collect(Collectors.toMap(SyspurposeRole::getName, SyspurposeRole::getSwatchProductIds));
+
+        this.rolesBySwatchProduct = new HashMap<>();
+        // Loop across all the SwatchProductIds in the syspurpose list. Add each swatchProductId to the map
+        // and append the associated role to an associated set (creating the set if necessary).
+        for (SyspurposeRole syspurposeRole : syspurposeRoles) {
+            syspurposeRole.getSwatchProductIds().forEach(key -> this.rolesBySwatchProduct
+                .computeIfAbsent(key, k -> new HashSet<>())
+                .add(syspurposeRole.getName())
+            );
+        }
     }
 
-    public Granularity getFinestGranularity() {
-        return finestGranularity;
-    }
+    public void setMarketplaceMetrics(Set<MarketplaceMetric> marketplaceMetrics) {
+        this.marketplaceMetrics = marketplaceMetrics;
 
-    public void setFinestGranularity(Granularity finestGranularity) {
-        this.finestGranularity = finestGranularity;
-    }
-
-    public Map<String, String> getArchitectureSwatchProductIdMap() {
-        return architectureSwatchProductIdMap;
-    }
-
-    public void setArchitectureSwatchProductIdMap(Map<String, String> architectureSwatchProductIdMap) {
-        this.architectureSwatchProductIdMap = architectureSwatchProductIdMap;
-    }
-
-    public boolean isBurstable() {
-        return burstable;
-    }
-
-    public void setBurstable(boolean burstable) {
-        this.burstable = burstable;
-    }
-
-    public String getPrometheusMetricName() {
-        return prometheusMetricName;
-    }
-
-    public void setPrometheusMetricName(String prometheusMetricName) {
-        this.prometheusMetricName = prometheusMetricName;
-    }
-
-    public String getPrometheusCounterName() {
-        return prometheusCounterName;
-    }
-
-    public void setPrometheusCounterName(String prometheusCounterName) {
-        this.prometheusCounterName = prometheusCounterName;
-    }
-
-    public String getServiceType() {
-        return serviceType;
-    }
-
-    public void setServiceType(String serviceType) {
-        this.serviceType = serviceType;
-    }
-
-    public ServiceLevel getDefaultSla() {
-        return defaultSla;
-    }
-
-    public void setDefaultSla(ServiceLevel defaultSla) {
-        this.defaultSla = defaultSla;
-    }
-
-    public Usage getDefaultUsage() {
-        return defaultUsage;
-    }
-
-    public void setDefaultUsage(Usage defaultUsage) {
-        this.defaultUsage = defaultUsage;
+        marketplaceMetrics.forEach(marketplaceMetric ->
+            marketplaceMetric.getSwatchProductIds().forEach(swatchProductId ->
+            this.metricByProductAndUom.put(new ProductUom(swatchProductId,
+            marketplaceMetric.getUom()), marketplaceMetric.getMetricId())
+        ));
     }
 
     public boolean supportsEngProduct(String product) {
@@ -186,46 +157,32 @@ public class ProductProfile {
         return this.swatchProductsByRoles;
     }
 
+    public Map<String, Set<String>> getRolesBySwatchProduct() {
+        return this.rolesBySwatchProduct;
+    }
+
     public Map<String, Set<String>> getSwatchProductsByEngProducts() {
         return this.swatchProductsByEngProducts;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ProductProfile that = (ProductProfile) o;
-        return burstable == that.burstable && Objects.equals(name, that.name) &&
-            Objects.equals(products, that.products) && finestGranularity == that.finestGranularity &&
-            Objects.equals(serviceType, that.serviceType) &&
-            defaultSla == that.defaultSla &&
-            defaultUsage == that.defaultUsage &&
-            Objects.equals(prometheusMetricName, that.prometheusMetricName) &&
-            Objects.equals(prometheusCounterName, that.prometheusCounterName) &&
-            Objects.equals(architectureSwatchProductIdMap, that.architectureSwatchProductIdMap) &&
-            Objects.equals(swatchProductsByRoles, that.swatchProductsByRoles) &&
-            Objects.equals(swatchProductsByEngProducts, that.swatchProductsByEngProducts);
+    public String metricByProductAndUom(String swatchProductId, TallyMeasurement.Uom uom) {
+        return metricByProductAndUom.get(new ProductUom(swatchProductId,
+        fromTallyMeasurementUom(uom).toString()));
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(
-            name,
-            products,
-            finestGranularity,
-            serviceType,
-            defaultSla,
-            defaultUsage,
-            burstable,
-            prometheusMetricName,
-            prometheusCounterName,
-            architectureSwatchProductIdMap,
-            swatchProductsByRoles,
-            swatchProductsByEngProducts
-        );
+    public String metricByProductAndUom(String swatchProductId, Measurement.Uom uom) {
+        return metricByProductAndUom.get(new ProductUom(swatchProductId, uom.toString()));
+    }
+
+    public Measurement.Uom fromTallyMeasurementUom(TallyMeasurement.Uom uom) {
+        switch(uom) {
+            case SOCKETS:
+                return Measurement.Uom.SOCKETS;
+            case CORES:
+                return Measurement.Uom.CORES;
+            default:
+                throw new IllegalArgumentException("Unable to convert UOM value " +
+                    uom.toString() + " from TallyMeasurement.Uom to Measurement.Uom");
+        }
     }
 }

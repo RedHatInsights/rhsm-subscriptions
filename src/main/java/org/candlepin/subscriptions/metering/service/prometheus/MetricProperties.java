@@ -20,15 +20,25 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Properties related to a metric that is to be gathered from the prometheus service.
  */
+@Getter
+@Setter
 public class MetricProperties {
 
     /**
      * The PromQL to run when gathering the configured metric
      */
     private String metricPromQL;
+
+    /**
+     * The PromQL to run when gathering a list of accounts to enable for this metric.
+     */
+    private String enabledAccountPromQL;
 
     /**
      * How long to wait for results from the query.
@@ -69,69 +79,4 @@ public class MetricProperties {
      * The multiplier to use to generate the next backoff interval when retrying metrics gathering.
      */
     private double backOffMultiplier = 2;
-
-    public String getMetricPromQL() {
-        return metricPromQL;
-    }
-
-    public void setMetricPromQL(String metricPromQL) {
-        this.metricPromQL = metricPromQL;
-    }
-
-    public int getStep() {
-        return step;
-    }
-
-    public void setStep(int step) {
-        this.step = step;
-    }
-
-    public int getRangeInMinutes() {
-        return rangeInMinutes;
-    }
-
-    public void setRangeInMinutes(int rangeInMinutes) {
-        this.rangeInMinutes = rangeInMinutes;
-    }
-
-    public int getQueryTimeout() {
-        return queryTimeout;
-    }
-
-    public void setQueryTimeout(int queryTimeout) {
-        this.queryTimeout = queryTimeout;
-    }
-
-    public int getMaxAttempts() {
-        return maxAttempts;
-    }
-
-    public void setMaxAttempts(int maxAttempts) {
-        this.maxAttempts = maxAttempts;
-    }
-
-    public long getBackOffMaxInterval() {
-        return backOffMaxInterval;
-    }
-
-    public void setBackOffMaxInterval(long backOffMaxInterval) {
-        this.backOffMaxInterval = backOffMaxInterval;
-    }
-
-    public long getBackOffInitialInterval() {
-        return backOffInitialInterval;
-    }
-
-    public void setBackOffInitialInterval(long backOffInitialInterval) {
-        this.backOffInitialInterval = backOffInitialInterval;
-    }
-
-    public double getBackOffMultiplier() {
-        return backOffMultiplier;
-    }
-
-    public void setBackOffMultiplier(double backOffMultiplier) {
-        this.backOffMultiplier = backOffMultiplier;
-    }
-
 }

@@ -8,3 +8,9 @@ rhsm-subscriptions:
     back-off-max-interval: ${MARKETPLACE_BACK_OFF_MAX_INTERVAL:64s}
     back-off-initial-interval: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-multiplier: ${MARKETPLACE_BACK_OFF_MULTIPLIER:2}
+    eligible-swatch-product-ids:
+      - OpenShift-metrics
+      - OpenShift-dedicated-metrics
+    dummyId: ${MARKETPLACE_DUMMY_ID:DUMMY}
+    verify-batches: ${MARKETPLACE_VERIFY_BATCHES:true}
+    manual-marketplace-submission-enabled: ${MARKETPLACE_MANUAL_SUBMISSION_ENABLED:false}

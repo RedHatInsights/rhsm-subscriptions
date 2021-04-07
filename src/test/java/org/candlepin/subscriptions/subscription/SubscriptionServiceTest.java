@@ -24,6 +24,7 @@ import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 
 import org.junit.jupiter.api.Test;
@@ -37,9 +38,6 @@ import java.util.Collections;
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class SubscriptionServiceTest {
-    private static final String CRITERIA =
-        "criteria;web_customer_id=123;statusList=active;statusList=temporary";
-    private static final String OPTIONS = "options;products=ALL";
 
     @MockBean
     SearchApi searchApi;
@@ -48,10 +46,29 @@ class SubscriptionServiceTest {
     SubscriptionService subject;
 
     @Test
-    void verifyCallIsMadeCorrectlyTest() throws ApiException {
+    void verifySearchByAccountNumberTest() throws ApiException {
         when(searchApi
-            .searchSubscriptions(CRITERIA, OPTIONS)).thenReturn(Collections.emptyList());
-        subject.getSubscriptions("123");
-        verify(searchApi, only()).searchSubscriptions(CRITERIA, OPTIONS);
+            .searchSubscriptionsByAccountNumber("123", 0, 1))
+            .thenReturn(Collections.emptyList());
+        subject.getSubscriptionsByAccountNumber("123", 0, 1);
+        verify(searchApi, only()).searchSubscriptionsByAccountNumber("123", 0, 1);
+    }
+
+    @Test
+    void verifySearchByOrgIdTest() throws ApiException {
+        when(searchApi
+            .searchSubscriptionsByOrgId("123", 0, 1))
+            .thenReturn(Collections.emptyList());
+        subject.getSubscriptionsByOrgId("123", 0, 1);
+        verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
+    }
+
+    @Test
+    void verifyGetByIdTest() throws ApiException {
+        when(searchApi
+            .getSubscriptionById("123"))
+            .thenReturn(new Subscription());
+        subject.getSubscriptionById("123");
+        verify(searchApi, only()).getSubscriptionById("123");
     }
 }

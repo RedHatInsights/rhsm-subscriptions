@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,15 +62,18 @@ public class CaptureSnapshotsTaskManager {
     private final TaskQueueProperties taskQueueProperties;
     private final TaskQueue queue;
     private final AccountListSource accountListSource;
+    private final ApplicationClock applicationClock;
 
     @Autowired
     public CaptureSnapshotsTaskManager(ApplicationProperties appProperties,
         @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties, TaskQueue queue,
-        AccountListSource accountListSource) {
+        AccountListSource accountListSource, ApplicationClock applicationClock) {
+
         this.appProperties = appProperties;
         this.taskQueueProperties = tallyTaskQueueProperties;
         this.queue = queue;
         this.accountListSource = accountListSource;
+        this.applicationClock = applicationClock;
     }
 
     /**
@@ -121,13 +124,23 @@ public class CaptureSnapshotsTaskManager {
 
     public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
 
+        if (!applicationClock.isHourlyRange(
+            OffsetDateTime.parse(startDateTime), OffsetDateTime.parse(endDateTime))) {
+            log.error("Hourly snapshot production for accountNumber {} will not be queued. " +
+                "Invalid start/end times specified.", accountNumber);
+            throw new IllegalArgumentException(String.format(
+                "Start/End times must be at the top of the hour: [%s -> %s]",
+                startDateTime, endDateTime));
+        }
+
         log.info("Queuing hourly snapshot production for accountNumber {} between {} and {}",
             accountNumber, startDateTime, endDateTime);
 
         queue.enqueue(TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
             .setSingleValuedArg("accountNumber", accountNumber)
             .setSingleValuedArg("startDateTime", startDateTime)
-            .setSingleValuedArg("endDateTime", endDateTime).build());
+            .setSingleValuedArg("endDateTime", endDateTime)
+            .build());
     }
 
     @Transactional
@@ -137,13 +150,15 @@ public class CaptureSnapshotsTaskManager {
 
             Duration metricRange = appProperties.getMetricLookupRangeDuration();
             Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
+            Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
 
-            OffsetDateTime endTime = adjustTimeForLatency(OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS),
+            OffsetDateTime endDateTime = adjustTimeForLatency(
+                applicationClock.startOfHour(applicationClock.now().minus(hourlyTallyOffsetMinutes)),
                 prometheusLatencyDuration);
-            OffsetDateTime startTime = endTime.minus(metricRange);
+            OffsetDateTime startDateTime = applicationClock.startOfHour(endDateTime.minus(metricRange));
 
             accountStream.forEach(accountNumber -> {
-                tallyAccountByHourly(accountNumber, startTime.toString(), endTime.toString());
+                tallyAccountByHourly(accountNumber, startDateTime.toString(), endDateTime.toString());
 
                 count.addAndGet(1);
             });
@@ -158,9 +173,7 @@ public class CaptureSnapshotsTaskManager {
 
 
     protected OffsetDateTime adjustTimeForLatency(OffsetDateTime dateTime, Duration adjustmentAmount) {
-
         return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
-
     }
 
     /**

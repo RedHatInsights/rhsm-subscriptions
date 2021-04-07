@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:5.0.1"
+        classpath "org.openapitools:openapi-generator-gradle-plugin:5.1.0"
         classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.0"
         classpath "de.undercouch:gradle-download-task:4.1.1"
     }
@@ -17,7 +17,7 @@ plugins {
     id "checkstyle"
     id "jacoco"
     id "org.sonarqube" version "3.1.1"
-    id "org.springframework.boot" version "2.4.3"
+    id "org.springframework.boot" version "2.4.4"
     id "net.researchgate.release" version "2.8.1"
     id "GitProperties"
     id 'com.adarshr.test-logger' version '2.1.1'
@@ -28,13 +28,13 @@ plugins {
 
 ext {
     swagger_annotations_version = "1.6.2"
-    swagger_ui_version = "3.44.0"
+    swagger_ui_version = "3.46.0"
     resteasy_version = "3.6.3.Final"
-    spring_boot_version = "2.4.3"
+    spring_boot_version = "2.4.4"
     jboss_jaxrs_api_version = "1.0.2.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
-    kafka_avro_serializer_version = "6.1.0"
-    avro_version = "1.10.1"
+    kafka_avro_serializer_version = "6.1.1"
+    avro_version = "1.10.2"
     webjars_locator_version = "0.40"
     generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
 }
@@ -63,7 +63,7 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
-            dependency "io.hawt:hawtio-springboot:2.13.0"
+            dependency "io.hawt:hawtio-springboot:2.13.2"
         }
     }
 

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.marketplace.api.model.BatchStatus;
 import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
@@ -34,7 +35,14 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
@@ -46,27 +54,97 @@ import javax.ws.rs.core.Response;
 public class MarketplaceProducer {
 
     private static final Logger log = LoggerFactory.getLogger(MarketplaceProducer.class);
+    public static final String ACCEPTED_STATUS = "accepted";
+    public static final String IN_PROGRESS_STATUS = "inprogress";
+    private static final List<String> SUCCESSFUL_SUBMISSION_STATUSES = List.of(ACCEPTED_STATUS,
+        IN_PROGRESS_STATUS);
 
     private final MarketplaceService marketplaceService;
     private final RetryTemplate retryTemplate;
+    private final Counter acceptedCounter;
+    private final Counter unverifiedCounter;
+    private final Counter rejectedCounter;
+    private final MarketplaceProperties properties;
 
     @Autowired
     MarketplaceProducer(MarketplaceService marketplaceService,
-        @Qualifier("marketplaceRetryTemplate") RetryTemplate retryTemplate) {
+        @Qualifier("marketplaceRetryTemplate") RetryTemplate retryTemplate, MeterRegistry meterRegistry,
+        MarketplaceProperties properties) {
         this.marketplaceService = marketplaceService;
         this.retryTemplate = retryTemplate;
+        this.acceptedCounter = meterRegistry.counter("rhsm-subscriptions.marketplace.batch.accepted");
+        this.unverifiedCounter = meterRegistry.counter("rhsm-subscriptions.marketplace.batch.unverified");
+        this.rejectedCounter = meterRegistry.counter("rhsm-subscriptions.marketplace.batch.rejected");
+        this.properties = properties;
     }
 
     @Timed("rhsm-subscriptions.marketplace.usage.submission")
-    public StatusResponse submitUsageRequest(UsageRequest usageRequest) {
-        // NOTE: https://issues.redhat.com/browse/ENT-3609 will address failures
-        return retryTemplate.execute(context -> tryRequest(usageRequest));
+    public void submitUsageRequest(UsageRequest usageRequest) {
+        try {
+            StatusResponse status = retryTemplate.execute(context -> tryRequest(usageRequest));
+            Set<String> batchIds = Optional.ofNullable(status.getData()).orElse(Collections.emptyList())
+                .stream()
+                .map(BatchStatus::getBatchId)
+                .collect(Collectors.toSet());
+            if (properties.isVerifyBatches()) {
+                verifyBatchIds(batchIds);
+            }
+        }
+        catch (Exception e) {
+            rejectedCounter.increment();
+            String snapshotIds = usageRequest.getData().stream().map(UsageEvent::getEventId)
+                .collect(Collectors.joining(","));
+            log.error("Error submitting usage for snapshot IDs: {}", snapshotIds, e);
+        }
+    }
+
+    private void verifyBatchIds(Set<String> batchIds) {
+        batchIds.forEach(batchId -> {
+            try {
+                retryTemplate.execute(context -> verifyBatchId(batchId));
+            }
+            catch (Exception e) {
+                log.error("Error verifying batchId {}", batchId, e);
+                unverifiedCounter.increment();
+            }
+        });
+    }
+
+    private String verifyBatchId(String batchId) {
+        try {
+            StatusResponse response = marketplaceService.getUsageBatchStatus(batchId);
+            String status = Objects.requireNonNull(response.getStatus());
+            if (IN_PROGRESS_STATUS.equals(status)) {
+                // throw an exception so that retry logic re-checks the batch
+                throw new MarketplaceUsageSubmissionException(response.getMessage(), status);
+            }
+            else if (!ACCEPTED_STATUS.equals(status)) {
+                log.error("Marketplace rejected batch {} with status {} and message {}", batchId, status,
+                    response.getMessage());
+                rejectedCounter.increment();
+            }
+            else {
+                acceptedCounter.increment();
+            }
+            return status;
+        }
+        catch (ApiException e) {
+            throw new SubscriptionsException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                Response.Status.fromStatusCode(e.getCode()),
+                "Exception checking usage batch in Marketplace",
+                e
+            );
+        }
     }
 
     private StatusResponse tryRequest(UsageRequest usageRequest) {
         try {
             StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
             log.debug("Marketplace response: {}", status);
+            if (!SUCCESSFUL_SUBMISSION_STATUSES.contains(status.getStatus())) {
+                throw new MarketplaceUsageSubmissionException(status.getStatus(), status.getMessage());
+            }
             if (status.getData() != null) {
                 status.getData().forEach(batchStatus ->
                     log.info("Marketplace Batch: {} for Tally Snapshot IDs: {}", batchStatus.getBatchId(),

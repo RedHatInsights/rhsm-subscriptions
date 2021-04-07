@@ -50,11 +50,14 @@ class PrometheusServiceTest {
     @MockBean
     private QueryRangeApi rangeApi;
 
+    @MockBean
+    private PrometheusAccountSource accountSource;
+
     @Autowired
     private PrometheusMetricsProperties props;
 
     @Test
-    void testGetOpenshiftMetrics() throws Exception {
+    void testRangeQueryApi() throws Exception {
 
         String expectedQuery =
             UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
@@ -72,6 +75,22 @@ class PrometheusServiceTest {
 
         QueryResult result = service.runRangeQuery(props.getOpenshift().getMetricPromQL(),
             start, end, 3600, 1);
+        assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void testQueryApi() throws Exception {
+        String expectedQuery =
+            UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
+        QueryResult expectedResult = new QueryResult();
+
+        OffsetDateTime time = OffsetDateTime.now();
+        when(queryApi.query(expectedQuery, time, 1)).thenReturn(expectedResult);
+
+        ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
+        PrometheusService service = new PrometheusService(provider);
+
+        QueryResult result = service.runQuery(props.getOpenshift().getMetricPromQL(), time, 1);
         assertEquals(expectedResult, result);
     }
 

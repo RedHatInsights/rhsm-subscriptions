@@ -86,6 +86,8 @@ public class CombiningRollupSnapshotStrategy {
 
         if (accountCalcs.isEmpty()) {
             // nothing to do here, return early
+            log.info("No account calculations available. No snapshots will be produced for account: {}",
+                accountNumber);
             return;
         }
 

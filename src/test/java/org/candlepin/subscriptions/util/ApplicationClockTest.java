@@ -216,6 +216,15 @@ class ApplicationClockTest {
         assertDate(2019, 5, 24, 12, 59, 59, 999_999_999, clock.endOfCurrentHour());
     }
 
+    @Test
+    void testIsHourlyRange() {
+        OffsetDateTime start = clock.startOfCurrentHour();
+        OffsetDateTime end = start.plusHours(1);
+        assertTrue(clock.isHourlyRange(start, end));
+        assertFalse(clock.isHourlyRange(start.minusMinutes(1), end));
+        assertFalse(clock.isHourlyRange(start, end.minusMinutes(1)));
+    }
+
     private void assertDate(int year, int month, int day, int hour, int minute, int seconds, int nanos,
         OffsetDateTime date) {
         assertEquals(year, date.getYear());
