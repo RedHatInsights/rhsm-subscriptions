@@ -130,8 +130,7 @@ public class TallySnapshotController {
                 .filter(TallySnapshotController::isCombiningRollupStrategySupported)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            combiningRollupSnapshotStrategy
-                .produceSnapshotsFromCalculations(accountNumber, startDateTime, endDateTime,
+            combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(accountNumber,
                 applicableUsageCalculations, Granularity.HOURLY, Double::sum);
             log.info("Finished producing hourly snapshots for account: {}", accountNumber);
         }
