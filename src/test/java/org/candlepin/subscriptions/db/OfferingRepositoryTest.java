@@ -45,6 +45,7 @@ class OfferingRepositoryTest {
     @Test
     @Transactional
     void canPersistAndRetrieveThenRemove() {
+        long initialOfferingCount = repository.count();
         final Offering offering = new Offering();
         offering.setSku("testsku");
         offering.setChildSkus(Arrays.asList("childsku1", "childsku2"));
@@ -62,6 +63,6 @@ class OfferingRepositoryTest {
         assertEquals(offering.toString(), actual.toString());
         assertEquals(offering.hashCode(), actual.hashCode());
         repository.delete(actual);
-        assertTrue(repository.findAll().isEmpty());
+        assertEquals(initialOfferingCount, repository.count());
     }
 }
