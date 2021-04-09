@@ -12,6 +12,10 @@
             <column name="role" value="ocp"/>
             <column name="sla" value="Premium"/>
             <column name="usage" value="Production"/>
+            <column name="physical_cores" value="0"/>
+            <column name="physical_sockets" value="0"/>
+            <column name="virtual_cores" value="0"/>
+            <column name="virtual_sockets" value="0"/>
         </insert>
         <insert tableName="offering">
             <column name="sku" value="MW01484"/>
@@ -19,6 +23,10 @@
             <column name="role" value="osd"/>
             <column name="sla" value="Premium"/>
             <column name="usage" value="Production"/>
+            <column name="physical_cores" value="0"/>
+            <column name="physical_sockets" value="0"/>
+            <column name="virtual_cores" value="0"/>
+            <column name="virtual_sockets" value="0"/>
         </insert>
     </changeSet>
 
