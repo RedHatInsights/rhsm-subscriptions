@@ -90,10 +90,10 @@ public class PrometheusMeteringController {
         // at the top of an hour. Otherwise we would get an extra hour added onto the date
         // when we moved it to the end of the hour.
         OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
+        log.debug("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
+        ensureOptIn(account);
         openshiftRetry.execute(context -> {
             try {
-                log.debug("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
-                ensureOptIn(account);
 
                 log.info("Collecting OpenShift metrics");
                 QueryResult metricData = prometheusService.runRangeQuery(

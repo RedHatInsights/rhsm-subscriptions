@@ -27,6 +27,8 @@ import org.candlepin.subscriptions.user.api.model.AccountSearch;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -40,13 +42,20 @@ import javax.ws.rs.core.Response;
 public class AccountService {
 
     private final AccountApi accountApi;
+    private final RetryTemplate accountLookupRetryTemplate;
 
     @Autowired
-    public AccountService(AccountApi accountApi) {
+    public AccountService(AccountApi accountApi,
+        @Qualifier("userServiceRetry") RetryTemplate userServiceRetryTemplate) {
         this.accountApi = accountApi;
+        this.accountLookupRetryTemplate = userServiceRetryTemplate;
     }
 
     public String lookupOrgId(String accountNumber) {
+        return accountLookupRetryTemplate.execute(ctx -> tryLookupOrgId(accountNumber));
+    }
+
+    private String tryLookupOrgId(String accountNumber) {
         try {
             return Optional.ofNullable(accountApi
                 .findAccount(new AccountSearch().by(new AccountCriteria().ebsAccountNumber(accountNumber))))
@@ -68,6 +77,10 @@ public class AccountService {
     }
 
     public String lookupAccountNumber(String orgId) {
+        return accountLookupRetryTemplate.execute(ctx -> tryLookupAccountNumber(orgId));
+    }
+
+    private String tryLookupAccountNumber(String orgId) {
         try {
             return Optional.ofNullable(Optional.ofNullable(accountApi
                 .findAccount(new AccountSearch().by(new AccountCriteria().id(orgId))))

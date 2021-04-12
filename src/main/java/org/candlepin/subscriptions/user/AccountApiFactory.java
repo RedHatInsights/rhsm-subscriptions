@@ -26,14 +26,16 @@ import org.candlepin.subscriptions.user.api.resources.AccountApi;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.config.AbstractFactoryBean;
+
+import javax.annotation.Nonnull;
 
 /**
  * Factory bean for AccountApi.
  */
-public class AccountApiFactory implements FactoryBean<AccountApi> {
+public class AccountApiFactory extends AbstractFactoryBean<AccountApi> {
 
-    private static Logger log = LoggerFactory.getLogger(AccountApiFactory.class);
+    private static final Logger log = LoggerFactory.getLogger(AccountApiFactory.class);
 
     private final HttpClientProperties serviceProperties;
 
@@ -41,8 +43,9 @@ public class AccountApiFactory implements FactoryBean<AccountApi> {
         this.serviceProperties = serviceProperties;
     }
 
+    @Nonnull
     @Override
-    public AccountApi getObject() throws Exception {
+    protected AccountApi createInstance() {
         if (serviceProperties.isUseStub()) {
             log.info("Using stub user client");
             return new StubAccountApi();

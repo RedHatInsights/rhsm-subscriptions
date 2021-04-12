@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.user;
 
-import org.candlepin.subscriptions.http.HttpClientProperties;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 
 /**
  * Spring configuration for the IT User service client.
@@ -38,14 +38,24 @@ import org.springframework.context.annotation.Configuration;
 @ComponentScan(basePackages = "org.candlepin.subscriptions.user")
 public class UserServiceClientConfiguration {
     @Bean
-    @Qualifier("user-service")
     @ConfigurationProperties(prefix = "rhsm-subscriptions.user-service")
-    public HttpClientProperties userServiceProperties() {
-        return new HttpClientProperties();
+    public UserServiceProperties userServiceProperties() {
+        return new UserServiceProperties();
     }
 
     @Bean
-    public AccountApiFactory accountApiFactory(@Qualifier("user-service") HttpClientProperties props) {
-        return new AccountApiFactory(props);
+    @Qualifier("userServiceRetry")
+    public RetryTemplate userServiceRetry(UserServiceProperties properties) {
+        return new RetryTemplateBuilder()
+            .maxAttempts(properties.getMaxAttempts())
+            .exponentialBackoff(properties.getBackOffInitialInterval().toMillis(),
+                properties.getBackOffMultiplier(),
+                properties.getBackOffMaxInterval().toMillis())
+            .build();
+    }
+
+    @Bean
+    public AccountApiFactory accountApiFactory(UserServiceProperties properties) {
+        return new AccountApiFactory(properties);
     }
 }
