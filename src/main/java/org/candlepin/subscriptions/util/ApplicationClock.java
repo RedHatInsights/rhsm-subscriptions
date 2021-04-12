@@ -187,6 +187,12 @@ public class ApplicationClock {
         return zonedDateTime.toOffsetDateTime();
     }
 
+    public OffsetDateTime dateFromMilliseconds(Long time) {
+        ZoneId zoneId = this.clock.getZone();
+        ZonedDateTime zonedDateTime = Instant.ofEpochMilli(time).atZone(zoneId);
+        return zonedDateTime.toOffsetDateTime();
+    }
+
     public OffsetDateTime calculateStartOfRange(OffsetDateTime toAdjust, Granularity granularity) {
         switch (granularity) {
             case HOURLY:

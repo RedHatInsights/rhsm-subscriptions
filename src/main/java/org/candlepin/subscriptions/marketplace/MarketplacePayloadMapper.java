@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.marketplace;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -129,16 +130,16 @@ public class MarketplacePayloadMapper {
             .filter(this::isSnapshotPAYGEligible).collect(Collectors.toList());
 
         List<UsageEvent> events = new ArrayList<>();
-
         for (TallySnapshot snapshot : eligibleSnapshots) {
             String productId = snapshot.getProductId();
-            OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
-            String eventId = snapshot.getId().toString();
 
             // call MarketplaceIdProvider.findSubscriptionId once available
             UsageCalculation.Key usageKey = new UsageCalculation.Key(productId,
                 ServiceLevel.fromString(snapshot.getSla().toString()),
                 Usage.fromString(snapshot.getUsage().toString()));
+
+            OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
+            String eventId = snapshot.getId().toString();
 
             /*
             This will need to be updated if we expand the criteria defined in the
@@ -152,13 +153,8 @@ public class MarketplacePayloadMapper {
             var subscriptionIdOpt = idProvider.findSubscriptionId(
                 tallySummary.getAccountNumber(), usageKey, startDate, snapshotDate);
 
-            /*
-            The //NOSONAR flag is Suppressing warning java:S2583 - Conditionally executed code should be
-            reachable.  Since findSubscriptionId is stubbed out right now, it's never returning Optional
-            .empty(), so this if statemant can't be evaluated to true, which is making sonar unhappy.
-             */
-            if (subscriptionIdOpt.isEmpty()) { //NOSONAR
-                log.error("Couldn't find subscription id. Error code here eventually?");
+            if (subscriptionIdOpt.isEmpty()) {
+                log.error("{}", ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR);
                 continue;
             }
 

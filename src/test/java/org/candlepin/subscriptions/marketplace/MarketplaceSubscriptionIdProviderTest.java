@@ -108,7 +108,9 @@ class MarketplaceSubscriptionIdProviderTest {
         roleMap.put(String.valueOf(1), ocpRoles);
 
         when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
-        when(repo.findSubscriptionByAccountAndUsageKey("1000", key, ocpRoles)).thenReturn(result);
+        when(repo.findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+            eq("1000"), eq(key), eq(ocpRoles), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+            .thenReturn(new ArrayList<>()).thenReturn(result);
 
         Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
         assertEquals("xyz", actual.get());
@@ -128,12 +130,13 @@ class MarketplaceSubscriptionIdProviderTest {
         roleMap.put(String.valueOf(1), ocpRoles);
 
         when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
-        when(repo.findSubscriptionByAccountAndUsageKey("1000", key, ocpRoles))
-            .thenReturn(new ArrayList<>())
-            .thenReturn(result);
+        when(repo.findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+            eq("1000"), eq(key), eq(ocpRoles), any(OffsetDateTime.class), any(OffsetDateTime.class)))
+            .thenReturn(new ArrayList<>()).thenReturn(result);
 
         Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
         assertEquals("abc", actual.get());
-        verify(collector).fetchSubscription("1000", key);
+
+        verify(collector).requestSubscriptions("1000");
     }
 }

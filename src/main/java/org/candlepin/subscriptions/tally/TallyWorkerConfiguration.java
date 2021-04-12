@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
-import org.candlepin.subscriptions.subscription.SubscriptionConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
@@ -63,8 +62,8 @@ import java.util.Set;
 @EnableRetry
 @Configuration
 @Profile("worker")
-@Import({TallyTaskQueueConfiguration.class, TaskConsumerConfiguration.class, SubscriptionConfiguration.class,
-    ProductMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class})
+@Import({ TallyTaskQueueConfiguration.class, TaskConsumerConfiguration.class,
+    ProductMappingConfiguration.class, InventoryDataSourceConfiguration.class, JmxBeansConfiguration.class })
 @ComponentScan(basePackages = {
     "org.candlepin.subscriptions.cloudigrade",
     "org.candlepin.subscriptions.event",
@@ -150,7 +149,7 @@ public class TallyWorkerConfiguration {
     public MetricUsageCollector openShiftMetricsUsageCollector(ProductProfileRegistry registry,
         AccountRepository accountRepo, EventController eventController, ApplicationClock clock) {
         Optional<ProductProfile> profile = registry.getProfileByName("OpenShiftMetrics");
-        if (!profile.isPresent()) {
+        if (profile.isEmpty()) {
             throw new IllegalStateException("Could not find product profile for OpenShiftMetrics!");
         }
         return new MetricUsageCollector(profile.get(), accountRepo, eventController, clock);
