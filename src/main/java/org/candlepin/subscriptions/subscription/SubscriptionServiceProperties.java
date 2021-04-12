@@ -22,8 +22,6 @@ package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -42,6 +40,9 @@ public class SubscriptionServiceProperties extends HttpClientProperties {
      * Number of times we should try requesting info from the Subscription Service if something fails.
      */
     private int maxRetryAttempts = 4;
+
+    /** Page size for subscription queries */
+    private int pageSize = 500;
 
     /**
      * The initial sleep interval between retries when retrying fetching info from the Subscription Service

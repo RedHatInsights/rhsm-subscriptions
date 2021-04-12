@@ -44,10 +44,13 @@ public class SubscriptionService {
         "Error during attempt to request subscription info";
     private final SearchApi searchApi;
     private final RetryTemplate subscriptionServiceRetryTemplate;
+    private final SubscriptionServiceProperties properties;
 
-    public SubscriptionService(SearchApi searchApi, RetryTemplate subscriptionServiceRetryTemplate) {
+    public SubscriptionService(SearchApi searchApi, RetryTemplate subscriptionServiceRetryTemplate,
+        SubscriptionServiceProperties properties) {
         this.searchApi = searchApi;
         this.subscriptionServiceRetryTemplate = subscriptionServiceRetryTemplate;
+        this.properties = properties;
     }
 
     /**
@@ -81,7 +84,7 @@ public class SubscriptionService {
      */
     public List<Subscription> getSubscriptionsByAccountNumber(String accountNumber) {
         var index = 0;
-        var pageSize = 500;
+        var pageSize = properties.getPageSize();
         int latestResultCount;
 
         Set<Subscription> total = new HashSet<>();

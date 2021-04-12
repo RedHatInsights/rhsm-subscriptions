@@ -122,3 +122,4 @@ rhsm-subscriptions:
     maxConnections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}
     backOffInitialInterval: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL:1s}
     maxRetryAttempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
+    pageSize: ${SUBSCRIPTION_PAGE_SIZE:500}

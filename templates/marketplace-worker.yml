@@ -75,6 +75,8 @@ parameters:
     value: 1s
   - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
     value: '4'
+  - name: SUBSCRIPTION_PAGE_SIZE
+    value: '500'
 
 objects:
   - apiVersion: apps.openshift.io/v1
@@ -236,6 +238,8 @@ objects:
                   value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
                 - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
                   value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
+                - name: SUBSCRIPTION_PAGE_SIZE
+                  value: ${SUBSCRIPTION_PAGE_SIZE}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
