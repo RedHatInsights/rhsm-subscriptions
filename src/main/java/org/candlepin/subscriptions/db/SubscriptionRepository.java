@@ -27,6 +27,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,10 +54,12 @@ public interface SubscriptionRepository extends JpaRepository<Subscription,
     Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
     @Query("SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND " +
-        "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE " +
-        ":#{#key.usage} = o.usage AND " +
+        "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE " + ":#{#key.usage} = o.usage AND " +
         ":#{#key.sla} = o.serviceLevel AND " +
-        "o.role IN :#{#roles})")
-    List<Subscription> findSubscriptionByAccountAndUsageKey(@Param("accountNumber") String accountNumber,
-        @Param("key") UsageCalculation.Key usageKey, @Param("roles") Set<String> roles);
+        "o.role IN :#{#roles}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND " +
+        "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> ''")
+    List<Subscription> findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+        @Param("accountNumber") String accountNumber, @Param("key") UsageCalculation.Key usageKey,
+        @Param("roles") Set<String> roles, @Param("rangeStart") OffsetDateTime rangeStart,
+        @Param("rangeEnd") OffsetDateTime rangeEnd);
 }

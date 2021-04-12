@@ -113,9 +113,11 @@ defaultUsage: PRODUCTION
 burstable: false
 architectureSwatchProductIdMap: {}
 marketplaceMetrics:
-  - metricId: redhat.com:openshiftdedicated:cpu_hour
+  - metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: Cores
     swatchProductIds:
       - OpenShift-dedicated-metrics
-      # NOTE(khowell): remove when https://issues.redhat.com/browse/ENT-3737 is implemented
+  - metricId: redhat.com:openshift_container_platform:cpu_hour
+    uom: Cores
+    swatchProductIds:
       - OpenShift-metrics

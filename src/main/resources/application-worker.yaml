@@ -18,9 +18,3 @@ rhsm-subscriptions:
   cloudigrade:
     url: http://${CLOUDIGRADE_HOST:localhost}:${CLOUDIGRADE_PORT:8080}/api/cloudigrade/v2
     maxConnections: ${CLOUDIGRADE_MAX_CONNECTIONS:100}
-  subscription:
-    useStub: ${STUB_SUBSCRIPTION:true}
-    url: http://${SUBSCRIPTION_HOST:localhost}:${SUBSCRIPTION_PORT:8080}/svcrest/subscription/v5
-    keystore: file:${SUBSCRIPTION_KEYSTORE:}
-    keystorePassword: changeit
-    maxConnections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}

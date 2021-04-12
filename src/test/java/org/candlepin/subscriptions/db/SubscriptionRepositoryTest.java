@@ -86,7 +86,9 @@ class SubscriptionRepositoryTest {
 
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
         Set<String> roles = Set.of("ocp");
-        var resultList = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key, roles);
+        var resultList = subscriptionRepo
+            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId("1000",
+            key, roles, NOW, NOW);
         assertEquals(1, resultList.size());
 
         var result = resultList.get(0);
@@ -107,7 +109,9 @@ class SubscriptionRepositoryTest {
 
         UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
         Set<String> roles = Set.of("ocp");
-        var result = subscriptionRepo.findSubscriptionByAccountAndUsageKey("1000", key, roles);
+        var result = subscriptionRepo
+            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId("1000",
+            key, roles, NOW, NOW);
         assertEquals(0, result.size());
     }
 
@@ -124,6 +128,7 @@ class SubscriptionRepositoryTest {
 
     private Subscription createSubscription(String orgId, String accountNumber, String sku, String subId) {
         Subscription subscription = new Subscription();
+        subscription.setMarketplaceSubscriptionId("bananas");
         subscription.setSubscriptionId(subId);
         subscription.setOwnerId(orgId);
         subscription.setAccountNumber(accountNumber);

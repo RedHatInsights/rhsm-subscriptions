@@ -74,7 +74,12 @@ public enum ErrorCode {
      * This typically means that an HTTP client error has occurred (HTTP 4XX)
      * when the request was made.
      */
-    INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error");
+    INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error"),
+
+    // Metering Errors
+    SUBSCRIPTION_SERVICE_REQUEST_ERROR(3000, "Subscription Service Error"),
+
+    SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR(3001, "Could not find marketplace subscription id");
 
     private final String CODE_PREFIX = "SUBSCRIPTIONS";
 

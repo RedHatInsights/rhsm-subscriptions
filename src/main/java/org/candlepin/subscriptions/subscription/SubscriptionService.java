@@ -20,46 +20,111 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 
-import org.springframework.stereotype.Component;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * The Subscription Service wrapper for all subscription service interfaces.
  */
-@Component
+@Service
 public class SubscriptionService {
 
+    private static final String ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG =
+        "Error during attempt to request subscription info";
     private final SearchApi searchApi;
+    private final RetryTemplate subscriptionServiceRetryTemplate;
+    private final SubscriptionServiceProperties properties;
 
-    public SubscriptionService(SearchApi searchApi) {
+    public SubscriptionService(SearchApi searchApi, RetryTemplate subscriptionServiceRetryTemplate,
+        SubscriptionServiceProperties properties) {
         this.searchApi = searchApi;
+        this.subscriptionServiceRetryTemplate = subscriptionServiceRetryTemplate;
+        this.properties = properties;
     }
 
     /**
      * Object a subscription model by ID.
      * @param id the Subscription ID.
      * @return a subscription model.
-     * @throws ApiException if an error occurs in fulfilling this request.
      */
-    public Subscription getSubscriptionById(String id) throws ApiException {
-        return searchApi.getSubscriptionById(id);
+    public Subscription getSubscriptionById(String id) {
+        Supplier<Subscription> supplier = () -> {
+            try {
+                return searchApi.getSubscriptionById(id);
+            }
+            catch (ApiException e) {
+                throw new ExternalServiceException(
+                    ErrorCode.REQUEST_PROCESSING_ERROR,
+                    ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+                    e
+                );
+            }
+        };
+
+        return monoRetryWrapper(supplier);
     }
 
     /**
-     * Obtain Subscription Service Subscription Models for an orgId.
+     * Obtain Subscription Service Subscription Models for an account number.  Will attempt to gather "all"
+     * pages and combine them.
+     *
+     * @param accountNumber the account number of the customer. Also refered to as the Oracle account number.
+     * @return a list of Subscription models.
+     */
+    public List<Subscription> getSubscriptionsByAccountNumber(String accountNumber) {
+        var index = 0;
+        var pageSize = properties.getPageSize();
+        int latestResultCount;
+
+        Set<Subscription> total = new HashSet<>();
+        do {
+            List<Subscription> subscriptionsByAccountNumber;
+
+            subscriptionsByAccountNumber = getSubscriptionsByAccountNumber(accountNumber, index, pageSize);
+            latestResultCount = subscriptionsByAccountNumber.size();
+            total.addAll(subscriptionsByAccountNumber);
+            index = index + pageSize;
+        } while (latestResultCount == pageSize);
+
+        return new ArrayList<>(total);
+
+    }
+
+    /**
+     * Obtain Subscription Service Subscription Models for an account number.
      * @param accountNumber the account number of the customer. Also refered to as the Oracle account number.
      * @param index the starting index for results.
      * @param pageSize the number of results in the page.
      * @return a list of Subscription models.
-     * @throws ApiException if an error occurs in fulfilling this request.
      */
-    public List<Subscription> getSubscriptionsByAccountNumber(String accountNumber, int index, int pageSize)
-        throws ApiException {
-        return searchApi.searchSubscriptionsByAccountNumber(accountNumber, index, pageSize);
+    protected List<Subscription> getSubscriptionsByAccountNumber(String accountNumber, int index,
+        int pageSize)  {
+        Supplier<List<Subscription>> supplier = () -> {
+            try {
+                return searchApi.searchSubscriptionsByAccountNumber(accountNumber,
+                    index, pageSize);
+            }
+            catch (ApiException e) {
+                throw new ExternalServiceException(
+                    ErrorCode.REQUEST_PROCESSING_ERROR,
+                    ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+                    e
+                );
+            }
+        };
+
+        return fluxRetryWrapper(supplier);
     }
 
     /**
@@ -68,10 +133,29 @@ public class SubscriptionService {
      * @param index the starting index for results.
      * @param pageSize the number of results in the page.
      * @return a list of Subscription models.
-     * @throws ApiException if an error occurs in fulfilling this request.
      */
-    public List<Subscription> getSubscriptionsByOrgId(String orgId, int index, int pageSize)
-        throws ApiException {
-        return searchApi.searchSubscriptionsByOrgId(orgId, index, pageSize);
+    public List<Subscription> getSubscriptionsByOrgId(String orgId, int index, int pageSize) {
+        Supplier<List<Subscription>> supplier = () -> {
+            try {
+                return searchApi.searchSubscriptionsByOrgId(orgId, index, pageSize);
+            }
+            catch (ApiException e) {
+                throw new ExternalServiceException(
+                    ErrorCode.REQUEST_PROCESSING_ERROR,
+                    ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+                    e
+                );
+            }
+        };
+
+        return fluxRetryWrapper(supplier);
+    }
+
+    private Subscription monoRetryWrapper(Supplier<Subscription> getSubscriptionFunction) {
+        return subscriptionServiceRetryTemplate.execute(context -> getSubscriptionFunction.get());
+    }
+
+    private List<Subscription> fluxRetryWrapper(Supplier<List<Subscription>> getSubscriptionFunction) {
+        return subscriptionServiceRetryTemplate.execute(context -> getSubscriptionFunction.get());
     }
 }
