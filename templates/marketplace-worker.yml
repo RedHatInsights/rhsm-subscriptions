@@ -59,8 +59,6 @@ parameters:
     value: 1s
   - name: MARKETPLACE_BACK_OFF_MULTIPLIER
     value: '2'
-  - name: MARKETPLACE_DUMMY_ID
-    value: DUMMY
   - name: MARKETPLACE_VERIFY_BATCHES
     value: 'true'
   - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
@@ -69,6 +67,14 @@ parameters:
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
     value: '25'
+  - name: SUBSCRIPTION_URL
+    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+  - name: SUBSCRIPTION_MAX_CONNECTIONS
+    value: '100'
+  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+    value: 1s
+  - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+    value: '4'
 
 objects:
   - apiVersion: apps.openshift.io/v1
@@ -211,12 +217,25 @@ objects:
                   value: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
                 - name: MARKETPLACE_BACK_OFF_MULTIPLIER
                   value: ${MARKETPLACE_BACK_OFF_MULTIPLIER}
-                - name: MARKETPLACE_DUMMY_ID
-                  value: ${MARKETPLACE_DUMMY_ID}
                 - name: MARKETPLACE_VERIFY_BATCHES
                   value: ${MARKETPLACE_VERIFY_BATCHES}
                 - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
                   value: ${MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
+                - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
+                - name: SUBSCRIPTION_KEYSTORE
+                  value: /pinhead/keystore.jks
+                - name: SUBSCRIPTION_URL
+                  value: ${SUBSCRIPTION_URL}
+                - name: SUBSCRIPTION_MAX_CONNECTIONS
+                  value: ${SUBSCRIPTION_MAX_CONNECTIONS}
+                - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+                  value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
+                - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+                  value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
@@ -238,6 +257,8 @@ objects:
                 - containerPort: 8080
                   protocol: TCP
               volumeMounts:
+                - name: pinhead
+                  mountPath: /pinhead
                 - name: logs
                   mountPath: /logs
               workingDir: /
@@ -266,6 +287,9 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
+            - name: pinhead
+              secret:
+                secretName: pinhead
             - name: splunk
               secret:
                 secretName: splunk
