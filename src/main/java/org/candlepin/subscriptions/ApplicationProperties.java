@@ -22,6 +22,7 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
+import org.candlepin.subscriptions.subscription.SubscriptionServiceProperties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -173,4 +174,10 @@ public class ApplicationProperties {
      * begins.
      */
     private Duration hourlyTallyOffset = Duration.ofMinutes(60L);
+
+    /**
+     * Additional properties related to the Subscription Service
+     */
+    private SubscriptionServiceProperties subscription = new SubscriptionServiceProperties();
+
 }

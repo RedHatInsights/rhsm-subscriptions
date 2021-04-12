@@ -65,7 +65,7 @@ public class SubscriptionSyncController {
 
                 newSub.setStartDate(OffsetDateTime.now());
                 if (subscription.getEffectiveEndDate() != null) {
-                    newSub.setEndDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
+                    newSub.setEndDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()));
                 }
 
                 newSub.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
@@ -87,10 +87,10 @@ public class SubscriptionSyncController {
             newSub.setSku(SubscriptionDtoUtil.extractSku(subscription));
             newSub.setQuantity(subscription.getQuantity());
             if (subscription.getEffectiveStartDate() != null) {
-                newSub.setStartDate(clock.dateFromUnix(subscription.getEffectiveStartDate()));
+                newSub.setStartDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()));
             }
             if (subscription.getEffectiveEndDate() != null) {
-                newSub.setEndDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
+                newSub.setEndDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()));
             }
             subscriptionRepository.save(newSub);
         }
@@ -104,7 +104,7 @@ public class SubscriptionSyncController {
     protected void updateSubscription(Subscription dto,
         org.candlepin.subscriptions.db.model.Subscription entity) {
         if (dto.getEffectiveEndDate() != null) {
-            entity.setEndDate(clock.dateFromUnix(dto.getEffectiveEndDate()));
+            entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
         }
     }
 }

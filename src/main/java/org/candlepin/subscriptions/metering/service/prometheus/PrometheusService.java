@@ -53,7 +53,7 @@ public class PrometheusService {
         throws ExternalServiceException {
         log.info("Fetching metrics from prometheus: {} -> {} [Step: {}]", start, end, step);
         try {
-            String query = sanatizeQuery(promQL);
+            String query = sanitizeQuery(promQL);
             log.debug("Running prometheus range query: Start: {} End: {} Step: {}, Query: {}",
                 start.toEpochSecond(), end.toEpochSecond(), step, query);
             return apiProvider.queryRangeApi().queryRange(query, start.toEpochSecond(),
@@ -74,7 +74,7 @@ public class PrometheusService {
         throws ExternalServiceException {
         log.info("Fetching metrics from prometheus: {}", time);
         try {
-            String query = sanatizeQuery(promQL);
+            String query = sanitizeQuery(promQL);
             log.debug("Running prometheus query: Time: {}, Query: {}", time.toEpochSecond(), query);
             return apiProvider.queryApi().query(query, time, timeout);
         }
@@ -89,7 +89,7 @@ public class PrometheusService {
         }
     }
 
-    private String sanatizeQuery(String promQL) {
+    private String sanitizeQuery(String promQL) {
         // NOTE: While the ApiClient **should** in theory already encode the query,
         //       it does not handle the curly braces correctly causing issues
         //       when the request is made.
