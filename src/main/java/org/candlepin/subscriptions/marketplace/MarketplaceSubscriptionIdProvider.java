@@ -58,20 +58,17 @@ public class MarketplaceSubscriptionIdProvider {
     private final SubscriptionRepository subscriptionRepo;
     private final SubscriptionSyncController syncController;
     private final ProductProfileRegistry profileRegistry;
-    private final MarketplaceProperties properties;
     private final Counter missingSubscriptionCounter;
     private final Counter ambiguousSubscriptionCounter;
 
     @Autowired
     public MarketplaceSubscriptionIdProvider(MarketplaceSubscriptionCollector collector,
         SubscriptionRepository subscriptionRepo, SubscriptionSyncController syncController,
-        ProductProfileRegistry profileRegistry, MarketplaceProperties properties,
-        MeterRegistry meterRegistry) {
+        ProductProfileRegistry profileRegistry, MeterRegistry meterRegistry) {
         this.collector = collector;
         this.subscriptionRepo = subscriptionRepo;
         this.syncController = syncController;
         this.profileRegistry = profileRegistry;
-        this.properties = properties;
         this.missingSubscriptionCounter =
             meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
         this.ambiguousSubscriptionCounter =
@@ -92,16 +89,18 @@ public class MarketplaceSubscriptionIdProvider {
         if (result.isEmpty()) {
             /* If we are missing the subscription, call out to the MarketplaceSubscriptionCollector
                to fetch from Marketplace.  Sync all those subscriptions. Query again. */
-            var subscriptions = collector.fetchSubscription(accountNumber, usageKey);
+            var subscriptions = collector.requestSubscriptions(accountNumber);
             subscriptions.forEach(syncController::syncSubscription);
             result = fetchSubscriptions(accountNumber, usageKey, roles, rangeStart, rangeEnd);
         }
 
         if (result.isEmpty()) {
             missingSubscriptionCounter.increment();
-            log.warn("No subscription found for account {} with key {} and roles {}", accountNumber, usageKey,
+            log.error("No subscription found for account {} with key {} and roles {}",
+                accountNumber,
+                usageKey,
                 roles);
-            return Optional.of(properties.getDummyId());
+            return Optional.empty();
         }
 
         if (result.size() > 1) {
@@ -114,26 +113,8 @@ public class MarketplaceSubscriptionIdProvider {
 
     protected List<Subscription> fetchSubscriptions(String accountNumber, Key usageKey, Set<String> roles,
         OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
-        List<Subscription> result =
-            subscriptionRepo.findSubscriptionByAccountAndUsageKey(accountNumber, usageKey, roles);
-        result = filterByDateRange(result, rangeStart, rangeEnd);
-        result = filterByMissingMarketplaceSubscriptionId(result);
-        return result;
-    }
-
-    private List<Subscription> filterByMissingMarketplaceSubscriptionId(List<Subscription> result) {
-        return result.stream()
-            .filter(x -> StringUtils.hasText(x.getMarketplaceSubscriptionId()))
-            .collect(Collectors.toList());
-    }
-
-    private List<Subscription> filterByDateRange(List<Subscription> result, OffsetDateTime rangeStart,
-        OffsetDateTime rangeEnd) {
-        return result.stream()
-            // Ensure that the subscription range covers at least the entire time range we're given
-            // !isBefore => rangeStart is either equal to or after subscription.getStartDate()
-            // !isAfter => rangeEnd is either equal to or before subscription.getEndDate()
-            .filter(x -> !rangeStart.isBefore(x.getStartDate()) && !rangeEnd.isAfter(x.getEndDate()))
-            .collect(Collectors.toList());
+        return subscriptionRepo
+            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+                accountNumber, usageKey, roles, rangeStart, rangeEnd);
     }
 }

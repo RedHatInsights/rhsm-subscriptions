@@ -129,16 +129,16 @@ public class MarketplacePayloadMapper {
             .filter(this::isSnapshotPAYGEligible).collect(Collectors.toList());
 
         List<UsageEvent> events = new ArrayList<>();
-
         for (TallySnapshot snapshot : eligibleSnapshots) {
             String productId = snapshot.getProductId();
-            OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
-            String eventId = snapshot.getId().toString();
 
             // call MarketplaceIdProvider.findSubscriptionId once available
             UsageCalculation.Key usageKey = new UsageCalculation.Key(productId,
                 ServiceLevel.fromString(snapshot.getSla().toString()),
                 Usage.fromString(snapshot.getUsage().toString()));
+
+            OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
+            String eventId = snapshot.getId().toString();
 
             /*
             This will need to be updated if we expand the criteria defined in the
@@ -152,12 +152,7 @@ public class MarketplacePayloadMapper {
             var subscriptionIdOpt = idProvider.findSubscriptionId(
                 tallySummary.getAccountNumber(), usageKey, startDate, snapshotDate);
 
-            /*
-            The //NOSONAR flag is Suppressing warning java:S2583 - Conditionally executed code should be
-            reachable.  Since findSubscriptionId is stubbed out right now, it's never returning Optional
-            .empty(), so this if statemant can't be evaluated to true, which is making sonar unhappy.
-             */
-            if (subscriptionIdOpt.isEmpty()) { //NOSONAR
+            if (subscriptionIdOpt.isEmpty()) {
                 log.error("Couldn't find subscription id. Error code here eventually?");
                 continue;
             }

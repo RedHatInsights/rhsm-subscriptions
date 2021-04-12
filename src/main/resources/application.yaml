@@ -114,3 +114,11 @@ rhsm-subscriptions:
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:4h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:24h}
+  subscription:
+    useStub: ${SUBSCRIPTION_USE_STUB:false}
+    url: ${SUBSCRIPTION_URL:https://subscription.qa.api.redhat.com/svcrest/subscription/v5}
+    keystore: file:${SUBSCRIPTION_KEYSTORE:}
+    keystorePassword: ${SUBSCRIPTION_KEYSTORE_PASSWORD:changeit}
+    maxConnections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}
+    backOffInitialInterval: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL:1s}
+    maxRetryAttempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
