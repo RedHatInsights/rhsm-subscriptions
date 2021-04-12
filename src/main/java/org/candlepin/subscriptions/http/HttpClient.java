@@ -26,6 +26,7 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFactory;
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.springframework.util.StringUtils;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -33,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Objects;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -66,7 +68,8 @@ public class HttpClient {
         apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
         apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
         // if the keystore path is not null, add certificate authentication
-        if (serviceProperties.getKeystore() != null) {
+        if (Objects.nonNull(serviceProperties.getKeystore()) &&
+            StringUtils.hasText(serviceProperties.getKeystore().getPath())) {
             apacheBuilder.setSSLContext(getSslContextFromKeystore(serviceProperties));
         }
         org.apache.http.client.HttpClient httpClient = apacheBuilder.build();
