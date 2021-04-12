@@ -81,7 +81,7 @@ public class SubscriptionService {
      */
     public List<Subscription> getSubscriptionsByAccountNumber(String accountNumber) {
         var index = 0;
-        var pageSize = 1;
+        var pageSize = 500;
         int latestResultCount;
 
         Set<Subscription> total = new HashSet<>();
