@@ -28,7 +28,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subscription"
-  /search/criteria;oracle_account_number={accountNumber};statusList=active;statusList=temporary/options;products=ALL;firstResultIndex={index};maxResults={pageSize}:
+  /search/criteria;oracle_account_number={accountNumber}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}:
     description: "Search subscriptions on owner, index, and pageSize"
     parameters:
       - name: accountNumber

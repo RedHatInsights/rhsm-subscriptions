@@ -20,29 +20,48 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.ApplicationProperties;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 /**
  * Configuration class for subscription package.
  */
 @Configuration
 @ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
-public class SubscriptionConfiguration {
+public class SubscriptionServiceConfiguration {
+
     @Bean
-    @Qualifier("subscription")
     @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
-    public HttpClientProperties subscriptionServiceProperties() {
-        return new HttpClientProperties();
+    public SubscriptionServiceProperties subscriptionServiceProperties() {
+        return new SubscriptionServiceProperties();
     }
 
     @Bean
-    public SearchApiFactory searchApiFactory(@Qualifier("subscription") HttpClientProperties props) {
-        return new SearchApiFactory(props);
+    public SearchApiFactory searchApiFactory(SubscriptionServiceProperties subscriptionServiceProperties) {
+        return new SearchApiFactory(subscriptionServiceProperties);
+    }
+
+    @Bean
+    public RetryTemplate subscriptionServiceRetryTemplate(ApplicationProperties applicationProperties) {
+
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        retryPolicy.setMaxAttempts(applicationProperties.getSubscription().getMaxRetryAttempts());
+
+        ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
+        backOffPolicy.setInitialInterval(
+            applicationProperties.getSubscription().getBackOffInitialInterval().toMillis());
+
+        RetryTemplate retryTemplate = new RetryTemplate();
+        retryTemplate.setRetryPolicy(retryPolicy);
+        retryTemplate.setBackOffPolicy(backOffPolicy);
+        return retryTemplate;
+
     }
 }

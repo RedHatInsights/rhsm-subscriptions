@@ -64,7 +64,7 @@ public class RhsmClientConfiguration {
     }
 
     @Bean(name = "rhsmRetryTemplate")
-    public RetryTemplate retryTemplate() {
+    public RetryTemplate rhsmRetryTemplate() {
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
         retryPolicy.setMaxAttempts(4);
 
