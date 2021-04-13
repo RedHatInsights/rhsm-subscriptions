@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.jmx;
 
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
+import org.candlepin.subscriptions.validator.ParameterDuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +30,15 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
+
+import javax.validation.constraints.NotNull;
 
 /**
  * Exposes the ability to trigger a tally for an account from JMX.
  */
 @Component
+@Validated
 @ManagedResource
 public class TallyJmxBean {
 
@@ -55,7 +60,6 @@ public class TallyJmxBean {
         log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
         tasks.updateAccountSnapshots(accountNumber);
     }
-
 
     @ManagedOperation(description = "Trigger tally for all configured accounts")
     public void tallyConfiguredAccounts() {
@@ -79,12 +83,12 @@ public class TallyJmxBean {
         "Ending of the range of time the tally should include. " +
         "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z)."
     )
-    public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
+    @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
+    public void tallyAccountByHourly(String accountNumber, @NotNull String startDateTime,
+        @NotNull String endDateTime) {
         log.info("Hourly tally between {} and {} for account {} triggered over JMX by {}",
             startDateTime, endDateTime, accountNumber, ResourceUtils.getPrincipal());
-
         tasks.tallyAccountByHourly(accountNumber, startDateTime, endDateTime);
-
     }
 
     @ManagedOperation(description = "Trigger hourly tally for all configured accounts")

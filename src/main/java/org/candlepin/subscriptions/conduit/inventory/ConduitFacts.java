@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.conduit.inventory;
 
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
-import org.candlepin.subscriptions.validator.ip.IpAddress;
+import org.candlepin.subscriptions.validator.IpAddress;
 
 import org.hibernate.validator.constraints.Length;
 

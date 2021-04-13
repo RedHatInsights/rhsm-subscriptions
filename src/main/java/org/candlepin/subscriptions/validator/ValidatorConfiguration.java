@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,30 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.validator.ip;
+package org.candlepin.subscriptions.validator;
 
-import com.google.common.net.InetAddresses;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-
-/**
- * A ConstraintValidator that ensures that an IP is a valid IPV4 or IPV6 IP.
- */
-public class IpAddressValidator implements ConstraintValidator<IpAddress, String> {
-
-    @Override
-    public void initialize(IpAddress constraintAnnotation) {
-        /* intentionally empty */
-    }
-
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        // A null or empty value is considered invalid.
-        if (value == null || value.isEmpty()) {
-            return false;
-        }
-        return InetAddresses.isInetAddress(value);
-    }
-
+/** Configuration for validators */
+@Configuration
+@ComponentScan(basePackages = {
+    "org.candlepin.subscriptions.validator"
+})
+public class ValidatorConfiguration {
+    // No op
 }
