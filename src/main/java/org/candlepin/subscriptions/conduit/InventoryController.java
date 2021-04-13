@@ -99,6 +99,7 @@ public class InventoryController {
     public static final String VIRT_IS_GUEST = "virt.is_guest";
     public static final String INSIGHTS_ID = "insights_id";
     public static final String OCM_UNITS = "ocm.units";
+    public static final String OCM_BILLING_MODEL = "ocm.billing_model";
     public static final String UNKNOWN = "unknown";
     public static final String TRUE = "True";
     public static final String NONE = "none";
@@ -150,6 +151,7 @@ public class InventoryController {
         facts.setSysPurposeUsage(consumer.getSysPurposeUsage());
         facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
         facts.setSysPurposeUnits(rhsmFacts.get(OCM_UNITS));
+        facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));
 
         extractNetworkFacts(rhsmFacts, facts);
         extractHardwareFacts(rhsmFacts, facts);

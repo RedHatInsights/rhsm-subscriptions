@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright (c) 2019 - 2021 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,6 +58,7 @@ public class StubRhsmApi extends RhsmApi {
         consumer1.getFacts().put("uname.machine", "x86_64");
         consumer1.getFacts().put("virt.is_guest", "True");
         consumer1.getFacts().put("ocm.units", "Sockets");
+        consumer1.getFacts().put("ocm.billing_model", "standard");
         InstalledProducts product = new InstalledProducts();
         product.setProductId("72");
         consumer1.getInstalledProducts().add(product);

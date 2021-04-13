@@ -78,6 +78,7 @@ class DefaultInventoryServiceTest {
         conduitFacts.setSysPurposeUsage("test_usage");
         conduitFacts.setSysPurposeAddons(Arrays.asList("addon1", "addon2"));
         conduitFacts.setSysPurposeUnits("Sockets");
+        conduitFacts.setBillingModel("standard");
         return conduitFacts;
     }
 
@@ -104,6 +105,7 @@ class DefaultInventoryServiceTest {
         expectedFactMap.put("SYSPURPOSE_USAGE", "test_usage");
         expectedFactMap.put("SYSPURPOSE_ADDONS", Arrays.asList("addon1", "addon2"));
         expectedFactMap.put("SYSPURPOSE_UNITS", "Sockets");
+        expectedFactMap.put("BILLING_MODEL", "standard");
         FactSet expectedFacts = new FactSet().namespace("rhsm").facts(expectedFactMap);
 
         SystemProfile systemProfile = new SystemProfile()
