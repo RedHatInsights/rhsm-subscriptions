@@ -61,6 +61,7 @@ public class ProductProfile {
     private Set<SubscriptionWatchProduct> products;
     private Set<SyspurposeRole> syspurposeRoles;
     private Set<MarketplaceMetric> marketplaceMetrics;
+    private Set<SwatchProductByOfferingProductName> swatchProductsByOfferingProductName;
     private Granularity finestGranularity;
     private boolean burstable = false;
     private String serviceType;
@@ -73,6 +74,7 @@ public class ProductProfile {
     private Map<String, Set<String>> swatchProductsByEngProducts;
     private Map<ProductUom, String> metricByProductAndUom;
     private Map<String, Set<String>> rolesBySwatchProduct;
+    private Map<String, String> swatchProductIdsByOfferingProductName;
 
 
     public ProductProfile() {
@@ -80,8 +82,10 @@ public class ProductProfile {
         this.syspurposeRoles = new HashSet<>();
         this.marketplaceMetrics = new HashSet<>();
         this.swatchProductsByRoles = new HashMap<>();
+
         this.swatchProductsByEngProducts = new HashMap<>();
         this.metricByProductAndUom = new HashMap<>();
+        this.swatchProductIdsByOfferingProductName = new HashMap<>();
     }
 
     public ProductProfile(String name, Set<SubscriptionWatchProduct> products, Granularity granularity) {
@@ -92,27 +96,11 @@ public class ProductProfile {
         setProducts(products);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Set<SubscriptionWatchProduct> getProducts() {
-        return products;
-    }
-
     public void setProducts(Set<SubscriptionWatchProduct> products) {
         this.products = products;
         this.swatchProductsByEngProducts = this.products.stream()
             .collect(Collectors.toMap(SubscriptionWatchProduct::getEngProductId,
             SubscriptionWatchProduct::getSwatchProductIds));
-    }
-
-    public Set<SyspurposeRole> getSyspurposeRoles() {
-        return syspurposeRoles;
     }
 
     public void setSyspurposeRoles(Set<SyspurposeRole> syspurposeRoles) {
@@ -141,6 +129,15 @@ public class ProductProfile {
         ));
     }
 
+    public void setSwatchProductsByOfferingProductNames(Set<SwatchProductByOfferingProductName>
+        swatchProductsByOfferingProductName) {
+        this.swatchProductsByOfferingProductName = swatchProductsByOfferingProductName;
+
+        this.swatchProductIdsByOfferingProductName = swatchProductsByOfferingProductName.stream()
+            .collect(Collectors.toMap(SwatchProductByOfferingProductName::getName,
+                SwatchProductByOfferingProductName::getSwatchProductId));
+    }
+
     public boolean supportsEngProduct(String product) {
         return products.stream().anyMatch(x -> product.equals(x.getEngProductId()));
     }
@@ -153,18 +150,6 @@ public class ProductProfile {
         return granularity.compareTo(finestGranularity) < 1;
     }
 
-    public Map<String, Set<String>> getSwatchProductsByRoles() {
-        return this.swatchProductsByRoles;
-    }
-
-    public Map<String, Set<String>> getRolesBySwatchProduct() {
-        return this.rolesBySwatchProduct;
-    }
-
-    public Map<String, Set<String>> getSwatchProductsByEngProducts() {
-        return this.swatchProductsByEngProducts;
-    }
-
     public String metricByProductAndUom(String swatchProductId, TallyMeasurement.Uom uom) {
         return metricByProductAndUom.get(new ProductUom(swatchProductId,
         fromTallyMeasurementUom(uom).toString()));
@@ -172,6 +157,10 @@ public class ProductProfile {
 
     public String metricByProductAndUom(String swatchProductId, Measurement.Uom uom) {
         return metricByProductAndUom.get(new ProductUom(swatchProductId, uom.toString()));
+    }
+
+    public String getSwatchProductIdByOfferingProductName(String offeringProductname) {
+        return this.swatchProductIdsByOfferingProductName.get(offeringProductname);
     }
 
     public Measurement.Uom fromTallyMeasurementUom(TallyMeasurement.Uom uom) {
