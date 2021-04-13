@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.security.SecurityConfig;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
+import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
@@ -65,7 +66,8 @@ import javax.validation.Validator;
     CaptureSnapshotsConfiguration.class, PurgeSnapshotsConfiguration.class,
     LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class, OrgSyncConfiguration.class,
     MarketplaceWorkerConfiguration.class, DevModeConfiguration.class, SecurityConfig.class,
-    HawtioConfiguration.class, MeteringConfiguration.class, SubscriptionServiceConfiguration.class
+    HawtioConfiguration.class, MeteringConfiguration.class, SubscriptionServiceConfiguration.class,
+    UserServiceClientConfiguration.class
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean

@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.security;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -28,6 +29,7 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataAccount;
@@ -38,10 +40,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.TimeZone;
 
+@Transactional
 @SpringBootTest
 @ActiveProfiles("test")
 class OptInControllerTest {
@@ -52,6 +56,9 @@ class OptInControllerTest {
     @Autowired
     private OrgConfigRepository orgRepo;
 
+    @Autowired
+    private AccountService accountService;
+
     private OptInController controller;
     private ApplicationClock clock;
 
@@ -59,7 +66,7 @@ class OptInControllerTest {
     void setupTest() {
         clock = new FixedClockConfiguration().fixedClock();
         TimeZone.setDefault(TimeZone.getTimeZone(clock.getClock().getZone()));
-        controller = new OptInController(clock, accountRepo, orgRepo);
+        controller = new OptInController(clock, accountRepo, orgRepo, accountService);
     }
 
     @Test
@@ -226,6 +233,75 @@ class OptInControllerTest {
     }
 
     @Test
+    void testOptInViaAccountNumber() {
+        controller.optInByAccountNumber("account123",
+            OptInType.API,
+            false,
+            false,
+            false);
+
+        assertTrue(orgRepo.existsById("org123"));
+        assertTrue(accountRepo.existsById("account123"));
+    }
+
+    @Test
+    void testOptInViaAccountNumberDoesNotUseApiIfOptInExists() {
+        AccountConfig accountConfig = new AccountConfig("account123");
+        accountConfig.setOptInType(OptInType.API);
+        accountConfig.setSyncEnabled(true);
+        accountConfig.setReportingEnabled(true);
+        accountConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        accountConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        accountRepo.save(accountConfig);
+
+        AccountService mockAccountService = mock(AccountService.class);
+        OptInController controllerWithMockApi = new OptInController(clock, accountRepo, orgRepo,
+            mockAccountService);
+        controllerWithMockApi.optInByAccountNumber("account123",
+            OptInType.API,
+            false,
+            false,
+            false);
+
+        verifyNoInteractions(mockAccountService);
+        assertTrue(accountRepo.existsById("account123"));
+    }
+
+    @Test
+    void testOptInViaOrgId() {
+        controller.optInByOrgId("org123",
+            OptInType.API,
+            false,
+            false,
+            false);
+
+        assertTrue(orgRepo.existsById("org123"));
+        assertTrue(accountRepo.existsById("account123"));
+    }
+
+    @Test
+    void testOptInViaOrgIdDoesNotUseApiIfOptInExists() {
+        OrgConfig orgConfig = new OrgConfig("org123");
+        orgConfig.setOptInType(OptInType.API);
+        orgConfig.setSyncEnabled(true);
+        orgConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        orgConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        orgRepo.save(orgConfig);
+
+        AccountService mockAccountService = mock(AccountService.class);
+        OptInController controllerWithMockApi = new OptInController(clock, accountRepo, orgRepo,
+            mockAccountService);
+        controllerWithMockApi.optInByOrgId("org123",
+            OptInType.API,
+            false,
+            false,
+            false);
+
+        verifyNoInteractions(mockAccountService);
+        assertTrue(orgRepo.existsById("org123"));
+    }
+
+    @Test
     void testOptOut() {
         String expectedAccountNumber = "my-account";
         String expectedOrgId = "my-org";
@@ -285,6 +361,54 @@ class OptInControllerTest {
         assertEquals(orgDto.getLastUpdated(), expectedUpdatedDate);
 
         assertTrue(dto.getData().getOptInComplete());
+    }
+
+    @Test
+    void testGetOptInConfigForAccountNumber() {
+        AccountConfig accountConfig = new AccountConfig("account123");
+        accountConfig.setOptInType(OptInType.API);
+        accountConfig.setSyncEnabled(true);
+        accountConfig.setReportingEnabled(true);
+        accountConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        accountConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        accountRepo.save(accountConfig);
+
+        OrgConfig orgConfig = new OrgConfig("org123");
+        orgConfig.setOptInType(OptInType.API);
+        orgConfig.setSyncEnabled(true);
+        orgConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        orgConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        orgRepo.save(orgConfig);
+
+        OptInConfig dto = controller.getOptInConfigForAccountNumber("account123");
+        assertNotNull(dto.getData().getAccount());
+        assertEquals("account123", dto.getData().getAccount().getAccountNumber());
+        assertNotNull(dto.getData().getOrg());
+        assertEquals("org123", dto.getData().getOrg().getOrgId());
+    }
+
+    @Test
+    void testGetOptInConfigForOrgId() {
+        AccountConfig accountConfig = new AccountConfig("account123");
+        accountConfig.setOptInType(OptInType.API);
+        accountConfig.setSyncEnabled(true);
+        accountConfig.setReportingEnabled(true);
+        accountConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        accountConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        accountRepo.save(accountConfig);
+
+        OrgConfig orgConfig = new OrgConfig("org123");
+        orgConfig.setOptInType(OptInType.API);
+        orgConfig.setSyncEnabled(true);
+        orgConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        orgConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
+        orgRepo.save(orgConfig);
+
+        OptInConfig dto = controller.getOptInConfigForOrgId("org123");
+        assertNotNull(dto.getData().getAccount());
+        assertEquals("account123", dto.getData().getAccount().getAccountNumber());
+        assertNotNull(dto.getData().getOrg());
+        assertEquals("org123", dto.getData().getOrg().getOrgId());
     }
 
     @Test
