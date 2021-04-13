@@ -71,9 +71,15 @@ class MarketplacePayloadMapperTest {
     @BeforeEach
     void init() {
         ProductProfile productProfile = new ProductProfile();
-        MarketplaceMetric marketplaceMetric = new MarketplaceMetric("redhat.com:openshiftdedicated:cpu_hour",
+
+        MarketplaceMetric marketplaceMetric = new MarketplaceMetric("redhat.com:openshift:cpu_hour",
             Measurement.Uom.CORES.toString(), Set.of(ProductId.OPENSHIFT_METRICS.toString()));
-        productProfile.setMarketplaceMetrics(Set.of(marketplaceMetric));
+
+        MarketplaceMetric osdMarketplaceMetric = new MarketplaceMetric(
+            MarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR,
+            Measurement.Uom.CORES.toString(), Set.of(ProductId.OPENSHIFT_DEDICATED_METRICS.toString()));
+
+        productProfile.setMarketplaceMetrics(Set.of(marketplaceMetric, osdMarketplaceMetric));
 
         // Tell Mockito not to complain if some of these mocks aren't used in a particular test
         lenient().when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(productProfile);
@@ -83,14 +89,12 @@ class MarketplacePayloadMapperTest {
 
     @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     @MethodSource("generateHardwareMeasurementPermutations")
-    void testProduceUsageMeasurements(
-        List<TallyMeasurement> tallyMeasurements, List<UsageMeasurement> expected) {
-
-        String productId = "OpenShift-metrics";
+    void testProduceUsageMeasurements(ProductId productId, List<TallyMeasurement> tallyMeasurements,
+        List<UsageMeasurement> expected) {
 
         var snapshot = new TallySnapshot()
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
-            .withProductId(productId)
+            .withProductId(productId.toString())
             .withSnapshotDate(OffsetDateTime.now())
             .withUsage(TallySnapshot.Usage.PRODUCTION)
             .withTallyMeasurements(tallyMeasurements)
@@ -98,7 +102,7 @@ class MarketplacePayloadMapperTest {
             .withGranularity(TallySnapshot.Granularity.HOURLY);
 
         var actual = marketplacePayloadMapper
-            .produceUsageMeasurements(snapshot, productId);
+            .produceUsageMeasurements(snapshot, productId.toString());
 
         assertEquals(expected, actual);
     }
@@ -115,17 +119,20 @@ class MarketplacePayloadMapperTest {
             .withUom(TallyMeasurement.Uom.CORES).withValue(value);
 
         UsageMeasurement usageMeasurement = new UsageMeasurement().value(value)
-            .metricId("redhat.com:openshiftdedicated:cpu_hour");
+            .metricId("redhat.com:openshift:cpu_hour");
+        UsageMeasurement divideByFourMeasurement = new UsageMeasurement().value(value / 4)
+            .metricId(MarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
-        Arguments physical = Arguments.of(List.of(physicalCoreMeasurement), List.of(usageMeasurement));
-        Arguments virtual = Arguments.of(List.of(virtualCoreMeasurment), List.of(usageMeasurement));
-        Arguments physicalTotal = Arguments.of(List.of(physicalCoreMeasurement, totalCoreMeasurment), List.of(usageMeasurement));
-        Arguments virtualTotal = Arguments.of(List.of(virtualCoreMeasurment, totalCoreMeasurment), List.of(usageMeasurement));
-        Arguments physicalVirtual = Arguments.of(List.of(physicalCoreMeasurement, virtualCoreMeasurment), List.of(usageMeasurement, usageMeasurement));
-        Arguments physicalVirtualTotal = Arguments.of(List.of(physicalCoreMeasurement, virtualCoreMeasurment, totalCoreMeasurment), List.of(usageMeasurement, usageMeasurement));
+        Arguments physical = Arguments.of(ProductId.OPENSHIFT_METRICS, List.of(physicalCoreMeasurement), List.of(usageMeasurement));
+        Arguments virtual = Arguments.of(ProductId.OPENSHIFT_METRICS, List.of(virtualCoreMeasurment), List.of(usageMeasurement));
+        Arguments physicalTotal = Arguments.of(ProductId.OPENSHIFT_METRICS, List.of(physicalCoreMeasurement, totalCoreMeasurment), List.of(usageMeasurement));
+        Arguments virtualTotal = Arguments.of(ProductId.OPENSHIFT_METRICS, List.of(virtualCoreMeasurment, totalCoreMeasurment), List.of(usageMeasurement));
+        Arguments physicalVirtual = Arguments.of(ProductId.OPENSHIFT_METRICS, List.of(physicalCoreMeasurement, virtualCoreMeasurment), List.of(usageMeasurement, usageMeasurement));
+        Arguments physicalVirtualTotal = Arguments.of(ProductId.OPENSHIFT_METRICS, List.of(physicalCoreMeasurement, virtualCoreMeasurment, totalCoreMeasurment), List.of(usageMeasurement, usageMeasurement));
+        Arguments physicalOsd = Arguments.of(ProductId.OPENSHIFT_DEDICATED_METRICS, List.of(physicalCoreMeasurement), List.of(divideByFourMeasurement));
+        return Stream.of(physical, virtual, physicalTotal, virtualTotal, physicalVirtual,
+            physicalVirtualTotal, physicalOsd);
 
-        return Stream
-            .of(physical, virtual, physicalTotal, virtualTotal, physicalVirtual, physicalVirtualTotal);
     }
 
     @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
@@ -197,7 +204,7 @@ class MarketplacePayloadMapperTest {
             .of(new UsageEvent().start(1612500754L).end(1616100754L)
             .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
             .measuredUsage(List.of(
-            new UsageMeasurement().value(36.0).metricId("redhat.com:openshiftdedicated:cpu_hour"))));
+            new UsageMeasurement().value(36.0).metricId("redhat.com:openshift:cpu_hour"))));
 
         List<UsageEvent> actual = marketplacePayloadMapper.produceUsageEvents(summary);
 
