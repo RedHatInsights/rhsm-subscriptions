@@ -28,6 +28,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 /**
  * Updates subscription capacity based on Candlepin pool data.
@@ -43,7 +44,7 @@ public class IngressResource implements IngressApi {
 
     @SuppressWarnings("java:S125")
     @Override
-    public void updateCapacityFromCandlepinPools(String orgId, @Valid List<CandlepinPool> pools) {
+    public void updateCapacityFromCandlepinPools(String orgId, @Valid @NotNull List<CandlepinPool> pools) {
         controller.updateCapacityForOrg(orgId, pools);
 
         //Card to address this: ENT-3573
