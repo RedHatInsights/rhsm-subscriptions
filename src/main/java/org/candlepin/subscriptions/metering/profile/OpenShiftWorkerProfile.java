@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
@@ -78,8 +78,8 @@ public class OpenShiftWorkerProfile {
     PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsProperties mProps,
         PrometheusService service, EventController eventController,
         @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
-        AccountConfigRepository accountConfigRepo) {
+        OptInController optInController) {
         return new PrometheusMeteringController(clock, mProps, service, eventController,
-            openshiftRetryTemplate, accountConfigRepo);
+            openshiftRetryTemplate, optInController);
     }
 }

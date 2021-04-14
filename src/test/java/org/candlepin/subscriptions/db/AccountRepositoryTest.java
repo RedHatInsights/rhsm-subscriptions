@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -82,6 +83,15 @@ class AccountRepositoryTest {
 
         hostRepo.flush();
         accountConfigRepo.flush();
+    }
+
+    // NOTE: this cleanup necessary because @Transactional on the setup method does *not* automatically
+    // rollback/remove the test data
+    @Transactional
+    @AfterAll
+    void cleanupTestData() {
+        accountConfigRepo.deleteAll();
+        hostRepo.deleteAll();
     }
 
     @Test

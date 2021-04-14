@@ -123,3 +123,13 @@ rhsm-subscriptions:
     backOffInitialInterval: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL:1s}
     maxRetryAttempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
     pageSize: ${SUBSCRIPTION_PAGE_SIZE:500}
+  user-service:
+    use-stub: ${USER_USE_STUB:false}
+    url: https://${USER_HOST:localhost}:${USER_PORT:443}
+    max-connections: ${USER_MAX_CONNECTIONS:100}
+    keystore: file:${RHSM_KEYSTORE:}
+    keystore-password: ${RHSM_KEYSTORE_PASSWORD:changeit}
+    back-off-initial-interval: ${USER_BACK_OFF_INITIAL_INTERVAL:1s}
+    back-off-max-interval: ${USER_BACK_OFF_MAX_INTERVAL:1m}
+    back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
+    max-attempts: ${USER_MAX_ATTEMPTS:1}

@@ -65,6 +65,18 @@ public class OptInJmxBean {
         return controller.getOptInConfig(accountNumber, orgId).toString();
     }
 
+    @ManagedOperation(description = "Fetch an opt in configuration (given only the account number)")
+    @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
+    public String getOptInConfigForAccountNumber(String accountNumber) {
+        return controller.getOptInConfigForAccountNumber(accountNumber).toString();
+    }
+
+    @ManagedOperation(description = "Fetch an opt in configuration (given only the org ID)")
+    @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
+    public String getOptInConfigForOrgId(String orgId) {
+        return controller.getOptInConfigForOrgId(orgId).toString();
+    }
+
     @ManagedOperation(description = "Delete opt in configuration")
     @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
     @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
@@ -90,6 +102,22 @@ public class OptInJmxBean {
 
         String text = "Completed opt in for account %s and org %s:\n%s";
         return String.format(text, accountNumber, orgId, config.toString());
+    }
+
+    @ManagedOperation(description = "Ensure opt-in exists for account number only.")
+    public String ensureOptinForAccountNumber(String accountNumber, boolean enableTallySync,
+        boolean enableTallyReporting, boolean enableConduitSync) {
+        controller.optInByAccountNumber(accountNumber, OptInType.JMX, enableTallySync, enableTallyReporting,
+            enableConduitSync);
+        return String.format("Completed opt in for account %s", accountNumber);
+    }
+
+    @ManagedOperation(description = "Ensure opt-in exists for org ID only.")
+    public String ensureOptInForOrgId(String orgId, boolean enableTallySync,
+        boolean enableTallyReporting, boolean enableConduitSync) {
+        controller.optInByOrgId(orgId, OptInType.JMX, enableTallySync, enableTallyReporting,
+            enableConduitSync);
+        return String.format("Completed opt in for orgId %s", orgId);
     }
 
     @ManagedAttribute(description = "Count of how many orgs opted-in in the previous week.")

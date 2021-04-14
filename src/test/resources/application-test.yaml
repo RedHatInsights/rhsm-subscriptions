@@ -14,6 +14,8 @@ rhsm-subscriptions:
   account-batch-size: 2
   subscription:
     use-stub: true
+  user-service:
+    use-stub: true
 logging:
   level:
     org:

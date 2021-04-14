@@ -78,11 +78,19 @@ class ProductProfileRegistryTest {
             Measurement.Uom.CORES.toString(), Set.of(OPENSHIFT_DEDICATED_METRICS.toString()))
         ));
 
+        ProductProfile p6 = new ProductProfile("p6", Collections.emptySet(), HOURLY);
+        p6.setSwatchProductsByOfferingProductNames(Set.of(
+            new SwatchProductByOfferingProductName("OpenShift Dedicated", "OpenShift-dedicated"),
+            new SwatchProductByOfferingProductName("OpenShift Container Platform",
+            "OpenShift-container-platform")
+        ));
+
         registry.addProductProfile(p1);
         registry.addProductProfile(p2);
         registry.addProductProfile(p3);
         registry.addProductProfile(p4);
         registry.addProductProfile(p5);
+        registry.addProductProfile(p6);
     }
 
     SubscriptionWatchProduct makeId(String engineeringProductId, Set<ProductId> productIds) {
@@ -129,7 +137,7 @@ class ProductProfileRegistryTest {
 
     @Test
     void testListProfiles() {
-        Set<String> expected = Set.of("p1", "p2", "p3", "p4", "p5");
+        Set<String> expected = Set.of("p1", "p2", "p3", "p4", "p5", "p6");
         Set<String> actual = registry.listProfiles();
         assertEquals(expected, actual);
     }
@@ -137,7 +145,7 @@ class ProductProfileRegistryTest {
     @Test
     void testGetAllProductProfiles() {
         Set<ProductProfile> profiles = registry.getAllProductProfiles();
-        assertEquals(5, profiles.size());
+        assertEquals(6, profiles.size());
         assertEquals(Set.of(HOURLY, DAILY),
             profiles.stream().map(ProductProfile::getFinestGranularity).collect(Collectors.toSet()));
     }
@@ -208,7 +216,6 @@ class ProductProfileRegistryTest {
         });
     }
 
-
     @Test
     void lookupMetric() {
         assertEquals("redhat.com:openshiftdedicated:cpu_hour",
@@ -218,5 +225,18 @@ class ProductProfileRegistryTest {
     @Test
     void lookupMetricNoMapping() {
         assertNull(registry.lookupMetricId("OpenShift--metrics", Measurement.Uom.CORES));
+    }
+
+    @Test
+    void lookupSwatchProductByOfferingProductName() {
+        assertEquals("OpenShift-dedicated",
+            registry.getProductIdByOfferingProductName("OpenShift Dedicated"));
+        assertEquals("OpenShift-container-platform",
+            registry.getProductIdByOfferingProductName("OpenShift Container Platform"));
+    }
+
+    @Test
+    void lookupSwatchProductByOFferingProductNameNoMapping() {
+        assertNull(registry.getProductIdByOfferingProductName("OpenShift Forthcoming"));
     }
 }

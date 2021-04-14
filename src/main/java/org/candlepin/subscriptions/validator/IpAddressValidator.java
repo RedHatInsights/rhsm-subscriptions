@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright (c) 2019 - 2019 Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,31 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.validator;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import com.google.common.net.InetAddresses;
 
-import java.util.Set;
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
 
+/**
+ * A ConstraintValidator that ensures that an IP is a valid IPV4 or IPV6 IP.
+ */
+public class IpAddressValidator implements ConstraintValidator<IpAddress, String> {
 
-/** Represents the idea of products in Subscription Watch and what family they slot into. */
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode
-public class SubscriptionWatchProduct {
-    private String engProductId;
-    private Set<String> swatchProductIds;
-
-    public SubscriptionWatchProduct() {
-        // Required for YAML
+    @Override
+    public void initialize(IpAddress constraintAnnotation) {
+        /* intentionally empty */
     }
 
-    public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
-        this.engProductId = engProductId;
-        this.swatchProductIds = swatchProductIds;
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        // A null or empty value is considered invalid.
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        return InetAddresses.isInetAddress(value);
     }
+
 }

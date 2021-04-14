@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -36,6 +37,7 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -76,13 +78,16 @@ class PrometheusMeteringControllerTest {
     AccountConfigRepository accountConfigRepository;
 
     @MockBean
-    private PrometheusAccountSource accountSource;
+    OrgConfigRepository orgConfigRepository;
 
     @Autowired
     private PrometheusMetricsProperties props;
 
     @Autowired
     private PrometheusMetricsProperties promProps;
+
+    @MockBean
+    private OptInController optInController;
 
     @Autowired
     @Qualifier("openshiftMetricRetryTemplate")
@@ -103,7 +108,7 @@ class PrometheusMeteringControllerTest {
     void setupTest() {
         openshiftRetry.setBackOffPolicy(new NoBackOffPolicy());
         controller = new PrometheusMeteringController(clock, promProps, service,
-            eventController, openshiftRetry, accountConfigRepository);
+            eventController, openshiftRetry, optInController);
     }
     @Test
     void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
@@ -154,8 +159,7 @@ class PrometheusMeteringControllerTest {
             clock.startOfHour(start), clock.endOfHour(end),
             props.getOpenshift().getStep(),
             props.getOpenshift().getQueryTimeout());
-        verify(accountConfigRepository).createOrUpdateAccountConfig(expectedAccount, clock.now(),
-            OptInType.PROMETHEUS, true, true);
+        verify(optInController).optInByAccountNumber(expectedAccount, OptInType.PROMETHEUS, true, true, true);
     }
 
     @Test

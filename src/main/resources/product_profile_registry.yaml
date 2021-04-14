@@ -121,3 +121,8 @@ marketplaceMetrics:
     uom: Cores
     swatchProductIds:
       - OpenShift-metrics
+swatchProductsByOfferingProductName:
+  - name: OpenShift Dedicated
+    swatchProductId: OpenShift-dedicated
+  - name: OpenShift Container Platform
+    swatchProductId: OpenShift-container-platform

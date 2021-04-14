@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.security.SecurityConfig;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
+import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
@@ -50,7 +51,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import org.springframework.validation.beanvalidation.MethodValidationPostProcessor;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import io.micrometer.core.aop.TimedAspect;
@@ -65,7 +65,8 @@ import javax.validation.Validator;
     CaptureSnapshotsConfiguration.class, PurgeSnapshotsConfiguration.class,
     LiquibaseUpdateOnlyConfiguration.class, TallyWorkerConfiguration.class, OrgSyncConfiguration.class,
     MarketplaceWorkerConfiguration.class, DevModeConfiguration.class, SecurityConfig.class,
-    HawtioConfiguration.class, MeteringConfiguration.class, SubscriptionServiceConfiguration.class
+    HawtioConfiguration.class, MeteringConfiguration.class, SubscriptionServiceConfiguration.class,
+    UserServiceClientConfiguration.class
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
     @Bean
@@ -99,15 +100,17 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         return new ApplicationClock();
     }
 
-    /**
-     * Tell Spring AOP to run methods in classes marked @Validated through the JSR-303 Validation
-     * implementation.  Validations that fail will throw an ConstraintViolationException.
-     * @return post-processor used by Spring AOP
+    /* Do not declare a MethodValidationPostProcessor!
+     *
+     * The Spring Core documents instruct the user to create a MethodValidationPostProcessor in order to
+     * enable method validation.  However, Spring Boot takes care of creating that bean that itself:
+     * "The method validation feature supported by Bean Validation 1.1 is automatically enabled as long as a
+     * JSR-303 implementation (such as Hibernate validator) is on the classpath" (from
+     * https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-validation).
+     *
+     * Creating our own MethodValidationPostProcessor causes ConstraintValidator implementations to *not*
+     * receive injection from the Spring IoC container.
      */
-    @Bean
-    public MethodValidationPostProcessor methodValidationPostProcessor() {
-        return new MethodValidationPostProcessor();
-    }
 
     @Bean
     public Validator validator() {

@@ -18,31 +18,36 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.user;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 
-import java.util.Set;
+import lombok.Data;
 
+import java.time.Duration;
 
-/** Represents the idea of products in Subscription Watch and what family they slot into. */
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode
-public class SubscriptionWatchProduct {
-    private String engProductId;
-    private Set<String> swatchProductIds;
+/**
+ * Properties for interacting with the RH IT User service.
+ */
+@Data
+public class UserServiceProperties extends HttpClientProperties {
+    /**
+     * How many attempts before giving up.
+     */
+    private Integer maxAttempts;
 
-    public SubscriptionWatchProduct() {
-        // Required for YAML
-    }
+    /**
+     * Retry backoff interval.
+     */
+    private Duration backOffInitialInterval;
 
-    public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
-        this.engProductId = engProductId;
-        this.swatchProductIds = swatchProductIds;
-    }
+    /**
+     * Retry backoff interval.
+     */
+    private Duration backOffMaxInterval;
+
+    /**
+     * Retry exponential backoff multiplier.
+     */
+    private Double backOffMultiplier;
 }

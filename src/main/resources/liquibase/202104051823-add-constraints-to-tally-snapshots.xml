@@ -1,0 +1,32 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202104051823-1" author="mstead">
+        <comment>Remove hourly snapshots from products that should not have them.</comment>
+        <sql dbms="postgresql">
+            delete from tally_snapshots where product_id not like 'OpenShift-%' and granularity = 'HOURLY';
+        </sql>
+    </changeSet>
+
+    <changeSet id="202104051823-2" author="mstead">
+        <comment>Remove duplicate snapshots from database.</comment>
+        <sql dbms="postgresql">
+            with to_keep as (
+                select id,rn from (select id, ROW_NUMBER() over
+                (partition by product_id, account_number, granularity, owner_id, snapshot_date, usage, sla, unit_of_measure) rn
+                from tally_snapshots) tmp
+            )
+            delete from tally_snapshots where id in (select id from to_keep where to_keep.rn > 1);
+        </sql>
+    </changeSet>
+
+    <changeSet id="202104051823-3" author="mstead">
+        <comment>Add constraints to tally_snapshots to prevent duplicates.</comment>
+        <addUniqueConstraint constraintName="tally_snapshot_unique_constraint" tableName="tally_snapshots"
+          columnNames="product_id, account_number, granularity, owner_id, snapshot_date, usage, sla, unit_of_measure"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -63,6 +63,18 @@ parameters:
     value: '30000'
   - name: INVENTORY_DATABASE_MAX_POOL_SIZE
     value: '25'
+  - name: USER_HOST
+    required: true
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
 
 objects:
   - apiVersion: v1
@@ -215,6 +227,18 @@ objects:
                   value: ${CLOUDIGRADE_HOST}
                 - name: CLOUDIGRADE_PORT
                   value: ${CLOUDIGRADE_PORT}
+                - name: USER_HOST
+                  value: ${USER_HOST}
+                - name: USER_MAX_CONNECTIONS
+                  value: ${USER_MAX_CONNECTIONS}
+                - name: USER_MAX_ATTEMPTS
+                  value: ${USER_MAX_ATTEMPTS}
+                - name: USER_BACK_OFF_MAX_INTERVAL
+                  value: ${USER_BACK_OFF_MAX_INTERVAL}
+                - name: USER_BACK_OFF_INITIAL_INTERVAL
+                  value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+                - name: USER_BACK_OFF_MULTIPLIER
+                  value: ${USER_BACK_OFF_MULTIPLIER}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:

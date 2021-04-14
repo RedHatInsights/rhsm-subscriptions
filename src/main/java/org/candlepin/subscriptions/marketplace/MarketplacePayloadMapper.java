@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
+import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
@@ -52,6 +53,8 @@ import java.util.stream.Collectors;
 @Service
 public class MarketplacePayloadMapper {
     private static final Logger log = LoggerFactory.getLogger(MarketplacePayloadMapper.class);
+
+    public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR = "redhat.com:openshift_dedicated:4cpu_hour";
 
     private final ProductProfileRegistry profileRegistry;
     private final MarketplaceProperties marketplaceProperties;
@@ -192,10 +195,25 @@ public class MarketplacePayloadMapper {
         snapshot.getTallyMeasurements().stream().filter(measurement -> !Objects
             .equals(HardwareMeasurementType.TOTAL.toString(), measurement.getHardwareMeasurementType()))
             .forEach(measurement -> {
+                String metricId = productProfile.metricByProductAndUom(productId, measurement.getUom());
+                Double value = measurement.getValue();
+
+                // RHM is expecting counts of 4 vCPU-hour blocks, but currently does not have a way
+                // to do this automatically. If we detect this case, divide the cores value by 4.
+                //
+                // We need a longer term process to get that information onto the SKU/product definition
+                // itself so that we are not hard coding this type of value in our code. This will do
+                // for now.
+                if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(metricId) && !Objects.isNull(value) &&
+                    Uom.CORES.equals(measurement.getUom())) {
+                    value = value / 4;
+                    log.debug("Found cores measurement for metric ID {}. Dividing cores by 4: {}",
+                        OPENSHIFT_DEDICATED_4_CPU_HOUR, value);
+                }
+
                 UsageMeasurement usageMeasurement = new UsageMeasurement();
-                usageMeasurement.setValue(measurement.getValue());
-                usageMeasurement.setMetricId(
-                    productProfile.metricByProductAndUom(productId, measurement.getUom()));
+                usageMeasurement.setValue(value);
+                usageMeasurement.setMetricId(metricId);
                 usageMeasurements.add(usageMeasurement);
             });
         return usageMeasurements;
