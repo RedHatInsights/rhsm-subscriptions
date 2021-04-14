@@ -37,6 +37,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * An InventoryService implementation that includes a Kafka producer that is capable
@@ -107,6 +108,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
 
     private void sendToKafka(OffsetDateTime now, ConduitFacts factSet) {
         CreateUpdateHostMessage message = new CreateUpdateHostMessage(createHost(factSet, now));
+        message.setMetadata("request_id", UUID.randomUUID().toString());
         producer.send(hostIngressTopic, message).addCallback(this::recordSuccess, this::recordFailure);
     }
 
