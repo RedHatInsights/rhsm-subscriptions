@@ -61,6 +61,7 @@ public class InventoryHostFacts {
     private String syspurposeSla;
     private String syspurposeUsage;
     private String syspurposeUnits;
+    private String billingModel;
     private String cloudProvider;
     private OffsetDateTime staleTimestamp;
 
@@ -69,14 +70,13 @@ public class InventoryHostFacts {
     }
 
     @SuppressWarnings("squid:S00107")
-    public InventoryHostFacts(UUID inventoryId, OffsetDateTime modifiedOn, String account,
-        String displayName, String orgId, String cores, String sockets,
-        String products, String syncTimestamp, String systemProfileInfrastructureType,
-        String systemProfileCores, String systemProfileSockets, String qpcProducts, String qpcProductIds,
-        String systemProfileProductIds, String syspurposeRole, String syspurposeSla,
-        String syspurposeUsage, String syspurposeUnits, String isVirtual, String hypervisorUuid,
-        String satelliteHypervisorUuid, String guestId, String subscriptionManagerId, String insightsId,
-        String cloudProvider, OffsetDateTime staleTimestamp) {
+    public InventoryHostFacts(UUID inventoryId, OffsetDateTime modifiedOn, String account, String displayName,
+        String orgId, String cores, String sockets, String products, String syncTimestamp,
+        String systemProfileInfrastructureType, String systemProfileCores, String systemProfileSockets,
+        String qpcProducts, String qpcProductIds, String systemProfileProductIds, String syspurposeRole,
+        String syspurposeSla, String syspurposeUsage, String syspurposeUnits, String isVirtual,
+        String hypervisorUuid, String satelliteHypervisorUuid, String guestId, String subscriptionManagerId,
+        String insightsId, String billingModel, String cloudProvider, OffsetDateTime staleTimestamp) {
         this.inventoryId = inventoryId;
         this.modifiedOn = modifiedOn;
         this.account = account;
@@ -102,6 +102,7 @@ public class InventoryHostFacts {
         this.guestId = guestId;
         this.subscriptionManagerId = subscriptionManagerId;
         this.insightsId = insightsId;
+        this.billingModel = billingModel;
         this.cloudProvider = cloudProvider;
         this.staleTimestamp = staleTimestamp;
     }

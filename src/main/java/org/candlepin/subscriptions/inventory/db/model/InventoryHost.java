@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.inventory.db.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -65,6 +68,7 @@ import javax.persistence.Table;
                 @ColumnResult(name = "syspurpose_sla"),
                 @ColumnResult(name = "syspurpose_usage"),
                 @ColumnResult(name = "syspurpose_units"),
+                @ColumnResult(name = "billing_model"),
                 @ColumnResult(name = "is_virtual"),
                 @ColumnResult(name = "hypervisor_uuid"),
                 @ColumnResult(name = "satellite_hypervisor_uuid"),
@@ -95,6 +99,7 @@ import javax.persistence.Table;
         "h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage, " +
         "h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units, " +
+        "h.facts->'rhsm'->>'BILLING_MODEL' as  billing_model, " +
         "h.facts->'qpc'->>'IS_RHEL' as is_rhel, " +
         "h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type, " +
         "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, " +
@@ -120,8 +125,13 @@ import javax.persistence.Table;
         "cross join lateral ( " +
         "    select string_agg(items->>'id', ',') as system_profile_product_ids " +
         "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile " +
-        "where account IN (:accounts) and (stale_timestamp is null or (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)))",
+        "where account IN (:accounts)" +
+        "   and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')" +
+        "   and (stale_timestamp is null " +
+        "   or  (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)))",
     resultSetMapping = "inventoryHostFactsMapping")
+@Getter
+@Setter
 public class InventoryHost implements Serializable {
 
     @Id
@@ -137,45 +147,5 @@ public class InventoryHost implements Serializable {
 
     @Column(name = "modified_on")
     private OffsetDateTime modifiedOn;
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getAccount() {
-        return account;
-    }
-
-    public void setAccount(String account) {
-        this.account = account;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public OffsetDateTime getCreatedOn() {
-        return createdOn;
-    }
-
-    public void setCreatedOn(OffsetDateTime createdOn) {
-        this.createdOn = createdOn;
-    }
-
-    public OffsetDateTime getModifiedOn() {
-        return modifiedOn;
-    }
-
-    public void setModifiedOn(OffsetDateTime modifiedOn) {
-        this.modifiedOn = modifiedOn;
-    }
 
 }
