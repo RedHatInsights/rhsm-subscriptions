@@ -24,12 +24,24 @@ package org.candlepin.subscriptions.jobs;
  * Contains the configuration properties for all jobs.
  */
 public class JobProperties {
+    // Every hour on the hour
+    private String captureHourlySnapshotSchedule = "0 0 * * * ?";
 
     private String captureSnapshotSchedule = "0 5 * * * ?";
+
     // Once a day at 3am
     private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
-    private String meteringSchedule = "0 0 * ? * *"; // Every hour, on the hour.
+    // Every hour, on the hour
+    private String meteringSchedule = "0 0 * * * ?";
+
+    public String getCaptureHourlySnapshotSchedule() {
+        return captureHourlySnapshotSchedule;
+    }
+
+    public void setCaptureHourlySnapshotSchedule(String captureHourlySnapshotSchedule) {
+        this.captureHourlySnapshotSchedule = captureHourlySnapshotSchedule;
+    }
 
     public String getCaptureSnapshotSchedule() {
         return captureSnapshotSchedule;

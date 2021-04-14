@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,12 +73,11 @@ public class MetricUsageCollector {
     }
 
     @Transactional
-    public Map<OffsetDateTime, AccountUsageCalculation> collect(String accountNumber,
-        OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
-        if (!clock.isHourlyRange(startDateTime, endDateTime)) {
+    public Map<OffsetDateTime, AccountUsageCalculation> collect(String accountNumber, DateRange range) {
+        if (!clock.isHourlyRange(range)) {
             throw new IllegalArgumentException(String.format(
                 "Start and end dates must be at the top of the hour: [%s -> %s]",
-                startDateTime, endDateTime));
+                range.getStartString(), range.getEndString()));
         }
 
         /* load the latest account state, so we can update host records conveniently */
@@ -107,18 +107,18 @@ public class MetricUsageCollector {
         We need to recalculate several things if we are re-tallying, namely monthly totals need to be
         cleared and re-updated for each host record
          */
-        if (newestInstanceTimestamp.isAfter(startDateTime)) {
-            effectiveStartDateTime = clock.startOfMonth(startDateTime);
+        if (newestInstanceTimestamp.isAfter(range.getStartDate())) {
+            effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
             effectiveEndDateTime = clock.endOfCurrentHour();
             log.info("We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
-                startDateTime, endDateTime, effectiveStartDateTime, effectiveEndDateTime);
+                range.getStartString(), range.getEndString(), effectiveStartDateTime, effectiveEndDateTime);
             isRecalculating = true;
         }
         else {
-            effectiveStartDateTime = startDateTime;
-            effectiveEndDateTime = endDateTime;
+            effectiveStartDateTime = range.getStartDate();
+            effectiveEndDateTime = range.getEndDate();
             log.info("New tally! Adjusting start and end from [{} : {}] to [{} : {}]",
-                startDateTime, endDateTime, effectiveStartDateTime, effectiveEndDateTime);
+                range.getStartString(), range.getEndString(), effectiveStartDateTime, effectiveEndDateTime);
             isRecalculating = false;
         }
 

@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -401,7 +402,8 @@ class MetricUsageCollectorTest {
                 return Stream.of();
             });
 
-        metricUsageCollector.collect("account123", instanceDate.minusHours(1), instanceDate.plusHours(1));
+        metricUsageCollector.collect("account123", new DateRange(instanceDate.minusHours(1),
+            instanceDate.plusHours(1)));
         assertEquals(Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
     }
 
@@ -446,17 +448,15 @@ class MetricUsageCollectorTest {
                 return Stream.of();
             });
 
-        metricUsageCollector.collect("account123", instanceDate.minusHours(1), instanceDate.plusHours(1));
+        metricUsageCollector.collect("account123", new DateRange(instanceDate.minusHours(1),
+            instanceDate.plusHours(1)));
         assertEquals(Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
         assertNull(staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
     }
 
     @Test
     void collectionThrowsExceptionWhenDateRangeIsNotRounded() {
-        OffsetDateTime start = clock.startOfCurrentHour();
-        OffsetDateTime end = clock.now();
-
-        assertThrows(IllegalArgumentException.class,
-            () -> metricUsageCollector.collect("account123", start, end));
+        DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
+        assertThrows(IllegalArgumentException.class, () -> metricUsageCollector.collect("account123", range));
     }
 }

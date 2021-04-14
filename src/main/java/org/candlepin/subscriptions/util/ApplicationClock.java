@@ -235,4 +235,8 @@ public class ApplicationClock {
         return startDateTime.isEqual(startOfHour(startDateTime)) &&
             endDateTime.isEqual(startOfHour(endDateTime));
     }
+
+    public boolean isHourlyRange(DateRange dateRange) {
+        return isHourlyRange(dateRange.getStartDate(), dateRange.getEndDate());
+    }
 }
