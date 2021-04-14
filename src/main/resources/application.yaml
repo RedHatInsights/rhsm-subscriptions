@@ -127,7 +127,7 @@ rhsm-subscriptions:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}
     max-connections: ${USER_MAX_CONNECTIONS:100}
-    keystore: ${RHSM_KEYSTORE:}
+    keystore: file:${RHSM_KEYSTORE:}
     keystore-password: ${RHSM_KEYSTORE_PASSWORD:changeit}
     back-off-initial-interval: ${USER_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-max-interval: ${USER_BACK_OFF_MAX_INTERVAL:1m}
