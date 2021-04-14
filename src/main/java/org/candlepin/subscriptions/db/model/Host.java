@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 import lombok.Getter;
@@ -366,7 +367,7 @@ public class Host implements Serializable {
                 isUnmappedGuest, isHypervisor, cloudProvider, instanceId, instanceType);
     }
 
-    public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost() {
+    public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost(String monthId) {
         var host = new org.candlepin.subscriptions.utilization.api.model.Host();
 
         host.inventoryId(getInventoryId());
@@ -396,13 +397,12 @@ public class Host implements Serializable {
         host.measurementType(
             Objects.requireNonNullElse(measurementType, HardwareMeasurementType.PHYSICAL).toString());
 
-
         // Core Hours is currently only applicable to the OpenShift-metrics OpenShift-dedicated-metrics
         // ProductIDs, and the UI is only query the host api in one month timeframes.  If the
         // granularity of that API changes in the future, other work will have to be done first to
         // capture relationships between hosts & snapshots to derive coreHours within dynamic timeframes
 
-        host.coreHours(getMonthlyTotals().values().stream().findFirst().orElse(null));
+        host.coreHours(getMonthlyTotal(monthId, Uom.CORES));
 
         return host;
     }
