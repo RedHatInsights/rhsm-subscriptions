@@ -20,6 +20,10 @@
  */
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Data;
+
 /**
  * Represents the kafka message that should be sent to the inventory service. Each message
  * should include an operation, a metadata object and a data object that will be converted
@@ -29,7 +33,7 @@ package org.candlepin.subscriptions.conduit.inventory.kafka;
  * <pre>
  *    {
  *      "operation": $SUPPORTED_OPERATION,
- *      "metadata": $M_AS_JSON_STRING,
+ *      "platform_metadata": $M_AS_JSON_STRING,
  *      "data": $D_AS_JSON_STRING
  *    }
  * </pre>
@@ -37,9 +41,11 @@ package org.candlepin.subscriptions.conduit.inventory.kafka;
  * @param <M> the type of the metadata object to be included in the JSON message.
  * @param <D> the type of the data object to be included in the JSON message.
  */
+@Data
 public abstract class HostOperationMessage<M, D> {
 
     protected String operation;
+    @JsonProperty("platform_metadata")
     protected M metadata;
     protected D data;
 
@@ -49,30 +55,6 @@ public abstract class HostOperationMessage<M, D> {
     protected HostOperationMessage(String operation, M metadata, D data) {
         this.operation = operation;
         this.metadata = metadata;
-        this.data = data;
-    }
-
-    public String getOperation() {
-        return operation;
-    }
-
-    public void setOperation(String operation) {
-        this.operation = operation;
-    }
-
-    public M getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(M metadata) {
-        this.metadata = metadata;
-    }
-
-    public D getData() {
-        return data;
-    }
-
-    public void setData(D data) {
         this.data = data;
     }
 }
