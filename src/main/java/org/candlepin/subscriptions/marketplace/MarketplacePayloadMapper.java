@@ -122,7 +122,7 @@ public class MarketplacePayloadMapper {
      * UsageRequest objects are made up of a list of UsageEvents.
      *
      * @param tallySummary TallySummary
-     * @return List<UsageEvent>
+     * @return List&lt;UsageEvent&gt;
      */
     protected List<UsageEvent> produceUsageEvents(TallySummary tallySummary) {
         if (Objects.isNull(tallySummary.getTallySnapshots())) {
@@ -180,7 +180,7 @@ public class MarketplacePayloadMapper {
      *
      * @param snapshot TallySnapshot
      * @param productId swatch product id
-     * @return List<UsageMeasurement>
+     * @return List&lt;UsageMeasurement%gt;
      */
     protected List<UsageMeasurement> produceUsageMeasurements(TallySnapshot snapshot, String productId) {
         var productProfile = profileRegistry.findProfileForSwatchProductId(productId);

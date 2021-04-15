@@ -148,7 +148,8 @@ public class HostsResource implements HostsApi {
 
             hosts = repository.findAllBy(accountNumber, productId.toString(), sanitizedSla, sanitizedUsage,
                 sanitizedDisplayNameSubstring, minCores, minSockets, month, page);
-            payload = ((Page<Host>) hosts).getContent().stream().map(Host::asTallyHostViewApiHost)
+            payload = ((Page<Host>) hosts).getContent().stream()
+                .map(h -> h.asTallyHostViewApiHost(month))
                 .collect(Collectors.toList());
         }
         else {
