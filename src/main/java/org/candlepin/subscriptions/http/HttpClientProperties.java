@@ -41,7 +41,7 @@ public class HttpClientProperties {
      * The auth token required to connect. This should be passed as part of the Authentication
      * header.
      *
-     * "Authentication: bearer <token>"
+     * "Authentication: bearer &lt;token&gt;"
      */
     private String token;
 

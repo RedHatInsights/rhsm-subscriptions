@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 public interface AccountListSource {
     /**
      * Get a stream of accounts that should have their data synced.
-     * @return Stream<String> of accounts that should have their data synced.
+     * @return Stream of type String of accounts that should have their data synced.
      * @throws AccountListSourceException if there is an error processing the data.
      */
     Stream<String> syncableAccounts() throws AccountListSourceException;
