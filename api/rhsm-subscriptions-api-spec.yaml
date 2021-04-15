@@ -1314,6 +1314,8 @@ components:
             type: string
         sys_purpose_units:
           type: string
+        billing_model:
+          type: string
 
     OrgInventory:
       properties:
