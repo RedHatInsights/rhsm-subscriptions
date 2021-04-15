@@ -249,6 +249,13 @@ objects:
                   value: ${USER_BACK_OFF_INITIAL_INTERVAL}
                 - name: USER_BACK_OFF_MULTIPLIER
                   value: ${USER_BACK_OFF_MULTIPLIER}
+                - name: RHSM_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
+                - name: RHSM_KEYSTORE
+                  value: /pinhead/keystore.jks
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
@@ -274,6 +281,8 @@ objects:
                   mountPath: /config
                 - name: logs
                   mountPath: /logs
+                - name: pinhead
+                  mountPath: /pinhead
               workingDir: /
             - name: splunk
               env:
@@ -345,6 +354,9 @@ objects:
                 secretName: splunk
             - name: logs
               emptyDir:
+            - name: pinhead
+              secret:
+                secretName: pinhead
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
           imagePullSecrets:
