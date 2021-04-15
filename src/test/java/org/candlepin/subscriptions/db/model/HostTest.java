@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -88,6 +89,22 @@ class HostTest {
         host.clearMonthlyTotals(OffsetDateTime.parse("2021-01-01T00:00:00Z"),
             OffsetDateTime.parse("2021-02-01T00:00:00Z"));
         assertTrue(host.getMonthlyTotals().isEmpty());
+    }
+
+    @Test
+    void testAsTallyHostViewApiHostSetsMonthlyCoreHours() {
+        HostTallyBucket b1 = new HostTallyBucket();
+        b1.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+
+        Host host = new Host();
+        host.setBuckets(Set.of(b1));
+        host.addToMonthlyTotal("2021-01", Measurement.Uom.CORES, 1.0);
+        host.addToMonthlyTotal("2021-01", Measurement.Uom.CORES, 1.0);
+        host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 2.0);
+        host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 3.0);
+
+        assertEquals(2.0, host.asTallyHostViewApiHost("2021-01").getCoreHours());
+        assertEquals(5.0, host.asTallyHostViewApiHost("2021-02").getCoreHours());
     }
 
     private InventoryHostFacts getInventoryHostFactsFull() {
