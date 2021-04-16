@@ -72,4 +72,10 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
      */
     Stream<EventRecord> findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
         String accountNumber, String eventSource, String eventType, OffsetDateTime begin, OffsetDateTime end);
+
+    /**
+     * Delete old event records given a cutoff date
+     * @param cutoffDate Dates BEFORE this timestamp get deleted
+     */
+    void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 }

@@ -21,6 +21,8 @@ parameters:
     value: 0 1 * * *
   - name: OPENSHIFT_METERING_SCHEDULE
     value: 0 * * * *
+  - name: EVENT_RECORD_RETENTION
+    value: 90d
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: IMAGE
@@ -302,6 +304,8 @@ objects:
                       value: ${LOGGING_LEVEL}
                     - name: KAFKA_BOOTSTRAP_HOST
                       value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: EVENT_RECORD_RETENTION
+                    - value: ${EVENT_RECORD_RETENTION}
                     - name: DATABASE_HOST
                       valueFrom:
                         secretKeyRef:

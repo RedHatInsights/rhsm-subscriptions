@@ -18,21 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.service.prometheus;
+package org.candlepin.subscriptions.retention;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-import lombok.Getter;
-import lombok.Setter;
+@Component
+public class PurgeEventRecordsJob implements Runnable {
 
-/**
- * Properties related to all metrics that are to be gathered from the prometheus service.
- */
-@Getter
-@Setter
-@ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
-public class PrometheusMetricsProperties {
+    private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
 
-    private MetricProperties openshift = new MetricProperties();
+    private final TallyRetentionController retentionController;
 
+    public PurgeEventRecordsJob(TallyRetentionController retentionController) {
+        this.retentionController = retentionController;
+    }
+
+    @Override
+    @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
+    public void run() {
+        log.info("Starting PurgeEventRecordsJob job.");
+
+        retentionController.purgeOldEventRecords();
+
+        log.info("PurgeEventRecordsJob complete.");
+
+    }
 }
