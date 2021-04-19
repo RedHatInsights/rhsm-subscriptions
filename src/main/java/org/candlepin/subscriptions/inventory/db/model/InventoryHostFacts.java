@@ -74,9 +74,10 @@ public class InventoryHostFacts {
         String orgId, String cores, String sockets, String products, String syncTimestamp,
         String systemProfileInfrastructureType, String systemProfileCores, String systemProfileSockets,
         String qpcProducts, String qpcProductIds, String systemProfileProductIds, String syspurposeRole,
-        String syspurposeSla, String syspurposeUsage, String syspurposeUnits, String isVirtual,
-        String hypervisorUuid, String satelliteHypervisorUuid, String guestId, String subscriptionManagerId,
-        String insightsId, String billingModel, String cloudProvider, OffsetDateTime staleTimestamp) {
+        String syspurposeSla, String syspurposeUsage, String syspurposeUnits,
+        String billingModel, String isVirtual, String hypervisorUuid, String satelliteHypervisorUuid,
+        String guestId, String subscriptionManagerId, String insightsId, String cloudProvider,
+        OffsetDateTime staleTimestamp) {
         this.inventoryId = inventoryId;
         this.modifiedOn = modifiedOn;
         this.account = account;
