@@ -51,14 +51,14 @@ class HourlyReportFillerTest {
         OffsetDateTime end = start.plusHours(3);
 
         TallyReport report = new TallyReport();
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfHour(start), 0, 0, 0, false);
-        assertSnapshot(filled.get(1), clock.startOfHour(start.plusHours(1)), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), clock.startOfHour(start.plusHours(2)), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), clock.startOfHour(start.plusHours(3)), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), clock.startOfHour(start.plusHours(1)), null, null, null, false);
+        assertSnapshot(filled.get(2), clock.startOfHour(start.plusHours(2)), null, null, null, false);
+        assertSnapshot(filled.get(3), clock.startOfHour(start.plusHours(3)), null, null, null, false);
     }
 
     @Test
@@ -74,23 +74,23 @@ class HourlyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(5, filled.size());
         OffsetDateTime reportStart = clock.startOfHour(start);
         assertSnapshot(filled.get(0), reportStart, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), reportStart.plusHours(1), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), reportStart.plusHours(1), null, null, null, false);
         assertSnapshot(filled.get(2), snap1.getDate(), snap1.getCores(), snap1.getSockets(),
             snap1.getInstanceCount(), true);
-        assertSnapshot(filled.get(3), reportStart.plusHours(3), 0, 0, 0, false);
+        assertSnapshot(filled.get(3), reportStart.plusHours(3), null, null, null, false);
         assertSnapshot(filled.get(4), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
     }
 
     @Test
     void testSnapshotsIgnoredWhenNoDatesSet() {
-        OffsetDateTime start = clock.startOfToday();
+        OffsetDateTime start = clock.startOfCurrentHour();
         OffsetDateTime end = start.plusHours(3);
 
         TallySnapshot snap1 = new TallySnapshot().cores(12).instanceCount(4)
@@ -100,14 +100,14 @@ class HourlyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), start.plusHours(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), start.plusHours(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), start.plusHours(3), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), start.plusHours(1), null, null, null, false);
+        assertSnapshot(filled.get(2), start.plusHours(2), null, null, null, false);
+        assertSnapshot(filled.get(3), start.plusHours(3), null, null, null, false);
     }
 
     @Test
@@ -124,15 +124,15 @@ class HourlyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfHour(start), 0, 0, 0, false);
         assertSnapshot(filled.get(1), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), clock.startOfHour(start.plusHours(2)), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), clock.startOfHour(start.plusHours(3)), 0, 0, 0, false);
+        assertSnapshot(filled.get(2), clock.startOfHour(start.plusHours(2)), null, null, null, false);
+        assertSnapshot(filled.get(3), clock.startOfHour(start.plusHours(3)), null, null, null, false);
     }
 
     @Test
@@ -149,15 +149,15 @@ class HourlyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap2, snap1);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfHour(start), 0, 0, 0, false);
         assertSnapshot(filled.get(1), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), clock.startOfHour(start.plusHours(2)), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), clock.startOfHour(start.plusHours(3)), 0, 0, 0, false);
+        assertSnapshot(filled.get(2), clock.startOfHour(start.plusHours(2)), null, null, null, false);
+        assertSnapshot(filled.get(3), clock.startOfHour(start.plusHours(3)), null, null, null, false);
     }
 
 }

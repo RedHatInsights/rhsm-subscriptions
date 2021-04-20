@@ -23,13 +23,16 @@ package org.candlepin.subscriptions.resource;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -47,6 +50,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,8 +59,11 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
@@ -65,6 +72,7 @@ import javax.ws.rs.core.Response;
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
+@Import(FixedClockConfiguration.class)
 public class TallyResourceTest {
 
     public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL;
@@ -353,6 +361,51 @@ public class TallyResourceTest {
             GranularityType.DAILY,
             1
         );
+    }
+
+    @Test
+    void testRunningTotalFormatUsedForPaygProducts() {
+        List<TallySnapshot> snapshots = List.of(1, 2, 8).stream().map(i -> {
+            var snapshot = new TallySnapshot();
+            snapshot.setSnapshotDate(OffsetDateTime.of(2019, 5, i, 12, 35, 0, 0, ZoneOffset.UTC));
+            snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+            return snapshot;
+        }).collect(Collectors.toList());
+
+        Mockito.when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                Mockito.eq("account123456"),
+                Mockito.eq(ProductId.OPENSHIFT_DEDICATED_METRICS.toString()),
+                Mockito.eq(Granularity.DAILY),
+                Mockito.eq(ServiceLevel.PREMIUM),
+                Mockito.eq(Usage.PRODUCTION),
+                Mockito.eq(OffsetDateTime.parse("2019-05-01T00:00Z")),
+                Mockito.eq(OffsetDateTime.parse("2019-05-31T11:59:59.999Z")),
+                Mockito.eq(null)
+            )).thenReturn(new PageImpl<>(snapshots));
+
+        TallyReport report = resource.getTallyReport(ProductId.OPENSHIFT_DEDICATED_METRICS,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2019-05-01T00:00Z"),
+            OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION
+        );
+        assertEquals(31, report.getData().size());
+
+        var firstSnapshot = report.getData().get(0);
+        assertEquals(2.0, firstSnapshot.getCoreHours());
+
+        var snapshots2Through7 = report.getData().subList(1, 7);
+        snapshots2Through7.forEach(snapshot -> assertEquals(6.0, snapshot.getCoreHours()));
+
+        var snapshots8Through24 = report.getData().subList(7, 24);
+        snapshots8Through24.forEach(snapshot -> assertEquals(22.0, snapshot.getCoreHours()));
+
+        var futureSnapshots = report.getData().subList(24, 31);
+        futureSnapshots.forEach(snapshot -> assertNull(snapshot.getCoreHours()));
     }
 
     @Test
