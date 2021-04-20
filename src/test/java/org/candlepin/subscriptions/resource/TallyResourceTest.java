@@ -374,14 +374,14 @@ public class TallyResourceTest {
 
         Mockito.when(repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                Mockito.eq("account123456"),
-                Mockito.eq(ProductId.OPENSHIFT_DEDICATED_METRICS.toString()),
-                Mockito.eq(Granularity.DAILY),
-                Mockito.eq(ServiceLevel.PREMIUM),
-                Mockito.eq(Usage.PRODUCTION),
-                Mockito.eq(OffsetDateTime.parse("2019-05-01T00:00Z")),
-                Mockito.eq(OffsetDateTime.parse("2019-05-31T11:59:59.999Z")),
-                Mockito.eq(null)
+                "account123456",
+                ProductId.OPENSHIFT_DEDICATED_METRICS.toString(),
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                OffsetDateTime.parse("2019-05-01T00:00Z"),
+                OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
+                null
             )).thenReturn(new PageImpl<>(snapshots));
 
         TallyReport report = resource.getTallyReport(ProductId.OPENSHIFT_DEDICATED_METRICS,
