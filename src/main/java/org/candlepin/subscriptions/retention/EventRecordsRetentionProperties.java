@@ -18,21 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.service.prometheus;
+package org.candlepin.subscriptions.retention;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Properties related to all metrics that are to be gathered from the prometheus service.
- */
+import java.time.Duration;
+
 @Getter
 @Setter
-@ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
-public class PrometheusMetricsProperties {
-
-    private MetricProperties openshift = new MetricProperties();
-
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.event-retention-policy")
+public class EventRecordsRetentionProperties {
+    private Duration eventRetentionDuration = Duration.ofDays(90L);
 }

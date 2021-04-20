@@ -24,6 +24,10 @@ import org.candlepin.subscriptions.json.Event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -42,10 +46,10 @@ import javax.validation.Valid;
  */
 @Entity
 @Table(name = "events")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class EventRecord {
-    public EventRecord() {
-        /* intentionally empty */
-    }
 
     /**
      * Create a new EventRecord from a given Event.
