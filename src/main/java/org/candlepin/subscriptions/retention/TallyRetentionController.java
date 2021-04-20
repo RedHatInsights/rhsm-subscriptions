@@ -82,7 +82,7 @@ public class TallyRetentionController {
     }
 
     public void purgeOldEventRecords() {
-        Duration eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
+        var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
 
         OffsetDateTime cutoffDate = OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS)
             .minus(eventRetentionDuration);
