@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,24 +123,22 @@ public class CaptureSnapshotsTaskManager {
         }
     }
 
-    public void tallyAccountByHourly(String accountNumber, String startDateTime, String endDateTime) {
-
-        if (!applicationClock.isHourlyRange(
-            OffsetDateTime.parse(startDateTime), OffsetDateTime.parse(endDateTime))) {
+    public void tallyAccountByHourly(String accountNumber, DateRange tallyRange) {
+        if (!applicationClock.isHourlyRange(tallyRange)) {
             log.error("Hourly snapshot production for accountNumber {} will not be queued. " +
                 "Invalid start/end times specified.", accountNumber);
             throw new IllegalArgumentException(String.format(
                 "Start/End times must be at the top of the hour: [%s -> %s]",
-                startDateTime, endDateTime));
+                tallyRange.getStartString(), tallyRange.getEndString()));
         }
 
         log.info("Queuing hourly snapshot production for accountNumber {} between {} and {}",
-            accountNumber, startDateTime, endDateTime);
+            accountNumber, tallyRange.getStartString(), tallyRange.getEndString());
 
         queue.enqueue(TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
             .setSingleValuedArg("accountNumber", accountNumber)
-            .setSingleValuedArg("startDateTime", startDateTime)
-            .setSingleValuedArg("endDateTime", endDateTime)
+            .setSingleValuedArg("startDateTime", tallyRange.getStartString())
+            .setSingleValuedArg("endDateTime", tallyRange.getEndString())
             .build());
     }
 
@@ -158,8 +157,7 @@ public class CaptureSnapshotsTaskManager {
             OffsetDateTime startDateTime = applicationClock.startOfHour(endDateTime.minus(metricRange));
 
             accountStream.forEach(accountNumber -> {
-                tallyAccountByHourly(accountNumber, startDateTime.toString(), endDateTime.toString());
-
+                tallyAccountByHourly(accountNumber, new DateRange(startDateTime, endDateTime));
                 count.addAndGet(1);
             });
 
@@ -173,6 +171,9 @@ public class CaptureSnapshotsTaskManager {
 
 
     protected OffsetDateTime adjustTimeForLatency(OffsetDateTime dateTime, Duration adjustmentAmount) {
+        // Convert to a ZonedDateTime before subtracting the duration.  A ZonedDateTime will hold the offset
+        // rules around a specific time zone.  If the subtracted amount crosses a change in the zone's
+        // offset (e.g. Daylight Saving Time), the ZonedDateTime.minus method will handle that properly.
         return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
     }
 

@@ -162,9 +162,9 @@ public class ApplicationProperties {
 
     /**
      * Amount of time from current timestamp to start looking for metrics during a tally,
-     * indepedent of the prometheus latency duration
+     * independent of the prometheus latency duration
      */
-    private Duration metricLookupRangeDuration = Duration.ofHours(24L);
+    private Duration metricLookupRangeDuration = Duration.ofHours(1L);
 
     /**
      * Latency offset: how far back to set the hourly tally window.
