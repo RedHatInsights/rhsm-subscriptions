@@ -152,7 +152,7 @@ public class ReportFiller {
                 .cloudSockets(previous.getCloudSockets())
                 .cloudCores(previous.getCloudCores())
                 .coreHours(previous.getCoreHours())
-                .hasData(false);
+                .hasData(true); // has_data = true means that the frontend should show the value in a tooltip
         }
         Integer defaultValueInteger;
         Double defaultValue;
