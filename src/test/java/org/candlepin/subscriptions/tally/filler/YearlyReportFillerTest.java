@@ -51,14 +51,14 @@ public class YearlyReportFillerTest {
         OffsetDateTime start = clock.startOfCurrentYear();
         OffsetDateTime end = start.plusYears(3);
         TallyReport report = new TallyReport();
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), start.plusYears(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), start.plusYears(3), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), start.plusYears(1), null, null, null, false);
+        assertSnapshot(filled.get(2), start.plusYears(2), null, null, null, false);
+        assertSnapshot(filled.get(3), start.plusYears(3), null, null, null, false);
     }
 
     @Test
@@ -71,14 +71,14 @@ public class YearlyReportFillerTest {
         OffsetDateTime expectedStart = clock.startOfYear(start);
 
         TallyReport report = new TallyReport();
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), expectedStart, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), expectedStart.plusYears(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), expectedStart.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), expectedStart.plusYears(3), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), expectedStart.plusYears(1), null, null, null, false);
+        assertSnapshot(filled.get(2), expectedStart.plusYears(2), null, null, null, false);
+        assertSnapshot(filled.get(3), expectedStart.plusYears(3), null, null, null, false);
     }
 
     @Test
@@ -93,14 +93,14 @@ public class YearlyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), start.plusYears(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), start.plusYears(3), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), start.plusYears(1), null, null, null, false);
+        assertSnapshot(filled.get(2), start.plusYears(2), null, null, null, false);
+        assertSnapshot(filled.get(3), start.plusYears(3), null, null, null, false);
     }
 
     @Test
@@ -116,14 +116,14 @@ public class YearlyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), start, 0, 0, 0, false);
         assertSnapshot(filled.get(1), snap1.getDate(), snap1.getCores(), snap1.getSockets(),
             snap1.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), start.plusYears(2), 0, 0, 0, false);
+        assertSnapshot(filled.get(2), start.plusYears(2), null, null, null, false);
         assertSnapshot(filled.get(3), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
     }

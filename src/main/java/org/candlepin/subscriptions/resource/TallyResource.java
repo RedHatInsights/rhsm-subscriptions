@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -44,7 +45,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.validation.constraints.Min;
@@ -85,6 +89,9 @@ public class TallyResource implements TallyApi {
         // records from beginning to ending dates. Otherwise we page as usual.
         Pageable pageable = null;
         boolean fill = limit == null && offset == null;
+        boolean useRunningTotalFormat =
+            productProfileRegistry.findProfileForSwatchProductId(productId).getFinestGranularity() ==
+            Granularity.HOURLY;
         if (!fill) {
             pageable = ResourceUtils.getPageable(offset, limit);
         }
@@ -126,6 +133,11 @@ public class TallyResource implements TallyApi {
         report.getMeta().setServiceLevel(sla);
         report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
 
+        // if the product is a metered product transform to running total format
+        if (useRunningTotalFormat) {
+            transformToRunningTotalFormat(report);
+        }
+
         // Only set page links if we are paging (not filling).
         if (pageable != null) {
             report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
@@ -134,13 +146,24 @@ public class TallyResource implements TallyApi {
         // Fill the report gaps if no paging was requested.
         if (fill) {
             ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityFromValue);
-            reportFiller.fillGaps(report, beginning, ending);
+            reportFiller.fillGaps(report, beginning, ending, useRunningTotalFormat);
         }
 
         // Set the count last since the report may have gotten filled.
         report.getMeta().setCount(report.getData().size());
 
         return report;
+    }
+
+    private void transformToRunningTotalFormat(TallyReport report) {
+        Map<Measurement.Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+        report.getData().forEach(snapshot -> {
+            double snapshotHours = Optional.ofNullable(snapshot.getCoreHours()).orElse(0.0);
+            Double newValue =
+                runningTotals.getOrDefault(Measurement.Uom.CORES, 0.0) + snapshotHours;
+            snapshot.setCoreHours(newValue);
+            runningTotals.put(Measurement.Uom.CORES, newValue);
+        });
     }
 
 }
