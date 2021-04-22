@@ -40,7 +40,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -148,13 +147,11 @@ public class MarketplacePayloadMapper {
             This will need to be updated if we expand the criteria defined in the
             isSnapshotPAYGEligible method to allow for Granularities other than HOURLY
              */
-            OffsetDateTime startDate = snapshotDate.minus(Duration.of(1, ChronoUnit.HOURS));
-
-            long start = startDate.toInstant().toEpochMilli();
-            long end = snapshotDate.toInstant().toEpochMilli();
+            long start = snapshotDate.toInstant().toEpochMilli();
+            long end =  snapshotDate.plus(Duration.ofHours(1L)).toInstant().toEpochMilli();
 
             var subscriptionIdOpt = idProvider.findSubscriptionId(
-                tallySummary.getAccountNumber(), usageKey, startDate, snapshotDate);
+                tallySummary.getAccountNumber(), usageKey, snapshotDate, snapshotDate);
 
             if (subscriptionIdOpt.isEmpty()) {
                 log.error("{}", ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR);
