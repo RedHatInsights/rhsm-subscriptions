@@ -390,7 +390,7 @@ objects:
                     - name: KAFKA_BOOTSTRAP_HOST
                       value: ${KAFKA_BOOTSTRAP_HOST}
                     - name: EVENT_RECORD_RETENTION
-                    - value: ${EVENT_RECORD_RETENTION}
+                      value: ${EVENT_RECORD_RETENTION}
                     - name: DATABASE_HOST
                       valueFrom:
                         secretKeyRef:
