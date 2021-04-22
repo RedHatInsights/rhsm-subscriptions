@@ -203,7 +203,7 @@ class MarketplacePayloadMapperTest {
         var usageMeasurement = new UsageMeasurement().value(36.0)
             .metricId("redhat.com:openshift:cpu_hour");
         var expected = List
-            .of(new UsageEvent().start(1612500754L).end(1616100754L)
+            .of(new UsageEvent().start(snapshotDateLong).end(1619700754L)
             .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
             .measuredUsage(List.of(usageMeasurement)));
 
