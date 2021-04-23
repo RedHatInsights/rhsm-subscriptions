@@ -20,7 +20,7 @@ plugins {
     id "org.springframework.boot" version "2.4.4"
     id "net.researchgate.release" version "2.8.1"
     id "GitProperties"
-    id 'com.adarshr.test-logger' version '2.1.1'
+    id 'com.adarshr.test-logger' version '3.0.0'
     // Only applied for the rhsm-subscriptions-kafka sub project; applied below.
     id "com.commercehub.gradle.plugin.avro-base" version "0.9.1" apply false
 }
