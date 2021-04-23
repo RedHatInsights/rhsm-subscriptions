@@ -57,7 +57,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription,
         "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE " + ":#{#key.usage} = o.usage AND " +
         ":#{#key.sla} = o.serviceLevel AND " +
         "o.role IN :#{#roles}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND " +
-        "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> ''")
+        "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> '' " +
+        "ORDER BY s.startDate DESC")
     List<Subscription> findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
         @Param("accountNumber") String accountNumber, @Param("key") UsageCalculation.Key usageKey,
         @Param("roles") Set<String> roles, @Param("rangeStart") OffsetDateTime rangeStart,

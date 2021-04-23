@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -115,6 +116,34 @@ class SubscriptionRepositoryTest {
         assertEquals(0, result.size());
     }
 
+    @Transactional
+    @Test
+    void removeAllButMostRecentMarketplaceSubscriptions() {
+        Subscription subscription1 = createSubscription("1", "1000", "testSku1", "123",
+            NOW.minusDays(30), NOW.plusDays(10));
+        subscriptionRepo.saveAndFlush(subscription1);
+        Subscription subscription2 = createSubscription("1", "1000", "testSku1", "234",
+            NOW, NOW.plusDays(30));
+        subscriptionRepo.saveAndFlush(subscription2);
+
+        Offering offering = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        offeringRepo.save(offering);
+
+        UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+        Set<String> roles = Set.of("ocp");
+
+        var resultList = subscriptionRepo
+            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId("1000",
+            key, roles, NOW, NOW);
+
+        assertEquals(2, resultList.size());
+
+        var result1 = resultList.get(0);
+        var result2 = resultList.get(1);
+
+        assertTrue(result1.getStartDate().isAfter(result2.getStartDate()));
+    }
+
     private Offering createOffering(String sku, int productId, ServiceLevel sla, Usage usage,
         String role) {
         Offering o = new Offering();
@@ -127,6 +156,12 @@ class SubscriptionRepositoryTest {
     }
 
     private Subscription createSubscription(String orgId, String accountNumber, String sku, String subId) {
+        return createSubscription(orgId, accountNumber, sku, subId, NOW, NOW.plusDays(30));
+    }
+
+    private Subscription createSubscription(String orgId, String accountNumber,
+        String sku, String subId, OffsetDateTime startDate, OffsetDateTime endDate) {
+
         Subscription subscription = new Subscription();
         subscription.setMarketplaceSubscriptionId("bananas");
         subscription.setSubscriptionId(subId);
@@ -134,11 +169,9 @@ class SubscriptionRepositoryTest {
         subscription.setAccountNumber(accountNumber);
         subscription.setQuantity(4L);
         subscription.setSku(sku);
-        subscription.setStartDate(NOW);
-        subscription.setEndDate(NOW.plusDays(30));
+        subscription.setStartDate(startDate);
+        subscription.setEndDate(endDate);
 
         return subscription;
     }
-
-
 }
