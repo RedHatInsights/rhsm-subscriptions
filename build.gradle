@@ -32,7 +32,7 @@ ext {
     resteasy_version = "3.6.3.Final"
     spring_boot_version = "2.4.4"
     jboss_jaxrs_api_version = "2.0.1.Final"
-    resteasy_spring_boot_starter_version = "3.0.0.Final"
+    resteasy_spring_boot_starter_version = "4.8.0.Final"
     kafka_avro_serializer_version = "6.1.1"
     avro_version = "1.10.2"
     webjars_locator_version = "0.40"
