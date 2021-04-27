@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.subscription.SubscriptionService;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * Class responsible for communicating with the Marketplace API and fetching the subscription ID.
@@ -43,14 +44,18 @@ public class MarketplaceSubscriptionCollector {
   }
 
   /**
-   * Given an account number, query the IT Subscription Service and return subscriptions that have
-   * an ibm marketplace external reference as part of its payload
+   * Given an org ID, query the IT Subscription Service and return subscriptions that have an ibm
+   * marketplace external reference as part of its payload
    *
-   * @param accountNumber - account number aka oracle account number aka ebs account number
+   * @param orgId - org ID used to look up subscriptions.
    * @return subscriptions
    */
-  public List<Subscription> requestSubscriptions(String accountNumber) {
-    var subscriptions = subscriptionService.getSubscriptionsByAccountNumber(accountNumber);
+  public List<Subscription> requestSubscriptions(String orgId) {
+    if (!StringUtils.hasText(orgId)) {
+      throw new IllegalArgumentException("The orgId parameter can not be null or empty.");
+    }
+
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
     return filterNonApplicableSubscriptions(subscriptions);
   }
 

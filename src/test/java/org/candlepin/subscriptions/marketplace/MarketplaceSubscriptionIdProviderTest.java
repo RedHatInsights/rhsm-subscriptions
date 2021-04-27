@@ -82,10 +82,10 @@ class MarketplaceSubscriptionIdProviderTest {
 
     assertThrows(
         IllegalArgumentException.class,
-        () -> idProvider.findSubscriptionId("1000", key1, rangeStart, rangeEnd));
+        () -> idProvider.findSubscriptionId("1000", "org1000", key1, rangeStart, rangeEnd));
     assertThrows(
         IllegalArgumentException.class,
-        () -> idProvider.findSubscriptionId("1000", key2, rangeStart, rangeEnd));
+        () -> idProvider.findSubscriptionId("1000", "org1000", key2, rangeStart, rangeEnd));
   }
 
   @Test
@@ -112,7 +112,8 @@ class MarketplaceSubscriptionIdProviderTest {
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
 
-    Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+    Optional<String> actual =
+        idProvider.findSubscriptionId("1000", "org1000", key, rangeStart, rangeEnd);
     assertEquals("xyz", actual.get());
   }
 
@@ -140,9 +141,10 @@ class MarketplaceSubscriptionIdProviderTest {
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
 
-    Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+    Optional<String> actual =
+        idProvider.findSubscriptionId("1000", "org1000", key, rangeStart, rangeEnd);
     assertEquals("abc", actual.get());
 
-    verify(collector).requestSubscriptions("1000");
+    verify(collector).requestSubscriptions("org1000");
   }
 }

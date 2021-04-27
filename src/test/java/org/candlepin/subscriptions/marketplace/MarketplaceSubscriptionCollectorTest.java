@@ -64,12 +64,12 @@ class MarketplaceSubscriptionCollectorTest {
   @Test
   void testRequestSubscriptions() {
 
-    when(subscriptionService.getSubscriptionsByAccountNumber(anyString()))
+    when(subscriptionService.getSubscriptionsByOrgId(anyString()))
         .thenReturn(List.of(SUB_WITH_IBMMARKETPLACE));
 
     assertEquals(
         List.of(SUB_WITH_IBMMARKETPLACE),
-        marketplaceSubscriptionCollector.requestSubscriptions("account123"));
+        marketplaceSubscriptionCollector.requestSubscriptions("org123"));
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)

@@ -63,7 +63,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subscription"
-  /search/criteria;web_customer_id={orgId}/options;products=ALL;isCustomer=false;firstResultIndex={index};maxResults={pageSize}:
+  /search/criteria;web_customer_id={orgId}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}:
     description: "Search subscriptions on owner, index, and pageSize"
     parameters:
       - name: orgId
