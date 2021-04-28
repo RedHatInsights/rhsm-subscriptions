@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.capacity;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
-
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -32,13 +31,16 @@ import org.springframework.context.annotation.Profile;
 /**
  * Configuration for the "capacity-ingress" profile.
  *
- * This profile is used to receive capacity records from an internal service.
+ * <p>This profile is used to receive capacity records from an internal service.
  */
 @Configuration
 @Profile("capacity-ingress")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class,
-    ProductMappingConfiguration.class})
+@Import({
+  ResteasyConfiguration.class,
+  RhsmSubscriptionsDataSourceConfiguration.class,
+  ProductMappingConfiguration.class
+})
 @ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
 public class CapacityIngressConfiguration {
-    /* Intentionally empty */
+  /* Intentionally empty */
 }

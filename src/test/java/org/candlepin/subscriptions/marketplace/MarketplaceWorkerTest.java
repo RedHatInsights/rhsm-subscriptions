@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,63 +22,60 @@ package org.candlepin.subscriptions.marketplace;
 
 import static org.mockito.Mockito.*;
 
+import java.util.Collections;
+import java.util.List;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-import java.util.List;
-
 @ExtendWith(MockitoExtension.class)
 class MarketplaceWorkerTest {
 
-    @Test
-    void testWorkerCallsProduceForNonEmptyPayload() {
-        ApplicationProperties properties = new ApplicationProperties();
-        MarketplaceProducer producer = mock(MarketplaceProducer.class);
-        MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
-        var worker = new MarketplaceWorker(properties, producer, payloadMapper);
+  @Test
+  void testWorkerCallsProduceForNonEmptyPayload() {
+    ApplicationProperties properties = new ApplicationProperties();
+    MarketplaceProducer producer = mock(MarketplaceProducer.class);
+    MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
+    var worker = new MarketplaceWorker(properties, producer, payloadMapper);
 
-        UsageRequest usageRequest = new UsageRequest().data(List.of(new UsageEvent()));
-        when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
+    UsageRequest usageRequest = new UsageRequest().data(List.of(new UsageEvent()));
+    when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
 
-        worker.receive(new TallySummary());
+    worker.receive(new TallySummary());
 
-        verify(producer, times(1)).submitUsageRequest(usageRequest);
-    }
+    verify(producer, times(1)).submitUsageRequest(usageRequest);
+  }
 
-    @Test
-    void testWorkerSkipsEmptyPayloads() {
-        ApplicationProperties properties = new ApplicationProperties();
-        MarketplaceProducer producer = mock(MarketplaceProducer.class);
-        MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
-        var worker = new MarketplaceWorker(properties, producer, payloadMapper);
+  @Test
+  void testWorkerSkipsEmptyPayloads() {
+    ApplicationProperties properties = new ApplicationProperties();
+    MarketplaceProducer producer = mock(MarketplaceProducer.class);
+    MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
+    var worker = new MarketplaceWorker(properties, producer, payloadMapper);
 
-        UsageRequest usageRequest = new UsageRequest().data(Collections.emptyList());
-        when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
+    UsageRequest usageRequest = new UsageRequest().data(Collections.emptyList());
+    when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
 
-        worker.receive(new TallySummary());
+    worker.receive(new TallySummary());
 
-        verify(producer, times(0)).submitUsageRequest(any());
-    }
+    verify(producer, times(0)).submitUsageRequest(any());
+  }
 
-    @Test
-    void testWorkerSkipsNullPayloads() {
-        ApplicationProperties properties = new ApplicationProperties();
-        MarketplaceProducer producer = mock(MarketplaceProducer.class);
-        MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
-        var worker = new MarketplaceWorker(properties, producer, payloadMapper);
+  @Test
+  void testWorkerSkipsNullPayloads() {
+    ApplicationProperties properties = new ApplicationProperties();
+    MarketplaceProducer producer = mock(MarketplaceProducer.class);
+    MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
+    var worker = new MarketplaceWorker(properties, producer, payloadMapper);
 
-        when(payloadMapper.createUsageRequest(any())).thenReturn(null);
+    when(payloadMapper.createUsageRequest(any())).thenReturn(null);
 
-        worker.receive(new TallySummary());
+    worker.receive(new TallySummary());
 
-        verify(producer, times(0)).submitUsageRequest(any());
-    }
-
+    verify(producer, times(0)).submitUsageRequest(any());
+  }
 }

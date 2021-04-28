@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.db;
 
+import java.util.List;
+import java.util.UUID;
+import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
@@ -30,7 +33,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -40,117 +42,121 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.UUID;
-
-import javax.validation.constraints.NotNull;
-
-/**
- * Provides access to Host database entities.
- */
+/** Provides access to Host database entities. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host> {
 
-    /**
-     * Find all Hosts by bucket criteria and return a page of TallyHostView objects.
-     * A TallyHostView is a Host representation detailing what 'bucket' was applied
-     * to the current daily snapshots.
-     *
-     * @param accountNumber        The account number of the hosts to query (required).
-     * @param productId            The bucket product ID to filter Host by (pass null to ignore).
-     * @param sla                  The bucket service level to filter Hosts by (pass null to ignore).
-     * @param usage                The bucket usage to filter Hosts by (pass null to ignore).
-     * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null or empty string to ignore)
-     * @param minCores             Filter to Hosts with at least this number of cores.
-     * @param minSockets           Filter to Hosts with at least this number of sockets.
-     * @param pageable             the current paging info for this query.
-     * @return a page of Host entities matching the criteria.
-     */
-    @SuppressWarnings("java:S107")
-    @Query(
-        value = "select b from HostTallyBucket b join fetch b.host h where " +
-            "h.accountNumber = :account and " +
-            "b.key.productId = :product and " +
-            "b.key.sla = :sla and b.key.usage = :usage and " +
-            // Have to do the null check first, otherwise the lower in the LIKE clause has issues with datatypes
-            "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
-            "b.cores >= :minCores and b.sockets >= :minSockets",
-        // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
-        // we need to specify how the Page should gets its count when the 'limit' parameter
-        // is used.
-        countQuery = "select count(b) from HostTallyBucket b join b.host h where " +
-            "h.accountNumber = :account and " +
-            "b.key.productId = :product and " +
-            "b.key.sla = :sla and b.key.usage = :usage and " +
-            "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and " +
-            "b.cores >= :minCores and b.sockets >= :minSockets"
-    )
-    Page<TallyHostView> getTallyHostViews(
-        @Param("account") String accountNumber,
-        @Param("product") String productId,
-        @Param("sla") ServiceLevel sla,
-        @Param("usage") Usage usage,
-        @NotNull @Param("displayNameSubstring") String displayNameSubstring,
-        @Param("minCores") int minCores,
-        @Param("minSockets") int minSockets,
-        Pageable pageable
-    );
+  /**
+   * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
+   * is a Host representation detailing what 'bucket' was applied to the current daily snapshots.
+   *
+   * @param accountNumber The account number of the hosts to query (required).
+   * @param productId The bucket product ID to filter Host by (pass null to ignore).
+   * @param sla The bucket service level to filter Hosts by (pass null to ignore).
+   * @param usage The bucket usage to filter Hosts by (pass null to ignore).
+   * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null
+   *     or empty string to ignore)
+   * @param minCores Filter to Hosts with at least this number of cores.
+   * @param minSockets Filter to Hosts with at least this number of sockets.
+   * @param pageable the current paging info for this query.
+   * @return a page of Host entities matching the criteria.
+   */
+  @SuppressWarnings("java:S107")
+  @Query(
+      value =
+          "select b from HostTallyBucket b join fetch b.host h where "
+              + "h.accountNumber = :account and "
+              + "b.key.productId = :product and "
+              + "b.key.sla = :sla and b.key.usage = :usage and "
+              +
+              // Have to do the null check first, otherwise the lower in the LIKE clause has issues
+              // with datatypes
+              "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and "
+              + "b.cores >= :minCores and b.sockets >= :minSockets",
+      // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
+      // we need to specify how the Page should gets its count when the 'limit' parameter
+      // is used.
+      countQuery =
+          "select count(b) from HostTallyBucket b join b.host h where "
+              + "h.accountNumber = :account and "
+              + "b.key.productId = :product and "
+              + "b.key.sla = :sla and b.key.usage = :usage and "
+              + "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and "
+              + "b.cores >= :minCores and b.sockets >= :minSockets")
+  Page<TallyHostView> getTallyHostViews(
+      @Param("account") String accountNumber,
+      @Param("product") String productId,
+      @Param("sla") ServiceLevel sla,
+      @Param("usage") Usage usage,
+      @NotNull @Param("displayNameSubstring") String displayNameSubstring,
+      @Param("minCores") int minCores,
+      @Param("minSockets") int minSockets,
+      Pageable pageable);
 
-    @Override
-    @EntityGraph(attributePaths = {"buckets"})
-    Page<Host> findAll(Specification<Host> specification, Pageable pageable);
+  @Override
+  @EntityGraph(attributePaths = {"buckets"})
+  Page<Host> findAll(Specification<Host> specification, Pageable pageable);
 
-    /**
-     * Find all Hosts by bucket criteria and return a page of TallyHostView objects.
-     * A TallyHostView is a Host representation detailing what 'bucket' was applied
-     * to the current daily snapshots.
-     *
-     * @param accountNumber        The account number of the hosts to query (required).
-     * @param productId            The bucket product ID to filter Host by (pass null to ignore).
-     * @param sla                  The bucket service level to filter Hosts by (pass null to ignore).
-     * @param usage                The bucket usage to filter Hosts by (pass null to ignore).
-     * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null or empty string to ignore)
-     * @param minCores             Filter to Hosts with at least this number of cores.
-     * @param minSockets           Filter to Hosts with at least this number of sockets.
-     * @param month                Filter to Hosts with with monthly instance totals in provided month
-     * @param pageable             the current paging info for this query.
-     * @return a page of Host entities matching the criteria.
-     */
-    @SuppressWarnings("java:S107")
-    default Page<Host> findAllBy(@Param("account") String accountNumber, @Param("product") String productId,
-        @Param("sla") ServiceLevel sla, @Param("usage") Usage usage,
-        @NotNull @Param("displayNameSubstring") String displayNameSubstring, @Param("minCores") int minCores,
-        @Param("minSockets") int minSockets, String month, Pageable pageable) {
+  /**
+   * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
+   * is a Host representation detailing what 'bucket' was applied to the current daily snapshots.
+   *
+   * @param accountNumber The account number of the hosts to query (required).
+   * @param productId The bucket product ID to filter Host by (pass null to ignore).
+   * @param sla The bucket service level to filter Hosts by (pass null to ignore).
+   * @param usage The bucket usage to filter Hosts by (pass null to ignore).
+   * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null
+   *     or empty string to ignore)
+   * @param minCores Filter to Hosts with at least this number of cores.
+   * @param minSockets Filter to Hosts with at least this number of sockets.
+   * @param month Filter to Hosts with with monthly instance totals in provided month
+   * @param pageable the current paging info for this query.
+   * @return a page of Host entities matching the criteria.
+   */
+  @SuppressWarnings("java:S107")
+  default Page<Host> findAllBy(
+      @Param("account") String accountNumber,
+      @Param("product") String productId,
+      @Param("sla") ServiceLevel sla,
+      @Param("usage") Usage usage,
+      @NotNull @Param("displayNameSubstring") String displayNameSubstring,
+      @Param("minCores") int minCores,
+      @Param("minSockets") int minSockets,
+      String month,
+      Pageable pageable) {
 
-        HostSpecification searchCriteria = new HostSpecification();
+    HostSpecification searchCriteria = new HostSpecification();
 
-        searchCriteria.add(new SearchCriteria(Host_.ACCOUNT_NUMBER, accountNumber, SearchOperation.EQUAL));
-        searchCriteria.add(new SearchCriteria(HostBucketKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
-        searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));
-        searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, usage, SearchOperation.EQUAL));
-        searchCriteria.add(new SearchCriteria(Host_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
-        searchCriteria.add(new SearchCriteria(HostTallyBucket_.CORES, minCores,
-            SearchOperation.GREATER_THAN_EQUAL));
-        searchCriteria.add(new SearchCriteria(HostTallyBucket_.SOCKETS, minSockets,
-            SearchOperation.GREATER_THAN_EQUAL));
-        searchCriteria.add(new SearchCriteria(InstanceMonthlyTotalKey_.MONTH,
-            new InstanceMonthlyTotalKey(month, Measurement.Uom.CORES), SearchOperation.EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(Host_.ACCOUNT_NUMBER, accountNumber, SearchOperation.EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(HostBucketKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
+    searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));
+    searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, usage, SearchOperation.EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(Host_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
+    searchCriteria.add(
+        new SearchCriteria(HostTallyBucket_.CORES, minCores, SearchOperation.GREATER_THAN_EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(
+            HostTallyBucket_.SOCKETS, minSockets, SearchOperation.GREATER_THAN_EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(
+            InstanceMonthlyTotalKey_.MONTH,
+            new InstanceMonthlyTotalKey(month, Measurement.Uom.CORES),
+            SearchOperation.EQUAL));
 
-        return findAll(searchCriteria, pageable);
+    return findAll(searchCriteria, pageable);
+  }
 
-    }
+  @Query(
+      "select distinct h from Host h where "
+          + "h.accountNumber = :account and "
+          + "h.hypervisorUuid = :hypervisor_id")
+  Page<Host> getHostsByHypervisor(
+      @Param("account") String accountNumber,
+      @Param("hypervisor_id") String hypervisorId,
+      Pageable pageable);
 
-
-    @Query(
-        "select distinct h from Host h where " +
-        "h.accountNumber = :account and " +
-        "h.hypervisorUuid = :hypervisor_id"
-    )
-    Page<Host> getHostsByHypervisor(
-        @Param("account") String accountNumber,
-        @Param("hypervisor_id") String hypervisorId,
-        Pageable pageable
-    );
-
-    List<Host> findByAccountNumber(String accountNumber);
+  List<Host> findByAccountNumber(String accountNumber);
 }

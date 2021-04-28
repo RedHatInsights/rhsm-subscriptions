@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,61 +18,59 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.db.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-
 import com.google.common.collect.Sets;
-
-import org.junit.jupiter.api.Test;
-
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.junit.jupiter.api.Test;
 
 class GranularityTest {
 
-    public static final String DAILY_MIXEDCASE = "DaIlY";
-    public static final String BAD_VALUE = "bicentenially";
+  public static final String DAILY_MIXEDCASE = "DaIlY";
+  public static final String BAD_VALUE = "bicentenially";
 
-    @Test
-    void testFromStringBadValue() {
-        assertThrows(IllegalArgumentException.class, () -> Granularity.fromString(BAD_VALUE));
-    }
+  @Test
+  void testFromStringBadValue() {
+    assertThrows(IllegalArgumentException.class, () -> Granularity.fromString(BAD_VALUE));
+  }
 
-    @Test
-    void testFromStringEmpty() {
-        assertThrows(IllegalArgumentException.class, () -> Granularity.fromString(""));
-    }
+  @Test
+  void testFromStringEmpty() {
+    assertThrows(IllegalArgumentException.class, () -> Granularity.fromString(""));
+  }
 
-    @Test
-    void testFromStringNull() {
-        assertThrows(IllegalArgumentException.class, () -> Granularity.fromString(null));
-    }
+  @Test
+  void testFromStringNull() {
+    assertThrows(IllegalArgumentException.class, () -> Granularity.fromString(null));
+  }
 
-    @Test
-    void testFromStringUpperCase() {
-        assertEquals(Granularity.DAILY, Granularity.fromString(DAILY_MIXEDCASE.toUpperCase()));
-    }
+  @Test
+  void testFromStringUpperCase() {
+    assertEquals(Granularity.DAILY, Granularity.fromString(DAILY_MIXEDCASE.toUpperCase()));
+  }
 
-    @Test
-    void testFromStringLowerCase() {
-        assertEquals(Granularity.DAILY, Granularity.fromString(DAILY_MIXEDCASE.toLowerCase()));
-    }
+  @Test
+  void testFromStringLowerCase() {
+    assertEquals(Granularity.DAILY, Granularity.fromString(DAILY_MIXEDCASE.toLowerCase()));
+  }
 
-    @Test
-    void testFromStringMixedCase() {
-        assertEquals(Granularity.DAILY, Granularity.fromString(DAILY_MIXEDCASE));
-    }
+  @Test
+  void testFromStringMixedCase() {
+    assertEquals(Granularity.DAILY, Granularity.fromString(DAILY_MIXEDCASE));
+  }
 
-    @Test
-    void testAsOpenApiEnumValuesMatch() {
-        Set<GranularityType> expected = Sets.newHashSet(GranularityType.class.getEnumConstants());
-        Set<GranularityType> actual = Sets.newHashSet(Granularity.class.getEnumConstants()).stream().map(
-            Granularity::asOpenApiEnum).collect(Collectors.toSet());
+  @Test
+  void testAsOpenApiEnumValuesMatch() {
+    Set<GranularityType> expected = Sets.newHashSet(GranularityType.class.getEnumConstants());
+    Set<GranularityType> actual =
+        Sets.newHashSet(Granularity.class.getEnumConstants()).stream()
+            .map(Granularity::asOpenApiEnum)
+            .collect(Collectors.toSet());
 
-        assertEquals(expected, actual);
-    }
+    assertEquals(expected, actual);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,76 +20,73 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import java.io.Serializable;
+import java.util.Objects;
+import java.util.UUID;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.io.Serializable;
-import java.util.Objects;
-import java.util.UUID;
-
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
-
-/**
- * An embeddable composite key for a host bucket.
- */
+/** An embeddable composite key for a host bucket. */
 @Embeddable
 @ToString
 @NoArgsConstructor
 @Getter
 @Setter
 public class HostBucketKey implements Serializable {
-    @Column(name = "host_id")
-    private UUID hostId;
+  @Column(name = "host_id")
+  private UUID hostId;
 
-    @Column(name = "product_id")
-    private String productId;
+  @Column(name = "product_id")
+  private String productId;
 
-    private ServiceLevel sla;
+  private ServiceLevel sla;
 
-    private Usage usage;
+  private Usage usage;
 
-    @Column(name = "as_hypervisor")
-    private Boolean asHypervisor;
+  @Column(name = "as_hypervisor")
+  private Boolean asHypervisor;
 
-    public HostBucketKey(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
-        this.hostId = host == null ? null : host.getId();
-        this.productId = productId;
-        this.sla = sla;
-        this.usage = usage;
-        this.asHypervisor = asHypervisor;
+  public HostBucketKey(
+      Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
+    this.hostId = host == null ? null : host.getId();
+    this.productId = productId;
+    this.sla = sla;
+    this.usage = usage;
+    this.asHypervisor = asHypervisor;
+  }
+
+  public Boolean getAsHypervisor() {
+    return asHypervisor;
+  }
+
+  public void setAsHypervisor(Boolean asHypervisor) {
+    this.asHypervisor = asHypervisor;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
 
-    public Boolean getAsHypervisor() {
-        return asHypervisor;
+    if (!(o instanceof HostBucketKey)) {
+      return false;
     }
 
-    public void setAsHypervisor(Boolean asHypervisor) {
-        this.asHypervisor = asHypervisor;
-    }
+    HostBucketKey that = (HostBucketKey) o;
+    return productId.equals(that.productId)
+        && sla == that.sla
+        && usage == that.usage
+        && asHypervisor.equals(that.asHypervisor)
+        && Objects.equals(hostId, that.hostId);
+  }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (!(o instanceof HostBucketKey)) {
-            return false;
-        }
-
-        HostBucketKey that = (HostBucketKey) o;
-        return productId.equals(that.productId) &&
-            sla == that.sla &&
-            usage == that.usage &&
-            asHypervisor.equals(that.asHypervisor) &&
-            Objects.equals(hostId, that.hostId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(productId, sla, asHypervisor);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(productId, sla, asHypervisor);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,28 +20,28 @@
  */
 package org.candlepin.subscriptions.task.queue.inmemory;
 
+import java.util.concurrent.Executors;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 
-import java.util.concurrent.Executors;
+/** Factory for task consumers that read tasks from an in-memory queue. */
+public class ExecutorTaskQueueConsumerFactory
+    implements TaskConsumerFactory<ExecutorTaskProcessor> {
+  private final ExecutorTaskQueue executorTaskQueue;
 
-/**
- * Factory for task consumers that read tasks from an in-memory queue.
- */
-public class ExecutorTaskQueueConsumerFactory implements TaskConsumerFactory<ExecutorTaskProcessor> {
-    private final ExecutorTaskQueue executorTaskQueue;
+  public ExecutorTaskQueueConsumerFactory(ExecutorTaskQueue executorTaskQueue) {
+    this.executorTaskQueue = executorTaskQueue;
+  }
 
-    public ExecutorTaskQueueConsumerFactory(ExecutorTaskQueue executorTaskQueue) {
-        this.executorTaskQueue = executorTaskQueue;
-    }
+  @Override
+  public ExecutorTaskProcessor createTaskConsumer(
+      TaskFactory taskFactory, TaskQueueProperties taskQueueProperties) {
 
-    @Override
-    public ExecutorTaskProcessor createTaskConsumer(TaskFactory taskFactory,
-        TaskQueueProperties taskQueueProperties) {
-
-        return new ExecutorTaskProcessor(
-                Executors.newFixedThreadPool(taskQueueProperties.getExecutorTaskQueueThreadLimit()),
-                taskFactory, executorTaskQueue, taskQueueProperties.getTopic());
-    }
+    return new ExecutorTaskProcessor(
+        Executors.newFixedThreadPool(taskQueueProperties.getExecutorTaskQueueThreadLimit()),
+        taskFactory,
+        executorTaskQueue,
+        taskQueueProperties.getTopic());
+  }
 }

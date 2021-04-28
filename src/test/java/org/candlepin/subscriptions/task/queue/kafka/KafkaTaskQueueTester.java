@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,76 +24,68 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.candlepin.subscriptions.tally.TallyTaskFactory;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-
-
-/**
- * Base class for testing message sending and receiving via Kafka.
- */
+/** Base class for testing message sending and receiving via Kafka. */
 public class KafkaTaskQueueTester {
 
-    @MockBean
-    private TallyTaskFactory factory;
+  @MockBean private TallyTaskFactory factory;
 
-    @Autowired
-    private CaptureSnapshotsTaskManager manager;
+  @Autowired private CaptureSnapshotsTaskManager manager;
 
-    @Autowired
-    private TaskQueueProperties taskQueueProperties;
+  @Autowired private TaskQueueProperties taskQueueProperties;
 
-    protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {
-        String account = "12345";
-        TaskDescriptor taskDescriptor = TaskDescriptor.builder(
-            TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
-            .setSingleValuedArg("accounts", account).build();
+  protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {
+    String account = "12345";
+    TaskDescriptor taskDescriptor =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+            .setSingleValuedArg("accounts", account)
+            .build();
 
-        // Expect the task to be ran once.
-        CountDownLatch latch = new CountDownLatch(1);
-        CountDownTask cdt = new CountDownTask(latch);
+    // Expect the task to be ran once.
+    CountDownLatch latch = new CountDownLatch(1);
+    CountDownTask cdt = new CountDownTask(latch);
 
-        when(factory.build(eq(taskDescriptor))).thenReturn(cdt);
+    when(factory.build(eq(taskDescriptor))).thenReturn(cdt);
 
-        manager.updateAccountSnapshots(account);
+    manager.updateAccountSnapshots(account);
 
-        // Wait a max of 5 seconds for the task to be executed
-        latch.await(5L, TimeUnit.SECONDS);
-        assertTrue(cdt.taskWasExecuted(), "The task failed to execute. The message was not received.");
+    // Wait a max of 5 seconds for the task to be executed
+    latch.await(5L, TimeUnit.SECONDS);
+    assertTrue(cdt.taskWasExecuted(), "The task failed to execute. The message was not received.");
+  }
+
+  /**
+   * A testing Task that uses a latch to allow the calling test to know that it has been executed.
+   * It provides an executed field to allow tests to verify that the Task has actually been run in
+   * cases where latch.await(timeout) times out waiting for it to execute.
+   */
+  private class CountDownTask implements Task {
+
+    private CountDownLatch latch;
+    private boolean executed;
+
+    public CountDownTask(CountDownLatch latch) {
+      this.latch = latch;
     }
 
-    /**
-     * A testing Task that uses a latch to allow the calling test to know that it has been executed.
-     * It provides an executed field to allow tests to verify that the Task has actually been run
-     * in cases where latch.await(timeout) times out waiting for it to execute.
-     */
-    private class CountDownTask implements Task {
-
-        private CountDownLatch latch;
-        private boolean executed;
-
-        public CountDownTask(CountDownLatch latch) {
-            this.latch = latch;
-        }
-
-        @Override
-        public void execute() {
-            executed = true;
-            latch.countDown();
-        }
-
-        public boolean taskWasExecuted() {
-            return executed;
-        }
+    @Override
+    public void execute() {
+      executed = true;
+      latch.countDown();
     }
+
+    public boolean taskWasExecuted() {
+      return executed;
+    }
+  }
 }

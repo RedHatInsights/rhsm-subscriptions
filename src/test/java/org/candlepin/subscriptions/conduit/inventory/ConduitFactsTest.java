@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,45 +22,44 @@ package org.candlepin.subscriptions.conduit.inventory;
 
 import static org.hamcrest.MatcherAssert.*;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.validation.ConstraintViolation;
+import javax.validation.Path;
+import javax.validation.Validator;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.validation.ConstraintViolation;
-import javax.validation.Path;
-import javax.validation.Validator;
-
 @SpringBootTest
 @ActiveProfiles("test")
 class ConduitFactsTest {
-    @Autowired
-    private Validator validator;
+  @Autowired private Validator validator;
 
-    @Test
-    void testFactValidation() {
-        ConduitFacts facts = new ConduitFacts();
-        facts.setFqdn("");
-        facts.setIpAddresses(
-            Arrays.asList("192.168.2.1", "127.1", "::1", "1.1.1.", "1200::AB00:1234::2552:7777:1313"));
+  @Test
+  void testFactValidation() {
+    ConduitFacts facts = new ConduitFacts();
+    facts.setFqdn("");
+    facts.setIpAddresses(
+        Arrays.asList("192.168.2.1", "127.1", "::1", "1.1.1.", "1200::AB00:1234::2552:7777:1313"));
 
-        Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
-        assertThat(getFailingFields(violations), Matchers.hasItems(
+    Set<ConstraintViolation<ConduitFacts>> violations = validator.validate(facts);
+    assertThat(
+        getFailingFields(violations),
+        Matchers.hasItems(
             Matchers.startsWith("fqdn"),
             Matchers.startsWith("ipAddresses[3]"),
             Matchers.startsWith("ipAddresses[4]")));
-    }
+  }
 
-    private List<String> getFailingFields(Set<ConstraintViolation<ConduitFacts>> violations) {
-        return violations.stream()
-            .map(ConstraintViolation::getPropertyPath)
-            .map(Path::toString)
-            .collect(Collectors.toList());
-    }
+  private List<String> getFailingFields(Set<ConstraintViolation<ConduitFacts>> violations) {
+    return violations.stream()
+        .map(ConstraintViolation::getPropertyPath)
+        .map(Path::toString)
+        .collect(Collectors.toList());
+  }
 }

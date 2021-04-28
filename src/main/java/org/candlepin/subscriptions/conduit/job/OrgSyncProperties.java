@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,30 +23,28 @@ package org.candlepin.subscriptions.conduit.job;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Properties related to the OrgSyncJob
- */
+/** Properties related to the OrgSyncJob */
 @Component
 @ConfigurationProperties(prefix = "rhsm-conduit.org-sync")
 public class OrgSyncProperties {
-    // Default to every 5 minutes
-    private String schedule = "0 5 * * * ?";
-    /** Artificial limit to number of orgs */
-    private Integer limit = null;
+  // Default to every 5 minutes
+  private String schedule = "0 5 * * * ?";
+  /** Artificial limit to number of orgs */
+  private Integer limit = null;
 
-    public String getSchedule() {
-        return schedule;
-    }
+  public String getSchedule() {
+    return schedule;
+  }
 
-    public void setSchedule(String schedule) {
-        this.schedule = schedule;
-    }
+  public void setSchedule(String schedule) {
+    this.schedule = schedule;
+  }
 
-    public Integer getLimit() {
-        return limit;
-    }
+  public Integer getLimit() {
+    return limit;
+  }
 
-    public void setLimit(Integer limit) {
-        this.limit = limit;
-    }
+  public void setLimit(Integer limit) {
+    this.limit = limit;
+  }
 }

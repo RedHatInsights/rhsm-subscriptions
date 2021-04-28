@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions;
 
+import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,40 +31,38 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-import javax.annotation.PostConstruct;
-
 /**
  * Contains beans that are specific to dev-mode.
  *
- * - Disables the anti-csrf filter.
- * - Enables scheduling of tasks
+ * <p>- Disables the anti-csrf filter. - Enables scheduling of tasks
  */
 @Configuration
 @EnableScheduling
 @ConditionalOnProperty(prefix = "rhsm-subscriptions", name = "dev-mode", havingValue = "true")
 @ComponentScan({
-    "org.candlepin.subscriptions.tally.job", // for the tally job
-    "org.candlepin.subscriptions.retention" // for the retention job
+  "org.candlepin.subscriptions.tally.job", // for the tally job
+  "org.candlepin.subscriptions.retention" // for the retention job
 })
 public class DevModeConfiguration {
 
-    private static final Logger log = LoggerFactory.getLogger(DevModeConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(DevModeConfiguration.class);
 
-    @PostConstruct
-    void logDevMode() {
-        log.info("Dev-mode enabled.");
-    }
+  @PostConstruct
+  void logDevMode() {
+    log.info("Dev-mode enabled.");
+  }
 
-    /**
-     * Create a thread pool for task scheduling if running in dev-mode
-     * @return ThreadPoolTaskScheduler
-     */
-    @Bean
-    public TaskScheduler poolScheduler() {
-        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler");
-        scheduler.setPoolSize(4);
-        scheduler.initialize();
-        return scheduler;
-    }
+  /**
+   * Create a thread pool for task scheduling if running in dev-mode
+   *
+   * @return ThreadPoolTaskScheduler
+   */
+  @Bean
+  public TaskScheduler poolScheduler() {
+    ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+    scheduler.setThreadNamePrefix("ThreadPoolTaskScheduler");
+    scheduler.setPoolSize(4);
+    scheduler.initialize();
+    return scheduler;
+  }
 }

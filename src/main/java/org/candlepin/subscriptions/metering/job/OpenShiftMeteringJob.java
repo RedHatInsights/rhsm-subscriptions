@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,59 +20,58 @@
  */
 package org.candlepin.subscriptions.metering.job;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.exception.JobFailureException;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-
-/**
- * A cron job that sends a task message to capture metrics from prometheus for metering.
- */
+/** A cron job that sends a task message to capture metrics from prometheus for metering. */
 public class OpenShiftMeteringJob implements Runnable {
 
-    private static final Logger log = LoggerFactory.getLogger(OpenShiftMeteringJob.class);
+  private static final Logger log = LoggerFactory.getLogger(OpenShiftMeteringJob.class);
 
-    private PrometheusMetricsTaskManager tasks;
-    private ApplicationClock clock;
-    private ApplicationProperties appProps;
-    private PrometheusMetricsProperties metricProperties;
+  private PrometheusMetricsTaskManager tasks;
+  private ApplicationClock clock;
+  private ApplicationProperties appProps;
+  private PrometheusMetricsProperties metricProperties;
 
-    public OpenShiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-        PrometheusMetricsProperties metricProperties, ApplicationProperties appProps) {
-        this.tasks = tasks;
-        this.clock = clock;
-        this.metricProperties = metricProperties;
-        this.appProps = appProps;
+  public OpenShiftMeteringJob(
+      PrometheusMetricsTaskManager tasks,
+      ApplicationClock clock,
+      PrometheusMetricsProperties metricProperties,
+      ApplicationProperties appProps) {
+    this.tasks = tasks;
+    this.clock = clock;
+    this.metricProperties = metricProperties;
+    this.appProps = appProps;
+  }
+
+  @Override
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.metering.openshift-metering-schedule}")
+  public void run() {
+    Duration latency = appProps.getPrometheusLatencyDuration();
+    int range = metricProperties.getOpenshift().getRangeInMinutes();
+    OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
+    // Minus 1 minute to ensure that we use the last hour's maximum time. If the end time is
+    // 6:00:00,
+    // taking the last of that hour would give the range an extra hour (6:59:59.999999) which is
+    // not what we want. We subtract to break the even boundary before finding the last minute.
+    // We need to do this because our queries are date inclusive (greater/less than OR equal to).
+    OffsetDateTime endDate =
+        clock.endOfHour(startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
+
+    log.info("Queuing OpenShift metric updates for range: {} -> {}", startDate, endDate);
+    try {
+      tasks.updateOpenshiftMetricsForAllAccounts(startDate, endDate);
+    } catch (Exception e) {
+      throw new JobFailureException("Unable to run MeteringJob.", e);
     }
-
-    @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.metering.openshift-metering-schedule}")
-    public void run() {
-        Duration latency = appProps.getPrometheusLatencyDuration();
-        int range = metricProperties.getOpenshift().getRangeInMinutes();
-        OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
-        // Minus 1 minute to ensure that we use the last hour's maximum time. If the end time is 6:00:00,
-        // taking the last of that hour would give the range an extra hour (6:59:59.999999) which is
-        // not what we want. We subtract to break the even boundary before finding the last minute.
-        // We need to do this because our queries are date inclusive (greater/less than OR equal to).
-        OffsetDateTime endDate =
-            clock.endOfHour(startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
-
-        log.info("Queuing OpenShift metric updates for range: {} -> {}", startDate, endDate);
-        try {
-            tasks.updateOpenshiftMetricsForAllAccounts(startDate, endDate);
-        }
-        catch (Exception e) {
-            throw new JobFailureException("Unable to run MeteringJob.", e);
-        }
-    }
+  }
 }

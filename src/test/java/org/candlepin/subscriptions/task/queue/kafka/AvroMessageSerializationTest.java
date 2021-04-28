@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,44 +20,41 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
-
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-
+import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.junit.jupiter.api.Test;
 
 public class AvroMessageSerializationTest {
 
-    @Test
-    public void testMessageCanBeSerializedAndThenDeserialized() {
-        AvroSerializer<TaskMessage> serializer = new AvroSerializer<>();
-        AvroDeserializer<TaskMessage> deserializer = new AvroDeserializer<>();
+  @Test
+  public void testMessageCanBeSerializedAndThenDeserialized() {
+    AvroSerializer<TaskMessage> serializer = new AvroSerializer<>();
+    AvroDeserializer<TaskMessage> deserializer = new AvroDeserializer<>();
 
-        HashMap<String, List<String>> msgArgs = new HashMap<>();
-        msgArgs.put("arg1", Arrays.asList("arg1-val"));
+    HashMap<String, List<String>> msgArgs = new HashMap<>();
+    msgArgs.put("arg1", Arrays.asList("arg1-val"));
 
-        TaskMessage message = TaskMessage.newBuilder()
+    TaskMessage message =
+        TaskMessage.newBuilder()
             .setType("test-type")
             .setGroupId("test-group")
             .setArgs(msgArgs)
             .build();
 
-        AvroSerializer<TaskMessage> ser = new AvroSerializer<>();
-        byte[] messageBytes = ser.serialize("test", message);
+    AvroSerializer<TaskMessage> ser = new AvroSerializer<>();
+    byte[] messageBytes = ser.serialize("test", message);
 
-        HashMap<String, Object> configs = new HashMap<>();
-        configs.put(AvroDeserializer.TARGET_TYPE_CLASS, TaskMessage.class);
-        deserializer.configure(configs, false);
+    HashMap<String, Object> configs = new HashMap<>();
+    configs.put(AvroDeserializer.TARGET_TYPE_CLASS, TaskMessage.class);
+    deserializer.configure(configs, false);
 
-        TaskMessage ret = deserializer.deserialize("test", messageBytes);
-        assertNotNull(ret);
-        assertEquals(message, ret);
-    }
-
+    TaskMessage ret = deserializer.deserialize("test", messageBytes);
+    assertNotNull(ret);
+    assertEquals(message, ret);
+  }
 }

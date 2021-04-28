@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,10 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.model.Account;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
@@ -32,7 +36,6 @@ import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,128 +46,129 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
 @SpringBootTest
 @ActiveProfiles("test")
 @TestInstance(Lifecycle.PER_CLASS)
 class AccountRepositoryTest {
 
-    @Autowired
-    AccountRepository repo;
+  @Autowired AccountRepository repo;
 
-    @Autowired
-    AccountConfigRepository accountConfigRepo;
+  @Autowired AccountConfigRepository accountConfigRepo;
 
-    @Autowired
-    HostRepository hostRepo;
+  @Autowired HostRepository hostRepo;
 
-    @Transactional
-    @BeforeAll
-    void setupTestData() {
-        Host host = new Host();
-        host.setAccountNumber("account123");
-        host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
-        host.setDisplayName("name");
-        host.setInstanceType("Test");
-        hostRepo.save(host);
+  @Transactional
+  @BeforeAll
+  void setupTestData() {
+    Host host = new Host();
+    host.setAccountNumber("account123");
+    host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
+    host.setDisplayName("name");
+    host.setInstanceType("Test");
+    hostRepo.save(host);
 
-        AccountConfig accountConfig = new AccountConfig();
-        accountConfig.setAccountNumber("account123");
-        accountConfig.setReportingEnabled(true);
-        accountConfig.setSyncEnabled(true);
-        accountConfig.setOptInType(OptInType.DB);
-        accountConfig.setCreated(OffsetDateTime.now());
-        accountConfig.setUpdated(OffsetDateTime.now());
-        accountConfigRepo.save(accountConfig);
+    AccountConfig accountConfig = new AccountConfig();
+    accountConfig.setAccountNumber("account123");
+    accountConfig.setReportingEnabled(true);
+    accountConfig.setSyncEnabled(true);
+    accountConfig.setOptInType(OptInType.DB);
+    accountConfig.setCreated(OffsetDateTime.now());
+    accountConfig.setUpdated(OffsetDateTime.now());
+    accountConfigRepo.save(accountConfig);
 
-        hostRepo.flush();
-        accountConfigRepo.flush();
-    }
+    hostRepo.flush();
+    accountConfigRepo.flush();
+  }
 
-    // NOTE: this cleanup necessary because @Transactional on the setup method does *not* automatically
-    // rollback/remove the test data
-    @Transactional
-    @AfterAll
-    void cleanupTestData() {
-        accountConfigRepo.deleteAll();
-        hostRepo.deleteAll();
-    }
+  // NOTE: this cleanup necessary because @Transactional on the setup method does *not*
+  // automatically
+  // rollback/remove the test data
+  @Transactional
+  @AfterAll
+  void cleanupTestData() {
+    accountConfigRepo.deleteAll();
+    hostRepo.deleteAll();
+  }
 
-    @Test
-    void testHbiHostCanBeLoaded() {
-        NormalizedFacts normalizedFacts = new NormalizedFacts();
-        InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
-        inventoryHostFacts.setInventoryId(UUID.randomUUID());
-        inventoryHostFacts.setDisplayName("foo");
-        inventoryHostFacts.setAccount("account123");
-        Host host = new Host(inventoryHostFacts, normalizedFacts);
-        hostRepo.save(host);
+  @Test
+  void testHbiHostCanBeLoaded() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setInventoryId(UUID.randomUUID());
+    inventoryHostFacts.setDisplayName("foo");
+    inventoryHostFacts.setAccount("account123");
+    Host host = new Host(inventoryHostFacts, normalizedFacts);
+    hostRepo.save(host);
 
-        assertTrue(repo.findById("account123").isPresent());
-    }
+    assertTrue(repo.findById("account123").isPresent());
+  }
 
-    @Test
-    void testCanFetchExistingInstancesViaAccountRepository() {
-        Optional<Account> account = repo.findById("account123");
+  @Test
+  void testCanFetchExistingInstancesViaAccountRepository() {
+    Optional<Account> account = repo.findById("account123");
 
-        assertTrue(account.isPresent());
-        Map<String, Host> existingInstances = account.get().getServiceInstances();
+    assertTrue(account.isPresent());
+    Map<String, Host> existingInstances = account.get().getServiceInstances();
 
-        Host host = existingInstances.get("1c474d4e-c277-472c-94ab-8229a40417eb");
+    Host host = existingInstances.get("1c474d4e-c277-472c-94ab-8229a40417eb");
 
-        Host expected = new Host();
-        expected.setAccountNumber("account123");
-        expected.setDisplayName("name");
-        expected.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
-        expected.setInstanceType("Test");
+    Host expected = new Host();
+    expected.setAccountNumber("account123");
+    expected.setDisplayName("name");
+    expected.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
+    expected.setInstanceType("Test");
 
-        // we have no idea what the generated ID is, set it so equals comparison can succeed
-        expected.setId(host.getId());
-        assertEquals(expected, host);
-    }
+    // we have no idea what the generated ID is, set it so equals comparison can succeed
+    expected.setId(host.getId());
+    assertEquals(expected, host);
+  }
 
-    @Transactional
-    @Test
-    void testCanAddHostViaRepo() {
-        Account account = repo.findById("account123").orElseThrow();
+  @Transactional
+  @Test
+  void testCanAddHostViaRepo() {
+    Account account = repo.findById("account123").orElseThrow();
 
-        String instanceId = "478edb89-b105-4dfd-9a46-0f1427514b76";
-        Host host = new Host();
-        host.setInstanceId(instanceId);
-        host.setAccountNumber("account123");
-        host.setDisplayName("name");
-        host.setInstanceType("Test");
-        HostTallyBucket bucket = new HostTallyBucket(host, "product", ServiceLevel.PREMIUM,
-            Usage.PRODUCTION, false, 4, 4, HardwareMeasurementType.PHYSICAL);
-        host.getBuckets().add(bucket);
+    String instanceId = "478edb89-b105-4dfd-9a46-0f1427514b76";
+    Host host = new Host();
+    host.setInstanceId(instanceId);
+    host.setAccountNumber("account123");
+    host.setDisplayName("name");
+    host.setInstanceType("Test");
+    HostTallyBucket bucket =
+        new HostTallyBucket(
+            host,
+            "product",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            false,
+            4,
+            4,
+            HardwareMeasurementType.PHYSICAL);
+    host.getBuckets().add(bucket);
 
-        account.getServiceInstances().put(instanceId, host);
-        repo.save(account);
-        repo.flush();
+    account.getServiceInstances().put(instanceId, host);
+    repo.save(account);
+    repo.flush();
 
-        Account fetched = repo.findById("account123").orElseThrow();
-        assertTrue(fetched.getServiceInstances().containsKey(instanceId));
-        Host fetchedInstance = fetched.getServiceInstances().get(instanceId);
-        // set ID in order to compare, because JPA doesn't populate the existing object's ID automatically
-        host.setId(fetchedInstance.getId());
-        assertEquals(host, fetchedInstance);
+    Account fetched = repo.findById("account123").orElseThrow();
+    assertTrue(fetched.getServiceInstances().containsKey(instanceId));
+    Host fetchedInstance = fetched.getServiceInstances().get(instanceId);
+    // set ID in order to compare, because JPA doesn't populate the existing object's ID
+    // automatically
+    host.setId(fetchedInstance.getId());
+    assertEquals(host, fetchedInstance);
+  }
 
-    }
+  @Transactional
+  @Test
+  void testCanRemoveHostViaRepo() {
+    Account account = repo.findById("account123").orElseThrow();
 
-    @Transactional
-    @Test
-    void testCanRemoveHostViaRepo() {
-        Account account = repo.findById("account123").orElseThrow();
+    account.getServiceInstances().clear();
+    repo.save(account);
+    repo.flush();
 
-        account.getServiceInstances().clear();
-        repo.save(account);
-        repo.flush();
-
-        Account fetched = repo.findById("account123").orElseThrow();
-        assertTrue(fetched.getServiceInstances().isEmpty());
-    }
+    Account fetched = repo.findById("account123").orElseThrow();
+    assertTrue(fetched.getServiceInstances().isEmpty());
+  }
 }

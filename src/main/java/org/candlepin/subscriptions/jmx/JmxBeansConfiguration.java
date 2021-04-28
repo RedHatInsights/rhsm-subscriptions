@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,23 +25,23 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration that provides admin JMX beans for tally and other functions.
- */
+/** Configuration that provides admin JMX beans for tally and other functions. */
 @Configuration
 @ComponentScan(basePackages = "org.candlepin.subscriptions.jmx")
 public class JmxBeansConfiguration {
-    /* Define the opt-in controller in case we're running in a profile that doesn't define it */
-    @Bean
-    @ConditionalOnMissingBean(OptInController.class)
-    OptInController optInController(ApplicationClock clock, AccountConfigRepository accountConfigRepo,
-        OrgConfigRepository orgConfigRepo, AccountService accountService) {
-        return new OptInController(clock, accountConfigRepo, orgConfigRepo, accountService);
-    }
+  /* Define the opt-in controller in case we're running in a profile that doesn't define it */
+  @Bean
+  @ConditionalOnMissingBean(OptInController.class)
+  OptInController optInController(
+      ApplicationClock clock,
+      AccountConfigRepository accountConfigRepo,
+      OrgConfigRepository orgConfigRepo,
+      AccountService accountService) {
+    return new OptInController(clock, accountConfigRepo, orgConfigRepo, accountService);
+  }
 }

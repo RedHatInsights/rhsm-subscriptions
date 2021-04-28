@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,67 +22,63 @@ package org.candlepin.subscriptions.db.model.config;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-/**
- * Represents the configuration properties for an organization (owner).
- */
+/** Represents the configuration properties for an organization (owner). */
 @Entity
 @Table(name = "org_config")
 public class OrgConfig extends BaseConfig {
 
-    @Id
-    @Column(name = "org_id")
-    private String orgId;
+  @Id
+  @Column(name = "org_id")
+  private String orgId;
 
-    public OrgConfig() {
+  public OrgConfig() {}
+
+  public OrgConfig(String orgId) {
+    this.orgId = orgId;
+  }
+
+  public static OrgConfig fromJmx(String orgId, OffsetDateTime timestamp) {
+    OrgConfig orgConfig = new OrgConfig(orgId);
+    orgConfig.setOptInType(OptInType.JMX);
+    orgConfig.setSyncEnabled(true);
+    orgConfig.setCreated(timestamp);
+    orgConfig.setUpdated(timestamp);
+    return orgConfig;
+  }
+
+  public String getOrgId() {
+    return orgId;
+  }
+
+  public void setOrgId(String orgId) {
+    this.orgId = orgId;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
 
-    public OrgConfig(String orgId) {
-        this.orgId = orgId;
+    if (!(o instanceof OrgConfig)) {
+      return false;
     }
 
-    public static OrgConfig fromJmx(String orgId, OffsetDateTime timestamp) {
-        OrgConfig orgConfig = new OrgConfig(orgId);
-        orgConfig.setOptInType(OptInType.JMX);
-        orgConfig.setSyncEnabled(true);
-        orgConfig.setCreated(timestamp);
-        orgConfig.setUpdated(timestamp);
-        return orgConfig;
+    if (!super.equals(o)) {
+      return false;
     }
 
-    public String getOrgId() {
-        return orgId;
-    }
+    OrgConfig orgConfig = (OrgConfig) o;
+    return Objects.equals(orgId, orgConfig.orgId);
+  }
 
-    public void setOrgId(String orgId) {
-        this.orgId = orgId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (!(o instanceof OrgConfig)) {
-            return false;
-        }
-
-        if (!super.equals(o)) {
-            return false;
-        }
-
-        OrgConfig orgConfig = (OrgConfig) o;
-        return Objects.equals(orgId, orgConfig.orgId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), orgId);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), orgId);
+  }
 }

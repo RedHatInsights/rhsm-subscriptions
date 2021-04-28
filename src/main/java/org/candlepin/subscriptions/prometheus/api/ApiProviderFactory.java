@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,53 +24,49 @@ import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.prometheus.ApiClient;
 import org.candlepin.subscriptions.prometheus.auth.HttpBearerAuth;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
 
-/**
- * Factory that produces prometheus query API clients using configuration.
- */
+/** Factory that produces prometheus query API clients using configuration. */
 public class ApiProviderFactory implements FactoryBean<ApiProvider> {
 
-    private static Logger log = LoggerFactory.getLogger(ApiProviderFactory.class);
+  private static Logger log = LoggerFactory.getLogger(ApiProviderFactory.class);
 
-    private final HttpClientProperties clientProperties;
+  private final HttpClientProperties clientProperties;
 
-    public ApiProviderFactory(HttpClientProperties properties) {
-        this.clientProperties = properties;
+  public ApiProviderFactory(HttpClientProperties properties) {
+    this.clientProperties = properties;
+  }
+
+  @Override
+  public ApiProvider getObject() throws Exception {
+    if (clientProperties.isUseStub()) {
+      log.info("Using prometheus client stub.");
+      return new StubApiProvider();
     }
 
-    @Override
-    public ApiProvider getObject() throws Exception {
-        if (clientProperties.isUseStub()) {
-            log.info("Using prometheus client stub.");
-            return new StubApiProvider();
-        }
+    ApiClient apiClient = new ApiClient();
+    apiClient.setHttpClient(
+        HttpClient.buildHttpClient(clientProperties, apiClient.getJSON(), apiClient.isDebugging()));
 
-        ApiClient apiClient = new ApiClient();
-        apiClient.setHttpClient(HttpClient.buildHttpClient(clientProperties, apiClient.getJSON(),
-            apiClient.isDebugging()));
-
-        if (StringUtils.hasText(clientProperties.getToken())) {
-            HttpBearerAuth auth = (HttpBearerAuth) apiClient.getAuthentication("bearerAuth");
-            auth.setBearerToken(clientProperties.getToken());
-        }
-
-        if (StringUtils.hasText(clientProperties.getUrl())) {
-            log.info("Prometheus API URL: {}", clientProperties.getUrl());
-            apiClient.setBasePath(clientProperties.getUrl());
-        }
-        else {
-            log.warn("Prometheus API URL not set...");
-        }
-        return new ApiProviderImpl(apiClient);
+    if (StringUtils.hasText(clientProperties.getToken())) {
+      HttpBearerAuth auth = (HttpBearerAuth) apiClient.getAuthentication("bearerAuth");
+      auth.setBearerToken(clientProperties.getToken());
     }
 
-    @Override
-    public Class<?> getObjectType() {
-        return ApiProvider.class;
+    if (StringUtils.hasText(clientProperties.getUrl())) {
+      log.info("Prometheus API URL: {}", clientProperties.getUrl());
+      apiClient.setBasePath(clientProperties.getUrl());
+    } else {
+      log.warn("Prometheus API URL not set...");
     }
+    return new ApiProviderImpl(apiClient);
+  }
+
+  @Override
+  public Class<?> getObjectType() {
+    return ApiProvider.class;
+  }
 }

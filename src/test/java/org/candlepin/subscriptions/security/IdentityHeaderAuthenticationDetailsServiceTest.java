@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.rbac.RbacApi;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.rbac.model.Access;
-
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,62 +43,56 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-
 @SpringBootTest
 @ActiveProfiles("test")
 class IdentityHeaderAuthenticationDetailsServiceTest {
 
-    @MockBean
-    private RbacApi rbacApi;
+  @MockBean private RbacApi rbacApi;
 
-    @Autowired
-    private RbacService rbacService;
+  @Autowired private RbacService rbacService;
 
-    @Autowired
-    IdentityHeaderAuthenticationDetailsService detailsService;
+  @Autowired IdentityHeaderAuthenticationDetailsService detailsService;
 
-    @Test
-    void testAdminRoleGranted() throws Exception {
-        when(rbacApi.getCurrentUserAccess(eq("subscriptions"))).thenReturn(
-            Arrays.asList(new Access().permission("subscriptions:*:*"))
-        );
-        assertRoles(false, RoleProvider.SWATCH_ADMIN_ROLE);
-    }
+  @Test
+  void testAdminRoleGranted() throws Exception {
+    when(rbacApi.getCurrentUserAccess(eq("subscriptions")))
+        .thenReturn(Arrays.asList(new Access().permission("subscriptions:*:*")));
+    assertRoles(false, RoleProvider.SWATCH_ADMIN_ROLE);
+  }
 
-    @Test
-    void testRhAssociateGetsRhInternalRole() {
-        Authentication auth = new PreAuthenticatedAuthenticationToken(new RhAssociatePrincipal(), null);
-        UserDetails userDetails = detailsService.loadUserDetails(auth);
-        assertEquals(Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
-            userDetails.getAuthorities());
-        verifyZeroInteractions(rbacApi);
-    }
+  @Test
+  void testRhAssociateGetsRhInternalRole() {
+    Authentication auth = new PreAuthenticatedAuthenticationToken(new RhAssociatePrincipal(), null);
+    UserDetails userDetails = detailsService.loadUserDetails(auth);
+    assertEquals(
+        Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
+        userDetails.getAuthorities());
+    verifyZeroInteractions(rbacApi);
+  }
 
-    @Test
-    void testX509PrincipalGetsRhInternalRole() {
-        Authentication auth = new PreAuthenticatedAuthenticationToken(new X509Principal(), null);
-        UserDetails userDetails = detailsService.loadUserDetails(auth);
-        assertEquals(Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
-            userDetails.getAuthorities());
-        verifyZeroInteractions(rbacApi);
-    }
+  @Test
+  void testX509PrincipalGetsRhInternalRole() {
+    Authentication auth = new PreAuthenticatedAuthenticationToken(new X509Principal(), null);
+    UserDetails userDetails = detailsService.loadUserDetails(auth);
+    assertEquals(
+        Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
+        userDetails.getAuthorities());
+    verifyZeroInteractions(rbacApi);
+  }
 
-    @Test
-    void testDevModeGrantsAllRoles() {
-        assertRoles(true, RoleProvider.SWATCH_ADMIN_ROLE);
-    }
+  @Test
+  void testDevModeGrantsAllRoles() {
+    assertRoles(true, RoleProvider.SWATCH_ADMIN_ROLE);
+  }
 
-    private void assertRoles(boolean devMode, String ... expectedRoles) {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setDevMode(devMode);
-        IdentityHeaderAuthenticationDetailsService source = new IdentityHeaderAuthenticationDetailsService(
-            props, new IdentityHeaderAuthoritiesMapper(), rbacService
-        );
-        Collection<String> roles = source.getUserRoles();
-        assertEquals(expectedRoles.length, roles.size());
-        assertThat(roles, Matchers.containsInAnyOrder(expectedRoles));
-    }
+  private void assertRoles(boolean devMode, String... expectedRoles) {
+    ApplicationProperties props = new ApplicationProperties();
+    props.setDevMode(devMode);
+    IdentityHeaderAuthenticationDetailsService source =
+        new IdentityHeaderAuthenticationDetailsService(
+            props, new IdentityHeaderAuthoritiesMapper(), rbacService);
+    Collection<String> roles = source.getUserRoles();
+    assertEquals(expectedRoles.length, roles.size());
+    assertThat(roles, Matchers.containsInAnyOrder(expectedRoles));
+  }
 }

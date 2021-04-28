@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +20,12 @@
  */
 package org.candlepin.subscriptions.task;
 
-
 /**
- * Defines a unit of async work that is to be performed by rhsm-subscriptions. Task instances are built by
- * the TaskFactory.
+ * Defines a unit of async work that is to be performed by rhsm-subscriptions. Task instances are
+ * built by the TaskFactory.
  */
 public interface Task {
 
-    /**
-     * Performs the work defined by a Task instance.
-     */
-    void execute();
-
+  /** Performs the work defined by a Task instance. */
+  void execute();
 }

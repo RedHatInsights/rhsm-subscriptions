@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
-
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -33,13 +32,17 @@ import org.springframework.context.annotation.Profile;
 /**
  * Configuration for the "api" profile.
  *
- * The API profile is responsible for handling customer-facing API requests.
+ * <p>The API profile is responsible for handling customer-facing API requests.
  */
 @Configuration
 @Profile("api")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.resource")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class,
-    TallyWorkerConfiguration.class, ProductMappingConfiguration.class})
+@Import({
+  ResteasyConfiguration.class,
+  RhsmSubscriptionsDataSourceConfiguration.class,
+  TallyWorkerConfiguration.class,
+  ProductMappingConfiguration.class
+})
 public class ApiConfiguration {
-    /* Intentionally empty */
+  /* Intentionally empty */
 }

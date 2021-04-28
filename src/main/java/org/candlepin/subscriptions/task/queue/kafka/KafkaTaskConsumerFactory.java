@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,15 +24,13 @@ import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 
-/**
- * Task consumer factory that creates consumers that read tasks from a kafka topic.
- */
+/** Task consumer factory that creates consumers that read tasks from a kafka topic. */
 public class KafkaTaskConsumerFactory implements TaskConsumerFactory<KafkaTaskProcessor> {
-    @Override
-    public KafkaTaskProcessor createTaskConsumer(TaskFactory taskFactory,
-        TaskQueueProperties taskQueueProperties) {
+  @Override
+  public KafkaTaskProcessor createTaskConsumer(
+      TaskFactory taskFactory, TaskQueueProperties taskQueueProperties) {
 
-        return new KafkaTaskProcessor(taskFactory, taskQueueProperties.getKafkaGroupId(),
-            taskQueueProperties.getTopic());
-    }
+    return new KafkaTaskProcessor(
+        taskFactory, taskQueueProperties.getKafkaGroupId(), taskQueueProperties.getTopic());
+  }
 }

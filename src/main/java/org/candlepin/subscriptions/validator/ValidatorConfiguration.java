@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@ import org.springframework.context.annotation.Configuration;
 
 /** Configuration for validators */
 @Configuration
-@ComponentScan(basePackages = {
-    "org.candlepin.subscriptions.validator"
-})
+@ComponentScan(basePackages = {"org.candlepin.subscriptions.validator"})
 public class ValidatorConfiguration {
-    // No op
+  // No op
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,12 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import java.util.Map;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
-
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -37,55 +37,52 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.util.Map;
-
 /**
  * Configuration for a component that produces task messages onto a kafka topic.
  *
- * Should not be imported directly, instead, the component's configuration should import
- * {@link org.candlepin.subscriptions.task.queue.TaskProducerConfiguration}
- * which will handle creation of either in-memory or kafka task queue producers (depending on profile).
+ * <p>Should not be imported directly, instead, the component's configuration should import {@link
+ * org.candlepin.subscriptions.task.queue.TaskProducerConfiguration} which will handle creation of
+ * either in-memory or kafka task queue producers (depending on profile).
  */
 @Configuration
 @Profile("kafka-queue")
 @Import(KafkaConfiguration.class)
 public class KafkaTaskProducerConfiguration {
 
-    @Autowired
-    private KafkaConfigurator kafkaConfigurator;
+  @Autowired private KafkaConfigurator kafkaConfigurator;
 
-    @Bean
-    public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
-        return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
-    }
+  @Bean
+  public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
+    return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
+  }
 
-    @Bean
-    public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
-        ProducerFactory<String, TaskMessage> factory) {
+  @Bean
+  public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
+      ProducerFactory<String, TaskMessage> factory) {
 
-        return kafkaConfigurator.taskMessageKafkaTemplate(factory);
-    }
+    return kafkaConfigurator.taskMessageKafkaTemplate(factory);
+  }
 
-    @Bean
-    public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
-        KafkaProperties kafkaProperties) {
-        Map<String, Object> configProps = Map.of(
+  @Bean
+  public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
+      KafkaProperties kafkaProperties) {
+    Map<String, Object> configProps =
+        Map.of(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class
-        );
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
-        return new DefaultKafkaProducerFactory<>(configProps);
-    }
+    return new DefaultKafkaProducerFactory<>(configProps);
+  }
 
-    @Bean
-    public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
-        ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
-        return new KafkaTemplate<>(tallySummaryProducerFactory);
-    }
+  @Bean
+  public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
+      ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
+    return new KafkaTemplate<>(tallySummaryProducerFactory);
+  }
 
-    @Bean
-    public TaskQueue kafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
-        return new KafkaTaskQueue(producer);
-    }
+  @Bean
+  public TaskQueue kafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
+    return new KafkaTaskQueue(producer);
+  }
 }

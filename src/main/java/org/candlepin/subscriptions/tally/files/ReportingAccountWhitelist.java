@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,57 +20,54 @@
  */
 package org.candlepin.subscriptions.tally.files;
 
+import java.io.IOException;
+import javax.annotation.PostConstruct;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-
-import javax.annotation.PostConstruct;
-
-/**
- * Loads a list of account numbers that are permitted to access the Tally and Capacity API.
- */
+/** Loads a list of account numbers that are permitted to access the Tally and Capacity API. */
 @Component
 public class ReportingAccountWhitelist implements ResourceLoaderAware {
 
-    private PerLineFileSource source;
-    private boolean isDevMode;
+  private PerLineFileSource source;
+  private boolean isDevMode;
 
-    public ReportingAccountWhitelist(ApplicationProperties props, ApplicationClock clock) {
-        String resourceLocation = props.getReportingAccountWhitelistResourceLocation();
-        source = resourceLocation != null ? new PerLineFileSource(resourceLocation, clock.getClock(),
-            props.getReportingAccountWhitelistCacheTtl()) :
-            null;
-        this.isDevMode = props.isDevMode();
+  public ReportingAccountWhitelist(ApplicationProperties props, ApplicationClock clock) {
+    String resourceLocation = props.getReportingAccountWhitelistResourceLocation();
+    source =
+        resourceLocation != null
+            ? new PerLineFileSource(
+                resourceLocation, clock.getClock(), props.getReportingAccountWhitelistCacheTtl())
+            : null;
+    this.isDevMode = props.isDevMode();
+  }
+
+  public boolean hasAccount(String account) throws IOException {
+    // Whitelist any account when running in dev mode!
+    if (isDevMode) {
+      return true;
     }
 
-    public boolean hasAccount(String account) throws IOException {
-        // Whitelist any account when running in dev mode!
-        if (isDevMode) {
-            return true;
-        }
+    // Currently this list is read on each request. If this presents a problem in the
+    // future, we should consider caching the account list.
+    return source != null && source.list().contains(account);
+  }
 
-        // Currently this list is read on each request. If this presents a problem in the
-        // future, we should consider caching the account list.
-        return source != null && source.list().contains(account);
+  @Override
+  public void setResourceLoader(ResourceLoader resourceLoader) {
+    if (source != null) {
+      source.setResourceLoader(resourceLoader);
     }
+  }
 
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        if (source != null) {
-            source.setResourceLoader(resourceLoader);
-        }
+  @PostConstruct
+  public void init() {
+    if (source != null) {
+      source.init();
     }
-
-    @PostConstruct
-    public void init() {
-        if (source != null) {
-            source.init();
-        }
-    }
+  }
 }

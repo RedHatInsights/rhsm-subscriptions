@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,74 +20,68 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
-
 import java.util.Map;
-
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
 /**
  * System purpose usage
  *
- * Usage represents the class of usage for a given system or subscription.
+ * <p>Usage represents the class of usage for a given system or subscription.
  */
 public enum Usage implements StringValueEnum<UsageType> {
-    EMPTY("", UsageType.EMPTY),
-    PRODUCTION("Production", UsageType.PRODUCTION),
-    DEVELOPMENT_TEST("Development/Test", UsageType.DEVELOPMENT_TEST),
-    DISASTER_RECOVERY("Disaster Recovery", UsageType.DISASTER_RECOVERY),
-    _ANY("_ANY", UsageType._ANY); //NOSONAR
+  EMPTY("", UsageType.EMPTY),
+  PRODUCTION("Production", UsageType.PRODUCTION),
+  DEVELOPMENT_TEST("Development/Test", UsageType.DEVELOPMENT_TEST),
+  DISASTER_RECOVERY("Disaster Recovery", UsageType.DISASTER_RECOVERY),
+  _ANY("_ANY", UsageType._ANY); // NOSONAR
 
-    private static final Map<String, Usage> VALUE_ENUM_MAP = StringValueEnum.initializeImmutableMap(
-        Usage.class);
+  private static final Map<String, Usage> VALUE_ENUM_MAP =
+      StringValueEnum.initializeImmutableMap(Usage.class);
 
-    private final String value;
-    private final UsageType openApiEnum;
+  private final String value;
+  private final UsageType openApiEnum;
 
-    Usage(String value, UsageType openApiEnum) {
-        this.value = value;
-        this.openApiEnum = openApiEnum;
-    }
+  Usage(String value, UsageType openApiEnum) {
+    this.value = value;
+    this.openApiEnum = openApiEnum;
+  }
 
-    /**
-     * Parse the usage from its string representation
-     *
-     * @param value String representation of the Usage, as seen in a host record
-     *
-     * @return the Usage enum
-     */
-    public static Usage fromString(String value) {
-        return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
-    }
+  /**
+   * Parse the usage from its string representation
+   *
+   * @param value String representation of the Usage, as seen in a host record
+   * @return the Usage enum
+   */
+  public static Usage fromString(String value) {
+    return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
+  }
 
-    public String getValue() {
-        return value;
+  public String getValue() {
+    return value;
+  }
+
+  @Override
+  public UsageType asOpenApiEnum() {
+    return openApiEnum;
+  }
+
+  /** JPA converter for Usage */
+  @Converter(autoApply = true)
+  public static class EnumConverter implements AttributeConverter<Usage, String> {
+
+    @Override
+    public String convertToDatabaseColumn(Usage attribute) {
+      if (attribute == null) {
+        return null;
+      }
+      return attribute.getValue();
     }
 
     @Override
-    public UsageType asOpenApiEnum() {
-        return openApiEnum;
+    public Usage convertToEntityAttribute(String dbData) {
+      return Usage.fromString(dbData);
     }
-
-    /**
-     * JPA converter for Usage
-     */
-    @Converter(autoApply = true)
-    public static class EnumConverter implements AttributeConverter<Usage, String> {
-
-        @Override
-        public String convertToDatabaseColumn(Usage attribute) {
-            if (attribute == null) {
-                return null;
-            }
-            return attribute.getValue();
-        }
-
-        @Override
-        public Usage convertToEntityAttribute(String dbData) {
-            return Usage.fromString(dbData);
-        }
-    }
-
+  }
 }

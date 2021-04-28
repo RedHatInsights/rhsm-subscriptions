@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ import static java.lang.annotation.RetentionPolicy.*;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
-
 import javax.validation.Constraint;
 import javax.validation.Payload;
 
@@ -34,15 +33,20 @@ import javax.validation.Payload;
  * Cross-parameter constraint to verify that two String fields are a) ISO 8601 timestamps and b) the
  * difference between those two times is less than a given Duration.
  */
-@Target({ METHOD, CONSTRUCTOR, ANNOTATION_TYPE })
+@Target({METHOD, CONSTRUCTOR, ANNOTATION_TYPE})
 @Retention(RUNTIME)
 @Documented
-@Constraint(validatedBy = { ParameterDurationValidator.class })
+@Constraint(validatedBy = {ParameterDurationValidator.class})
 public @interface ParameterDuration {
-    String message() default "The start time, {begin}, can not be more than {duration} hours from the end" +
-        " time, {end}";
-    Class<?>[] groups() default { };
-    Class<? extends Payload>[] payload() default { };
-    String value();
-    Iso8601Format format() default Iso8601Format.ISO_OFFSET_DATE_TIME;
+  String message() default
+      "The start time, {begin}, can not be more than {duration} hours from the end"
+          + " time, {end}";
+
+  Class<?>[] groups() default {};
+
+  Class<? extends Payload>[] payload() default {};
+
+  String value();
+
+  Iso8601Format format() default Iso8601Format.ISO_OFFSET_DATE_TIME;
 }

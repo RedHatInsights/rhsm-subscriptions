@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,109 +20,111 @@
  */
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.retry.support.RetryTemplate;
 
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-
-import java.time.OffsetDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-
 /**
- * An InventoryService implementation that includes a Kafka producer that is capable
- * of sending messages to the inventory service's Kafka instance. A message is sent
- * as soon as a host update is scheduled.
+ * An InventoryService implementation that includes a Kafka producer that is capable of sending
+ * messages to the inventory service's Kafka instance. A message is sent as soon as a host update is
+ * scheduled.
  */
 public class KafkaEnabledInventoryService extends InventoryService {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaEnabledInventoryService.class);
+  private static final Logger log = LoggerFactory.getLogger(KafkaEnabledInventoryService.class);
 
-    private final KafkaTemplate<String, CreateUpdateHostMessage> producer;
-    private final String hostIngressTopic;
-    private final Counter sentMessageCounter;
-    private final Counter failedMessageCounter;
-    private final Counter messageSizeCounter;
-    private final RetryTemplate retryTemplate;
+  private final KafkaTemplate<String, CreateUpdateHostMessage> producer;
+  private final String hostIngressTopic;
+  private final Counter sentMessageCounter;
+  private final Counter failedMessageCounter;
+  private final Counter messageSizeCounter;
+  private final RetryTemplate retryTemplate;
 
-    @SuppressWarnings("java:S3740")
-    public KafkaEnabledInventoryService(InventoryServiceProperties serviceProperties,
-        KafkaTemplate<String, CreateUpdateHostMessage> producer, MeterRegistry meterRegistry,
-        RetryTemplate retryTemplate) {
-        // Flush updates as soon as they get scheduled.
-        super(serviceProperties, 1);
-        this.producer = producer;
-        this.hostIngressTopic = serviceProperties.getKafkaHostIngressTopic();
-        this.sentMessageCounter = meterRegistry.counter("rhsm-conduit.send.inventory-message");
-        this.failedMessageCounter = meterRegistry.counter("rhsm.conduit.send.inventory-message.failed");
-        this.messageSizeCounter = meterRegistry.counter("rhsm-conduit.inventory-message.size.bytes");
-        this.retryTemplate = retryTemplate;
+  @SuppressWarnings("java:S3740")
+  public KafkaEnabledInventoryService(
+      InventoryServiceProperties serviceProperties,
+      KafkaTemplate<String, CreateUpdateHostMessage> producer,
+      MeterRegistry meterRegistry,
+      RetryTemplate retryTemplate) {
+    // Flush updates as soon as they get scheduled.
+    super(serviceProperties, 1);
+    this.producer = producer;
+    this.hostIngressTopic = serviceProperties.getKafkaHostIngressTopic();
+    this.sentMessageCounter = meterRegistry.counter("rhsm-conduit.send.inventory-message");
+    this.failedMessageCounter = meterRegistry.counter("rhsm.conduit.send.inventory-message.failed");
+    this.messageSizeCounter = meterRegistry.counter("rhsm-conduit.inventory-message.size.bytes");
+    this.retryTemplate = retryTemplate;
+  }
+
+  @Override
+  public void scheduleHostUpdate(ConduitFacts facts) {
+    this.sendHostUpdate(Collections.singletonList(facts));
+  }
+
+  @Override
+  public void flushHostUpdates() {
+    /* intentionally left blank */
+  }
+
+  @Override
+  protected void sendHostUpdate(List<ConduitFacts> facts) {
+    if (facts.isEmpty()) {
+      log.info("No facts to report!");
+      return;
     }
 
-    @Override
-    public void scheduleHostUpdate(ConduitFacts facts) {
-        this.sendHostUpdate(Collections.singletonList(facts));
+    OffsetDateTime now = OffsetDateTime.now();
+    for (ConduitFacts factSet : facts) {
+      // Attempt to send the host create/update message. If the send fails for any reason,
+      // log the error and move on to the next one.
+      try {
+        log.debug(
+            "Sending host inventory message: {}:{}:{}",
+            factSet.getAccountNumber(),
+            factSet.getOrgId(),
+            factSet.getSubscriptionManagerId());
+        // After the retry limit is reached, the exception will bubble up to the catch clause and
+        // the
+        // loop will move on.
+        retryTemplate.execute(
+            context -> {
+              sendToKafka(now, factSet);
+              return null;
+            });
+      } catch (Exception e) {
+        recordFailure(e);
+      }
     }
+  }
 
-    @Override
-    public void flushHostUpdates() {
-        /* intentionally left blank */
-    }
+  private void sendToKafka(OffsetDateTime now, ConduitFacts factSet) {
+    CreateUpdateHostMessage message = new CreateUpdateHostMessage(createHost(factSet, now));
+    message.setMetadata("request_id", UUID.randomUUID().toString());
+    producer.send(hostIngressTopic, message).addCallback(this::recordSuccess, this::recordFailure);
+  }
 
-    @Override
-    protected void sendHostUpdate(List<ConduitFacts> facts) {
-        if (facts.isEmpty()) {
-            log.info("No facts to report!");
-            return;
-        }
+  private void recordFailure(Throwable throwable) {
+    log.error("Unable to send host create/update message.", throwable);
+    failedMessageCounter.increment();
+  }
 
-        OffsetDateTime now = OffsetDateTime.now();
-        for (ConduitFacts factSet : facts) {
-            // Attempt to send the host create/update message. If the send fails for any reason,
-            // log the error and move on to the next one.
-            try {
-                log.debug("Sending host inventory message: {}:{}:{}", factSet.getAccountNumber(),
-                    factSet.getOrgId(), factSet.getSubscriptionManagerId());
-                // After the retry limit is reached, the exception will bubble up to the catch clause and the
-                // loop will move on.
-                retryTemplate.execute(context -> {
-                    sendToKafka(now, factSet);
-                    return null;
-                });
-            }
-            catch (Exception e) {
-                recordFailure(e);
-            }
-        }
-    }
-
-    private void sendToKafka(OffsetDateTime now, ConduitFacts factSet) {
-        CreateUpdateHostMessage message = new CreateUpdateHostMessage(createHost(factSet, now));
-        message.setMetadata("request_id", UUID.randomUUID().toString());
-        producer.send(hostIngressTopic, message).addCallback(this::recordSuccess, this::recordFailure);
-    }
-
-    private void recordFailure(Throwable throwable) {
-        log.error("Unable to send host create/update message.", throwable);
-        failedMessageCounter.increment();
-    }
-
-    @SuppressWarnings("java:S3740")
-    private void recordSuccess(SendResult<String, CreateUpdateHostMessage> result) {
-        sentMessageCounter.increment();
-        RecordMetadata metadata = result.getRecordMetadata();
-        double messageSize = (double) metadata.serializedKeySize() + metadata.serializedValueSize();
-        messageSizeCounter.increment(messageSize);
-    }
-
+  @SuppressWarnings("java:S3740")
+  private void recordSuccess(SendResult<String, CreateUpdateHostMessage> result) {
+    sentMessageCounter.increment();
+    RecordMetadata metadata = result.getRecordMetadata();
+    double messageSize = (double) metadata.serializedKeySize() + metadata.serializedValueSize();
+    messageSizeCounter.increment(messageSize);
+  }
 }

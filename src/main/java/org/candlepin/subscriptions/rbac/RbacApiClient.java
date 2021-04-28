@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,56 +20,64 @@
  */
 package org.candlepin.subscriptions.rbac;
 
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.core.GenericType;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.GenericType;
-
 /**
- * An extension of the generated RBAC ApiClient that ensures that the appropriate
- * identity header is appended to each request.
+ * An extension of the generated RBAC ApiClient that ensures that the appropriate identity header is
+ * appended to each request.
  */
 public class RbacApiClient extends ApiClient {
-    public static final String RH_IDENTITY_HEADER = "x-rh-identity";
+  public static final String RH_IDENTITY_HEADER = "x-rh-identity";
 
-    @Override
-    public <T> T invokeAPI(
-        String path,
-        String method,
-        List<Pair> queryParams,
-        Object body,
-        Map<String, String> headerParams,
-        Map<String, String> cookieParams,
-        Map<String, Object> formParams,
-        String accept,
-        String contentType,
-        String[] authNames,
-        GenericType<T> returnType) throws ApiException {
+  @Override
+  public <T> T invokeAPI(
+      String path,
+      String method,
+      List<Pair> queryParams,
+      Object body,
+      Map<String, String> headerParams,
+      Map<String, String> cookieParams,
+      Map<String, Object> formParams,
+      String accept,
+      String contentType,
+      String[] authNames,
+      GenericType<T> returnType)
+      throws ApiException {
 
-        String idHeader = getIdentityHeader();
-        if (idHeader == null || idHeader.isEmpty()) {
-            throw new BadRequestException("Missing identity header while accessing RBAC service.");
-        }
-
-        headerParams.put(RH_IDENTITY_HEADER, idHeader);
-
-        return super.invokeAPI(path, method, queryParams, body, headerParams, cookieParams, formParams,
-            accept, contentType, authNames, returnType);
+    String idHeader = getIdentityHeader();
+    if (idHeader == null || idHeader.isEmpty()) {
+      throw new BadRequestException("Missing identity header while accessing RBAC service.");
     }
 
-    protected static String getIdentityHeader() {
-        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (requestAttributes == null) {
-            return null;
-        }
-        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
-        return request.getHeader(RH_IDENTITY_HEADER);
-    }
+    headerParams.put(RH_IDENTITY_HEADER, idHeader);
 
+    return super.invokeAPI(
+        path,
+        method,
+        queryParams,
+        body,
+        headerParams,
+        cookieParams,
+        formParams,
+        accept,
+        contentType,
+        authNames,
+        returnType);
+  }
+
+  protected static String getIdentityHeader() {
+    RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+    if (requestAttributes == null) {
+      return null;
+    }
+    HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+    return request.getHeader(RH_IDENTITY_HEADER);
+  }
 }

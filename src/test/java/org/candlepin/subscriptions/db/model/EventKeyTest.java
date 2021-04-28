@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,56 +23,54 @@ package org.candlepin.subscriptions.db.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.util.ApplicationClock;
-
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.Test;
 
 class EventKeyTest {
 
-    private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
-    @Test
-    void testLookup() {
-        Event e1 = eventForInstanceId("instance1");
-        Event e2 = eventForInstanceId("instance2");
-        Event e3 = eventForInstanceId("instance3");
+  @Test
+  void testLookup() {
+    Event e1 = eventForInstanceId("instance1");
+    Event e2 = eventForInstanceId("instance2");
+    Event e3 = eventForInstanceId("instance3");
 
-        Map<EventKey, Event> eventMap = Stream.of(e1, e2, e3)
-            .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
+    Map<EventKey, Event> eventMap =
+        Stream.of(e1, e2, e3).collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
 
-        assertEquals(e1, eventMap.get(keyForInstanceId("instance1")));
-        assertEquals(e2, eventMap.get(keyForInstanceId("instance2")));
-        assertEquals(e3, eventMap.get(keyForInstanceId("instance3")));
-    }
+    assertEquals(e1, eventMap.get(keyForInstanceId("instance1")));
+    assertEquals(e2, eventMap.get(keyForInstanceId("instance2")));
+    assertEquals(e3, eventMap.get(keyForInstanceId("instance3")));
+  }
 
-    @Test
-    void testEquality() {
-        EventKey ek1 = new EventKey("account", "source", "type", "instance", clock.now());
-        EventKey ek2 = new EventKey("account", "source", "type", "instance", clock.now());
-        EventKey ek3 = new EventKey("account3", "source3", "type3", "instance3", clock.now().minusDays(1));
+  @Test
+  void testEquality() {
+    EventKey ek1 = new EventKey("account", "source", "type", "instance", clock.now());
+    EventKey ek2 = new EventKey("account", "source", "type", "instance", clock.now());
+    EventKey ek3 =
+        new EventKey("account3", "source3", "type3", "instance3", clock.now().minusDays(1));
 
-        assertEquals(ek1, ek2);
-        assertNotEquals(ek1, ek3);
-    }
+    assertEquals(ek1, ek2);
+    assertNotEquals(ek1, ek3);
+  }
 
-    private EventKey keyForInstanceId(String instanceId) {
-        return new EventKey("account", "source", "type", instanceId, clock.now());
-    }
+  private EventKey keyForInstanceId(String instanceId) {
+    return new EventKey("account", "source", "type", instanceId, clock.now());
+  }
 
-    private Event eventForInstanceId(String instanceId) {
-        return new Event()
-            .withAccountNumber("account")
-            .withEventType("type")
-            .withEventSource("source")
-            .withInstanceId(instanceId)
-            .withTimestamp(clock.now());
-    }
+  private Event eventForInstanceId(String instanceId) {
+    return new Event()
+        .withAccountNumber("account")
+        .withEventType("type")
+        .withEventSource("source")
+        .withInstanceId(instanceId)
+        .withTimestamp(clock.now());
+  }
 }

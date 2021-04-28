@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,11 @@ package org.candlepin.subscriptions.tally;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.util.Collections;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ApiException;
-
-import com.google.common.collect.ImmutableMap;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,73 +37,67 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.io.IOException;
-import java.util.Collections;
-
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class TallySnapshotControllerTest {
 
-    public static final String ACCOUNT = "foo123";
+  public static final String ACCOUNT = "foo123";
 
-    @Autowired
-    TallySnapshotController controller;
+  @Autowired TallySnapshotController controller;
 
-    @MockBean
-    CloudigradeAccountUsageCollector cloudigradeCollector;
+  @MockBean CloudigradeAccountUsageCollector cloudigradeCollector;
 
-    @MockBean
-    @Qualifier("OpenShiftMetricsUsageCollector")
-    MetricUsageCollector metricUsageCollector;
+  @MockBean
+  @Qualifier("OpenShiftMetricsUsageCollector")
+  MetricUsageCollector metricUsageCollector;
 
-    @MockBean
-    InventoryAccountUsageCollector inventoryCollector;
+  @MockBean InventoryAccountUsageCollector inventoryCollector;
 
-    @Autowired
-    ApplicationProperties props;
+  @Autowired ApplicationProperties props;
 
-    private boolean defaultCloudigradeIntegrationEnablement;
+  private boolean defaultCloudigradeIntegrationEnablement;
 
-    @BeforeEach
-    void setup() {
-        defaultCloudigradeIntegrationEnablement = props.isCloudigradeEnabled();
-        when(inventoryCollector.collect(any(), any())).thenReturn(ImmutableMap.of(ACCOUNT,
-            new AccountUsageCalculation(ACCOUNT)));
-    }
+  @BeforeEach
+  void setup() {
+    defaultCloudigradeIntegrationEnablement = props.isCloudigradeEnabled();
+    when(inventoryCollector.collect(any(), any()))
+        .thenReturn(ImmutableMap.of(ACCOUNT, new AccountUsageCalculation(ACCOUNT)));
+  }
 
-    @AfterEach
-    void restore() {
-        props.setCloudigradeEnabled(defaultCloudigradeIntegrationEnablement);
-    }
+  @AfterEach
+  void restore() {
+    props.setCloudigradeEnabled(defaultCloudigradeIntegrationEnablement);
+  }
 
-    @Test
-    void testCloudigradeAccountUsageCollectorEnabled() throws IOException, ApiException {
-        props.setCloudigradeEnabled(true);
-        controller.produceSnapshotsForAccount(ACCOUNT);
-        verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
-    }
+  @Test
+  void testCloudigradeAccountUsageCollectorEnabled() throws IOException, ApiException {
+    props.setCloudigradeEnabled(true);
+    controller.produceSnapshotsForAccount(ACCOUNT);
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
+  }
 
-    @Test
-    void testCloudigradeAccountUsageCollectorExceptionIgnored() throws IOException, ApiException {
-        props.setCloudigradeEnabled(true);
-        doThrow(new RuntimeException()).when(cloudigradeCollector).enrichUsageWithCloudigradeData(any(),
-            any());
-        controller.produceSnapshotsForAccount(ACCOUNT);
-        verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any());
-    }
+  @Test
+  void testCloudigradeAccountUsageCollectorExceptionIgnored() throws IOException, ApiException {
+    props.setCloudigradeEnabled(true);
+    doThrow(new RuntimeException())
+        .when(cloudigradeCollector)
+        .enrichUsageWithCloudigradeData(any(), any());
+    controller.produceSnapshotsForAccount(ACCOUNT);
+    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any());
+  }
 
-    @Test
-    void testCloudigradeAccountUsageCollectorDisabled() {
-        props.setCloudigradeEnabled(false);
-        controller.produceSnapshotsForAccount(ACCOUNT);
-        verifyZeroInteractions(cloudigradeCollector);
-    }
+  @Test
+  void testCloudigradeAccountUsageCollectorDisabled() {
+    props.setCloudigradeEnabled(false);
+    controller.produceSnapshotsForAccount(ACCOUNT);
+    verifyZeroInteractions(cloudigradeCollector);
+  }
 
-    @Test
-    void testBatchesLargerThanConfigIgnored() {
-        controller.produceSnapshotsForAccounts(Collections.nCopies(props.getAccountBatchSize() + 1, "foo"));
-        verifyZeroInteractions(cloudigradeCollector);
-        verifyZeroInteractions(inventoryCollector);
-    }
-
+  @Test
+  void testBatchesLargerThanConfigIgnored() {
+    controller.produceSnapshotsForAccounts(
+        Collections.nCopies(props.getAccountBatchSize() + 1, "foo"));
+    verifyZeroInteractions(cloudigradeCollector);
+    verifyZeroInteractions(inventoryCollector);
+  }
 }

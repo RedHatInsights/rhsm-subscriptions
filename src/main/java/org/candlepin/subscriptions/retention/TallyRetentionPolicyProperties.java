@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,89 +23,87 @@ package org.candlepin.subscriptions.retention;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Retention policies for supported granularities.
- */
+/** Retention policies for supported granularities. */
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.tally-retention-policy")
 public class TallyRetentionPolicyProperties {
-    /**
-     * Number of historic hourly snapshots to keep. Actual number kept will include an additional hour
-     * (current & historic).
-     */
-    private Integer hourly;
+  /**
+   * Number of historic hourly snapshots to keep. Actual number kept will include an additional hour
+   * (current & historic).
+   */
+  private Integer hourly;
 
-    /**
-     * Number of historic daily snapshots to keep. Actual number kept will include an additional day
-     * (current & historic).
-     */
-    private Integer daily;
-    /**
-     * Number of full weeks of snapshot data to keep. Actual number kept will include an additional week
-     * (the current incomplete week).
-     */
-    private Integer weekly;
-    /**
-     * Number of full months of snapshot data to keep. Actual number kept will include an additional month
-     * (the current incomplete month).
-     */
-    private Integer monthly;
-    /**
-     * Number of full quarters of snapshot data to keep. Actual number kept will include an additional
-     * quarter (the current incomplete quarter).
-     */
-    private Integer quarterly;
-    /**
-     * Number of full years of snapshot data to keep. Actual number kept will include an additional year
-     * (the current incomplete year).
-     */
-    private Integer yearly;
+  /**
+   * Number of historic daily snapshots to keep. Actual number kept will include an additional day
+   * (current & historic).
+   */
+  private Integer daily;
+  /**
+   * Number of full weeks of snapshot data to keep. Actual number kept will include an additional
+   * week (the current incomplete week).
+   */
+  private Integer weekly;
+  /**
+   * Number of full months of snapshot data to keep. Actual number kept will include an additional
+   * month (the current incomplete month).
+   */
+  private Integer monthly;
+  /**
+   * Number of full quarters of snapshot data to keep. Actual number kept will include an additional
+   * quarter (the current incomplete quarter).
+   */
+  private Integer quarterly;
+  /**
+   * Number of full years of snapshot data to keep. Actual number kept will include an additional
+   * year (the current incomplete year).
+   */
+  private Integer yearly;
 
-    public Integer getHourly() {
-        return hourly;
-    }
+  public Integer getHourly() {
+    return hourly;
+  }
 
-    public void setHourly(Integer hourly) {
-        this.hourly = hourly;
-    }
+  public void setHourly(Integer hourly) {
+    this.hourly = hourly;
+  }
 
-    public Integer getDaily() {
-        return daily;
-    }
+  public Integer getDaily() {
+    return daily;
+  }
 
-    public void setDaily(Integer daily) {
-        this.daily = daily;
-    }
+  public void setDaily(Integer daily) {
+    this.daily = daily;
+  }
 
-    public Integer getWeekly() {
-        return weekly;
-    }
+  public Integer getWeekly() {
+    return weekly;
+  }
 
-    public void setWeekly(Integer weekly) {
-        this.weekly = weekly;
-    }
+  public void setWeekly(Integer weekly) {
+    this.weekly = weekly;
+  }
 
-    public Integer getMonthly() {
-        return monthly;
-    }
+  public Integer getMonthly() {
+    return monthly;
+  }
 
-    public void setMonthly(Integer monthly) {
-        this.monthly = monthly;
-    }
+  public void setMonthly(Integer monthly) {
+    this.monthly = monthly;
+  }
 
-    public Integer getQuarterly() {
-        return quarterly;
-    }
+  public Integer getQuarterly() {
+    return quarterly;
+  }
 
-    public void setQuarterly(Integer quarterly) {
-        this.quarterly = quarterly;
-    }
+  public void setQuarterly(Integer quarterly) {
+    this.quarterly = quarterly;
+  }
 
-    public Integer getYearly() {
-        return yearly;
-    }
+  public Integer getYearly() {
+    return yearly;
+  }
 
-    public void setYearly(Integer yearly) {
-        this.yearly = yearly;
-    }
+  public void setYearly(Integer yearly) {
+    this.yearly = yearly;
+  }
 }

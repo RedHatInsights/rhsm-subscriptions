@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,36 +20,32 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import org.candlepin.subscriptions.prometheus.model.QueryResult;
-
-import org.springframework.util.StringUtils;
-
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.prometheus.model.QueryResult;
+import org.springframework.util.StringUtils;
 
-/**
- * Provides account lists from Prometheus metrics.
- */
+/** Provides account lists from Prometheus metrics. */
 public class PrometheusAccountSource {
 
-    private PrometheusService service;
-    private PrometheusMetricsProperties prometheusProps;
+  private PrometheusService service;
+  private PrometheusMetricsProperties prometheusProps;
 
-    public PrometheusAccountSource(PrometheusService service, PrometheusMetricsProperties prometheusProps) {
-        this.service = service;
-        this.prometheusProps = prometheusProps;
-    }
+  public PrometheusAccountSource(
+      PrometheusService service, PrometheusMetricsProperties prometheusProps) {
+    this.service = service;
+    this.prometheusProps = prometheusProps;
+  }
 
-    public Set<String> getOpenShiftMarketplaceAccounts(OffsetDateTime time) {
-        MetricProperties openshift = this.prometheusProps.getOpenshift();
-        QueryResult result = service.runQuery(openshift.getEnabledAccountPromQL(),
-            time, openshift.getQueryTimeout());
+  public Set<String> getOpenShiftMarketplaceAccounts(OffsetDateTime time) {
+    MetricProperties openshift = this.prometheusProps.getOpenshift();
+    QueryResult result =
+        service.runQuery(openshift.getEnabledAccountPromQL(), time, openshift.getQueryTimeout());
 
-        return result.getData().getResult().stream()
-            .map(r -> r.getMetric().getOrDefault("ebs_account", ""))
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-    }
-
+    return result.getData().getResult().stream()
+        .map(r -> r.getMetric().getOrDefault("ebs_account", ""))
+        .filter(StringUtils::hasText)
+        .collect(Collectors.toSet());
+  }
 }

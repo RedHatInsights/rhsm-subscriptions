@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,36 +24,32 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.utilization.api.model.Error;
-import org.candlepin.subscriptions.utilization.api.model.Errors;
-
-import org.junit.jupiter.api.Test;
-
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-
+import org.candlepin.subscriptions.utilization.api.model.Error;
+import org.candlepin.subscriptions.utilization.api.model.Errors;
+import org.junit.jupiter.api.Test;
 
 class WebApplicationExceptionMapperTest {
 
-    @Test
-    void testMapsWebApplicationException() {
-        String expectedDetail = "FORCED!";
+  @Test
+  void testMapsWebApplicationException() {
+    String expectedDetail = "FORCED!";
 
-        WebApplicationException exception = new NotFoundException(expectedDetail);
+    WebApplicationException exception = new NotFoundException(expectedDetail);
 
-        WebApplicationExceptionMapper mapper = new WebApplicationExceptionMapper();
-        Response resp = mapper.toResponse(exception);
-        Object entityObj = resp.getEntity();
-        assertNotNull(entityObj);
-        assertThat(entityObj, instanceOf(Errors.class));
-        Errors errors = (Errors) entityObj;
-        assertEquals(1, errors.getErrors().size());
+    WebApplicationExceptionMapper mapper = new WebApplicationExceptionMapper();
+    Response resp = mapper.toResponse(exception);
+    Object entityObj = resp.getEntity();
+    assertNotNull(entityObj);
+    assertThat(entityObj, instanceOf(Errors.class));
+    Errors errors = (Errors) entityObj;
+    assertEquals(1, errors.getErrors().size());
 
-        Error error = errors.getErrors().get(0);
-        assertEquals(String.valueOf(exception.getResponse().getStatus()), error.getStatus());
-        assertEquals(WebApplicationExceptionMapper.ERROR_TITLE, error.getTitle());
-        assertEquals(expectedDetail, error.getDetail());
-    }
-
+    Error error = errors.getErrors().get(0);
+    assertEquals(String.valueOf(exception.getResponse().getStatus()), error.getStatus());
+    assertEquals(WebApplicationExceptionMapper.ERROR_TITLE, error.getTitle());
+    assertEquals(expectedDetail, error.getDetail());
+  }
 }

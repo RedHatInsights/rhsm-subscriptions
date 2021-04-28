@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,12 @@ package org.candlepin.subscriptions.cloudigrade;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.Base64;
 import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeader;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,34 +36,28 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.util.Base64;
-
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class CloudigradeServiceTest {
-    @MockBean
-    ConcurrentApi concurrentApi;
+  @MockBean ConcurrentApi concurrentApi;
 
-    @Autowired
-    CloudigradeService cloudigradeService;
+  @Autowired CloudigradeService cloudigradeService;
 
-    @Autowired
-    ObjectMapper mapper;
+  @Autowired ObjectMapper mapper;
 
-    @Test
-    void testHeaderEncodesCorrectly() throws ApiException, IOException {
-        ArgumentCaptor<String> header = ArgumentCaptor.forClass(String.class);
-        Base64.Decoder b64Decoder = Base64.getDecoder();
+  @Test
+  void testHeaderEncodesCorrectly() throws ApiException, IOException {
+    ArgumentCaptor<String> header = ArgumentCaptor.forClass(String.class);
+    Base64.Decoder b64Decoder = Base64.getDecoder();
 
-        cloudigradeService.listDailyConcurrentUsages("foo123", 10, 0, LocalDate.MIN, LocalDate.MAX);
+    cloudigradeService.listDailyConcurrentUsages("foo123", 10, 0, LocalDate.MIN, LocalDate.MAX);
 
-        verify(concurrentApi).listDailyConcurrentUsages(header.capture(), eq(10), eq(0),
-            eq(LocalDate.MIN), eq(LocalDate.MAX));
-        IdentityHeader expected =
-            mapper.readValue(b64Decoder.decode(header.getValue()), IdentityHeader.class);
-        assertEquals("foo123", expected.getIdentity().getAccountNumber());
-        assertTrue(expected.getIdentity().getUser().getIsOrgAdmin());
-    }
+    verify(concurrentApi)
+        .listDailyConcurrentUsages(
+            header.capture(), eq(10), eq(0), eq(LocalDate.MIN), eq(LocalDate.MAX));
+    IdentityHeader expected =
+        mapper.readValue(b64Decoder.decode(header.getValue()), IdentityHeader.class);
+    assertEquals("foo123", expected.getIdentity().getAccountNumber());
+    assertTrue(expected.getIdentity().getUser().getIsOrgAdmin());
+  }
 }

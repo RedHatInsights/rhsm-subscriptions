@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,89 +20,90 @@
  */
 package org.candlepin.subscriptions.user;
 
+import java.util.Optional;
+import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.user.api.model.AccountCriteria;
 import org.candlepin.subscriptions.user.api.model.AccountSearch;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
-import javax.ws.rs.core.Response;
-
-/**
- * Wraps IT User Service account APIs in more convenient interfaces.
- */
+/** Wraps IT User Service account APIs in more convenient interfaces. */
 @Component
 public class AccountService {
 
-    private final AccountApi accountApi;
-    private final RetryTemplate accountLookupRetryTemplate;
+  private final AccountApi accountApi;
+  private final RetryTemplate accountLookupRetryTemplate;
 
-    @Autowired
-    public AccountService(AccountApi accountApi,
-        @Qualifier("userServiceRetry") RetryTemplate userServiceRetryTemplate) {
-        this.accountApi = accountApi;
-        this.accountLookupRetryTemplate = userServiceRetryTemplate;
-    }
+  @Autowired
+  public AccountService(
+      AccountApi accountApi,
+      @Qualifier("userServiceRetry") RetryTemplate userServiceRetryTemplate) {
+    this.accountApi = accountApi;
+    this.accountLookupRetryTemplate = userServiceRetryTemplate;
+  }
 
-    public String lookupOrgId(String accountNumber) {
-        return accountLookupRetryTemplate.execute(ctx -> tryLookupOrgId(accountNumber));
-    }
+  public String lookupOrgId(String accountNumber) {
+    return accountLookupRetryTemplate.execute(ctx -> tryLookupOrgId(accountNumber));
+  }
 
-    private String tryLookupOrgId(String accountNumber) {
-        try {
-            return Optional.ofNullable(accountApi
-                .findAccount(new AccountSearch().by(new AccountCriteria().ebsAccountNumber(accountNumber))))
-                .orElseThrow(() -> new SubscriptionsException(
-                    ErrorCode.REQUEST_PROCESSING_ERROR,
-                    Response.Status.INTERNAL_SERVER_ERROR,
-                    String.format("Account number %s not found", accountNumber),
-                    (String) null
-                )).getId();
-        }
-        catch (ApiException e) {
-            throw new SubscriptionsException(
-                ErrorCode.REQUEST_PROCESSING_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                "Error looking up orgId",
-                e
-            );
-        }
+  private String tryLookupOrgId(String accountNumber) {
+    try {
+      return Optional.ofNullable(
+              accountApi.findAccount(
+                  new AccountSearch().by(new AccountCriteria().ebsAccountNumber(accountNumber))))
+          .orElseThrow(
+              () ->
+                  new SubscriptionsException(
+                      ErrorCode.REQUEST_PROCESSING_ERROR,
+                      Response.Status.INTERNAL_SERVER_ERROR,
+                      String.format("Account number %s not found", accountNumber),
+                      (String) null))
+          .getId();
+    } catch (ApiException e) {
+      throw new SubscriptionsException(
+          ErrorCode.REQUEST_PROCESSING_ERROR,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Error looking up orgId",
+          e);
     }
+  }
 
-    public String lookupAccountNumber(String orgId) {
-        return accountLookupRetryTemplate.execute(ctx -> tryLookupAccountNumber(orgId));
-    }
+  public String lookupAccountNumber(String orgId) {
+    return accountLookupRetryTemplate.execute(ctx -> tryLookupAccountNumber(orgId));
+  }
 
-    private String tryLookupAccountNumber(String orgId) {
-        try {
-            return Optional.ofNullable(Optional.ofNullable(accountApi
-                .findAccount(new AccountSearch().by(new AccountCriteria().id(orgId))))
-                .orElseThrow(() -> new SubscriptionsException(
-                    ErrorCode.REQUEST_PROCESSING_ERROR,
-                    Response.Status.INTERNAL_SERVER_ERROR,
-                    String.format("Account w/ orgId %s not found", orgId),
-                    (String) null
-                )).getEbsAccountNumber()).orElseThrow(() -> new SubscriptionsException(
-                    ErrorCode.REQUEST_PROCESSING_ERROR,
-                    Response.Status.INTERNAL_SERVER_ERROR,
-                    String.format("Account w/ orgId %s has no account number", orgId),
-                    (String) null
-                ));
-        }
-        catch (ApiException e) {
-            throw new SubscriptionsException(
-                ErrorCode.REQUEST_PROCESSING_ERROR,
-                Response.Status.INTERNAL_SERVER_ERROR,
-                "Error looking up account number",
-                e
-            );
-        }
+  private String tryLookupAccountNumber(String orgId) {
+    try {
+      return Optional.ofNullable(
+              Optional.ofNullable(
+                      accountApi.findAccount(
+                          new AccountSearch().by(new AccountCriteria().id(orgId))))
+                  .orElseThrow(
+                      () ->
+                          new SubscriptionsException(
+                              ErrorCode.REQUEST_PROCESSING_ERROR,
+                              Response.Status.INTERNAL_SERVER_ERROR,
+                              String.format("Account w/ orgId %s not found", orgId),
+                              (String) null))
+                  .getEbsAccountNumber())
+          .orElseThrow(
+              () ->
+                  new SubscriptionsException(
+                      ErrorCode.REQUEST_PROCESSING_ERROR,
+                      Response.Status.INTERNAL_SERVER_ERROR,
+                      String.format("Account w/ orgId %s has no account number", orgId),
+                      (String) null));
+    } catch (ApiException e) {
+      throw new SubscriptionsException(
+          ErrorCode.REQUEST_PROCESSING_ERROR,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Error looking up account number",
+          e);
     }
+  }
 }

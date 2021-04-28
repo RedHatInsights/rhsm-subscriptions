@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,14 @@ package org.candlepin.subscriptions.marketplace;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -32,7 +40,6 @@ import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,100 +50,99 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"marketplace", "test"})
 class MarketplaceSubscriptionIdProviderTest {
 
-    @MockBean
-    private SubscriptionRepository repo;
+  @MockBean private SubscriptionRepository repo;
 
-    @MockBean
-    private SubscriptionSyncController syncController;
+  @MockBean private SubscriptionSyncController syncController;
 
-    @MockBean
-    private MarketplaceSubscriptionCollector collector;
+  @MockBean private MarketplaceSubscriptionCollector collector;
 
-    @MockBean
-    private ProductProfileRegistry profileRegistry;
+  @MockBean private ProductProfileRegistry profileRegistry;
 
-    @Mock
-    private ProductProfile mockProfile;
+  @Mock private ProductProfile mockProfile;
 
-    @Autowired
-    private MarketplaceSubscriptionIdProvider idProvider;
+  @Autowired private MarketplaceSubscriptionIdProvider idProvider;
 
-    private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
-    private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
+  private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
+  private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
-    @BeforeEach
-    void setUp() {
-        when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(mockProfile);
-    }
+  @BeforeEach
+  void setUp() {
+    when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(mockProfile);
+  }
 
-    @Test
-    void doesNotAllowReservedValuesInKey() {
-        UsageCalculation.Key key1 = new Key(String.valueOf(1), ServiceLevel._ANY, Usage.PRODUCTION);
-        UsageCalculation.Key key2 = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage._ANY);
+  @Test
+  void doesNotAllowReservedValuesInKey() {
+    UsageCalculation.Key key1 = new Key(String.valueOf(1), ServiceLevel._ANY, Usage.PRODUCTION);
+    UsageCalculation.Key key2 = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage._ANY);
 
-        assertThrows(IllegalArgumentException.class, () -> idProvider.findSubscriptionId("1000", key1,
-            rangeStart, rangeEnd));
-        assertThrows(IllegalArgumentException.class, () -> idProvider.findSubscriptionId("1000", key2,
-            rangeStart, rangeEnd));
-    }
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> idProvider.findSubscriptionId("1000", key1, rangeStart, rangeEnd));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> idProvider.findSubscriptionId("1000", key2, rangeStart, rangeEnd));
+  }
 
-    @Test
-    void findsSubscriptionId() {
-        UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-        Subscription s = new Subscription();
-        s.setStartDate(OffsetDateTime.now().minusDays(7));
-        s.setEndDate(OffsetDateTime.now().plusDays(7));
-        s.setMarketplaceSubscriptionId("xyz");
-        List<Subscription> result = Collections.singletonList(s);
+  @Test
+  void findsSubscriptionId() {
+    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setMarketplaceSubscriptionId("xyz");
+    List<Subscription> result = Collections.singletonList(s);
 
-        Map<String, Set<String>> roleMap = new HashMap<>();
-        Set<String> ocpRoles = Set.of("ocp");
-        roleMap.put(String.valueOf(1), ocpRoles);
+    Map<String, Set<String>> roleMap = new HashMap<>();
+    Set<String> ocpRoles = Set.of("ocp");
+    roleMap.put(String.valueOf(1), ocpRoles);
 
-        when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
-        when(repo.findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-            eq("1000"), eq(key), eq(ocpRoles), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-            .thenReturn(new ArrayList<>()).thenReturn(result);
+    when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
+    when(repo
+            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+                eq("1000"),
+                eq(key),
+                eq(ocpRoles),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class)))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
 
-        Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
-        assertEquals("xyz", actual.get());
-    }
+    Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+    assertEquals("xyz", actual.get());
+  }
 
-    @Test
-    void memoizesSubscriptionId() {
-        UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-        Subscription s = new Subscription();
-        s.setStartDate(OffsetDateTime.now().minusDays(7));
-        s.setEndDate(OffsetDateTime.now().plusDays(7));
-        s.setMarketplaceSubscriptionId("abc");
-        List<Subscription> result = Collections.singletonList(s);
+  @Test
+  void memoizesSubscriptionId() {
+    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setMarketplaceSubscriptionId("abc");
+    List<Subscription> result = Collections.singletonList(s);
 
-        Map<String, Set<String>> roleMap = new HashMap<>();
-        Set<String> ocpRoles = Set.of("ocp");
-        roleMap.put(String.valueOf(1), ocpRoles);
+    Map<String, Set<String>> roleMap = new HashMap<>();
+    Set<String> ocpRoles = Set.of("ocp");
+    roleMap.put(String.valueOf(1), ocpRoles);
 
-        when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
-        when(repo.findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-            eq("1000"), eq(key), eq(ocpRoles), any(OffsetDateTime.class), any(OffsetDateTime.class)))
-            .thenReturn(new ArrayList<>()).thenReturn(result);
+    when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
+    when(repo
+            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+                eq("1000"),
+                eq(key),
+                eq(ocpRoles),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class)))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
 
-        Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
-        assertEquals("abc", actual.get());
+    Optional<String> actual = idProvider.findSubscriptionId("1000", key, rangeStart, rangeEnd);
+    assertEquals("abc", actual.get());
 
-        verify(collector).requestSubscriptions("1000");
-    }
+    verify(collector).requestSubscriptions("1000");
+  }
 }

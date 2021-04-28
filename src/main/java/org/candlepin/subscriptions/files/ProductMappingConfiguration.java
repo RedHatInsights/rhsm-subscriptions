@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,18 +22,15 @@ package org.candlepin.subscriptions.files;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
-/**
- * Configuration that provides the product ID to product map.
- */
+/** Configuration that provides the product ID to product map. */
 @ComponentScan(basePackages = "org.candlepin.subscriptions.files")
 public class ProductMappingConfiguration {
-    @Bean
-    public ProductProfileRegistrySource productProfileRegistrySource(
-        ApplicationProperties applicationProperties, ApplicationClock applicationClock) {
-        return new ProductProfileRegistrySource(applicationProperties, applicationClock);
-    }
+  @Bean
+  public ProductProfileRegistrySource productProfileRegistrySource(
+      ApplicationProperties applicationProperties, ApplicationClock applicationClock) {
+    return new ProductProfileRegistrySource(applicationProperties, applicationClock);
+  }
 }

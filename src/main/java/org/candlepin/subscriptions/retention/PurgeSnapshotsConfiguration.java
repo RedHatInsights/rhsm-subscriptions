@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.retention;
 
 import org.candlepin.subscriptions.spring.JobRunner;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -31,14 +30,14 @@ import org.springframework.context.annotation.Profile;
 /**
  * Configuration for the "purge-snapshots" profile.
  *
- * This profile defines a job that removes data that's older than our retention policy.
+ * <p>This profile defines a job that removes data that's older than our retention policy.
  */
 @Configuration
 @Profile("purge-snapshots")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.retention")
 public class PurgeSnapshotsConfiguration {
-    @Bean
-    JobRunner jobRunner(PurgeSnapshotsJob job, ApplicationContext applicationContext) {
-        return new JobRunner(job, applicationContext);
-    }
+  @Bean
+  JobRunner jobRunner(PurgeSnapshotsJob job, ApplicationContext applicationContext) {
+    return new JobRunner(job, applicationContext);
+  }
 }

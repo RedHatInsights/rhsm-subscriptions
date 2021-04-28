@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,87 +20,87 @@
  */
 package org.candlepin.subscriptions.conduit.job;
 
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.stream.Stream;
-
 /** Refactored from TaskManager */
 @Component
 public class OrgSyncTaskManager {
-    private static final Logger log = LoggerFactory.getLogger(OrgSyncTaskManager.class);
+  private static final Logger log = LoggerFactory.getLogger(OrgSyncTaskManager.class);
 
-    private final TaskQueue queue;
-    private final TaskQueueProperties taskQueueProperties;
-    private final OrgSyncProperties orgSyncProperties;
-    private final DatabaseOrgList orgList;
+  private final TaskQueue queue;
+  private final TaskQueueProperties taskQueueProperties;
+  private final OrgSyncProperties orgSyncProperties;
+  private final DatabaseOrgList orgList;
 
-    public OrgSyncTaskManager(TaskQueue queue,
-        @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties,
-        OrgSyncProperties orgSyncProperties, DatabaseOrgList orgList) {
+  public OrgSyncTaskManager(
+      TaskQueue queue,
+      @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties,
+      OrgSyncProperties orgSyncProperties,
+      DatabaseOrgList orgList) {
 
-        this.queue = queue;
-        this.taskQueueProperties = taskQueueProperties;
-        this.orgSyncProperties = orgSyncProperties;
-        this.orgList = orgList;
+    this.queue = queue;
+    this.taskQueueProperties = taskQueueProperties;
+    this.orgSyncProperties = orgSyncProperties;
+    this.orgList = orgList;
+  }
+
+  /**
+   * Initiates a task that will update the inventory of the specified organization's ID.
+   *
+   * @param orgId the ID of the org in which to update.
+   */
+  public void updateOrgInventory(String orgId) {
+    updateOrgInventory(orgId, null);
+  }
+
+  /**
+   * Initiates a task that will update the inventory of the specified organization's ID.
+   *
+   * @param orgId the ID of the org in which to update.
+   * @param offset the offset to start at
+   */
+  @SuppressWarnings("indentation")
+  public void updateOrgInventory(String orgId, String offset) {
+    queue.enqueue(
+        TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTopic())
+            .setSingleValuedArg("org_id", orgId)
+            .setSingleValuedArg("offset", offset)
+            .build());
+  }
+
+  /** Queue up tasks for each configured org. */
+  @Transactional
+  public void syncFullOrgList() {
+    Stream<String> orgsToSync;
+
+    orgsToSync = orgList.getOrgsToSync();
+
+    if (orgSyncProperties.getLimit() != null) {
+      Integer limit = orgSyncProperties.getLimit();
+      orgsToSync = orgsToSync.limit(limit);
+      log.info("Limiting orgs to sync to {}", limit);
     }
-
-    /**
-     * Initiates a task that will update the inventory of the specified organization's ID.
-     *
-     * @param orgId the ID of the org in which to update.
-     */
-    public void updateOrgInventory(String orgId) {
-        updateOrgInventory(orgId, null);
-    }
-
-    /**
-     * Initiates a task that will update the inventory of the specified organization's ID.
-     *
-     * @param orgId the ID of the org in which to update.
-     * @param offset the offset to start at
-     */
-    @SuppressWarnings("indentation")
-    public void updateOrgInventory(String orgId, String offset) {
-        queue.enqueue(
-                TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTopic())
-                        .setSingleValuedArg("org_id", orgId)
-                        .setSingleValuedArg("offset", offset)
-                        .build()
-        );
-    }
-
-    /**
-     * Queue up tasks for each configured org.
-     */
-    @Transactional
-    public void syncFullOrgList() {
-        Stream<String> orgsToSync;
-
-        orgsToSync = orgList.getOrgsToSync();
-
-        if (orgSyncProperties.getLimit() != null) {
-            Integer limit = orgSyncProperties.getLimit();
-            orgsToSync = orgsToSync.limit(limit);
-            log.info("Limiting orgs to sync to {}", limit);
-        }
-        long count = orgsToSync.map(org -> {
-            try {
-                updateOrgInventory(org);
-            }
-            catch (Exception e) {
-                log.error("Could not update inventory for org: {}", org, e);
-            }
-            return null;
-        }).count();
-        log.info("Inventory update complete, synced {} orgs.", count);
-    }
+    long count =
+        orgsToSync
+            .map(
+                org -> {
+                  try {
+                    updateOrgInventory(org);
+                  } catch (Exception e) {
+                    log.error("Could not update inventory for org: {}", org, e);
+                  }
+                  return null;
+                })
+            .count();
+    log.info("Inventory update complete, synced {} orgs.", count);
+  }
 }

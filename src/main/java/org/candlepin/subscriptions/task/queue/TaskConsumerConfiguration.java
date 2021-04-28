@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
 import org.candlepin.subscriptions.task.queue.kafka.KafkaTaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.kafka.KafkaTaskConsumerFactory;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,22 +33,22 @@ import org.springframework.context.annotation.Primary;
 /**
  * Task consumer common configuration.
  *
- * A component should import this configuration, and then use the factory to create a qualified bean for
- * the TaskConsumer.
+ * <p>A component should import this configuration, and then use the factory to create a qualified
+ * bean for the TaskConsumer.
  */
 @Configuration
 @Import(KafkaTaskConsumerConfiguration.class)
 public class TaskConsumerConfiguration {
-    @Bean
-    @Primary
-    @ConditionalOnBean(KafkaTaskConsumerConfiguration.class)
-    KafkaTaskConsumerFactory kakfaTaskConsumerFactory() {
-        return new KafkaTaskConsumerFactory();
-    }
+  @Bean
+  @Primary
+  @ConditionalOnBean(KafkaTaskConsumerConfiguration.class)
+  KafkaTaskConsumerFactory kakfaTaskConsumerFactory() {
+    return new KafkaTaskConsumerFactory();
+  }
 
-    @Bean
-    @ConditionalOnBean(ExecutorTaskQueue.class)
-    ExecutorTaskQueueConsumerFactory inMemoryTaskConsumerFactory(ExecutorTaskQueue queue) {
-        return new ExecutorTaskQueueConsumerFactory(queue);
-    }
+  @Bean
+  @ConditionalOnBean(ExecutorTaskQueue.class)
+  ExecutorTaskQueueConsumerFactory inMemoryTaskConsumerFactory(ExecutorTaskQueue queue) {
+    return new ExecutorTaskQueueConsumerFactory(queue);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.task.queue.inmemory;
 
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -31,23 +30,23 @@ import org.springframework.context.annotation.Bean;
 /**
  * Configuration that is common to both producers and consumers for in-memory task queues.
  *
- * Only activated as a fallback (in case Kafka is disabled).
+ * <p>Only activated as a fallback (in case Kafka is disabled).
  */
 public class ExecutorTaskQueueConfiguration {
-    private static final Logger log = LoggerFactory.getLogger(ExecutorTaskQueueConfiguration.class);
+  private static final Logger log = LoggerFactory.getLogger(ExecutorTaskQueueConfiguration.class);
 
-    /**
-     * Creates an in-memory queue, implemented with {@link java.util.concurrent.ThreadPoolExecutor}.
-     *
-     * Does not block while executing a task. Spin up a new thread for each task, only practically bound by
-     * amount of memory available.
-     *
-     * @see TaskConsumerConfiguration
-     */
-    @Bean
-    @ConditionalOnMissingBean(TaskQueue.class)
-    ExecutorTaskQueue inMemoryQueue() {
-        log.info("Configuring an in-memory task queue.");
-        return new ExecutorTaskQueue();
-    }
+  /**
+   * Creates an in-memory queue, implemented with {@link java.util.concurrent.ThreadPoolExecutor}.
+   *
+   * <p>Does not block while executing a task. Spin up a new thread for each task, only practically
+   * bound by amount of memory available.
+   *
+   * @see TaskConsumerConfiguration
+   */
+  @Bean
+  @ConditionalOnMissingBean(TaskQueue.class)
+  ExecutorTaskQueue inMemoryQueue() {
+    log.info("Configuring an in-memory task queue.");
+    return new ExecutorTaskQueue();
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,112 +24,108 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.marketplace.api.model.BatchStatus;
 import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-
 class MarketplaceProducerTest {
 
-    @Test
-    void testMarketplaceProducerRetry() throws Exception {
-        RetryTemplate retryTemplate = new RetryTemplateBuilder()
-            .maxAttempts(2)
-            .noBackoff()
-            .build();
-        MarketplaceService marketplaceService = mock(MarketplaceService.class);
-        MeterRegistry registry = new SimpleMeterRegistry();
-        MarketplaceProducer marketplaceProducer = new MarketplaceProducer(marketplaceService, retryTemplate,
-            registry, new MarketplaceProperties());
-        var rejectedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.rejected");
+  @Test
+  void testMarketplaceProducerRetry() throws Exception {
+    RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
+    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    MeterRegistry registry = new SimpleMeterRegistry();
+    MarketplaceProducer marketplaceProducer =
+        new MarketplaceProducer(
+            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
+    var rejectedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.rejected");
 
-        when(marketplaceService.submitUsageEvents(any())).thenThrow(SubscriptionsException.class);
+    when(marketplaceService.submitUsageEvents(any())).thenThrow(SubscriptionsException.class);
 
-        var usageRequest = new UsageRequest();
+    var usageRequest = new UsageRequest();
 
-        marketplaceProducer.submitUsageRequest(usageRequest);
+    marketplaceProducer.submitUsageRequest(usageRequest);
 
-        verify(marketplaceService, times(2)).submitUsageEvents(any());
-        assertEquals(1.0, rejectedCounter.count());
-    }
+    verify(marketplaceService, times(2)).submitUsageEvents(any());
+    assertEquals(1.0, rejectedCounter.count());
+  }
 
-    @Test
-    void testMarketplaceProducerRecordsSuccessfulBatch() throws ApiException {
-        RetryTemplate retryTemplate = new RetryTemplateBuilder()
-            .maxAttempts(2)
-            .noBackoff()
-            .build();
-        MarketplaceService marketplaceService = mock(MarketplaceService.class);
-        MeterRegistry registry = new SimpleMeterRegistry();
-        MarketplaceProducer marketplaceProducer = new MarketplaceProducer(marketplaceService, retryTemplate,
-            registry, new MarketplaceProperties());
-        var acceptedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.accepted");
+  @Test
+  void testMarketplaceProducerRecordsSuccessfulBatch() throws ApiException {
+    RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
+    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    MeterRegistry registry = new SimpleMeterRegistry();
+    MarketplaceProducer marketplaceProducer =
+        new MarketplaceProducer(
+            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
+    var acceptedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.accepted");
 
-        when(marketplaceService.submitUsageEvents(any()))
-            .thenReturn(new StatusResponse().status("inprogress").addDataItem(new BatchStatus().batchId(
-            "foo")));
-        when(marketplaceService.getUsageBatchStatus("foo")).thenReturn(new StatusResponse().status(
-            "accepted"));
+    when(marketplaceService.submitUsageEvents(any()))
+        .thenReturn(
+            new StatusResponse()
+                .status("inprogress")
+                .addDataItem(new BatchStatus().batchId("foo")));
+    when(marketplaceService.getUsageBatchStatus("foo"))
+        .thenReturn(new StatusResponse().status("accepted"));
 
-        var usageRequest = new UsageRequest();
-        marketplaceProducer.submitUsageRequest(usageRequest);
+    var usageRequest = new UsageRequest();
+    marketplaceProducer.submitUsageRequest(usageRequest);
 
-        assertEquals(1.0, acceptedCounter.count());
-    }
+    assertEquals(1.0, acceptedCounter.count());
+  }
 
-    @Test
-    void testMarketplaceProducerRecordsUnverifiedBatch() throws ApiException {
-        RetryTemplate retryTemplate = new RetryTemplateBuilder()
-            .maxAttempts(2)
-            .noBackoff()
-            .build();
-        MarketplaceService marketplaceService = mock(MarketplaceService.class);
-        MeterRegistry registry = new SimpleMeterRegistry();
-        MarketplaceProducer marketplaceProducer = new MarketplaceProducer(marketplaceService, retryTemplate,
-            registry, new MarketplaceProperties());
-        var unverifiedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.unverified");
+  @Test
+  void testMarketplaceProducerRecordsUnverifiedBatch() throws ApiException {
+    RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
+    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    MeterRegistry registry = new SimpleMeterRegistry();
+    MarketplaceProducer marketplaceProducer =
+        new MarketplaceProducer(
+            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
+    var unverifiedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.unverified");
 
-        when(marketplaceService.submitUsageEvents(any()))
-            .thenReturn(new StatusResponse().status("inprogress").addDataItem(new BatchStatus().batchId(
-            "foo")));
-        when(marketplaceService.getUsageBatchStatus("foo")).thenReturn(new StatusResponse().status(
-            "inprogress"));
+    when(marketplaceService.submitUsageEvents(any()))
+        .thenReturn(
+            new StatusResponse()
+                .status("inprogress")
+                .addDataItem(new BatchStatus().batchId("foo")));
+    when(marketplaceService.getUsageBatchStatus("foo"))
+        .thenReturn(new StatusResponse().status("inprogress"));
 
-        var usageRequest = new UsageRequest();
-        marketplaceProducer.submitUsageRequest(usageRequest);
+    var usageRequest = new UsageRequest();
+    marketplaceProducer.submitUsageRequest(usageRequest);
 
-        verify(marketplaceService, times(2)).getUsageBatchStatus("foo");
-        assertEquals(1.0, unverifiedCounter.count());
-    }
+    verify(marketplaceService, times(2)).getUsageBatchStatus("foo");
+    assertEquals(1.0, unverifiedCounter.count());
+  }
 
-    @Test
-    void testMarketplaceProducerRecordsRejectedBatch() throws ApiException {
-        RetryTemplate retryTemplate = new RetryTemplateBuilder()
-            .maxAttempts(2)
-            .noBackoff()
-            .build();
-        MarketplaceService marketplaceService = mock(MarketplaceService.class);
-        MeterRegistry registry = new SimpleMeterRegistry();
-        MarketplaceProducer marketplaceProducer = new MarketplaceProducer(marketplaceService, retryTemplate,
-            registry, new MarketplaceProperties());
-        var rejectedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.rejected");
+  @Test
+  void testMarketplaceProducerRecordsRejectedBatch() throws ApiException {
+    RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
+    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    MeterRegistry registry = new SimpleMeterRegistry();
+    MarketplaceProducer marketplaceProducer =
+        new MarketplaceProducer(
+            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
+    var rejectedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.rejected");
 
-        when(marketplaceService.submitUsageEvents(any()))
-            .thenReturn(new StatusResponse().status("inprogress").addDataItem(new BatchStatus().batchId(
-            "foo")));
-        when(marketplaceService.getUsageBatchStatus("foo")).thenReturn(new StatusResponse().status(
-            "failed"));
+    when(marketplaceService.submitUsageEvents(any()))
+        .thenReturn(
+            new StatusResponse()
+                .status("inprogress")
+                .addDataItem(new BatchStatus().batchId("foo")));
+    when(marketplaceService.getUsageBatchStatus("foo"))
+        .thenReturn(new StatusResponse().status("failed"));
 
-        var usageRequest = new UsageRequest();
-        marketplaceProducer.submitUsageRequest(usageRequest);
+    var usageRequest = new UsageRequest();
+    marketplaceProducer.submitUsageRequest(usageRequest);
 
-        assertEquals(1.0, rejectedCounter.count());
-    }
+    assertEquals(1.0, rejectedCounter.count());
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,26 +20,24 @@
  */
 package org.candlepin.subscriptions.security;
 
+import javax.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.ApplicationProperties;
-
 import org.springframework.core.env.ConfigurableEnvironment;
 
-import javax.servlet.http.HttpServletRequest;
-
 /**
- * This class includes GET requests in the list of HTTP verbs that must have a matching origin or referrer.
- * It exists because Jolokia will invoke JMX Beans with GET requests which we want to protect from CSRF
- * attacks.
+ * This class includes GET requests in the list of HTTP verbs that must have a matching origin or
+ * referrer. It exists because Jolokia will invoke JMX Beans with GET requests which we want to
+ * protect from CSRF attacks.
  */
 public class GetVerbIncludingAntiCsrfFilter extends AntiCsrfFilter {
 
-    GetVerbIncludingAntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
-        super(props, env);
-    }
+  GetVerbIncludingAntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
+    super(props, env);
+  }
 
-    @Override
-    protected boolean requestVerbAllowed(HttpServletRequest request) {
-        String verb = request.getMethod();
-        return !(MODIFYING_VERBS.contains(verb) || "GET".equals(verb));
-    }
+  @Override
+  protected boolean requestVerbAllowed(HttpServletRequest request) {
+    String verb = request.getMethod();
+    return !(MODIFYING_VERBS.contains(verb) || "GET".equals(verb));
+  }
 }

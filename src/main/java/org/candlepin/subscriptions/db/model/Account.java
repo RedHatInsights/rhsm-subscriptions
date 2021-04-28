@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.db.model;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -35,40 +34,41 @@ import javax.persistence.Table;
 /**
  * Aggregate for an account.
  *
- * Using an aggregate simplifies modification, as we can leverage JPA to track persistence of hosts, etc.
+ * <p>Using an aggregate simplifies modification, as we can leverage JPA to track persistence of
+ * hosts, etc.
  */
 @Entity
 @Table(name = "account_config") // NOTE: we're abusing account_config here, table needs refactor?
 public class Account {
-    @Id
-    @Column(name = "account_number")
-    private String accountNumber;
+  @Id
+  @Column(name = "account_number")
+  private String accountNumber;
 
-    // NOTE: we'll probably need to do an abstraction per-service type in the future
-    @OneToMany(
-        cascade = CascadeType.ALL,
-        mappedBy = "accountNumber",
-        fetch = FetchType.EAGER,
-        orphanRemoval = true
-    )
-    // NOTE: insertable = false and updatable=false prevents extraneous update statements (they're handled
-    // in hosts table)
-    @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
-    private Map<String, Host> serviceInstances = new HashMap<>();
+  // NOTE: we'll probably need to do an abstraction per-service type in the future
+  @OneToMany(
+      cascade = CascadeType.ALL,
+      mappedBy = "accountNumber",
+      fetch = FetchType.EAGER,
+      orphanRemoval = true)
+  // NOTE: insertable = false and updatable=false prevents extraneous update statements (they're
+  // handled
+  // in hosts table)
+  @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
+  private Map<String, Host> serviceInstances = new HashMap<>();
 
-    public String getAccountNumber() {
-        return accountNumber;
-    }
+  public String getAccountNumber() {
+    return accountNumber;
+  }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
+  public void setAccountNumber(String accountNumber) {
+    this.accountNumber = accountNumber;
+  }
 
-    public Map<String, Host> getServiceInstances() {
-        return serviceInstances;
-    }
+  public Map<String, Host> getServiceInstances() {
+    return serviceInstances;
+  }
 
-    public void setServiceInstances(Map<String, Host> hosts) {
-        this.serviceInstances = hosts;
-    }
+  public void setServiceInstances(Map<String, Host> hosts) {
+    this.serviceInstances = hosts;
+  }
 }
