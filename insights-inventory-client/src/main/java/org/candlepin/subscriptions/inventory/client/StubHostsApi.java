@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,35 +20,33 @@
  */
 package org.candlepin.subscriptions.inventory.client;
 
+import java.util.List;
 import org.candlepin.subscriptions.inventory.client.model.BulkHostOut;
 import org.candlepin.subscriptions.inventory.client.model.BulkHostOutDetails;
 import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
 import org.candlepin.subscriptions.inventory.client.resources.HostsApi;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
-/**
- * Stub of the HostsApi that doesn't make requests, for the methods used by rhsm-conduit.
- */
+/** Stub of the HostsApi that doesn't make requests, for the methods used by rhsm-conduit. */
 public class StubHostsApi extends HostsApi {
 
-    private static Logger log = LoggerFactory.getLogger(StubHostsApi.class);
+  private static Logger log = LoggerFactory.getLogger(StubHostsApi.class);
 
-    @Override
-    @SuppressWarnings("java:S1874") // HBI add host API is deprecated for kafka, stub unused in prod
-    public BulkHostOut apiHostAddHostList(List<CreateHostIn> hosts) throws ApiException {
-        log.info("Adding specified hosts to inventory: {}", hosts);
-        BulkHostOut out = new BulkHostOut().total(hosts.size());
-        hosts.forEach(h -> {
-            BulkHostOutDetails hostOutDetails = new BulkHostOutDetails()
-                .title(String.format("Host updated: %s", h.getSubscriptionManagerId()))
-                .status(200)
-                .detail("Update complete!");
-            out.addDataItem(hostOutDetails);
+  @Override
+  @SuppressWarnings("java:S1874") // HBI add host API is deprecated for kafka, stub unused in prod
+  public BulkHostOut apiHostAddHostList(List<CreateHostIn> hosts) throws ApiException {
+    log.info("Adding specified hosts to inventory: {}", hosts);
+    BulkHostOut out = new BulkHostOut().total(hosts.size());
+    hosts.forEach(
+        h -> {
+          BulkHostOutDetails hostOutDetails =
+              new BulkHostOutDetails()
+                  .title(String.format("Host updated: %s", h.getSubscriptionManagerId()))
+                  .status(200)
+                  .detail("Update complete!");
+          out.addDataItem(hostOutDetails);
         });
-        return out;
-    }
+    return out;
+  }
 }

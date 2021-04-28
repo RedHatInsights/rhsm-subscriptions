@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,34 +20,30 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
-import org.candlepin.subscriptions.utilization.api.resources.IngressApi;
-
-import org.springframework.stereotype.Component;
-
 import java.util.List;
-
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
+import org.candlepin.subscriptions.utilization.api.resources.IngressApi;
+import org.springframework.stereotype.Component;
 
-/**
- * Updates subscription capacity based on Candlepin pool data.
- */
+/** Updates subscription capacity based on Candlepin pool data. */
 @Component
 public class IngressResource implements IngressApi {
 
-    private final PoolIngressController controller;
+  private final PoolIngressController controller;
 
-    public IngressResource(PoolIngressController controller) {
-        this.controller = controller;
-    }
+  public IngressResource(PoolIngressController controller) {
+    this.controller = controller;
+  }
 
-    @SuppressWarnings("java:S125")
-    @Override
-    public void updateCapacityFromCandlepinPools(String orgId, @Valid @NotNull List<CandlepinPool> pools) {
-        controller.updateCapacityForOrg(orgId, pools);
+  @SuppressWarnings("java:S125")
+  @Override
+  public void updateCapacityFromCandlepinPools(
+      String orgId, @Valid @NotNull List<CandlepinPool> pools) {
+    controller.updateCapacityForOrg(orgId, pools);
 
-        //Card to address this: ENT-3573
-        //controller.updateSubscriptionsForOrg(orgId, pools);
-    }
+    // Card to address this: ENT-3573
+    // controller.updateSubscriptionsForOrg(orgId, pools);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,13 @@ import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnly;
 
 public class StubResource {
 
-    @ReportingAccessRequired
-    public void reportingAdminOnlyCall() {
-        // Does nothing
-    }
+  @ReportingAccessRequired
+  public void reportingAdminOnlyCall() {
+    // Does nothing
+  }
 
-    @SubscriptionWatchAdminOnly
-    public void adminOnlyCall() {
-        // Does nothing
-    }
+  @SubscriptionWatchAdminOnly
+  public void adminOnlyCall() {
+    // Does nothing
+  }
 }

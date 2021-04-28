@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-/**
- * Inventory FactSet namespaces used by the normalizers when processing inventory
- * host facts.
- */
+/** Inventory FactSet namespaces used by the normalizers when processing inventory host facts. */
 public class FactSetNamespace {
 
-    public static final String RHSM = "rhsm";
-    public static final String QPC = "qpc";
+  public static final String RHSM = "rhsm";
+  public static final String QPC = "qpc";
 
-    private FactSetNamespace() {
-        throw new AssertionError();
-    }
+  private FactSetNamespace() {
+    throw new AssertionError();
+  }
 }

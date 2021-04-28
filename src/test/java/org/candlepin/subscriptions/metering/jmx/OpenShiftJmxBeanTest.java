@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,105 +24,106 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 
+import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
-
 @ExtendWith(MockitoExtension.class)
 class OpenShiftJmxBeanTest {
 
-    @Mock
-    private PrometheusMetricsTaskManager tasks;
+  @Mock private PrometheusMetricsTaskManager tasks;
 
-    private ApplicationClock clock;
-    private PrometheusMetricsProperties metricProps;
-    private OpenShiftJmxBean jmx;
+  private ApplicationClock clock;
+  private PrometheusMetricsProperties metricProps;
+  private OpenShiftJmxBean jmx;
 
-    @BeforeEach
-    void setupTests() {
-        metricProps = new PrometheusMetricsProperties();
-        metricProps.getOpenshift().setRangeInMinutes(60);
+  @BeforeEach
+  void setupTests() {
+    metricProps = new PrometheusMetricsProperties();
+    metricProps.getOpenshift().setRangeInMinutes(60);
 
-        clock = new FixedClockConfiguration().fixedClock();
-        jmx = new OpenShiftJmxBean(clock, tasks, metricProps);
-    }
+    clock = new FixedClockConfiguration().fixedClock();
+    jmx = new OpenShiftJmxBean(clock, tasks, metricProps);
+  }
 
-    @Test
-    void testMeteringForAccount() {
-        String expectedAccount = "test-account";
-        OffsetDateTime endDate = clock.startOfCurrentHour();
-        OffsetDateTime startDate =
-            endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
-        jmx.performOpenshiftMeteringForAccount(expectedAccount);
+  @Test
+  void testMeteringForAccount() {
+    String expectedAccount = "test-account";
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    OffsetDateTime startDate = endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
+    jmx.performOpenshiftMeteringForAccount(expectedAccount);
 
-        verify(tasks).updateOpenshiftMetricsForAccount(expectedAccount, startDate, endDate);
-    }
+    verify(tasks).updateOpenshiftMetricsForAccount(expectedAccount, startDate, endDate);
+  }
 
-    @Test
-    void testCustomMeteringForAccount() {
-        String expectedAccount = "test-account";
-        int rangeInMins = 20;
-        OffsetDateTime endDate = clock.startOfCurrentHour();
-        OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
-        jmx.performCustomOpenshiftMeteringForAccount(expectedAccount, clock.startOfCurrentHour().toString(),
-            rangeInMins);
+  @Test
+  void testCustomMeteringForAccount() {
+    String expectedAccount = "test-account";
+    int rangeInMins = 20;
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
+    jmx.performCustomOpenshiftMeteringForAccount(
+        expectedAccount, clock.startOfCurrentHour().toString(), rangeInMins);
 
-        verify(tasks).updateOpenshiftMetricsForAccount(expectedAccount, startDate, endDate);
-    }
+    verify(tasks).updateOpenshiftMetricsForAccount(expectedAccount, startDate, endDate);
+  }
 
-    @Test
-    void testGetStartDateValidatesRequiredRangeInMinutes() {
-        String account = "1234";
-        String endDate = clock.startOfCurrentHour().toString();
-        Throwable e = assertThrows(IllegalArgumentException.class,
+  @Test
+  void testGetStartDateValidatesRequiredRangeInMinutes() {
+    String account = "1234";
+    String endDate = clock.startOfCurrentHour().toString();
+    Throwable e =
+        assertThrows(
+            IllegalArgumentException.class,
             () -> jmx.performCustomOpenshiftMeteringForAccount(account, endDate, null));
-        assertEquals("Required argument: rangeInMinutes", e.getMessage());
-    }
+    assertEquals("Required argument: rangeInMinutes", e.getMessage());
+  }
 
-    @Test
-    void testGetStartDateValidatesRangeInMinutesGreaterEqualToZero() {
-        String account = "1234";
-        String endDate = clock.startOfCurrentHour().toString();
-        Throwable e = assertThrows(IllegalArgumentException.class,
+  @Test
+  void testGetStartDateValidatesRangeInMinutesGreaterEqualToZero() {
+    String account = "1234";
+    String endDate = clock.startOfCurrentHour().toString();
+    Throwable e =
+        assertThrows(
+            IllegalArgumentException.class,
             () -> jmx.performCustomOpenshiftMeteringForAccount(account, endDate, -1));
-        assertEquals("Invalid value specified (Must be >= 0): rangeInMinutes", e.getMessage());
-    }
+    assertEquals("Invalid value specified (Must be >= 0): rangeInMinutes", e.getMessage());
+  }
 
-    @Test
-    void testPerformMeteringForAllAccounts() {
-        OffsetDateTime endDate = clock.startOfCurrentHour();
-        OffsetDateTime startDate =
-            endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
-        jmx.performOpenshiftMetering();
+  @Test
+  void testPerformMeteringForAllAccounts() {
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    OffsetDateTime startDate = endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
+    jmx.performOpenshiftMetering();
 
-        verify(tasks).updateOpenshiftMetricsForAllAccounts(startDate, endDate);
-    }
+    verify(tasks).updateOpenshiftMetricsForAllAccounts(startDate, endDate);
+  }
 
-    @Test
-    void testPerformCustomMeteringForAllAccounts() {
-        int rangeInMins = 20;
-        OffsetDateTime endDate = clock.startOfCurrentHour();
-        OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
-        jmx.performCustomOpenshiftMetering(clock.startOfCurrentHour().toString(), rangeInMins);
+  @Test
+  void testPerformCustomMeteringForAllAccounts() {
+    int rangeInMins = 20;
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
+    jmx.performCustomOpenshiftMetering(clock.startOfCurrentHour().toString(), rangeInMins);
 
-        verify(tasks).updateOpenshiftMetricsForAllAccounts(startDate, endDate);
-    }
+    verify(tasks).updateOpenshiftMetricsForAllAccounts(startDate, endDate);
+  }
 
-    @Test
-    void testEndDateMustBeAtStartOfHour() {
-        String account = "1234";
-        String endDate = clock.now().toString();
-        Throwable e = assertThrows(IllegalArgumentException.class,
+  @Test
+  void testEndDateMustBeAtStartOfHour() {
+    String account = "1234";
+    String endDate = clock.now().toString();
+    Throwable e =
+        assertThrows(
+            IllegalArgumentException.class,
             () -> jmx.performCustomOpenshiftMeteringForAccount(account, endDate, 24));
-        assertEquals("Date must start at top of the hour: " + endDate, e.getMessage());
-    }
+    assertEquals("Date must start at top of the hour: " + endDate, e.getMessage());
+  }
 }

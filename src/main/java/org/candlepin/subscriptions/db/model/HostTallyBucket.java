@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,14 +20,8 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -37,11 +31,12 @@ import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-
-/**
- * Represents a bucket that this host contributes to.
- */
+/** Represents a bucket that this host contributes to. */
 @ToString
 @Getter
 @Setter
@@ -50,56 +45,61 @@ import javax.persistence.Table;
 @Table(name = "host_tally_buckets")
 public class HostTallyBucket implements Serializable {
 
-    @EmbeddedId
-    private HostBucketKey key;
+  @EmbeddedId private HostBucketKey key;
 
-    private int cores;
-    private int sockets;
+  private int cores;
+  private int sockets;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "measurement_type")
-    private HardwareMeasurementType measurementType;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "measurement_type")
+  private HardwareMeasurementType measurementType;
 
-    @ToString.Exclude
-    @MapsId("hostId")
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Host host;
+  @ToString.Exclude
+  @MapsId("hostId")
+  @ManyToOne(fetch = FetchType.LAZY)
+  private Host host;
 
-    @SuppressWarnings("java:S107")
-    public HostTallyBucket(Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor,
-        int cores, int sockets, HardwareMeasurementType type) {
-        this.host = host;
-        setKey(new HostBucketKey(host, productId, sla, usage, asHypervisor));
-        this.cores = cores;
-        this.sockets = sockets;
-        this.measurementType = type;
+  @SuppressWarnings("java:S107")
+  public HostTallyBucket(
+      Host host,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      Boolean asHypervisor,
+      int cores,
+      int sockets,
+      HardwareMeasurementType type) {
+    this.host = host;
+    setKey(new HostBucketKey(host, productId, sla, usage, asHypervisor));
+    this.cores = cores;
+    this.sockets = sockets;
+    this.measurementType = type;
+  }
+
+  public void setHost(Host host) {
+    this.host = host;
+    this.key.setHostId(host == null ? null : host.getId());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
 
-    public void setHost(Host host) {
-        this.host = host;
-        this.key.setHostId(host == null ? null : host.getId());
+    if (!(o instanceof HostTallyBucket)) {
+      return false;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
+    HostTallyBucket bucket = (HostTallyBucket) o;
+    return cores == bucket.cores
+        && sockets == bucket.sockets
+        && Objects.equals(key, bucket.key)
+        && measurementType == bucket.measurementType;
+  }
 
-        if (!(o instanceof HostTallyBucket)) {
-            return false;
-        }
-
-        HostTallyBucket bucket = (HostTallyBucket) o;
-        return cores == bucket.cores &&
-            sockets == bucket.sockets &&
-            Objects.equals(key, bucket.key) &&
-                measurementType == bucket.measurementType;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(key, cores, sockets, measurementType);
-    }
-
+  @Override
+  public int hashCode() {
+    return Objects.hash(key, cores, sockets, measurementType);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-
 /**
- * This object represents the combination of swatch product
- * id and Measurement.Uom.  This should map to a unique metric
- * ID.  The ProductUom / metricId is used in the product profile
- * registry.
+ * This object represents the combination of swatch product id and Measurement.Uom. This should map
+ * to a unique metric ID. The ProductUom / metricId is used in the product profile registry.
  */
 @EqualsAndHashCode
 @Getter
@@ -38,15 +35,15 @@ import lombok.ToString;
 @ToString
 public class ProductUom {
 
-    private String productId;
-    private String uom;
+  private String productId;
+  private String uom;
 
-    public ProductUom() {
-        // required for YAML
-    }
+  public ProductUom() {
+    // required for YAML
+  }
 
-    public ProductUom(String productId, String uom) {
-        this.productId = productId;
-        this.uom = uom;
-    }
+  public ProductUom(String productId, String uom) {
+    this.productId = productId;
+    this.uom = uom;
+  }
 }

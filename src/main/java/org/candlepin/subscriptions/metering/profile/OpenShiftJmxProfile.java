@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMe
 import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -36,22 +35,23 @@ import org.springframework.context.annotation.Profile;
 /**
  * Defines the beans for the openshift-metering-jmx profile.
  *
- * NOTE: The openshift-metering-worker profile will also load the beans defined here
- *       since, by default the JMX endpoint will be enabled with the worker.
+ * <p>NOTE: The openshift-metering-worker profile will also load the beans defined here since, by
+ * default the JMX endpoint will be enabled with the worker.
  */
 @Configuration
 @Profile({"openshift-metering-worker", "openshift-metering-jmx"})
 @Import({
-    PrometheusServiceConfiguration.class,
-    OpenShiftTasksConfiguration.class,
-    TaskProducerConfiguration.class
+  PrometheusServiceConfiguration.class,
+  OpenShiftTasksConfiguration.class,
+  TaskProducerConfiguration.class
 })
 public class OpenShiftJmxProfile {
 
-    @Bean
-    OpenShiftJmxBean openshiftJmxBean(ApplicationClock clock, PrometheusMetricsTaskManager taskManager,
-        PrometheusMetricsProperties metricProperties) {
-        return new OpenShiftJmxBean(clock, taskManager, metricProperties);
-    }
-
+  @Bean
+  OpenShiftJmxBean openshiftJmxBean(
+      ApplicationClock clock,
+      PrometheusMetricsTaskManager taskManager,
+      PrometheusMetricsProperties metricProperties) {
+    return new OpenShiftJmxBean(clock, taskManager, metricProperties);
+  }
 }

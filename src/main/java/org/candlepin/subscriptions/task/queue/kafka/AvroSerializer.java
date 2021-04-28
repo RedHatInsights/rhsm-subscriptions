@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import java.io.ByteArrayOutputStream;
+import java.util.Map;
+import javax.xml.bind.DatatypeConverter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
@@ -31,66 +34,56 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.util.Map;
-
-import javax.xml.bind.DatatypeConverter;
-
-
-
 /**
- * A Kafka message serializer for serializing Avro generated message objects that are sent
- * to Kafka.
+ * A Kafka message serializer for serializing Avro generated message objects that are sent to Kafka.
  *
- * Based on example found at:
- *     https://codenotfound.com/spring-kafka-apache-avro-serializer-deserializer-example.html
+ * <p>Based on example found at:
+ * https://codenotfound.com/spring-kafka-apache-avro-serializer-deserializer-example.html
  *
  * @param <T> the object type to serialize.
  */
 public class AvroSerializer<T extends SpecificRecordBase> implements Serializer<T> {
 
-    private static final Logger log = LoggerFactory.getLogger(AvroSerializer.class);
+  private static final Logger log = LoggerFactory.getLogger(AvroSerializer.class);
 
-    @Override
-    public void close() {
-        // No-op
-    }
+  @Override
+  public void close() {
+    // No-op
+  }
 
-    @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        // Nothing to configure.
-    }
+  @Override
+  public void configure(Map<String, ?> configs, boolean isKey) {
+    // Nothing to configure.
+  }
 
-    @Override
-    public byte[] serialize(String topic, T data) {
-        try {
-            byte[] result = null;
+  @Override
+  public byte[] serialize(String topic, T data) {
+    try {
+      byte[] result = null;
 
-            if (data != null) {
-                log.debug("data='{}'", data);
+      if (data != null) {
+        log.debug("data='{}'", data);
 
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                BinaryEncoder binaryEncoder =
-                    EncoderFactory.get().binaryEncoder(byteArrayOutputStream, null);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        BinaryEncoder binaryEncoder =
+            EncoderFactory.get().binaryEncoder(byteArrayOutputStream, null);
 
-                DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(data.getSchema());
-                datumWriter.write(data, binaryEncoder);
+        DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(data.getSchema());
+        datumWriter.write(data, binaryEncoder);
 
-                binaryEncoder.flush();
-                byteArrayOutputStream.close();
+        binaryEncoder.flush();
+        byteArrayOutputStream.close();
 
-                result = byteArrayOutputStream.toByteArray();
+        result = byteArrayOutputStream.toByteArray();
 
-                if (log.isDebugEnabled()) {
-                    log.debug("serialized data='{}'", DatatypeConverter.printHexBinary(result));
-                }
-            }
-            return result;
+        if (log.isDebugEnabled()) {
+          log.debug("serialized data='{}'", DatatypeConverter.printHexBinary(result));
         }
-        catch (Exception ex) {
-            throw new SerializationException(
-                "Can't serialize data='" + data + "' for topic='" + topic + "'", ex);
-        }
+      }
+      return result;
+    } catch (Exception ex) {
+      throw new SerializationException(
+          "Can't serialize data='" + data + "' for topic='" + topic + "'", ex);
     }
+  }
 }
-

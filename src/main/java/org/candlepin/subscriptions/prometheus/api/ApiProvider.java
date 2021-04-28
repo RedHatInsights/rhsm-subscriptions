@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,16 +28,17 @@ import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
  */
 public interface ApiProvider {
 
-    /**
-     * Provides the implementation for prometheus' Query API.
-     * @return the prometheus query API.
-     */
-    QueryApi queryApi();
+  /**
+   * Provides the implementation for prometheus' Query API.
+   *
+   * @return the prometheus query API.
+   */
+  QueryApi queryApi();
 
-    /**
-     * Provides the implementation for the prometheus range query API.
-     * @return the prometheus range query API.
-     */
-    QueryRangeApi queryRangeApi();
-
+  /**
+   * Provides the implementation for the prometheus range query API.
+   *
+   * @return the prometheus range query API.
+   */
+  QueryRangeApi queryRangeApi();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,19 +20,17 @@
  */
 package org.candlepin.subscriptions.db;
 
-/**
- * Operations for programatically building queries via specifications
- */
+/** Operations for programatically building queries via specifications */
 public enum SearchOperation {
-    GREATER_THAN,
-    LESS_THAN,
-    GREATER_THAN_EQUAL,
-    LESS_THAN_EQUAL,
-    NOT_EQUAL,
-    EQUAL,
-    CONTAINS,
-    MATCH_START,
-    MATCH_END,
-    IN,
-    NOT_IN
+  GREATER_THAN,
+  LESS_THAN,
+  GREATER_THAN_EQUAL,
+  LESS_THAN_EQUAL,
+  NOT_EQUAL,
+  EQUAL,
+  CONTAINS,
+  MATCH_START,
+  MATCH_END,
+  IN,
+  NOT_IN
 }

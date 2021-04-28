@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,16 +23,14 @@ package org.candlepin.subscriptions.marketplace;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * Exception for any issue submitting usage to Marketplace.
- */
+/** Exception for any issue submitting usage to Marketplace. */
 @Getter
 @ToString
 public class MarketplaceUsageSubmissionException extends RuntimeException {
-    private final String status;
+  private final String status;
 
-    public MarketplaceUsageSubmissionException(String message, String status) {
-        super(message);
-        this.status = status;
-    }
+  public MarketplaceUsageSubmissionException(String message, String status) {
+    super(message);
+    this.status = status;
+  }
 }

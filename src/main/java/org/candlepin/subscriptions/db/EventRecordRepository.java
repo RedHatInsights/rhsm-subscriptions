@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.EventRecord;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.EventRecord;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
  * DB repository for Event records.
@@ -37,45 +35,53 @@ import java.util.stream.Stream;
 @SuppressWarnings({"linelength", "indentation"})
 public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> {
 
-    /**
-     * Fetch a stream of events for a given account for a given time range.
-     *
-     * The events returned include those at begin and up to (but not including) end.
-     *
-     * NOTE: this query does not use `between` since between semantics are inclusive. e.g. `select * from
-     * events where timestamp between '2021-01-01T00:00:00Z' and '2021-01-01T01:00:00Z` would match events
-     * at midnight UTC and 1am UTC.
-     *
-     * @param accountNumber account number
-     * @param begin start of the time range (inclusive)
-     * @param end end of the time range (exclusive)
-     * @return Stream of EventRecords
-     */
-    Stream<EventRecord> findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-        String accountNumber, OffsetDateTime begin, OffsetDateTime end);
+  /**
+   * Fetch a stream of events for a given account for a given time range.
+   *
+   * <p>The events returned include those at begin and up to (but not including) end.
+   *
+   * <p>NOTE: this query does not use `between` since between semantics are inclusive. e.g. `select
+   * * from events where timestamp between '2021-01-01T00:00:00Z' and '2021-01-01T01:00:00Z` would
+   * match events at midnight UTC and 1am UTC.
+   *
+   * @param accountNumber account number
+   * @param begin start of the time range (inclusive)
+   * @param end end of the time range (exclusive)
+   * @return Stream of EventRecords
+   */
+  Stream<EventRecord>
+      findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+          String accountNumber, OffsetDateTime begin, OffsetDateTime end);
 
-    /**
-     * Fetch a stream of events for a given account, event type and event source for a given time range.
-     *
-     * The events returned include those at begin and up to (but not including) end.
-     *
-     * NOTE: this query does not use `between` since between semantics are inclusive. e.g. `select * from
-     * events where timestamp between '2021-01-01T00:00:00Z' and '2021-01-01T01:00:00Z` would match events
-     * at midnight UTC and 1am UTC.
-     *
-     * @param accountNumber account number
-     * @param eventSource event source
-     * @param eventType event type
-     * @param begin start of the time range (inclusive)
-     * @param end end of the time range (exclusive)
-     * @return Stream of EventRecords
-     */
-    Stream<EventRecord> findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-        String accountNumber, String eventSource, String eventType, OffsetDateTime begin, OffsetDateTime end);
+  /**
+   * Fetch a stream of events for a given account, event type and event source for a given time
+   * range.
+   *
+   * <p>The events returned include those at begin and up to (but not including) end.
+   *
+   * <p>NOTE: this query does not use `between` since between semantics are inclusive. e.g. `select
+   * * from events where timestamp between '2021-01-01T00:00:00Z' and '2021-01-01T01:00:00Z` would
+   * match events at midnight UTC and 1am UTC.
+   *
+   * @param accountNumber account number
+   * @param eventSource event source
+   * @param eventType event type
+   * @param begin start of the time range (inclusive)
+   * @param end end of the time range (exclusive)
+   * @return Stream of EventRecords
+   */
+  Stream<EventRecord>
+      findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+          String accountNumber,
+          String eventSource,
+          String eventType,
+          OffsetDateTime begin,
+          OffsetDateTime end);
 
-    /**
-     * Delete old event records given a cutoff date
-     * @param cutoffDate Dates BEFORE this timestamp get deleted
-     */
-    void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
+  /**
+   * Delete old event records given a cutoff date
+   *
+   * @param cutoffDate Dates BEFORE this timestamp get deleted
+   */
+  void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 }

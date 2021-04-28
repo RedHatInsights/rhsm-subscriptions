@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,41 +18,37 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.utilization.api.model.VersionInfo;
 import org.candlepin.subscriptions.utilization.api.model.VersionInfoBuild;
 import org.candlepin.subscriptions.utilization.api.resources.VersionApi;
-
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
 
-/**
- * Return the version information for the application
- */
+/** Return the version information for the application */
 @Component
 public class VersionResource implements VersionApi {
 
-    private final BuildProperties buildProperties;
+  private final BuildProperties buildProperties;
 
-    public VersionResource(BuildProperties buildProperties) {
-        this.buildProperties = buildProperties;
-    }
+  public VersionResource(BuildProperties buildProperties) {
+    this.buildProperties = buildProperties;
+  }
 
-    @Override
-    public VersionInfo getVersion() {
-        VersionInfoBuild versionInfoBuild = new VersionInfoBuild();
-        versionInfoBuild.setVersion(buildProperties.getVersion());
-        versionInfoBuild.setArtifact(buildProperties.getArtifact());
-        versionInfoBuild.setName(buildProperties.getName());
-        versionInfoBuild.setGroup(buildProperties.getGroup());
+  @Override
+  public VersionInfo getVersion() {
+    VersionInfoBuild versionInfoBuild = new VersionInfoBuild();
+    versionInfoBuild.setVersion(buildProperties.getVersion());
+    versionInfoBuild.setArtifact(buildProperties.getArtifact());
+    versionInfoBuild.setName(buildProperties.getName());
+    versionInfoBuild.setGroup(buildProperties.getGroup());
 
-        versionInfoBuild.setGitDescription(buildProperties.get("gitDescription"));
-        versionInfoBuild.setGitHash(buildProperties.get("gitHash"));
+    versionInfoBuild.setGitDescription(buildProperties.get("gitDescription"));
+    versionInfoBuild.setGitHash(buildProperties.get("gitHash"));
 
-        VersionInfo versionInfo = new VersionInfo();
-        versionInfo.setBuild(versionInfoBuild);
-        return versionInfo;
-    }
+    VersionInfo versionInfo = new VersionInfo();
+    versionInfo.setBuild(versionInfoBuild);
+    return versionInfo;
+  }
 }

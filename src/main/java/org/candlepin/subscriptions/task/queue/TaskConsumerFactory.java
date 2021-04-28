@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,5 +31,5 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
  * @see org.candlepin.subscriptions.task.queue.kafka.KafkaTaskConsumerFactory
  */
 public interface TaskConsumerFactory<T extends TaskConsumer> {
-    T createTaskConsumer(TaskFactory taskFactory, TaskQueueProperties taskQueueProperties);
+  T createTaskConsumer(TaskFactory taskFactory, TaskQueueProperties taskQueueProperties);
 }

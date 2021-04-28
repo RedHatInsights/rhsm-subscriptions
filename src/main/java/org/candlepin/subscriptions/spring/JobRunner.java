@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,31 +29,30 @@ import org.springframework.context.ApplicationContext;
 /**
  * Responsible for running a single job and then exiting.
  *
- * To use, create a JobRunner bean with the desired Runnable.
+ * <p>To use, create a JobRunner bean with the desired Runnable.
  */
 public class JobRunner implements CommandLineRunner {
-    private static final Logger log = LoggerFactory.getLogger(JobRunner.class);
+  private static final Logger log = LoggerFactory.getLogger(JobRunner.class);
 
-    private final Runnable job;
-    private final ApplicationContext applicationContext;
+  private final Runnable job;
+  private final ApplicationContext applicationContext;
 
-    public JobRunner(Runnable job, ApplicationContext applicationContext) {
-        this.job = job;
-        this.applicationContext = applicationContext;
+  public JobRunner(Runnable job, ApplicationContext applicationContext) {
+    this.job = job;
+    this.applicationContext = applicationContext;
+  }
+
+  @Override
+  public void run(String... args) throws Exception {
+    boolean success = false;
+    try {
+      log.info("Running {} and then exiting.", job.getClass().getSimpleName());
+      job.run();
+      success = true;
+    } finally {
+      log.info("{} job complete! Exiting.", job.getClass().getSimpleName());
+      boolean finalSuccess = success;
+      SpringApplication.exit(applicationContext, () -> finalSuccess ? 0 : 1);
     }
-
-    @Override
-    public void run(String... args) throws Exception {
-        boolean success = false;
-        try {
-            log.info("Running {} and then exiting.", job.getClass().getSimpleName());
-            job.run();
-            success = true;
-        }
-        finally {
-            log.info("{} job complete! Exiting.", job.getClass().getSimpleName());
-            boolean finalSuccess = success;
-            SpringApplication.exit(applicationContext, () -> finalSuccess ? 0 : 1);
-        }
-    }
+  }
 }

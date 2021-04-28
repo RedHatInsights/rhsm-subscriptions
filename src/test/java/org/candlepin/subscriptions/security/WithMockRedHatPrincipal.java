@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,29 +20,30 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.springframework.security.test.context.support.WithSecurityContext;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import org.springframework.security.test.context.support.WithSecurityContext;
 
 /**
- * Creates a mock Red Hat principal for testing, with account$value and owner$value as account number and
- * owner ID.
+ * Creates a mock Red Hat principal for testing, with account$value and owner$value as account
+ * number and owner ID.
  *
- * Defaults to granting ROLE_OPT_IN, but can be overridden.
+ * <p>Defaults to granting ROLE_OPT_IN, but can be overridden.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @WithSecurityContext(factory = WithMockInsightsUserSecurityContextFactory.class)
 public @interface WithMockRedHatPrincipal {
 
-    /**
-     * Set account and ownerId to account$value and owner$value respectively.
-     *
-     * @return
-     */
-    String value() default "";
-    boolean nullifyAccount() default false;
-    boolean nullifyOwner() default false;
+  /**
+   * Set account and ownerId to account$value and owner$value respectively.
+   *
+   * @return
+   */
+  String value() default "";
 
-    String[] roles() default {"ROLE_" + RoleProvider.SWATCH_ADMIN_ROLE};
+  boolean nullifyAccount() default false;
+
+  boolean nullifyOwner() default false;
+
+  String[] roles() default {"ROLE_" + RoleProvider.SWATCH_ADMIN_ROLE};
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,18 +20,16 @@
  */
 package org.candlepin.subscriptions.retention;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-
+import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.event-retention-policy")
 public class EventRecordsRetentionProperties {
-    private Duration eventRetentionDuration = Duration.ofDays(90L);
+  private Duration eventRetentionDuration = Duration.ofDays(90L);
 }

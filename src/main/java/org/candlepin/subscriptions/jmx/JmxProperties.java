@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,46 +20,42 @@
  */
 package org.candlepin.subscriptions.jmx;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.convert.DurationUnit;
 import org.springframework.stereotype.Component;
 
-import lombok.Getter;
-import lombok.Setter;
-
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-
 /**
- * Properties related to JMX beans. The intent is for each JMX bean to have its own static inner class
- * containing its relevant configuration.
+ * Properties related to JMX beans. The intent is for each JMX bean to have its own static inner
+ * class containing its relevant configuration.
  */
 @Getter
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.jmx")
 public class JmxProperties {
-    private final TallyBean tallyBean = new TallyBean();
+  private final TallyBean tallyBean = new TallyBean();
 
+  /** Inner class for properties specifically associated with {@link TallyJmxBean} */
+  @Getter
+  @Setter
+  public static class TallyBean {
     /**
-     * Inner class for properties specifically associated with {@link TallyJmxBean}
+     * Since the two parameters sent to {@link TallyJmxBean#tallyAccountByHourly(String, String,
+     * String)} are actually ISO 8601 timestamps we are using a Duration rather than a Period since
+     * Duration captures time and not just dates. However, the default ChronoUnit we're using is
+     * days since that's what the range is meant to be on the order of. If the value is specified in
+     * hours (which Spring will allow: e.g. 2160h) the behavior will be strict: e.g. Daylight Saving
+     * Time will not affect it.
+     *
+     * <p>From the docs: "Durations and periods differ in their treatment of daylight savings time
+     * when added to ZonedDateTime. A Duration will add an exact number of seconds, thus a duration
+     * of one day is always exactly 24 hours. By contrast, a Period will add a conceptual day,
+     * trying to maintain the local time."
      */
-    @Getter
-    @Setter
-    public static class TallyBean {
-        /**
-         * Since the two parameters sent to {@link TallyJmxBean#tallyAccountByHourly(String, String, String)}
-         * are actually ISO 8601 timestamps we are using a Duration rather than a Period since Duration
-         * captures time and not just dates.  However, the default ChronoUnit we're using is days since
-         * that's what the range is meant to be on the order of.  If the value is specified in hours (which
-         * Spring will allow: e.g. 2160h) the behavior will be strict: e.g. Daylight Saving Time will not
-         * affect it.
-         *
-         * From the docs: "Durations and periods differ in their treatment of daylight savings time when added
-         * to ZonedDateTime. A Duration will add an exact number of seconds, thus a duration of one day is
-         * always exactly 24 hours. By contrast, a Period will add a conceptual day, trying to maintain the
-         * local time."
-         */
-        @DurationUnit(ChronoUnit.DAYS)
-        private Duration hourlyTallyDurationLimitDays = Duration.ofDays(90);
-    }
+    @DurationUnit(ChronoUnit.DAYS)
+    private Duration hourlyTallyDurationLimitDays = Duration.ofDays(90);
+  }
 }

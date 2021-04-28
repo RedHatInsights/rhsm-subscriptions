@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,45 +20,34 @@
  */
 package org.candlepin.subscriptions.cloudigrade;
 
+import java.time.LocalDate;
 import org.candlepin.subscriptions.cloudigrade.api.model.ConcurrencyReport;
 import org.candlepin.subscriptions.cloudigrade.api.model.ConcurrencyReportLinks;
 import org.candlepin.subscriptions.cloudigrade.api.model.ConcurrentUsage;
 import org.candlepin.subscriptions.cloudigrade.api.model.UsageCount;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
 
-import java.time.LocalDate;
-
-/**
- * Stub of the ConcurrentApi that doesn't make requests, for the methods used by subscriptions.
- */
+/** Stub of the ConcurrentApi that doesn't make requests, for the methods used by subscriptions. */
 public class StubConcurrentApi extends ConcurrentApi {
 
-    @Override
-    public ConcurrencyReport listDailyConcurrentUsages(String xRhIdentity, Integer limit, Integer offset,
-        LocalDate startDate, LocalDate endDate) throws ApiException {
-        return new ConcurrencyReport()
-            .links(createLinks())
-            .addDataItem(createData());
-    }
+  @Override
+  public ConcurrencyReport listDailyConcurrentUsages(
+      String xRhIdentity, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
+      throws ApiException {
+    return new ConcurrencyReport().links(createLinks()).addDataItem(createData());
+  }
 
-    private ConcurrentUsage createData() {
-        return new ConcurrentUsage()
-            .date(LocalDate.now())
-            .addMaximumCountsItem(createUsage());
-    }
+  private ConcurrentUsage createData() {
+    return new ConcurrentUsage().date(LocalDate.now()).addMaximumCountsItem(createUsage());
+  }
 
-    private UsageCount createUsage() {
-        return new UsageCount()
-            .arch("x86_64")
-            .instancesCount(4)
-            .role("_ANY")
-            .sla("_ANY")
-            .usage("_ANY");
-    }
+  private UsageCount createUsage() {
+    return new UsageCount().arch("x86_64").instancesCount(4).role("_ANY").sla("_ANY").usage("_ANY");
+  }
 
-    private ConcurrencyReportLinks createLinks() {
-        return new ConcurrencyReportLinks()
-            .first("/api/cloudigrade/api/cloudigrade/v2/concurrent/?limit=10&offset=0")
-            .last("/api/cloudigrade/api/cloudigrade/v2/concurrent/?limit=10&offset=0");
-    }
+  private ConcurrencyReportLinks createLinks() {
+    return new ConcurrencyReportLinks()
+        .first("/api/cloudigrade/api/cloudigrade/v2/concurrent/?limit=10&offset=0")
+        .last("/api/cloudigrade/api/cloudigrade/v2/concurrent/?limit=10&offset=0");
+  }
 }

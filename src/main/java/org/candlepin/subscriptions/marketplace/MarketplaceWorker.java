@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,45 +20,41 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import io.micrometer.core.annotation.Timed;
+import java.util.Optional;
+import lombok.Getter;
+import lombok.Setter;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
-
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import io.micrometer.core.annotation.Timed;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.Optional;
-
-/**
- * Worker that maps tally summaries and submits them to Marketplace.
- */
+/** Worker that maps tally summaries and submits them to Marketplace. */
 @Service
 public class MarketplaceWorker {
 
-    @Getter
-    @Setter
-    private String topic;
+  @Getter @Setter private String topic;
 
-    private final MarketplaceProducer producer;
-    private final MarketplacePayloadMapper marketplacePayloadMapper;
+  private final MarketplaceProducer producer;
+  private final MarketplacePayloadMapper marketplacePayloadMapper;
 
-    public MarketplaceWorker(ApplicationProperties properties, MarketplaceProducer producer,
-        MarketplacePayloadMapper marketplacePayloadMapper) {
-        topic = properties.getTallySummaryTopic();
-        this.producer = producer;
-        this.marketplacePayloadMapper = marketplacePayloadMapper;
-    }
+  public MarketplaceWorker(
+      ApplicationProperties properties,
+      MarketplaceProducer producer,
+      MarketplacePayloadMapper marketplacePayloadMapper) {
+    topic = properties.getTallySummaryTopic();
+    this.producer = producer;
+    this.marketplacePayloadMapper = marketplacePayloadMapper;
+  }
 
-    @Timed("rhsm-subscriptions.marketplace.tally-summary")
-    @KafkaListener(id = "marketplace-worker", topics = "#{__listener.topic}",
-        containerFactory = "kafkaTallySummaryListenerContainerFactory")
-    public void receive(TallySummary tallySummary) {
-        Optional.ofNullable(marketplacePayloadMapper.createUsageRequest(tallySummary))
-            .filter(s -> !s.getData().isEmpty())
-            .ifPresent(producer::submitUsageRequest);
-    }
+  @Timed("rhsm-subscriptions.marketplace.tally-summary")
+  @KafkaListener(
+      id = "marketplace-worker",
+      topics = "#{__listener.topic}",
+      containerFactory = "kafkaTallySummaryListenerContainerFactory")
+  public void receive(TallySummary tallySummary) {
+    Optional.ofNullable(marketplacePayloadMapper.createUsageRequest(tallySummary))
+        .filter(s -> !s.getData().isEmpty())
+        .ifPresent(producer::submitUsageRequest);
+  }
 }

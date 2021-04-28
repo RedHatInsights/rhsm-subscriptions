@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,75 +23,66 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
+import com.google.common.net.UrlEscapers;
+import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.StubApiProvider;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
-
-import com.google.common.net.UrlEscapers;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.OffsetDateTime;
-
-
 @SpringBootTest
 @ActiveProfiles({"openshift-metering-worker", "test"})
 class PrometheusServiceTest {
 
-    @MockBean
-    private QueryApi queryApi;
+  @MockBean private QueryApi queryApi;
 
-    @MockBean
-    private QueryRangeApi rangeApi;
+  @MockBean private QueryRangeApi rangeApi;
 
-    @MockBean
-    private PrometheusAccountSource accountSource;
+  @MockBean private PrometheusAccountSource accountSource;
 
-    @Autowired
-    private PrometheusMetricsProperties props;
+  @Autowired private PrometheusMetricsProperties props;
 
-    @Test
-    void testRangeQueryApi() throws Exception {
+  @Test
+  void testRangeQueryApi() throws Exception {
 
-        String expectedQuery =
-            UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
-        QueryResult expectedResult = new QueryResult();
+    String expectedQuery =
+        UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
+    QueryResult expectedResult = new QueryResult();
 
-        OffsetDateTime end = OffsetDateTime.now();
-        OffsetDateTime start = end.minusDays(2);
-        String step = "3600";
+    OffsetDateTime end = OffsetDateTime.now();
+    OffsetDateTime start = end.minusDays(2);
+    String step = "3600";
 
-        when(rangeApi.queryRange(expectedQuery, start.toEpochSecond(), end.toEpochSecond(), step, 1))
-            .thenReturn(expectedResult);
+    when(rangeApi.queryRange(expectedQuery, start.toEpochSecond(), end.toEpochSecond(), step, 1))
+        .thenReturn(expectedResult);
 
-        ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
-        PrometheusService service = new PrometheusService(provider);
+    ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
+    PrometheusService service = new PrometheusService(provider);
 
-        QueryResult result = service.runRangeQuery(props.getOpenshift().getMetricPromQL(),
-            start, end, 3600, 1);
-        assertEquals(expectedResult, result);
-    }
+    QueryResult result =
+        service.runRangeQuery(props.getOpenshift().getMetricPromQL(), start, end, 3600, 1);
+    assertEquals(expectedResult, result);
+  }
 
-    @Test
-    void testQueryApi() throws Exception {
-        String expectedQuery =
-            UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
-        QueryResult expectedResult = new QueryResult();
+  @Test
+  void testQueryApi() throws Exception {
+    String expectedQuery =
+        UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
+    QueryResult expectedResult = new QueryResult();
 
-        OffsetDateTime time = OffsetDateTime.now();
-        when(queryApi.query(expectedQuery, time, 1)).thenReturn(expectedResult);
+    OffsetDateTime time = OffsetDateTime.now();
+    when(queryApi.query(expectedQuery, time, 1)).thenReturn(expectedResult);
 
-        ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
-        PrometheusService service = new PrometheusService(provider);
+    ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
+    PrometheusService service = new PrometheusService(provider);
 
-        QueryResult result = service.runQuery(props.getOpenshift().getMetricPromQL(), time, 1);
-        assertEquals(expectedResult, result);
-    }
-
+    QueryResult result = service.runQuery(props.getOpenshift().getMetricPromQL(), time, 1);
+    assertEquals(expectedResult, result);
+  }
 }

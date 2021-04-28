@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.util.Set;
-
 
 /** Represents Syspurpose Roles and the product families they slot into. */
 @Getter
@@ -34,15 +32,15 @@ import java.util.Set;
 @ToString
 @EqualsAndHashCode
 public class SyspurposeRole {
-    private String name;
-    private Set<String> swatchProductIds;
+  private String name;
+  private Set<String> swatchProductIds;
 
-    public SyspurposeRole() {
-        // required for YAML
-    }
+  public SyspurposeRole() {
+    // required for YAML
+  }
 
-    public SyspurposeRole(String name, Set<String> swatchProductIds) {
-        this.name = name;
-        this.swatchProductIds = swatchProductIds;
-    }
+  public SyspurposeRole(String name, Set<String> swatchProductIds) {
+    this.name = name;
+    this.swatchProductIds = swatchProductIds;
+  }
 }

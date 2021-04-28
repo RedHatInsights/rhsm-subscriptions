@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,23 +20,18 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Table;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
-/**
- * Subscription entities represent data from a Candlepin Pool
- */
+/** Subscription entities represent data from a Candlepin Pool */
 @Entity
 @EqualsAndHashCode
 @Getter
@@ -45,49 +40,47 @@ import javax.persistence.Table;
 @Table(name = "subscription")
 public class Subscription {
 
-    @Id
-    @Column(name = "subscription_id")
+  @Id
+  @Column(name = "subscription_id")
+  private String subscriptionId;
+
+  @Column(name = "sku")
+  private String sku;
+
+  @Column(name = "owner_id")
+  private String ownerId;
+
+  @Column(name = "quantity")
+  private long quantity;
+
+  @Id
+  @Column(name = "start_date")
+  private OffsetDateTime startDate;
+
+  @Column(name = "end_date")
+  private OffsetDateTime endDate;
+
+  @Column(name = "marketplace_subscription_id")
+  private String marketplaceSubscriptionId;
+
+  @Column(name = "account_number")
+  private String accountNumber;
+
+  /** Composite ID class for Subscription entities. */
+  @EqualsAndHashCode
+  @Getter
+  @Setter
+  public static class SubscriptionCompoundId implements Serializable {
     private String subscriptionId;
-
-    @Column(name = "sku")
-    private String sku;
-
-    @Column(name = "owner_id")
-    private String  ownerId;
-
-    @Column(name = "quantity")
-    private long quantity;
-
-    @Id
-    @Column(name = "start_date")
     private OffsetDateTime startDate;
 
-    @Column(name = "end_date")
-    private OffsetDateTime endDate;
-
-    @Column(name = "marketplace_subscription_id")
-    private String marketplaceSubscriptionId;
-
-    @Column(name = "account_number")
-    private String accountNumber;
-
-    /**
-     * Composite ID class for Subscription entities.
-     */
-    @EqualsAndHashCode
-    @Getter
-    @Setter
-    public static class SubscriptionCompoundId implements Serializable {
-        private String subscriptionId;
-        private OffsetDateTime startDate;
-
-        public SubscriptionCompoundId(String subscriptionId, OffsetDateTime startDate) {
-            this.subscriptionId = subscriptionId;
-            this.startDate = startDate;
-        }
-
-        public SubscriptionCompoundId() {
-            // default
-        }
+    public SubscriptionCompoundId(String subscriptionId, OffsetDateTime startDate) {
+      this.subscriptionId = subscriptionId;
+      this.startDate = startDate;
     }
+
+    public SubscriptionCompoundId() {
+      // default
+    }
+  }
 }

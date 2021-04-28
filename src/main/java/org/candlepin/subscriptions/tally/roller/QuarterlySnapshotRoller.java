@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,49 +22,50 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.*;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 /**
- * Produces quarterly snapshots based on data stored in the inventory service. If a snapshot
- * does not exist for the account for the current quarter and an incoming calculation exists
- * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
- * instances will only be updated if the incoming calculated values are greater than those
- * existing for the current quarter.
+ * Produces quarterly snapshots based on data stored in the inventory service. If a snapshot does
+ * not exist for the account for the current quarter and an incoming calculation exists for the
+ * account, a new snapshot will be created. A snapshot's cores, sockets, and instances will only be
+ * updated if the incoming calculated values are greater than those existing for the current
+ * quarter.
  *
- * A quarter is considered to be chunked by a 3 month interval. In a given year, the quarters are defined as:
- * Jan-Mar, Apr-Jun, Jul-Sept, Oct-Dec
+ * <p>A quarter is considered to be chunked by a 3 month interval. In a given year, the quarters are
+ * defined as: Jan-Mar, Apr-Jun, Jul-Sept, Oct-Dec
  */
 public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
-    private static final Logger log = LoggerFactory.getLogger(QuarterlySnapshotRoller.class);
+  private static final Logger log = LoggerFactory.getLogger(QuarterlySnapshotRoller.class);
 
-    public QuarterlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
-        ProductProfileRegistry registry) {
-        super(tallyRepo, clock, registry);
-    }
+  public QuarterlySnapshotRoller(
+      TallySnapshotRepository tallyRepo, ApplicationClock clock, ProductProfileRegistry registry) {
+    super(tallyRepo, clock, registry);
+  }
 
-    @Override
-    @Transactional
-    public Collection<TallySnapshot> rollSnapshots(Collection<String> accounts,
-        Collection<AccountUsageCalculation> accountCalcs) {
-        log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
+  @Override
+  @Transactional
+  public Collection<TallySnapshot> rollSnapshots(
+      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
 
-        Map<String, List<TallySnapshot>> currentQuarterlySnaps = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs, QUARTERLY), QUARTERLY, clock.startOfCurrentQuarter(),
+    Map<String, List<TallySnapshot>> currentQuarterlySnaps =
+        getCurrentSnapshotsByAccount(
+            accounts,
+            getApplicableProducts(accountCalcs, QUARTERLY),
+            QUARTERLY,
+            clock.startOfCurrentQuarter(),
             clock.endOfCurrentQuarter());
 
-        return updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
-    }
-
+    return updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
+  }
 }

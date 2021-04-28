@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,24 +20,23 @@
  */
 package org.candlepin.subscriptions.security.auth;
 
-import org.candlepin.subscriptions.security.RoleProvider;
-
-import org.springframework.security.access.prepost.PreAuthorize;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.candlepin.subscriptions.security.RoleProvider;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Must have the SWATCH_ADMIN_ROLE and account must be whitelisted for reporting.
  *
  * @see RoleProvider
- *
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole('" + RoleProvider.SWATCH_ADMIN_ROLE + "') and " +
-    "@reportAccessService.providesAccessTo(authentication)")
-public @interface ReportingAccessRequired {
-}
+@PreAuthorize(
+    "hasRole('"
+        + RoleProvider.SWATCH_ADMIN_ROLE
+        + "') and "
+        + "@reportAccessService.providesAccessTo(authentication)")
+public @interface ReportingAccessRequired {}

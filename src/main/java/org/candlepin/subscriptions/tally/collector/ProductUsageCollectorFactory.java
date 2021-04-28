@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,25 +22,22 @@ package org.candlepin.subscriptions.tally.collector;
 
 import org.springframework.util.StringUtils;
 
-/**
- * A factory that facilitates creating a collector based on the given product.
- */
+/** A factory that facilitates creating a collector based on the given product. */
 public class ProductUsageCollectorFactory {
 
-    private ProductUsageCollectorFactory() {
-        throw new IllegalStateException("Utility class; should never be instantiated!");
+  private ProductUsageCollectorFactory() {
+    throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
+
+  public static ProductUsageCollector get(String product) {
+    if (!StringUtils.hasText(product)) {
+      throw new IllegalArgumentException("Specified product was null or empty!");
     }
 
-    public static ProductUsageCollector get(String product) {
-        if (!StringUtils.hasText(product)) {
-            throw new IllegalArgumentException("Specified product was null or empty!");
-        }
-
-        if (product.startsWith("RHEL")) {
-            return new RHELProductUsageCollector();
-        }
-
-        return new DefaultProductUsageCollector();
+    if (product.startsWith("RHEL")) {
+      return new RHELProductUsageCollector();
     }
 
+    return new DefaultProductUsageCollector();
+  }
 }

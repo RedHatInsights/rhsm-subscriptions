@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,32 +20,29 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import org.candlepin.subscriptions.http.HttpClientProperties;
-
+import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 
-import java.time.Duration;
-
-/**
- * Additional properties related to the Subscription Service
- */
+/** Additional properties related to the Subscription Service */
 @Getter
 @Setter
 @ToString
 public class SubscriptionServiceProperties extends HttpClientProperties {
 
-    /**
-     * Number of times we should try requesting info from the Subscription Service if something fails.
-     */
-    private int maxRetryAttempts = 4;
+  /**
+   * Number of times we should try requesting info from the Subscription Service if something fails.
+   */
+  private int maxRetryAttempts = 4;
 
-    /** Page size for subscription queries */
-    private int pageSize = 500;
+  /** Page size for subscription queries */
+  private int pageSize = 500;
 
-    /**
-     * The initial sleep interval between retries when retrying fetching info from the Subscription Service
-     */
-    private Duration backOffInitialInterval = Duration.ofSeconds(1L);
+  /**
+   * The initial sleep interval between retries when retrying fetching info from the Subscription
+   * Service
+   */
+  private Duration backOffInitialInterval = Duration.ofSeconds(1L);
 }

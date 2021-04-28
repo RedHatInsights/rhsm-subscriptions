@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,13 @@ package org.candlepin.subscriptions.conduit.rhsm;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Collections;
+import javax.validation.ConstraintViolationException;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,80 +39,75 @@ import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Collections;
-
-import javax.validation.ConstraintViolationException;
-
 @SpringBootTest
 @ActiveProfiles({"rhsm-conduit", "test"})
 class RhsmServiceTest {
-    @Autowired
-    @Qualifier("rhsmRetryTemplate")
-    private RetryTemplate retryTemplate;
+  @Autowired
+  @Qualifier("rhsmRetryTemplate")
+  private RetryTemplate retryTemplate;
 
-    @Autowired
-    private RhsmService rhsmService;
+  @Autowired private RhsmService rhsmService;
 
-    @Autowired
-    private InventoryServiceProperties inventoryServiceProperties;
+  @Autowired private InventoryServiceProperties inventoryServiceProperties;
 
-    @MockBean
-    private RhsmApi rhsmApi;
+  @MockBean private RhsmApi rhsmApi;
 
-    /*
-    @TestConfiguration
-    static class MockedInventoryServiceConfiguration {
-        @Bean
-        @Primary
-        public InventoryServiceProperties testingInventoryServiceProperties() {
-            InventoryServiceProperties inventoryServiceProperties = new InventoryServiceProperties();
-            inventoryServiceProperties.setApiKey("changeit");
-            return inventoryServiceProperties;
-        }
-    }
-     */
+  /*
+  @TestConfiguration
+  static class MockedInventoryServiceConfiguration {
+      @Bean
+      @Primary
+      public InventoryServiceProperties testingInventoryServiceProperties() {
+          InventoryServiceProperties inventoryServiceProperties = new InventoryServiceProperties();
+          inventoryServiceProperties.setApiKey("changeit");
+          return inventoryServiceProperties;
+      }
+  }
+   */
 
-    @Test
-    void testRhsmServiceRetry() throws Exception {
-        when(rhsmApi.getConsumersForOrg(
-            anyString(), any(Integer.class), nullable(String.class), anyString()
-        )).thenThrow(ApiException.class);
+  @Test
+  void testRhsmServiceRetry() throws Exception {
+    when(rhsmApi.getConsumersForOrg(
+            anyString(), any(Integer.class), nullable(String.class), anyString()))
+        .thenThrow(ApiException.class);
 
-        // Make the tests run faster!
-        retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
-        RhsmService mockBackedService = new RhsmService(inventoryServiceProperties,
-            new RhsmApiProperties(), rhsmApi, retryTemplate);
+    // Make the tests run faster!
+    retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
+    RhsmService mockBackedService =
+        new RhsmService(
+            inventoryServiceProperties, new RhsmApiProperties(), rhsmApi, retryTemplate);
 
-        assertThrows(ApiException.class, () ->
-            mockBackedService.getPageOfConsumers("123", null, mockBackedService.formattedTime())
-        );
+    assertThrows(
+        ApiException.class,
+        () -> mockBackedService.getPageOfConsumers("123", null, mockBackedService.formattedTime()));
 
-        verify(rhsmApi, times(4)).getConsumersForOrg(anyString(), any(Integer.class),
-            nullable(String.class), anyString());
-    }
+    verify(rhsmApi, times(4))
+        .getConsumersForOrg(anyString(), any(Integer.class), nullable(String.class), anyString());
+  }
 
-    @Test
-    void testRhsmServiceLastCheckInValidationBad() throws Exception {
-        assertThrows(ConstraintViolationException.class,
-            () -> rhsmService.getPageOfConsumers("", "", "Does Not Validate")
-        );
-    }
+  @Test
+  void testRhsmServiceLastCheckInValidationBad() throws Exception {
+    assertThrows(
+        ConstraintViolationException.class,
+        () -> rhsmService.getPageOfConsumers("", "", "Does Not Validate"));
+  }
 
-    @Test
-    void testRhsmServiceLastCheckInValidationBadWithNanos() throws Exception {
-        String time = "2020-01-01T13:00:00.725Z";
-        assertThrows(ConstraintViolationException.class,
-            () -> rhsmService.getPageOfConsumers("org", "offset", time)
-        );
-    }
+  @Test
+  void testRhsmServiceLastCheckInValidationBadWithNanos() throws Exception {
+    String time = "2020-01-01T13:00:00.725Z";
+    assertThrows(
+        ConstraintViolationException.class,
+        () -> rhsmService.getPageOfConsumers("org", "offset", time));
+  }
 
-    @Test
-    void testRhsmServiceLastCheckInValidationGood() throws Exception {
-        String time = "2020-01-01T13:00:00Z";
-        OrgInventory expected = new OrgInventory().body(Collections.emptyList());
-        when(rhsmApi.getConsumersForOrg(eq("org"), anyInt(), eq("offset"), eq(time))).thenReturn(expected);
+  @Test
+  void testRhsmServiceLastCheckInValidationGood() throws Exception {
+    String time = "2020-01-01T13:00:00Z";
+    OrgInventory expected = new OrgInventory().body(Collections.emptyList());
+    when(rhsmApi.getConsumersForOrg(eq("org"), anyInt(), eq("offset"), eq(time)))
+        .thenReturn(expected);
 
-        OrgInventory actual = rhsmService.getPageOfConsumers("org", "offset", time);
-        assertSame(expected, actual);
-    }
+    OrgInventory actual = rhsmService.getPageOfConsumers("org", "offset", time);
+    assertSame(expected, actual);
+  }
 }

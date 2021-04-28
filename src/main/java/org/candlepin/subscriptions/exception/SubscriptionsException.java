@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,50 +20,48 @@
  */
 package org.candlepin.subscriptions.exception;
 
+import javax.ws.rs.core.Response.Status;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
-import javax.ws.rs.core.Response.Status;
-
 /**
- * Application's base exception class. Provides a means to create an
- * Error object that should be typically return as part of an error
- * response.
+ * Application's base exception class. Provides a means to create an Error object that should be
+ * typically return as part of an error response.
  */
 public class SubscriptionsException extends RuntimeException {
 
-    private Status status;
-    private String detail;
-    private ErrorCode code;
+  private Status status;
+  private String detail;
+  private ErrorCode code;
 
-    public SubscriptionsException(ErrorCode code, Status status, String message, String detail) {
-        this(code, status, message, detail, null);
-    }
+  public SubscriptionsException(ErrorCode code, Status status, String message, String detail) {
+    this(code, status, message, detail, null);
+  }
 
-    public SubscriptionsException(ErrorCode code, Status status, String message, Throwable e) {
-        this(code, status, message, e.getMessage(), e);
-    }
+  public SubscriptionsException(ErrorCode code, Status status, String message, Throwable e) {
+    this(code, status, message, e.getMessage(), e);
+  }
 
-    public SubscriptionsException(ErrorCode code, Status status, String message, String detail, Throwable e) {
-        super(message, e);
-        this.code = code;
-        this.status = status;
-        this.detail = detail;
-    }
+  public SubscriptionsException(
+      ErrorCode code, Status status, String message, String detail, Throwable e) {
+    super(message, e);
+    this.code = code;
+    this.status = status;
+    this.detail = detail;
+  }
 
-    public ErrorCode getCode() {
-        return this.code;
-    }
+  public ErrorCode getCode() {
+    return this.code;
+  }
 
-    public Status getStatus() {
-        return this.status;
-    }
+  public Status getStatus() {
+    return this.status;
+  }
 
-    public Error error() {
-        return new Error()
-            .code(this.code.getCode())
-            .status(String.valueOf(status.getStatusCode()))
-            .title(this.getMessage())
-            .detail(this.detail);
-    }
-
+  public Error error() {
+    return new Error()
+        .code(this.code.getCode())
+        .status(String.valueOf(status.getStatusCode()))
+        .title(this.getMessage())
+        .detail(this.detail);
+  }
 }

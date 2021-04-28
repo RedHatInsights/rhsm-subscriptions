@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.conduit.rhsm;
 
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiFactory;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,50 +29,51 @@ import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-/**
- * Configures the RHSM client.
- */
+/** Configures the RHSM client. */
 @Configuration
 public class RhsmClientConfiguration {
 
-    /**
-     * Load values from the application properties file prefixed with "rhsm-conduit.rhsm".  For example,
-     * "rhsm-conduit.rhsm.keystore-password=password" will be injected into the keystorePassword field.
-     * The hyphen is not necessary but it improves readability.  Rather than use the
-     * ConfigurationProperties annotation on the class itself and the EnableConfigurationProperties
-     * annotation on ApplicationConfiguration, we construct and bind values to the class here so that our
-     * sub-projects will not need to have Spring Boot on the class path (since it's Spring Boot that provides
-     * those annotations).
-     * @return an X509ApiClientFactoryConfiguration populated with values from the various property sources.
-     */
-    @Bean
-    @ConfigurationProperties(prefix = "rhsm-conduit.rhsm")
-    public RhsmApiProperties rhsmApiProperties() {
-        return new RhsmApiProperties();
-    }
+  /**
+   * Load values from the application properties file prefixed with "rhsm-conduit.rhsm". For
+   * example, "rhsm-conduit.rhsm.keystore-password=password" will be injected into the
+   * keystorePassword field. The hyphen is not necessary but it improves readability. Rather than
+   * use the ConfigurationProperties annotation on the class itself and the
+   * EnableConfigurationProperties annotation on ApplicationConfiguration, we construct and bind
+   * values to the class here so that our sub-projects will not need to have Spring Boot on the
+   * class path (since it's Spring Boot that provides those annotations).
+   *
+   * @return an X509ApiClientFactoryConfiguration populated with values from the various property
+   *     sources.
+   */
+  @Bean
+  @ConfigurationProperties(prefix = "rhsm-conduit.rhsm")
+  public RhsmApiProperties rhsmApiProperties() {
+    return new RhsmApiProperties();
+  }
 
-    /**
-     * Build the BeanFactory implementation ourselves since the docs say "Implementations are not supposed
-     * to rely on annotation-driven injection or other reflective facilities."
-     * @param properties containing the configuration needed by the factory
-     * @return a configured RhsmApiFactory
-     */
-    @Bean
-    public RhsmApiFactory rhsmApiFactory(RhsmApiProperties properties) {
-        return new RhsmApiFactory(properties);
-    }
+  /**
+   * Build the BeanFactory implementation ourselves since the docs say "Implementations are not
+   * supposed to rely on annotation-driven injection or other reflective facilities."
+   *
+   * @param properties containing the configuration needed by the factory
+   * @return a configured RhsmApiFactory
+   */
+  @Bean
+  public RhsmApiFactory rhsmApiFactory(RhsmApiProperties properties) {
+    return new RhsmApiFactory(properties);
+  }
 
-    @Bean(name = "rhsmRetryTemplate")
-    public RetryTemplate rhsmRetryTemplate() {
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(4);
+  @Bean(name = "rhsmRetryTemplate")
+  public RetryTemplate rhsmRetryTemplate() {
+    SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+    retryPolicy.setMaxAttempts(4);
 
-        ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
-        backOffPolicy.setInitialInterval(1000);
+    ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
+    backOffPolicy.setInitialInterval(1000);
 
-        RetryTemplate retryTemplate = new RetryTemplate();
-        retryTemplate.setRetryPolicy(retryPolicy);
-        retryTemplate.setBackOffPolicy(backOffPolicy);
-        return retryTemplate;
-    }
+    RetryTemplate retryTemplate = new RetryTemplate();
+    retryTemplate.setRetryPolicy(retryPolicy);
+    retryTemplate.setBackOffPolicy(backOffPolicy);
+    return retryTemplate;
+  }
 }

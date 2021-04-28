@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,42 +21,39 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
-
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
-/**
- * Class to represent rows in the hardware_measurements table
- */
-
+/** Class to represent rows in the hardware_measurements table */
 @Embeddable
 public class HardwareMeasurement implements Serializable {
-    @Column(name = "instance_count")
-    private int instanceCount;
-    private int cores;
-    private int sockets;
+  @Column(name = "instance_count")
+  private int instanceCount;
 
-    public int getCores() {
-        return cores;
-    }
+  private int cores;
+  private int sockets;
 
-    public void setCores(int cores) {
-        this.cores = cores;
-    }
+  public int getCores() {
+    return cores;
+  }
 
-    public int getInstanceCount() {
-        return instanceCount;
-    }
+  public void setCores(int cores) {
+    this.cores = cores;
+  }
 
-    public void setInstanceCount(int instanceCount) {
-        this.instanceCount = instanceCount;
-    }
+  public int getInstanceCount() {
+    return instanceCount;
+  }
 
-    public int getSockets() {
-        return sockets;
-    }
+  public void setInstanceCount(int instanceCount) {
+    this.instanceCount = instanceCount;
+  }
 
-    public void setSockets(int sockets) {
-        this.sockets = sockets;
-    }
+  public int getSockets() {
+    return sockets;
+  }
+
+  public void setSockets(int sockets) {
+    this.sockets = sockets;
+  }
 }

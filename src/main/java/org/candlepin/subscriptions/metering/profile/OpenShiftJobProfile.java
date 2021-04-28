@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,39 +30,38 @@ import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
-/**
- * Defines the beans for the openshift-metering-job profile.
- */
+/** Defines the beans for the openshift-metering-job profile. */
 @Configuration
 @Profile("openshift-metering-job")
 @Import({
-    PrometheusServiceConfiguration.class,
-    OpenShiftTasksConfiguration.class,
-    TaskProducerConfiguration.class
+  PrometheusServiceConfiguration.class,
+  OpenShiftTasksConfiguration.class,
+  TaskProducerConfiguration.class
 })
 public class OpenShiftJobProfile {
 
-    @Bean
-    JobProperties jobProperties() {
-        return new JobProperties();
-    }
+  @Bean
+  JobProperties jobProperties() {
+    return new JobProperties();
+  }
 
-    @Bean
-    OpenShiftMeteringJob openshiftMeteringJob(PrometheusMetricsTaskManager tasks, ApplicationClock clock,
-        PrometheusMetricsProperties metricProperties, ApplicationProperties appProps) {
-        return new OpenShiftMeteringJob(tasks, clock, metricProperties, appProps);
-    }
+  @Bean
+  OpenShiftMeteringJob openshiftMeteringJob(
+      PrometheusMetricsTaskManager tasks,
+      ApplicationClock clock,
+      PrometheusMetricsProperties metricProperties,
+      ApplicationProperties appProps) {
+    return new OpenShiftMeteringJob(tasks, clock, metricProperties, appProps);
+  }
 
-    @Bean
-    JobRunner jobRunner(OpenShiftMeteringJob job, ApplicationContext applicationContext) {
-        return new JobRunner(job, applicationContext);
-    }
-
+  @Bean
+  JobRunner jobRunner(OpenShiftMeteringJob job, ApplicationContext applicationContext) {
+    return new JobRunner(job, applicationContext);
+  }
 }

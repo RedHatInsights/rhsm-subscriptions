@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,34 +22,30 @@ package org.candlepin.subscriptions.metering.task;
 
 import static org.mockito.Mockito.verify;
 
+import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
-
 @ExtendWith(MockitoExtension.class)
 class OpenShiftMetricsTaskTest {
 
-    @Mock
-    private PrometheusMeteringController controller;
+  @Mock private PrometheusMeteringController controller;
 
-    @Test
-    void testExecute() throws ApiException {
-        ApplicationClock clock = new FixedClockConfiguration().fixedClock();
-        OffsetDateTime expEnd = clock.now();
-        OffsetDateTime expStart = expEnd.minusDays(1);
-        String expAccount = "test-account";
+  @Test
+  void testExecute() throws ApiException {
+    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+    OffsetDateTime expEnd = clock.now();
+    OffsetDateTime expStart = expEnd.minusDays(1);
+    String expAccount = "test-account";
 
-        OpenShiftMetricsTask task = new OpenShiftMetricsTask(controller, expAccount, expStart, expEnd);
-        task.execute();
-        verify(controller).collectOpenshiftMetrics(expAccount, expStart, expEnd);
-    }
-
+    OpenShiftMetricsTask task = new OpenShiftMetricsTask(controller, expAccount, expStart, expEnd);
+    task.execute();
+    verify(controller).collectOpenshiftMetrics(expAccount, expStart, expEnd);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,29 +33,31 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Configuration of Resteasy.
  *
- * Should be imported by any component that needs to serve an API.
+ * <p>Should be imported by any component that needs to serve an API.
  */
 @Configuration
 @Import(ResteasyAutoConfiguration.class)
-@ComponentScan(basePackages = {"org.candlepin.subscriptions.exception.mapper",
-    "org.candlepin.subscriptions.resteasy"})
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.exception.mapper",
+      "org.candlepin.subscriptions.resteasy"
+    })
 public class ResteasyConfiguration implements WebMvcConfigurer {
-    @Bean
-    public static BeanFactoryPostProcessor servletInitializer() {
-        return new JaxrsApplicationServletInitializer();
-    }
+  @Bean
+  public static BeanFactoryPostProcessor servletInitializer() {
+    return new JaxrsApplicationServletInitializer();
+  }
 
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
-        registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
-    }
+  @Override
+  public void addViewControllers(ViewControllerRegistry registry) {
+    registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
+    registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
+  }
 
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/api-docs/openapi.*").addResourceLocations(
-            "classpath:openapi.yaml",
-            "classpath:openapi.json"
-        );
-    }
+  @Override
+  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    registry
+        .addResourceHandler("/api-docs/openapi.*")
+        .addResourceLocations("classpath:openapi.yaml", "classpath:openapi.json");
+  }
 }

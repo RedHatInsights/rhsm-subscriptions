@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,33 +20,31 @@
  */
 package org.candlepin.subscriptions.task;
 
-
 /**
- * A TaskWorker executes a task when it is notified by a processor that a task was received
- * from a Queue. The task worker should be added as a listener to a TaskQueue's TaskProcessors.
+ * A TaskWorker executes a task when it is notified by a processor that a task was received from a
+ * Queue. The task worker should be added as a listener to a TaskQueue's TaskProcessors.
  */
 public class TaskWorker {
 
-    private final TaskFactory taskFactory;
+  private final TaskFactory taskFactory;
 
-    public TaskWorker(TaskFactory taskFactory) {
-        this.taskFactory = taskFactory;
+  public TaskWorker(TaskFactory taskFactory) {
+    this.taskFactory = taskFactory;
+  }
+
+  /**
+   * Executes the Task described by the given TaskDescriptor.
+   *
+   * @param taskDescriptor the descriptor for the task to execute.
+   * @throws TaskExecutionException when an error occurs running the Task.
+   */
+  public void executeTask(TaskDescriptor taskDescriptor) throws TaskExecutionException {
+    try {
+      Task toExecute = taskFactory.build(taskDescriptor);
+      toExecute.execute();
+    } catch (Exception e) {
+      throw new TaskExecutionException(
+          String.format("Error executing task: %s", taskDescriptor), e);
     }
-
-    /**
-     * Executes the Task described by the given TaskDescriptor.
-     *
-     * @param taskDescriptor the descriptor for the task to execute.
-     * @throws TaskExecutionException when an error occurs running the Task.
-     */
-    public void executeTask(TaskDescriptor taskDescriptor) throws TaskExecutionException {
-        try {
-            Task toExecute = taskFactory.build(taskDescriptor);
-            toExecute.execute();
-        }
-        catch (Exception e) {
-            throw new TaskExecutionException(String.format("Error executing task: %s", taskDescriptor), e);
-        }
-    }
-
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,22 +30,21 @@ import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
  */
 public class ApiProviderImpl implements ApiProvider {
 
-    private QueryApi queryApi;
-    private QueryRangeApi rangeApi;
+  private QueryApi queryApi;
+  private QueryRangeApi rangeApi;
 
-    public ApiProviderImpl(ApiClient apiClient) {
-        queryApi = new QueryApi(apiClient);
-        rangeApi = new QueryRangeApi(apiClient);
-    }
+  public ApiProviderImpl(ApiClient apiClient) {
+    queryApi = new QueryApi(apiClient);
+    rangeApi = new QueryRangeApi(apiClient);
+  }
 
-    @Override
-    public QueryApi queryApi() {
-        return this.queryApi;
-    }
+  @Override
+  public QueryApi queryApi() {
+    return this.queryApi;
+  }
 
-    @Override
-    public QueryRangeApi queryRangeApi() {
-        return this.rangeApi;
-    }
-
+  @Override
+  public QueryRangeApi queryRangeApi() {
+    return this.rangeApi;
+  }
 }

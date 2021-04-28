@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,72 +21,66 @@
 package org.candlepin.subscriptions.db.model.config;
 
 import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-
-/**
- * Represents the configuration properties for an account.
- */
+/** Represents the configuration properties for an account. */
 @Entity
 @Table(name = "account_config")
 public class AccountConfig extends BaseConfig {
 
-    @Id
-    @Column(name = "account_number")
-    private String accountNumber;
+  @Id
+  @Column(name = "account_number")
+  private String accountNumber;
 
-    @Column(name = "reporting_enabled")
-    private Boolean reportingEnabled;
+  @Column(name = "reporting_enabled")
+  private Boolean reportingEnabled;
 
-    public AccountConfig() {
+  public AccountConfig() {}
+
+  public AccountConfig(String accountNumber) {
+    this.accountNumber = accountNumber;
+  }
+
+  public String getAccountNumber() {
+    return accountNumber;
+  }
+
+  public void setAccountNumber(String accountNumber) {
+    this.accountNumber = accountNumber;
+  }
+
+  public Boolean getReportingEnabled() {
+    return reportingEnabled;
+  }
+
+  public void setReportingEnabled(Boolean reportingEnabled) {
+    this.reportingEnabled = reportingEnabled;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
 
-    public AccountConfig(String accountNumber) {
-        this.accountNumber = accountNumber;
+    if (!(o instanceof AccountConfig)) {
+      return false;
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
+    if (!super.equals(o)) {
+      return false;
     }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
+    AccountConfig that = (AccountConfig) o;
+    return Objects.equals(accountNumber, that.accountNumber)
+        && Objects.equals(reportingEnabled, that.reportingEnabled);
+  }
 
-    public Boolean getReportingEnabled() {
-        return reportingEnabled;
-    }
-
-    public void setReportingEnabled(Boolean reportingEnabled) {
-        this.reportingEnabled = reportingEnabled;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (!(o instanceof AccountConfig)) {
-            return false;
-        }
-
-        if (!super.equals(o)) {
-            return false;
-        }
-
-        AccountConfig that = (AccountConfig) o;
-        return Objects.equals(accountNumber, that.accountNumber) &&
-                   Objects.equals(reportingEnabled, that.reportingEnabled);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), accountNumber, reportingEnabled);
-    }
-
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), accountNumber, reportingEnabled);
+  }
 }

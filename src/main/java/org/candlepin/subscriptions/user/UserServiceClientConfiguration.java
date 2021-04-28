@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,31 +31,33 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 /**
  * Spring configuration for the IT User service client.
  *
- * Note that the service is called "User", but the API we are using is an "Account API". The IT service has
- * other APIs around account & user management, but we're only interested in the findAccount API.
+ * <p>Note that the service is called "User", but the API we are using is an "Account API". The IT
+ * service has other APIs around account & user management, but we're only interested in the
+ * findAccount API.
  */
 @Configuration
 @ComponentScan(basePackages = "org.candlepin.subscriptions.user")
 public class UserServiceClientConfiguration {
-    @Bean
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.user-service")
-    public UserServiceProperties userServiceProperties() {
-        return new UserServiceProperties();
-    }
+  @Bean
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.user-service")
+  public UserServiceProperties userServiceProperties() {
+    return new UserServiceProperties();
+  }
 
-    @Bean
-    @Qualifier("userServiceRetry")
-    public RetryTemplate userServiceRetry(UserServiceProperties properties) {
-        return new RetryTemplateBuilder()
-            .maxAttempts(properties.getMaxAttempts())
-            .exponentialBackoff(properties.getBackOffInitialInterval().toMillis(),
-                properties.getBackOffMultiplier(),
-                properties.getBackOffMaxInterval().toMillis())
-            .build();
-    }
+  @Bean
+  @Qualifier("userServiceRetry")
+  public RetryTemplate userServiceRetry(UserServiceProperties properties) {
+    return new RetryTemplateBuilder()
+        .maxAttempts(properties.getMaxAttempts())
+        .exponentialBackoff(
+            properties.getBackOffInitialInterval().toMillis(),
+            properties.getBackOffMultiplier(),
+            properties.getBackOffMaxInterval().toMillis())
+        .build();
+  }
 
-    @Bean
-    public AccountApiFactory accountApiFactory(UserServiceProperties properties) {
-        return new AccountApiFactory(properties);
-    }
+  @Bean
+  public AccountApiFactory accountApiFactory(UserServiceProperties properties) {
+    return new AccountApiFactory(properties);
+  }
 }

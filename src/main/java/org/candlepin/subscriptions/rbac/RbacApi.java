@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +20,11 @@
  */
 package org.candlepin.subscriptions.rbac;
 
+import java.util.List;
 import org.candlepin.subscriptions.rbac.model.Access;
 
-import java.util.List;
-
-/**
- * Defines wrapper functions around all RBAC API calls that we want to make.
- */
+/** Defines wrapper functions around all RBAC API calls that we want to make. */
 public interface RbacApi {
 
-    List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
-
+  List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
 }

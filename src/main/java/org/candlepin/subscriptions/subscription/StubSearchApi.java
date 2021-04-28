@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,35 +20,32 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import java.util.Collections;
+import java.util.List;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 
-import java.util.Collections;
-import java.util.List;
-
-/**
- * Stub version of the SearchApi for the Subscription service for local testing.
- */
+/** Stub version of the SearchApi for the Subscription service for local testing. */
 public class StubSearchApi extends SearchApi {
 
-    @Override
-    public Subscription getSubscriptionById(String id) throws ApiException {
-        return createData();
-    }
+  @Override
+  public Subscription getSubscriptionById(String id) throws ApiException {
+    return createData();
+  }
 
-    @Override
-    public List<Subscription> searchSubscriptionsByAccountNumber(String accountNumber, Integer index,
-        Integer pageSize) throws ApiException {
-        return Collections.singletonList(createData());
-    }
+  @Override
+  public List<Subscription> searchSubscriptionsByAccountNumber(
+      String accountNumber, Integer index, Integer pageSize) throws ApiException {
+    return Collections.singletonList(createData());
+  }
 
-    @Override
-    public List<Subscription> searchSubscriptionsByOrgId(String orgId, Integer index, Integer pageSize)
-        throws ApiException {
-        return Collections.singletonList(createData());
-    }
+  @Override
+  public List<Subscription> searchSubscriptionsByOrgId(
+      String orgId, Integer index, Integer pageSize) throws ApiException {
+    return Collections.singletonList(createData());
+  }
 
-    private Subscription createData() {
-        return new Subscription().subscriptionNumber("2253591");
-    }
+  private Subscription createData() {
+    return new Subscription().subscriptionNumber("2253591");
+  }
 }

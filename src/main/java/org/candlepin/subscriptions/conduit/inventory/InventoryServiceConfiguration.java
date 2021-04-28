@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,19 +20,18 @@
  */
 package org.candlepin.subscriptions.conduit.inventory;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.conduit.inventory.kafka.CreateUpdateHostMessage;
 import org.candlepin.subscriptions.conduit.inventory.kafka.InventoryServiceKafkaConfigurator;
 import org.candlepin.subscriptions.conduit.inventory.kafka.KafkaEnabledInventoryService;
 import org.candlepin.subscriptions.inventory.client.HostsApiFactory;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -45,79 +44,71 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.retry.support.RetryTemplate;
 
-import io.micrometer.core.instrument.MeterRegistry;
-
-/**
- * Configures all beans required to connect to the inventory service's Kafka instance.
- */
+/** Configures all beans required to connect to the inventory service's Kafka instance. */
 @EnableKafka
 @Configuration
 public class InventoryServiceConfiguration {
 
-    @Autowired
-    private InventoryServiceKafkaConfigurator kafkaConfigurator;
+  @Autowired private InventoryServiceKafkaConfigurator kafkaConfigurator;
 
-    @Bean
-    @Qualifier("hbiObjectMapper")
-    ObjectMapper hbiObjectMapper(ApplicationProperties applicationProperties) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-        objectMapper.configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  @Bean
+  @Qualifier("hbiObjectMapper")
+  ObjectMapper hbiObjectMapper(ApplicationProperties applicationProperties) {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+    objectMapper.configure(
+        SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
+    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-        // Tell the mapper to check the classpath for any serialization/deserialization modules
-        // such as the Java8 date/time module (JavaTimeModule).
-        objectMapper.findAndRegisterModules();
-        return objectMapper;
-    }
+    // Tell the mapper to check the classpath for any serialization/deserialization modules
+    // such as the Java8 date/time module (JavaTimeModule).
+    objectMapper.findAndRegisterModules();
+    return objectMapper;
+  }
 
-    @Bean
-    @ConfigurationProperties(prefix = "rhsm-conduit.inventory-service")
-    public InventoryServiceProperties inventoryServiceProperties() {
-        return new InventoryServiceProperties();
-    }
+  @Bean
+  @ConfigurationProperties(prefix = "rhsm-conduit.inventory-service")
+  public InventoryServiceProperties inventoryServiceProperties() {
+    return new InventoryServiceProperties();
+  }
 
-    @Bean
-    public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
-        return new HostsApiFactory(properties);
-    }
+  @Bean
+  public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
+    return new HostsApiFactory(properties);
+  }
 
-    @Bean
-    public ProducerFactory<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerFactory(
-        KafkaProperties kafkaProperties,
-        @Qualifier("hbiObjectMapper") ObjectMapper mapper) {
-        return kafkaConfigurator.defaultProducerFactory(kafkaProperties, mapper);
-    }
+  @Bean
+  public ProducerFactory<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerFactory(
+      KafkaProperties kafkaProperties, @Qualifier("hbiObjectMapper") ObjectMapper mapper) {
+    return kafkaConfigurator.defaultProducerFactory(kafkaProperties, mapper);
+  }
 
-    @Bean
-    public KafkaTemplate<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerTemplate(
-        ProducerFactory<String, CreateUpdateHostMessage> factory) {
-        return kafkaConfigurator.taskMessageKafkaTemplate(factory);
-    }
+  @Bean
+  public KafkaTemplate<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerTemplate(
+      ProducerFactory<String, CreateUpdateHostMessage> factory) {
+    return kafkaConfigurator.taskMessageKafkaTemplate(factory);
+  }
 
-    @Bean
-    public InventoryService kafkaInventoryService(
-        @Qualifier("inventoryServiceKafkaProducerTemplate")
-        KafkaTemplate<String, CreateUpdateHostMessage> producer,
-        InventoryServiceProperties serviceProperties, MeterRegistry meterRegistry,
-        RetryTemplate kafkaRetryTemplate) {
-        return new KafkaEnabledInventoryService(
-            serviceProperties,
-            producer,
-            meterRegistry,
-            kafkaRetryTemplate
-        );
-    }
+  @Bean
+  public InventoryService kafkaInventoryService(
+      @Qualifier("inventoryServiceKafkaProducerTemplate")
+          KafkaTemplate<String, CreateUpdateHostMessage> producer,
+      InventoryServiceProperties serviceProperties,
+      MeterRegistry meterRegistry,
+      RetryTemplate kafkaRetryTemplate) {
+    return new KafkaEnabledInventoryService(
+        serviceProperties, producer, meterRegistry, kafkaRetryTemplate);
+  }
 
-    @Bean(name = "kafkaRetryTemplate")
-    public RetryTemplate kafkaRetryTemplate() {
-        return RetryTemplate.builder()
-            .retryOn(KafkaException.class)
-            .maxAttempts(4)
-            .uniformRandomBackoff(100, 500)
-            .build();
-    }
+  @Bean(name = "kafkaRetryTemplate")
+  public RetryTemplate kafkaRetryTemplate() {
+    return RetryTemplate.builder()
+        .retryOn(KafkaException.class)
+        .maxAttempts(4)
+        .uniformRandomBackoff(100, 500)
+        .build();
+  }
 }

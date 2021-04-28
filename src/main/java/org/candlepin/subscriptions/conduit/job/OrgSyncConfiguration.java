@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.conduit.job;
 import org.candlepin.subscriptions.conduit.ConduitTaskQueueConfiguration;
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -31,21 +30,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
-/**
- * Configuration class for beans related to the OrgSyncJob.
- */
+/** Configuration class for beans related to the OrgSyncJob. */
 @Configuration
 @Profile("orgsync")
 @Import({ConduitTaskQueueConfiguration.class, TaskProducerConfiguration.class})
 @ComponentScan(basePackages = "org.candlepin.subscriptions.conduit.job")
 public class OrgSyncConfiguration {
-    @Bean
-    OrgSyncJob job(OrgSyncTaskManager taskManager) {
-        return new OrgSyncJob(taskManager);
-    }
+  @Bean
+  OrgSyncJob job(OrgSyncTaskManager taskManager) {
+    return new OrgSyncJob(taskManager);
+  }
 
-    @Bean
-    JobRunner jobRunner(OrgSyncJob job, ApplicationContext applicationContext) {
-        return new JobRunner(job, applicationContext);
-    }
+  @Bean
+  JobRunner jobRunner(OrgSyncJob job, ApplicationContext applicationContext) {
+    return new JobRunner(job, applicationContext);
+  }
 }

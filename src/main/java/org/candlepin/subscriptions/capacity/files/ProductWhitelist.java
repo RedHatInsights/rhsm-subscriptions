@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.capacity.files;
 
+import javax.annotation.PostConstruct;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ResourceLoaderAware;
@@ -31,57 +31,53 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
-
-/**
- * List of products to be considered for capacity calculations.
- */
+/** List of products to be considered for capacity calculations. */
 @Component
 public class ProductWhitelist implements ResourceLoaderAware {
 
-    private static Logger log = LoggerFactory.getLogger(ProductWhitelist.class);
+  private static Logger log = LoggerFactory.getLogger(ProductWhitelist.class);
 
-    private final PerLineFileSource source;
+  private final PerLineFileSource source;
 
-    public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
-        if (StringUtils.hasText(properties.getProductWhitelistResourceLocation())) {
-            source = new PerLineFileSource(
-                properties.getProductWhitelistResourceLocation(), clock.getClock(),
-                properties.getProductWhiteListCacheTtl());
-        }
-        else {
-            source = null;
-        }
+  public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
+    if (StringUtils.hasText(properties.getProductWhitelistResourceLocation())) {
+      source =
+          new PerLineFileSource(
+              properties.getProductWhitelistResourceLocation(),
+              clock.getClock(),
+              properties.getProductWhiteListCacheTtl());
+    } else {
+      source = null;
     }
+  }
 
-    public boolean productIdMatches(String productId) {
-        if (source == null) {
-            return true;
-        }
-        try {
-            boolean whitelisted = source.set().contains(productId);
-            if (!whitelisted && log.isDebugEnabled()) {
-                log.debug("Product ID {} not in whitelist", productId);
-            }
-            return whitelisted;
-        }
-        catch (Exception e) {
-            log.error("Error reading whitelist", e);
-            return false;
-        }
+  public boolean productIdMatches(String productId) {
+    if (source == null) {
+      return true;
     }
+    try {
+      boolean whitelisted = source.set().contains(productId);
+      if (!whitelisted && log.isDebugEnabled()) {
+        log.debug("Product ID {} not in whitelist", productId);
+      }
+      return whitelisted;
+    } catch (Exception e) {
+      log.error("Error reading whitelist", e);
+      return false;
+    }
+  }
 
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        if (source != null) {
-            source.setResourceLoader(resourceLoader);
-        }
+  @Override
+  public void setResourceLoader(ResourceLoader resourceLoader) {
+    if (source != null) {
+      source.setResourceLoader(resourceLoader);
     }
+  }
 
-    @PostConstruct
-    public void init() {
-        if (source != null) {
-            source.init();
-        }
+  @PostConstruct
+  public void init() {
+    if (source != null) {
+      source.init();
     }
+  }
 }

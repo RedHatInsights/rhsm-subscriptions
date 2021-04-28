@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.task.queue.kafka;
 
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,31 +34,30 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 /**
  * Kakfa consumer configuration for all kafka consumers.
  *
- * Note that this class doesn't actually create any consumers - to do that you must create a bean of type
- * KafkaTaskProcessor.
+ * <p>Note that this class doesn't actually create any consumers - to do that you must create a bean
+ * of type KafkaTaskProcessor.
  */
 @Configuration
 @Profile("kafka-queue")
 @Import(KafkaConfiguration.class)
 public class KafkaTaskConsumerConfiguration {
-    @Autowired
-    KafkaConfigurator kafkaConfigurator;
+  @Autowired KafkaConfigurator kafkaConfigurator;
 
-    @Bean
-    public KafkaApplicationListener gracefulShutdown() {
-        return new KafkaApplicationListener();
-    }
+  @Bean
+  public KafkaApplicationListener gracefulShutdown() {
+    return new KafkaApplicationListener();
+  }
 
-    @Bean
-    public ConsumerFactory<String, TaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
-        return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
-    }
+  @Bean
+  public ConsumerFactory<String, TaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
+    return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
+  }
 
-    @Bean
-    KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
-        kafkaListenerContainerFactory(ConsumerFactory<String, TaskMessage> consumerFactory,
-        KafkaProperties kafkaProperties) {
+  @Bean
+  KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
+      kafkaListenerContainerFactory(
+          ConsumerFactory<String, TaskMessage> consumerFactory, KafkaProperties kafkaProperties) {
 
-        return kafkaConfigurator.defaultListenerContainerFactory(consumerFactory, kafkaProperties);
-    }
+    return kafkaConfigurator.defaultListenerContainerFactory(consumerFactory, kafkaProperties);
+  }
 }

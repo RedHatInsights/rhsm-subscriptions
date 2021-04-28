@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,19 +21,16 @@
 package org.candlepin.subscriptions.resource;
 
 import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Serves the OpenAPI spec as /openapi.yaml.
- */
+/** Serves the OpenAPI spec as /openapi.yaml. */
 @Component
 public class OpenApiYamlResource implements OpenapiYamlApi {
-    @Autowired OpenApiSpecController controller;
+  @Autowired OpenApiSpecController controller;
 
-    @Override
-    public String getOpenApiYaml() {
-        return controller.getOpenApiYaml();
-    }
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getOpenApiYaml();
+  }
 }

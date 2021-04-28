@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,9 @@
  */
 package org.candlepin.subscriptions.exception;
 
-/**
- * An exception thrown when an error occurs during a cron job.
- */
+/** An exception thrown when an error occurs during a cron job. */
 public class JobFailureException extends RuntimeException {
-    public JobFailureException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public JobFailureException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

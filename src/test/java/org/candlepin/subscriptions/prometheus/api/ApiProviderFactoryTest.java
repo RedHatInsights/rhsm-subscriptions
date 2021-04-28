@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,29 +24,27 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.http.HttpClientProperties;
-
 import org.junit.jupiter.api.Test;
 
 class ApiProviderFactoryTest {
 
-    @Test
-    void canUseStubClient() throws Exception {
-        HttpClientProperties props = new HttpClientProperties();
-        props.setUseStub(true);
+  @Test
+  void canUseStubClient() throws Exception {
+    HttpClientProperties props = new HttpClientProperties();
+    props.setUseStub(true);
 
-        ApiProviderFactory factory = new ApiProviderFactory(props);
-        ApiProvider api = factory.getObject();
-        assertTrue(api instanceof StubApiProvider);
-    }
+    ApiProviderFactory factory = new ApiProviderFactory(props);
+    ApiProvider api = factory.getObject();
+    assertTrue(api instanceof StubApiProvider);
+  }
 
-    @Test
-    void checkPropertyInitialization() throws Exception {
-        HttpClientProperties props = new HttpClientProperties();
-        assertFalse(props.isUseStub());
+  @Test
+  void checkPropertyInitialization() throws Exception {
+    HttpClientProperties props = new HttpClientProperties();
+    assertFalse(props.isUseStub());
 
-        ApiProviderFactory factory = new ApiProviderFactory(props);
-        ApiProvider api = factory.getObject();
-        assertTrue(api instanceof ApiProviderImpl);
-    }
-
+    ApiProviderFactory factory = new ApiProviderFactory(props);
+    ApiProvider api = factory.getObject();
+    assertTrue(api instanceof ApiProviderImpl);
+  }
 }

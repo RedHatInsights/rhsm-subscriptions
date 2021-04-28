@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,56 +20,50 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import org.springframework.stereotype.Component;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
-
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
+import org.springframework.stereotype.Component;
 
-/**
- * ParamConverterProvider to enable use of OffsetDateTime in query parameters.
- */
+/** ParamConverterProvider to enable use of OffsetDateTime in query parameters. */
 @Component
 @Provider
 public class OffsetDateTimeParamConverterProvider implements ParamConverterProvider {
 
+  @Override
+  public <T> ParamConverter<T> getConverter(
+      Class<T> rawType, Type genericType, Annotation[] annotations) {
+    if (rawType.isAssignableFrom(OffsetDateTime.class)) {
+      return (ParamConverter<T>) new OffsetDateTimeParamConverter();
+    }
+    return null;
+  }
+
+  /** ParamConverter that uses an ObjectMapper to convert OffsetDateTime to/from String. */
+  public static class OffsetDateTimeParamConverter implements ParamConverter<OffsetDateTime> {
+
     @Override
-    public <T> ParamConverter<T> getConverter(Class<T> rawType, Type genericType, Annotation[] annotations) {
-        if (rawType.isAssignableFrom(OffsetDateTime.class)) {
-            return (ParamConverter<T>) new OffsetDateTimeParamConverter();
-        }
+    public OffsetDateTime fromString(String value) {
+      if (value == null) {
         return null;
+      }
+      try {
+        return OffsetDateTime.parse(value);
+      } catch (DateTimeParseException e) {
+        throw new IllegalArgumentException(e);
+      }
     }
 
-    /**
-     * ParamConverter that uses an ObjectMapper to convert OffsetDateTime to/from String.
-     */
-    public static class OffsetDateTimeParamConverter implements ParamConverter<OffsetDateTime> {
-
-        @Override
-        public OffsetDateTime fromString(String value) {
-            if (value == null) {
-                return null;
-            }
-            try {
-                return OffsetDateTime.parse(value);
-            }
-            catch (DateTimeParseException e) {
-                throw new IllegalArgumentException(e);
-            }
-        }
-
-        @Override
-        public String toString(OffsetDateTime value) {
-            if (value == null) {
-                return null;
-            }
-            return value.toString();
-        }
+    @Override
+    public String toString(OffsetDateTime value) {
+      if (value == null) {
+        return null;
+      }
+      return value.toString();
     }
+  }
 }

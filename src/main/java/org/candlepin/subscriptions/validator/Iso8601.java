@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,40 +23,35 @@ package org.candlepin.subscriptions.validator;
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;
 
-import org.candlepin.subscriptions.validator.Iso8601.List;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
-
 import javax.validation.Constraint;
 import javax.validation.Payload;
+import org.candlepin.subscriptions.validator.Iso8601.List;
 
-/**
- * JSR-380 validation for ensuring that a value is in a particular ISO 8601 format.
- */
-@Target({ FIELD, PARAMETER, ANNOTATION_TYPE, TYPE_USE })
+/** JSR-380 validation for ensuring that a value is in a particular ISO 8601 format. */
+@Target({FIELD, PARAMETER, ANNOTATION_TYPE, TYPE_USE})
 @Retention(RUNTIME)
 @Repeatable(List.class)
 @Documented
-@Constraint(validatedBy = { Iso8601Validator.class })
+@Constraint(validatedBy = {Iso8601Validator.class})
 public @interface Iso8601 {
-    String message() default "The string \"${validatedValue}\" must be in ISO 8601 format similar to " +
-        "{example}.";
-    Class<?>[] groups() default { };
-    Class<? extends Payload>[] payload() default { };
+  String message() default
+      "The string \"${validatedValue}\" must be in ISO 8601 format similar to " + "{example}.";
 
-    Iso8601Format value() default Iso8601Format.ISO_DATE_TIME;
+  Class<?>[] groups() default {};
 
-    /**
-     * Inner annotation to support annotating type arguments of parameterized types.
-     */
-    @Target({ FIELD, TYPE_USE })
-    @Retention(RUNTIME)
-    @Documented
-    @interface List {
-        Iso8601[] value();
-    }
+  Class<? extends Payload>[] payload() default {};
 
+  Iso8601Format value() default Iso8601Format.ISO_DATE_TIME;
+
+  /** Inner annotation to support annotating type arguments of parameterized types. */
+  @Target({FIELD, TYPE_USE})
+  @Retention(RUNTIME)
+  @Documented
+  @interface List {
+    Iso8601[] value();
+  }
 }

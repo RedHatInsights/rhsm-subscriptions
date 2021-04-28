@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally.job;
 
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -30,16 +29,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
-/**
- * A class to hold all job related configuration.
- */
+/** A class to hold all job related configuration. */
 @Configuration
 @Profile("capture-hourly-snapshots")
 @Import(TaskProducerConfiguration.class)
 @ComponentScan("org.candlepin.subscriptions.tally.job")
 public class CaptureHourlySnapshotsConfiguration {
-    @Bean
-    JobRunner jobRunner(CaptureHourlySnapshotsJob job, ApplicationContext applicationContext) {
-        return new JobRunner(job, applicationContext);
-    }
+  @Bean
+  JobRunner jobRunner(CaptureHourlySnapshotsJob job, ApplicationContext applicationContext) {
+    return new JobRunner(job, applicationContext);
+  }
 }
