@@ -48,11 +48,11 @@ public class SubscriptionTaskManager {
      * @param offset the starting point for a result page.
      * @param limit the number of results on the page.
      */
-    public void syncSubscriptionsForOrg(String orgId, String offset, Long limit) {
+    public void syncSubscriptionsForOrg(String orgId, Integer offset, Long limit) {
         taskQueue.enqueue(
             TaskDescriptor.builder(TaskType.SYNC_ORG_SUBSCRIPTIONS, taskQueueProperties.getTopic())
             .setSingleValuedArg("orgId", orgId)
-            .setSingleValuedArg("offset", offset)
+            .setSingleValuedArg("offset", offset.toString())
             .setSingleValuedArg("limit", limit.toString())
             .build());
     }

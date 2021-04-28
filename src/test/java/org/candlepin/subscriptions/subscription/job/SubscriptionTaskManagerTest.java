@@ -52,7 +52,7 @@ class SubscriptionTaskManagerTest {
 
     @Test
     void shouldEnqueueOrgSubscriptionSyncTaskTest() {
-        subject.syncSubscriptionsForOrg("123", "0", 100L);
+        subject.syncSubscriptionsForOrg("123", 0, 100L);
         Mockito.verify(taskQueue).enqueue(TaskDescriptor.builder(TaskType.SYNC_ORG_SUBSCRIPTIONS,
             taskQueueProperties.getTopic())
             .setSingleValuedArg("orgId", "123")

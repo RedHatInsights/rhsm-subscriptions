@@ -106,7 +106,7 @@ public class SubscriptionSyncController {
     }
 
     public void syncAllSubcriptionsForOrg(String orgId) {
-        subscriptionTaskManager.syncSubscriptionsForOrg(orgId, "0", 100L);
+        subscriptionTaskManager.syncSubscriptionsForOrg(orgId, 0, 100L);
     }
 
     public void syncSubscriptions(String orgId, String offset, String limit) throws ApiException {
@@ -115,8 +115,8 @@ public class SubscriptionSyncController {
         List<Subscription> subscriptions = subscriptionService
             .getSubscriptionsByOrgId(orgId, index, pageSize);
         subscriptions.forEach(this::syncSubscription);
-        if (pageSize <= subscriptions.size()) {
-            subscriptionTaskManager.syncSubscriptionsForOrg(orgId, String.valueOf(index + pageSize),
+        if (pageSize == subscriptions.size()) {
+            subscriptionTaskManager.syncSubscriptionsForOrg(orgId, index + pageSize,
                 (long) pageSize);
         }
     }

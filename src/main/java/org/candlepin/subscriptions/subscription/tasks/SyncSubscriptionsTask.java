@@ -49,6 +49,8 @@ public class SyncSubscriptionsTask implements Task {
     @Override
     public void execute() {
         try {
+            log.info("Executing subscription sync for orgId={}, offset={}, limit={}",
+                orgId, offset, limit);
             subscriptionSyncController.syncSubscriptions(orgId, offset, limit);
         }
         catch (ApiException e) {

@@ -23,12 +23,16 @@ package org.candlepin.subscriptions.subscription.jmx;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
+
+import javax.transaction.Transactional;
 
 /**
  * JMX bean for synchronizing subscriptions.
@@ -37,6 +41,8 @@ import java.util.stream.Collectors;
 @ManagedResource
 @SuppressWarnings("java:S2139")
 public class SubscriptionJmxBean {
+
+    private static final Logger log = LoggerFactory.getLogger(SubscriptionJmxBean.class);
 
     private final SubscriptionSyncController subscriptionSyncController;
     private final OrgConfigRepository orgConfigRepository;
@@ -47,17 +53,16 @@ public class SubscriptionJmxBean {
         this.orgConfigRepository = orgConfigRepository;
     }
 
+    @Transactional
     @ManagedOperation(description = "Sync all subscriptions for sync-enabled orgs.")
     public void syncAllSubscriptions() throws SubscriptionJmxException {
         try {
-            // because java still does not support throwing exceptions to higher scopes from a lambda
-            // we must collect the stream and then old-school for loop
-            final List<String> orgs = orgConfigRepository.findSyncEnabledOrgs().collect(Collectors.toList());
-            for (String org: orgs) {
-                subscriptionSyncController.syncAllSubcriptionsForOrg(org);
-            }
+            log.info("syncAllSubscriptions MBean operation invoked");
+            orgConfigRepository.findSyncEnabledOrgs().forEach(
+                subscriptionSyncController::syncAllSubcriptionsForOrg);
         }
         catch (Exception ex) {
+            log.error("Error occurred while handling syncAllSubscriptions Mbean operation", ex);
             throw new SubscriptionJmxException(ex);
         }
     }
@@ -65,9 +70,11 @@ public class SubscriptionJmxBean {
     @ManagedOperation(description = "Sync subscriptions for a specific org by org ID.")
     public void syncSubscriptionForOrg(String orgId) throws SubscriptionJmxException {
         try {
+            log.info("syncSubscriptionForOrg MBean operation invoked for orgId={}", orgId);
             subscriptionSyncController.syncAllSubcriptionsForOrg(orgId);
         }
         catch (Exception ex) {
+            log.error("Error occurred while handling syncSubscriptionForOrg Mbean operation", ex);
             throw new SubscriptionJmxException(ex);
         }
     }
@@ -75,9 +82,11 @@ public class SubscriptionJmxBean {
     @ManagedOperation(description = "Sync a subscription specified by subscription ID.")
     public void syncSubscription(String subscriptionId) throws SubscriptionJmxException {
         try {
+            log.info("syncSubscription MBean operation invoked for subscriptionId={}", subscriptionId);
             subscriptionSyncController.syncSubscription(subscriptionId);
         }
         catch (Exception ex) {
+            log.error("Error occurred while handling syncSubscription Mbean operation", ex);
             throw new SubscriptionJmxException(ex);
         }
     }

@@ -35,7 +35,7 @@ public class SubscriptionTaskQueueConfiguration {
 
     @Bean
     @Qualifier("subscriptionTaskQueueProperties")
-    @ConfigurationProperties(prefix = "subscriptions.tasks")
+    @ConfigurationProperties(prefix = "rhsm-subscriptions.subscriptions.tasks")
     TaskQueueProperties subscriptionTaskQueueProperties() {
         return new TaskQueueProperties();
     }

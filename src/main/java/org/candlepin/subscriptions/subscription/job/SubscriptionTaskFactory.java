@@ -27,6 +27,8 @@ import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +37,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SubscriptionTaskFactory implements TaskFactory {
+    private static final Logger log = LoggerFactory.getLogger(SubscriptionTaskFactory.class);
 
     @Autowired
     SubscriptionSyncController subscriptionSyncController;
@@ -47,6 +50,7 @@ public class SubscriptionTaskFactory implements TaskFactory {
     @Override
     public Task build(TaskDescriptor taskDescriptor) {
         if (TaskType.SYNC_ORG_SUBSCRIPTIONS == taskDescriptor.getTaskType()) {
+            log.info("Building subscription sync task={}", taskDescriptor);
             return new SyncSubscriptionsTask(subscriptionSyncController,
                 taskDescriptor.getArg("orgId").get(0),
                 taskDescriptor.getArg("offset").get(0),

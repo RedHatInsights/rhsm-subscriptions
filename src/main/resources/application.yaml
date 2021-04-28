@@ -117,5 +117,5 @@ rhsm-subscriptions:
 
   subscriptions:
     tasks:
-      topic: ${SUBSCRIPTION_TASK_TOPIC:platform.subscriptions.subscriptions-tasks}
+      topic: ${SUBSCRIPTION_TASK_TOPIC:platform.rhsm-subscriptions.subscriptions-tasks}
       kafka-group-id: ${SUBSCRIPTION_TASK_GROUP_ID:subscriptions-task-processor}

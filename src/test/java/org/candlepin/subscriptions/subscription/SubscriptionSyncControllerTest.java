@@ -91,7 +91,7 @@ class SubscriptionSyncControllerTest {
             Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(Collections.singletonList(
             createDto("123", 1)));
         subject.syncSubscriptions("123", "0", "1");
-        Mockito.verify(subscriptionTaskManager).syncSubscriptionsForOrg("123", "1", 1L);
+        Mockito.verify(subscriptionTaskManager).syncSubscriptionsForOrg("123", 1, 1L);
     }
 
     @Test
@@ -101,7 +101,7 @@ class SubscriptionSyncControllerTest {
             createDto("123", 1)));
         subject.syncSubscriptions("123", "0", "2");
         Mockito.verify(subscriptionTaskManager, Mockito.never())
-            .syncSubscriptionsForOrg("123", "1", 1L);
+            .syncSubscriptionsForOrg("123", 1, 1L);
     }
 
     private Subscription createSubscription(String orgId, String sku, String subId) {
