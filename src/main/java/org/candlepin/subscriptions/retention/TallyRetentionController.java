@@ -21,14 +21,19 @@
 package org.candlepin.subscriptions.retention;
 
 import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 
 
@@ -37,16 +42,23 @@ import java.util.stream.Stream;
  */
 @Component
 public class TallyRetentionController {
+    private static final Logger log = LoggerFactory.getLogger(TallyRetentionController.class);
 
-    private final TallySnapshotRepository repository;
+    private final TallySnapshotRepository tallySnapshotRepository;
+    private final EventRecordRepository eventRecordRepository;
     private final TallyRetentionPolicy policy;
-
+    private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
     private final AccountListSource accountListSource;
 
-    public TallyRetentionController(TallySnapshotRepository repository, TallyRetentionPolicy policy,
+    @Autowired
+    public TallyRetentionController(TallySnapshotRepository tallySnapshotRepository,
+        EventRecordRepository eventRecordRepository, TallyRetentionPolicy policy,
+        EventRecordsRetentionProperties eventRecordsRetentionProperties,
         AccountListSource accountListSource) {
-        this.repository = repository;
+        this.tallySnapshotRepository = tallySnapshotRepository;
+        this.eventRecordRepository = eventRecordRepository;
         this.policy = policy;
+        this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
         this.accountListSource = accountListSource;
     }
 
@@ -63,8 +75,19 @@ public class TallyRetentionController {
             if (cutoffDate == null) {
                 continue;
             }
-            repository.deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(accountNumber,
+            tallySnapshotRepository.deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(accountNumber,
                 granularity, cutoffDate);
         }
+    }
+
+    public void purgeOldEventRecords() {
+        var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
+
+        OffsetDateTime cutoffDate = OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS)
+            .minus(eventRetentionDuration);
+
+        log.info("Purging event records older than Duration {}", cutoffDate);
+
+        eventRecordRepository.deleteEventRecordsByTimestampBefore(cutoffDate);
     }
 }

@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.filler;
 
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
@@ -43,13 +44,16 @@ public class ReportFiller {
     private static final Logger log = LoggerFactory.getLogger(ReportFiller.class);
 
     private final SnapshotTimeAdjuster timeAdjuster;
+    private final ApplicationClock clock;
 
-    public ReportFiller(SnapshotTimeAdjuster timeAdjuster) {
+    public ReportFiller(SnapshotTimeAdjuster timeAdjuster, ApplicationClock applicationClock) {
         this.timeAdjuster = timeAdjuster;
+        this.clock = applicationClock;
     }
 
     @Timed("rhsm-subscriptions.tally.fillReport")
-    public void fillGaps(TallyReport report, OffsetDateTime start, OffsetDateTime end) {
+    public void fillGaps(TallyReport report, OffsetDateTime start, OffsetDateTime end,
+        boolean useRunningTotalFormat) {
         TemporalAmount offset = timeAdjuster.getSnapshotOffset();
 
         OffsetDateTime firstDate = timeAdjuster.adjustToPeriodStart(start);
@@ -57,19 +61,22 @@ public class ReportFiller {
 
         List<TallySnapshot> existingSnaps = report.getData();
         if (existingSnaps == null || existingSnaps.isEmpty()) {
-            report.setData(fillWithRange(firstDate, lastDate, offset));
+            report.setData(fillWithRange(firstDate, lastDate, offset, null,
+                useRunningTotalFormat));
         }
         else {
-            report.setData(fillAndFilterSnapshots(offset, firstDate, lastDate, existingSnaps));
+            report.setData(fillAndFilterSnapshots(offset, firstDate, lastDate, existingSnaps,
+                useRunningTotalFormat));
         }
     }
 
     @SuppressWarnings("squid:S2583")
-    private List<TallySnapshot> fillAndFilterSnapshots(TemporalAmount offset,
-        OffsetDateTime firstDate, OffsetDateTime lastDate, List<TallySnapshot> existingSnaps) {
+    private List<TallySnapshot> fillAndFilterSnapshots(TemporalAmount offset, OffsetDateTime firstDate,
+        OffsetDateTime lastDate, List<TallySnapshot> existingSnaps, boolean useRunningTotalFormat) {
 
         List<TallySnapshot> result = new ArrayList<>();
         OffsetDateTime nextDate = firstDate;
+        TallySnapshot lastSnap = null;
         OffsetDateTime lastSnapDate = null;
         Optional<TallySnapshot> pending = Optional.empty();
         Optional<OffsetDateTime> pendingSnapDate = Optional.empty();
@@ -90,27 +97,33 @@ public class ReportFiller {
 
             if (pending.isPresent() && lastSnapDate.isAfter(pendingSnapDate.get())) {
                 result.add(pending.get());
+                lastSnap = pending.get();
                 pending = Optional.empty();
                 pendingSnapDate = Optional.empty();
             }
 
             // Fill report up until the next snapshot, then add the snapshot to the report list.
-            result.addAll(fillWithRange(nextDate, lastSnapDate.minus(offset), offset));
+            result.addAll(fillWithRange(nextDate, lastSnapDate.minus(offset), offset, lastSnap,
+                useRunningTotalFormat));
             if (!pending.isPresent() || snapshotIsLarger(pending.get(), snapshot)) {
                 pending = Optional.of(snapshot);
                 pendingSnapDate = Optional.of(lastSnapDate);
             }
             nextDate = lastSnapDate.plus(offset);
         }
-        pending.ifPresent(result::add);
+        if (pending.isPresent()) {
+            result.add(pending.get());
+            lastSnap = pending.get();
+        }
 
         // If no snaps contain dates, just use the start of the range. Otherwise,
         // fill from the date of the last snapshot found, to the end of the range.
         if (lastSnapDate == null) {
-            result.addAll(fillWithRange(firstDate, lastDate, offset));
+            result.addAll(fillWithRange(firstDate, lastDate, offset, null, useRunningTotalFormat));
         }
         else if (lastSnapDate.isBefore(lastDate)) {
-            result.addAll(fillWithRange(lastSnapDate.plus(offset), lastDate, offset));
+            result.addAll(fillWithRange(lastSnapDate.plus(offset), lastDate, offset, lastSnap,
+                useRunningTotalFormat));
         }
         return result;
     }
@@ -121,30 +134,60 @@ public class ReportFiller {
             newSnap.getSockets() > oldSnap.getSockets();
     }
 
-    private TallySnapshot createDefaultSnapshot(OffsetDateTime snapshotDate) {
+    private TallySnapshot createDefaultSnapshot(OffsetDateTime snapshotDate, TallySnapshot previous,
+        boolean useRunningTotalFormat) {
+        if (snapshotDate.isBefore(clock.now()) && useRunningTotalFormat && previous != null) {
+            return new TallySnapshot()
+                .date(snapshotDate)
+                .cores(previous.getCores())
+                .sockets(previous.getSockets())
+                .instanceCount(previous.getInstanceCount())
+                .physicalSockets(previous.getPhysicalSockets())
+                .physicalCores(previous.getPhysicalCores())
+                .physicalInstanceCount(previous.getPhysicalInstanceCount())
+                .hypervisorSockets(previous.getHypervisorSockets())
+                .hypervisorCores(previous.getHypervisorCores())
+                .hypervisorInstanceCount(previous.getHypervisorInstanceCount())
+                .cloudInstanceCount(previous.getCloudInstanceCount())
+                .cloudSockets(previous.getCloudSockets())
+                .cloudCores(previous.getCloudCores())
+                .coreHours(previous.getCoreHours())
+                .hasData(true); // has_data = true means that the frontend should show the value in a tooltip
+        }
+        Integer defaultValueInteger;
+        Double defaultValue;
+        if (snapshotDate.isBefore(clock.now())) {
+            defaultValueInteger = 0;
+            defaultValue = 0.0;
+        }
+        else {
+            defaultValueInteger = null;
+            defaultValue = null;
+        }
         return new TallySnapshot()
             .date(snapshotDate)
-            .cores(0)
-            .sockets(0)
-            .instanceCount(0)
-            .physicalSockets(0)
-            .physicalCores(0)
-            .physicalInstanceCount(0)
-            .hypervisorSockets(0)
-            .hypervisorCores(0)
-            .hypervisorInstanceCount(0)
-            .cloudInstanceCount(0)
-            .cloudSockets(0)
-            .cloudCores(0)
+            .cores(defaultValueInteger)
+            .sockets(defaultValueInteger)
+            .instanceCount(defaultValueInteger)
+            .physicalSockets(defaultValueInteger)
+            .physicalCores(defaultValueInteger)
+            .physicalInstanceCount(defaultValueInteger)
+            .hypervisorSockets(defaultValueInteger)
+            .hypervisorCores(defaultValueInteger)
+            .hypervisorInstanceCount(defaultValueInteger)
+            .cloudInstanceCount(defaultValueInteger)
+            .cloudSockets(defaultValueInteger)
+            .cloudCores(defaultValueInteger)
+            .coreHours(defaultValue)
             .hasData(false);
     }
 
-    private List<TallySnapshot> fillWithRange(OffsetDateTime start, OffsetDateTime end,
-        TemporalAmount offset) {
+    private List<TallySnapshot> fillWithRange(OffsetDateTime start, OffsetDateTime end, TemporalAmount offset,
+        TallySnapshot snapshot, boolean useRunningTotalFormat) {
         List<TallySnapshot> result = new ArrayList<>();
         OffsetDateTime next = timeAdjuster.adjustToPeriodStart(OffsetDateTime.from(start));
         while (next.isBefore(end) || next.isEqual(end)) {
-            result.add(createDefaultSnapshot(next));
+            result.add(createDefaultSnapshot(next, snapshot, useRunningTotalFormat));
             next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
         }
         return result;

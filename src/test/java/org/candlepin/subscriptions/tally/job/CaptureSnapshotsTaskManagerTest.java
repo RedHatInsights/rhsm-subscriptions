@@ -175,8 +175,8 @@ class CaptureSnapshotsTaskManagerTest {
                 .setSingleValuedArg("accountNumber", accountNumber)
                 // 2019-05-24T12:35Z truncated to top of the hour - 4 hours prometheus latency - 1 hour
                 // tally latency - 24 hour metric range
-                .setSingleValuedArg("startDateTime", "2019-05-23T07:00Z")
-                .setSingleValuedArg("endDateTime", "2019-05-24T07:00Z")
+                .setSingleValuedArg("startDateTime", "2019-05-23T07:00:00Z")
+                .setSingleValuedArg("endDateTime", "2019-05-24T07:00:00Z")
                 .build());
         });
     }

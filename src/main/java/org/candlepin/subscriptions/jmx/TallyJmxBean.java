@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.jmx;
 
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
+import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.validator.ParameterDuration;
 
 import org.slf4j.Logger;
@@ -88,7 +89,8 @@ public class TallyJmxBean {
         @NotNull String endDateTime) {
         log.info("Hourly tally between {} and {} for account {} triggered over JMX by {}",
             startDateTime, endDateTime, accountNumber, ResourceUtils.getPrincipal());
-        tasks.tallyAccountByHourly(accountNumber, startDateTime, endDateTime);
+        var tallyRange = DateRange.fromStrings(startDateTime, endDateTime);
+        tasks.tallyAccountByHourly(accountNumber, tallyRange);
     }
 
     @ManagedOperation(description = "Trigger hourly tally for all configured accounts")

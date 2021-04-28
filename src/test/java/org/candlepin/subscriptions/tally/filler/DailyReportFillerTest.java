@@ -51,14 +51,14 @@ public class DailyReportFillerTest {
         OffsetDateTime end = start.plusDays(3);
 
         TallyReport report = new TallyReport();
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfDay(start), 0, 0, 0, false);
-        assertSnapshot(filled.get(1), clock.startOfDay(start.plusDays(1)), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), clock.startOfDay(start.plusDays(3)), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), clock.startOfDay(start.plusDays(1)), null, null, null, false);
+        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), null, null, null, false);
+        assertSnapshot(filled.get(3), clock.startOfDay(start.plusDays(3)), null, null, null, false);
     }
 
     @Test
@@ -74,14 +74,14 @@ public class DailyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfDay(start), 0, 0, 0, false);
         assertSnapshot(filled.get(1), snap1.getDate(), snap1.getCores(), snap1.getSockets(),
             snap1.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), 0, 0, 0, false);
+        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), null, null, null, false);
         assertSnapshot(filled.get(3), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
     }
@@ -98,14 +98,14 @@ public class DailyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), start, 0, 0, 0, false);
-        assertSnapshot(filled.get(1), start.plusDays(1), 0, 0, 0, false);
-        assertSnapshot(filled.get(2), start.plusDays(2), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), start.plusDays(3), 0, 0, 0, false);
+        assertSnapshot(filled.get(1), start.plusDays(1), null, null, null, false);
+        assertSnapshot(filled.get(2), start.plusDays(2), null, null, null, false);
+        assertSnapshot(filled.get(3), start.plusDays(3), null, null, null, false);
     }
 
     @Test
@@ -122,15 +122,15 @@ public class DailyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfDay(start), 0, 0, 0, false);
         assertSnapshot(filled.get(1), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), clock.startOfDay(start.plusDays(3)), 0, 0, 0, false);
+        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), null, null, null, false);
+        assertSnapshot(filled.get(3), clock.startOfDay(start.plusDays(3)), null, null, null, false);
     }
 
     @Test
@@ -147,15 +147,15 @@ public class DailyReportFillerTest {
         List<TallySnapshot> snaps = Arrays.asList(snap2, snap1);
 
         TallyReport report = new TallyReport().data(snaps);
-        filler.fillGaps(report, start, end);
+        filler.fillGaps(report, start, end, false);
 
         List<TallySnapshot> filled = report.getData();
         assertEquals(4, filled.size());
         assertSnapshot(filled.get(0), clock.startOfDay(start), 0, 0, 0, false);
         assertSnapshot(filled.get(1), snap2.getDate(), snap2.getCores(), snap2.getSockets(),
             snap2.getInstanceCount(), true);
-        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), 0, 0, 0, false);
-        assertSnapshot(filled.get(3), clock.startOfDay(start.plusDays(3)), 0, 0, 0, false);
+        assertSnapshot(filled.get(2), clock.startOfDay(start.plusDays(2)), null, null, null, false);
+        assertSnapshot(filled.get(3), clock.startOfDay(start.plusDays(3)), null, null, null, false);
     }
 
 }

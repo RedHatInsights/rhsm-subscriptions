@@ -64,10 +64,12 @@ public class MarketplaceWorkerConfiguration {
 
     @Bean
     ConcurrentKafkaListenerContainerFactory<String, TallySummary> kafkaTallySummaryListenerContainerFactory(
-        ConsumerFactory<String, TallySummary> consumerFactory) {
+        ConsumerFactory<String, TallySummary> consumerFactory, KafkaProperties kafkaProperties) {
 
         var factory = new ConcurrentKafkaListenerContainerFactory<String, TallySummary>();
         factory.setConsumerFactory(consumerFactory);
+        // Concurrency should be set to the number of partitions for the target topic.
+        factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
         return factory;
     }
 

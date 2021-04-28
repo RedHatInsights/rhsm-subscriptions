@@ -23,9 +23,13 @@ package org.candlepin.subscriptions.db.model;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
 
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
@@ -41,6 +45,10 @@ import javax.persistence.Table;
  * Offerings are identified by SKU.
  */
 @Entity
+@EqualsAndHashCode
+@Getter
+@Setter
+@ToString
 @Table(name = "offering")
 public class Offering implements Serializable {
 
@@ -141,147 +149,4 @@ public class Offering implements Serializable {
      */
     @Column(name = "usage")
     private Usage usage;
-
-    public String getSku() {
-        return sku;
-    }
-
-    public void setSku(String sku) {
-        this.sku = sku;
-    }
-
-    public String getProductName() {
-        return productName;
-    }
-
-    public void setProductName(String productName) {
-        this.productName = productName;
-    }
-
-    public String getProductFamily() {
-        return productFamily;
-    }
-
-    public void setProductFamily(String productFamily) {
-        this.productFamily = productFamily;
-    }
-
-    public List<String> getChildSkus() {
-        return childSkus;
-    }
-
-    public void setChildSkus(List<String> childSkus) {
-        this.childSkus = childSkus;
-    }
-
-    public List<Integer> getProductIds() {
-        return productIds;
-    }
-
-    public void setProductIds(List<Integer> productIds) {
-        this.productIds = productIds;
-    }
-
-    public int getPhysicalCores() {
-        return physicalCores;
-    }
-
-    public void setPhysicalCores(int physicalCores) {
-        this.physicalCores = physicalCores;
-    }
-
-    public int getPhysicalSockets() {
-        return physicalSockets;
-    }
-
-    public void setPhysicalSockets(int physicalSockets) {
-        this.physicalSockets = physicalSockets;
-    }
-
-    public int getVirtualCores() {
-        return virtualCores;
-    }
-
-    public void setVirtualCores(int virtualCores) {
-        this.virtualCores = virtualCores;
-    }
-
-    public int getVirtualSockets() {
-        return virtualSockets;
-    }
-
-    public void setVirtualSockets(int virtualSockets) {
-        this.virtualSockets = virtualSockets;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public ServiceLevel getServiceLevel() {
-        return serviceLevel;
-    }
-
-    public void setServiceLevel(ServiceLevel serviceLevel) {
-        this.serviceLevel = serviceLevel;
-    }
-
-    public Usage getUsage() {
-        return usage;
-    }
-
-    public void setUsage(Usage usage) {
-        this.usage = usage;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Offering offering = (Offering) o;
-        return physicalCores == offering.physicalCores &&
-                physicalSockets == offering.physicalSockets &&
-                virtualCores == offering.virtualCores &&
-                virtualSockets == offering.virtualSockets &&
-                Objects.equals(sku, offering.sku) &&
-                Objects.equals(productName, offering.productName) &&
-                Objects.equals(productFamily, offering.productFamily) &&
-                Objects.equals(childSkus, offering.childSkus) &&
-                Objects.equals(productIds, offering.productIds) &&
-                Objects.equals(role, offering.role) &&
-                serviceLevel == offering.serviceLevel &&
-                usage == offering.usage;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(sku, productName, productFamily, childSkus, productIds,
-            physicalCores, physicalSockets, virtualCores, virtualSockets, role, serviceLevel, usage);
-    }
-
-    @Override
-    public String toString() {
-        return "Offering{" +
-                "sku='" + sku + '\'' +
-                ", productName='" + productName + '\'' +
-                ", productFamily='" + productFamily + '\'' +
-                ", childSkus=" + childSkus +
-                ", productIds=" + productIds +
-                ", physicalCores=" + physicalCores +
-                ", physicalSockets=" + physicalSockets +
-                ", virtualCores=" + virtualCores +
-                ", virtualSockets=" + virtualSockets +
-                ", role='" + role + '\'' +
-                ", serviceLevel=" + serviceLevel +
-                ", usage=" + usage +
-                '}';
-    }
 }

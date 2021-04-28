@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 
 import org.slf4j.Logger;
@@ -118,13 +119,12 @@ public class TallySnapshotController {
     }
 
     @Timed("rhsm-subscriptions.snapshots.single.hourly")
-    public void produceHourlySnapshotsForAccount(String accountNumber, OffsetDateTime startDateTime,
-        OffsetDateTime endDateTime) {
+    public void produceHourlySnapshotsForAccount(String accountNumber, DateRange snapshotRange) {
         log.info("Producing hourly snapshot for account {} between startDateTime {} and endDateTime {}",
-            accountNumber, startDateTime, endDateTime);
+            accountNumber, snapshotRange.getStartString(), snapshotRange.getEndString());
         try {
             var accountCalcs = retryTemplate.execute(
-                context -> metricUsageCollector.collect(accountNumber, startDateTime, endDateTime));
+                context -> metricUsageCollector.collect(accountNumber, snapshotRange));
 
             var applicableUsageCalculations = accountCalcs.entrySet().stream()
                 .filter(TallySnapshotController::isCombiningRollupStrategySupported)

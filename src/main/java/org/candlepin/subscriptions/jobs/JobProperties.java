@@ -20,39 +20,33 @@
  */
 package org.candlepin.subscriptions.jobs;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Contains the configuration properties for all jobs.
  */
+@Getter
+@Setter
 public class JobProperties {
+    // Every hour on the hour
+    private String captureHourlySnapshotSchedule = "0 0 * * * ?";
 
     private String captureSnapshotSchedule = "0 5 * * * ?";
+
     // Once a day at 3am
     private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
-    private String meteringSchedule = "0 0 * ? * *"; // Every hour, on the hour.
+    // Every hour, on the hour
+    private String meteringSchedule = "0 0 * * * ?";
 
-    public String getCaptureSnapshotSchedule() {
-        return captureSnapshotSchedule;
+    public String getCaptureHourlySnapshotSchedule() {
+        return captureHourlySnapshotSchedule;
     }
 
-    public void setCaptureSnapshotSchedule(String captureSnapshotSchedule) {
-        this.captureSnapshotSchedule = captureSnapshotSchedule;
+    public void setCaptureHourlySnapshotSchedule(String captureHourlySnapshotSchedule) {
+        this.captureHourlySnapshotSchedule = captureHourlySnapshotSchedule;
     }
 
-    public String getPurgeSnapshotSchedule() {
-        return purgeSnapshotSchedule;
-    }
-
-    public void setPurgeSnapshotSchedule(String purgeSnapshotSchedule) {
-        this.purgeSnapshotSchedule = purgeSnapshotSchedule;
-    }
-
-    public String getMeteringSchedule() {
-        return meteringSchedule;
-    }
-
-    public void setMeteringSchedule(String meteringSchedule) {
-        this.meteringSchedule = meteringSchedule;
-    }
 
 }

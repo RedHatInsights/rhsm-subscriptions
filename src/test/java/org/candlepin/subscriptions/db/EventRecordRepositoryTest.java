@@ -149,6 +149,25 @@ class EventRecordRepositoryTest {
         assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(e2));
     }
 
+    @Test
+    void testDeleteByTimestamp() {
+        var now = OffsetDateTime.now();
+
+        EventRecord event = EventRecord.builder().id(UUID.randomUUID()).accountNumber("bananas1")
+            .timestamp(now.minusDays(91L)).build();
+        EventRecord event2 = EventRecord.builder().id(UUID.randomUUID()).accountNumber("bananas1")
+            .timestamp(now.minusDays(1L)).build();
+
+        repository.saveAll(List.of(event, event2));
+
+        repository.deleteEventRecordsByTimestampBefore(now.minusDays(30L));
+
+        var results = repository.findAll();
+
+        assertEquals(1, results.size());
+
+    }
+
     private Event event(String account, String source, String type, String instanceId, OffsetDateTime time) {
         UUID eventId = UUID.randomUUID();
         Event event = new Event();
