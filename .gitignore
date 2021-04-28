@@ -27,7 +27,7 @@
 # Checkstyle configuration) in the config directory.  This section hides
 # everything under the config directory except what Gradle is going to use.
 config/
-!config/checkstyle
+!config/codestyle/**
 
 #VS Code
 .project
