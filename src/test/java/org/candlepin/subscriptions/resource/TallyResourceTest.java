@@ -45,6 +45,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -364,6 +365,7 @@ public class TallyResourceTest {
     }
 
     @Test
+    @Disabled("Disabled until ENT-3818")
     void testRunningTotalFormatUsedForPaygProducts() {
         List<TallySnapshot> snapshots = List.of(1, 2, 8).stream().map(i -> {
             var snapshot = new TallySnapshot();

@@ -89,9 +89,7 @@ public class TallyResource implements TallyApi {
         // records from beginning to ending dates. Otherwise we page as usual.
         Pageable pageable = null;
         boolean fill = limit == null && offset == null;
-        boolean useRunningTotalFormat =
-            productProfileRegistry.findProfileForSwatchProductId(productId).getFinestGranularity() ==
-            Granularity.HOURLY;
+        boolean useRunningTotalFormat = false; // NOTE: to be addressed in ENT-3818
         if (!fill) {
             pageable = ResourceUtils.getPageable(offset, limit);
         }
@@ -134,7 +132,8 @@ public class TallyResource implements TallyApi {
         report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
 
         // if the product is a metered product transform to running total format
-        if (useRunningTotalFormat) {
+        // NOTE(khowell): disabling running total format until ENT-3818
+        if (useRunningTotalFormat) { //NOSONAR
             transformToRunningTotalFormat(report);
         }
 
