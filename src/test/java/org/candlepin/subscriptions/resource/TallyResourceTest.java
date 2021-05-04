@@ -53,7 +53,6 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,7 +99,8 @@ public class TallyResourceTest {
                 10,
                 10,
                 null,
-                UsageType.PRODUCTION));
+                UsageType.PRODUCTION,
+                false));
   }
 
   @Test
@@ -123,7 +123,15 @@ public class TallyResourceTest {
 
     TallyReport report =
         resource.getTallyReport(
-            RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, 10, 10, null, UsageType.PRODUCTION);
+            RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
+            min,
+            max,
+            10,
+            10,
+            null,
+            UsageType.PRODUCTION,
+            false);
     assertEquals(1, report.getData().size());
 
     Pageable expectedPageable = PageRequest.of(1, 10);
@@ -139,7 +147,13 @@ public class TallyResourceTest {
             Mockito.eq(expectedPageable));
 
     assertMetadata(
-        report.getMeta(), RHEL_PRODUCT_ID, null, UsageType.PRODUCTION, GranularityType.DAILY, 1);
+        report.getMeta(),
+        RHEL_PRODUCT_ID,
+        null,
+        UsageType.PRODUCTION,
+        GranularityType.DAILY,
+        1,
+        0.0);
   }
 
   private void assertMetadata(
@@ -148,13 +162,15 @@ public class TallyResourceTest {
       ServiceLevelType expectedSla,
       UsageType expectedUsage,
       GranularityType expectedGranularity,
-      Integer expectedCount) {
+      Integer expectedCount,
+      Double expectedTotalCoreHours) {
 
     assertEquals(expectedProduct, meta.getProduct());
     assertEquals(expectedSla, meta.getServiceLevel());
     assertEquals(expectedUsage, meta.getUsage());
     assertEquals(expectedCount, meta.getCount());
     assertEquals(expectedGranularity, meta.getGranularity());
+    assertEquals(expectedTotalCoreHours, meta.getTotalCoreHours());
   }
 
   @Test
@@ -184,7 +200,8 @@ public class TallyResourceTest {
             10,
             10,
             ServiceLevelType.PREMIUM,
-            null);
+            null,
+            false);
     assertEquals(1, report.getData().size());
 
     Pageable expectedPageable = PageRequest.of(1, 10);
@@ -205,7 +222,8 @@ public class TallyResourceTest {
         ServiceLevelType.PREMIUM,
         null,
         GranularityType.DAILY,
-        1);
+        1,
+        0.0);
   }
 
   @Test
@@ -235,7 +253,8 @@ public class TallyResourceTest {
             10,
             10,
             ServiceLevelType.EMPTY,
-            UsageType.PRODUCTION);
+            UsageType.PRODUCTION,
+            false);
     assertEquals(1, report.getData().size());
 
     Pageable expectedPageable = PageRequest.of(1, 10);
@@ -256,7 +275,8 @@ public class TallyResourceTest {
         ServiceLevelType.EMPTY,
         UsageType.PRODUCTION,
         GranularityType.DAILY,
-        1);
+        1,
+        0.0);
   }
 
   @Test
@@ -285,7 +305,8 @@ public class TallyResourceTest {
             10,
             10,
             ServiceLevelType.PREMIUM,
-            UsageType.EMPTY);
+            UsageType.EMPTY,
+            false);
     assertEquals(1, report.getData().size());
 
     Pageable expectedPageable = PageRequest.of(1, 10);
@@ -306,7 +327,8 @@ public class TallyResourceTest {
         ServiceLevelType.PREMIUM,
         UsageType.EMPTY,
         GranularityType.DAILY,
-        1);
+        1,
+        0.0);
   }
 
   @Test
@@ -335,7 +357,8 @@ public class TallyResourceTest {
             10,
             10,
             ServiceLevelType.PREMIUM,
-            UsageType.PRODUCTION);
+            UsageType.PRODUCTION,
+            false);
     assertEquals(1, report.getData().size());
 
     Pageable expectedPageable = PageRequest.of(1, 10);
@@ -356,11 +379,11 @@ public class TallyResourceTest {
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
         GranularityType.DAILY,
-        1);
+        1,
+        0.0);
   }
 
   @Test
-  @Disabled("Disabled until ENT-3818")
   void testRunningTotalFormatUsedForPaygProducts() {
     List<TallySnapshot> snapshots =
         List.of(1, 2, 8).stream()
@@ -397,7 +420,8 @@ public class TallyResourceTest {
             null,
             null,
             ServiceLevelType.PREMIUM,
-            UsageType.PRODUCTION);
+            UsageType.PRODUCTION,
+            true);
     assertEquals(31, report.getData().size());
 
     var firstSnapshot = report.getData().get(0);
@@ -411,6 +435,8 @@ public class TallyResourceTest {
 
     var futureSnapshots = report.getData().subList(24, 31);
     futureSnapshots.forEach(snapshot -> assertNull(snapshot.getCoreHours()));
+
+    assertEquals("22.0", report.getMeta().getTotalCoreHours().toString());
   }
 
   @Test
@@ -439,7 +465,8 @@ public class TallyResourceTest {
             10,
             10,
             ServiceLevelType.PREMIUM,
-            UsageType.PRODUCTION);
+            UsageType.PRODUCTION,
+            false);
     assertEquals(1, report.getData().size());
 
     Pageable expectedPageable = PageRequest.of(1, 10);
@@ -469,7 +496,8 @@ public class TallyResourceTest {
                     11,
                     10,
                     ServiceLevelType.PREMIUM,
-                    UsageType.PRODUCTION));
+                    UsageType.PRODUCTION,
+                    false));
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
   }
 
@@ -490,7 +518,7 @@ public class TallyResourceTest {
 
     TallyReport report =
         resource.getTallyReport(
-            RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null);
+            RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null, false);
 
     // Since nothing was returned from the DB, there should be one generated snapshot for each day
     // in the range.
@@ -535,7 +563,7 @@ public class TallyResourceTest {
 
     TallyReport report =
         resource.getTallyReport(
-            RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null);
+            RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null, false);
     assertNotNull(report);
   }
 
@@ -546,7 +574,7 @@ public class TallyResourceTest {
         AccessDeniedException.class,
         () -> {
           resource.getTallyReport(
-              RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null);
+              RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null, false);
         });
   }
 
@@ -559,7 +587,7 @@ public class TallyResourceTest {
         AccessDeniedException.class,
         () -> {
           resource.getTallyReport(
-              RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null);
+              RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null, false);
         });
   }
 }

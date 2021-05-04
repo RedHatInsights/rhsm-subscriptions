@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -87,12 +88,12 @@ public class TallyResource implements TallyApi {
       Integer offset,
       @Min(1) Integer limit,
       ServiceLevelType sla,
-      UsageType usageType) {
+      UsageType usageType,
+      Boolean useRunningTotalsFormat) {
     // When limit and offset are not specified, we will fill the report with dummy
     // records from beginning to ending dates. Otherwise we page as usual.
     Pageable pageable = null;
     boolean fill = limit == null && offset == null;
-    boolean useRunningTotalFormat = false; // NOTE: to be addressed in ENT-3818
     if (!fill) {
       pageable = ResourceUtils.getPageable(offset, limit);
     }
@@ -135,10 +136,9 @@ public class TallyResource implements TallyApi {
     report.getMeta().setProduct(productId);
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
+    report.getMeta().setTotalCoreHours(getTotalCoreHours(report));
 
-    // if the product is a metered product transform to running total format
-    // NOTE(khowell): disabling running total format until ENT-3818
-    if (useRunningTotalFormat) { // NOSONAR
+    if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
       transformToRunningTotalFormat(report);
     }
 
@@ -150,7 +150,7 @@ public class TallyResource implements TallyApi {
     // Fill the report gaps if no paging was requested.
     if (fill) {
       ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityFromValue);
-      reportFiller.fillGaps(report, beginning, ending, useRunningTotalFormat);
+      reportFiller.fillGaps(report, beginning, ending, useRunningTotalsFormat);
     }
 
     // Set the count last since the report may have gotten filled.
@@ -159,8 +159,14 @@ public class TallyResource implements TallyApi {
     return report;
   }
 
+  private Double getTotalCoreHours(TallyReport report) {
+    return report.getData().stream()
+        .mapToDouble(snapshot -> Optional.ofNullable(snapshot.getCoreHours()).orElse(0.0))
+        .sum();
+  }
+
   private void transformToRunningTotalFormat(TallyReport report) {
-    Map<Measurement.Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+    Map<Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
     report
         .getData()
         .forEach(
