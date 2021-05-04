@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.util.Set;
-
 
 /** Represents the idea of products in Subscription Watch and what family they slot into. */
 @Getter
@@ -34,15 +32,15 @@ import java.util.Set;
 @ToString
 @EqualsAndHashCode
 public class SubscriptionWatchProduct {
-    private String engProductId;
-    private Set<String> swatchProductIds;
+  private String engProductId;
+  private Set<String> swatchProductIds;
 
-    public SubscriptionWatchProduct() {
-        // Required for YAML
-    }
+  public SubscriptionWatchProduct() {
+    // Required for YAML
+  }
 
-    public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
-        this.engProductId = engProductId;
-        this.swatchProductIds = swatchProductIds;
-    }
+  public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
+    this.engProductId = engProductId;
+    this.swatchProductIds = swatchProductIds;
+  }
 }

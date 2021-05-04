@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,15 +21,15 @@
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.Data;
 
 /**
- * Represents the kafka message that should be sent to the inventory service. Each message
- * should include an operation, a metadata object and a data object that will be converted
- * to JSON when sent.
+ * Represents the kafka message that should be sent to the inventory service. Each message should
+ * include an operation, a metadata object and a data object that will be converted to JSON when
+ * sent.
  *
- * The inventory service's message consumer is expecting a JSON message in the following format:
+ * <p>The inventory service's message consumer is expecting a JSON message in the following format:
+ *
  * <pre>
  *    {
  *      "operation": $SUPPORTED_OPERATION,
@@ -44,17 +44,18 @@ import lombok.Data;
 @Data
 public abstract class HostOperationMessage<M, D> {
 
-    protected String operation;
-    @JsonProperty("platform_metadata")
-    protected M metadata;
-    protected D data;
+  protected String operation;
 
-    protected HostOperationMessage() {
-    }
+  @JsonProperty("platform_metadata")
+  protected M metadata;
 
-    protected HostOperationMessage(String operation, M metadata, D data) {
-        this.operation = operation;
-        this.metadata = metadata;
-        this.data = data;
-    }
+  protected D data;
+
+  protected HostOperationMessage() {}
+
+  protected HostOperationMessage(String operation, M metadata, D data) {
+    this.operation = operation;
+    this.metadata = metadata;
+    this.data = data;
+  }
 }

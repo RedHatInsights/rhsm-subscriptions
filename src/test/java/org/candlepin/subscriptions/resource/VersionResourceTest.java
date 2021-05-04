@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import static org.mockito.Mockito.*;
 
 import org.candlepin.subscriptions.utilization.api.model.VersionInfo;
 import org.candlepin.subscriptions.utilization.api.model.VersionInfoBuild;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
@@ -36,26 +35,26 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 public class VersionResourceTest {
-    @MockBean BuildProperties buildProperties;
+  @MockBean BuildProperties buildProperties;
 
-    @Autowired VersionResource versionResource;
+  @Autowired VersionResource versionResource;
 
-    @Test
-    void getVersion() {
-        when(buildProperties.getVersion()).thenReturn("VERSION");
-        when(buildProperties.getArtifact()).thenReturn("ARTIFACT");
-        when(buildProperties.getName()).thenReturn("NAME");
-        when(buildProperties.getGroup()).thenReturn("GROUP");
-        when(buildProperties.get(eq("gitDescription"))).thenReturn("GIT_DESCRIPTION");
-        when(buildProperties.get(eq("gitHash"))).thenReturn("GIT_HASH");
+  @Test
+  void getVersion() {
+    when(buildProperties.getVersion()).thenReturn("VERSION");
+    when(buildProperties.getArtifact()).thenReturn("ARTIFACT");
+    when(buildProperties.getName()).thenReturn("NAME");
+    when(buildProperties.getGroup()).thenReturn("GROUP");
+    when(buildProperties.get(eq("gitDescription"))).thenReturn("GIT_DESCRIPTION");
+    when(buildProperties.get(eq("gitHash"))).thenReturn("GIT_HASH");
 
-        VersionInfo versionInfo = versionResource.getVersion();
-        VersionInfoBuild expected = versionInfo.getBuild();
-        assertEquals("VERSION", expected.getVersion());
-        assertEquals("ARTIFACT", expected.getArtifact());
-        assertEquals("NAME", expected.getName());
-        assertEquals("GROUP", expected.getGroup());
-        assertEquals("GIT_DESCRIPTION", expected.getGitDescription());
-        assertEquals("GIT_HASH", expected.getGitHash());
-    }
+    VersionInfo versionInfo = versionResource.getVersion();
+    VersionInfoBuild expected = versionInfo.getBuild();
+    assertEquals("VERSION", expected.getVersion());
+    assertEquals("ARTIFACT", expected.getArtifact());
+    assertEquals("NAME", expected.getName());
+    assertEquals("GROUP", expected.getGroup());
+    assertEquals("GIT_DESCRIPTION", expected.getGitDescription());
+    assertEquals("GIT_HASH", expected.getGitHash());
+  }
 }

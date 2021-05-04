@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,84 +23,79 @@ package org.candlepin.subscriptions.db.model.config;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.MappedSuperclass;
 
-
-/**
- * Base class for configuration DB objects.
- */
+/** Base class for configuration DB objects. */
 @MappedSuperclass
 public class BaseConfig implements Serializable {
 
-    @Column(name = "sync_enabled")
-    protected Boolean syncEnabled;
+  @Column(name = "sync_enabled")
+  protected Boolean syncEnabled;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "opt_in_type")
-    protected OptInType optInType;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "opt_in_type")
+  protected OptInType optInType;
 
-    @Column(name = "created")
-    protected OffsetDateTime created;
+  @Column(name = "created")
+  protected OffsetDateTime created;
 
-    @Column(name = "updated")
-    protected OffsetDateTime updated;
+  @Column(name = "updated")
+  protected OffsetDateTime updated;
 
-    public Boolean getSyncEnabled() {
-        return syncEnabled;
+  public Boolean getSyncEnabled() {
+    return syncEnabled;
+  }
+
+  public void setSyncEnabled(Boolean syncEnabled) {
+    this.syncEnabled = syncEnabled;
+  }
+
+  public OptInType getOptInType() {
+    return optInType;
+  }
+
+  public void setOptInType(OptInType optInType) {
+    this.optInType = optInType;
+  }
+
+  public OffsetDateTime getCreated() {
+    return created;
+  }
+
+  public void setCreated(OffsetDateTime created) {
+    this.created = created;
+  }
+
+  public OffsetDateTime getUpdated() {
+    return updated;
+  }
+
+  public void setUpdated(OffsetDateTime updated) {
+    this.updated = updated;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
 
-    public void setSyncEnabled(Boolean syncEnabled) {
-        this.syncEnabled = syncEnabled;
+    if (!(o instanceof BaseConfig)) {
+      return false;
     }
 
-    public OptInType getOptInType() {
-        return optInType;
-    }
+    BaseConfig that = (BaseConfig) o;
+    return Objects.equals(syncEnabled, that.syncEnabled)
+        && optInType == that.optInType
+        && Objects.equals(created, that.created)
+        && Objects.equals(updated, that.updated);
+  }
 
-    public void setOptInType(OptInType optInType) {
-        this.optInType = optInType;
-    }
-
-    public OffsetDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(OffsetDateTime created) {
-        this.created = created;
-    }
-
-    public OffsetDateTime getUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(OffsetDateTime updated) {
-        this.updated = updated;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (!(o instanceof BaseConfig)) {
-            return false;
-        }
-
-        BaseConfig that = (BaseConfig) o;
-        return Objects.equals(syncEnabled, that.syncEnabled) &&
-            optInType == that.optInType &&
-            Objects.equals(created, that.created) &&
-            Objects.equals(updated, that.updated);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(syncEnabled, optInType, created, updated);
-    }
-
+  @Override
+  public int hashCode() {
+    return Objects.hash(syncEnabled, optInType, created, updated);
+  }
 }

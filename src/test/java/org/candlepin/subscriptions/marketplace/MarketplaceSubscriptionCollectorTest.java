@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.ParameterizedTest.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.subscription.SubscriptionService;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,77 +41,89 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
 @ActiveProfiles("test")
 class MarketplaceSubscriptionCollectorTest {
 
-    private static final Subscription SUB_WITH_IBMMARKETPLACE = new Subscription().externalReferences(
-        Map.of("ibmmarketplace", new ExternalReference().subscriptionID("GGJe4KCgzUBf73YC5rjJvDkM")
-        .accountID("account-ID-04072021-1841")));
+  private static final Subscription SUB_WITH_IBMMARKETPLACE =
+      new Subscription()
+          .externalReferences(
+              Map.of(
+                  "ibmmarketplace",
+                  new ExternalReference()
+                      .subscriptionID("GGJe4KCgzUBf73YC5rjJvDkM")
+                      .accountID("account-ID-04072021-1841")));
 
-    @Mock
-    SubscriptionService subscriptionService;
-    @InjectMocks
-    MarketplaceSubscriptionCollector marketplaceSubscriptionCollector;
+  @Mock SubscriptionService subscriptionService;
+  @InjectMocks MarketplaceSubscriptionCollector marketplaceSubscriptionCollector;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+  @BeforeEach
+  void setUp() {
+    MockitoAnnotations.openMocks(this);
+  }
 
-    @Test
-    void testRequestSubscriptions() {
+  @Test
+  void testRequestSubscriptions() {
 
-        when(subscriptionService.getSubscriptionsByAccountNumber(anyString()))
-            .thenReturn(List.of(SUB_WITH_IBMMARKETPLACE));
+    when(subscriptionService.getSubscriptionsByAccountNumber(anyString()))
+        .thenReturn(List.of(SUB_WITH_IBMMARKETPLACE));
 
-        assertEquals(List.of(SUB_WITH_IBMMARKETPLACE),
-            marketplaceSubscriptionCollector.requestSubscriptions("account123"));
-    }
+    assertEquals(
+        List.of(SUB_WITH_IBMMARKETPLACE),
+        marketplaceSubscriptionCollector.requestSubscriptions("account123"));
+  }
 
-    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
-    @MethodSource("generateMockSubscriptionPayloads")
-    void testFilterNonApplicableSubscriptions(List<Subscription> input, List<Subscription> expected) {
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  @MethodSource("generateMockSubscriptionPayloads")
+  void testFilterNonApplicableSubscriptions(List<Subscription> input, List<Subscription> expected) {
 
-        assertEquals(expected, marketplaceSubscriptionCollector.filterNonApplicableSubscriptions(input));
+    assertEquals(
+        expected, marketplaceSubscriptionCollector.filterNonApplicableSubscriptions(input));
+  }
 
-    }
+  static Stream<Arguments> generateMockSubscriptionPayloads() {
+    // 1) getExternalReferences null
+    var subscription = new Subscription().externalReferences(null);
+    Arguments nullExternalReference = Arguments.of(List.of(subscription), Collections.emptyList());
 
-    static Stream<Arguments> generateMockSubscriptionPayloads() {
-        //1) getExternalReferences null
-        var subscription = new Subscription().externalReferences(null);
-        Arguments nullExternalReference = Arguments.of(List.of(subscription), Collections.emptyList());
+    // 2) External getExternalReferences empty
+    var subscription1 = new Subscription().externalReferences(Collections.emptyMap());
+    Arguments emptyExternalReferences =
+        Arguments.of(List.of(subscription1), Collections.emptyList());
 
-        //2) External getExternalReferences empty
-        var subscription1 = new Subscription().externalReferences(Collections.emptyMap());
-        Arguments emptyExternalReferences = Arguments.of(List.of(subscription1), Collections.emptyList());
+    // 3) getExternalReferences doesn't contain "ibmmarketplace"
+    var subscription2 =
+        new Subscription().externalReferences(Map.of("bananas", new ExternalReference()));
 
-        //3) getExternalReferences doesn't contain "ibmmarketplace"
-        var subscription2 = new Subscription().externalReferences(Map.of("bananas", new ExternalReference()));
+    Arguments nonIbmMarketplaceExternalReferences =
+        Arguments.of(List.of(subscription2), Collections.emptyList());
 
-        Arguments nonIbmMarketplaceExternalReferences = Arguments
-            .of(List.of(subscription2), Collections.emptyList());
+    // 4) contain only "ibmmarketplace"
+    var subscription3 = SUB_WITH_IBMMARKETPLACE;
 
-        //4) contain only "ibmmarketplace"
-        var subscription3 = SUB_WITH_IBMMARKETPLACE;
+    Arguments ibmMarketplaceExternalReferences =
+        Arguments.of(List.of(subscription3), List.of(subscription3));
 
-        Arguments ibmMarketplaceExternalReferences = Arguments
-            .of(List.of(subscription3), List.of(subscription3));
+    // 5) contains "ibmmarketplace" plus another
 
-        //5) contains "ibmmarketplace" plus another
+    var subscription4 =
+        new Subscription()
+            .externalReferences(
+                Map.of(
+                    "ibmmarketplace",
+                    new ExternalReference()
+                        .subscriptionID("GGJe4KCgzUBf73YC5rjJvDkM")
+                        .accountID("account-ID-04072021-1841"),
+                    "bananas",
+                    new ExternalReference()));
 
-        var subscription4 = new Subscription().externalReferences(Map.of("ibmmarketplace",
-            new ExternalReference().subscriptionID("GGJe4KCgzUBf73YC5rjJvDkM")
-            .accountID("account-ID-04072021-1841"), "bananas", new ExternalReference()));
+    Arguments ibmMarketplacePlusNonIbmMarketplaceExternalReferences =
+        Arguments.of(List.of(subscription4), List.of(subscription4));
 
-        Arguments ibmMarketplacePlusNonIbmMarketplaceExternalReferences = Arguments
-            .of(List.of(subscription4), List.of(subscription4));
-
-        return Stream.of(nullExternalReference, emptyExternalReferences, nonIbmMarketplaceExternalReferences,
-            ibmMarketplaceExternalReferences, ibmMarketplacePlusNonIbmMarketplaceExternalReferences);
-    }
+    return Stream.of(
+        nullExternalReference,
+        emptyExternalReferences,
+        nonIbmMarketplaceExternalReferences,
+        ibmMarketplaceExternalReferences,
+        ibmMarketplacePlusNonIbmMarketplaceExternalReferences);
+  }
 }

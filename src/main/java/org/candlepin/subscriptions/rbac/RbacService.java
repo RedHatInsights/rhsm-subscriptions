@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,31 +20,25 @@
  */
 package org.candlepin.subscriptions.rbac;
 
-import org.candlepin.subscriptions.rbac.model.Access;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.rbac.model.Access;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
-/**
- * Provides RBAC functionality.
- */
+/** Provides RBAC functionality. */
 public class RbacService {
 
-    @Autowired
-    private RbacApi api;
+  @Autowired private RbacApi api;
 
-    public List<String> getPermissions(String rbacAppName) throws RbacApiException {
-        // Get all permissions for the configured application name.
-        try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
-            return accessStream
-                .filter(access -> access != null && !StringUtils.isEmpty(access.getPermission()))
-                .map(Access::getPermission)
-                .collect(Collectors.toList());
-        }
+  public List<String> getPermissions(String rbacAppName) throws RbacApiException {
+    // Get all permissions for the configured application name.
+    try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
+      return accessStream
+          .filter(access -> access != null && !StringUtils.isEmpty(access.getPermission()))
+          .map(Access::getPermission)
+          .collect(Collectors.toList());
     }
-
+  }
 }

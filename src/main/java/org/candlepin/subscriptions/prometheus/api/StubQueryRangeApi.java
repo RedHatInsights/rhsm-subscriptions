@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,26 +20,21 @@
  */
 package org.candlepin.subscriptions.prometheus.api;
 
+import java.util.Arrays;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 
-import java.util.Arrays;
-
-
-/**
- * A class that stubs out the QueryRangeAPI endpoint calls.
- */
+/** A class that stubs out the QueryRangeAPI endpoint calls. */
 public class StubQueryRangeApi extends QueryRangeApi {
 
-    @Override
-    public QueryResult queryRange(String query, Long start, Long end, String step,
-        Integer timeout) throws ApiException {
-        return new QueryResult()
-            .status(StatusType.SUCCESS)
-            .data(new QueryResultData().result(Arrays.asList()));
-    }
-
+  @Override
+  public QueryResult queryRange(String query, Long start, Long end, String step, Integer timeout)
+      throws ApiException {
+    return new QueryResult()
+        .status(StatusType.SUCCESS)
+        .data(new QueryResultData().result(Arrays.asList()));
+  }
 }

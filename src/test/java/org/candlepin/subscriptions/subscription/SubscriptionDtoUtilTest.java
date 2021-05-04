@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,37 +22,35 @@ package org.candlepin.subscriptions.subscription;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
-
-import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
 import java.util.List;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.junit.jupiter.api.Test;
 
 class SubscriptionDtoUtilTest {
-    @Test
-    void testExtractSku() {
-        var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
-        SubscriptionProduct product = new SubscriptionProduct().parentSubscriptionProductId(null)
-            .sku("testSku");
-        SubscriptionProduct childSku = new SubscriptionProduct().parentSubscriptionProductId(123)
-            .sku("childSku");
-        List<SubscriptionProduct> products = Arrays.asList(product, childSku);
-        dto.setSubscriptionProducts(products);
+  @Test
+  void testExtractSku() {
+    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    SubscriptionProduct product =
+        new SubscriptionProduct().parentSubscriptionProductId(null).sku("testSku");
+    SubscriptionProduct childSku =
+        new SubscriptionProduct().parentSubscriptionProductId(123).sku("childSku");
+    List<SubscriptionProduct> products = Arrays.asList(product, childSku);
+    dto.setSubscriptionProducts(products);
 
-        assertEquals("testSku", SubscriptionDtoUtil.extractSku(dto));
-    }
+    assertEquals("testSku", SubscriptionDtoUtil.extractSku(dto));
+  }
 
-    @Test
-    void testExtractSkuFailsWithImproperSubscription() {
-        var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
-        SubscriptionProduct product = new SubscriptionProduct().parentSubscriptionProductId(null)
-            .sku("testSku");
-        SubscriptionProduct childSku = new SubscriptionProduct().parentSubscriptionProductId(null)
-            .sku("childSku");
-        List<SubscriptionProduct> products = Arrays.asList(product, childSku);
-        dto.setSubscriptionProducts(products);
+  @Test
+  void testExtractSkuFailsWithImproperSubscription() {
+    var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    SubscriptionProduct product =
+        new SubscriptionProduct().parentSubscriptionProductId(null).sku("testSku");
+    SubscriptionProduct childSku =
+        new SubscriptionProduct().parentSubscriptionProductId(null).sku("childSku");
+    List<SubscriptionProduct> products = Arrays.asList(product, childSku);
+    dto.setSubscriptionProducts(products);
 
-        assertThrows(IllegalStateException.class, () -> SubscriptionDtoUtil.extractSku(dto));
-    }
+    assertThrows(IllegalStateException.class, () -> SubscriptionDtoUtil.extractSku(dto));
+  }
 }

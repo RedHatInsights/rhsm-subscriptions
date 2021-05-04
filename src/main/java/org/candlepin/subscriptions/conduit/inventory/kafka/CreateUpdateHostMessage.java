@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,27 +20,27 @@
  */
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
-import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
 
 /**
  * Represents a message that is sent to the inventory service's kafka instance to request the
  * creation/update of a host in the inventory service.
  */
-public class CreateUpdateHostMessage extends HostOperationMessage<Map<String, String>, CreateHostIn> {
+public class CreateUpdateHostMessage
+    extends HostOperationMessage<Map<String, String>, CreateHostIn> {
 
-    public CreateUpdateHostMessage() {
-        this.operation = "add_host";
-        this.metadata = new HashMap<>();
-    }
+  public CreateUpdateHostMessage() {
+    this.operation = "add_host";
+    this.metadata = new HashMap<>();
+  }
 
-    public CreateUpdateHostMessage(CreateHostIn host) {
-        super("add_host", new HashMap<>(), host);
-    }
+  public CreateUpdateHostMessage(CreateHostIn host) {
+    super("add_host", new HashMap<>(), host);
+  }
 
-    public void setMetadata(String key, String value) {
-        this.metadata.put(key, value);
-    }
+  public void setMetadata(String key, String value) {
+    this.metadata.put(key, value);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,123 +20,178 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-
-import org.springframework.util.StringUtils;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.springframework.util.StringUtils;
 
-/**
- * Provides helper functions for test cases.
- */
+/** Provides helper functions for test cases. */
 public class InventoryHostFactTestHelper {
 
-    private InventoryHostFactTestHelper() {
-        throw new IllegalStateException("Utility class; should never be instantiated!");
+  private InventoryHostFactTestHelper() {
+    throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
+
+  public static InventoryHostFacts createHypervisor(
+      String account, String orgId, Integer product, int cores, int sockets) {
+    InventoryHostFacts baseFacts = createBaseHost(account, orgId);
+    if (product != null) {
+      baseFacts.setProducts(product.toString());
     }
+    baseFacts.setCores(cores);
+    baseFacts.setSockets(sockets);
+    return baseFacts;
+  }
 
-    public static InventoryHostFacts createHypervisor(String account, String orgId, Integer product,
-        int cores, int sockets) {
-        InventoryHostFacts baseFacts = createBaseHost(account, orgId);
-        if (product != null) {
-            baseFacts.setProducts(product.toString());
-        }
-        baseFacts.setCores(cores);
-        baseFacts.setSockets(sockets);
-        return baseFacts;
-    }
+  public static InventoryHostFacts createGuest(
+      String hypervisorUUID,
+      String account,
+      String orgId,
+      Integer product,
+      int cores,
+      int sockets) {
+    InventoryHostFacts baseFacts = createBaseHost(account, orgId);
+    baseFacts.setProducts(product.toString());
+    baseFacts.setCores(cores);
+    baseFacts.setSockets(sockets);
+    baseFacts.setHypervisorUuid(hypervisorUUID);
+    baseFacts.setGuestId(UUID.randomUUID().toString());
+    baseFacts.setVirtual(true);
+    return baseFacts;
+  }
 
-    public static InventoryHostFacts createGuest(String hypervisorUUID, String account,
-        String orgId, Integer product, int cores, int sockets) {
-        InventoryHostFacts baseFacts = createBaseHost(account, orgId);
-        baseFacts.setProducts(product.toString());
-        baseFacts.setCores(cores);
-        baseFacts.setSockets(sockets);
-        baseFacts.setHypervisorUuid(hypervisorUUID);
-        baseFacts.setGuestId(UUID.randomUUID().toString());
-        baseFacts.setVirtual(true);
-        return baseFacts;
-    }
+  public static InventoryHostFacts createRhsmHost(
+      String account,
+      String orgId,
+      List<Integer> products,
+      Integer cores,
+      Integer sockets,
+      String syspurposeRole,
+      OffsetDateTime syncTimestamp) {
+    return createRhsmHost(
+        account,
+        orgId,
+        StringUtils.collectionToCommaDelimitedString(products),
+        cores,
+        sockets,
+        syspurposeRole,
+        syncTimestamp);
+  }
 
-    public static InventoryHostFacts createRhsmHost(String account, String orgId,
-        List<Integer> products, Integer cores, Integer sockets, String syspurposeRole,
-        OffsetDateTime syncTimestamp) {
-        return createRhsmHost(account, orgId, StringUtils.collectionToCommaDelimitedString(products),
-            cores, sockets, syspurposeRole, syncTimestamp);
-    }
+  public static InventoryHostFacts createRhsmHost(
+      List<Integer> products,
+      Integer cores,
+      Integer sockets,
+      String syspurposeRole,
+      OffsetDateTime syncTimestamp) {
+    return createRhsmHost(
+        "Account",
+        "test_org",
+        StringUtils.collectionToCommaDelimitedString(products),
+        cores,
+        sockets,
+        syspurposeRole,
+        syncTimestamp);
+  }
 
-    public static InventoryHostFacts createRhsmHost(List<Integer> products, Integer cores,
-        Integer sockets, String syspurposeRole, OffsetDateTime syncTimestamp) {
-        return createRhsmHost("Account", "test_org", StringUtils.collectionToCommaDelimitedString(products),
-            cores, sockets, syspurposeRole, syncTimestamp);
-    }
+  public static InventoryHostFacts createRhsmHost(
+      String account,
+      String orgId,
+      String products,
+      Integer cores,
+      Integer sockets,
+      String syspurposeRole,
+      OffsetDateTime syncTimeStamp) {
+    return createRhsmHost(
+        account,
+        orgId,
+        products,
+        ServiceLevel.EMPTY,
+        cores,
+        sockets,
+        syspurposeRole,
+        syncTimeStamp);
+  }
 
-    public static InventoryHostFacts createRhsmHost(String account, String orgId, String products,
-        Integer cores, Integer sockets, String syspurposeRole, OffsetDateTime syncTimeStamp) {
-        return createRhsmHost(account, orgId, products, ServiceLevel.EMPTY, cores, sockets,
-            syspurposeRole, syncTimeStamp);
-    }
+  public static InventoryHostFacts createRhsmHost(
+      String account,
+      String orgId,
+      String products,
+      ServiceLevel sla,
+      Integer cores,
+      Integer sockets,
+      String syspurposeRole,
+      OffsetDateTime syncTimeStamp) {
 
-    public static InventoryHostFacts createRhsmHost(String account, String orgId, String products,
-        ServiceLevel sla, Integer cores, Integer sockets, String syspurposeRole,
-        OffsetDateTime syncTimeStamp) {
+    return createRhsmHost(
+        account, orgId, products, sla, Usage.EMPTY, cores, sockets, syspurposeRole, syncTimeStamp);
+  }
 
-        return createRhsmHost(account, orgId, products, sla, Usage.EMPTY, cores, sockets,
-            syspurposeRole, syncTimeStamp);
-    }
+  public static InventoryHostFacts createRhsmHost(
+      String account,
+      String orgId,
+      String products,
+      ServiceLevel sla,
+      Usage usage,
+      Integer cores,
+      Integer sockets,
+      String syspurposeRole,
+      OffsetDateTime syncTimeStamp) {
 
-    public static InventoryHostFacts createRhsmHost(String account, String orgId, String products,
-        ServiceLevel sla, Usage usage, Integer cores, Integer sockets, String syspurposeRole,
-        OffsetDateTime syncTimeStamp) {
+    InventoryHostFacts baseFacts = createBaseHost(account, orgId);
+    baseFacts.setProducts(products);
+    baseFacts.setCores(cores);
+    baseFacts.setSockets(sockets);
+    baseFacts.setSyspurposeRole(syspurposeRole);
+    baseFacts.setSyspurposeSla(sla.getValue());
+    baseFacts.setSyspurposeUsage(usage.getValue());
+    baseFacts.setSyncTimestamp(syncTimeStamp.toString());
+    return baseFacts;
+  }
 
-        InventoryHostFacts baseFacts = createBaseHost(account, orgId);
-        baseFacts.setProducts(products);
-        baseFacts.setCores(cores);
-        baseFacts.setSockets(sockets);
-        baseFacts.setSyspurposeRole(syspurposeRole);
-        baseFacts.setSyspurposeSla(sla.getValue());
-        baseFacts.setSyspurposeUsage(usage.getValue());
-        baseFacts.setSyncTimestamp(syncTimeStamp.toString());
-        return baseFacts;
-    }
+  public static InventoryHostFacts createQpcHost(String qpcProducts, OffsetDateTime syncTimestamp) {
+    InventoryHostFacts baseFacts = createBaseHost("Account", "test_org");
+    baseFacts.setQpcProducts(qpcProducts);
+    baseFacts.setSyncTimestamp(syncTimestamp.toString());
+    return baseFacts;
+  }
 
-    public static InventoryHostFacts createQpcHost(String qpcProducts,
-        OffsetDateTime syncTimestamp) {
-        InventoryHostFacts baseFacts = createBaseHost("Account", "test_org");
-        baseFacts.setQpcProducts(qpcProducts);
-        baseFacts.setSyncTimestamp(syncTimestamp.toString());
-        return baseFacts;
-    }
+  public static InventoryHostFacts createSystemProfileHost(
+      List<Integer> products,
+      Integer coresPerSocket,
+      Integer sockets,
+      OffsetDateTime syncTimestamp) {
+    return createSystemProfileHost(
+        "Account", "test-org", products, coresPerSocket, sockets, syncTimestamp);
+  }
 
-    public static InventoryHostFacts createSystemProfileHost(List<Integer> products,
-        Integer coresPerSocket, Integer sockets, OffsetDateTime syncTimestamp) {
-        return createSystemProfileHost("Account", "test-org", products, coresPerSocket, sockets,
-            syncTimestamp);
-    }
+  public static InventoryHostFacts createSystemProfileHost(
+      String account,
+      String orgId,
+      List<Integer> productIds,
+      Integer coresPerSocket,
+      Integer sockets,
+      OffsetDateTime syncTimestamp) {
+    InventoryHostFacts baseFacts = createBaseHost(account, orgId);
+    baseFacts.setSystemProfileProductIds(StringUtils.collectionToCommaDelimitedString(productIds));
+    baseFacts.setSystemProfileCoresPerSocket(coresPerSocket);
+    baseFacts.setSystemProfileSockets(sockets);
+    baseFacts.setSyncTimestamp(syncTimestamp.toString());
+    return baseFacts;
+  }
 
-    public static InventoryHostFacts createSystemProfileHost(String account, String orgId,
-        List<Integer> productIds, Integer coresPerSocket, Integer sockets, OffsetDateTime syncTimestamp) {
-        InventoryHostFacts baseFacts = createBaseHost(account, orgId);
-        baseFacts.setSystemProfileProductIds(StringUtils.collectionToCommaDelimitedString(productIds));
-        baseFacts.setSystemProfileCoresPerSocket(coresPerSocket);
-        baseFacts.setSystemProfileSockets(sockets);
-        baseFacts.setSyncTimestamp(syncTimestamp.toString());
-        return baseFacts;
-    }
-
-    public static InventoryHostFacts createBaseHost(String account, String orgId) {
-        InventoryHostFacts baseFacts = new InventoryHostFacts();
-        baseFacts.setInventoryId(UUID.randomUUID());
-        baseFacts.setAccount(account);
-        baseFacts.setDisplayName("Test System");
-        baseFacts.setOrgId(orgId);
-        baseFacts.setSyncTimestamp(OffsetDateTime.now().toString());
-        baseFacts.setSubscriptionManagerId(UUID.randomUUID().toString());
-        baseFacts.setVirtual(false);
-        return baseFacts;
-    }
+  public static InventoryHostFacts createBaseHost(String account, String orgId) {
+    InventoryHostFacts baseFacts = new InventoryHostFacts();
+    baseFacts.setInventoryId(UUID.randomUUID());
+    baseFacts.setAccount(account);
+    baseFacts.setDisplayName("Test System");
+    baseFacts.setOrgId(orgId);
+    baseFacts.setSyncTimestamp(OffsetDateTime.now().toString());
+    baseFacts.setSubscriptionManagerId(UUID.randomUUID().toString());
+    baseFacts.setVirtual(false);
+    return baseFacts;
+  }
 }

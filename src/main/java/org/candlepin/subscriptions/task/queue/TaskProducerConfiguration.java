@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,15 +22,12 @@ package org.candlepin.subscriptions.task.queue;
 
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConfiguration;
 import org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-/**
- * Configuration necessary for components which produce tasks onto one or more task queues.
- */
+/** Configuration necessary for components which produce tasks onto one or more task queues. */
 @Configuration
 @Import({KafkaTaskProducerConfiguration.class, ExecutorTaskQueueConfiguration.class})
 public class TaskProducerConfiguration {
-    /* Intentionally empty */
+  /* Intentionally empty */
 }

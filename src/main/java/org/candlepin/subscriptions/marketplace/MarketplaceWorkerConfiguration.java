@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,10 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
-
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -38,49 +37,53 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
-/**
- * Configuration for the Marketplace integration worker.
- */
+/** Configuration for the Marketplace integration worker. */
 @Profile("marketplace")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.marketplace")
-@Import({ SubscriptionServiceConfiguration.class, ProductMappingConfiguration.class})
+@Import({SubscriptionServiceConfiguration.class, ProductMappingConfiguration.class})
 public class MarketplaceWorkerConfiguration {
-    @Bean
-    @Qualifier("marketplaceRetryTemplate")
-    public RetryTemplate marketplaceRetryTemplate(MarketplaceProperties properties) {
-        return new RetryTemplateBuilder()
-            .maxAttempts(properties.getMaxAttempts())
-            .exponentialBackoff(properties.getBackOffInitialInterval().toMillis(),
-                properties.getBackOffMultiplier(),
-                properties.getBackOffMaxInterval().toMillis())
-            .build();
-    }
+  @Bean
+  @Qualifier("marketplaceRetryTemplate")
+  public RetryTemplate marketplaceRetryTemplate(MarketplaceProperties properties) {
+    return new RetryTemplateBuilder()
+        .maxAttempts(properties.getMaxAttempts())
+        .exponentialBackoff(
+            properties.getBackOffInitialInterval().toMillis(),
+            properties.getBackOffMultiplier(),
+            properties.getBackOffMaxInterval().toMillis())
+        .build();
+  }
 
-    @Bean
-    ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(KafkaProperties kafkaProperties) {
-        return new DefaultKafkaConsumerFactory<>(kafkaProperties.buildConsumerProperties(),
-            new StringDeserializer(), new JsonDeserializer<>(TallySummary.class));
-    }
+  @Bean
+  ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(
+      KafkaProperties kafkaProperties) {
+    return new DefaultKafkaConsumerFactory<>(
+        kafkaProperties.buildConsumerProperties(),
+        new StringDeserializer(),
+        new JsonDeserializer<>(TallySummary.class));
+  }
 
-    @Bean
-    ConcurrentKafkaListenerContainerFactory<String, TallySummary> kafkaTallySummaryListenerContainerFactory(
-        ConsumerFactory<String, TallySummary> consumerFactory, KafkaProperties kafkaProperties) {
+  @Bean
+  ConcurrentKafkaListenerContainerFactory<String, TallySummary>
+      kafkaTallySummaryListenerContainerFactory(
+          ConsumerFactory<String, TallySummary> consumerFactory, KafkaProperties kafkaProperties) {
 
-        var factory = new ConcurrentKafkaListenerContainerFactory<String, TallySummary>();
-        factory.setConsumerFactory(consumerFactory);
-        // Concurrency should be set to the number of partitions for the target topic.
-        factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
-        return factory;
-    }
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, TallySummary>();
+    factory.setConsumerFactory(consumerFactory);
+    // Concurrency should be set to the number of partitions for the target topic.
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    return factory;
+  }
 
-    /**
-     * Build the BeanFactory implementation ourselves since the docs say "Implementations are not supposed
-     * to rely on annotation-driven injection or other reflective facilities."
-     * @param properties containing the MarketplaceProperties needed by the factory
-     * @return a configured MarketplaceApiFactory
-     */
-    @Bean
-    public MarketplaceApiFactory marketplaceApiFactory(MarketplaceProperties properties) {
-        return new MarketplaceApiFactory(properties);
-    }
+  /**
+   * Build the BeanFactory implementation ourselves since the docs say "Implementations are not
+   * supposed to rely on annotation-driven injection or other reflective facilities."
+   *
+   * @param properties containing the MarketplaceProperties needed by the factory
+   * @return a configured MarketplaceApiFactory
+   */
+  @Bean
+  public MarketplaceApiFactory marketplaceApiFactory(MarketplaceProperties properties) {
+    return new MarketplaceApiFactory(properties);
+  }
 }

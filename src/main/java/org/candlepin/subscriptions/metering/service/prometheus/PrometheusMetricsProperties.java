@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,19 +20,15 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Properties related to all metrics that are to be gathered from the prometheus service.
- */
+/** Properties related to all metrics that are to be gathered from the prometheus service. */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
 public class PrometheusMetricsProperties {
 
-    private MetricProperties openshift = new MetricProperties();
-
+  private MetricProperties openshift = new MetricProperties();
 }

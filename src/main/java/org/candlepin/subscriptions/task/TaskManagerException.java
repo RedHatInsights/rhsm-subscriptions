@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,10 @@
  */
 package org.candlepin.subscriptions.task;
 
-/**
- * Thrown when an error occurs within a TaskManager operation.
- */
+/** Thrown when an error occurs within a TaskManager operation. */
 public class TaskManagerException extends RuntimeException {
 
-    public TaskManagerException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
+  public TaskManagerException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

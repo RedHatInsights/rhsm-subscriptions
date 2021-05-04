@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,67 +20,45 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import org.candlepin.subscriptions.http.HttpClientProperties;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
+import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/**
- * Properties for the Marketplace integration.
- */
+/** Properties for the Marketplace integration. */
 @Getter
 @Setter
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.marketplace")
 public class MarketplaceProperties extends HttpClientProperties {
 
-    /**
-     * Marketplace API key (from https://marketplace.redhat.com/en-us/account/service-ids)
-     */
-    private String apiKey;
+  /** Marketplace API key (from https://marketplace.redhat.com/en-us/account/service-ids) */
+  private String apiKey;
 
-    /**
-     * Amount of time prior to token expiration to request a new token anyways.
-     */
-    private Duration tokenRefreshPeriod = Duration.ofMinutes(1);
+  /** Amount of time prior to token expiration to request a new token anyways. */
+  private Duration tokenRefreshPeriod = Duration.ofMinutes(1);
 
-    /**
-     * How many attempts before giving up.
-     */
-    private Integer maxAttempts;
+  /** How many attempts before giving up. */
+  private Integer maxAttempts;
 
-    /**
-     * Retry backoff interval.
-     */
-    private Duration backOffInitialInterval;
+  /** Retry backoff interval. */
+  private Duration backOffInitialInterval;
 
-    /**
-     * Retry backoff interval.
-     */
-    private Duration backOffMaxInterval;
+  /** Retry backoff interval. */
+  private Duration backOffMaxInterval;
 
-    /**
-     * Retry exponential backoff multiplier.
-     */
-    private Double backOffMultiplier;
+  /** Retry exponential backoff multiplier. */
+  private Double backOffMultiplier;
 
-    /**
-     * Verify that batches were accepted by Marketplace.
-     */
-    private boolean verifyBatches = true;
+  /** Verify that batches were accepted by Marketplace. */
+  private boolean verifyBatches = true;
 
-    private List<String> eligibleSwatchProductIds = new ArrayList<>();
+  private List<String> eligibleSwatchProductIds = new ArrayList<>();
 
-    /**
-     * Allows manually submitting marketplace tally summary.
-     */
-    private boolean isManualMarketplaceSubmissionEnabled;
-
+  /** Allows manually submitting marketplace tally summary. */
+  private boolean isManualMarketplaceSubmissionEnabled;
 }

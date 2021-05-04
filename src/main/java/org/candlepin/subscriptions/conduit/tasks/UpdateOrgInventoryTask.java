@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,8 @@ import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.task.Task;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * A task that retrieves the Consumer data associated with an organization from RHSM API, and sends
@@ -35,29 +33,27 @@ import org.slf4j.LoggerFactory;
  */
 public class UpdateOrgInventoryTask implements Task {
 
-    private static Logger log = LoggerFactory.getLogger(UpdateOrgInventoryTask.class);
+  private static Logger log = LoggerFactory.getLogger(UpdateOrgInventoryTask.class);
 
-    private String orgId;
-    private String offset;
-    private InventoryController controller;
+  private String orgId;
+  private String offset;
+  private InventoryController controller;
 
-    public UpdateOrgInventoryTask(InventoryController controller, String orgId, String offset) {
-        this.orgId = orgId;
-        this.offset = offset;
-        this.controller = controller;
+  public UpdateOrgInventoryTask(InventoryController controller, String orgId, String offset) {
+    this.orgId = orgId;
+    this.offset = offset;
+    this.controller = controller;
+  }
+
+  @Override
+  public void execute() {
+    log.info("Updating inventory for org {} with offset {}", orgId, offset);
+    try {
+      controller.updateInventoryForOrg(orgId, offset);
+    } catch (MissingAccountNumberException e) {
+      log.warn("Org {} is missing account number", orgId);
+    } catch (ApiException e) {
+      log.error("Exception calling RHSM", e);
     }
-
-    @Override
-    public void execute() {
-        log.info("Updating inventory for org {} with offset {}", orgId, offset);
-        try {
-            controller.updateInventoryForOrg(orgId, offset);
-        }
-        catch (MissingAccountNumberException e) {
-            log.warn("Org {} is missing account number", orgId);
-        }
-        catch (ApiException e) {
-            log.error("Exception calling RHSM", e);
-        }
-    }
+  }
 }

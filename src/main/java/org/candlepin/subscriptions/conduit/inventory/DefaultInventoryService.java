@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,49 +20,44 @@
  */
 package org.candlepin.subscriptions.conduit.inventory;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.exception.inventory.InventoryServiceException;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
 import org.candlepin.subscriptions.inventory.client.resources.HostsApi;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
-
-/**
- * The default wrapper for the insights inventory client.
- */
+/** The default wrapper for the insights inventory client. */
 public class DefaultInventoryService extends InventoryService {
-    private static final Logger log = LoggerFactory.getLogger(DefaultInventoryService.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultInventoryService.class);
 
-    private final HostsApi hostsInventoryApi;
+  private final HostsApi hostsInventoryApi;
 
-    public DefaultInventoryService(HostsApi hostsInventoryApi, InventoryServiceProperties serviceProperties) {
-        super(serviceProperties, serviceProperties.getApiHostUpdateBatchSize());
-        this.hostsInventoryApi = hostsInventoryApi;
-    }
+  public DefaultInventoryService(
+      HostsApi hostsInventoryApi, InventoryServiceProperties serviceProperties) {
+    super(serviceProperties, serviceProperties.getApiHostUpdateBatchSize());
+    this.hostsInventoryApi = hostsInventoryApi;
+  }
 
-    @Override
-    @SuppressWarnings("java:S1874") // ignore deprecation of host add API (not used in production)
-    protected void sendHostUpdate(List<ConduitFacts> facts) {
-        // The same timestamp for the whole batch
-        OffsetDateTime now = OffsetDateTime.now();
-        List<CreateHostIn> hostsToSend = facts.stream()
+  @Override
+  @SuppressWarnings("java:S1874") // ignore deprecation of host add API (not used in production)
+  protected void sendHostUpdate(List<ConduitFacts> facts) {
+    // The same timestamp for the whole batch
+    OffsetDateTime now = OffsetDateTime.now();
+    List<CreateHostIn> hostsToSend =
+        facts.stream()
             .map(conduitFacts -> createHost(conduitFacts, now))
             .collect(Collectors.toList());
 
-        try {
-            log.debug("Sending host updates to inventory via API.");
-            hostsInventoryApi.apiHostAddHostList(hostsToSend);
-        }
-        catch (Exception e) {
-            throw new InventoryServiceException(
-                "An error occurred while sending a host update to the inventory service.", e);
-        }
+    try {
+      log.debug("Sending host updates to inventory via API.");
+      hostsInventoryApi.apiHostAddHostList(hostsToSend);
+    } catch (Exception e) {
+      throw new InventoryServiceException(
+          "An error occurred while sending a host update to the inventory service.", e);
     }
-
+  }
 }

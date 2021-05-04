@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,22 +28,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class PurgeEventRecordsJob implements Runnable {
 
-    private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
+  private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
 
-    private final TallyRetentionController retentionController;
+  private final TallyRetentionController retentionController;
 
-    public PurgeEventRecordsJob(TallyRetentionController retentionController) {
-        this.retentionController = retentionController;
-    }
+  public PurgeEventRecordsJob(TallyRetentionController retentionController) {
+    this.retentionController = retentionController;
+  }
 
-    @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
-    public void run() {
-        log.info("Starting PurgeEventRecordsJob job.");
+  @Override
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
+  public void run() {
+    log.info("Starting PurgeEventRecordsJob job.");
 
-        retentionController.purgeOldEventRecords();
+    retentionController.purgeOldEventRecords();
 
-        log.info("PurgeEventRecordsJob complete.");
-
-    }
+    log.info("PurgeEventRecordsJob complete.");
+  }
 }

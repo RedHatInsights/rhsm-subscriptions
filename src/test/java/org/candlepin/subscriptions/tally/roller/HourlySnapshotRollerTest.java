@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,12 +22,12 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.*;
 
+import java.time.Duration;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -41,8 +41,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
@@ -50,68 +48,65 @@ import java.time.Duration;
 @TestInstance(Lifecycle.PER_CLASS)
 class HourlySnapshotRollerTest {
 
-    @Autowired
-    private TallySnapshotRepository repository;
+  @Autowired private TallySnapshotRepository repository;
 
-    @Autowired
-    private ProductProfileRegistrySource testSource;
+  @Autowired private ProductProfileRegistrySource testSource;
 
-    @Autowired
-    private ApplicationClock clock;
+  @Autowired private ApplicationClock clock;
 
-    private SnapshotRollerTester<HourlySnapshotRoller> tester;
+  private SnapshotRollerTester<HourlySnapshotRoller> tester;
 
-    @TestConfiguration
-    @Import(FixedClockConfiguration.class)
-    static class HourlySnapshotRollerTestConfig {
+  @TestConfiguration
+  @Import(FixedClockConfiguration.class)
+  static class HourlySnapshotRollerTestConfig {
 
-        @Bean
-        @Primary
-        public ProductProfileRegistrySource testRegistrySource(ApplicationClock clock) {
-            ApplicationProperties properties = new ApplicationProperties();
-            properties.setProductProfileRegistryResourceLocation(
-                "classpath:test_product_profile_registry.yaml"
-            );
-            properties.setProductProfileListCacheTtl(Duration.ofSeconds(60));
-            return new ProductProfileRegistrySource(properties, clock);
-        }
+    @Bean
+    @Primary
+    public ProductProfileRegistrySource testRegistrySource(ApplicationClock clock) {
+      ApplicationProperties properties = new ApplicationProperties();
+      properties.setProductProfileRegistryResourceLocation(
+          "classpath:test_product_profile_registry.yaml");
+      properties.setProductProfileListCacheTtl(Duration.ofSeconds(60));
+      return new ProductProfileRegistrySource(properties, clock);
     }
+  }
 
-    @BeforeEach
-    public void setupAllTests() throws Exception {
-        this.tester = new SnapshotRollerTester<>(repository,
-            new HourlySnapshotRoller(repository, clock, testSource.getObject()));
-        this.tester.setTestProduct("OpenShift Hourly");
-    }
+  @BeforeEach
+  public void setupAllTests() throws Exception {
+    this.tester =
+        new SnapshotRollerTester<>(
+            repository, new HourlySnapshotRoller(repository, clock, testSource.getObject()));
+    this.tester.setTestProduct("OpenShift Hourly");
+  }
 
+  @Test
+  void testHourlySnapshotProducer() {
+    this.tester.performBasicSnapshotRollerTest(
+        HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
+  }
 
-    @Test
-    void testHourlySnapshotProducer() {
-        this.tester.performBasicSnapshotRollerTest(HOURLY, clock.startOfCurrentHour(),
-            clock.endOfCurrentHour());
-    }
+  @Test
+  void testHourlySnapIsUpdatedWhenItAlreadyExists() {
+    this.tester.performSnapshotUpdateTest(
+        HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
+  }
 
-    @Test
-    void testHourlySnapIsUpdatedWhenItAlreadyExists() {
-        this.tester.performSnapshotUpdateTest(HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
-    }
+  @Test
+  void ensureCurrentHourlyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
+    tester.performUpdateWithLesserValueTest(
+        HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour(), false);
+  }
 
-    @Test
-    void ensureCurrentHourlyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
-        tester.performUpdateWithLesserValueTest(HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour(),
-            false);
-    }
+  @Test
+  @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
+  void testEmptySnapshotsNotPersisted() {
+    tester.performDoesNotPersistEmptySnapshots(
+        HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
+  }
 
-    @Test
-    @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
-    void testEmptySnapshotsNotPersisted() {
-        tester.performDoesNotPersistEmptySnapshots(HOURLY, clock.startOfCurrentHour(),
-            clock.endOfCurrentHour());
-    }
-
-    @Test
-    @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
-    void testHandlesDuplicates() {
-        tester.performRemovesDuplicates(HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
-    }
+  @Test
+  @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
+  void testHandlesDuplicates() {
+    tester.performRemovesDuplicates(HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
+  }
 }

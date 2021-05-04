@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,73 +20,69 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.json.Measurement;
-
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import org.candlepin.subscriptions.json.Measurement;
 
-/**
- * Model object to the key for a given tally measurement
- */
+/** Model object to the key for a given tally measurement */
 @Embeddable
 public class TallyMeasurementKey implements Serializable {
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "measurement_type")
-    private HardwareMeasurementType measurementType;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "measurement_type")
+  private HardwareMeasurementType measurementType;
 
-    @Enumerated(EnumType.STRING)
-    private Measurement.Uom uom;
+  @Enumerated(EnumType.STRING)
+  private Measurement.Uom uom;
 
-    public TallyMeasurementKey() {
-        /* intentionally left empty */
+  public TallyMeasurementKey() {
+    /* intentionally left empty */
+  }
+
+  public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, Measurement.Uom uom) {
+    this.measurementType = hardwareMeasurementType;
+    this.uom = uom;
+  }
+
+  public HardwareMeasurementType getMeasurementType() {
+    return measurementType;
+  }
+
+  public void setMeasurementType(HardwareMeasurementType measurementType) {
+    this.measurementType = measurementType;
+  }
+
+  public Measurement.Uom getUom() {
+    return uom;
+  }
+
+  public void setUom(Measurement.Uom uom) {
+    this.uom = uom;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, Measurement.Uom uom) {
-        this.measurementType = hardwareMeasurementType;
-        this.uom = uom;
+    if (!(o instanceof TallyMeasurementKey)) {
+      return false;
     }
+    TallyMeasurementKey that = (TallyMeasurementKey) o;
+    return measurementType == that.measurementType && uom == that.uom;
+  }
 
-    public HardwareMeasurementType getMeasurementType() {
-        return measurementType;
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(measurementType, uom);
+  }
 
-    public void setMeasurementType(HardwareMeasurementType measurementType) {
-        this.measurementType = measurementType;
-    }
-
-    public Measurement.Uom getUom() {
-        return uom;
-    }
-
-    public void setUom(Measurement.Uom uom) {
-        this.uom = uom;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof TallyMeasurementKey)) {
-            return false;
-        }
-        TallyMeasurementKey that = (TallyMeasurementKey) o;
-        return measurementType == that.measurementType && uom == that.uom;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(measurementType, uom);
-    }
-
-    @Override
-    public String toString() {
-        return "TallyMeasurementKey{" + "measurementType=" + measurementType + ", uom=" + uom + '}';
-    }
+  @Override
+  public String toString() {
+    return "TallyMeasurementKey{" + "measurementType=" + measurementType + ", uom=" + uom + '}';
+  }
 }

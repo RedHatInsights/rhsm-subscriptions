@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -30,38 +29,37 @@ import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-/**
- * Configuration class for subscription package.
- */
+/** Configuration class for subscription package. */
 @Configuration
 @ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
 public class SubscriptionServiceConfiguration {
 
-    @Bean
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
-    public SubscriptionServiceProperties subscriptionServiceProperties() {
-        return new SubscriptionServiceProperties();
-    }
+  @Bean
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
+  public SubscriptionServiceProperties subscriptionServiceProperties() {
+    return new SubscriptionServiceProperties();
+  }
 
-    @Bean
-    public SearchApiFactory searchApiFactory(SubscriptionServiceProperties subscriptionServiceProperties) {
-        return new SearchApiFactory(subscriptionServiceProperties);
-    }
+  @Bean
+  public SearchApiFactory searchApiFactory(
+      SubscriptionServiceProperties subscriptionServiceProperties) {
+    return new SearchApiFactory(subscriptionServiceProperties);
+  }
 
-    @Bean
-    public RetryTemplate subscriptionServiceRetryTemplate(ApplicationProperties applicationProperties) {
+  @Bean
+  public RetryTemplate subscriptionServiceRetryTemplate(
+      ApplicationProperties applicationProperties) {
 
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(applicationProperties.getSubscription().getMaxRetryAttempts());
+    SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+    retryPolicy.setMaxAttempts(applicationProperties.getSubscription().getMaxRetryAttempts());
 
-        ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
-        backOffPolicy.setInitialInterval(
-            applicationProperties.getSubscription().getBackOffInitialInterval().toMillis());
+    ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
+    backOffPolicy.setInitialInterval(
+        applicationProperties.getSubscription().getBackOffInitialInterval().toMillis());
 
-        RetryTemplate retryTemplate = new RetryTemplate();
-        retryTemplate.setRetryPolicy(retryPolicy);
-        retryTemplate.setBackOffPolicy(backOffPolicy);
-        return retryTemplate;
-
-    }
+    RetryTemplate retryTemplate = new RetryTemplate();
+    retryTemplate.setRetryPolicy(retryPolicy);
+    retryTemplate.setBackOffPolicy(backOffPolicy);
+    return retryTemplate;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,10 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.springframework.security.test.context.support.WithSecurityContext;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import org.springframework.security.test.context.support.WithSecurityContext;
 
 @Retention(RetentionPolicy.RUNTIME)
 @WithSecurityContext(factory = WithInvalidPrincipalSecurityContextFactory.class)
-public @interface WithInvalidPrincipal {
-
-}
+public @interface WithInvalidPrincipal {}

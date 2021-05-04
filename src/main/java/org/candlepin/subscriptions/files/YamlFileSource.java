@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,18 +20,16 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.Clock;
+import java.time.Duration;
+import javax.annotation.PostConstruct;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.yaml.snakeyaml.Yaml;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.time.Clock;
-import java.time.Duration;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Abstract class for loading data from a YAML file on the classpath or filesystem.
@@ -40,50 +38,51 @@ import javax.annotation.PostConstruct;
  */
 public abstract class YamlFileSource<T> implements ResourceLoaderAware {
 
-    private final Cache<T> cachedValue;
-    private String resourceLocation;
-    private ResourceLoader resourceLoader = new DefaultResourceLoader();
-    private Resource fileResource;
+  private final Cache<T> cachedValue;
+  private String resourceLocation;
+  private ResourceLoader resourceLoader = new DefaultResourceLoader();
+  private Resource fileResource;
 
-    protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-        this.resourceLocation = resourceLocation;
-        this.cachedValue = new Cache(clock, cacheTtl);
-    }
+  protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
+    this.resourceLocation = resourceLocation;
+    this.cachedValue = new Cache(clock, cacheTtl);
+  }
 
-    public T getValue() throws IOException {
-        if (cachedValue.isExpired()) {
-            try (InputStream s = fileResource.getInputStream()) {
-                T value = parse(s);
-                if (value == null) {
-                    return getDefault();
-                }
-                cachedValue.setValue(value);
-            }
+  public T getValue() throws IOException {
+    if (cachedValue.isExpired()) {
+      try (InputStream s = fileResource.getInputStream()) {
+        T value = parse(s);
+        if (value == null) {
+          return getDefault();
         }
-        return cachedValue.getValue();
+        cachedValue.setValue(value);
+      }
     }
+    return cachedValue.getValue();
+  }
 
-    /**
-     * Allow subclasses to redefine how the YAML for type T is deserialized
-     * @param s InputStream with the YAML
-     * @return an object of type T constructed from the YAML in InputStream s
-     */
-    protected T parse(InputStream s) {
-        return new Yaml().load(s);
+  /**
+   * Allow subclasses to redefine how the YAML for type T is deserialized
+   *
+   * @param s InputStream with the YAML
+   * @return an object of type T constructed from the YAML in InputStream s
+   */
+  protected T parse(InputStream s) {
+    return new Yaml().load(s);
+  }
+
+  protected abstract T getDefault();
+
+  @Override
+  public void setResourceLoader(ResourceLoader resourceLoader) {
+    this.resourceLoader = resourceLoader;
+  }
+
+  @PostConstruct
+  public void init() {
+    fileResource = resourceLoader.getResource(resourceLocation);
+    if (!fileResource.exists()) {
+      throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
     }
-
-    protected abstract T getDefault();
-
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
-    }
-
-    @PostConstruct
-    public void init() {
-        fileResource = resourceLoader.getResource(resourceLocation);
-        if (!fileResource.exists()) {
-            throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
-        }
-    }
+  }
 }

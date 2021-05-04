@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
@@ -32,149 +34,159 @@ import org.candlepin.subscriptions.utilization.api.model.OptInConfigData;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataAccount;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataOrg;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigMeta;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.Optional;
-
 /**
- * Responsible for all opt-in functionality logic. Provides a means to tie both
- * account and org configuration update logic together to support the opt-in
- * behaviour.
+ * Responsible for all opt-in functionality logic. Provides a means to tie both account and org
+ * configuration update logic together to support the opt-in behaviour.
  */
 @Component
 public class OptInController {
-    private static final Logger log = LoggerFactory.getLogger(OptInController.class);
+  private static final Logger log = LoggerFactory.getLogger(OptInController.class);
 
-    private AccountConfigRepository accountConfigRepository;
-    private OrgConfigRepository orgConfigRepository;
-    private ApplicationClock clock;
-    private AccountService accountService;
+  private AccountConfigRepository accountConfigRepository;
+  private OrgConfigRepository orgConfigRepository;
+  private ApplicationClock clock;
+  private AccountService accountService;
 
-    @Autowired
-    public OptInController(ApplicationClock clock, AccountConfigRepository accountConfigRepo,
-        OrgConfigRepository orgConfigRepo, AccountService accountService) {
-        this.clock = clock;
-        this.accountConfigRepository = accountConfigRepo;
-        this.orgConfigRepository = orgConfigRepo;
-        this.accountService = accountService;
+  @Autowired
+  public OptInController(
+      ApplicationClock clock,
+      AccountConfigRepository accountConfigRepo,
+      OrgConfigRepository orgConfigRepo,
+      AccountService accountService) {
+    this.clock = clock;
+    this.accountConfigRepository = accountConfigRepo;
+    this.orgConfigRepository = orgConfigRepo;
+    this.accountService = accountService;
+  }
+
+  @Transactional
+  public OptInConfig optIn(
+      String accountNumber,
+      String orgId,
+      OptInType optInType,
+      boolean enableTallySync,
+      boolean enableTallyReporting,
+      boolean enableConduitSync) {
+    OffsetDateTime now = clock.now();
+
+    Optional<AccountConfig> accountData =
+        accountConfigRepository.createOrUpdateAccountConfig(
+            accountNumber, now, optInType, enableTallySync, enableTallyReporting);
+    Optional<OrgConfig> orgData =
+        orgConfigRepository.createOrUpdateOrgConfig(orgId, now, optInType, enableConduitSync);
+    return buildDto(
+        buildMeta(accountNumber, orgId),
+        buildOptInAccountDTO(accountData),
+        buildOptInOrgDTO(orgData));
+  }
+
+  @Transactional
+  public void optInByAccountNumber(
+      String accountNumber,
+      OptInType optInType,
+      boolean enableTallySync,
+      boolean enableTallyReporting,
+      boolean enableConduitSync) {
+    if (accountConfigRepository.existsById(accountNumber)) {
+      return;
+    }
+    String orgId = accountService.lookupOrgId(accountNumber);
+    log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
+    optIn(
+        accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+  }
+
+  @Transactional
+  public void optInByOrgId(
+      String orgId,
+      OptInType optInType,
+      boolean enableTallySync,
+      boolean enableTallyReporting,
+      boolean enableConduitSync) {
+    if (orgConfigRepository.existsById(orgId)) {
+      return;
+    }
+    String accountNumber = accountService.lookupAccountNumber(orgId);
+    log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
+    optIn(
+        accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+  }
+
+  @Transactional
+  public void optOut(String accountNumber, String orgId) {
+    if (accountConfigRepository.existsById(accountNumber)) {
+      accountConfigRepository.deleteById(accountNumber);
     }
 
-    @Transactional
-    public OptInConfig optIn(String accountNumber, String orgId, OptInType optInType, boolean enableTallySync,
-        boolean enableTallyReporting, boolean enableConduitSync) {
-        OffsetDateTime now = clock.now();
-
-        Optional<AccountConfig> accountData =
-            accountConfigRepository.createOrUpdateAccountConfig(accountNumber, now, optInType,
-            enableTallySync, enableTallyReporting);
-        Optional<OrgConfig> orgData = orgConfigRepository.createOrUpdateOrgConfig(orgId, now, optInType,
-            enableConduitSync);
-        return buildDto(
-            buildMeta(accountNumber, orgId),
-            buildOptInAccountDTO(accountData),
-            buildOptInOrgDTO(orgData)
-        );
+    if (orgConfigRepository.existsById(orgId)) {
+      orgConfigRepository.deleteById(orgId);
     }
+  }
 
-    @Transactional
-    public void optInByAccountNumber(String accountNumber, OptInType optInType,
-        boolean enableTallySync, boolean enableTallyReporting, boolean enableConduitSync) {
-        if (accountConfigRepository.existsById(accountNumber)) {
-            return;
-        }
-        String orgId = accountService.lookupOrgId(accountNumber);
-        log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-        optIn(accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
-    }
+  @Transactional
+  public OptInConfig getOptInConfig(String accountNumber, String orgId) {
+    return buildDto(
+        buildMeta(accountNumber, orgId),
+        buildOptInAccountDTO(accountConfigRepository.findById(accountNumber)),
+        buildOptInOrgDTO(orgConfigRepository.findById(orgId)));
+  }
 
-    @Transactional
-    public void optInByOrgId(String orgId, OptInType optInType,
-        boolean enableTallySync, boolean enableTallyReporting, boolean enableConduitSync) {
-        if (orgConfigRepository.existsById(orgId)) {
-            return;
-        }
-        String accountNumber = accountService.lookupAccountNumber(orgId);
-        log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-        optIn(accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
-    }
+  @Transactional
+  public OptInConfig getOptInConfigForAccountNumber(String accountNumber) {
+    return getOptInConfig(accountNumber, accountService.lookupOrgId(accountNumber));
+  }
 
-    @Transactional
-    public void optOut(String accountNumber, String orgId) {
-        if (accountConfigRepository.existsById(accountNumber)) {
-            accountConfigRepository.deleteById(accountNumber);
-        }
+  @Transactional
+  public OptInConfig getOptInConfigForOrgId(String orgId) {
+    return getOptInConfig(accountService.lookupAccountNumber(orgId), orgId);
+  }
 
-        if (orgConfigRepository.existsById(orgId)) {
-            orgConfigRepository.deleteById(orgId);
-        }
-
-    }
-
-    @Transactional
-    public OptInConfig getOptInConfig(String accountNumber, String orgId) {
-        return buildDto(
-            buildMeta(accountNumber, orgId),
-            buildOptInAccountDTO(accountConfigRepository.findById(accountNumber)),
-            buildOptInOrgDTO(orgConfigRepository.findById(orgId))
-        );
-    }
-
-    @Transactional
-    public OptInConfig getOptInConfigForAccountNumber(String accountNumber) {
-        return getOptInConfig(accountNumber, accountService.lookupOrgId(accountNumber));
-    }
-
-    @Transactional
-    public OptInConfig getOptInConfigForOrgId(String orgId) {
-        return getOptInConfig(accountService.lookupAccountNumber(orgId), orgId);
-    }
-
-    private OptInConfig buildDto(OptInConfigMeta meta, OptInConfigDataAccount accountData,
-        OptInConfigDataOrg orgData) {
-        return new OptInConfig()
-            .data(
-                new OptInConfigData().account(accountData)
+  private OptInConfig buildDto(
+      OptInConfigMeta meta, OptInConfigDataAccount accountData, OptInConfigDataOrg orgData) {
+    return new OptInConfig()
+        .data(
+            new OptInConfigData()
+                .account(accountData)
                 .org(orgData)
-                .optInComplete(accountData != null && orgData != null)
-            )
-            .meta(meta);
+                .optInComplete(accountData != null && orgData != null))
+        .meta(meta);
+  }
+
+  private OptInConfigMeta buildMeta(String accountNumber, String orgId) {
+    return new OptInConfigMeta().accountNumber(accountNumber).orgId(orgId);
+  }
+
+  private OptInConfigDataAccount buildOptInAccountDTO(Optional<AccountConfig> optionalConfig) {
+    if (!optionalConfig.isPresent()) {
+      return null;
+    }
+    AccountConfig config = optionalConfig.get();
+    return new OptInConfigDataAccount()
+        .accountNumber(config.getAccountNumber())
+        .tallySyncEnabled(config.getSyncEnabled())
+        .tallyReportingEnabled(config.getReportingEnabled())
+        .optInType(config.getOptInType() == null ? null : config.getOptInType().name())
+        .created(config.getCreated())
+        .lastUpdated(config.getUpdated());
+  }
+
+  private OptInConfigDataOrg buildOptInOrgDTO(Optional<OrgConfig> optionalConfig) {
+    if (!optionalConfig.isPresent()) {
+      return null;
     }
 
-    private OptInConfigMeta buildMeta(String accountNumber, String orgId) {
-        return new OptInConfigMeta().accountNumber(accountNumber).orgId(orgId);
-    }
-
-    private OptInConfigDataAccount buildOptInAccountDTO(Optional<AccountConfig> optionalConfig) {
-        if (!optionalConfig.isPresent()) {
-            return null;
-        }
-        AccountConfig config = optionalConfig.get();
-        return new OptInConfigDataAccount()
-            .accountNumber(config.getAccountNumber())
-            .tallySyncEnabled(config.getSyncEnabled())
-            .tallyReportingEnabled(config.getReportingEnabled())
-            .optInType(config.getOptInType() == null ? null : config.getOptInType().name())
-            .created(config.getCreated())
-            .lastUpdated(config.getUpdated());
-    }
-
-    private OptInConfigDataOrg buildOptInOrgDTO(Optional<OrgConfig> optionalConfig) {
-        if (!optionalConfig.isPresent()) {
-            return null;
-        }
-
-        OrgConfig config = optionalConfig.get();
-        return new OptInConfigDataOrg()
-            .orgId(config.getOrgId())
-            .conduitSyncEnabled(config.getSyncEnabled())
-            .optInType(config.getOptInType() == null ? null : config.getOptInType().name())
-            .created(config.getCreated())
-            .lastUpdated(config.getUpdated());
-    }
+    OrgConfig config = optionalConfig.get();
+    return new OptInConfigDataOrg()
+        .orgId(config.getOrgId())
+        .conduitSyncEnabled(config.getSyncEnabled())
+        .optInType(config.getOptInType() == null ? null : config.getOptInType().name())
+        .created(config.getCreated())
+        .lastUpdated(config.getUpdated());
+  }
 }

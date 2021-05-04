@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,32 +21,28 @@
 package org.candlepin.subscriptions.tally.job;
 
 import org.candlepin.subscriptions.exception.JobFailureException;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * A cron job that captures all usage snapshots on a configured schedule.
- */
+/** A cron job that captures all usage snapshots on a configured schedule. */
 @Component
 public class CaptureSnapshotsJob implements Runnable {
 
-    private final CaptureSnapshotsTaskManager tasks;
+  private final CaptureSnapshotsTaskManager tasks;
 
-    @Autowired
-    public CaptureSnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
-        this.tasks = taskManager;
-    }
+  @Autowired
+  public CaptureSnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
+    this.tasks = taskManager;
+  }
 
-    @Override
-    @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-snapshot-schedule}")
-    public void run() {
-        try {
-            tasks.updateSnapshotsForAllAccounts();
-        }
-        catch (Exception e) {
-            throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
-        }
+  @Override
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-snapshot-schedule}")
+  public void run() {
+    try {
+      tasks.updateSnapshotsForAllAccounts();
+    } catch (Exception e) {
+      throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
     }
+  }
 }

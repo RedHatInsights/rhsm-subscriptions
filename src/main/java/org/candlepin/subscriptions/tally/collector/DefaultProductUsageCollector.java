@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,43 +20,42 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import java.util.Optional;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
-import java.util.Optional;
-
-/**
- * The default product usage collection rules.
- */
+/** The default product usage collection rules. */
 public class DefaultProductUsageCollector implements ProductUsageCollector {
 
-    @Override
-    public Optional<HostTallyBucket> collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
-        int appliedCores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
-        int appliedSockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
+  @Override
+  public Optional<HostTallyBucket> collect(
+      UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
+    int appliedCores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
+    int appliedSockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
 
-        HardwareMeasurementType appliedType = null;
-        // Cloud provider hosts only account for a single socket.
-        if (normalizedFacts.getCloudProviderType() != null) {
-            appliedSockets = 1;
-            appliedType = normalizedFacts.getCloudProviderType();
-            prodCalc.addCloudProvider(normalizedFacts.getCloudProviderType(), appliedCores,
-                appliedSockets, 1);
-        }
-        // Accumulate for physical systems.
-        else if (!normalizedFacts.isVirtual()) {
-            appliedType = HardwareMeasurementType.PHYSICAL;
-            prodCalc.addPhysical(appliedCores, appliedSockets, 1);
-        }
-        // Any other system is considered virtual
-        else {
-            appliedType = HardwareMeasurementType.VIRTUAL;
-            prodCalc.addToTotal(appliedCores, appliedSockets, 1);
-        }
+    HardwareMeasurementType appliedType = null;
+    // Cloud provider hosts only account for a single socket.
+    if (normalizedFacts.getCloudProviderType() != null) {
+      appliedSockets = 1;
+      appliedType = normalizedFacts.getCloudProviderType();
+      prodCalc.addCloudProvider(
+          normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
+    }
+    // Accumulate for physical systems.
+    else if (!normalizedFacts.isVirtual()) {
+      appliedType = HardwareMeasurementType.PHYSICAL;
+      prodCalc.addPhysical(appliedCores, appliedSockets, 1);
+    }
+    // Any other system is considered virtual
+    else {
+      appliedType = HardwareMeasurementType.VIRTUAL;
+      prodCalc.addToTotal(appliedCores, appliedSockets, 1);
+    }
 
-        HostTallyBucket appliedBucket = new HostTallyBucket(
+    HostTallyBucket appliedBucket =
+        new HostTallyBucket(
             null,
             prodCalc.getProductId(),
             prodCalc.getSla(),
@@ -64,18 +63,16 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
             true,
             appliedCores,
             appliedSockets,
-            appliedType
-        );
+            appliedType);
 
-        return Optional.of(appliedBucket);
-    }
+    return Optional.of(appliedBucket);
+  }
 
-    @Override
-    public Optional<HostTallyBucket> collectForHypervisor(String account, UsageCalculation prodCalc,
-        NormalizedFacts hypervisorFacts) {
+  @Override
+  public Optional<HostTallyBucket> collectForHypervisor(
+      String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
 
-        /* do nothing for hypervisor-guest mappings by default */
-        return Optional.empty();
-    }
-
+    /* do nothing for hypervisor-guest mappings by default */
+    return Optional.empty();
+  }
 }

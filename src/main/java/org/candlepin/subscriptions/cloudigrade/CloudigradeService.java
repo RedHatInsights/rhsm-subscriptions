@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,50 +20,45 @@
  */
 package org.candlepin.subscriptions.cloudigrade;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.util.Base64;
 import org.candlepin.subscriptions.cloudigrade.api.model.ConcurrencyReport;
 import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeader;
 import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeaderIdentity;
 import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeaderIdentityUser;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.util.Base64;
-
-/**
- * Wrapper for cloudigrade concurrent API which handles header generation
- */
+/** Wrapper for cloudigrade concurrent API which handles header generation */
 @Component
 public class CloudigradeService {
 
-    private final ConcurrentApi api;
-    private final ObjectMapper objectMapper;
-    Base64.Encoder b64Encoder;
+  private final ConcurrentApi api;
+  private final ObjectMapper objectMapper;
+  Base64.Encoder b64Encoder;
 
-    public CloudigradeService(ConcurrentApi api, ObjectMapper objectMapper) {
-        this.api = api;
-        this.objectMapper = objectMapper;
-        b64Encoder = Base64.getEncoder();
+  public CloudigradeService(ConcurrentApi api, ObjectMapper objectMapper) {
+    this.api = api;
+    this.objectMapper = objectMapper;
+    b64Encoder = Base64.getEncoder();
+  }
+
+  public ConcurrencyReport listDailyConcurrentUsages(
+      String accountNumber, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
+      throws ApiException {
+    IdentityHeaderIdentityUser user = new IdentityHeaderIdentityUser().isOrgAdmin(true);
+    IdentityHeaderIdentity identity =
+        new IdentityHeaderIdentity().accountNumber(accountNumber).user(user);
+    IdentityHeader identityHeader = new IdentityHeader().identity(identity);
+
+    try {
+      String headerString =
+          b64Encoder.encodeToString(objectMapper.writeValueAsBytes(identityHeader));
+      return api.listDailyConcurrentUsages(headerString, limit, offset, startDate, endDate);
+    } catch (JsonProcessingException e) {
+      throw new ApiException(e);
     }
-
-    public ConcurrencyReport listDailyConcurrentUsages(String accountNumber, Integer limit, Integer offset,
-        LocalDate startDate, LocalDate endDate) throws ApiException {
-        IdentityHeaderIdentityUser user = new IdentityHeaderIdentityUser().isOrgAdmin(true);
-        IdentityHeaderIdentity identity = new IdentityHeaderIdentity()
-            .accountNumber(accountNumber)
-            .user(user);
-        IdentityHeader identityHeader = new IdentityHeader().identity(identity);
-
-        try {
-            String headerString = b64Encoder.encodeToString(objectMapper.writeValueAsBytes(identityHeader));
-            return api.listDailyConcurrentUsages(headerString, limit, offset, startDate, endDate);
-        }
-        catch (JsonProcessingException e) {
-            throw new ApiException(e);
-        }
-    }
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-
 package org.candlepin.subscriptions.db.model;
 
 import java.util.Arrays;
@@ -33,38 +32,35 @@ import java.util.stream.Collectors;
  */
 public interface StringValueEnum<T> {
 
-    static <T> T getValueOf(Class<T> className, Map<String, T> valueEnumMap, String value, T defaultEnum) {
-        String key = Objects.nonNull(value) ? value.toLowerCase() : null;
+  static <T> T getValueOf(
+      Class<T> className, Map<String, T> valueEnumMap, String value, T defaultEnum) {
+    String key = Objects.nonNull(value) ? value.toLowerCase() : null;
 
-        T match = valueEnumMap.get(key);
+    T match = valueEnumMap.get(key);
 
-        if (Objects.nonNull(match)) {
-            return match;
-        }
-        else if (Objects.nonNull(defaultEnum)) {
-            return defaultEnum;
-        }
-        else {
-            throw new IllegalArgumentException(
-                String.format("%s is not a valid value for %s", value, className));
-        }
-
+    if (Objects.nonNull(match)) {
+      return match;
+    } else if (Objects.nonNull(defaultEnum)) {
+      return defaultEnum;
+    } else {
+      throw new IllegalArgumentException(
+          String.format("%s is not a valid value for %s", value, className));
     }
+  }
 
-    /**
-     * Maps lowercase string values of an enum's .getValue() to the enum itself
-     *
-     * @param enumClass Given enum class to create map for
-     * @param <T>       Subclass of StringValueEnum
-     *
-     * @return Map where keys are lowercase string value of the given enumClass's value
-     */
-    static <T extends StringValueEnum<?>> Map<String, T> initializeImmutableMap(Class<T> enumClass) {
-        return Arrays.stream(enumClass.getEnumConstants()).collect(
-            Collectors.toMap(t -> t.getValue().toLowerCase(), value -> value));
-    }
+  /**
+   * Maps lowercase string values of an enum's .getValue() to the enum itself
+   *
+   * @param enumClass Given enum class to create map for
+   * @param <T> Subclass of StringValueEnum
+   * @return Map where keys are lowercase string value of the given enumClass's value
+   */
+  static <T extends StringValueEnum<?>> Map<String, T> initializeImmutableMap(Class<T> enumClass) {
+    return Arrays.stream(enumClass.getEnumConstants())
+        .collect(Collectors.toMap(t -> t.getValue().toLowerCase(), value -> value));
+  }
 
-    String getValue();
+  String getValue();
 
-    T asOpenApiEnum();
+  T asOpenApiEnum();
 }

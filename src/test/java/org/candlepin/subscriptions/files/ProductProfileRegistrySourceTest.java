@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,39 +22,39 @@ package org.candlepin.subscriptions.files;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-import java.util.Arrays;
-import java.util.HashSet;
-
 class ProductProfileRegistrySourceTest {
 
-    @Test
-    void deserializesYaml() throws Exception {
-        ProductProfileRegistrySource source =
-            initRegistrySource("classpath:test_product_profile_registry.yaml");
-        ProductProfileRegistry registry = source.getValue();
+  @Test
+  void deserializesYaml() throws Exception {
+    ProductProfileRegistrySource source =
+        initRegistrySource("classpath:test_product_profile_registry.yaml");
+    ProductProfileRegistry registry = source.getValue();
 
-        HashSet<String> expected = new HashSet<>(Arrays.asList(
-            "RHELProducts",
-            "SatelliteProducts",
-            "OpenShiftHourlyProducts",
-            "OtherProducts",
-            "OpenShiftMetrics"
-        ));
-        assertEquals(expected, registry.listProfiles());
-    }
+    HashSet<String> expected =
+        new HashSet<>(
+            Arrays.asList(
+                "RHELProducts",
+                "SatelliteProducts",
+                "OpenShiftHourlyProducts",
+                "OtherProducts",
+                "OpenShiftMetrics"));
+    assertEquals(expected, registry.listProfiles());
+  }
 
-    private ProductProfileRegistrySource initRegistrySource(String resourceLocation) {
-        ApplicationProperties props = new ApplicationProperties();
-        props.setProductProfileRegistryResourceLocation(resourceLocation);
-        ProductProfileRegistrySource source = new ProductProfileRegistrySource(props, new ApplicationClock());
-        source.setResourceLoader(new FileSystemResourceLoader());
-        source.init();
-        return source;
-    }
+  private ProductProfileRegistrySource initRegistrySource(String resourceLocation) {
+    ApplicationProperties props = new ApplicationProperties();
+    props.setProductProfileRegistryResourceLocation(resourceLocation);
+    ProductProfileRegistrySource source =
+        new ProductProfileRegistrySource(props, new ApplicationClock());
+    source.setResourceLoader(new FileSystemResourceLoader());
+    source.init();
+    return source;
+  }
 }

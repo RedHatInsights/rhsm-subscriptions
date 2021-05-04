@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,32 +25,30 @@ import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskType;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Converts a conduit task descriptor into an invocable task.
- */
+/** Converts a conduit task descriptor into an invocable task. */
 @Component
 public class ConduitTaskFactory implements TaskFactory {
-    @Autowired
-    InventoryController inventoryController;
+  @Autowired InventoryController inventoryController;
 
-    /**
-     * Builds a Task instance based on the specified TaskDescriptor.
-     *
-     * @param taskDescriptor the task descriptor that is used to customize the Task that is to be created.
-     *
-     * @return the Task defined by the descriptor.
-     */
-    @Override
-    public Task build(TaskDescriptor taskDescriptor) {
-        if (taskDescriptor.getTaskType() == TaskType.UPDATE_ORG_INVENTORY) {
-            return new UpdateOrgInventoryTask(inventoryController, taskDescriptor.getArg("org_id").get(0),
-                    taskDescriptor.getArg("offset").get(0));
-        }
-        throw new IllegalArgumentException("Could not build task. Unknown task type: " +
-                taskDescriptor.getTaskType());
+  /**
+   * Builds a Task instance based on the specified TaskDescriptor.
+   *
+   * @param taskDescriptor the task descriptor that is used to customize the Task that is to be
+   *     created.
+   * @return the Task defined by the descriptor.
+   */
+  @Override
+  public Task build(TaskDescriptor taskDescriptor) {
+    if (taskDescriptor.getTaskType() == TaskType.UPDATE_ORG_INVENTORY) {
+      return new UpdateOrgInventoryTask(
+          inventoryController,
+          taskDescriptor.getArg("org_id").get(0),
+          taskDescriptor.getArg("offset").get(0));
     }
+    throw new IllegalArgumentException(
+        "Could not build task. Unknown task type: " + taskDescriptor.getTaskType());
+  }
 }

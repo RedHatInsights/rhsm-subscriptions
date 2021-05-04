@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,10 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.json.Event;
-
-import lombok.Getter;
-
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import lombok.Getter;
+import org.candlepin.subscriptions.json.Event;
 
 /**
  * Defines the unique constraints for an EventRecord. This object is primarily used for creating
@@ -34,54 +32,61 @@ import java.util.Objects;
 @Getter
 public class EventKey {
 
-    private String accountNumber;
-    private String eventType;
-    private String eventSource;
-    private String instanceId;
-    private OffsetDateTime timestamp;
+  private String accountNumber;
+  private String eventType;
+  private String eventSource;
+  private String instanceId;
+  private OffsetDateTime timestamp;
 
-    public EventKey(String accountNumber, String eventSource, String eventType, String instanceId,
-        OffsetDateTime timestamp) {
-        Objects.requireNonNull(accountNumber, "EventKey requires a non null 'accountNumber'.");
-        this.accountNumber = accountNumber;
+  public EventKey(
+      String accountNumber,
+      String eventSource,
+      String eventType,
+      String instanceId,
+      OffsetDateTime timestamp) {
+    Objects.requireNonNull(accountNumber, "EventKey requires a non null 'accountNumber'.");
+    this.accountNumber = accountNumber;
 
-        Objects.requireNonNull(eventType, "EventKey requires a non null 'eventType'.");
-        this.eventType = eventType;
+    Objects.requireNonNull(eventType, "EventKey requires a non null 'eventType'.");
+    this.eventType = eventType;
 
-        Objects.requireNonNull(eventSource, "EventKey requires a non null 'eventSource'.");
-        this.eventSource = eventSource;
+    Objects.requireNonNull(eventSource, "EventKey requires a non null 'eventSource'.");
+    this.eventSource = eventSource;
 
-        Objects.requireNonNull(instanceId, "EventKey requires a non null 'instanceId'.");
-        this.instanceId = instanceId;
+    Objects.requireNonNull(instanceId, "EventKey requires a non null 'instanceId'.");
+    this.instanceId = instanceId;
 
-        Objects.requireNonNull(timestamp, "EventKey requires a non null 'timestamp'.");
-        this.timestamp = timestamp;
+    Objects.requireNonNull(timestamp, "EventKey requires a non null 'timestamp'.");
+    this.timestamp = timestamp;
+  }
+
+  public static EventKey fromEvent(Event event) {
+    return new EventKey(
+        event.getAccountNumber(),
+        event.getEventSource(),
+        event.getEventType(),
+        event.getInstanceId(),
+        event.getTimestamp());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    public static EventKey fromEvent(Event event) {
-        return new EventKey(event.getAccountNumber(), event.getEventSource(), event.getEventType(),
-            event.getInstanceId(), event.getTimestamp());
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
+    EventKey eventKey = (EventKey) o;
+    return Objects.equals(accountNumber, eventKey.accountNumber)
+        && Objects.equals(eventType, eventKey.eventType)
+        && Objects.equals(eventSource, eventKey.eventSource)
+        && Objects.equals(instanceId, eventKey.instanceId)
+        && Objects.equals(timestamp, eventKey.timestamp);
+  }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        EventKey eventKey = (EventKey) o;
-        return Objects.equals(accountNumber, eventKey.accountNumber) &&
-            Objects.equals(eventType, eventKey.eventType) &&
-            Objects.equals(eventSource, eventKey.eventSource) &&
-            Objects.equals(instanceId, eventKey.instanceId) &&
-            Objects.equals(timestamp, eventKey.timestamp);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(accountNumber, eventType, eventSource, instanceId, timestamp);
-    }
-
+  @Override
+  public int hashCode() {
+    return Objects.hash(accountNumber, eventType, eventSource, instanceId, timestamp);
+  }
 }

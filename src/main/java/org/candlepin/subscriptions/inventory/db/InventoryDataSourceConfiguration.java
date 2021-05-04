@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,8 @@
 package org.candlepin.subscriptions.inventory.db;
 
 import com.zaxxer.hikari.HikariDataSource;
-
+import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -35,12 +36,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.validation.annotation.Validated;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
-
-/**
- * A class to hold the inventory data source configuration.
- */
+/** A class to hold the inventory data source configuration. */
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
@@ -48,33 +44,34 @@ import javax.sql.DataSource;
     entityManagerFactoryRef = "inventoryEntityManagerFactory")
 public class InventoryDataSourceConfiguration {
 
-    @Bean
-    @Validated
-    @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service.datasource")
-    public DataSourceProperties inventoryDataSourceProperties() {
-        return new DataSourceProperties();
-    }
+  @Bean
+  @Validated
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.inventory-service.datasource")
+  public DataSourceProperties inventoryDataSourceProperties() {
+    return new DataSourceProperties();
+  }
 
-    @Bean(name = "inventoryDataSource")
-    @ConfigurationProperties("rhsm-subscriptions.inventory-service.datasource.hikari")
-    public HikariDataSource inventoryDataSource(
-        @Qualifier("inventoryDataSourceProperties") DataSourceProperties dataSourceProperties) {
-        return (HikariDataSource) dataSourceProperties.initializeDataSourceBuilder().build();
-    }
+  @Bean(name = "inventoryDataSource")
+  @ConfigurationProperties("rhsm-subscriptions.inventory-service.datasource.hikari")
+  public HikariDataSource inventoryDataSource(
+      @Qualifier("inventoryDataSourceProperties") DataSourceProperties dataSourceProperties) {
+    return (HikariDataSource) dataSourceProperties.initializeDataSourceBuilder().build();
+  }
 
-    @Bean(name = "inventoryEntityManagerFactory")
-    public LocalContainerEntityManagerFactoryBean inventoryEntityManagerFactory(
-        EntityManagerFactoryBuilder builder, @Qualifier("inventoryDataSource") DataSource dataSource) {
-        return builder
-                .dataSource(dataSource)
-                .packages("org.candlepin.subscriptions.inventory.db.model")
-                .persistenceUnit("inventory")
-                .build();
-    }
+  @Bean(name = "inventoryEntityManagerFactory")
+  public LocalContainerEntityManagerFactoryBean inventoryEntityManagerFactory(
+      EntityManagerFactoryBuilder builder,
+      @Qualifier("inventoryDataSource") DataSource dataSource) {
+    return builder
+        .dataSource(dataSource)
+        .packages("org.candlepin.subscriptions.inventory.db.model")
+        .persistenceUnit("inventory")
+        .build();
+  }
 
-    @Bean(name = "inventoryTransactionManager")
-    public PlatformTransactionManager inventoryTransactionManager(
-        @Qualifier("inventoryEntityManagerFactory") EntityManagerFactory emf) {
-        return new JpaTransactionManager(emf);
-    }
+  @Bean(name = "inventoryTransactionManager")
+  public PlatformTransactionManager inventoryTransactionManager(
+      @Qualifier("inventoryEntityManagerFactory") EntityManagerFactory emf) {
+    return new JpaTransactionManager(emf);
+  }
 }

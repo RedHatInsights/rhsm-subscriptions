@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,57 +20,56 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
-import org.candlepin.subscriptions.subscription.api.model.Subscription;
-import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
-
-import org.springframework.util.StringUtils;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
+import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.springframework.util.StringUtils;
 
-/**
- * Utility class to assist in pulling nested data out of the Subscription DTO.
- */
+/** Utility class to assist in pulling nested data out of the Subscription DTO. */
 public class SubscriptionDtoUtil {
-    public static final String MARKETPLACE = "ibmmarketplace";
+  public static final String MARKETPLACE = "ibmmarketplace";
 
-    private SubscriptionDtoUtil() {
-        // Utility methods only
-    }
+  private SubscriptionDtoUtil() {
+    // Utility methods only
+  }
 
-    /**
-     * The subscription JSON coming from the service includes a list of every product associated with the
-     * subscription.  In order to find the operative SKU, we need the top-level product which is the one
-     * with a null parentSubscriptionProductId.
-     * @param subscription Subscription object from SubscriptionService
-     * @return the SKU that has a parentSubscriptionProductId of null
-     */
-    public static String extractSku(Subscription subscription) {
-        List<SubscriptionProduct> products = subscription.getSubscriptionProducts();
-        Objects.requireNonNull(products, "No subscription products found");
-        List<String> skus = products.stream()
+  /**
+   * The subscription JSON coming from the service includes a list of every product associated with
+   * the subscription. In order to find the operative SKU, we need the top-level product which is
+   * the one with a null parentSubscriptionProductId.
+   *
+   * @param subscription Subscription object from SubscriptionService
+   * @return the SKU that has a parentSubscriptionProductId of null
+   */
+  public static String extractSku(Subscription subscription) {
+    List<SubscriptionProduct> products = subscription.getSubscriptionProducts();
+    Objects.requireNonNull(products, "No subscription products found");
+    List<String> skus =
+        products.stream()
             .filter(x -> x.getParentSubscriptionProductId() == null)
             .distinct()
             .map(SubscriptionProduct::getSku)
             .collect(Collectors.toList());
 
-        if (skus.size() == 1) {
-            return skus.get(0);
-        }
-        throw new IllegalStateException("Could not find top level SKU for subscription " + subscription);
+    if (skus.size() == 1) {
+      return skus.get(0);
     }
+    throw new IllegalStateException(
+        "Could not find top level SKU for subscription " + subscription);
+  }
 
-    public static String extractMarketplaceId(Subscription subscription) {
-        Map<String, ExternalReference> externalRefs = subscription.getExternalReferences();
-        String subId = null;
-        if (externalRefs != null && !externalRefs.isEmpty()) {
-            ExternalReference marketplace = externalRefs
-                .getOrDefault(MARKETPLACE, new ExternalReference());
-            subId = marketplace.getSubscriptionID();
-        }
-        return (StringUtils.hasText(subId)) ? subId : null;
+  public static String extractMarketplaceId(Subscription subscription) {
+    Map<String, ExternalReference> externalRefs = subscription.getExternalReferences();
+    String subId = null;
+    if (externalRefs != null && !externalRefs.isEmpty()) {
+      ExternalReference marketplace =
+          externalRefs.getOrDefault(MARKETPLACE, new ExternalReference());
+      subId = marketplace.getSubscriptionID();
     }
+    return (StringUtils.hasText(subId)) ? subId : null;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,45 +22,46 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.*;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 /**
- * Produces hourly snapshots based on data stored in the inventory service. If a snapshot
- * does not exist for the account for the current hour and an incoming calculation exists
- * for the account, a new snapshot will be created. A snapshot's cores, sockets, and
- * instances will only be updated if the incoming calculated values are greater than those
- * existing for the current hour.
+ * Produces hourly snapshots based on data stored in the inventory service. If a snapshot does not
+ * exist for the account for the current hour and an incoming calculation exists for the account, a
+ * new snapshot will be created. A snapshot's cores, sockets, and instances will only be updated if
+ * the incoming calculated values are greater than those existing for the current hour.
  */
 public class HourlySnapshotRoller extends BaseSnapshotRoller {
-    private static final Logger log = LoggerFactory.getLogger(HourlySnapshotRoller.class);
+  private static final Logger log = LoggerFactory.getLogger(HourlySnapshotRoller.class);
 
-    public HourlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock,
-        ProductProfileRegistry registry) {
-        super(tallyRepo, clock, registry);
-    }
+  public HourlySnapshotRoller(
+      TallySnapshotRepository tallyRepo, ApplicationClock clock, ProductProfileRegistry registry) {
+    super(tallyRepo, clock, registry);
+  }
 
-    @Override
-    @Transactional
-    public Collection<TallySnapshot> rollSnapshots(Collection<String> accounts,
-        Collection<AccountUsageCalculation> accountCalcs) {
-        log.debug("Producing hourly snapshots for {} account(s).", accounts.size());
+  @Override
+  @Transactional
+  public Collection<TallySnapshot> rollSnapshots(
+      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing hourly snapshots for {} account(s).", accounts.size());
 
-        Map<String, List<TallySnapshot>> existingSnapsForTheHour = getCurrentSnapshotsByAccount(accounts,
-            getApplicableProducts(accountCalcs, HOURLY), HOURLY, clock.startOfCurrentHour(),
+    Map<String, List<TallySnapshot>> existingSnapsForTheHour =
+        getCurrentSnapshotsByAccount(
+            accounts,
+            getApplicableProducts(accountCalcs, HOURLY),
+            HOURLY,
+            clock.startOfCurrentHour(),
             clock.endOfCurrentHour());
 
-        return updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
-    }
+    return updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
+  }
 }
