@@ -20,7 +20,7 @@ parameters:
   - name: CAPTURE_SNAPSHOT_SCHEDULE
     value: 0 1 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
-    value: @hourly
+    value: '@hourly'
   - name: OPENSHIFT_METERING_SCHEDULE
     value: 0 * * * *
   - name: EVENT_RECORD_RETENTION
