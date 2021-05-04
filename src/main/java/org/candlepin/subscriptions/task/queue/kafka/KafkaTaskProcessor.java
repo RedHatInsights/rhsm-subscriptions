@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.TaskWorker;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +41,11 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
 
   private final TaskWorker worker;
 
-  public KafkaTaskProcessor(TaskFactory taskFactory, TaskQueueProperties taskQueueProperties) {
-    super(taskQueueProperties);
+  public KafkaTaskProcessor(
+      TaskFactory taskFactory,
+      TaskQueueProperties taskQueueProperties,
+      KafkaConsumerRegistry kafkaConsumerRegistry) {
+    super(taskQueueProperties, kafkaConsumerRegistry);
     worker = new TaskWorker(taskFactory);
   }
 

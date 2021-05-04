@@ -24,6 +24,7 @@ import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,8 +42,9 @@ public class MarketplaceWorker extends SeekableKafkaConsumer {
   public MarketplaceWorker(
       @Qualifier("marketplaceTasks") TaskQueueProperties taskQueueProperties,
       MarketplaceProducer producer,
-      MarketplacePayloadMapper marketplacePayloadMapper) {
-    super(taskQueueProperties);
+      MarketplacePayloadMapper marketplacePayloadMapper,
+      KafkaConsumerRegistry kafkaConsumerRegistry) {
+    super(taskQueueProperties, kafkaConsumerRegistry);
     this.producer = producer;
     this.marketplacePayloadMapper = marketplacePayloadMapper;
   }

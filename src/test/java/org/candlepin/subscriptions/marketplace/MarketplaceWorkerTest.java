@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -40,7 +41,8 @@ class MarketplaceWorkerTest {
     TaskQueueProperties properties = new TaskQueueProperties();
     MarketplaceProducer producer = mock(MarketplaceProducer.class);
     MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
-    var worker = new MarketplaceWorker(properties, producer, payloadMapper);
+    KafkaConsumerRegistry kafkaConsumerRegistry = new KafkaConsumerRegistry();
+    var worker = new MarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
 
     UsageRequest usageRequest = new UsageRequest().data(List.of(new UsageEvent()));
     when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
@@ -55,7 +57,8 @@ class MarketplaceWorkerTest {
     TaskQueueProperties properties = new TaskQueueProperties();
     MarketplaceProducer producer = mock(MarketplaceProducer.class);
     MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
-    var worker = new MarketplaceWorker(properties, producer, payloadMapper);
+    KafkaConsumerRegistry kafkaConsumerRegistry = mock(KafkaConsumerRegistry.class);
+    var worker = new MarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
 
     UsageRequest usageRequest = new UsageRequest().data(Collections.emptyList());
     when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
@@ -70,7 +73,8 @@ class MarketplaceWorkerTest {
     TaskQueueProperties properties = new TaskQueueProperties();
     MarketplaceProducer producer = mock(MarketplaceProducer.class);
     MarketplacePayloadMapper payloadMapper = mock(MarketplacePayloadMapper.class);
-    var worker = new MarketplaceWorker(properties, producer, payloadMapper);
+    KafkaConsumerRegistry kafkaConsumerRegistry = mock(KafkaConsumerRegistry.class);
+    var worker = new MarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
 
     when(payloadMapper.createUsageRequest(any())).thenReturn(null);
 

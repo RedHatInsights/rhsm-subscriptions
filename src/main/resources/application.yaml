@@ -52,6 +52,7 @@ spring:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)
       concurrency: ${KAFKA_MESSAGE_THREADS:1}
+      idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
     consumer:
       properties:
         # Required kafka defaults
