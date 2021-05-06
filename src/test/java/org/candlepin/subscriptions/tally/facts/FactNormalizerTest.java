@@ -20,9 +20,18 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.*;
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createBaseHost;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createGuest;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createHypervisor;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createQpcHost;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createRhsmHost;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createSystemProfileHost;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -35,6 +44,8 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -562,6 +573,33 @@ public class FactNormalizerTest {
     assertNull(facts.getSystemProfileInfrastructureType());
 
     assertTrue(normalizer.normalize(facts, Collections.emptyMap()).isVirtual());
+  }
+
+  @Test
+  void testSatelliteSyspurposeHandled() {
+    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    facts.setSatelliteRole("Red Hat Enterprise Linux Server");
+    facts.setSatelliteSla("Premium");
+    facts.setSatelliteUsage("Production");
+    NormalizedFacts normalized = normalizer.normalize(facts, Collections.emptyMap());
+    assertThat(normalized.getProducts(), Matchers.contains("RHEL Server", "RHEL"));
+    assertEquals(ServiceLevel.PREMIUM, normalized.getSla());
+    assertEquals(Usage.PRODUCTION, normalized.getUsage());
+  }
+
+  @Test
+  void testRhsmFactsOverrideSatellite() {
+    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    facts.setSatelliteRole("Red Hat Enterprise Linux Server");
+    facts.setSatelliteSla("Premium");
+    facts.setSatelliteUsage("Production");
+    facts.setSyspurposeRole("Red Hat Enterprise Linux Workstation");
+    facts.setSyspurposeSla("Standard");
+    facts.setSyspurposeUsage("Development/Test");
+    NormalizedFacts normalized = normalizer.normalize(facts, Collections.emptyMap());
+    assertThat(normalized.getProducts(), Matchers.contains("RHEL Workstation", "RHEL"));
+    assertEquals(ServiceLevel.STANDARD, normalized.getSla());
+    assertEquals(Usage.DEVELOPMENT_TEST, normalized.getUsage());
   }
 
   private void assertClassification(
