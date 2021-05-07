@@ -76,7 +76,11 @@ public class MarketplaceSubscriptionIdProvider {
   }
 
   public Optional<String> findSubscriptionId(
-      String accountNumber, Key usageKey, OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
+      String accountNumber,
+      String orgId,
+      Key usageKey,
+      OffsetDateTime rangeStart,
+      OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -91,7 +95,8 @@ public class MarketplaceSubscriptionIdProvider {
     if (result.isEmpty()) {
       /* If we are missing the subscription, call out to the MarketplaceSubscriptionCollector
       to fetch from Marketplace.  Sync all those subscriptions. Query again. */
-      var subscriptions = collector.requestSubscriptions(accountNumber);
+      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId);
+      var subscriptions = collector.requestSubscriptions(orgId);
       subscriptions.forEach(syncController::syncSubscription);
       result = fetchSubscriptions(accountNumber, usageKey, roles, rangeStart, rangeEnd);
     }
