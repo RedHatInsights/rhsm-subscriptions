@@ -6,7 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:5.1.0"
+        classpath "org.openapitools:openapi-generator-gradle-plugin:5.1.1"
         classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.1"
         classpath "de.undercouch:gradle-download-task:4.1.1"
     }
@@ -73,7 +73,7 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
-            dependency "io.hawt:hawtio-springboot:2.13.2"
+            dependency "io.hawt:hawtio-springboot:2.13.3"
         }
     }
 
@@ -188,6 +188,7 @@ dependencies {
     compile project(":marketplace-client")
     compile project(":prometheus-client")
     compile project(":user-client")
+    compile project(":product-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -458,9 +459,19 @@ project(":user-client") {
     }
 }
 
+project(":product-client") {
+    apply plugin: "org.openapi.generator"
+
+    ext {
+        api_spec_path = "${projectDir}/product-api-spec.yaml"
+        config_file = "${projectDir}/product-client-config.json"
+    }
+}
+
 configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
                                             'insights-inventory-client', 'subscription-client',
-                                            'marketplace-client', 'prometheus-client', 'user-client']}) {
+                                            'marketplace-client', 'prometheus-client', 'user-client',
+                                            'product-client']}) {
     apply plugin: "org.openapi.generator"
 
     openApiValidate {

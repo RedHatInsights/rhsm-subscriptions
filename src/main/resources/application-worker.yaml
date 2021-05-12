@@ -21,3 +21,9 @@ rhsm-subscriptions:
   cloudigrade:
     url: http://${CLOUDIGRADE_HOST:localhost}:${CLOUDIGRADE_PORT:8080}/api/cloudigrade/v2
     maxConnections: ${CLOUDIGRADE_MAX_CONNECTIONS:100}
+  product:
+    useStub: ${PRODUCT_USE_STUB:false}
+    url: ${PRODUCT_URL:https://product.qa.api.redhat.com/svcrest/product/v3}
+    keystore: file:${PRODUCT_KEYSTORE:}
+    keystorePassword: ${PRODUCT_KEYSTORE_PASSWORD:changeit}
+    maxConnections: ${PRODUCT_MAX_CONNECTIONS:100}

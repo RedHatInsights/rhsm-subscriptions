@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,8 @@ class MarketplacePayloadMapperTest {
   @Mock ProductProfileRegistry profileRegistry;
   @Mock MarketplaceProperties marketplaceProperties;
   @Mock MarketplaceSubscriptionIdProvider mockProvider;
+
+  @Mock AccountService accountService;
 
   @InjectMocks MarketplacePayloadMapper marketplacePayloadMapper;
 
@@ -266,6 +269,7 @@ class MarketplacePayloadMapperTest {
 
     when(mockProvider.findSubscriptionId(
             any(String.class),
+            any(String.class),
             any(UsageCalculation.Key.class),
             any(OffsetDateTime.class),
             any(OffsetDateTime.class)))
@@ -285,8 +289,12 @@ class MarketplacePayloadMapperTest {
             .withSla(TallySnapshot.Sla.PREMIUM)
             .withGranularity(TallySnapshot.Granularity.HOURLY);
 
+    String account = "test123";
+    String orgId = "org123";
     var summary =
-        new TallySummary().withTallySnapshots(List.of(snapshot)).withAccountNumber("test123");
+        new TallySummary().withTallySnapshots(List.of(snapshot)).withAccountNumber(account);
+
+    when(accountService.lookupOrgId(account)).thenReturn(orgId);
 
     var usageMeasurement =
         new UsageMeasurement().value(36.0).metricId("redhat.com:openshift:cpu_hour");

@@ -39,6 +39,7 @@ import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.user.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,15 +54,18 @@ public class MarketplacePayloadMapper {
       "redhat.com:openshift_dedicated:4cpu_hour";
 
   private final ProductProfileRegistry profileRegistry;
+  private final AccountService accountService;
   private final MarketplaceProperties marketplaceProperties;
   private final MarketplaceSubscriptionIdProvider idProvider;
 
   @Autowired
   public MarketplacePayloadMapper(
       ProductProfileRegistry profileRegistry,
+      AccountService accountService,
       MarketplaceSubscriptionIdProvider idProvider,
       MarketplaceProperties marketplaceProperties) {
     this.profileRegistry = profileRegistry;
+    this.accountService = accountService;
     this.marketplaceProperties = marketplaceProperties;
     this.idProvider = idProvider;
   }
@@ -129,6 +133,9 @@ public class MarketplacePayloadMapper {
       tallySummary.setTallySnapshots(new ArrayList<>());
     }
 
+    String accountNumber = tallySummary.getAccountNumber();
+    String orgId = accountService.lookupOrgId(accountNumber);
+
     var eligibleSnapshots =
         tallySummary.getTallySnapshots().stream()
             .filter(this::isSnapshotPAYGEligible)
@@ -156,8 +163,7 @@ public class MarketplacePayloadMapper {
       long end = snapshotDate.plus(Duration.ofHours(1L)).toInstant().toEpochMilli();
 
       var subscriptionIdOpt =
-          idProvider.findSubscriptionId(
-              tallySummary.getAccountNumber(), usageKey, snapshotDate, snapshotDate);
+          idProvider.findSubscriptionId(accountNumber, orgId, usageKey, snapshotDate, snapshotDate);
 
       if (subscriptionIdOpt.isEmpty()) {
         log.error("{}", ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR);

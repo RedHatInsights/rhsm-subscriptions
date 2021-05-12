@@ -126,6 +126,24 @@ public class SubscriptionService {
     return fluxRetryWrapper(supplier);
   }
 
+  public List<Subscription> getSubscriptionsByOrgId(String orgId) {
+    var index = 0;
+    var pageSize = properties.getPageSize();
+    int latestResultCount;
+
+    Set<Subscription> total = new HashSet<>();
+    do {
+      List<Subscription> subscriptionsByOrgId;
+
+      subscriptionsByOrgId = getSubscriptionsByOrgId(orgId, index, pageSize);
+      latestResultCount = subscriptionsByOrgId.size();
+      total.addAll(subscriptionsByOrgId);
+      index = index + pageSize;
+    } while (latestResultCount == pageSize);
+
+    return new ArrayList<>(total);
+  }
+
   /**
    * Obtain Subscription Service Subscription Models for an orgId.
    *
