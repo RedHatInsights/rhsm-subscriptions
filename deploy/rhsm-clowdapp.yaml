@@ -1,0 +1,209 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhsm
+parameters:
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: ENV_NAME
+    value: env-rhsm
+  - name: NAMESPACE
+    value: rhsm
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
+  - name: RBAC_HOST
+    # required: true
+    value: localhost
+    required: true
+  - name: RBAC_PORT
+    value: '8080'
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '10'
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: rhsm-clowdapp
+    namespace: ${NAMESPACE}
+  spec:
+    # The name of the ClowdEnvironment providing the services
+    envName: ${ENV_NAME}
+    deployments:
+    - name: service
+      web: true
+      minReplicas: 1
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - sh
+          - /usr/local/s2i/run
+        initContainers:
+          - env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: liquibase-only
+            # DIRTY HACK to get the init container to run since it doesn't care about Kafka
+            - name: KAFKA_BOOTSTRAP_HOST
+              value: localhost
+            inheritEnv: true
+            command:
+              - bash
+              - /usr/local/s2i/run
+        env:
+          - name: SERVER_MAX_HTTP_HEADER_SIZE
+            value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+          - name: LOG_FILE
+            value: /logs/server.log
+          - name: SPRING_PROFILES_ACTIVE
+            value: api
+          - name: JAVA_MAX_MEM_RATIO
+            value: '85'
+          - name: GC_MAX_METASPACE_SIZE
+            value: '256'
+          - name: LOGGING_LEVEL_ROOT
+            value: ${LOGGING_LEVEL_ROOT}
+          - name: LOGGING_LEVEL_ORG_CANDLEPIN
+            value: ${LOGGING_LEVEL}
+          - name: KAFKA_BOOTSTRAP_HOST
+            value: ${KAFKA_BOOTSTRAP_HOST}
+          - name: RBAC_HOST
+            value: ${RBAC_HOST}
+          - name: RBAC_PORT
+            value: ${RBAC_PORT}
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: hostname
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: port
+          - name: DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: password
+          - name: DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: name
+          - name: DATABASE_CONNECTION_TIMEOUT_MS
+            value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+          - name: DATABASE_MAX_POOL_SIZE
+            value: ${DATABASE_MAX_POOL_SIZE}
+          - name: INVENTORY_DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.host
+          - name: INVENTORY_DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.name
+          - name: INVENTORY_DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.user
+          - name: INVENTORY_DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.password
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 90
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 3
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 90
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds:
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: logs
+          mountPath: /logs
+        volumes:
+        - name: config
+          configMap:
+            name: rhsm-subscriptions-config
+        - name: splunk
+          secret:
+            secretName: splunk
+        - name: logs
+          emptyDir:
+
+    dependencies:
+      - rbac
+
+    kafkaTopics:
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.tally
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.tasks
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.openshift-metering-tasks
+
+    # Creates a database if local mode, or uses RDS in production
+    database:
+      # Must specify both a name and a major postgres version
+      name: rhsm-db
+      version: 12
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: rhsm-subscriptions-config
+  data:
+    ssl.properties: |-
+      # force client cert auth for ingress endpoints
+      server.port=8443
+      server.ssl.client-auth=NEED
+      server.ssl.enabled=true
+
+      server.ssl.key-store=${KEYSTORE}
+      server.ssl.key-store-password=${KEYSTORE_PASSWORD}
+
+      server.ssl.trust-store=${TRUSTSTORE}
+      server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
+
+      # put /actuator calls on 8080
+      management.server.port=8080
+      management.server.ssl.enabled=false
