@@ -1,92 +1,23 @@
 apiVersion: v1
 kind: Template
 labels:
-  app: rhsm-subscriptions
-  template: metrics-worker
-metadata:
-  annotations:
-    description: Request-serving components for Subscription Watch.
-  name: metrics-worker
-
-parameters:
-  - name: HAWTIO_BASE_PATH
-    value: /app/rhsm-metrics/actuator/hawtio
-  - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '48000'
-  - name: LOGGING_LEVEL_ROOT
-    value: WARN
-  - name: LOGGING_LEVEL
-    value: INFO
-  - name: KAFKA_BOOTSTRAP_HOST
-    required: true
-  - name: KAFKA_MESSAGE_THREADS
-    value: '24'
-  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
-    value: '3600000'
-  - name: REPLICAS
-    value: '1'
-  - name: IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
-  - name: IMAGE_TAG
-    value: latest
-  - name: IMAGE_PULL_SECRET
-    value: quay-cloudservices-pull
-  - name: MEMORY_REQUEST
-    value: 1000Mi
-  - name: MEMORY_LIMIT
-    value: 1700Mi
-  - name: CPU_REQUEST
-    value: 450m
-  - name: CPU_LIMIT
-    value: 1800m
-  - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
-  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
-    value: 128Mi
-  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
-    value: 256Mi
-  - name: SPLUNK_FORWARDER_CPU_REQUEST
-    value: 50m
-  - name: SPLUNK_FORWARDER_CPU_LIMIT
-    value: 100m
-  - name: CLOUDIGRADE_ENABLED
-    value: 'false'
-  - name: CLOUDIGRADE_HOST
-    value: 'localhost'
-  - name: CLOUDIGRADE_PORT
-    value: '8080'
-  - name: TOKEN_REFRESHER_IMAGE
-    value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
-  - name: TOKEN_REFRESHER_CPU_REQUEST
-    value: 50m
-  - name: TOKEN_REFRESHER_CPU_LIMIT
-    value: 100m
-  - name: TOKEN_REFRESHER_MEMORY_REQUEST
-    value: 128Mi
-  - name: TOKEN_REFRESHER_MEMORY_LIMIT
-    value: 150Mi
-  - name: PROM_URL
-    value: http://localhost:8082
-  - name: DATABASE_CONNECTION_TIMEOUT_MS
-    value: '30000'
-  - name: DATABASE_MAX_POOL_SIZE
-    value: '25'
-  - name: OPENSHIFT_BILLING_MODEL_FILTER
-    value: 'marketplace'
-  - name: USER_HOST
-    required: true
-  - name: USER_MAX_CONNECTIONS
-    value: '100'
-  - name: USER_MAX_ATTEMPTS
-    value: '10'
-  - name: USER_BACK_OFF_MAX_INTERVAL
-    value: 64s
-  - name: USER_BACK_OFF_INITIAL_INTERVAL
-    value: 1s
-  - name: USER_BACK_OFF_MULTIPLIER
-    value: '2'
+  app: rhsm-subscriptions #
+  template: metrics-worker #
+metadata: #
+  annotations: #
+    description: Request-serving components for Subscription Watch. #
+  name: metrics-worker #
 
 objects:
+  - apiVersion: v1
+    kind: Secret # For ephemeral/local environment
+    metadata:
+      name: catalog-inventory-secrets
+      labels:
+        app: catalog-inventory
+    stringData:
+      encryption-key: "${ENCRYPTION_KEY}"
+      secret-key: "${SECRET_KEY}"
   - apiVersion: v1
     kind: DeploymentConfig
     metadata:
@@ -367,10 +298,10 @@ objects:
 
   - apiVersion: v1
     kind: Service
-    metadata:
-      name: metrics-worker-monitoring
-      labels:
-        prometheus: rhsm
+    metadata: #
+      name: metrics-worker-monitoring #
+      labels: #
+        prometheus: rhsm #
     spec:
       ports:
         - port: 8080
@@ -379,3 +310,206 @@ objects:
           targetPort: 8080
       selector:
         deploymentconfig: metrics-worker
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: metrics-worker
+    spec:
+      envName: ${ENV_NAME}
+      deployments:
+      - name: api
+        minReplicas: ${{MIN_REPLICAS}}
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          env:
+          - name: ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: catalog-inventory-secrets
+                key: encryption-key
+          - name: SECRET_KEY_BASE
+            valueFrom:
+              secretKeyRef:
+                name: catalog-inventory-secrets
+                key: secret-key
+          - name: CLOUD_CONTROLLER_PSK
+            valueFrom:
+              secretKeyRef:
+                name: catalog-inventory-psk
+                key: client-psk
+
+          - name: SOURCES_URL
+            value: ${SOURCES_SCHEME}://${SOURCES_HOST}:${SOURCES_PORT}
+          - name: CURRENT_API_VERSION
+            value: ${CURRENT_API_VERSION}
+          - name: CLOUD_CONNECTOR_URL
+            value: ${CLOUD_CONNECTOR_SCHEME}://${CLOUD_CONNECTOR_HOST}:${CLOUD_CONNECTOR_PORT}
+          - name: CATALOG_INVENTORY_INTERNAL_URL
+            value: ${CATALOG_INVENTORY_SCHEME}://${CATALOG_INVENTORY_HOST}:${CATALOG_INVENTORY_PORT}
+          - name: CATALOG_INVENTORY_EXTERNAL_URL
+            value: https://cert.${CATALOG_INVENTORY_EXTERNAL_HOST}/api/catalog-inventory # Temp to add cert here
+          - name: UPLOAD_URL
+            value: https://cert.${CATALOG_INVENTORY_EXTERNAL_HOST}/api/ingress/v1/upload
+          - name: RAILS_LOG_LEVEL
+            value: ${LOG_LEVEL}
+          - name: CLOWDER_ENABLED
+            value: ${CLOWDER_ENABLED}
+          - name: INACTIVE_TASK_REMINDER_TIME
+            value: ${INACTIVE_TASK_REMINDER_TIME}
+          - name: SOURCE_REFRESH_TIMEOUT
+            value: ${SOURCE_REFRESH_TIMEOUT}
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: 200m
+              memory: 256Mi
+      jobs:
+      - name: cleanup-tasks
+        schedule: ${CLEANUP_SCHEDULE}
+        concurrencyPolicy: Forbid
+        restartPolicy: Never
+        startingDeadlineSeconds: 30
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          command:
+          - bin/cleanup_tasks
+          env:
+          - name: ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: catalog-inventory-secrets
+                key: encryption-key
+          - name: SECRET_KEY_BASE
+            valueFrom:
+              secretKeyRef:
+                name: catalog-inventory-secrets
+                key: secret-key
+          - name: LOG_LEVEL
+            value: ${LOG_LEVEL}
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: 200m
+              memory: 256Mi
+      kafkaTopics:
+      - replicas: 3
+        partitions: 3
+        topicName: platform.sources.event-stream
+      - replicas: 3
+        partitions: 3
+        topicName: platform.topological-inventory.operations-ansible-tower
+      - replicas: 3
+        partitions: 3
+        topicName: platform.upload.catalog
+      - replicas: 3
+        partitions: 10
+        topicName: platform.catalog.persister
+      - replicas: 3
+        partitions: 3
+        topicName: platform.sources.status
+      - replicas: 3
+        partitions: 3
+        topicName: platform.catalog-inventory.task-output-stream
+      dependencies:
+      - ingress
+      - sources-api
+      database:
+        name: catalog-inventory
+
+
+
+parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /app/rhsm-metrics/actuator/hawtio
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_BOOTSTRAP_HOST
+    required: true
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1700Mi
+  - name: CPU_REQUEST
+    value: 450m
+  - name: CPU_LIMIT
+    value: 1800m
+  - name: SPLUNK_FORWARDER_IMAGE
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
+  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
+    value: 128Mi
+  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
+    value: 256Mi
+  - name: SPLUNK_FORWARDER_CPU_REQUEST
+    value: 50m
+  - name: SPLUNK_FORWARDER_CPU_LIMIT
+    value: 100m
+  - name: CLOUDIGRADE_ENABLED
+    value: 'false'
+  - name: CLOUDIGRADE_HOST
+    value: 'localhost'
+  - name: CLOUDIGRADE_PORT
+    value: '8080'
+  - name: TOKEN_REFRESHER_IMAGE
+    value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
+  - name: TOKEN_REFRESHER_CPU_REQUEST
+    value: 50m
+  - name: TOKEN_REFRESHER_CPU_LIMIT
+    value: 100m
+  - name: TOKEN_REFRESHER_MEMORY_REQUEST
+    value: 128Mi
+  - name: TOKEN_REFRESHER_MEMORY_LIMIT
+    value: 150Mi
+  - name: PROM_URL
+    value: http://localhost:8082
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '25'
+  - name: OPENSHIFT_BILLING_MODEL_FILTER
+    value: 'marketplace'
+  - name: USER_HOST
+    required: true
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - description: ClowdEnv Name
+    name: ENV_NAME
+    required: false
