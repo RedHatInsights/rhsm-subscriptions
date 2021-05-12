@@ -58,6 +58,8 @@ public class PrometheusMetricsTaskManager {
 
   public void updateOpenshiftMetricsForAccount(
       String account, OffsetDateTime start, OffsetDateTime end) {
+    log.info(
+        "Queuing OpenShift metrics update for account {} between {} and {}", account, start, end);
     this.queue.enqueue(createOpenshiftMetricsTask(account, start, end));
   }
 
