@@ -67,6 +67,9 @@ import lombok.Setter;
             @ColumnResult(name = "is_virtual"),
             @ColumnResult(name = "hypervisor_uuid"),
             @ColumnResult(name = "satellite_hypervisor_uuid"),
+            @ColumnResult(name = "satellite_role"),
+            @ColumnResult(name = "satellite_sla"),
+            @ColumnResult(name = "satellite_usage"),
             @ColumnResult(name = "guest_id"),
             @ColumnResult(name = "subscription_manager_id"),
             @ColumnResult(name = "insights_id"),
@@ -88,6 +91,9 @@ import lombok.Setter;
             + "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, "
             + "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, "
             + "h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid, "
+            + "h.facts->'satellite'->>'system_purpose_role' as satellite_role, "
+            + "h.facts->'satellite'->>'system_purpose_sla' as satellite_sla, "
+            + "h.facts->'satellite'->>'system_purpose_usage' as satellite_usage, "
             + "h.facts->'rhsm'->>'GUEST_ID' as guest_id, "
             + "h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp, "
             + "h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role, "
