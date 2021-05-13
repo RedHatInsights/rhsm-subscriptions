@@ -1060,6 +1060,7 @@ components:
         - last_seen
         - measurement_type
         - core_hours
+        - instance_hours
     HostReport:
       properties:
         data:
