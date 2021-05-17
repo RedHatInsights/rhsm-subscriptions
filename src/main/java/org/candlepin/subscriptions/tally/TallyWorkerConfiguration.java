@@ -142,7 +142,7 @@ public class TallyWorkerConfiguration {
 
   @Bean
   @Qualifier("tallyTaskConsumer")
-  public TaskConsumer taskProcessor(
+  public TaskConsumer tallyTaskProcessor(
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties,
       TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
       TallyTaskFactory taskFactory) {

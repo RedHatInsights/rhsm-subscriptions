@@ -131,9 +131,6 @@ public class ApplicationProperties {
   /** Number of times to attempt query against cloudigrade for Tally integration. */
   private int cloudigradeMaxAttempts = 2;
 
-  /** Kafka topic for sending tally summaries. */
-  private String tallySummaryTopic = "platform.rhsm-subscriptions.tally";
-
   /**
    * Offsets the range to look at metrics to account for delay in prometheus having metrics
    * available

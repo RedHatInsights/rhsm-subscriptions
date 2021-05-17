@@ -24,7 +24,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -64,14 +66,29 @@ public class MarketplaceWorkerConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean
+  KafkaConsumerRegistry kafkaConsumerRegistry() {
+    return new KafkaConsumerRegistry();
+  }
+
+  @Bean
   ConcurrentKafkaListenerContainerFactory<String, TallySummary>
       kafkaTallySummaryListenerContainerFactory(
-          ConsumerFactory<String, TallySummary> consumerFactory, KafkaProperties kafkaProperties) {
+          ConsumerFactory<String, TallySummary> consumerFactory,
+          KafkaProperties kafkaProperties,
+          KafkaConsumerRegistry registry) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, TallySummary>();
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
   }
 

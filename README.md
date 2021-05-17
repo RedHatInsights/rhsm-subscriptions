@@ -239,7 +239,17 @@ push with `git push --follow-tags origin master`.
 
 ## Kafka
 
-See the detailed notes [here](README-kafka.md)
+`podman-compose` deploys a kafka instance w/ a UI at http://localhost:3030
+
+Two environment variables can be used to manipulate the offsets of the kafka
+consumers:
+
+- `KAFKA_SEEK_OVERRIDE_END` when set to `true` seeks to the very end
+- `KAFKA_SEEK_OVERRIDE_TIMESTAMP` when set to an OffsetDateTime, seeks the
+  queue to this position.
+
+These changes are permanent, committed the next time the kafka consumer is detected
+as idle.
 
 ## Dashboard
 

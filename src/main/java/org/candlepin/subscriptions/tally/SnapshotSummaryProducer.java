@@ -24,14 +24,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -45,8 +46,9 @@ public class SnapshotSummaryProducer {
 
   @Autowired
   protected SnapshotSummaryProducer(
-      KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate, ApplicationProperties props) {
-    this.tallySummaryTopic = props.getTallySummaryTopic();
+      KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
+      @Qualifier("marketplaceTasks") TaskQueueProperties props) {
+    this.tallySummaryTopic = props.getTopic();
     this.tallySummaryKafkaTemplate = tallySummaryKafkaTemplate;
   }
 

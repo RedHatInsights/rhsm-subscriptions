@@ -22,34 +22,36 @@ package org.candlepin.subscriptions.marketplace;
 
 import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
-import lombok.Getter;
-import lombok.Setter;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 /** Worker that maps tally summaries and submits them to Marketplace. */
 @Service
-public class MarketplaceWorker {
-
-  @Getter @Setter private String topic;
+public class MarketplaceWorker extends SeekableKafkaConsumer {
 
   private final MarketplaceProducer producer;
   private final MarketplacePayloadMapper marketplacePayloadMapper;
 
+  @Autowired
   public MarketplaceWorker(
-      ApplicationProperties properties,
+      @Qualifier("marketplaceTasks") TaskQueueProperties taskQueueProperties,
       MarketplaceProducer producer,
-      MarketplacePayloadMapper marketplacePayloadMapper) {
-    topic = properties.getTallySummaryTopic();
+      MarketplacePayloadMapper marketplacePayloadMapper,
+      KafkaConsumerRegistry kafkaConsumerRegistry) {
+    super(taskQueueProperties, kafkaConsumerRegistry);
     this.producer = producer;
     this.marketplacePayloadMapper = marketplacePayloadMapper;
   }
 
   @Timed("rhsm-subscriptions.marketplace.tally-summary")
   @KafkaListener(
-      id = "marketplace-worker",
+      id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "kafkaTallySummaryListenerContainerFactory")
   public void receive(TallySummary tallySummary) {

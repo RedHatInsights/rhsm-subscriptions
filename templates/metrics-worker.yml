@@ -23,6 +23,10 @@ parameters:
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
     value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
   - name: REPLICAS
     value: '1'
   - name: IMAGE
@@ -178,6 +182,10 @@ objects:
                   value: ${KAFKA_MESSAGE_THREADS}
                 - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
                   value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+                - name: KAFKA_SEEK_OVERRIDE_END
+                  value: ${KAFKA_SEEK_OVERRIDE_END}
+                - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+                  value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:

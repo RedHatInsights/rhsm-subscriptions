@@ -19,3 +19,5 @@ rhsm-conduit:
   tasks:
     topic: ${CONDUIT_KAFKA_TOPIC:platform.rhsm-conduit.tasks}
     kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

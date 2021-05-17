@@ -25,11 +25,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 /** Configuration for tally task queue common to both producers and consumers. */
 @Configuration
 public class TallyTaskQueueConfiguration {
   @Bean
+  @Primary
   @Qualifier("tallyTaskQueueProperties")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.tasks")
   TaskQueueProperties tallyTaskQueueProperties() {
