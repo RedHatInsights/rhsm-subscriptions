@@ -1276,6 +1276,8 @@ components:
             type: string
         fqdn:
           type: string
+        display_name:
+          type: string
         mac_addresses:
           type: array
           items:
