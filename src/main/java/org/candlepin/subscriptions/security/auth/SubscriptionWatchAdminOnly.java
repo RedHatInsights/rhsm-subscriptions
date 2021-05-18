@@ -35,5 +35,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole('" + RoleProvider.SWATCH_ADMIN_ROLE + "')")
+@PreAuthorize(
+    "hasAnyRole('"
+        + RoleProvider.SWATCH_ADMIN_ROLE
+        + "','"
+        + RoleProvider.SWATCH_REPORT_READER
+        + "')")
 public @interface SubscriptionWatchAdminOnly {}

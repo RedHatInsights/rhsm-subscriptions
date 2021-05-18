@@ -1,8 +1,8 @@
 rhsm-subscriptions:
   pretty-print-json: ${PRETTY_PRINT_JSON:false}
-  # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
-  rbac-application-name: ${RBAC_APPLICATION_NAME:subscriptions}
   rbac-service:
+    application-name: ${RBAC_APPLICATION_NAME:subscriptions}
     use-stub: ${RBAC_USE_STUB:false}
     url: http://${RBAC_HOST:localhost}:${RBAC_PORT:8819}/api/rbac/v1
     max-connections: ${RBAC_MAX_CONNECTIONS:100}
+    stub-permissions: ${RBAC_STUB_PERMISSIONS:subscriptions:*:*}

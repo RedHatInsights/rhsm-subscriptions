@@ -23,13 +23,12 @@ package org.candlepin.subscriptions.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.rbac.RbacApiFactory;
+import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -94,6 +93,7 @@ public class SecurityConfig {
   public static class ApiConfiguration extends WebSecurityConfigurerAdapter {
     @Autowired protected ObjectMapper mapper;
     @Autowired protected ApplicationProperties appProps;
+    @Autowired protected RbacProperties rbacProperties;
     @Autowired protected ConfigurableEnvironment env;
     @Autowired protected RbacService rbacService;
 
@@ -102,14 +102,14 @@ public class SecurityConfig {
       // Add our AuthenticationProvider to the Provider Manager's list
       auth.authenticationProvider(
           identityHeaderAuthenticationProvider(
-              identityHeaderAuthenticationDetailsService(appProps, rbacService)));
+              identityHeaderAuthenticationDetailsService(appProps, rbacProperties, rbacService)));
     }
 
     @Bean
     public IdentityHeaderAuthenticationDetailsService identityHeaderAuthenticationDetailsService(
-        ApplicationProperties appProps, RbacService rbacService) {
+        ApplicationProperties appProps, RbacProperties rbacProperties, RbacService rbacService) {
       return new IdentityHeaderAuthenticationDetailsService(
-          appProps, identityHeaderAuthoritiesMapper(), rbacService);
+          appProps, rbacProperties, identityHeaderAuthoritiesMapper(), rbacService);
     }
 
     @Bean
@@ -124,14 +124,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Qualifier("rbac")
     @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
-    public HttpClientProperties rbacServiceProperties() {
-      return new HttpClientProperties();
+    public RbacProperties rbacServiceProperties() {
+      return new RbacProperties();
     }
 
     @Bean
-    public RbacApiFactory rbacApiFactory(@Qualifier("rbac") HttpClientProperties props) {
+    public RbacApiFactory rbacApiFactory(RbacProperties props) {
       return new RbacApiFactory(props);
     }
 

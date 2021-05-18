@@ -21,8 +21,10 @@
 package org.candlepin.subscriptions.http;
 
 import java.io.File;
+import lombok.Data;
 
 /** HTTP service client configuration. */
+@Data
 public class HttpClientProperties {
 
   /** Use a stub of the service. */
@@ -46,52 +48,4 @@ public class HttpClientProperties {
 
   /** Certificate authenticate file password */
   private char[] keystorePassword;
-
-  public boolean isUseStub() {
-    return useStub;
-  }
-
-  public void setUseStub(boolean useStub) {
-    this.useStub = useStub;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(String token) {
-    this.token = token;
-  }
-
-  public int getMaxConnections() {
-    return maxConnections;
-  }
-
-  public void setMaxConnections(int maxConnections) {
-    this.maxConnections = maxConnections;
-  }
-
-  public File getKeystore() {
-    return keystore;
-  }
-
-  public void setKeystore(File keystorePath) {
-    this.keystore = keystorePath;
-  }
-
-  public char[] getKeystorePassword() {
-    return keystorePassword;
-  }
-
-  public void setKeystorePassword(char[] keystorePassword) {
-    this.keystorePassword = keystorePassword;
-  }
 }

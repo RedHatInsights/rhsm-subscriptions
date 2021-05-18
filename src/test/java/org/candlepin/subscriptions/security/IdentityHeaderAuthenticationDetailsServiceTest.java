@@ -20,16 +20,20 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.rbac.RbacApi;
+import org.candlepin.subscriptions.rbac.RbacApiException;
+import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.rbac.model.Access;
 import org.hamcrest.Matchers;
@@ -61,6 +65,13 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
   }
 
   @Test
+  void testReportReaderRoleGranted() throws RbacApiException {
+    when(rbacApi.getCurrentUserAccess(eq("subscriptions")))
+        .thenReturn(List.of(new Access().permission("subscriptions:reports:read")));
+    assertRoles(false, RoleProvider.SWATCH_REPORT_READER);
+  }
+
+  @Test
   void testRhAssociateGetsRhInternalRole() {
     Authentication auth = new PreAuthenticatedAuthenticationToken(new RhAssociatePrincipal(), null);
     UserDetails userDetails = detailsService.loadUserDetails(auth);
@@ -87,10 +98,11 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
 
   private void assertRoles(boolean devMode, String... expectedRoles) {
     ApplicationProperties props = new ApplicationProperties();
+    RbacProperties rbacProps = new RbacProperties();
     props.setDevMode(devMode);
     IdentityHeaderAuthenticationDetailsService source =
         new IdentityHeaderAuthenticationDetailsService(
-            props, new IdentityHeaderAuthoritiesMapper(), rbacService);
+            props, rbacProps, new IdentityHeaderAuthoritiesMapper(), rbacService);
     Collection<String> roles = source.getUserRoles();
     assertEquals(expectedRoles.length, roles.size());
     assertThat(roles, Matchers.containsInAnyOrder(expectedRoles));
