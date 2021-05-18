@@ -36,45 +36,54 @@ import org.springframework.util.StringUtils;
 
 /** Exposes the ability to trigger metering operations from JMX. */
 @ManagedResource
-public class OpenShiftJmxBean {
+public class MeteringJmxBean {
 
-  private static final Logger log = LoggerFactory.getLogger(OpenShiftJmxBean.class);
+  private static final Logger log = LoggerFactory.getLogger(MeteringJmxBean.class);
 
   private PrometheusMetricsTaskManager tasks;
 
   private ApplicationClock clock;
 
-  private PrometheusMetricsProperties metricPropeties;
+  private PrometheusMetricsProperties prometheusMetricsProperties;
 
   @Autowired
-  public OpenShiftJmxBean(
+  public MeteringJmxBean(
       ApplicationClock clock,
       PrometheusMetricsTaskManager tasks,
-      PrometheusMetricsProperties metricPropeties) {
+      PrometheusMetricsProperties prometheusMetricsProperties) {
     this.clock = clock;
     this.tasks = tasks;
-    this.metricPropeties = metricPropeties;
+    this.prometheusMetricsProperties = prometheusMetricsProperties;
   }
 
-  @ManagedOperation(description = "Perform OpenShift metering for a single account.")
+  @ManagedOperation(description = "Perform product metering for a single account.")
   @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
-  public void performOpenshiftMeteringForAccount(String accountNumber)
+  @ManagedOperationParameter(name = "productProfileId", description = "Product profile identifier")
+  public void performMeteringForAccount(String accountNumber, String productProfileId)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Openshift metering for {} triggered via JMX by {}", accountNumber, principal);
+    log.info(
+        "{} metering for {} triggered via JMX by {}", productProfileId, accountNumber, principal);
 
     OffsetDateTime end = getDate(null);
-    OffsetDateTime start = getStartDate(end, metricPropeties.getOpenshift().getRangeInMinutes());
+    OffsetDateTime start =
+        getStartDate(
+            end, prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId));
 
     try {
-      tasks.updateOpenshiftMetricsForAccount(accountNumber, start, end);
+      tasks.updateMetricsForAccount(accountNumber, productProfileId, start, end);
     } catch (Exception e) {
-      log.error("Error triggering OpenShift metering for account {} via JMX.", accountNumber, e);
+      log.error(
+          "Error triggering {} metering for account {} via JMX.",
+          productProfileId,
+          accountNumber,
+          e);
     }
   }
 
-  @ManagedOperation(description = "Perform custom OpenShift metering for a single account.")
+  @ManagedOperation(description = "Perform custom product metering for a single account.")
   @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
+  @ManagedOperationParameter(name = "productProfileId", description = "Product profile identifier")
   @ManagedOperationParameter(
       name = "endDate",
       description =
@@ -83,38 +92,47 @@ public class OpenShiftJmxBean {
       name = "rangeInMinutes",
       description =
           "Period of time (before the end date) to start metrics gathering. Must be >= 0.")
-  public void performCustomOpenshiftMeteringForAccount(
-      String accountNumber, String endDate, Integer rangeInMinutes)
+  public void performCustomMeteringForAccount(
+      String accountNumber, String productProfileId, String endDate, Integer rangeInMinutes)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Openshift metering for {} triggered via JMX by {}", accountNumber, principal);
+    log.info(
+        "{} metering for {} triggered via JMX by {}", productProfileId, accountNumber, principal);
 
     OffsetDateTime end = getDate(endDate);
     OffsetDateTime start = getStartDate(end, rangeInMinutes);
 
     try {
-      tasks.updateOpenshiftMetricsForAccount(accountNumber, start, end);
+      tasks.updateMetricsForAccount(accountNumber, productProfileId, start, end);
     } catch (Exception e) {
-      log.error("Error triggering OpenShift metering for account {} via JMX.", accountNumber, e);
+      log.error(
+          "Error triggering {} metering for account {} via JMX.",
+          productProfileId,
+          accountNumber,
+          e);
     }
   }
 
-  @ManagedOperation(description = "Perform OpenShift metering for all accounts.")
-  public void performOpenshiftMetering() throws IllegalArgumentException {
+  @ManagedOperation(description = "Perform a product metering for all accounts.")
+  public void performMetering(String productProfileId) throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Metering for all accounts triggered via JMX by {}", principal);
 
     OffsetDateTime end = getDate(null);
-    OffsetDateTime start = getStartDate(end, metricPropeties.getOpenshift().getRangeInMinutes());
+    // ENT-3835 will change the data structures used here
+    OffsetDateTime start =
+        getStartDate(
+            end, prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId));
 
     try {
-      tasks.updateOpenshiftMetricsForAllAccounts(start, end);
+      tasks.updateMetricsForAllAccounts(productProfileId, start, end);
     } catch (Exception e) {
-      log.error("Error triggering OpenShift metering for all accounts via JMX.", e);
+      log.error("Error triggering {} metering for all accounts via JMX.", productProfileId, e);
     }
   }
 
-  @ManagedOperation(description = "Perform custom OpenShift metering for all accounts.")
+  @ManagedOperation(description = "Perform custom product metering for all accounts.")
+  @ManagedOperationParameter(name = "productProfileId", description = "Product profile identifier")
   @ManagedOperationParameter(
       name = "endDate",
       description =
@@ -123,7 +141,7 @@ public class OpenShiftJmxBean {
       name = "rangeInMinutes",
       description =
           "Period of time (before the end date) to start metrics gathering. Must be >= 0.")
-  public void performCustomOpenshiftMetering(String endDate, Integer rangeInMinutes)
+  public void performCustomMetering(String productProfileId, String endDate, Integer rangeInMinutes)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Metering for all accounts triggered via JMX by {}", principal);
@@ -132,9 +150,9 @@ public class OpenShiftJmxBean {
     OffsetDateTime start = getStartDate(end, rangeInMinutes);
 
     try {
-      tasks.updateOpenshiftMetricsForAllAccounts(start, end);
+      tasks.updateMetricsForAllAccounts(productProfileId, start, end);
     } catch (Exception e) {
-      log.error("Error triggering OpenShift metering for all accounts via JMX.", e);
+      log.error("Error triggering {} metering for all accounts via JMX.", productProfileId, e);
     }
   }
 

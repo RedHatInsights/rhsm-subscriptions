@@ -38,10 +38,12 @@ public class PrometheusAccountSource {
     this.prometheusProps = prometheusProps;
   }
 
-  public Set<String> getOpenShiftMarketplaceAccounts(OffsetDateTime time) {
-    MetricProperties openshift = this.prometheusProps.getOpenshift();
+  public Set<String> getMarketplaceAccounts(String productProfileId, OffsetDateTime time) {
     QueryResult result =
-        service.runQuery(openshift.getEnabledAccountPromQL(), time, openshift.getQueryTimeout());
+        service.runQuery(
+            prometheusProps.getEnabledAccountPromQLforProductProfile(productProfileId),
+            time,
+            prometheusProps.getMetricsTimeoutForProductProfile(productProfileId));
 
     return result.getData().getResult().stream()
         .map(r -> r.getMetric().getOrDefault("ebs_account", ""))

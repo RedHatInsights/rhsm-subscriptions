@@ -2770,7 +2770,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.openshift-metering-tasks\"}) by (group, partition)",
+              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.metering-tasks\"}) by (group, partition)",
               "format": "time_series",
               "instant": false,
               "interval": "",

@@ -25,7 +25,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeterin
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
-import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
+import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -43,7 +43,7 @@ import org.springframework.retry.support.RetryTemplate;
  * Defines the beans for the openshift-metering-worker profile. By default, the worker will also
  * load the openshift metering JMX endpoints.
  *
- * @see OpenShiftJmxProfile
+ * @see MeteringJmxProfile
  */
 @EnableRetry
 @Configuration
@@ -51,7 +51,7 @@ import org.springframework.retry.support.RetryTemplate;
 @Import({
   PrometheusServiceConfiguration.class,
   TaskConsumerConfiguration.class,
-  OpenShiftTasksConfiguration.class
+  MeteringTasksConfiguration.class
 })
 public class OpenShiftWorkerProfile {
 

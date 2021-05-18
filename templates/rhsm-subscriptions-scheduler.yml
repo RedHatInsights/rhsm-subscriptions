@@ -21,7 +21,7 @@ parameters:
     value: 0 1 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
-  - name: OPENSHIFT_METERING_SCHEDULE
+  - name: METERING_SCHEDULE
     value: 0 * * * *
   - name: EVENT_RECORD_RETENTION
     value: 90d
@@ -71,9 +71,9 @@ objects:
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:
-      name: openshift-metrics-cron
+      name: metrics-cron
     spec:
-      schedule: ${OPENSHIFT_METERING_SCHEDULE}
+      schedule: ${METERING_SCHEDULE}
       jobTemplate:
         spec:
           activeDeadlineSeconds: 1800
@@ -86,10 +86,10 @@ objects:
                 - name: quay-cloudservices-pull
               containers:
                 - image: ${IMAGE}:${IMAGE_TAG}
-                  name: rhsm-subscriptions-openshift-metering
+                  name: rhsm-subscriptions-metering
                   env:
                     - name: SPRING_PROFILES_ACTIVE
-                      value: openshift-metering-job,kafka-queue
+                      value: metering-job,kafka-queue
                     - name: JAVA_MAX_MEM_RATIO
                       value: '85'
                     - name: GC_MAX_METASPACE_SIZE

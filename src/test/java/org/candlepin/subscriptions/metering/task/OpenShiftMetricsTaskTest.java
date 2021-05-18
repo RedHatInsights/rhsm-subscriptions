@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -43,8 +44,11 @@ class OpenShiftMetricsTaskTest {
     OffsetDateTime expEnd = clock.now();
     OffsetDateTime expStart = expEnd.minusDays(1);
     String expAccount = "test-account";
+    String expProductProfileId = "OpenShift";
+    Uom expMetric = Uom.CORES;
 
-    OpenShiftMetricsTask task = new OpenShiftMetricsTask(controller, expAccount, expStart, expEnd);
+    MetricsTask task =
+        new MetricsTask(controller, expAccount, expProductProfileId, expMetric, expStart, expEnd);
     task.execute();
     verify(controller).collectOpenshiftMetrics(expAccount, expStart, expEnd);
   }
