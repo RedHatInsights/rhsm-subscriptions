@@ -663,4 +663,28 @@ class InventoryControllerTest {
     ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
     assertNull(conduitFactsNegative.getCloudProvider());
   }
+
+  @Test
+  void testOpenShiftClusterIdUsedAsDisplayName()
+      throws MissingAccountNumberException, ApiException {
+    UUID uuid = UUID.randomUUID();
+    Consumer consumer = new Consumer();
+    consumer.setOrgId("123");
+    consumer.setUuid(uuid.toString());
+    consumer.getFacts().put("openshift.cluster_id", "JustAnotherCluster");
+    consumer.setAccountNumber("account");
+
+    ConduitFacts expected = new ConduitFacts();
+    expected.setOrgId("123");
+    expected.setAccountNumber("account");
+    expected.setDisplayName("JustAnotherCluster");
+    expected.setSubscriptionManagerId(uuid.toString());
+
+    when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
+        .thenReturn(pageOf(consumer));
+
+    controller.updateInventoryForOrg("123");
+    verify(inventoryService).scheduleHostUpdate(expected);
+    verify(inventoryService, times(1)).flushHostUpdates();
+  }
 }
