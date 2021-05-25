@@ -21,10 +21,12 @@
 package org.candlepin.subscriptions.http;
 
 import java.io.File;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 /** HTTP service client configuration. */
-@Data
+@Getter
+@Setter
 public class HttpClientProperties {
 
   /** Use a stub of the service. */

@@ -21,12 +21,14 @@
 package org.candlepin.subscriptions.rbac;
 
 import java.util.List;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
 /** RBAC-specific properties */
-@Data
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = true)
 public class RbacProperties extends HttpClientProperties {
 

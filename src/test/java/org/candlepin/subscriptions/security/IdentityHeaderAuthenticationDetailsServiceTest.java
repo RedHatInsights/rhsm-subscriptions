@@ -61,14 +61,14 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
   void testAdminRoleGranted() throws Exception {
     when(rbacApi.getCurrentUserAccess(eq("subscriptions")))
         .thenReturn(Arrays.asList(new Access().permission("subscriptions:*:*")));
-    assertRoles(false, RoleProvider.SWATCH_ADMIN_ROLE);
+    assertThat(extractRoles(false), Matchers.contains(RoleProvider.SWATCH_ADMIN_ROLE));
   }
 
   @Test
   void testReportReaderRoleGranted() throws RbacApiException {
     when(rbacApi.getCurrentUserAccess(eq("subscriptions")))
         .thenReturn(List.of(new Access().permission("subscriptions:reports:read")));
-    assertRoles(false, RoleProvider.SWATCH_REPORT_READER);
+    assertThat(extractRoles(false), Matchers.contains(RoleProvider.SWATCH_REPORT_READER));
   }
 
   @Test
@@ -93,18 +93,16 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
 
   @Test
   void testDevModeGrantsAllRoles() {
-    assertRoles(true, RoleProvider.SWATCH_ADMIN_ROLE);
+    assertThat(extractRoles(true), Matchers.contains(RoleProvider.SWATCH_ADMIN_ROLE));
   }
 
-  private void assertRoles(boolean devMode, String... expectedRoles) {
+  private Collection<String> extractRoles(boolean devMode) {
     ApplicationProperties props = new ApplicationProperties();
     RbacProperties rbacProps = new RbacProperties();
     props.setDevMode(devMode);
     IdentityHeaderAuthenticationDetailsService source =
         new IdentityHeaderAuthenticationDetailsService(
             props, rbacProps, new IdentityHeaderAuthoritiesMapper(), rbacService);
-    Collection<String> roles = source.getUserRoles();
-    assertEquals(expectedRoles.length, roles.size());
-    assertThat(roles, Matchers.containsInAnyOrder(expectedRoles));
+    return source.getUserRoles();
   }
 }
