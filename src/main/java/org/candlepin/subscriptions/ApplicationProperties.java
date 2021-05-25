@@ -119,9 +119,6 @@ public class ApplicationProperties {
    */
   private int antiCsrfPort = 443;
 
-  /** The RBAC application name that defines the permissions for this application. */
-  private String rbacApplicationName = "subscriptions";
-
   /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
   private String hawtioBasePath;
 

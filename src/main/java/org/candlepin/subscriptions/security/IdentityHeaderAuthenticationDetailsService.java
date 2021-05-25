@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.rbac.RbacApiException;
+import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,13 +49,16 @@ public class IdentityHeaderAuthenticationDetailsService
 
   private Attributes2GrantedAuthoritiesMapper authMapper;
   private ApplicationProperties props;
+  private RbacProperties rbacProps;
   private RoleProvider roleProvider;
   private RbacService rbacController;
 
   public IdentityHeaderAuthenticationDetailsService(
       ApplicationProperties props,
+      RbacProperties rbacProps,
       Attributes2GrantedAuthoritiesMapper authMapper,
       RbacService rbacController) {
+    this.rbacProps = rbacProps;
     this.authMapper = authMapper;
     this.props = props;
     this.rbacController = rbacController;
@@ -62,7 +66,7 @@ public class IdentityHeaderAuthenticationDetailsService
     if (props.isDevMode()) {
       log.info("Running in DEV mode. Security will be disabled.");
     }
-    this.roleProvider = new RoleProvider(props.getRbacApplicationName(), props.isDevMode());
+    this.roleProvider = new RoleProvider(rbacProps.getApplicationName(), props.isDevMode());
   }
 
   protected Collection<String> getUserRoles() {
@@ -98,7 +102,7 @@ public class IdentityHeaderAuthenticationDetailsService
 
   private List<String> getPermissions() {
     try {
-      return rbacController.getPermissions(props.getRbacApplicationName());
+      return rbacController.getPermissions(rbacProps.getApplicationName());
     } catch (RbacApiException e) {
       log.warn("Unable to determine roles from RBAC service.", e);
       return Collections.emptyList();

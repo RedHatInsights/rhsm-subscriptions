@@ -31,6 +31,7 @@ import java.util.List;
 public class RoleProvider {
 
   public static final String SWATCH_ADMIN_ROLE = "SUBSCRIPTION_WATCH_ADMIN";
+  public static final String SWATCH_REPORT_READER = "SUBSCRIPTION_WATCH_REPORT_READER";
 
   private String rulePrefix;
   private boolean devModeEnabled;
@@ -50,6 +51,9 @@ public class RoleProvider {
     // configured otherwise).
     if (devModeEnabled || permissions.contains(rulePrefix + ":*:*")) {
       roles.add(SWATCH_ADMIN_ROLE);
+    }
+    if (permissions.contains(rulePrefix + ":reports:read")) {
+      roles.add(SWATCH_REPORT_READER);
     }
     return roles;
   }
