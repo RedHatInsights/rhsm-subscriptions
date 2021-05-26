@@ -71,7 +71,7 @@ public class InventoryAccountUsageCollector {
     this.inventory = inventory;
     this.hostRepository = hostRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
-    this.totalHosts = meterRegistry.counter("rhsm-subscriptions.capacity.records_total");
+    this.totalHosts = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
   }
 
   @SuppressWarnings("squid:S3776")

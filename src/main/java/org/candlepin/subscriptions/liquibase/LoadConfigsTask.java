@@ -27,8 +27,6 @@ import java.sql.SQLException;
 import java.util.stream.Stream;
 import liquibase.database.Database;
 import liquibase.exception.DatabaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.Logger;
 
 /**
  * Custom liquibase task for loading org_config and account_config files from text files.
@@ -111,11 +109,6 @@ public class LoadConfigsTask extends LiquibaseCustomTask {
   @Override
   public boolean disableAutoCommit() {
     return false;
-  }
-
-  @Override
-  public Logger getLogger() {
-    return LogService.getLog(LoadConfigsTask.class);
   }
 
   @Override

@@ -212,6 +212,8 @@ dependencies {
     compile "org.springframework.retry:spring-retry"
     compile "org.springframework:spring-context-support"
     compile "org.springframework.kafka:spring-kafka"
+    // the following dep is necessary to avoid jackson kotlin warnings
+    compile "com.fasterxml.jackson.module:jackson-module-kotlin"
 
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
