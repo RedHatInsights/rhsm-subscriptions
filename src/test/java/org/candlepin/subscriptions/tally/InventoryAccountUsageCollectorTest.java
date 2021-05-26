@@ -548,7 +548,7 @@ public class InventoryAccountUsageCollectorTest {
   @Test
   void testTotalHosts() {
     List<String> targetAccounts = Arrays.asList("A1");
-    Counter counter = meterRegistry.counter("rhsm-subscriptions.capacity.records_total");
+    Counter counter = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
     double initialCount = counter.count();
 
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID, 12, 3);
