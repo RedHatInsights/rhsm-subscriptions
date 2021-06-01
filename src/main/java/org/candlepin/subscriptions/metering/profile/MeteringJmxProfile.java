@@ -20,48 +20,38 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.jobs.JobProperties;
-import org.candlepin.subscriptions.metering.job.OpenShiftMeteringJob;
+import org.candlepin.subscriptions.metering.jmx.MeteringJmxBean;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
-import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
-import org.candlepin.subscriptions.spring.JobRunner;
+import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
-/** Defines the beans for the openshift-metering-job profile. */
+/**
+ * Defines the beans for the metering-jmx profile.
+ *
+ * <p>NOTE: The openshift-metering-worker profile will also load the beans defined here since, by
+ * default the JMX endpoint will be enabled with the worker.
+ */
 @Configuration
-@Profile("openshift-metering-job")
+@Profile({"openshift-metering-worker", "metering-jmx"})
 @Import({
   PrometheusServiceConfiguration.class,
-  OpenShiftTasksConfiguration.class,
+  MeteringTasksConfiguration.class,
   TaskProducerConfiguration.class
 })
-public class OpenShiftJobProfile {
+public class MeteringJmxProfile {
 
   @Bean
-  JobProperties jobProperties() {
-    return new JobProperties();
-  }
-
-  @Bean
-  OpenShiftMeteringJob openshiftMeteringJob(
-      PrometheusMetricsTaskManager tasks,
+  MeteringJmxBean meteringJmxBean(
       ApplicationClock clock,
-      PrometheusMetricsProperties metricProperties,
-      ApplicationProperties appProps) {
-    return new OpenShiftMeteringJob(tasks, clock, metricProperties, appProps);
-  }
-
-  @Bean
-  JobRunner jobRunner(OpenShiftMeteringJob job, ApplicationContext applicationContext) {
-    return new JobRunner(job, applicationContext);
+      PrometheusMetricsTaskManager taskManager,
+      PrometheusMetricsProperties metricProperties) {
+    return new MeteringJmxBean(clock, taskManager, metricProperties);
   }
 }

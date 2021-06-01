@@ -21,42 +21,51 @@
 package org.candlepin.subscriptions.metering.task;
 
 import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Pulls Openshift cluster metrics from Telemeter and translates them into events and puts them into
- * the event stream.
+ * Pulls metrics from Telemeter and translates them into events and puts them into the event stream.
  */
-public class OpenShiftMetricsTask implements Task {
+public class MetricsTask implements Task {
 
-  private static final Logger log = LoggerFactory.getLogger(OpenShiftMetricsTask.class);
+  private static final Logger log = LoggerFactory.getLogger(MetricsTask.class);
 
   private final String account;
+  private final String productProfileId;
+  private final Uom metric;
   private final OffsetDateTime start;
   private final OffsetDateTime end;
 
   private final PrometheusMeteringController controller;
 
-  public OpenShiftMetricsTask(
+  public MetricsTask(
       PrometheusMeteringController controller,
       String account,
+      String productProfileId,
+      Uom metric,
       OffsetDateTime start,
       OffsetDateTime end) {
     this.controller = controller;
     this.account = account;
+    this.productProfileId = productProfileId;
+    this.metric = metric;
     this.start = start;
     this.end = end;
   }
 
   @Override
   public void execute() {
-    log.info("Running Openshift metrics update for account: {}", account);
+    log.info("Running {} {} metrics update for account: {}", productProfileId, metric, account);
+    if (!productProfileId.equals("OpenShift") || metric != Uom.CORES) {
+      throw new UnsupportedOperationException("To be implemented in ENT-3871");
+    }
     try {
       controller.collectOpenshiftMetrics(this.account, start, end);
-      log.info("Openshift metrics task complete.");
+      log.info("{} {} metrics task complete.", productProfileId, metric);
     } catch (Exception e) {
       log.error("Problem running task: {}", this.getClass().getSimpleName(), e);
     }

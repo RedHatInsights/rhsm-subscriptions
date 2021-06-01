@@ -37,15 +37,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 
 /**
- * Defines the required/custom bean declarations for setting up a task queue for gathering openshift
- * metrics from prometheus.
+ * Defines the required/custom bean declarations for setting up a task queue for gathering metrics
+ * from prometheus.
  *
- * <p>It is intended to be an imported configuration that should be used by a profile when an
- * openshift metrics task queue is required.
+ * <p>It is intended to be an imported configuration that should be used by a profile when a metrics
+ * task queue is required.
  *
  * <p>NOTE: The configuration annotation has been omitted on purpose as it should be imported.
  */
-public class OpenShiftTasksConfiguration {
+public class MeteringTasksConfiguration {
 
   @Bean
   PrometheusAccountSource accountSource(
@@ -56,8 +56,8 @@ public class OpenShiftTasksConfiguration {
   // Qualify this bean so that a new instance is created in the case that another
   // queue is configured for another topic.
   @Bean
-  @Qualifier("openshiftTaskQueueProperties")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.openshift.tasks")
+  @Qualifier("meteringTaskQueueProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.tasks")
   TaskQueueProperties meteringTaskQueueProperties() {
     return new TaskQueueProperties();
   }
@@ -65,9 +65,10 @@ public class OpenShiftTasksConfiguration {
   @Bean
   public PrometheusMetricsTaskManager metricsTaskManager(
       TaskQueue queue,
-      @Qualifier("openshiftTaskQueueProperties") TaskQueueProperties queueProps,
-      PrometheusAccountSource accountSource) {
-    return new PrometheusMetricsTaskManager(queue, queueProps, accountSource);
+      @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
+      PrometheusAccountSource accountSource,
+      PrometheusMetricsProperties prometheusProps) {
+    return new PrometheusMetricsTaskManager(queue, queueProps, accountSource, prometheusProps);
   }
 
   // The following beans are defined for the worker profile only allowing
@@ -83,7 +84,7 @@ public class OpenShiftTasksConfiguration {
   @Qualifier("openshiftMeteringTaskConsumer")
   @Profile("openshift-metering-worker")
   public TaskConsumer meteringTaskProcessor(
-      @Qualifier("openshiftTaskQueueProperties") TaskQueueProperties taskQueueProperties,
+      @Qualifier("meteringTaskQueueProperties") TaskQueueProperties taskQueueProperties,
       TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
       @Qualifier("prometheusTaskFactory") TaskFactory taskFactory) {
 

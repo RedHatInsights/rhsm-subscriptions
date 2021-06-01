@@ -33,45 +33,54 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /** A cron job that sends a task message to capture metrics from prometheus for metering. */
-public class OpenShiftMeteringJob implements Runnable {
+public class MeteringJob implements Runnable {
 
-  private static final Logger log = LoggerFactory.getLogger(OpenShiftMeteringJob.class);
+  private static final Logger log = LoggerFactory.getLogger(MeteringJob.class);
 
   private PrometheusMetricsTaskManager tasks;
   private ApplicationClock clock;
   private ApplicationProperties appProps;
-  private PrometheusMetricsProperties metricProperties;
+  private PrometheusMetricsProperties prometheusMetricsProperties;
 
-  public OpenShiftMeteringJob(
+  public MeteringJob(
       PrometheusMetricsTaskManager tasks,
       ApplicationClock clock,
-      PrometheusMetricsProperties metricProperties,
+      PrometheusMetricsProperties prometheusMetricsProperties,
       ApplicationProperties appProps) {
     this.tasks = tasks;
     this.clock = clock;
-    this.metricProperties = metricProperties;
+    this.prometheusMetricsProperties = prometheusMetricsProperties;
     this.appProps = appProps;
   }
 
   @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.metering.openshift-metering-schedule}")
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.metering-schedule}")
   public void run() {
     Duration latency = appProps.getPrometheusLatencyDuration();
-    int range = metricProperties.getOpenshift().getRangeInMinutes();
-    OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
-    // Minus 1 minute to ensure that we use the last hour's maximum time. If the end time is
-    // 6:00:00,
-    // taking the last of that hour would give the range an extra hour (6:59:59.999999) which is
-    // not what we want. We subtract to break the even boundary before finding the last minute.
-    // We need to do this because our queries are date inclusive (greater/less than OR equal to).
-    OffsetDateTime endDate =
-        clock.endOfHour(startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
+    for (String productProfileId : prometheusMetricsProperties.getMetricsEnabledProductProfiles()) {
+      int range = prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId);
+      OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
+      // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
+      // time
+      // is
+      // 6:00:00,
+      // taking the last of that hour would give the range an extra hour (6:59:59.999999)
+      // which is
+      // not what we want. We subtract to break the even boundary before finding the last
+      // minute.
+      // We need to do this because our queries are date inclusive (greater/less than OR
+      // equal to).
+      OffsetDateTime endDate =
+          clock.endOfHour(
+              startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
 
-    log.info("Queuing OpenShift metric updates for range: {} -> {}", startDate, endDate);
-    try {
-      tasks.updateOpenshiftMetricsForAllAccounts(startDate, endDate);
-    } catch (Exception e) {
-      throw new JobFailureException("Unable to run MeteringJob.", e);
+      log.info(
+          "Queuing {} metric updates for range: {} -> {}", productProfileId, startDate, endDate);
+      try {
+        tasks.updateMetricsForAllAccounts(productProfileId, startDate, endDate);
+      } catch (Exception e) {
+        throw new JobFailureException("Unable to run MeteringJob.", e);
+      }
     }
   }
 }
