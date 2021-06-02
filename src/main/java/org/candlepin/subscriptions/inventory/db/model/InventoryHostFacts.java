@@ -47,6 +47,9 @@ public class InventoryHostFacts {
   private boolean isVirtual;
   private String hypervisorUuid;
   private String satelliteHypervisorUuid;
+  private String satelliteRole;
+  private String satelliteSla;
+  private String satelliteUsage;
   private String guestId;
   private String subscriptionManagerId;
   private String insightsId;
@@ -90,6 +93,9 @@ public class InventoryHostFacts {
       String isVirtual,
       String hypervisorUuid,
       String satelliteHypervisorUuid,
+      String satelliteRole,
+      String satelliteSla,
+      String satelliteUsage,
       String guestId,
       String subscriptionManagerId,
       String insightsId,
@@ -117,6 +123,9 @@ public class InventoryHostFacts {
     this.isVirtual = asBoolean(isVirtual);
     this.hypervisorUuid = hypervisorUuid;
     this.satelliteHypervisorUuid = satelliteHypervisorUuid;
+    this.satelliteRole = satelliteRole;
+    this.satelliteSla = satelliteSla;
+    this.satelliteUsage = satelliteUsage;
     this.guestId = guestId;
     this.subscriptionManagerId = subscriptionManagerId;
     this.insightsId = insightsId;

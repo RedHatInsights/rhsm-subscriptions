@@ -20,15 +20,23 @@
  */
 package org.candlepin.subscriptions.rbac;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.rbac.model.Access;
 
 /** Stub implementation of the RbacApi. */
 public class StubRbacApi implements RbacApi {
 
+  private final RbacProperties serviceProperties;
+
+  public StubRbacApi(RbacProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
   @Override
   public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-    return Arrays.asList(new Access().permission("subscriptions:*:*"));
+    return serviceProperties.getStubPermissions().stream()
+        .map(p -> new Access().permission(p))
+        .collect(Collectors.toList());
   }
 }

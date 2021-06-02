@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,8 +30,13 @@ import org.springframework.context.annotation.Primary;
 @Configuration
 class KafkaConfiguration {
   @Bean
-  KafkaConfigurator kafkaConfigurator() {
-    return new KafkaConfigurator();
+  KafkaConsumerRegistry kafkaConsumerRegistry() {
+    return new KafkaConsumerRegistry();
+  }
+
+  @Bean
+  KafkaConfigurator kafkaConfigurator(KafkaConsumerRegistry registry) {
+    return new KafkaConfigurator(registry);
   }
 
   @Bean

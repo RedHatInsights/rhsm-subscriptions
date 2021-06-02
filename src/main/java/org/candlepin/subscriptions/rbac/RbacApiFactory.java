@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.rbac;
 
 import org.candlepin.subscriptions.http.HttpClient;
-import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
@@ -34,9 +33,9 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
 
   private static Logger log = LoggerFactory.getLogger(RbacApiFactory.class);
 
-  private final HttpClientProperties serviceProperties;
+  private final RbacProperties serviceProperties;
 
-  public RbacApiFactory(HttpClientProperties serviceProperties) {
+  public RbacApiFactory(RbacProperties serviceProperties) {
     this.serviceProperties = serviceProperties;
   }
 
@@ -44,7 +43,7 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
   public RbacApi getObject() throws Exception {
     if (serviceProperties.isUseStub()) {
       log.info("Using stub RBAC client");
-      return new StubRbacApi();
+      return new StubRbacApi(serviceProperties);
     }
     ApiClient apiClient = new RbacApiClient();
     apiClient.setHttpClient(

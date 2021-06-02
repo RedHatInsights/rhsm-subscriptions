@@ -33,6 +33,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -64,6 +65,10 @@ public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
   public static class TestingKafkaConfigurator extends KafkaConfigurator {
 
     private MockSchemaRegistryClient registryClient = new MockSchemaRegistryClient();
+
+    public TestingKafkaConfigurator() {
+      super(new KafkaConsumerRegistry());
+    }
 
     @Override
     public DefaultKafkaProducerFactory<String, TaskMessage> defaultProducerFactory(

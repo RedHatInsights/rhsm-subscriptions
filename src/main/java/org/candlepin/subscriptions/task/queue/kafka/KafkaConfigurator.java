@@ -30,6 +30,8 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
@@ -47,6 +49,13 @@ import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
  * for the kafka task queue.
  */
 public class KafkaConfigurator {
+
+  private final KafkaConsumerRegistry consumerRegistry;
+
+  @Autowired
+  public KafkaConfigurator(KafkaConsumerRegistry consumerRegistry) {
+    this.consumerRegistry = consumerRegistry;
+  }
 
   public DefaultKafkaProducerFactory<String, TaskMessage> defaultProducerFactory(
       KafkaProperties kafkaProperties) {
@@ -101,8 +110,15 @@ public class KafkaConfigurator {
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
 
-    // Task message offsets will be manually committed as soon as the message has been acked.
-    factory.getContainerProperties().setAckMode(AckMode.MANUAL_IMMEDIATE);
+    // commit the offset automatically after the listener method finishes
+    factory.getContainerProperties().setAckMode(AckMode.RECORD);
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(consumerRegistry);
     return factory;
   }
 

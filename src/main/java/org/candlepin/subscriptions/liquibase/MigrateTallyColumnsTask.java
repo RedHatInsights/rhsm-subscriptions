@@ -25,8 +25,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 import liquibase.database.Database;
 import liquibase.exception.DatabaseException;
-import liquibase.logging.LogService;
-import liquibase.logging.Logger;
 
 /**
  * This class is responsible for moving the various cores/instance_count/sockets columns over to a
@@ -92,10 +90,5 @@ public class MigrateTallyColumnsTask extends LiquibaseCustomTask {
   @Override
   public String getConfirmationMessage() {
     return "Migration of tally_snapshots core/sockets/instance_count columns complete";
-  }
-
-  @Override
-  public Logger getLogger() {
-    return LogService.getLog(MigrateTallyColumnsTask.class);
   }
 }

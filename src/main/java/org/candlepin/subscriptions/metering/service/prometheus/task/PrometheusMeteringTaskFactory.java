@@ -21,8 +21,9 @@
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
 import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.metering.task.OpenShiftMetricsTask;
+import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskFactory;
@@ -40,10 +41,12 @@ public class PrometheusMeteringTaskFactory implements TaskFactory {
 
   @Override
   public Task build(TaskDescriptor taskDescriptor) {
-    if (TaskType.OPENSHIFT_METRICS_COLLECTION.equals(taskDescriptor.getTaskType())) {
-      return new OpenShiftMetricsTask(
+    if (TaskType.METRICS_COLLECTION.equals(taskDescriptor.getTaskType())) {
+      return new MetricsTask(
           controller,
           validateString(taskDescriptor, "account"),
+          validateString(taskDescriptor, "productProfileId"),
+          Uom.fromValue(validateString(taskDescriptor, "metric")),
           validateDate(taskDescriptor, "start"),
           validateDate(taskDescriptor, "end"));
     }

@@ -1060,6 +1060,7 @@ components:
         - last_seen
         - measurement_type
         - core_hours
+        - instance_hours
     HostReport:
       properties:
         data:
@@ -1275,6 +1276,8 @@ components:
           items:
             type: string
         fqdn:
+          type: string
+        display_name:
           type: string
         mac_addresses:
           type: array

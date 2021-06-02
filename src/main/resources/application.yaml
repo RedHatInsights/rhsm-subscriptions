@@ -52,6 +52,7 @@ spring:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)
       concurrency: ${KAFKA_MESSAGE_THREADS:1}
+      idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
     consumer:
       properties:
         # Required kafka defaults
@@ -90,12 +91,13 @@ rhsm-subscriptions:
     capture-hourly-snapshot-schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE:0 0 * * * ?}
     capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
-    metering:
-      openshift-metering-schedule: ${METERING_SCHEDULE:0 0 1 * * ?}
+    metering-schedule: ${METERING_SCHEDULE:0 0 1 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   tasks:
     topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   # Base path override for reverse proxy support
   hawtio-base-path: ${HAWTIO_BASE_PATH:}
   metering:
@@ -108,13 +110,14 @@ rhsm-subscriptions:
           enabledAccountPromQL: >-
             ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(subscription_labels{ebs_account != '', billing_model='marketplace'}[1h]))
             by (ebs_account)}
-    openshift:
-      tasks:
-        topic: ${OPENSHIFT_METERING_TASK_TOPIC:platform.rhsm-subscriptions.openshift-metering-tasks}
-        kafka-group-id: ${OPENSHIFT_METERING_TASK_GROUP_ID:openshift-metering-task-processor}
+    tasks:
+      topic: ${METERING_TASK_TOPIC:platform.rhsm-subscriptions.metering-tasks}
+      kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}
+      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:4h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
-  metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:24h}
+  metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
   subscription:
     useStub: ${SUBSCRIPTION_USE_STUB:false}
     url: ${SUBSCRIPTION_URL:https://subscription.qa.api.redhat.com/svcrest/subscription/v5}
@@ -134,3 +137,8 @@ rhsm-subscriptions:
     back-off-max-interval: ${USER_BACK_OFF_MAX_INTERVAL:1m}
     back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${USER_MAX_ATTEMPTS:1}
+  marketplace-tasks:
+    topic: platform.rhsm-subscriptions.tally
+    kafka-group-id: marketplace-worker
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

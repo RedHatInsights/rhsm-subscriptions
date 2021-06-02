@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verify;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.metering.task.OpenShiftMetricsTask;
+import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskType;
@@ -67,13 +67,15 @@ class PrometheusMeteringTaskFactoryTest {
 
     Task task =
         factory.build(
-            TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, "a-group")
+            TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
                 .setSingleValuedArg("account", "12234")
+                .setSingleValuedArg("productProfileId", "OpenShift")
+                .setSingleValuedArg("metric", "Cores")
                 .setSingleValuedArg("start", start.toString())
                 .setSingleValuedArg("end", end.toString())
                 .build());
     assertNotNull(task);
-    assertTrue(task instanceof OpenShiftMetricsTask);
+    assertTrue(task instanceof MetricsTask);
 
     task.execute();
     verify(controller).collectOpenshiftMetrics("12234", start, end);
@@ -82,9 +84,11 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testOpenshiftMetricsTaskMissingAccount() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, "a-group")
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
+            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("step", "1h")
             .build();
     Throwable e = assertThrows(IllegalArgumentException.class, () -> factory.build(descriptor));
@@ -94,8 +98,10 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testOpenshiftMetricsTaskInvalidStartDateFormat() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, "a-group")
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("account", "1234")
+            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("step", "1h")
@@ -108,8 +114,10 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testOpenshiftMetricsTaskInvalidEndDateFormat() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, "a-group")
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("account", "1234")
+            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09")
             .setSingleValuedArg("step", "1h")

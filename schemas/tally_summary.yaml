@@ -63,6 +63,7 @@ properties:
                   - ''  # UNSPECIFIED
                   - Cores
                   - Sockets
+                  - Instance-hours
                 required: false
               value:
                 description: Measurement value.

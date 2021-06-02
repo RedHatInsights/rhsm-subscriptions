@@ -23,6 +23,10 @@ parameters:
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
     value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
   - name: REPLICAS
     value: '1'
   - name: IMAGE
@@ -77,6 +81,18 @@ parameters:
     value: '4'
   - name: SUBSCRIPTION_PAGE_SIZE
     value: '500'
+  - name: USER_HOST
+    required: true
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
 
 objects:
   - apiVersion: apps.openshift.io/v1
@@ -170,6 +186,10 @@ objects:
                   value: ${KAFKA_MESSAGE_THREADS}
                 - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
                   value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+                - name: KAFKA_SEEK_OVERRIDE_END
+                  value: ${KAFKA_SEEK_OVERRIDE_END}
+                - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+                  value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
@@ -240,6 +260,18 @@ objects:
                   value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
                 - name: SUBSCRIPTION_PAGE_SIZE
                   value: ${SUBSCRIPTION_PAGE_SIZE}
+                - name: USER_HOST
+                  value: ${USER_HOST}
+                - name: USER_MAX_CONNECTIONS
+                  value: ${USER_MAX_CONNECTIONS}
+                - name: USER_MAX_ATTEMPTS
+                  value: ${USER_MAX_ATTEMPTS}
+                - name: USER_BACK_OFF_MAX_INTERVAL
+                  value: ${USER_BACK_OFF_MAX_INTERVAL}
+                - name: USER_BACK_OFF_INITIAL_INTERVAL
+                  value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+                - name: USER_BACK_OFF_MULTIPLIER
+                  value: ${USER_BACK_OFF_MULTIPLIER}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:

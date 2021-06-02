@@ -23,7 +23,9 @@ package org.candlepin.subscriptions.metering.service.prometheus.task;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -46,37 +48,61 @@ public class PrometheusMetricsTaskManager {
 
   private PrometheusAccountSource accountSource;
 
+  private PrometheusMetricsProperties prometheusProps;
+
   public PrometheusMetricsTaskManager(
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
-      PrometheusAccountSource accountSource) {
+      PrometheusAccountSource accountSource,
+      PrometheusMetricsProperties prometheusProps) {
     log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
     this.queue = queue;
     this.topic = queueProps.getTopic();
     this.accountSource = accountSource;
+    this.prometheusProps = prometheusProps;
   }
 
-  public void updateOpenshiftMetricsForAccount(
-      String account, OffsetDateTime start, OffsetDateTime end) {
-    this.queue.enqueue(createOpenshiftMetricsTask(account, start, end));
+  public void updateMetricsForAccount(
+      String account, String productProfileId, OffsetDateTime start, OffsetDateTime end) {
+    log.info(
+        "Queuing {} metrics update for account {} between {} and {}",
+        productProfileId,
+        account,
+        start,
+        end);
+    prometheusProps
+        .getSupportedMetricsForProduct(productProfileId)
+        .keySet()
+        .forEach(
+            metric ->
+                this.queue.enqueue(
+                    createMetricsTask(account, productProfileId, metric, start, end)));
   }
 
   @Transactional
-  public void updateOpenshiftMetricsForAllAccounts(OffsetDateTime start, OffsetDateTime end) {
+  public void updateMetricsForAllAccounts(
+      String productProfileId, OffsetDateTime start, OffsetDateTime end) {
     try (Stream<String> accountStream =
-        accountSource.getOpenShiftMarketplaceAccounts(end).stream()) {
-      log.info("Queuing OpenShift metrics update for all configured accounts.");
-      accountStream.forEach(account -> updateOpenshiftMetricsForAccount(account, start, end));
-      log.info("Done queuing updates of OpenShift metrics");
+        accountSource.getMarketplaceAccounts(productProfileId, end).stream()) {
+      log.info("Queuing {} metrics update for all configured accounts.", productProfileId);
+      accountStream.forEach(
+          account -> updateMetricsForAccount(account, productProfileId, start, end));
+      log.info("Done queuing updates of {} metrics", productProfileId);
     }
   }
 
-  private TaskDescriptor createOpenshiftMetricsTask(
-      String account, OffsetDateTime start, OffsetDateTime end) {
-    log.debug("ACCOUNT: {} START: {} END: {}", account, start, end);
+  private TaskDescriptor createMetricsTask(
+      String account,
+      String productProfileId,
+      Uom metric,
+      OffsetDateTime start,
+      OffsetDateTime end) {
+    log.debug("ACCOUNT: {} PRODUCT: {} START: {} END: {}", account, productProfileId, start, end);
     TaskDescriptorBuilder builder =
-        TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, topic)
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic)
             .setSingleValuedArg("account", account)
+            .setSingleValuedArg("productProfileId", productProfileId)
+            .setSingleValuedArg("metric", metric.value())
             .setSingleValuedArg("start", start.toString());
 
     if (end != null) {

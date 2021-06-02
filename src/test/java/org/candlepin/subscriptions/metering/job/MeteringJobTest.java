@@ -37,14 +37,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OpenShiftMeteringJobTest {
+class MeteringJobTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
 
   private ApplicationClock clock;
   private PrometheusMetricsProperties metricProps;
   private ApplicationProperties appProps;
-  private OpenShiftMeteringJob job;
+  private MeteringJob job;
 
   @BeforeEach
   void setupTests() {
@@ -55,7 +55,7 @@ class OpenShiftMeteringJobTest {
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
     clock = new FixedClockConfiguration().fixedClock();
-    job = new OpenShiftMeteringJob(tasks, clock, metricProps, appProps);
+    job = new MeteringJob(tasks, clock, metricProps, appProps);
   }
 
   @Test
@@ -71,6 +71,6 @@ class OpenShiftMeteringJobTest {
             expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
     job.run();
 
-    verify(tasks).updateOpenshiftMetricsForAllAccounts(expStartDate, expEndDate);
+    verify(tasks).updateMetricsForAllAccounts("OpenShift", expStartDate, expEndDate);
   }
 }

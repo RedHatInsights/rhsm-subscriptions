@@ -44,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PrometheusAccountSourceTest {
 
   final String TEST_QUERY = "TEST_QUERY";
+  final String TEST_PROFILE_ID = "OpenShift";
 
   @Mock PrometheusService service;
 
@@ -66,7 +67,7 @@ class PrometheusAccountSourceTest {
     when(service.runQuery(TEST_QUERY, expectedDate, promProps.getOpenshift().getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(List.of("A1")));
 
-    accountSource.getOpenShiftMarketplaceAccounts(expectedDate);
+    accountSource.getMarketplaceAccounts(TEST_PROFILE_ID, expectedDate);
     verify(service)
         .runQuery(
             promProps.getOpenshift().getEnabledAccountPromQL(),
@@ -88,7 +89,7 @@ class PrometheusAccountSourceTest {
     when(service.runQuery(TEST_QUERY, expectedDate, promProps.getOpenshift().getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(accountList));
 
-    Set<String> accounts = accountSource.getOpenShiftMarketplaceAccounts(expectedDate);
+    Set<String> accounts = accountSource.getMarketplaceAccounts(TEST_PROFILE_ID, expectedDate);
     assertEquals(1, accounts.size());
     assertTrue(accounts.contains(expectedAccount));
   }
@@ -101,7 +102,7 @@ class PrometheusAccountSourceTest {
     when(service.runQuery(TEST_QUERY, expectedDate, promProps.getOpenshift().getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(expectedAccounts));
 
-    Set<String> accounts = accountSource.getOpenShiftMarketplaceAccounts(expectedDate);
+    Set<String> accounts = accountSource.getMarketplaceAccounts(TEST_PROFILE_ID, expectedDate);
     assertEquals(2, accounts.size());
     assertTrue(accounts.containsAll(expectedAccounts));
   }

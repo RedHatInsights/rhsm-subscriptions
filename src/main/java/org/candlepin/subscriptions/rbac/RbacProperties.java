@@ -18,12 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.rbac;
 
-/** An enumeration representing the types of tasks that can be handled by rhsm-subscriptions. */
-public enum TaskType {
-  UPDATE_SNAPSHOTS,
-  UPDATE_ORG_INVENTORY,
-  METRICS_COLLECTION,
-  UPDATE_HOURLY_SNAPSHOTS
+import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import org.candlepin.subscriptions.http.HttpClientProperties;
+
+/** RBAC-specific properties */
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true)
+public class RbacProperties extends HttpClientProperties {
+
+  /** The list of permissions to return when using the stub */
+  private List<String> stubPermissions;
+
+  /** The RBAC application name that defines the permissions for this application. */
+  private String applicationName = "subscriptions";
 }

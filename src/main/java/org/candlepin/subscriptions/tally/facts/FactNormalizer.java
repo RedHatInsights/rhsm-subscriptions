@@ -74,6 +74,7 @@ public class FactNormalizer {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizeClassification(normalizedFacts, hostFacts, reportedHypervisors);
     normalizeSystemProfileFacts(normalizedFacts, hostFacts);
+    normalizeSatelliteFacts(normalizedFacts, hostFacts);
     normalizeRhsmFacts(normalizedFacts, hostFacts);
     normalizeQpcFacts(normalizedFacts, hostFacts);
     normalizeSocketCount(normalizedFacts, hostFacts);
@@ -81,6 +82,13 @@ public class FactNormalizer {
     pruneProducts(normalizedFacts);
     normalizeUnits(normalizedFacts, hostFacts);
     return normalizedFacts;
+  }
+
+  private void normalizeSatelliteFacts(
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    handleRole(normalizedFacts, hostFacts.getSatelliteRole());
+    handleSla(normalizedFacts, hostFacts, hostFacts.getSatelliteSla());
+    handleUsage(normalizedFacts, hostFacts, hostFacts.getSatelliteUsage());
   }
 
   private void normalizeUnits(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
@@ -241,48 +249,51 @@ public class FactNormalizer {
         normalizedFacts.setSockets(hostFacts.getSockets());
       }
       normalizedFacts.setOwner(hostFacts.getOrgId());
-      if (hostFacts.getSyspurposeRole() != null) {
-        normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
-        normalizedFacts
-            .getProducts()
-            .addAll(
-                roleToProductsMap.getOrDefault(
-                    hostFacts.getSyspurposeRole(), Collections.emptySet()));
-      }
-
-      normalizedFacts.setSla(extractRhsmSla(hostFacts));
-      normalizedFacts.setUsage(extractRhsmUsage(hostFacts));
+      handleRole(normalizedFacts, hostFacts.getSyspurposeRole());
+      handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());
+      handleUsage(normalizedFacts, hostFacts, hostFacts.getSyspurposeUsage());
     }
   }
 
-  private Usage extractRhsmUsage(InventoryHostFacts hostFacts) {
-    Usage effectiveUsage = Usage.fromString(hostFacts.getSyspurposeUsage());
-    if (hostFacts.getSyspurposeUsage() != null
-        && effectiveUsage == Usage.EMPTY
-        && log.isDebugEnabled()) {
+  private void handleRole(NormalizedFacts normalizedFacts, String role) {
+    if (role != null) {
+      normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
+      normalizedFacts
+          .getProducts()
+          .addAll(roleToProductsMap.getOrDefault(role, Collections.emptySet()));
+    }
+  }
+
+  private void handleUsage(
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, String usage) {
+    Usage effectiveUsage = Usage.fromString(usage);
+    if (usage != null && effectiveUsage == Usage.EMPTY && log.isDebugEnabled()) {
 
       log.debug(
           "Owner {} host {} has unsupported value for Usage: {}",
           hostFacts.getOrgId(),
           hostFacts.getSubscriptionManagerId(),
-          hostFacts.getSyspurposeUsage());
+          usage);
     }
-    return effectiveUsage;
+    if (effectiveUsage != Usage.EMPTY) {
+      normalizedFacts.setUsage(effectiveUsage);
+    }
   }
 
-  private ServiceLevel extractRhsmSla(InventoryHostFacts hostFacts) {
-    ServiceLevel effectiveSla = ServiceLevel.fromString(hostFacts.getSyspurposeSla());
-    if (hostFacts.getSyspurposeSla() != null
-        && effectiveSla == ServiceLevel.EMPTY
-        && log.isDebugEnabled()) {
+  private void handleSla(
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts, String sla) {
+    ServiceLevel effectiveSla = ServiceLevel.fromString(sla);
+    if (sla != null && effectiveSla == ServiceLevel.EMPTY && log.isDebugEnabled()) {
 
       log.debug(
           "Owner {} host {} has unsupported value for SLA: {}",
           hostFacts.getOrgId(),
           hostFacts.getSubscriptionManagerId(),
-          hostFacts.getSyspurposeSla());
+          sla);
     }
-    return effectiveSla;
+    if (effectiveSla != ServiceLevel.EMPTY) {
+      normalizedFacts.setSla(effectiveSla);
+    }
   }
 
   private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {

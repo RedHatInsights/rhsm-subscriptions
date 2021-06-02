@@ -119,9 +119,6 @@ public class ApplicationProperties {
    */
   private int antiCsrfPort = 443;
 
-  /** The RBAC application name that defines the permissions for this application. */
-  private String rbacApplicationName = "subscriptions";
-
   /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
   private String hawtioBasePath;
 
@@ -130,9 +127,6 @@ public class ApplicationProperties {
 
   /** Number of times to attempt query against cloudigrade for Tally integration. */
   private int cloudigradeMaxAttempts = 2;
-
-  /** Kafka topic for sending tally summaries. */
-  private String tallySummaryTopic = "platform.rhsm-subscriptions.tally";
 
   /**
    * Offsets the range to look at metrics to account for delay in prometheus having metrics
@@ -157,4 +151,7 @@ public class ApplicationProperties {
 
   /** Additional properties related to the Subscription Service */
   private SubscriptionServiceProperties subscription = new SubscriptionServiceProperties();
+
+  /** If enabled, will sync Offerings with the upstream product service. */
+  private boolean offeringSyncEnabled = false;
 }

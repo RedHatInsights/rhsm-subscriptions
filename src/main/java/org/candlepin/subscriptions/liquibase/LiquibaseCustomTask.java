@@ -29,6 +29,7 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import liquibase.Scope;
 import liquibase.change.custom.CustomTaskChange;
 import liquibase.database.Database;
 import liquibase.database.jvm.JdbcConnection;
@@ -234,5 +235,7 @@ public abstract class LiquibaseCustomTask implements CustomTaskChange, Closeable
 
   public abstract boolean disableAutoCommit();
 
-  public abstract Logger getLogger();
+  public Logger getLogger() {
+    return Scope.getCurrentScope().getLog(this.getClass());
+  }
 }

@@ -71,10 +71,8 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `liquibase-only`: Run the Liquibase migrations and stop
 - `marketplace`: Run the worker responsible for processing tally summaries and
   emitting usage to Marketplace.
-- `openshift-metering-jmx`: Expose the JMX bean to create OpenShift metering
-  jobs
-- `openshift-metering-job`: Create OpenShift metering jobs and place them on the
-  job queue
+- `metering-jmx`: Expose the JMX bean to create metering jobs
+- `metering-job`: Create metering jobs and place them on the job queue
 - `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
 - `orgsync`:
 - `purge-snapshots`: Run the retention job and exit
@@ -239,7 +237,17 @@ push with `git push --follow-tags origin master`.
 
 ## Kafka
 
-See the detailed notes [here](README-kafka.md)
+`podman-compose` deploys a kafka instance w/ a UI at http://localhost:3030
+
+Two environment variables can be used to manipulate the offsets of the kafka
+consumers:
+
+- `KAFKA_SEEK_OVERRIDE_END` when set to `true` seeks to the very end
+- `KAFKA_SEEK_OVERRIDE_TIMESTAMP` when set to an OffsetDateTime, seeks the
+  queue to this position.
+
+These changes are permanent, committed the next time the kafka consumer is detected
+as idle.
 
 ## Dashboard
 
