@@ -20,17 +20,29 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.util.ResourceUtils;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 /** Configuration that provides the product ID to product map. */
 @ComponentScan(basePackages = "org.candlepin.subscriptions.files")
 public class ProductMappingConfiguration {
+
   @Bean
   public ProductProfileRegistrySource productProfileRegistrySource(
       ApplicationProperties applicationProperties, ApplicationClock applicationClock) {
     return new ProductProfileRegistrySource(applicationProperties, applicationClock);
+  }
+
+  @Bean
+  public TagProfile tagProfile() throws FileNotFoundException {
+    Yaml parser = new Yaml(new Constructor(TagProfile.class));
+    return parser.load(new FileInputStream(ResourceUtils.getFile("classpath:tag_profile.yaml")));
   }
 }
