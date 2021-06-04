@@ -139,6 +139,12 @@ jsonSchema2Pojo {
     includeSetters = true
 }
 
+// Disable the default jar; otherwise we end up with two different jars in the final image
+// See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
+jar {
+    enabled = false
+}
+
 bootJar {
     mainClassName = "org.candlepin.subscriptions.BootApplication"
 }
