@@ -102,19 +102,19 @@ public class Offering implements Serializable {
 
   /** Effective physical CPU cores capacity per quantity of subscription to this offering. */
   @Column(name = "physical_cores")
-  private int physicalCores;
+  private Integer physicalCores;
 
   /** Effective physical CPU sockets capacity per quantity of subscription to this offering. */
   @Column(name = "physical_sockets")
-  private int physicalSockets;
+  private Integer physicalSockets;
 
   /** Effective virtual CPU cores capacity per quantity of subscription to this offering. */
   @Column(name = "virtual_cores")
-  private int virtualCores;
+  private Integer virtualCores;
 
   /** Effective virtual CPU sockets capacity per quantity of subscription to this offering. */
   @Column(name = "virtual_sockets")
-  private int virtualSockets;
+  private Integer virtualSockets;
 
   /** Syspurpose Role for the offering */
   @Column(name = "role")

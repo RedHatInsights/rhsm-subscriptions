@@ -1,7 +1,7 @@
 {
   "entries": [
     {
-      "sku": "SVCRH00003",
+      "sku": "SVCRH01",
       "engProducts": {
         "engProducts": [
           {
@@ -44,10 +44,16 @@
             "oid": 86
           },
           {
+            "oid": 94
+          },
+          {
             "oid": 93
           },
           {
             "oid": 176
+          },
+          {
+            "oid": 92
           },
           {
             "oid": 317
@@ -84,6 +90,9 @@
           },
           {
             "oid": 588
+          },
+          {
+            "oid": 605
           }
         ]
       }
