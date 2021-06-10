@@ -21,8 +21,10 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
 import org.candlepin.subscriptions.json.Measurement.Uom;
@@ -36,6 +38,14 @@ import org.springframework.util.StringUtils;
 public class PrometheusMetricsProperties {
 
   public static final String OPENSHIFT_PRODUCT_PROFILE_ID = "OpenShift";
+
+  private Map<String, String> queryTemplates = new HashMap<>();
+
+  /**
+   * SPEL templates do not support nested expressions so the QueryBuilder will apply template
+   * parameters a set number of times to prevent recursion.
+   */
+  private int templateParameterDepth = 3;
 
   private MetricProperties openshift = new MetricProperties();
 
@@ -80,5 +90,11 @@ public class PrometheusMetricsProperties {
         .map(MetricProperties::getRangeInMinutes)
         .findFirst()
         .orElseThrow();
+  }
+
+  public Optional<String> getQueryTemplate(String templateKey) {
+    return queryTemplates.containsKey(templateKey)
+        ? Optional.of(queryTemplates.get(templateKey))
+        : Optional.empty();
   }
 }
