@@ -97,7 +97,13 @@ public class PrometheusMetricsTaskManager {
       Uom metric,
       OffsetDateTime start,
       OffsetDateTime end) {
-    log.debug("ACCOUNT: {} PRODUCT: {} START: {} END: {}", account, productProfileId, start, end);
+    log.info(
+        "ACCOUNT: {} PRODUCT: {} METRIC: {} START: {} END: {}",
+        account,
+        productProfileId,
+        metric,
+        start,
+        end);
     TaskDescriptorBuilder builder =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic)
             .setSingleValuedArg("account", account)

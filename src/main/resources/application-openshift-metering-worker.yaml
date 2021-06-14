@@ -6,12 +6,13 @@ rhsm-subscriptions:
   metering:
     prometheus:
       metric:
+        queryTemplates:
+          default: >-
+            max(sum_over_time(#{tag.queryParams[prometheusMetric]}[1h:5m]) / 13.0) by (_id)
+            * on(_id) group_right
+            min_over_time(#{tag.queryParams[prometheusMetadataMetric]}[1h])
         openshift:
           maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
           backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
           backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
           backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
-          metricPromQL: >-
-            max(sum_over_time(cluster:usage:workload:capacity_physical_cpu_cores:max:5m[1h:5m]) / 13.0) by (_id)
-            * on(_id) group_right
-            min_over_time(subscription_labels{ebs_account="%s", billing_model="${OPENSHIFT_BILLING_MODEL_FILTER:marketplace}", support=~"Premium|Standard|Self-Support|None"}[1h])

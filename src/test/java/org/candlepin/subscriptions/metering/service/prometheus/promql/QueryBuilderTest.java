@@ -37,45 +37,40 @@ class QueryBuilderTest {
   @Test
   void testBuildQuery() {
     String templateKey = "test_template";
-    String template = "Account: #{runtime['account']} Metric ID: #{tag.metricId}";
+    String template =
+        "Account: #{runtime[account]} Metric ID: #{tag.metricId} P1: #{tag.queryParams[p1]}";
 
     String metricId = "CORES";
     String account = "12345";
+    String param1 = "PARAM_1";
 
     PrometheusMetricsProperties props = new PrometheusMetricsProperties();
     props.getQueryTemplates().put(templateKey, template);
 
+    Map<String, String> params = new HashMap<>();
+    params.put("p1", param1);
+
+    TagMetric tagMetric =
+        TagMetric.builder().queryKey(templateKey).metricId(metricId).queryParams(params).build();
+
     Map<String, String> runtimeParams = new HashMap<>();
     runtimeParams.put("account", account);
 
-    QueryDescriptor queryDesc =
-        QueryDescriptor.builder()
-            .tag(
-                TagMetric.builder()
-                    .prometheusQueryTemplateKey(templateKey)
-                    .metricId(metricId)
-                    .build())
-            .runtime(runtimeParams)
-            .build();
+    QueryDescriptor queryDesc = new QueryDescriptor(tagMetric);
+    queryDesc.addRuntimeVar("account", account);
 
     QueryBuilder builder = new QueryBuilder(props);
-    String query = builder.build(queryDesc);
-    assertEquals(query, String.format("Account: %s Metric ID: %s", account, metricId));
+    assertEquals(
+        String.format("Account: %s Metric ID: %s P1: %s", account, metricId, param1),
+        builder.build(queryDesc));
   }
 
   @Test
   void testExceptionWhenInvalidTemplateSpecified() {
     String key = "UNKNOWN_KEY";
     QueryBuilder builder = new QueryBuilder(new PrometheusMetricsProperties());
-    Throwable e =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              builder.build(
-                  QueryDescriptor.builder()
-                      .tag(TagMetric.builder().prometheusQueryTemplateKey(key).build())
-                      .build());
-            });
+    QueryDescriptor descriptor = new QueryDescriptor(TagMetric.builder().queryKey(key).build());
+    Throwable e = assertThrows(IllegalArgumentException.class, () -> builder.build(descriptor));
 
     assertEquals(
         String.format(
@@ -86,9 +81,9 @@ class QueryBuilderTest {
   @Test
   void supportsNestedExpressions() {
     String templateKey = "test_template";
-    String template = "#{runtime['account_exp']} #{runtime['metric_exp']}";
+    String template = "#{tag.queryParams[account_exp]} #{tag.queryParams[metric_exp]}";
 
-    String accountExp = "Account: #{runtime['account']}";
+    String accountExp = "Account: #{runtime[account]}";
     String metricExp = "Metric ID: #{tag.metricId}";
 
     String metricId = "CORES";
@@ -97,24 +92,21 @@ class QueryBuilderTest {
     PrometheusMetricsProperties props = new PrometheusMetricsProperties();
     props.getQueryTemplates().put(templateKey, template);
 
-    Map<String, String> runtimeParams = new HashMap<>();
-    runtimeParams.put("account", account);
-    // TODO [mstead] These should come from the tag data once in place.
-    runtimeParams.put("account_exp", accountExp);
-    runtimeParams.put("metric_exp", metricExp);
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put("account_exp", accountExp);
+    queryParams.put("metric_exp", metricExp);
 
     QueryDescriptor queryDesc =
-        QueryDescriptor.builder()
-            .tag(
-                TagMetric.builder()
-                    .prometheusQueryTemplateKey(templateKey)
-                    .metricId(metricId)
-                    .build())
-            .runtime(runtimeParams)
-            .build();
+        new QueryDescriptor(
+            TagMetric.builder()
+                .queryKey(templateKey)
+                .metricId(metricId)
+                .queryParams(queryParams)
+                .build());
+    queryDesc.addRuntimeVar("account", account);
 
     QueryBuilder builder = new QueryBuilder(props);
     String query = builder.build(queryDesc);
-    assertEquals(query, String.format("Account: %s Metric ID: %s", account, metricId));
+    assertEquals(String.format("Account: %s Metric ID: %s", account, metricId), query);
   }
 }

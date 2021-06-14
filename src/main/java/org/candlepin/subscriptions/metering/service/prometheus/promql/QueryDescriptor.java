@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
 import java.util.HashMap;
 import java.util.Map;
-import lombok.Builder;
 import lombok.Getter;
 import org.candlepin.subscriptions.files.TagMetric;
 
@@ -30,17 +29,21 @@ import org.candlepin.subscriptions.files.TagMetric;
  * Describes the variables to be applied to a query template. Within a template, these variables can
  * be utilized as follows:
  *
- * <p>#{tag.metricId} #{runtime.yourCustomProperty}
+ * <p>#{tag.metricId} #{runtime[yourCustomProperty]}
  */
 @Getter
-@Builder
 public class QueryDescriptor {
 
   /** Any variables that should be provided by the tag configuration. */
-  @Builder.Default private TagMetric tag = new TagMetric();
+  private TagMetric tag;
 
   /** Any variable that are specified at runtime. */
-  @Builder.Default private Map<String, String> runtime = new HashMap<>();
+  private Map<String, String> runtime;
+
+  public QueryDescriptor(TagMetric tag) {
+    this.tag = tag;
+    this.runtime = new HashMap<>();
+  }
 
   public void addRuntimeVar(String name, String value) {
     this.runtime.put(name, value);

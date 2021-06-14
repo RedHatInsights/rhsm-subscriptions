@@ -21,12 +21,16 @@
 package org.candlepin.subscriptions.metering.job;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.files.TagProfile;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -40,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MeteringJobTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
+  @Mock private TagProfile tagProfile;
 
   private ApplicationClock clock;
   private PrometheusMetricsProperties metricProps;
@@ -49,6 +54,7 @@ class MeteringJobTest {
   @BeforeEach
   void setupTests() {
     metricProps = new PrometheusMetricsProperties();
+    metricProps.setTagProfile(tagProfile);
     metricProps.getOpenshift().setRangeInMinutes(180); // 3h
 
     appProps = new ApplicationProperties();
@@ -56,6 +62,10 @@ class MeteringJobTest {
 
     clock = new FixedClockConfiguration().fixedClock();
     job = new MeteringJob(tasks, clock, metricProps, appProps);
+
+    when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));
+    when(tagProfile.measurementsByTag("OpenShift-metrics")).thenReturn(Set.of(Uom.CORES));
+    when(tagProfile.tagIsPrometheusEnabled("OpenShift-metrics")).thenReturn(true);
   }
 
   @Test
@@ -71,6 +81,6 @@ class MeteringJobTest {
             expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
     job.run();
 
-    verify(tasks).updateMetricsForAllAccounts("OpenShift", expStartDate, expEndDate);
+    verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics", expStartDate, expEndDate);
   }
 }

@@ -29,6 +29,8 @@ import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import org.candlepin.subscriptions.files.TagProfile;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
@@ -44,9 +46,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PrometheusAccountSourceTest {
 
   final String TEST_QUERY = "TEST_QUERY";
-  final String TEST_PROFILE_ID = "OpenShift";
+  final String TEST_PROFILE_ID = "OpenShift-metrics";
 
   @Mock PrometheusService service;
+  @Mock TagProfile tagProfile;
 
   PrometheusAccountSource accountSource;
   PrometheusMetricsProperties promProps;
@@ -57,8 +60,12 @@ class PrometheusAccountSourceTest {
     osProps.setEnabledAccountPromQL(TEST_QUERY);
 
     promProps = new PrometheusMetricsProperties();
+    promProps.setTagProfile(tagProfile);
     promProps.setOpenshift(osProps);
     accountSource = new PrometheusAccountSource(service, promProps);
+
+    when(tagProfile.tagIsPrometheusEnabled(TEST_PROFILE_ID)).thenReturn(true);
+    when(tagProfile.measurementsByTag(TEST_PROFILE_ID)).thenReturn(Set.of(Uom.CORES));
   }
 
   @Test

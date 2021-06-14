@@ -21,13 +21,18 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.files.TagMetaData;
+import org.candlepin.subscriptions.files.TagMetric;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.StringUtils;
 
@@ -37,7 +42,7 @@ import org.springframework.util.StringUtils;
 @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
 public class PrometheusMetricsProperties {
 
-  public static final String OPENSHIFT_PRODUCT_PROFILE_ID = "OpenShift";
+  @Autowired TagProfile tagProfile;
 
   private Map<String, String> queryTemplates = new HashMap<>();
 
@@ -49,18 +54,21 @@ public class PrometheusMetricsProperties {
 
   private MetricProperties openshift = new MetricProperties();
 
-  // ENT-3835 will change the data structures used here and should refactor this method as needed
   public Map<Uom, MetricProperties> getSupportedMetricsForProduct(String productProfileId) {
-    if (!productProfileId.equals(OPENSHIFT_PRODUCT_PROFILE_ID)) {
+    if (!tagProfile.tagIsPrometheusEnabled(productProfileId)) {
       throw new UnsupportedOperationException(
-          "Only OpenShift product profile ID is currently supported");
+          String.format("Metrics gathering for %s is not currently supported!", productProfileId));
     }
-    return Map.of(Uom.CORES, openshift);
+
+    Map<Uom, MetricProperties> metrics = new EnumMap<>(Uom.class);
+    tagProfile
+        .measurementsByTag(productProfileId)
+        .forEach(metric -> metrics.put(metric, openshift));
+    return metrics;
   }
 
-  // ENT-3835 will change the data structures used here and should refactor this method as needed
   public Collection<String> getMetricsEnabledProductProfiles() {
-    return List.of(OPENSHIFT_PRODUCT_PROFILE_ID);
+    return tagProfile.getTagsWithPrometheusEnabledLookup();
   }
 
   // ENT-3835 will change the data structures used here and should refactor this method as needed
@@ -96,5 +104,25 @@ public class PrometheusMetricsProperties {
     return queryTemplates.containsKey(templateKey)
         ? Optional.of(queryTemplates.get(templateKey))
         : Optional.empty();
+  }
+
+  public Optional<TagMetric> getTagMetric(String tag, Uom metric) {
+    if (!StringUtils.hasText(tag) || Objects.isNull(metric)) {
+      return Optional.empty();
+    }
+
+    return tagProfile.getTagMetrics().stream()
+        .filter(x -> tag.equals(x.getTag()) && metric.equals(x.getUom()))
+        .findFirst();
+  }
+
+  public Optional<TagMetaData> getTagMetadata(String tag) {
+    if (!StringUtils.hasText(tag)) {
+      return Optional.empty();
+    }
+
+    return tagProfile.getTagMetaData().stream()
+        .filter(meta -> meta.getTags().contains(tag))
+        .findFirst();
   }
 }

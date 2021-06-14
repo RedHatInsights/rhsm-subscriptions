@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
@@ -78,7 +79,7 @@ class PrometheusMeteringTaskFactoryTest {
     assertTrue(task instanceof MetricsTask);
 
     task.execute();
-    verify(controller).collectOpenshiftMetrics("12234", start, end);
+    verify(controller).collectMetrics("OpenShift", Uom.CORES, "12234", start, end);
   }
 
   @Test

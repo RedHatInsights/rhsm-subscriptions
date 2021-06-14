@@ -38,9 +38,8 @@ public class MeteringEventFactory {
 
   private static final Logger log = LoggerFactory.getLogger(MeteringEventFactory.class);
 
-  public static final String OPENSHIFT_CLUSTER_EVENT_SOURCE = "prometheus-openshift";
-  public static final String OPENSHIFT_CLUSTER_EVENT_TYPE = "snapshot";
-  public static final String OPENSHIFT_CLUSTER_SERVICE_TYPE = "OpenShift Cluster";
+  public static final String EVENT_SOURCE = "prometheus";
+  private static final String EVENT_TYPE = "snapshot";
 
   private MeteringEventFactory() {
     throw new IllegalStateException("Utility class; should never be instantiated!");
@@ -62,23 +61,29 @@ public class MeteringEventFactory {
   @SuppressWarnings("java:S107")
   public static Event openShiftClusterCores(
       String accountNumber,
+      String metricId,
       String clusterId,
       String serviceLevel,
       String usage,
       String role,
       OffsetDateTime measuredTime,
       OffsetDateTime expired,
+      String serviceType,
+      Uom measuredMetric,
       Double measuredValue) {
     Event event = new Event();
     updateOpenShiftClusterCores(
         event,
         accountNumber,
+        metricId,
         clusterId,
         serviceLevel,
         usage,
         role,
         measuredTime,
         expired,
+        serviceType,
+        measuredMetric,
         measuredValue);
     return event;
   }
@@ -87,17 +92,20 @@ public class MeteringEventFactory {
   public static void updateOpenShiftClusterCores(
       Event toUpdate,
       String accountNumber,
+      String metricId,
       String clusterId,
       String serviceLevel,
       String usage,
       String role,
       OffsetDateTime measuredTime,
       OffsetDateTime expired,
+      String serviceType,
+      Uom measuredMetric,
       Double measuredValue) {
     toUpdate
-        .withEventSource(OPENSHIFT_CLUSTER_EVENT_SOURCE)
-        .withEventType(OPENSHIFT_CLUSTER_EVENT_TYPE)
-        .withServiceType(OPENSHIFT_CLUSTER_SERVICE_TYPE)
+        .withEventSource(EVENT_SOURCE)
+        .withEventType(getEventType(metricId))
+        .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
         .withInstanceId(clusterId)
         .withTimestamp(measuredTime)
@@ -105,8 +113,15 @@ public class MeteringEventFactory {
         .withDisplayName(Optional.of(clusterId))
         .withSla(getSla(serviceLevel, accountNumber, clusterId))
         .withUsage(getUsage(usage, accountNumber, clusterId))
-        .withMeasurements(List.of(new Measurement().withUom(Uom.CORES).withValue(measuredValue)))
+        .withMeasurements(
+            List.of(new Measurement().withUom(measuredMetric).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, clusterId));
+  }
+
+  public static String getEventType(String metricId) {
+    return StringUtils.hasText(metricId)
+        ? String.format("%s_%s", EVENT_TYPE, metricId)
+        : EVENT_TYPE;
   }
 
   private static Sla getSla(String serviceLevel, String account, String clusterId) {

@@ -20,8 +20,12 @@
  */
 package org.candlepin.subscriptions.files;
 
+import static org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder.DEFAULT_METRIC_QUERY_KEY;
+
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,7 +45,6 @@ public class TagMetric {
   private String tag;
   private String metricId;
   private Uom uom;
-  private String prometheusQueryTemplateKey;
-  private String prometheusMetric;
-  private String prometheusMetadataMetric;
+  @Default private String queryKey = DEFAULT_METRIC_QUERY_KEY;
+  private Map<String, String> queryParams;
 }

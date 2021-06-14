@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
 import java.util.Optional;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
-import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.common.TemplateParserContext;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -32,6 +31,14 @@ import org.springframework.stereotype.Component;
 /** Builds PromQL queries based on a configured template. */
 @Component
 public class QueryBuilder {
+
+  /**
+   * The default metric query key. A query with this key must be defined in the config file as a
+   * query template.
+   *
+   * @see PrometheusMetricsProperties
+   */
+  public static final String DEFAULT_METRIC_QUERY_KEY = "default";
 
   private final PrometheusMetricsProperties metricsProperties;
 
@@ -43,7 +50,7 @@ public class QueryBuilder {
     ExpressionParser parser = new SpelExpressionParser();
     StandardEvaluationContext context = new StandardEvaluationContext(queryDescriptor);
 
-    String templateKey = queryDescriptor.getTag().getPrometheusQueryTemplateKey();
+    String templateKey = queryDescriptor.getTag().getQueryKey();
     Optional<String> template = metricsProperties.getQueryTemplate(templateKey);
 
     if (template.isEmpty()) {
@@ -57,12 +64,10 @@ public class QueryBuilder {
     // to prevent potential infinite recursion.
     String query = template.get();
     for (int i = 0; i < metricsProperties.getTemplateParameterDepth(); i++) {
-      // TODO [mstead] Might be worth checking for another #{expression} to prevent unneeded
-      // processing.
-      Expression expression = parser.parseExpression(query, new TemplateParserContext());
-      query = (String) expression.getValue(context);
+      // Silly hack to make sonar happy.
+      assert query != null;
+      query = (String) parser.parseExpression(query, new TemplateParserContext()).getValue(context);
     }
-
     return query;
   }
 }

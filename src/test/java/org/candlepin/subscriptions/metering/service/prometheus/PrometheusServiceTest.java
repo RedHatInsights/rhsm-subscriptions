@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.net.UrlEscapers;
 import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.StubApiProvider;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -48,11 +49,13 @@ class PrometheusServiceTest {
 
   @Autowired private PrometheusMetricsProperties props;
 
+  @Autowired private QueryBuilder queryBuilder;
+
   @Test
   void testRangeQueryApi() throws Exception {
-
-    String expectedQuery =
-        UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
+    QueryHelper queries = new QueryHelper(props, queryBuilder);
+    String query = queries.expectedQuery("OpenShift-metrics", "a1");
+    String expectedQuery = UrlEscapers.urlFragmentEscaper().escape(query);
     QueryResult expectedResult = new QueryResult();
 
     OffsetDateTime end = OffsetDateTime.now();
@@ -65,15 +68,15 @@ class PrometheusServiceTest {
     ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
     PrometheusService service = new PrometheusService(provider);
 
-    QueryResult result =
-        service.runRangeQuery(props.getOpenshift().getMetricPromQL(), start, end, 3600, 1);
+    QueryResult result = service.runRangeQuery(query, start, end, 3600, 1);
     assertEquals(expectedResult, result);
   }
 
   @Test
   void testQueryApi() throws Exception {
-    String expectedQuery =
-        UrlEscapers.urlFragmentEscaper().escape(props.getOpenshift().getMetricPromQL());
+    QueryHelper queries = new QueryHelper(props, queryBuilder);
+    String query = queries.expectedQuery("OpenShift-metrics", "a1");
+    String expectedQuery = UrlEscapers.urlFragmentEscaper().escape(query);
     QueryResult expectedResult = new QueryResult();
 
     OffsetDateTime time = OffsetDateTime.now();
@@ -82,7 +85,7 @@ class PrometheusServiceTest {
     ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
     PrometheusService service = new PrometheusService(provider);
 
-    QueryResult result = service.runQuery(props.getOpenshift().getMetricPromQL(), time, 1);
+    QueryResult result = service.runQuery(query, time, 1);
     assertEquals(expectedResult, result);
   }
 }

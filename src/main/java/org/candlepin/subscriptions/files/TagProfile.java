@@ -35,6 +35,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 
 /** A base class for tag profiles. This class and its composites are loaded from a YAML profile. */
@@ -50,7 +51,8 @@ public class TagProfile {
 
   private Map<String, Set<String>> tagToEngProductsLookup;
   private Map<ProductUom, String> productUomToMetricIdLookup;
-  private Set<String> tagsWithPrometheusEnabledLookup;
+  @Getter private Set<String> tagsWithPrometheusEnabledLookup;
+  private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
 
@@ -60,6 +62,7 @@ public class TagProfile {
     tagToEngProductsLookup = new HashMap<>();
     productUomToMetricIdLookup = new HashMap<>();
     tagsWithPrometheusEnabledLookup = new HashSet<>();
+    measurementsByTagLookup = new HashMap<>();
     offeringProductNameToTagLookup = new HashMap<>();
     finestGranularityLookup = new HashMap<>();
     tagMappings.forEach(this::handleTagMapping);
@@ -85,6 +88,9 @@ public class TagProfile {
     tagsWithPrometheusEnabledLookup.add(tagMetric.getTag());
     productUomToMetricIdLookup.put(
         new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getMetricId());
+    measurementsByTagLookup
+        .computeIfAbsent(tagMetric.getTag(), k -> new HashSet<>())
+        .add(tagMetric.getUom());
   }
 
   private void handleTagMetaData(TagMetaData tagMetaData) {
@@ -111,5 +117,9 @@ public class TagProfile {
 
   public String tagForOfferingProductName(String offeringProductName) {
     return offeringProductNameToTagLookup.get(offeringProductName);
+  }
+
+  public Set<Uom> measurementsByTag(String tag) {
+    return measurementsByTagLookup.getOrDefault(tag, new HashSet<>());
   }
 }
