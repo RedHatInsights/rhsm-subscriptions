@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
@@ -31,6 +36,8 @@ import javax.persistence.Table;
 /** Capacity provided by a subscription for a given product. */
 @Entity
 @Table(name = "subscription_capacity")
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionCapacity implements Serializable {
   @EmbeddedId private SubscriptionCapacityKey key;
 

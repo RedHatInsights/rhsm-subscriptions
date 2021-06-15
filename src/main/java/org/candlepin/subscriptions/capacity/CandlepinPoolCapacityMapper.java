@@ -88,6 +88,7 @@ public class CandlepinPoolCapacityMapper {
               key.setOwnerId(ownerId);
               key.setSubscriptionId(pool.getSubscriptionId());
               key.setProductId(product);
+
               SubscriptionCapacity capacity = existingCapacityMap.get(key);
               if (capacity == null) {
                 capacity = new SubscriptionCapacity();
