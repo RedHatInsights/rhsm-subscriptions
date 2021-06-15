@@ -1,0 +1,19 @@
+tagMappings:
+  - value: 69
+    valueType: engId
+    tags: [ RHEL, RHEL for x86 ]
+  - value: x86_64
+    valueType: arch
+    tags: [ RHEL for x86 ]
+tagMetrics:
+  - tag: OpenShift-metrics
+    metricId: Cores
+    uom: CORES
+    prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
+    prometheusMetadataMetric: subscription_labels
+tagMetaData:
+  - tags: [ OpenShift-metrics, OpenShift-dedicated-metrics ]
+    serviceType: OpenShift Cluster
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
