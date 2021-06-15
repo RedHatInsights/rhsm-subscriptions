@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
+import java.util.Map;
+
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,4 +34,7 @@ public interface SubscriptionCapacityRepository
 
   List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
       String ownerId, List<String> subscriptionIds);
+
+  Map<SubscriptionCapacityKey, SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
+          String ownerId, String subscriptionId);
 }

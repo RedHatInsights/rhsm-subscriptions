@@ -64,6 +64,7 @@ public class CapacityProductExtractor {
     return products;
   }
 
+
   private static Integer parseIntSkipUnparseable(String s) {
     try {
       return Integer.parseInt(s);

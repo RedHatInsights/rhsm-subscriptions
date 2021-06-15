@@ -23,8 +23,12 @@ package org.candlepin.subscriptions.subscription;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import javax.transaction.Transactional;
+
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
@@ -32,11 +36,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class SubscriptionSyncController {
   private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionService subscriptionService;
   private final ApplicationClock clock;
+  private final CapacityReconciliationController capacityReconciliationController;
 
   public SubscriptionSyncController(
-      SubscriptionRepository subscriptionRepository, ApplicationClock clock) {
+      SubscriptionRepository subscriptionRepository,
+      ApplicationClock clock,
+      SubscriptionService subscriptionService,
+      CapacityReconciliationController capacityReconciliationController) {
     this.subscriptionRepository = subscriptionRepository;
+    this.subscriptionService = subscriptionService;
+    this.capacityReconciliationController = capacityReconciliationController;
     this.clock = clock;
   }
 
@@ -65,11 +76,13 @@ public class SubscriptionSyncController {
         updateSubscription(subscription, existing);
         subscriptionRepository.save(existing);
       }
+      capacityReconciliationController.reconcileCapacityForSubscription(convertDto(subscription));
     } else {
 
       final org.candlepin.subscriptions.db.model.Subscription newSub = org.candlepin.subscriptions.db.model.Subscription.builder()
               .subscriptionId(String.valueOf(subscription.getId()))
               .sku(SubscriptionDtoUtil.extractSku(subscription))
+              .ownerId(subscription.getWebCustomerId().toString())
               .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
               .quantity(subscription.getQuantity())
               .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
@@ -80,18 +93,43 @@ public class SubscriptionSyncController {
     }
   }
 
-  void syncSubscription(String subscriptionId){
-
-  }
-
-  Subscription getUpstreamSubscription(String subscriptionId){
-
-  }
-
   protected void updateSubscription(
       Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
     if (dto.getEffectiveEndDate() != null) {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }
+  }
+
+  @Transactional
+  public void syncSubscription(String subscriptionId) throws ApiException {
+    Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
+    syncSubscription(subscription);
+  }
+
+  public org.candlepin.subscriptions.db.model.Subscription getUpstreamSubscription(String subscriptionId)
+          throws ExternalServiceException {
+    Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
+    return convertDto(subscription);
+  }
+
+  private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
+    final org.candlepin.subscriptions.db.model.Subscription entity =
+            new org.candlepin.subscriptions.db.model.Subscription();
+
+    entity.setSubscriptionId(String.valueOf(subscription.getId()));
+    entity.setSku(subscription.getSubscriptionProducts().stream()
+            .filter(subscriptionProduct -> subscriptionProduct.getParentSubscriptionProductId() == null)
+            .findAny().map(SubscriptionProduct::getSku).orElse(null));
+    if (subscription.getEffectiveStartDate() != null) {
+      entity.setStartDate(clock.dateFromUnix(subscription.getEffectiveStartDate()));
+    }
+    if (subscription.getEffectiveEndDate() != null) {
+      entity.setStartDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
+    }
+    entity.setQuantity(subscription.getQuantity());
+    entity.setOwnerId(String.valueOf(subscription.getWebCustomerId()));
+    entity.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
+    entity.setAccountNumber(String.valueOf(subscription.getOracleAccountNumber()));
+    return entity;
   }
 }

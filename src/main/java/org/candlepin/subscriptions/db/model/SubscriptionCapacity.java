@@ -264,4 +264,8 @@ public class SubscriptionCapacity implements Serializable {
         beginDate,
         endDate);
   }
+
+  SubscriptionCapacity from(Subscription subscription, Offering offering){
+
+  }
 }
