@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.product.api.model.AttributeValue;
 import org.candlepin.subscriptions.product.api.model.EngineeringProduct;
 import org.candlepin.subscriptions.product.api.model.OperationalProduct;
@@ -48,12 +50,12 @@ import org.slf4j.LoggerFactory;
 public class MidProduct {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MidProduct.class);
-  private static String MSG_TEMPLATE =
+  private static final String MSG_TEMPLATE =
       "sku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
 
   /** List of opProd attribute codes used in the making of an Offering. */
-  // Non-standard attribute codes are prefixed by "__X_". They are not actually attribute codes
+  // Non-standard attribute codes are prefixed by "X_". They are not actually attribute codes
   // from an opProd, but pretending as if they are will let us use the merge capabilities of Maps.
   private enum Attr {
     CORES,
@@ -66,13 +68,13 @@ public class MidProduct {
     PRODUCT_NAME,
     USAGE,
     /** Originates from opProd attr code "CORES" when coming from a derived product. */
-    __X_VIRTUAL_CORES,
+    X_VIRTUAL_CORES,
     /** Originates from opProd attr code "IFL" when coming from a derived product. */
-    __X_VIRTUAL_IFL,
+    X_VIRTUAL_IFL,
     /** Originates from opProd attr code "SOCKET_LIMIT" when coming from a derived product. */
-    __X_VIRTUAL_SOCKETS,
+    X_VIRTUAL_SOCKETS,
     /** Role originates from opProd field role, not an attribute. */
-    __X_ROLE;
+    X_ROLE;
   }
 
   /** Maps opProd attribute codes to MidProduct.Attrs of the same name. */
@@ -109,7 +111,10 @@ public class MidProduct {
           .map(mid -> mid.fetchAndAddEngProdsIfExist(productService))
           .map(MidProduct::toOffering);
     } catch (ApiException e) {
-      throw new RuntimeException("Unable to retrieve upstream offering sku=\"" + sku + "\"", e);
+      throw new ExternalServiceException(
+          ErrorCode.REQUEST_PROCESSING_ERROR,
+          "Unable to retrieve upstream offering sku=\"" + sku + "\"",
+          e);
     }
   }
 
@@ -124,7 +129,7 @@ public class MidProduct {
     // Though theoretically possible, none of the products in use by Candlepin (which includes the
     // allowlisted swatch products) ever has more than one role.
     String role = parent.getRoles().stream().findFirst().orElse(null);
-    offer.attrs.put(Attr.__X_ROLE, role);
+    offer.attrs.put(Attr.X_ROLE, role);
     offer.mapAttributes(parent);
 
     // For each child, merge its unconflcting information into the parent.
@@ -145,7 +150,7 @@ public class MidProduct {
     offering.setSku(sku);
     offering.setChildSkus(List.copyOf(children));
     offering.setProductIds(List.copyOf(engOids));
-    offering.setRole(attrs.get(Attr.__X_ROLE));
+    offering.setRole(attrs.get(Attr.X_ROLE));
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
     offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
 
@@ -211,7 +216,8 @@ public class MidProduct {
               "No tree found for derivedSku=\"{}\" of offering sku=\"{}\"", derivedSku, sku);
         }
       } catch (ApiException e) {
-        throw new RuntimeException(
+        throw new ExternalServiceException(
+            ErrorCode.REQUEST_PROCESSING_ERROR,
             "Unable to retrieve derivedSku=\"" + derivedSku + "\" for offering sku=\"" + sku + "\"",
             e);
       }
@@ -227,8 +233,10 @@ public class MidProduct {
           productService.getEngineeringProductsForSkus(allSkus);
       addEngProds(engProds);
     } catch (ApiException e) {
-      throw new RuntimeException(
-          "Unable to retrieve engOids of skus=\"" + allSkus + "\" for offering sku=" + sku, e);
+      throw new ExternalServiceException(
+          ErrorCode.REQUEST_PROCESSING_ERROR,
+          "Unable to retrieve engOids of skus=\"" + allSkus + "\" for offering sku=" + sku,
+          e);
     }
 
     return this;
@@ -243,7 +251,7 @@ public class MidProduct {
 
   private void addEngProds(Map<String, List<EngineeringProduct>> engProds) {
     engProds.values().stream()
-        .flatMap(engProdList -> engProdList.stream().map(engProd -> engProd.getOid()))
+        .flatMap(engProdList -> engProdList.stream().map(EngineeringProduct::getOid))
         .forEach(engOids::add);
   }
 
@@ -264,10 +272,10 @@ public class MidProduct {
     String cores = (ifl == null) ? attrs.get(Attr.CORES) : null;
     String sockets = attrs.get(Attr.SOCKET_LIMIT);
 
-    String virtIfl = attrs.get(Attr.__X_VIRTUAL_IFL);
+    String virtIfl = attrs.get(Attr.X_VIRTUAL_IFL);
     // likewise for virtual cores, virtual ifl takes precedence if it exists.
-    String virtCores = attrs.get(Attr.__X_VIRTUAL_CORES);
-    String virtSockets = attrs.get(Attr.__X_VIRTUAL_SOCKETS);
+    String virtCores = attrs.get(Attr.X_VIRTUAL_CORES);
+    String virtSockets = attrs.get(Attr.X_VIRTUAL_SOCKETS);
 
     if (ifl == null) {
       offering.setPhysicalCores(nullOrInteger(cores));
@@ -308,13 +316,13 @@ public class MidProduct {
     // physical cores and sockets, those values need moved to the proper Attr if set.
     String virtualCores = derived.attrs.get(Attr.CORES);
     if (virtualCores != null) {
-      derived.putIfNoConflict(Attr.__X_VIRTUAL_CORES, virtualCores);
+      derived.putIfNoConflict(Attr.X_VIRTUAL_CORES, virtualCores);
       derived.attrs.remove(Attr.CORES);
     }
 
     String virtualSockets = derived.attrs.get(Attr.SOCKET_LIMIT);
     if (virtualSockets != null) {
-      derived.putIfNoConflict(Attr.__X_VIRTUAL_SOCKETS, virtualSockets);
+      derived.putIfNoConflict(Attr.X_VIRTUAL_SOCKETS, virtualSockets);
       derived.attrs.remove(Attr.SOCKET_LIMIT);
     }
 
@@ -332,7 +340,6 @@ public class MidProduct {
     children.add(child.sku);
 
     // Values already set by the parent (or by previous children) should not be overwritten.
-    //    child.attrs.forEach(attrs::putIfAbsent);
     child.attrs.forEach(this::putIfNoConflict);
 
     // Eng OIDs from the child are not added since they haven't been collected yet. Instead all of
@@ -362,11 +369,11 @@ public class MidProduct {
   }
 
   private void mapAttributes(OperationalProduct opProd) {
-    var attrs = opProd.getAttributes();
-    if (attrs == null || attrs.isEmpty()) {
+    var prodAttrs = opProd.getAttributes();
+    if (prodAttrs == null || prodAttrs.isEmpty()) {
       return;
     }
-    for (AttributeValue sourceAttr : attrs) {
+    for (AttributeValue sourceAttr : prodAttrs) {
       Attr destAttr = CODE_TO_ENUM.get(sourceAttr.getCode());
       if (destAttr != null) {
         putIfNoConflict(destAttr, sourceAttr.getValue());

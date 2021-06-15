@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.product;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -285,7 +284,7 @@ class OfferingSyncControllerTest {
 
     // Then there is no resulting offering.
     assertTrue(actual.isEmpty(), "A sku not in the allowlist should not be returned.");
-    verify(allowlist).productIdMatches(eq(sku));
+    verify(allowlist).productIdMatches(sku);
   }
 
   @Test()

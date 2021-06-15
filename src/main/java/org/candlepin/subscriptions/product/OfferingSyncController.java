@@ -36,8 +36,6 @@ import org.springframework.stereotype.Component;
 public class OfferingSyncController {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OfferingSyncController.class);
-  private static String MSG_TEMPLATE =
-      "sku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
 
   private final OfferingRepository offeringRepository;
   private final ProductWhitelist productAllowlist;
