@@ -20,13 +20,12 @@
  */
 package org.candlepin.subscriptions.files;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.util.ResourceUtils;
+import org.springframework.core.io.ResourceLoader;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -41,8 +40,8 @@ public class ProductMappingConfiguration {
   }
 
   @Bean
-  public TagProfile tagProfile() throws FileNotFoundException {
+  public TagProfile tagProfile(ResourceLoader resourceLoader) throws IOException {
     Yaml parser = new Yaml(new Constructor(TagProfile.class));
-    return parser.load(new FileInputStream(ResourceUtils.getFile("classpath:tag_profile.yaml")));
+    return parser.load(resourceLoader.getResource("classpath:tag_profile.yaml").getInputStream());
   }
 }
