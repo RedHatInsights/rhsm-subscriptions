@@ -1,18 +1,57 @@
 tagMappings:
-  - value: 69
+  # OpenShift engineering product IDs
+  - value: 290 # Red Hat OpenShift Container Platform
     valueType: engId
-    tags: [ RHEL, RHEL for x86 ]
-  - value: x86_64
-    valueType: arch
-    tags: [ RHEL for x86 ]
+    tags:
+      - OpenShift Container Platform
+
+  # OpenShift syspurpose roles
+  - value: ocp
+    valueType: role
+    tags:
+      - OpenShift-metrics
+  - value: osd
+    valueType: role
+    tags:
+      - OpenShift-dedicated-metrics
+
+  # OpenShift Offering Product Names
+  - value: OpenShift Dedicated
+    valueType: productName
+    tags:
+      - OpenShift-dedicated-metrics
+  - value: OpenShift Container Platform
+    valueType: productName
+    tags:
+      - OpenShift-metrics
+
 tagMetrics:
+  # OCP metrics
   - tag: OpenShift-metrics
-    metricId: Cores
+    metricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
     prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
     prometheusMetadataMetric: subscription_labels
+
+  # OSD metrics
+  - tag: OpenShift-dedicated-metrics
+    metricId: redhat.com:openshift_dedicated:4cpu_hour
+    uom: CORES
+    prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
+    prometheusMetadataMetric: subscription_labels
+  - tag: OpenShift-dedicated-metrics
+    metricId: redhat.com:openshift_dedicated:cluster_hour
+    uom: INSTANCE_HOURS
+    prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
+    prometheusMetadataMetric: subscription_labels
+
 tagMetaData:
-  - tags: [ OpenShift-metrics, OpenShift-dedicated-metrics ]
+  - tags:
+      - OpenShift Container Platform
+    finestGranularity: DAILY
+  - tags:
+      - OpenShift-metrics
+      - OpenShift-dedicated-metrics
     serviceType: OpenShift Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM

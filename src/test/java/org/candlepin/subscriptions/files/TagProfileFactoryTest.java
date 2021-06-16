@@ -20,13 +20,15 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,30 +42,56 @@ class TagProfileFactoryTest {
   @Autowired private TagProfile tagProfile;
 
   @Test
-  void whenFactoryProvidedThenYamlPropertiesInjected() {
-    assertEquals(2, tagProfile.getTagMappings().size());
-    assertEquals("69", tagProfile.getTagMappings().get(0).getValue());
-    assertEquals("engId", tagProfile.getTagMappings().get(0).getValueType());
-    assertEquals(Set.of("RHEL", "RHEL for x86"), tagProfile.getTagMappings().get(0).getTags());
-    assertEquals("x86_64", tagProfile.getTagMappings().get(1).getValue());
-    assertEquals("arch", tagProfile.getTagMappings().get(1).getValueType());
-    assertEquals(Set.of("RHEL for x86"), tagProfile.getTagMappings().get(1).getTags());
+  void testTagProfileLooksConsistent() {
+    assertFalse(tagProfile.getTagMappings().isEmpty());
+    assertFalse(tagProfile.getTagMetrics().isEmpty());
+    assertFalse(tagProfile.getTagMetaData().isEmpty());
+    tagProfile
+        .getTagMetaData()
+        .forEach(
+            metadata -> {
+              assertNotNull(metadata.getFinestGranularity());
+              assertFalse(metadata.getTags().isEmpty());
+            });
+    Set<String> metadataTags =
+        tagProfile.getTagMetaData().stream()
+            .map(TagMetaData::getTags)
+            .flatMap(Set::stream)
+            .collect(Collectors.toSet());
+    tagProfile
+        .getTagMappings()
+        .forEach(mapping -> assertTrue(metadataTags.containsAll(mapping.getTags())));
+    tagProfile
+        .getTagMetrics()
+        .forEach(metric -> assertTrue(metadataTags.contains(metric.getTag())));
+  }
 
-    assertEquals("OpenShift-metrics", tagProfile.getTagMetrics().get(0).getTag());
-    assertEquals("Cores", tagProfile.getTagMetrics().get(0).getMetricId());
-    assertEquals(Uom.CORES, tagProfile.getTagMetrics().get(0).getUom());
-    assertEquals(
-        "cluster:usage:workload:capacity_physical_cpu_cores:max:5m",
-        tagProfile.getTagMetrics().get(0).getPrometheusMetric());
-    assertEquals(
-        "subscription_labels", tagProfile.getTagMetrics().get(0).getPrometheusMetadataMetric());
+  @Test
+  void testCanLookupMetricIdByTagAndUom() {
+    assertNotNull(
+        tagProfile.metricIdForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
+  }
 
-    assertEquals(
-        Set.of("OpenShift-metrics", "OpenShift-dedicated-metrics"),
-        tagProfile.getTagMetaData().get(0).getTags());
-    assertEquals("OpenShift Cluster", tagProfile.getTagMetaData().get(0).getServiceType());
-    assertEquals(Granularity.HOURLY, tagProfile.getTagMetaData().get(0).getFinestGranularity());
-    assertEquals(ServiceLevel.PREMIUM, tagProfile.getTagMetaData().get(0).getDefaultSla());
-    assertEquals(Usage.PRODUCTION, tagProfile.getTagMetaData().get(0).getDefaultUsage());
+  @Test
+  void testCanLookupPrometheusEnabled() {
+    assertTrue(tagProfile.tagIsPrometheusEnabled(ProductId.OPENSHIFT_METRICS.toString()));
+  }
+
+  @Test
+  void testCanLookupEngIdSupport() {
+    assertTrue(
+        tagProfile.tagSupportsEngProduct(ProductId.OPENSHIFT_CONTAINER_PLATFORM.toString(), "290"));
+  }
+
+  @Test
+  void testCanLookupTagByOfferingName() {
+    assertNotNull(tagProfile.tagForOfferingProductName("OpenShift Dedicated"));
+  }
+
+  @Test
+  void testCanLookupSupportedGranularity() {
+    assertTrue(
+        tagProfile.tagSupportsGranularity(
+            ProductId.OPENSHIFT_METRICS.toString(), Granularity.HOURLY));
   }
 }
