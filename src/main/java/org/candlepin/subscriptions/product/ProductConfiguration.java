@@ -20,10 +20,7 @@
  */
 package org.candlepin.subscriptions.product;
 
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.http.HttpClientProperties;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +29,11 @@ import org.springframework.context.annotation.Configuration;
 
 /** Configuration class for product package. */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.product")
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.product",
+      "org.candlepin.subscriptions.capacity.files"
+    })
 public class ProductConfiguration {
   @Bean
   @Qualifier("product")
@@ -44,11 +45,5 @@ public class ProductConfiguration {
   @Bean
   public ProductApiFactory productApiFactory(@Qualifier("product") HttpClientProperties props) {
     return new ProductApiFactory(props);
-  }
-
-  @Bean
-  public ProductWhitelist productApplylist(
-      ApplicationProperties properties, ApplicationClock clock) {
-    return new ProductWhitelist(properties, clock);
   }
 }
