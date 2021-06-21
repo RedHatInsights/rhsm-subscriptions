@@ -20,8 +20,14 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -49,6 +55,7 @@ import org.candlepin.subscriptions.files.SyspurposeRole;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.BeforeEach;
@@ -354,9 +361,10 @@ class MetricUsageCollectorTest {
             });
   }
 
-  @Test
-  void testHandlesDuplicateEvents() {
-    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+  @EnumSource
+  @ParameterizedTest
+  void testHandlesDuplicateEvents(Measurement.Uom uom) {
+    Measurement measurement = new Measurement().withUom(uom).withValue(42.0);
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
@@ -381,28 +389,42 @@ class MetricUsageCollectorTest {
         accountUsageCalculation
             .getCalculation(usageCalculationKey)
             .getTotals(HardwareMeasurementType.PHYSICAL)
-            .getMeasurement(Measurement.Uom.CORES));
+            .getMeasurement(uom));
   }
 
   @Test
   void testUpdatesMonthlyTotal() {
     Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    String instanceId = UUID.randomUUID().toString();
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
+            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
+
+    Measurement instanceHoursMeasurement =
+        new Measurement().withUom(Uom.INSTANCE_HOURS).withValue(43.0);
+    Event instanceHoursEvent =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(instanceId)
+            .withMeasurements(Collections.singletonList(instanceHoursMeasurement))
             .withUsage(Event.Usage.PRODUCTION);
     Account account = new Account();
     account.setAccountNumber("account123");
     when(eventController.fetchEventsInTimeRange(any(), any(), any()))
-        .thenReturn(Stream.of(event, event));
+        .thenReturn(Stream.of(event, event, instanceHoursEvent, instanceHoursEvent));
 
     metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
     Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
     assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
+    assertEquals(
+        Double.valueOf(86.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.INSTANCE_HOURS));
   }
 
   @Test
