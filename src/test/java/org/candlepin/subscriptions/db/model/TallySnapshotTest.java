@@ -140,4 +140,15 @@ class TallySnapshotTest {
         snapshot.asApiSnapshot();
     assertEquals(expCoreHours, apiSnapshot.getCoreHours());
   }
+
+  @Test
+  void shouldAddInstanceHoursWhenCreatingApiSnapshot() {
+    Double expCoreHours = 22.2;
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.INSTANCE_HOURS, expCoreHours);
+
+    org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
+        snapshot.asApiSnapshot();
+    assertEquals(expCoreHours, apiSnapshot.getInstanceHours());
+  }
 }
