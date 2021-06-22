@@ -518,14 +518,14 @@ public class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-            Mockito.eq("account123456"),
-            Mockito.eq(RHEL_PRODUCT_ID.toString()),
-            Mockito.eq(Granularity.DAILY),
-            Mockito.eq(ServiceLevel.PREMIUM),
-            Mockito.eq(Usage.PRODUCTION),
-            Mockito.eq(min),
-            Mockito.eq(max),
-            Mockito.eq(expectedPageable));
+            "account123456",
+            RHEL_PRODUCT_ID.toString(),
+            Granularity.DAILY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            min,
+            max,
+            expectedPageable);
   }
 
   @Test
