@@ -267,6 +267,7 @@ paths:
                 meta:
                   count: 10
                   total_core_hours: 30
+                  total_instance_hours: 20
                   product: RHEL
                   granularity: Daily
                   service_level: Premium
@@ -838,6 +839,8 @@ components:
               type: integer
             total_core_hours:
               type: double
+            total_instance_hours:
+              type: double
             product:
               $ref: '#/components/schemas/ProductId'
             service_level:
@@ -884,6 +887,11 @@ components:
           minimum: 0
           default: 0
         core_hours:
+          type: number
+          format: double
+          minimum: 0
+          default: 0
+        instance_hours:
           type: number
           format: double
           minimum: 0

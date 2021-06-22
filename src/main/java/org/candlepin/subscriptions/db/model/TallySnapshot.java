@@ -275,6 +275,9 @@ public class TallySnapshot implements Serializable {
 
     snapshot.setCoreHours(
         tallyMeasurements.get(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, Uom.CORES)));
+    snapshot.setInstanceHours(
+        tallyMeasurements.get(
+            new TallyMeasurementKey(HardwareMeasurementType.TOTAL, Uom.INSTANCE_HOURS)));
 
     snapshot.setHasData(id != null);
     return snapshot;
