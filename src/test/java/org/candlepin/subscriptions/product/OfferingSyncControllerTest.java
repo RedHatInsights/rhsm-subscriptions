@@ -27,9 +27,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -86,7 +86,7 @@ class OfferingSyncControllerTest {
 
     Offering sku = new Offering();
     sku.setSku("RH00003");
-    sku.setProductIds(Arrays.asList(68, 69, 70, 71, 72));
+    sku.setProductIds(Set.of(68, 69, 70, 71, 72));
 
     // When syncing the Offering,
     subject.syncOffering(sku);
@@ -100,12 +100,12 @@ class OfferingSyncControllerTest {
     // Given an Offering that is different from what is persisted,
     Offering persisted = new Offering();
     persisted.setSku("RH00003");
-    persisted.setProductIds(Arrays.asList(68));
+    persisted.setProductIds(Set.of(68));
     when(repo.findById(anyString())).thenReturn(Optional.of(persisted));
 
     Offering sku = new Offering();
     sku.setSku("RH00003");
-    sku.setProductIds(Arrays.asList(68, 69, 70, 71, 72));
+    sku.setProductIds(Set.of(68, 69, 70, 71, 72));
 
     // When syncing the Offering,
     subject.syncOffering(sku);
@@ -119,12 +119,12 @@ class OfferingSyncControllerTest {
     // Given an Offering that is equal to what is persisted,
     Offering persisted = new Offering();
     persisted.setSku("RH00003");
-    persisted.setProductIds(Arrays.asList(68, 69, 70, 71, 72));
+    persisted.setProductIds(Set.of(68, 69, 70, 71, 72));
     when(repo.findById(anyString())).thenReturn(Optional.of(persisted));
 
     Offering sku = new Offering();
     sku.setSku("RH00003");
-    sku.setProductIds(Arrays.asList(68, 69, 70, 71, 72));
+    sku.setProductIds(Set.of(68, 69, 70, 71, 72));
 
     // When syncing the Offering,
     subject.syncOffering(sku);
@@ -152,9 +152,9 @@ class OfferingSyncControllerTest {
     var sku = "MW01485";
     var expected = new Offering();
     expected.setSku(sku);
-    expected.setChildSkus(Arrays.asList("SVCMW01485"));
+    expected.setChildSkus(Set.of("SVCMW01485"));
     expected.setProductIds(
-        Arrays.asList(
+        Set.of(
             69, 70, 185, 194, 197, 201, 205, 240, 271, 290, 311, 317, 318, 326, 329, 408, 458, 473,
             479, 491, 518, 519, 546, 579, 588, 603, 604, 608, 610, 645));
     expected.setProductFamily("OpenShift Enterprise");
@@ -174,8 +174,8 @@ class OfferingSyncControllerTest {
     var sku = "MW01484";
     var expected = new Offering();
     expected.setSku(sku);
-    expected.setChildSkus(Arrays.asList("SVCMW01484A", "SVCMW01484B"));
-    expected.setProductIds(Collections.emptyList());
+    expected.setChildSkus(Set.of("SVCMW01484A", "SVCMW01484B"));
+    expected.setProductIds(Collections.emptySet());
     expected.setProductFamily("OpenShift Enterprise");
     expected.setProductName("OpenShift Dedicated");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
@@ -194,11 +194,11 @@ class OfferingSyncControllerTest {
     var expected = new Offering();
     expected.setSku(sku);
     // (For now, Derived SKU and Derived SKU children are included as child SKUs.)
-    expected.setChildSkus(Arrays.asList("RH00618F5", "SVCRH00604", "SVCRH00618"));
+    expected.setChildSkus(Set.of("RH00618F5", "SVCRH00604", "SVCRH00618"));
     // (Neither the parent (as typical) nor the child SKU have eng products. These end up
     //  coming from the derived SKU RH00048.)
     expected.setProductIds(
-        Arrays.asList(
+        Set.of(
             69, 70, 83, 84, 86, 91, 92, 93, 127, 176, 180, 182, 201, 205, 240, 241, 246, 248, 317,
             318, 394, 395, 408, 479, 491, 588));
     expected.setPhysicalSockets(2);
@@ -225,13 +225,12 @@ class OfferingSyncControllerTest {
     var sku = "RH0180191";
     var expected = new Offering();
     expected.setSku(sku);
-    expected.setChildSkus(Arrays.asList("SVCMPV4", "SVCRH01", "SVCRH01V4"));
+    expected.setChildSkus(Set.of("SVCMPV4", "SVCRH01", "SVCRH01V4"));
     expected.setProductIds(
-        Arrays.asList(
+        Set.of(
             69, 70, 84, 86, 91, 92, 93, 94, 127, 133, 176, 180, 182, 201, 205, 240, 246, 271, 272,
             273, 274, 317, 318, 394, 395, 408, 479, 491, 588, 605));
     expected.setRole("Red Hat Enterprise Linux Server");
-    expected.setPhysicalCores(0);
     expected.setPhysicalSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
     expected.setProductName("RHEL Server");
@@ -252,10 +251,9 @@ class OfferingSyncControllerTest {
     var expected = new Offering();
     expected.setSku(sku);
     expected.setChildSkus(
-        Arrays.asList(
-            "SVCEUSRH34", "SVCHPNRH34", "SVCMPV4", "SVCRH34", "SVCRH34V4", "SVCRS", "SVCSFS"));
+        Set.of("SVCEUSRH34", "SVCHPNRH34", "SVCMPV4", "SVCRH34", "SVCRH34V4", "SVCRS", "SVCSFS"));
     expected.setProductIds(
-        Arrays.asList(
+        Set.of(
             68, 69, 70, 71, 83, 84, 85, 86, 90, 91, 92, 93, 132, 133, 172, 176, 179, 180, 190, 201,
             202, 203, 205, 206, 207, 240, 242, 244, 246, 273, 274, 287, 293, 317, 318, 342, 343,
             394, 395, 396, 397, 408, 479, 491, 588));

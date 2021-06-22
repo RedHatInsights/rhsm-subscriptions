@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Set;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
@@ -82,7 +82,7 @@ public class Offering implements Serializable {
   @LazyCollection(LazyCollectionOption.FALSE)
   @CollectionTable(name = "sku_child_sku", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "child_sku")
-  private List<String> childSkus;
+  private Set<String> childSkus;
 
   /**
    * Numeric identifiers for Engineering Products provided by the offering.
@@ -98,7 +98,7 @@ public class Offering implements Serializable {
   @LazyCollection(LazyCollectionOption.FALSE)
   @CollectionTable(name = "sku_oid", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "oid")
-  private List<Integer> productIds;
+  private Set<Integer> productIds;
 
   /** Effective physical CPU cores capacity per quantity of subscription to this offering. */
   @Column(name = "physical_cores")

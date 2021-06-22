@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.product;
 
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
@@ -62,7 +61,7 @@ public class OfferingSyncController {
       return Optional.empty();
     }
     LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
-    return MidProduct.offeringFromUpstream(sku, productService);
+    return UpstreamProductData.offeringFromUpstream(sku, productService);
   }
 
   /**
@@ -74,8 +73,6 @@ public class OfferingSyncController {
    */
   public void syncOffering(Offering newState) {
     Optional<Offering> persistedOffering = offeringRepository.findById(newState.getSku());
-
-    sortOidsAndSkus(persistedOffering);
 
     if (alreadySynced(persistedOffering, newState)) {
       LOGGER.debug(
@@ -90,20 +87,6 @@ public class OfferingSyncController {
     // TODO ENT-2658 mentions calling TaskManager.reconcileCapacityForOffering if there //NOSONAR
     // are changes, but this doesn't exist.
     // taskManager.reconcileCapacityForOffering(...); //NOSONAR
-  }
-
-  private void sortOidsAndSkus(Optional<Offering> oOffering) {
-    // Sort all lists in the Offering so the lombok-generated equals() can be used.
-    // We can't guarantee the order these items are returned by the persistence layer.
-    if (oOffering.isPresent()) {
-      Offering offering = oOffering.get();
-      if (offering.getProductIds() != null) {
-        Collections.sort(offering.getProductIds());
-      }
-      if (offering.getChildSkus() != null) {
-        Collections.sort(offering.getChildSkus());
-      }
-    }
   }
 
   // If there is an existing offering in the DB, and it exactly matches the latest upstream

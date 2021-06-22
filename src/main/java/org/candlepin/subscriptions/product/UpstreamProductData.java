@@ -20,10 +20,12 @@
  */
 package org.candlepin.subscriptions.product;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -47,9 +49,9 @@ import org.slf4j.LoggerFactory;
  * products into an Offering. The upstream product data are put into this intermediate structure
  * which can then be "merged down" into its ultimate Offering form.
  */
-public class MidProduct {
+/* package-protected */ class UpstreamProductData {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MidProduct.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UpstreamProductData.class);
   private static final String MSG_TEMPLATE =
       "sku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
@@ -67,22 +69,19 @@ public class MidProduct {
     PRODUCT_FAMILY,
     PRODUCT_NAME,
     USAGE,
-    /** Originates from opProd attr code "CORES" when coming from a derived product. */
-    X_VIRTUAL_CORES,
-    /** Originates from opProd attr code "IFL" when coming from a derived product. */
-    X_VIRTUAL_IFL,
-    /** Originates from opProd attr code "SOCKET_LIMIT" when coming from a derived product. */
-    X_VIRTUAL_SOCKETS,
-    /** Role originates from opProd field role, not an attribute. */
+    /** Role originates from opProd field roles, not an attribute. */
     X_ROLE;
   }
 
-  /** Maps opProd attribute codes to MidProduct.Attrs of the same name. */
+  /** Maps opProd attribute codes to UpstreamProductData.Attrs of the same name. */
   private static final Map<String, Attr> CODE_TO_ENUM =
       Arrays.stream(Attr.values())
-          .collect(Collectors.toMap(Attr::name, attr -> attr, (a1, a2) -> a1));
+          .collect(Collectors.toUnmodifiableMap(Attr::name, attr -> attr, (a1, a2) -> a1));
 
-  private MidProduct(String sku) {
+  /** Ignore any product attribute whose value is in this set. */
+  private static final Set<String> ATTRIBUTE_DISALLOWED_VALUES = Set.of("n/a", "0", "n", "none");
+
+  private UpstreamProductData(String sku) {
     this.sku = sku;
   }
 
@@ -90,7 +89,7 @@ public class MidProduct {
   private SortedSet<String> children = new TreeSet<>();
   private SortedSet<Integer> engOids = new TreeSet<>();
   private EnumMap<Attr, String> attrs = new EnumMap<>(Attr.class);
-  private StringBuilder conflicts = new StringBuilder(0);
+  private List<String> conflicts = new ArrayList<>();
 
   /**
    * Create an {@link Offering} based on product service data from upstream.
@@ -106,10 +105,10 @@ public class MidProduct {
     try {
       return productService
           .getTree(sku)
-          .map(MidProduct::createFromTree)
-          .map(mid -> mid.fetchAndAddDerivedTreeIfExist(productService))
+          .map(UpstreamProductData::createFromTree)
+          .map(mid -> mid.fetchAndAddDerivedTreeIfExists(productService))
           .map(mid -> mid.fetchAndAddEngProdsIfExist(productService))
-          .map(MidProduct::toOffering);
+          .map(UpstreamProductData::toOffering);
     } catch (ApiException e) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
@@ -118,52 +117,50 @@ public class MidProduct {
     }
   }
 
-  private static MidProduct createFromTree(RESTProductTree skuTree) {
+  private static UpstreamProductData createFromTree(RESTProductTree skuTree) {
     var products = skuTree.getProducts();
 
     // Product trees returned by the product service always list the parent product first.
     var parent = products.get(0);
     var children = products.subList(1, products.size());
 
-    var offer = new MidProduct(parent.getSku());
+    var offer = new UpstreamProductData(parent.getSku());
     // Though theoretically possible, none of the products in use by Candlepin (which includes the
     // allowlisted swatch products) ever has more than one role.
     String role = parent.getRoles().stream().findFirst().orElse(null);
     offer.attrs.put(Attr.X_ROLE, role);
     offer.mapAttributes(parent);
 
-    // For each child, merge its unconflcting information into the parent.
-    children.stream().map(MidProduct::createFromProduct).forEach(offer::merge);
+    // For each child, merge its unconflicting information into the parent.
+    children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
 
     return offer;
   }
 
   private Offering toOffering() {
-    if (conflicts.length() != 0) {
+    if (!conflicts.isEmpty()) {
       LOGGER.info(
           "Encountered conflicting attribute values when pulling offering sku={} from upstream:\n{}",
           sku,
-          conflicts);
+          String.join(System.lineSeparator(), conflicts));
     }
 
     Offering offering = new Offering();
     offering.setSku(sku);
-    offering.setChildSkus(List.copyOf(children));
-    offering.setProductIds(List.copyOf(engOids));
+    offering.setChildSkus(Set.copyOf(children));
+    offering.setProductIds(Set.copyOf(engOids));
     offering.setRole(attrs.get(Attr.X_ROLE));
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
     offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
 
-    calcCoresAndSocketsForOffering(offering);
+    calcCapacityForOffering(offering);
 
     /*
-    The DB model ServiceLevel currently maps to attr code "SERVICE_TYPE". This table and class
-    may be renamed in the future since products can also have attr code "SERVICE_LEVEL" that
+    Note 1: The DB model ServiceLevel currently maps to attr code "SERVICE_TYPE". This table and
+    class may be renamed in the future since products can also have attr code "SERVICE_LEVEL" that
     might be used in the future.
-    */
 
-    /*
-    ServiceLevel does not represent all values of SERVICE_TYPE seen in prod, which includes:
+    Note 2: ServiceLevel does not represent all values of SERVICE_TYPE seen in prod, which includes:
     Basic, Dev-Professional, Layered, Premium, RHX Basic, Self-Support, Standard.
 
     Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY, as done in
@@ -192,28 +189,33 @@ public class MidProduct {
     return offering;
   }
 
-  /*
-   * If there is a derived SKU, its tree and engOids need fetched from upstream too. The derived
-   * SKU and child will be added as children to the offering.
+  /**
+   * If the DERIVED_SKU attribute exists, will fetch the product tree of the derived SKU and merge
+   * it with the offering. Merging means its attributes and its children's attributes will be used
+   * in the offering if not yet yet, and the derived sku and its child skus will be added as child
+   * skus of the offering.
    *
-   * <p>Note: it is unclear if derived SKUs *should* be listed as children in the longer term.
-   * For now though, this simplification fits with how we present offerings to the user.
-   * See:
+   * <p>It is unclear if derived SKUs <b>should</b> have the attributes merged and the derived SKUs
+   * listed as children in the longer term. For now though, this simplification fits with how we
+   * present offerings to the user. See:
    * https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.3aq1apsnbb0o
    *
-   * <p>Example: SKU RH00001, child SKU SVCRH00001, have attr DERIVED_SKU = "RH00049".
-   * Neither RH00001 or SVCRH00001 have engOids, but RH00049's child SKU SVCRH00049 does.
+   * @param productService the upstream service to fetch the derived product from
+   * @return this UpstreamProductData (not the derived product), for chaining.
    */
-  private MidProduct fetchAndAddDerivedTreeIfExist(ProductService productService) {
+  private UpstreamProductData fetchAndAddDerivedTreeIfExists(ProductService productService) {
     String derivedSku = attrs.get(Attr.DERIVED_SKU);
     if (derivedSku != null) {
       try {
         // derived SKUs are marketing SKUs, so need to get its service SKUs too and add
         // the SKUs to the list of children so the engOids are fetched.
-        Optional<MidProduct> mid = productService.getTree(derivedSku).map(this::addDerivedTree);
-        if (mid.isEmpty()) {
+        Optional<UpstreamProductData> derived =
+            productService.getTree(derivedSku).map(UpstreamProductData::createFromTree);
+        if (derived.isEmpty()) {
           LOGGER.warn(
               "No tree found for derivedSku=\"{}\" of offering sku=\"{}\"", derivedSku, sku);
+        } else {
+          merge(derived.get());
         }
       } catch (ApiException e) {
         throw new ExternalServiceException(
@@ -225,7 +227,13 @@ public class MidProduct {
     return this;
   }
 
-  private MidProduct fetchAndAddEngProdsIfExist(ProductService productService) {
+  private UpstreamProductData fetchAndAddEngProdsIfExist(ProductService productService) {
+    /*
+    Engineering Product OIDs need be fetched for all SKUs, including derived SKUs. For *most*
+    VDC SKUs like RH00001 and its child SVCRH00001, neither of them will have associated engOIDs.
+    but their derived SKU RH00049 has a child SVCRH00049 with associated engOIDs. So it is important
+    to fetch engOIDs for derived SKUs.
+    */
     Set<String> allSkus = allSkus();
     LOGGER.debug("Retrieving engOids for skus=\"{}\" of offering sku=\"{}\"", allSkus, sku);
     try {
@@ -242,13 +250,6 @@ public class MidProduct {
     return this;
   }
 
-  private MidProduct addDerivedTree(RESTProductTree derivedTree) {
-    derivedTree.getProducts().stream()
-        .map(MidProduct::createFromDerivedProduct)
-        .forEach(this::merge);
-    return this;
-  }
-
   private void addEngProds(Map<String, List<EngineeringProduct>> engProds) {
     engProds.values().stream()
         .flatMap(engProdList -> engProdList.stream().map(EngineeringProduct::getOid))
@@ -256,7 +257,8 @@ public class MidProduct {
   }
 
   /**
-   * Get all SKUs involved in the offering, including the offering SKU, child SKUs, and derived SKU.
+   * Get all SKUs involved in the offering, including the offering SKU, child SKUs, derived SKU, and
+   * derived child SKUs.
    *
    * @return collection of all SKUs, or empty if none.
    */
@@ -266,32 +268,24 @@ public class MidProduct {
     return skus;
   }
 
-  private void calcCoresAndSocketsForOffering(Offering offering) {
-    String ifl = attrs.get(Attr.IFL);
-    // ifl takes precedence over cores, so don't set cores if ifl exists.
-    String cores = (ifl == null) ? attrs.get(Attr.CORES) : null;
-    String sockets = attrs.get(Attr.SOCKET_LIMIT);
+  private void calcCapacityForOffering(Offering offering) {
+    // If IFL attr is defined, use it...
+    Integer cores =
+        Optional.ofNullable(attrs.get(Attr.IFL))
+            .map(ifl -> Integer.parseInt(ifl) * CONVERSION_RATIO_IFL_TO_CORES)
+            // ... but if IFL is not defined, then use the CORES attr.
+            .orElseGet(() -> nullOrInteger(attrs.get(Attr.CORES)));
 
-    String virtIfl = attrs.get(Attr.X_VIRTUAL_IFL);
-    // likewise for virtual cores, virtual ifl takes precedence if it exists.
-    String virtCores = attrs.get(Attr.X_VIRTUAL_CORES);
-    String virtSockets = attrs.get(Attr.X_VIRTUAL_SOCKETS);
+    Integer sockets = nullOrInteger(attrs.get(Attr.SOCKET_LIMIT));
 
-    if (ifl == null) {
-      offering.setPhysicalCores(nullOrInteger(cores));
-    } else {
-      int numCores = Integer.parseInt(ifl) * CONVERSION_RATIO_IFL_TO_CORES;
-      offering.setPhysicalCores(numCores);
+    offering.setPhysicalCores(cores);
+    offering.setPhysicalSockets(sockets);
+
+    // If there is a derived SKU, then virtual cores and sockets match the physical values.
+    if (attrs.get(Attr.DERIVED_SKU) != null) {
+      offering.setVirtualCores(cores);
+      offering.setVirtualSockets(sockets);
     }
-    offering.setPhysicalSockets(nullOrInteger(sockets));
-
-    if (virtIfl == null) {
-      offering.setVirtualCores(nullOrInteger(virtCores));
-    } else {
-      int numVirtCores = Integer.parseInt(virtIfl) * CONVERSION_RATIO_IFL_TO_CORES;
-      offering.setVirtualCores(numVirtCores);
-    }
-    offering.setVirtualSockets(nullOrInteger(virtSockets));
   }
 
   private static Integer nullOrInteger(String v) {
@@ -301,32 +295,11 @@ public class MidProduct {
     return Integer.valueOf(v);
   }
 
-  private static MidProduct createFromProduct(OperationalProduct product) {
-    var mid = new MidProduct(product.getSku());
+  private static UpstreamProductData createFromProduct(OperationalProduct product) {
+    var mid = new UpstreamProductData(product.getSku());
     mid.mapAttributes(product);
 
     return mid;
-  }
-
-  private static MidProduct createFromDerivedProduct(OperationalProduct product) {
-    var derived = new MidProduct(product.getSku());
-    derived.mapAttributes(product);
-
-    // Derived products actually define the number of virtual cores and virtual sockets, NOT the
-    // physical cores and sockets, those values need moved to the proper Attr if set.
-    String virtualCores = derived.attrs.get(Attr.CORES);
-    if (virtualCores != null) {
-      derived.putIfNoConflict(Attr.X_VIRTUAL_CORES, virtualCores);
-      derived.attrs.remove(Attr.CORES);
-    }
-
-    String virtualSockets = derived.attrs.get(Attr.SOCKET_LIMIT);
-    if (virtualSockets != null) {
-      derived.putIfNoConflict(Attr.X_VIRTUAL_SOCKETS, virtualSockets);
-      derived.attrs.remove(Attr.SOCKET_LIMIT);
-    }
-
-    return derived;
   }
 
   /**
@@ -336,8 +309,9 @@ public class MidProduct {
    *
    * @param child the product to merge attributes from
    */
-  private void merge(MidProduct child) {
+  private void merge(UpstreamProductData child) {
     children.add(child.sku);
+    children.addAll(child.children);
 
     // Values already set by the parent (or by previous children) should not be overwritten.
     child.attrs.forEach(this::putIfNoConflict);
@@ -362,7 +336,7 @@ public class MidProduct {
 
     if (old != null && !val.equals(old)) {
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
-      conflicts.append(msg).append('\n');
+      conflicts.add(msg);
     }
 
     return old;
@@ -375,9 +349,20 @@ public class MidProduct {
     }
     for (AttributeValue sourceAttr : prodAttrs) {
       Attr destAttr = CODE_TO_ENUM.get(sourceAttr.getCode());
-      if (destAttr != null) {
-        putIfNoConflict(destAttr, sourceAttr.getValue());
+      String value = sourceAttr.getValue();
+      if (destAttr != null && attributeIsAllowed(value)) {
+        putIfNoConflict(destAttr, value);
       }
     }
+  }
+
+  /**
+   * Checks if the value from the upstream product attribute is non-null and not an "empty" value.
+   *
+   * @param value The attribute value to check
+   * @return true if the value can be used, false if not.
+   */
+  private static boolean attributeIsAllowed(String value) {
+    return value != null && !ATTRIBUTE_DISALLOWED_VALUES.contains(value.toLowerCase(Locale.US));
   }
 }
