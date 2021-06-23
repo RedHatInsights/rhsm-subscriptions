@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Update subscriptions from subscription service responses. */

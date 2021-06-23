@@ -129,6 +129,7 @@ class PoolIngressControllerTest {
         .deleteAll(MockitoHamcrest.argThat(Matchers.containsInAnyOrder(stale1, stale2)));
   }
 
+  /*
   @Test
   void testSavesNewSkus() {
     List<Subscription> subscriptionList =
@@ -147,7 +148,7 @@ class PoolIngressControllerTest {
   }
 
   // Commenting these out as this logic has now moved to Capacity Reconciliation Controller
-  /*@Test
+  @Test
   void testUpdateExistingSkusWhileSavingNew() {
     Subscription subscription = createSubscription("1", "product-1", "12345");
 
