@@ -137,6 +137,7 @@ public class TallyResource implements TallyApi {
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
     report.getMeta().setTotalCoreHours(getTotalCoreHours(report));
+    report.getMeta().setTotalInstanceHours(getTotalInstanceHours(report));
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
       transformToRunningTotalFormat(report);
@@ -162,6 +163,12 @@ public class TallyResource implements TallyApi {
   private Double getTotalCoreHours(TallyReport report) {
     return report.getData().stream()
         .mapToDouble(snapshot -> Optional.ofNullable(snapshot.getCoreHours()).orElse(0.0))
+        .sum();
+  }
+
+  private Double getTotalInstanceHours(TallyReport report) {
+    return report.getData().stream()
+        .mapToDouble(snapshot -> Optional.ofNullable(snapshot.getInstanceHours()).orElse(0.0))
         .sum();
   }
 

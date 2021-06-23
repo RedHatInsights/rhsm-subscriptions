@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -480,6 +481,51 @@ public class TallyResourceTest {
             Mockito.eq(min),
             Mockito.eq(max),
             Mockito.eq(expectedPageable));
+  }
+
+  @Test
+  void testShouldPopulateTotalInstanceHours() throws Exception {
+    TallySnapshot snap = new TallySnapshot();
+    snap.setMeasurement(HardwareMeasurementType.TOTAL, Uom.INSTANCE_HOURS, 42.0);
+
+    Mockito.when(
+            repository
+                .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                    Mockito.eq("account123456"),
+                    Mockito.eq(RHEL_PRODUCT_ID.toString()),
+                    Mockito.eq(Granularity.DAILY),
+                    Mockito.eq(ServiceLevel.PREMIUM),
+                    Mockito.eq(Usage.PRODUCTION),
+                    Mockito.eq(min),
+                    Mockito.eq(max),
+                    Mockito.any(Pageable.class)))
+        .thenReturn(new PageImpl<>(Arrays.asList(snap)));
+
+    TallyReport report =
+        resource.getTallyReport(
+            RHEL_PRODUCT_ID,
+            GranularityType.DAILY,
+            min,
+            max,
+            10,
+            10,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            false);
+    assertEquals(1, report.getData().size());
+    assertEquals(42.0, report.getMeta().getTotalInstanceHours());
+
+    Pageable expectedPageable = PageRequest.of(1, 10);
+    Mockito.verify(repository)
+        .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            "account123456",
+            RHEL_PRODUCT_ID.toString(),
+            Granularity.DAILY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            min,
+            max,
+            expectedPageable);
   }
 
   @Test

@@ -20,17 +20,28 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.io.IOException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.io.ResourceLoader;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 /** Configuration that provides the product ID to product map. */
 @ComponentScan(basePackages = "org.candlepin.subscriptions.files")
 public class ProductMappingConfiguration {
+
   @Bean
   public ProductProfileRegistrySource productProfileRegistrySource(
       ApplicationProperties applicationProperties, ApplicationClock applicationClock) {
     return new ProductProfileRegistrySource(applicationProperties, applicationClock);
+  }
+
+  @Bean
+  public TagProfile tagProfile(ResourceLoader resourceLoader) throws IOException {
+    Yaml parser = new Yaml(new Constructor(TagProfile.class));
+    return parser.load(resourceLoader.getResource("classpath:tag_profile.yaml").getInputStream());
   }
 }
