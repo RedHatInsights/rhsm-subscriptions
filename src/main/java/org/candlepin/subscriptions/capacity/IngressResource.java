@@ -41,6 +41,7 @@ public class IngressResource implements IngressApi {
   @Override
   public void updateCapacityFromCandlepinPools(
       String orgId, @Valid @NotNull List<CandlepinPool> pools) {
+
     controller.updateCapacityForOrg(orgId, pools);
 
     // Card to address this: ENT-3573

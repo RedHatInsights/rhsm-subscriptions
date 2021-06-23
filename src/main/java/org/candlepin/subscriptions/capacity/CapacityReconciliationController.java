@@ -1,119 +1,90 @@
 package org.candlepin.subscriptions.capacity;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
-import org.candlepin.subscriptions.utilization.api.model.CandlepinProductAttribute;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.candlepin.subscriptions.db.model.SubscriptionCapacity.from;
 
 @Component
 @Slf4j
 public class CapacityReconciliationController {
 
-    private final SubscriptionRepository subscriptionRepository;
-    private final ApplicationClock clock;
     private final OfferingRepository offeringRepository;
     private final ProductWhitelist productWhitelist;
     private final CapacityProductExtractor productExtractor;
     private final SubscriptionCapacityRepository subscriptionCapacityRepository;
+    private final Counter capacityRecordsCreated;
+    private final Counter capacityRecordsUpdated;
+    private final Counter capacityRecordsDeleted;
 
     public CapacityReconciliationController(
-            SubscriptionRepository subscriptionRepository,
             OfferingRepository offeringRepository,
             ProductWhitelist productWhitelist,
             CapacityProductExtractor productExtractor,
             SubscriptionCapacityRepository subscriptionCapacityRepository,
-            ApplicationClock clock) {
-        this.subscriptionRepository = subscriptionRepository;
+            MeterRegistry meterRegistry) {
         this.offeringRepository = offeringRepository;
         this.productWhitelist = productWhitelist;
         this.productExtractor = productExtractor;
         this.subscriptionCapacityRepository = subscriptionCapacityRepository;
-        this.clock = clock;
+        capacityRecordsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.records_created");
+        capacityRecordsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.records_updated");
+        capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
     }
 
     public void reconcileCapacityForSubscription(Subscription subscription){
-        Collection<SubscriptionCapacity>  subscriptionCapacities = mapSubscriptionToCapacities(subscription);
-        reconcileSubscriptionCapacities(subscriptionCapacities);
+
+        Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);
+        reconcileSubscriptionCapacities(newCapacities, subscription.getSubscriptionId(), subscription.getSku());
     }
 
     private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription){
 
-        if(productWhitelist.productIdMatches(subscription.getSku())){
+        Offering offering = offeringRepository.getById(subscription.getSku());
+        Set<String> products = productExtractor
+                    .getProducts(offering.getProductIds().stream().map(Object::toString).collect(Collectors.toSet()));
 
-            Map<SubscriptionCapacityKey, SubscriptionCapacity> existingCapacityMap =
-                    subscriptionCapacityRepository
-                            .findByKeyOwnerIdAndKeySubscriptionIdIn(
-                                    subscription.getOwnerId(),
-                                    subscription.getSubscriptionId());
-
-
-            Offering offering = offeringRepository.getById(subscription.getSku());
-            List<Integer> productIds = offering.getProductIds();;
-            String derivedSku = getDerivedSku(subscription.getSku()); //offering.getDerivedSku();
-            //TODO: is derived sku always present? what to do if absent?
-            List<Integer> derivedProductIds = offeringRepository.getById(derivedSku).getProductIds();
-
-            Set<String> products = productExtractor.getProducts(productIds.stream().map(Object::toString).collect(Collectors.toSet()));
-            Set<String> derivedProducts = productExtractor.getProducts(derivedProductIds.stream().map(Object::toString).collect(Collectors.toSet()));
-            HashSet<String> allProducts = new HashSet<>(products);
-            allProducts.addAll(derivedProducts);
-
-            return allProducts.stream()
-                    .map(
-                            product -> {
-                             SubscriptionCapacityKey key =   SubscriptionCapacityKey.builder()
-                                     .subscriptionId(subscription.getSubscriptionId())
-                                     .ownerId(subscription.getOwnerId())
-                                     .productId(product)
-                                     .build();
-
-                             SubscriptionCapacity capacity =  SubscriptionCapacity.builder()
-                                     .key(key)
-                                     .accountNumber(subscription.getAccountNumber())
-                                     .beginDate(subscription.getStartDate())
-                                     .endDate(subscription.getEndDate())
-                                     .serviceLevel(offering.getServiceLevel())
-                                     .usage(offering.getUsage())
-                                     .sku(offering.getSku())
-                                     .physicalSockets(offering.getPhysicalSockets())
-                                     .virtualSockets(offering.getVirtualSockets())
-                                     .virtualCores(offering.getVirtualCores())
-                                     .physicalCores(offering.getPhysicalCores())
-                                     .build();
-
-                             SubscriptionCapacity existingCapacity = existingCapacityMap.get(key);
-                             capacity.setHasUnlimitedGuestSockets(existingCapacity.getHasUnlimitedGuestSockets());
-
-                             return capacity;
-                            })
+        return products.stream()
+                    .map(product -> from(subscription,offering, product))
                     .collect(Collectors.toList());
-        }else{
-            //TODO: what if the sku is not on the whitelist
-            return null;
+    }
+
+    private void reconcileSubscriptionCapacities(Collection<SubscriptionCapacity> newCapacities, String subscriptionId, String sku){
+
+        Collection<SubscriptionCapacity> toSave = new ArrayList<>();
+        Map<SubscriptionCapacityKey, SubscriptionCapacity> existingCapacityMap = subscriptionCapacityRepository
+                .findByKeySubscriptionId(subscriptionId)
+                .stream()
+                .collect(Collectors.toMap(SubscriptionCapacity::getKey, Function.identity()));
+
+        if (productWhitelist.productIdMatches(sku)) {
+            newCapacities.forEach(
+                    newCapacity -> {
+                        toSave.add(newCapacity);
+                        SubscriptionCapacity oldVersion = existingCapacityMap.remove(newCapacity.getKey());
+                        if (oldVersion != null) {
+                            capacityRecordsUpdated.increment();
+                        } else {
+                            capacityRecordsCreated.increment();
+                        } });
+            subscriptionCapacityRepository.saveAll(toSave);
         }
-    }
 
-
-    private String getDerivedSku(String sku) {
-        return "";
-    }
-
-    private void reconcileSubscriptionCapacities(Collection<SubscriptionCapacity> newState){
-
-    }
-
-    public void reconcileCapacityForSubscriptionId(String subscriptionId) {
-        final Optional<org.candlepin.subscriptions.db.model.Subscription> maybePresent = subscriptionRepository.findActiveSubscription(subscriptionId);
-        maybePresent.ifPresent(this::reconcileCapacityForSubscription);
-        //TODO: What if subscription does not exist for id.
+        Collection<SubscriptionCapacity> toDelete = new ArrayList<>(existingCapacityMap.values());
+        subscriptionCapacityRepository.deleteAll(toDelete);
+        if (!toDelete.isEmpty()) {
+            log.info("Update for subscription ID {} removed {} incorrect capacity records.", subscriptionId, toDelete.size());
+        }
+        capacityRecordsDeleted.increment(toDelete.size());
     }
 }

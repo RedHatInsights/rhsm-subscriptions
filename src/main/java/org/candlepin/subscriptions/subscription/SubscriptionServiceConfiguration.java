@@ -31,7 +31,7 @@ import org.springframework.retry.support.RetryTemplate;
 
 /** Configuration class for subscription package. */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
+@ComponentScan({"org.candlepin.subscriptions.subscription","org.candlepin.subscriptions.capacity.special"} )
 public class SubscriptionServiceConfiguration {
 
   @Bean

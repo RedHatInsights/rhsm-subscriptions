@@ -28,7 +28,6 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
-import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
@@ -53,55 +52,55 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
+
+    //TODO: add metrics for subscriptions created and updated
     final Optional<org.candlepin.subscriptions.db.model.Subscription> maybePresent =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
+
+    final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
+
     if (maybePresent.isPresent()) {
 
       final org.candlepin.subscriptions.db.model.Subscription existing = maybePresent.get();
-      if (existing.getQuantity() != subscription.getQuantity()) {
-
-        existing.endSubscription();
-        subscriptionRepository.save(existing);
-        final org.candlepin.subscriptions.db.model.Subscription newSub = org.candlepin.subscriptions.db.model.Subscription.builder()
-                .subscriptionId(existing.getSubscriptionId())
-                .sku(existing.getSku())
-                .ownerId(existing.getOwnerId())
-                .accountNumber(existing.getAccountNumber())
-                .quantity(subscription.getQuantity())
-                .startDate(OffsetDateTime.now())
-                .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate())) //TODO: For some reason this could be null. Why can't the api return an optional for this?
-                .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription)).build();
-        subscriptionRepository.save(newSub);
-      } else {
-        updateSubscription(subscription, existing);
-        subscriptionRepository.save(existing);
+      if (!existing.equals(newOrUpdated)) {
+        if (existing.quantityHasChanged(newOrUpdated.getQuantity())) {
+          existing.endSubscription();
+          subscriptionRepository.save(existing);
+          final org.candlepin.subscriptions.db.model.Subscription newSub =
+                  org.candlepin.subscriptions.db.model.Subscription.builder()
+                          .subscriptionId(existing.getSubscriptionId())
+                          .sku(existing.getSku())
+                          .ownerId(existing.getOwnerId())
+                          .accountNumber(existing.getAccountNumber())
+                          .quantity(subscription.getQuantity())
+                          .startDate(OffsetDateTime.now())
+                          .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate())) // Q&A: For some reason this could be null.// Why can't the api return an optional for// this?
+                          .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+                          .build();
+          subscriptionRepository.save(newSub);
+        } else {
+          updateSubscription(subscription, existing);
+          subscriptionRepository.save(existing);
+        }
+        capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
       }
-      capacityReconciliationController.reconcileCapacityForSubscription(convertDto(subscription));
     } else {
-
-      final org.candlepin.subscriptions.db.model.Subscription newSub = org.candlepin.subscriptions.db.model.Subscription.builder()
-              .subscriptionId(String.valueOf(subscription.getId()))
-              .sku(SubscriptionDtoUtil.extractSku(subscription))
-              .ownerId(subscription.getWebCustomerId().toString())
-              .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
-              .quantity(subscription.getQuantity())
-              .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
-              .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate())) //TODO: For some reason this could be null. Why can't the api return an optional for this?
-              .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription)).build();
-
-      subscriptionRepository.save(newSub);
+      subscriptionRepository.save(newOrUpdated);
+      capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     }
   }
 
   protected void updateSubscription(
       Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
+    //TODO: Add logs
     if (dto.getEffectiveEndDate() != null) {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }
+    //TODO: what if it is null? throw an exception
   }
 
   @Transactional
-  public void syncSubscription(String subscriptionId) throws ApiException {
+  public void syncSubscription(String subscriptionId) {
     Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
     syncSubscription(subscription);
   }
@@ -113,23 +112,16 @@ public class SubscriptionSyncController {
   }
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
-    final org.candlepin.subscriptions.db.model.Subscription entity =
-            new org.candlepin.subscriptions.db.model.Subscription();
 
-    entity.setSubscriptionId(String.valueOf(subscription.getId()));
-    entity.setSku(subscription.getSubscriptionProducts().stream()
-            .filter(subscriptionProduct -> subscriptionProduct.getParentSubscriptionProductId() == null)
-            .findAny().map(SubscriptionProduct::getSku).orElse(null));
-    if (subscription.getEffectiveStartDate() != null) {
-      entity.setStartDate(clock.dateFromUnix(subscription.getEffectiveStartDate()));
-    }
-    if (subscription.getEffectiveEndDate() != null) {
-      entity.setStartDate(clock.dateFromUnix(subscription.getEffectiveEndDate()));
-    }
-    entity.setQuantity(subscription.getQuantity());
-    entity.setOwnerId(String.valueOf(subscription.getWebCustomerId()));
-    entity.setMarketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription));
-    entity.setAccountNumber(String.valueOf(subscription.getOracleAccountNumber()));
-    return entity;
+    return org.candlepin.subscriptions.db.model.Subscription.builder()
+            .subscriptionId(String.valueOf(subscription.getId()))
+            .sku(SubscriptionDtoUtil.extractSku(subscription))
+            .ownerId(subscription.getWebCustomerId().toString())
+            .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
+            .quantity(subscription.getQuantity())
+            .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
+            .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
+            .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+            .build();
   }
 }

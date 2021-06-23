@@ -24,6 +24,8 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -43,6 +45,9 @@ class SubscriptionSyncControllerTest {
   @Autowired SubscriptionSyncController subject;
 
   @MockBean SubscriptionRepository subscriptionRepository;
+
+  @MockBean
+  CapacityReconciliationController capacityReconciliationController;
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
@@ -91,6 +96,7 @@ class SubscriptionSyncControllerTest {
     dto.setSubscriptionNumber("123");
     dto.setEffectiveStartDate(NOW.toEpochSecond());
     dto.setEffectiveEndDate(NOW.plusDays(30).toEpochSecond());
+    dto.setWebCustomerId(1234);
 
     var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku("testsku");
     List<SubscriptionProduct> products = Collections.singletonList(product);

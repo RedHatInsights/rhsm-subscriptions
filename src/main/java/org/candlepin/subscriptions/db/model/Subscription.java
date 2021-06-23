@@ -89,4 +89,10 @@ public class Subscription {
   public void endSubscription(){
     endDate = OffsetDateTime.now();
   }
+
+  public boolean quantityHasChanged(long newQuantity){
+    return this.getQuantity() != newQuantity;
+  }
+
+  //TODO: Add builder to throw exceptions if required fields are missing
 }

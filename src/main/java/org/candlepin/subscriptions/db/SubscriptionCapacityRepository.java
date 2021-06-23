@@ -35,6 +35,5 @@ public interface SubscriptionCapacityRepository
   List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
       String ownerId, List<String> subscriptionIds);
 
-  Map<SubscriptionCapacityKey, SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
-          String ownerId, String subscriptionId);
+  List<SubscriptionCapacity> findByKeySubscriptionId(String subscriptionId);
 }

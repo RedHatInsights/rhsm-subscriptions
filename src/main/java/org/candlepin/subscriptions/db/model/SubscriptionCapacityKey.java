@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 
@@ -32,6 +34,7 @@ import javax.persistence.Embeddable;
 @Embeddable
 @Builder
 @NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionCapacityKey implements Serializable {
 
   @Column(name = "owner_id")
