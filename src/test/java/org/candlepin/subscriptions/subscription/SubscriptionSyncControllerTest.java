@@ -87,7 +87,7 @@ class SubscriptionSyncControllerTest {
   @Test
   void shouldSyncSubscriptionFromServiceForASubscriptionID() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-            .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
+        .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subject.syncSubscription(dto.getId().toString());
