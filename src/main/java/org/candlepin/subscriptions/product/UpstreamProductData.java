@@ -139,10 +139,11 @@ import org.slf4j.LoggerFactory;
 
   private Offering toOffering() {
     if (!conflicts.isEmpty()) {
+      String conflictItems = String.join(System.lineSeparator(), conflicts);
       LOGGER.info(
           "Encountered conflicting attribute values when pulling offering sku={} from upstream:\n{}",
           sku,
-          String.join(System.lineSeparator(), conflicts));
+          conflictItems);
     }
 
     Offering offering = new Offering();
