@@ -49,6 +49,8 @@ class SubscriptionSyncControllerTest {
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
 
+  @MockBean SubscriptionService subscriptionService;
+
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
@@ -80,6 +82,16 @@ class SubscriptionSyncControllerTest {
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController)
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
+  }
+
+  @Test
+  void shouldSyncSubscriptionFromServiceForASubscriptionID() {
+    Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
+            .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
+    var dto = createDto("456", 10);
+    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
+    subject.syncSubscription(dto.getId().toString());
+    verify(subscriptionService).getSubscriptionById(Mockito.anyString());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

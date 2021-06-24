@@ -102,12 +102,6 @@ public class SubscriptionSyncController {
     syncSubscription(subscription);
   }
 
-  public org.candlepin.subscriptions.db.model.Subscription getUpstreamSubscription(
-      String subscriptionId) throws ExternalServiceException {
-    Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
-    return convertDto(subscription);
-  }
-
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
 
     return org.candlepin.subscriptions.db.model.Subscription.builder()

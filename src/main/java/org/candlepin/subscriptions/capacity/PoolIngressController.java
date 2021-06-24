@@ -49,7 +49,6 @@ public class PoolIngressController {
   private static final Logger log = LoggerFactory.getLogger(PoolIngressController.class);
 
   private final SubscriptionCapacityRepository subscriptionCapacityRepository;
-  private final SubscriptionRepository subscriptionRepository;
   private final CandlepinPoolCapacityMapper capacityMapper;
   private final ProductWhitelist productWhitelist;
   private final Counter poolsProcessed;
@@ -62,14 +61,12 @@ public class PoolIngressController {
 
   public PoolIngressController(
       SubscriptionCapacityRepository subscriptionCapacityRepository,
-      SubscriptionRepository subscriptionRepository,
       CandlepinPoolCapacityMapper capacityMapper,
       ProductWhitelist productWhitelist,
       MeterRegistry meterRegistry,
       SubscriptionSyncController subscriptionSyncController) {
 
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
-    this.subscriptionRepository = subscriptionRepository;
     this.capacityMapper = capacityMapper;
     this.productWhitelist = productWhitelist;
     poolsProcessed = meterRegistry.counter("rhsm-subscriptions.capacity.pools");
@@ -79,8 +76,6 @@ public class PoolIngressController {
     capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
     this.subscriptionSyncController = subscriptionSyncController;
   }
-
-  // TODO: Write a parent method that toggles between the below choices.
 
   @Transactional
   @Timed("rhsm-subscriptions.capacity.ingress")
@@ -97,39 +92,7 @@ public class PoolIngressController {
       String orgId, List<CandlepinPool> pools) {
     final List<String> subscriptionIds =
         pools.stream().map(CandlepinPool::getSubscriptionId).collect(Collectors.toList());
-
     subscriptionIds.forEach(subscriptionSyncController::syncSubscription);
-
-    /*final Collection<Subscription> existingSubscriptionRecords =
-          subscriptionRepository.findActiveByOwnerIdAndSubscriptionIdIn(orgId, subscriptionIds);
-
-      final Map<String, Subscription> idToSubscription =
-          existingSubscriptionRecords.stream()
-              .collect(Collectors.toMap(Subscription::getSubscriptionId, Function.identity()));
-
-      final Collection<Subscription> needsSave = new ArrayList<>();
-      pools.forEach(
-          pool -> {
-            final String poolSku = pool.getProductId();
-            if (productWhitelist.productIdMatches(poolSku)) {
-              Subscription updatableSubscription =
-                  idToSubscription.remove(pool.getSubscriptionId());
-              if (updatableSubscription == null) {
-                updatableSubscription = new Subscription();
-              }
-              updatableSubscription.setSku(poolSku);
-              updatableSubscription.setSubscriptionId(pool.getSubscriptionId());
-              updatableSubscription.setStartDate(pool.getStartDate());
-              updatableSubscription.setEndDate(pool.getEndDate());
-              updatableSubscription.setOwnerId(orgId);
-
-              needsSave.add(updatableSubscription);
-            }
-          });
-      final List<Subscription> needsDelete = new ArrayList<>(idToSubscription.values());
-      subscriptionRepository.saveAll(needsSave);
-      subscriptionRepository.deleteAll(needsDelete);
-    }*/
   }
 
   @Timed("rhsm-subscriptions.capacity.ingress")
