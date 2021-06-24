@@ -93,5 +93,5 @@ public class Subscription {
     return this.getQuantity() != newQuantity;
   }
 
-  // TODO: Add builder to throw exceptions if required fields are missing
+  // TODO: Add builder to throw exceptions if required fields are missing //NOSONAR
 }
