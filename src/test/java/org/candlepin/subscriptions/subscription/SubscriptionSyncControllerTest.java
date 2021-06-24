@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -46,8 +45,7 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
-  @MockBean
-  CapacityReconciliationController capacityReconciliationController;
+  @MockBean CapacityReconciliationController capacityReconciliationController;
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {

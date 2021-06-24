@@ -23,13 +23,11 @@ package org.candlepin.subscriptions.subscription;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import javax.transaction.Transactional;
-
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Update subscriptions from subscription service responses. */
@@ -54,7 +52,7 @@ public class SubscriptionSyncController {
   @Transactional
   public void syncSubscription(Subscription subscription) {
 
-    //TODO: add metrics for subscriptions created and updated
+    // TODO: add metrics for subscriptions created and updated
     final Optional<org.candlepin.subscriptions.db.model.Subscription> maybePresent =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
 
@@ -68,16 +66,21 @@ public class SubscriptionSyncController {
           existing.endSubscription();
           subscriptionRepository.save(existing);
           final org.candlepin.subscriptions.db.model.Subscription newSub =
-                  org.candlepin.subscriptions.db.model.Subscription.builder()
-                          .subscriptionId(existing.getSubscriptionId())
-                          .sku(existing.getSku())
-                          .ownerId(existing.getOwnerId())
-                          .accountNumber(existing.getAccountNumber())
-                          .quantity(subscription.getQuantity())
-                          .startDate(OffsetDateTime.now())
-                          .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate())) // Q&A: For some reason this could be null.// Why can't the api return an optional for// this?
-                          .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
-                          .build();
+              org.candlepin.subscriptions.db.model.Subscription.builder()
+                  .subscriptionId(existing.getSubscriptionId())
+                  .sku(existing.getSku())
+                  .ownerId(existing.getOwnerId())
+                  .accountNumber(existing.getAccountNumber())
+                  .quantity(subscription.getQuantity())
+                  .startDate(OffsetDateTime.now())
+                  .endDate(
+                      clock.dateFromMilliseconds(
+                          subscription
+                              .getEffectiveEndDate())) // Q&A: For some reason this could be null.//
+                  // Why can't the api return an optional for//
+                  // this?
+                  .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+                  .build();
           subscriptionRepository.save(newSub);
         } else {
           updateSubscription(subscription, existing);
@@ -93,11 +96,9 @@ public class SubscriptionSyncController {
 
   protected void updateSubscription(
       Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
-    //TODO: Add logs
     if (dto.getEffectiveEndDate() != null) {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }
-    //TODO: what if it is null? throw an exception
   }
 
   @Transactional
@@ -106,8 +107,8 @@ public class SubscriptionSyncController {
     syncSubscription(subscription);
   }
 
-  public org.candlepin.subscriptions.db.model.Subscription getUpstreamSubscription(String subscriptionId)
-          throws ExternalServiceException {
+  public org.candlepin.subscriptions.db.model.Subscription getUpstreamSubscription(
+      String subscriptionId) throws ExternalServiceException {
     Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
     return convertDto(subscription);
   }
@@ -115,14 +116,14 @@ public class SubscriptionSyncController {
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
 
     return org.candlepin.subscriptions.db.model.Subscription.builder()
-            .subscriptionId(String.valueOf(subscription.getId()))
-            .sku(SubscriptionDtoUtil.extractSku(subscription))
-            .ownerId(subscription.getWebCustomerId().toString())
-            .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
-            .quantity(subscription.getQuantity())
-            .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
-            .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-            .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
-            .build();
+        .subscriptionId(String.valueOf(subscription.getId()))
+        .sku(SubscriptionDtoUtil.extractSku(subscription))
+        .ownerId(subscription.getWebCustomerId().toString())
+        .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
+        .quantity(subscription.getQuantity())
+        .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
+        .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
+        .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+        .build();
   }
 }

@@ -27,7 +27,6 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Table;
-
 import lombok.*;
 
 /** Subscription entities represent data from a Candlepin Pool */
@@ -86,13 +85,13 @@ public class Subscription {
     }
   }
 
-  public void endSubscription(){
+  public void endSubscription() {
     endDate = OffsetDateTime.now();
   }
 
-  public boolean quantityHasChanged(long newQuantity){
+  public boolean quantityHasChanged(long newQuantity) {
     return this.getQuantity() != newQuantity;
   }
 
-  //TODO: Add builder to throw exceptions if required fields are missing
+  // TODO: Add builder to throw exceptions if required fields are missing
 }

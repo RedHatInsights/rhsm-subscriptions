@@ -24,7 +24,6 @@ import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -55,8 +54,6 @@ class PoolIngressControllerTest {
   @MockBean CandlepinPoolCapacityMapper mapper;
 
   @MockBean ProductWhitelist whitelist;
-
-
 
   @Test
   void testNothingSavedIfFilteredByWhitelist() {

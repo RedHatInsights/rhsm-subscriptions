@@ -61,12 +61,12 @@ public class PoolIngressController {
   private final SubscriptionSyncController subscriptionSyncController;
 
   public PoolIngressController(
-          SubscriptionCapacityRepository subscriptionCapacityRepository,
-          SubscriptionRepository subscriptionRepository,
-          CandlepinPoolCapacityMapper capacityMapper,
-          ProductWhitelist productWhitelist,
-          MeterRegistry meterRegistry,
-          SubscriptionSyncController subscriptionSyncController) {
+      SubscriptionCapacityRepository subscriptionCapacityRepository,
+      SubscriptionRepository subscriptionRepository,
+      CandlepinPoolCapacityMapper capacityMapper,
+      ProductWhitelist productWhitelist,
+      MeterRegistry meterRegistry,
+      SubscriptionSyncController subscriptionSyncController) {
 
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.subscriptionRepository = subscriptionRepository;
@@ -80,11 +80,11 @@ public class PoolIngressController {
     this.subscriptionSyncController = subscriptionSyncController;
   }
 
-  //TODO: Write a parent method that toggles between the below choices.
+  // TODO: Write a parent method that toggles between the below choices.
 
   @Transactional
   @Timed("rhsm-subscriptions.capacity.ingress")
-  public void updateCapacityForOrg(String orgId, List<CandlepinPool> pools){
+  public void updateCapacityForOrg(String orgId, List<CandlepinPool> pools) {
     if (syncFromSubscriptionService) {
       updateSubscriptionsAndCapacityFromSubscriptions(orgId, pools);
     } else {
@@ -93,7 +93,8 @@ public class PoolIngressController {
   }
 
   @Timed("rhsm-subscriptions.subscription.ingress")
-  public void updateSubscriptionsAndCapacityFromSubscriptions(String orgId, List<CandlepinPool> pools) {
+  public void updateSubscriptionsAndCapacityFromSubscriptions(
+      String orgId, List<CandlepinPool> pools) {
     final List<String> subscriptionIds =
         pools.stream().map(CandlepinPool::getSubscriptionId).collect(Collectors.toList());
 
@@ -130,7 +131,6 @@ public class PoolIngressController {
       subscriptionRepository.deleteAll(needsDelete);
     }*/
   }
-
 
   @Timed("rhsm-subscriptions.capacity.ingress")
   public void updateCapacityFromPools(String orgId, List<CandlepinPool> pools) {
