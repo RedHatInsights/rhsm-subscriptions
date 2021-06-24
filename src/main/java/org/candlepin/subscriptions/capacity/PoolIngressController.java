@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
+
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
@@ -55,10 +57,11 @@ public class PoolIngressController {
   private final Counter capacityRecordsCreated;
   private final Counter capacityRecordsUpdated;
   private final Counter capacityRecordsDeleted;
-  private boolean syncFromSubscriptionService;
+  private final ApplicationProperties applicationProperties;
   private final SubscriptionSyncController subscriptionSyncController;
 
   public PoolIngressController(
+          ApplicationProperties applicationProperties,
       SubscriptionCapacityRepository subscriptionCapacityRepository,
       CandlepinPoolCapacityMapper capacityMapper,
       ProductWhitelist productWhitelist,
@@ -74,12 +77,13 @@ public class PoolIngressController {
     capacityRecordsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.records_updated");
     capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
     this.subscriptionSyncController = subscriptionSyncController;
+    this.applicationProperties = applicationProperties;
   }
 
   @Transactional
   @Timed("rhsm-subscriptions.capacity.ingress")
   public void updateCapacityForOrg(String orgId, List<CandlepinPool> pools) {
-    if (syncFromSubscriptionService) {
+    if (applicationProperties.isSubscriptionSyncEnabled()) {
       updateSubscriptionsAndCapacityFromSubscriptions(orgId, pools);
     } else {
       updateCapacityFromPools(orgId, pools);
