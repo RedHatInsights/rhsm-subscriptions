@@ -31,7 +31,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.files.ProductProfileRegistry;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -53,18 +53,18 @@ public class MarketplacePayloadMapper {
   public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR =
       "redhat.com:openshift_dedicated:4cpu_hour";
 
-  private final ProductProfileRegistry profileRegistry;
   private final AccountService accountService;
   private final MarketplaceProperties marketplaceProperties;
   private final MarketplaceSubscriptionIdProvider idProvider;
+  private final TagProfile tagProfile;
 
   @Autowired
   public MarketplacePayloadMapper(
-      ProductProfileRegistry profileRegistry,
+      TagProfile tagProfile,
       AccountService accountService,
       MarketplaceSubscriptionIdProvider idProvider,
       MarketplaceProperties marketplaceProperties) {
-    this.profileRegistry = profileRegistry;
+    this.tagProfile = tagProfile;
     this.accountService = accountService;
     this.marketplaceProperties = marketplaceProperties;
     this.idProvider = idProvider;
@@ -197,8 +197,6 @@ public class MarketplacePayloadMapper {
    */
   protected List<UsageMeasurement> produceUsageMeasurements(
       TallySnapshot snapshot, String productId) {
-    var productProfile = profileRegistry.findProfileForSwatchProductId(productId);
-
     List<UsageMeasurement> usageMeasurements = new ArrayList<>();
 
     if (Objects.isNull(snapshot.getTallyMeasurements())) {
@@ -214,8 +212,7 @@ public class MarketplacePayloadMapper {
                     measurement.getHardwareMeasurementType()))
         .forEach(
             measurement -> {
-              String metricId =
-                  productProfile.metricByProductAndUom(productId, measurement.getUom());
+              String metricId = tagProfile.metricIdForTagAndUom(productId, measurement.getUom());
               Double value = measurement.getValue();
 
               // RHM is expecting counts of 4 vCPU-hour blocks, but currently does not have a way
