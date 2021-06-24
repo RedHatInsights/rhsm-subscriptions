@@ -73,10 +73,7 @@ public class SubscriptionSyncController {
                   .accountNumber(existing.getAccountNumber())
                   .quantity(subscription.getQuantity())
                   .startDate(OffsetDateTime.now())
-                  .endDate(
-                      clock.dateFromMilliseconds(
-                          subscription
-                              .getEffectiveEndDate()))
+                  .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
                   .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
                   .build();
           subscriptionRepository.save(newSub);
