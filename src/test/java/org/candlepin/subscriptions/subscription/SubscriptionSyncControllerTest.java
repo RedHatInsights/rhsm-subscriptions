@@ -35,6 +35,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import static org.mockito.Mockito.verify;
+
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class SubscriptionSyncControllerTest {
@@ -53,7 +55,8 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 10);
     subject.syncSubscription(dto);
-    Mockito.verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
+    verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController).reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
   @Test
@@ -62,7 +65,8 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 4);
     subject.syncSubscription(dto);
-    Mockito.verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController).reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
   @Test
@@ -71,7 +75,8 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Optional.empty());
     var dto = createDto("456", 10);
     subject.syncSubscription(dto);
-    Mockito.verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController).reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

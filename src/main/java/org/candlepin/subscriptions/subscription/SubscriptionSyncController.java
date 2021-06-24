@@ -76,9 +76,7 @@ public class SubscriptionSyncController {
                   .endDate(
                       clock.dateFromMilliseconds(
                           subscription
-                              .getEffectiveEndDate())) // Q&A: For some reason this could be null.//
-                  // Why can't the api return an optional for//
-                  // this?
+                              .getEffectiveEndDate()))
                   .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
                   .build();
           subscriptionRepository.save(newSub);
