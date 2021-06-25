@@ -54,47 +54,42 @@ public class PrometheusMetricsProperties {
 
   private MetricProperties openshift = new MetricProperties();
 
-  public Map<Uom, MetricProperties> getSupportedMetricsForProduct(String productProfileId) {
-    if (!tagProfile.tagIsPrometheusEnabled(productProfileId)) {
+  public Map<Uom, MetricProperties> getSupportedMetricsForProduct(String productTag) {
+    if (!tagProfile.tagIsPrometheusEnabled(productTag)) {
       throw new UnsupportedOperationException(
-          String.format("Metrics gathering for %s is not currently supported!", productProfileId));
+          String.format("Metrics gathering for %s is not currently supported!", productTag));
     }
 
     Map<Uom, MetricProperties> metrics = new EnumMap<>(Uom.class);
-    tagProfile
-        .measurementsByTag(productProfileId)
-        .forEach(metric -> metrics.put(metric, openshift));
+    tagProfile.measurementsByTag(productTag).forEach(metric -> metrics.put(metric, openshift));
     return metrics;
   }
 
-  public Collection<String> getMetricsEnabledProductProfiles() {
+  public Collection<String> getMetricsEnabledProductTags() {
     return tagProfile.getTagsWithPrometheusEnabledLookup();
   }
 
-  // ENT-3835 will change the data structures used here and should refactor this method as needed
-  public String getEnabledAccountPromQLforProductProfile(String productProfileId) {
-    // NOTE(khowell): doesn't make sense for a given product profile (e.g. OSD) to have different
+  public String getEnabledAccountPromQLforProductTag(String productTag) {
+    // NOTE(khowell): doesn't make sense for a given product tag (e.g. OSD) to have different
     // queries per-metric. Grabbing the first non-empty one for now.
-    return getSupportedMetricsForProduct(productProfileId).values().stream()
+    return getSupportedMetricsForProduct(productTag).values().stream()
         .map(MetricProperties::getEnabledAccountPromQL)
         .filter(StringUtils::hasText)
         .findFirst()
         .orElseThrow();
   }
 
-  // ENT-3835 will change the data structures used here and should refactor this method as needed
-  public Integer getMetricsTimeoutForProductProfile(String productProfileId) {
-    // NOTE(khowell): doesn't make sense for a given product profile (e.g. OSD) to have different
+  public Integer getMetricsTimeoutForProductTag(String productTag) {
+    // NOTE(khowell): doesn't make sense for a given product tag (e.g. OSD) to have different
     // metrics timeouts. Grabbing the first one for now.
-    return getSupportedMetricsForProduct(productProfileId).values().stream()
+    return getSupportedMetricsForProduct(productTag).values().stream()
         .map(MetricProperties::getQueryTimeout)
         .findFirst()
         .orElseThrow();
   }
 
-  // ENT-3835 will change the data structures used here and should refactor this method as needed
-  public Integer getRangeInMinutesForProductProfile(String productProfileId) {
-    return getSupportedMetricsForProduct(productProfileId).values().stream()
+  public Integer getRangeInMinutesForProductTag(String productTag) {
+    return getSupportedMetricsForProduct(productTag).values().stream()
         .map(MetricProperties::getRangeInMinutes)
         .findFirst()
         .orElseThrow();
@@ -106,23 +101,23 @@ public class PrometheusMetricsProperties {
         : Optional.empty();
   }
 
-  public Optional<TagMetric> getTagMetric(String tag, Uom metric) {
-    if (!StringUtils.hasText(tag) || Objects.isNull(metric)) {
+  public Optional<TagMetric> getTagMetric(String productTag, Uom metric) {
+    if (!StringUtils.hasText(productTag) || Objects.isNull(metric)) {
       return Optional.empty();
     }
 
     return tagProfile.getTagMetrics().stream()
-        .filter(x -> tag.equals(x.getTag()) && metric.equals(x.getUom()))
+        .filter(x -> productTag.equals(x.getTag()) && metric.equals(x.getUom()))
         .findFirst();
   }
 
-  public Optional<TagMetaData> getTagMetadata(String tag) {
-    if (!StringUtils.hasText(tag)) {
+  public Optional<TagMetaData> getTagMetadata(String productTag) {
+    if (!StringUtils.hasText(productTag)) {
       return Optional.empty();
     }
 
     return tagProfile.getTagMetaData().stream()
-        .filter(meta -> meta.getTags().contains(tag))
+        .filter(meta -> meta.getTags().contains(productTag))
         .findFirst();
   }
 }

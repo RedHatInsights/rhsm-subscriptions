@@ -41,9 +41,9 @@ public class PrometheusAccountSource {
   public Set<String> getMarketplaceAccounts(String productProfileId, OffsetDateTime time) {
     QueryResult result =
         service.runQuery(
-            prometheusProps.getEnabledAccountPromQLforProductProfile(productProfileId),
+            prometheusProps.getEnabledAccountPromQLforProductTag(productProfileId),
             time,
-            prometheusProps.getMetricsTimeoutForProductProfile(productProfileId));
+            prometheusProps.getMetricsTimeoutForProductTag(productProfileId));
 
     return result.getData().getResult().stream()
         .map(r -> r.getMetric().getOrDefault("ebs_account", ""))

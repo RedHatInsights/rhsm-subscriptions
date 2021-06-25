@@ -46,10 +46,10 @@ public class MeteringEventFactory {
   }
 
   /**
-   * Creates an Event object that represents a cores snapshot for a given OpenShift cluster.
+   * Creates an Event object that represents a cores snapshot for a given instance.
    *
    * @param accountNumber the account number.
-   * @param clusterId the ID of the cluster that was measured.
+   * @param instanceId the ID of the cluster that was measured.
    * @param serviceLevel the service level of the cluster.
    * @param usage the usage of the cluster.
    * @param role the role of the cluster.
@@ -59,10 +59,10 @@ public class MeteringEventFactory {
    * @return a populated Event instance.
    */
   @SuppressWarnings("java:S107")
-  public static Event openShiftClusterCores(
+  public static Event createMetricEvent(
       String accountNumber,
       String metricId,
-      String clusterId,
+      String instanceId,
       String serviceLevel,
       String usage,
       String role,
@@ -72,11 +72,11 @@ public class MeteringEventFactory {
       Uom measuredMetric,
       Double measuredValue) {
     Event event = new Event();
-    updateOpenShiftClusterCores(
+    updateMetricEvent(
         event,
         accountNumber,
         metricId,
-        clusterId,
+        instanceId,
         serviceLevel,
         usage,
         role,
@@ -89,11 +89,11 @@ public class MeteringEventFactory {
   }
 
   @SuppressWarnings("java:S107")
-  public static void updateOpenShiftClusterCores(
+  public static void updateMetricEvent(
       Event toUpdate,
       String accountNumber,
       String metricId,
-      String clusterId,
+      String instanceId,
       String serviceLevel,
       String usage,
       String role,
@@ -107,15 +107,15 @@ public class MeteringEventFactory {
         .withEventType(getEventType(metricId))
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
-        .withInstanceId(clusterId)
+        .withInstanceId(instanceId)
         .withTimestamp(measuredTime)
         .withExpiration(Optional.of(expired))
-        .withDisplayName(Optional.of(clusterId))
-        .withSla(getSla(serviceLevel, accountNumber, clusterId))
-        .withUsage(getUsage(usage, accountNumber, clusterId))
+        .withDisplayName(Optional.of(instanceId))
+        .withSla(getSla(serviceLevel, accountNumber, instanceId))
+        .withUsage(getUsage(usage, accountNumber, instanceId))
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric).withValue(measuredValue)))
-        .withRole(getRole(role, accountNumber, clusterId));
+        .withRole(getRole(role, accountNumber, instanceId));
   }
 
   public static String getEventType(String metricId) {

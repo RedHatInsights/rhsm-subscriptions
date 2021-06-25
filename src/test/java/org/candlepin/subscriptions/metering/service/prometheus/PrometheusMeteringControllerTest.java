@@ -216,7 +216,7 @@ class PrometheusMeteringControllerTest {
 
     List<Event> expectedEvents =
         List.of(
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedMetricId,
                 expectedClusterId,
@@ -228,7 +228,7 @@ class PrometheusMeteringControllerTest {
                 expectedServiceType,
                 expectedUom,
                 val1.doubleValue()),
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedMetricId,
                 expectedClusterId,
@@ -288,7 +288,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
     Event updatedEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedMetricId,
             expectedClusterId,
@@ -304,7 +304,7 @@ class PrometheusMeteringControllerTest {
     List<Event> expectedEvents =
         List.of(
             updatedEvent,
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedMetricId,
                 expectedClusterId,
@@ -318,7 +318,7 @@ class PrometheusMeteringControllerTest {
                 val2.doubleValue()));
 
     Event purgedEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedMetricId,
             "CLUSTER_NO_LONGER_EXISTS",
@@ -334,7 +334,7 @@ class PrometheusMeteringControllerTest {
     List<Event> existingEvents =
         List.of(
             // This event will get updated by the incoming data from prometheus.
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedMetricId,
                 expectedClusterId,
@@ -420,7 +420,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
     Event updatedEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedMetricId,
             expectedClusterId,
@@ -439,7 +439,7 @@ class PrometheusMeteringControllerTest {
     List<Event> expectedEvents = List.of(updatedEvent);
 
     var existingEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedMetricId,
             expectedClusterId,

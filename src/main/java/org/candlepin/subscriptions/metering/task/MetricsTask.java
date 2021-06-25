@@ -59,7 +59,7 @@ public class MetricsTask implements Task {
 
   @Override
   public void execute() {
-    log.info("Running {} {} metrics update for account: {}", productTag, metric, account);
+    log.info("Running {} {} metrics update task for account: {}", productTag, metric, account);
     try {
       controller.collectMetrics(productTag, metric, this.account, start, end);
       log.info("{} {} metrics task complete.", productTag, metric);

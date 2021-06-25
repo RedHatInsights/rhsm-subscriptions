@@ -70,7 +70,7 @@ class PrometheusMeteringTaskFactoryTest {
         factory.build(
             TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
                 .setSingleValuedArg("account", "12234")
-                .setSingleValuedArg("productProfileId", "OpenShift")
+                .setSingleValuedArg("productTag", "OpenShift")
                 .setSingleValuedArg("metric", "Cores")
                 .setSingleValuedArg("start", start.toString())
                 .setSingleValuedArg("end", end.toString())
@@ -88,7 +88,7 @@ class PrometheusMeteringTaskFactoryTest {
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
-            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("step", "1h")
             .build();
@@ -101,7 +101,7 @@ class PrometheusMeteringTaskFactoryTest {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("account", "1234")
-            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
@@ -117,7 +117,7 @@ class PrometheusMeteringTaskFactoryTest {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("account", "1234")
-            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09")

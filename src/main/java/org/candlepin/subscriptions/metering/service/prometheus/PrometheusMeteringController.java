@@ -131,7 +131,8 @@ public class PrometheusMeteringController {
 
             if (StatusType.ERROR.equals(metricData.getStatus())) {
               throw new MeteringException(
-                  String.format("Unable to fetch OpenShift metrics: %s", metricData.getError()));
+                  String.format(
+                      "Unable to fetch %s %s metrics: %s", tag, metric, metricData.getError()));
             }
 
             Map<EventKey, Event> existing =
@@ -154,7 +155,7 @@ public class PrometheusMeteringController {
               String usage = labels.get("usage");
               // NOTE: Role comes from the product label despite its name. The values set here
               //       are NOT engineering or swatch product IDs. They map to the roles in the
-              //       product profile. For openshift, the values will be 'ocp' or 'osd'.
+              //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
               String role = labels.get("product");
 
               // For the openshift metrics, we expect our results to be a 'matrix'
@@ -190,14 +191,16 @@ public class PrometheusMeteringController {
             }
 
             eventController.saveAll(events.values());
-            log.info("Persisted {} events for OpenShift metrics.", events.size());
+            log.info("Persisted {} events for {} {} metrics.", events.size(), tag, metric);
 
             // Delete any stale events found during the period.
             deleteStaleEvents(existing.values());
             return null;
           } catch (Exception e) {
             log.warn(
-                "Exception thrown while updating OpenShift metrics. [Attempt: {}]: {}",
+                "Exception thrown while updating {} {} metrics. [Attempt: {}]: {}",
+                tag,
+                metric,
                 context.getRetryCount() + 1,
                 e.getMessage());
             throw e;
@@ -242,7 +245,7 @@ public class PrometheusMeteringController {
     if (event == null) {
       event = new Event();
     }
-    MeteringEventFactory.updateOpenShiftClusterCores(
+    MeteringEventFactory.updateMetricEvent(
         event,
         account,
         metricId,
@@ -260,7 +263,7 @@ public class PrometheusMeteringController {
 
   private void deleteStaleEvents(Collection<Event> toDelete) {
     if (!toDelete.isEmpty()) {
-      log.info("Deleting {} stale OpenShift metric events.", toDelete.size());
+      log.info("Deleting {} stale metric events.", toDelete.size());
       eventController.deleteEvents(toDelete);
     }
   }

@@ -58,32 +58,27 @@ public class MeteringJmxBean {
 
   @ManagedOperation(description = "Perform product metering for a single account.")
   @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
-  @ManagedOperationParameter(name = "productProfileId", description = "Product profile identifier")
-  public void performMeteringForAccount(String accountNumber, String productProfileId)
+  @ManagedOperationParameter(name = "productTag", description = "Product tag identifier")
+  public void performMeteringForAccount(String accountNumber, String productTag)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info(
-        "{} metering for {} triggered via JMX by {}", productProfileId, accountNumber, principal);
+    log.info("{} metering for {} triggered via JMX by {}", productTag, accountNumber, principal);
 
     OffsetDateTime end = getDate(null);
     OffsetDateTime start =
-        getStartDate(
-            end, prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId));
+        getStartDate(end, prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag));
 
     try {
-      tasks.updateMetricsForAccount(accountNumber, productProfileId, start, end);
+      tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
     } catch (Exception e) {
       log.error(
-          "Error triggering {} metering for account {} via JMX.",
-          productProfileId,
-          accountNumber,
-          e);
+          "Error triggering {} metering for account {} via JMX.", productTag, accountNumber, e);
     }
   }
 
   @ManagedOperation(description = "Perform custom product metering for a single account.")
   @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
-  @ManagedOperationParameter(name = "productProfileId", description = "Product profile identifier")
+  @ManagedOperationParameter(name = "productTag", description = "Product tag identifier")
   @ManagedOperationParameter(
       name = "endDate",
       description =
@@ -93,46 +88,41 @@ public class MeteringJmxBean {
       description =
           "Period of time (before the end date) to start metrics gathering. Must be >= 0.")
   public void performCustomMeteringForAccount(
-      String accountNumber, String productProfileId, String endDate, Integer rangeInMinutes)
+      String accountNumber, String productTag, String endDate, Integer rangeInMinutes)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info(
-        "{} metering for {} triggered via JMX by {}", productProfileId, accountNumber, principal);
+    log.info("{} metering for {} triggered via JMX by {}", productTag, accountNumber, principal);
 
     OffsetDateTime end = getDate(endDate);
     OffsetDateTime start = getStartDate(end, rangeInMinutes);
 
     try {
-      tasks.updateMetricsForAccount(accountNumber, productProfileId, start, end);
+      tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
     } catch (Exception e) {
       log.error(
-          "Error triggering {} metering for account {} via JMX.",
-          productProfileId,
-          accountNumber,
-          e);
+          "Error triggering {} metering for account {} via JMX.", productTag, accountNumber, e);
     }
   }
 
   @ManagedOperation(description = "Perform a product metering for all accounts.")
-  public void performMetering(String productProfileId) throws IllegalArgumentException {
+  public void performMetering(String productTag) throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Metering for all accounts triggered via JMX by {}", principal);
 
     OffsetDateTime end = getDate(null);
     // ENT-3835 will change the data structures used here
     OffsetDateTime start =
-        getStartDate(
-            end, prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId));
+        getStartDate(end, prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag));
 
     try {
-      tasks.updateMetricsForAllAccounts(productProfileId, start, end);
+      tasks.updateMetricsForAllAccounts(productTag, start, end);
     } catch (Exception e) {
-      log.error("Error triggering {} metering for all accounts via JMX.", productProfileId, e);
+      log.error("Error triggering {} metering for all accounts via JMX.", productTag, e);
     }
   }
 
   @ManagedOperation(description = "Perform custom product metering for all accounts.")
-  @ManagedOperationParameter(name = "productProfileId", description = "Product profile identifier")
+  @ManagedOperationParameter(name = "productTag", description = "Product tag identifier")
   @ManagedOperationParameter(
       name = "endDate",
       description =
@@ -141,7 +131,7 @@ public class MeteringJmxBean {
       name = "rangeInMinutes",
       description =
           "Period of time (before the end date) to start metrics gathering. Must be >= 0.")
-  public void performCustomMetering(String productProfileId, String endDate, Integer rangeInMinutes)
+  public void performCustomMetering(String productTag, String endDate, Integer rangeInMinutes)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Metering for all accounts triggered via JMX by {}", principal);
@@ -150,9 +140,9 @@ public class MeteringJmxBean {
     OffsetDateTime start = getStartDate(end, rangeInMinutes);
 
     try {
-      tasks.updateMetricsForAllAccounts(productProfileId, start, end);
+      tasks.updateMetricsForAllAccounts(productTag, start, end);
     } catch (Exception e) {
-      log.error("Error triggering {} metering for all accounts via JMX.", productProfileId, e);
+      log.error("Error triggering {} metering for all accounts via JMX.", productTag, e);
     }
   }
 

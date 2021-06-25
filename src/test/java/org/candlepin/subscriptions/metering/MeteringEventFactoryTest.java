@@ -49,7 +49,7 @@ class MeteringEventFactoryTest {
     Uom uom = Uom.CORES;
 
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             account,
             metricId,
             clusterId,
@@ -81,7 +81,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresHandlesNullServiceLevel() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -99,7 +99,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -117,7 +117,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -135,7 +135,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresInvalidUsageSetsNullValue() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -153,7 +153,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresHandlesNullUsage() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -171,7 +171,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresInvalidRoleSetsNullValue() {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -189,7 +189,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresHandlesNullRole() {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",
@@ -207,7 +207,7 @@ class MeteringEventFactoryTest {
   @Test
   void testEventTypeGeneratedOnEventCreation() {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
             "metric-id",
             "cluster-id",

@@ -57,8 +57,8 @@ public class MeteringJob implements Runnable {
   @Scheduled(cron = "${rhsm-subscriptions.jobs.metering-schedule}")
   public void run() {
     Duration latency = appProps.getPrometheusLatencyDuration();
-    for (String productProfileId : prometheusMetricsProperties.getMetricsEnabledProductProfiles()) {
-      int range = prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId);
+    for (String productTag : prometheusMetricsProperties.getMetricsEnabledProductTags()) {
+      int range = prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag);
       OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
       // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
       // time
@@ -74,10 +74,9 @@ public class MeteringJob implements Runnable {
           clock.endOfHour(
               startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
 
-      log.info(
-          "Queuing {} metric updates for range: {} -> {}", productProfileId, startDate, endDate);
+      log.info("Queuing {} metric updates for range: {} -> {}", productTag, startDate, endDate);
       try {
-        tasks.updateMetricsForAllAccounts(productProfileId, startDate, endDate);
+        tasks.updateMetricsForAllAccounts(productTag, startDate, endDate);
       } catch (Exception e) {
         throw new JobFailureException("Unable to run MeteringJob.", e);
       }
