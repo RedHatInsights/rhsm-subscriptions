@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
@@ -48,8 +47,6 @@ class PoolIngressControllerTest {
   @Autowired PoolIngressController controller;
 
   @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
-
-  @MockBean SubscriptionRepository subscriptionRepository;
 
   @MockBean CandlepinPoolCapacityMapper mapper;
 

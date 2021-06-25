@@ -43,7 +43,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"worker", "test", "capacity-ingress"})
+@ActiveProfiles({"worker", "test"})
 class CapacityReconciliationControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
