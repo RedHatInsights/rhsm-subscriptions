@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
-
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
@@ -61,7 +60,7 @@ public class PoolIngressController {
   private final SubscriptionSyncController subscriptionSyncController;
 
   public PoolIngressController(
-          ApplicationProperties applicationProperties,
+      ApplicationProperties applicationProperties,
       SubscriptionCapacityRepository subscriptionCapacityRepository,
       CandlepinPoolCapacityMapper capacityMapper,
       ProductWhitelist productWhitelist,
