@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.springframework.util.StringUtils;
@@ -58,6 +60,7 @@ public class TagProfile {
   private Map<String, String> offeringProductNameToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
   private Map<String, TagMetaData> tagMetaDataToTagLookup;
+  private Map<String, List<Measurement.Uom>> tagToUomLookup;
 
   /** Initialize lookup fields */
   @PostConstruct
@@ -69,6 +72,7 @@ public class TagProfile {
     offeringProductNameToTagLookup = new HashMap<>();
     tagMetaDataToTagLookup = new HashMap<>();
     finestGranularityLookup = new HashMap<>();
+    tagToUomLookup = new HashMap<>();
     tagMappings.forEach(this::handleTagMapping);
     tagMetrics.forEach(this::handleTagMetric);
     tagMetaData.forEach(this::handleTagMetaData);
@@ -95,6 +99,8 @@ public class TagProfile {
     measurementsByTagLookup
         .computeIfAbsent(tagMetric.getTag(), k -> new HashSet<>())
         .add(tagMetric.getUom());
+    List<Uom> uomList = tagToUomLookup.computeIfAbsent(tagMetric.getTag(), k -> new ArrayList<>());
+    uomList.add(tagMetric.getUom());
   }
 
   private void handleTagMetaData(TagMetaData tagMetaData) {
@@ -136,5 +142,9 @@ public class TagProfile {
       return Optional.empty();
     }
     return Optional.ofNullable(tagMetaDataToTagLookup.get(productTag));
+  }
+
+  public List<Measurement.Uom> uomsForTag(String tag) {
+    return tagToUomLookup.get(tag);
   }
 }

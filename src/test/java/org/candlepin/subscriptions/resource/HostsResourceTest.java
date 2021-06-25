@@ -393,6 +393,7 @@ class HostsResourceTest {
             0,
             1,
             june2019,
+            Measurement.Uom.CORES,
             PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER))))
         .thenReturn(page);
 

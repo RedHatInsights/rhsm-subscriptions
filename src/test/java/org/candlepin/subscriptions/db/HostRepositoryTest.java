@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.junit.jupiter.api.BeforeAll;
@@ -106,18 +107,14 @@ class HostRepositoryTest {
     Host host9 = createHost("inventory9", "account123");
     Host host10 = createHost("inventory10", "account123");
 
-    host8.addToMonthlyTotal(
-        OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC),
-        Measurement.Uom.CORES,
-        100.0);
-    host9.addToMonthlyTotal(
-        OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC),
-        Measurement.Uom.CORES,
-        0.0);
-    host10.addToMonthlyTotal(
-        OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC),
-        Measurement.Uom.CORES,
-        50.0);
+    for (Uom uom : Uom.values()) {
+      host8.addToMonthlyTotal(
+          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 100.0);
+      host9.addToMonthlyTotal(
+          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 0.0);
+      host10.addToMonthlyTotal(
+          OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC), uom, 50.0);
+    }
 
     addBucketToHost(host8, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
     addBucketToHost(host9, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
@@ -656,26 +653,37 @@ class HostRepositoryTest {
     assertEquals(5, hypervisor.getCores());
   }
 
-  static String[] instanceSortParams() {
-    return HostsResource.INSTANCE_SORT_PARAM_MAPPING.values().toArray(new String[0]);
+  static HostReportSort[] instanceSortParams() {
+    return HostsResource.INSTANCE_SORT_PARAM_MAPPING.keySet().toArray(new HostReportSort[0]);
   }
 
   @Transactional
   @ParameterizedTest
   @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#instanceSortParams")
-  void canSortByInstanceBasedSortMethods(String sort) {
+  void canSortByInstanceBasedSortMethods(HostReportSort sort) {
 
-    Pageable page = PageRequest.of(0, 2, Sort.by(sort));
+    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
+    Pageable page = PageRequest.of(0, 2, Sort.by(sortValue));
+    Uom referenceUom = HostsResource.SORT_TO_UOM_MAP.getOrDefault(sort, Uom.CORES);
     Page<Host> results =
         repo.findAllBy(
-            "account123", "RHEL", ServiceLevel._ANY, Usage._ANY, "", 0, 0, "2021-01", page);
+            "account123",
+            "RHEL",
+            ServiceLevel._ANY,
+            Usage._ANY,
+            "",
+            0,
+            0,
+            "2021-01",
+            referenceUom,
+            page);
 
     assertEquals(2, results.getTotalElements());
 
-    if (sort.equals("monthlyTotals")) {
+    if (sortValue.equals("monthlyTotals")) {
       List<Host> payload = results.toList();
-      assertEquals(0.0, payload.get(0).getMonthlyTotal("2021-01", Measurement.Uom.CORES));
-      assertEquals(100.0, payload.get(1).getMonthlyTotal("2021-01", Measurement.Uom.CORES));
+      assertEquals(0.0, payload.get(0).getMonthlyTotal("2021-01", referenceUom));
+      assertEquals(100.0, payload.get(1).getMonthlyTotal("2021-01", referenceUom));
     }
   }
 

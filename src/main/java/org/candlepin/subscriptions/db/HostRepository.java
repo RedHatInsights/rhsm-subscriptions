@@ -32,7 +32,7 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -41,6 +41,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.util.StringUtils;
 
 /** Provides access to Host database entities. */
 @SuppressWarnings({"linelength", "indentation"})
@@ -110,6 +111,7 @@ public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificat
    * @param minCores Filter to Hosts with at least this number of cores.
    * @param minSockets Filter to Hosts with at least this number of sockets.
    * @param month Filter to Hosts with with monthly instance totals in provided month
+   * @param referenceUom Uom used when filtering to a specific month.
    * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
    */
@@ -123,6 +125,7 @@ public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificat
       @Param("minCores") int minCores,
       @Param("minSockets") int minSockets,
       String month,
+      Uom referenceUom,
       Pageable pageable) {
 
     HostSpecification searchCriteria = new HostSpecification();
@@ -140,11 +143,13 @@ public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificat
     searchCriteria.add(
         new SearchCriteria(
             HostTallyBucket_.SOCKETS, minSockets, SearchOperation.GREATER_THAN_EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(
-            InstanceMonthlyTotalKey_.MONTH,
-            new InstanceMonthlyTotalKey(month, Measurement.Uom.CORES),
-            SearchOperation.EQUAL));
+    if (StringUtils.hasText(month) && referenceUom != null) {
+      searchCriteria.add(
+          new SearchCriteria(
+              InstanceMonthlyTotalKey_.MONTH,
+              new InstanceMonthlyTotalKey(month, referenceUom),
+              SearchOperation.EQUAL));
+    }
 
     return findAll(searchCriteria, pageable);
   }
