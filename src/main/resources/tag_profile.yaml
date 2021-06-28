@@ -31,22 +31,25 @@ tagMetrics:
     metricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
     queryParams:
+      product: ocp
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
-      prometheusMetadataMetric: subscription_labels{product="ocp", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}
+      prometheusMetadataMetric: subscription_labels{product="#{tag.queryParams[product]}", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}
 
   # OSD metrics
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
     queryParams:
+      product: osd
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
-      prometheusMetadataMetric: subscription_labels{product="osd", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}
+      prometheusMetadataMetric: subscription_labels{product="#{tag.queryParams[product]}", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
     queryParams:
+      product: osd
       prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
-      prometheusMetadataMetric: subscription_labels{product="osd", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}
+      prometheusMetadataMetric: subscription_labels{product="#{tag.queryParams[product]}", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}
 
 tagMetaData:
   - tags:

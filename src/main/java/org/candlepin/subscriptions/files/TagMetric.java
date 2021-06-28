@@ -46,5 +46,6 @@ public class TagMetric {
   private String metricId;
   private Uom uom;
   @Default private String queryKey = DEFAULT_METRIC_QUERY_KEY;
+  @Default private String accountQueryKey = DEFAULT_METRIC_QUERY_KEY;
   private Map<String, String> queryParams;
 }

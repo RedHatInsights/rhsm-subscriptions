@@ -72,10 +72,7 @@ class QueryBuilderTest {
     QueryDescriptor descriptor = new QueryDescriptor(TagMetric.builder().queryKey(key).build());
     Throwable e = assertThrows(IllegalArgumentException.class, () -> builder.build(descriptor));
 
-    assertEquals(
-        String.format(
-            "The query descriptor's tag did not define an existing template key: %s", key),
-        e.getMessage());
+    assertEquals(String.format("Unable to find query template for key: %s", key), e.getMessage());
   }
 
   @Test

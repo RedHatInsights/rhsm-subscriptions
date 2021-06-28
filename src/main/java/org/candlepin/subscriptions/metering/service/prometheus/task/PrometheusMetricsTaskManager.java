@@ -64,29 +64,49 @@ public class PrometheusMetricsTaskManager {
 
   public void updateMetricsForAccount(
       String account, String productTag, OffsetDateTime start, OffsetDateTime end) {
-    log.info(
-        "Queuing {} metrics update for account {} between {} and {}",
-        productTag,
-        account,
-        start,
-        end);
     prometheusProps
         .getSupportedMetricsForProduct(productTag)
         .keySet()
         .forEach(
-            metric ->
-                this.queue.enqueue(createMetricsTask(account, productTag, metric, start, end)));
+            metric -> {
+              log.info("Queuing {} {} metric updates for account {}.", productTag, metric, account);
+              queueMetricUpdateForAccount(account, productTag, metric, start, end);
+              log.info("Done queuing updates of {} {} metric", productTag, metric);
+            });
+  }
+
+  private void queueMetricUpdateForAccount(
+      String account, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+    log.info(
+        "Queuing {} {} metric update for account {} between {} and {}",
+        productTag,
+        metric,
+        account,
+        start,
+        end);
+    this.queue.enqueue(createMetricsTask(account, productTag, metric, start, end));
   }
 
   @Transactional
   public void updateMetricsForAllAccounts(
       String productTag, OffsetDateTime start, OffsetDateTime end) {
-    try (Stream<String> accountStream =
-        accountSource.getMarketplaceAccounts(productTag, end).stream()) {
-      log.info("Queuing {} metrics update for all configured accounts.", productTag);
-      accountStream.forEach(account -> updateMetricsForAccount(account, productTag, start, end));
-      log.info("Done queuing updates of {} metrics", productTag);
-    }
+    prometheusProps
+        .getSupportedMetricsForProduct(productTag)
+        .keySet()
+        .forEach(
+            metric -> {
+              try (Stream<String> accountStream =
+                  accountSource.getMarketplaceAccounts(productTag, metric, end).stream()) {
+                log.info(
+                    "Queuing {} {} metric updates for all configured accounts.",
+                    productTag,
+                    metric);
+                accountStream.forEach(
+                    account ->
+                        queueMetricUpdateForAccount(account, productTag, metric, start, end));
+                log.info("Done queuing updates of {} {} metric", productTag, metric);
+              }
+            });
   }
 
   private TaskDescriptor createMetricsTask(

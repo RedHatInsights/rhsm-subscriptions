@@ -46,6 +46,8 @@ public class PrometheusMetricsProperties {
 
   private Map<String, String> queryTemplates = new HashMap<>();
 
+  private Map<String, String> accountQueryTemplates = new HashMap<>();
+
   /**
    * SPEL templates do not support nested expressions so the QueryBuilder will apply template
    * parameters a set number of times to prevent recursion.
@@ -69,16 +71,6 @@ public class PrometheusMetricsProperties {
     return tagProfile.getTagsWithPrometheusEnabledLookup();
   }
 
-  public String getEnabledAccountPromQLforProductTag(String productTag) {
-    // NOTE(khowell): doesn't make sense for a given product tag (e.g. OSD) to have different
-    // queries per-metric. Grabbing the first non-empty one for now.
-    return getSupportedMetricsForProduct(productTag).values().stream()
-        .map(MetricProperties::getEnabledAccountPromQL)
-        .filter(StringUtils::hasText)
-        .findFirst()
-        .orElseThrow();
-  }
-
   public Integer getMetricsTimeoutForProductTag(String productTag) {
     // NOTE(khowell): doesn't make sense for a given product tag (e.g. OSD) to have different
     // metrics timeouts. Grabbing the first one for now.
@@ -98,6 +90,12 @@ public class PrometheusMetricsProperties {
   public Optional<String> getQueryTemplate(String templateKey) {
     return queryTemplates.containsKey(templateKey)
         ? Optional.of(queryTemplates.get(templateKey))
+        : Optional.empty();
+  }
+
+  public Optional<String> getAccountQueryTemplate(String templateKey) {
+    return accountQueryTemplates.containsKey(templateKey)
+        ? Optional.of(accountQueryTemplates.get(templateKey))
         : Optional.empty();
   }
 

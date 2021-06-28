@@ -47,22 +47,33 @@ public class QueryBuilder {
   }
 
   public String build(QueryDescriptor queryDescriptor) {
-    ExpressionParser parser = new SpelExpressionParser();
-    StandardEvaluationContext context = new StandardEvaluationContext(queryDescriptor);
-
     String templateKey = queryDescriptor.getTag().getQueryKey();
     Optional<String> template = metricsProperties.getQueryTemplate(templateKey);
 
     if (template.isEmpty()) {
       throw new IllegalArgumentException(
-          String.format(
-              "The query descriptor's tag did not define an existing template key: %s",
-              templateKey));
+          String.format("Unable to find query template for key: %s", templateKey));
     }
+    return buildQuery(template.get(), queryDescriptor);
+  }
+
+  public String buildAccountLookupQuery(QueryDescriptor queryDescriptor) {
+    String templateKey = queryDescriptor.getTag().getAccountQueryKey();
+    Optional<String> template = metricsProperties.getAccountQueryTemplate(templateKey);
+    if (template.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format("Unable to find account query template for key: %s", templateKey));
+    }
+    return buildQuery(template.get(), queryDescriptor);
+  }
+
+  private String buildQuery(String template, QueryDescriptor descriptor) {
+    ExpressionParser parser = new SpelExpressionParser();
+    StandardEvaluationContext context = new StandardEvaluationContext(descriptor);
 
     // Only allow nested expressions based on a config setting. We need to do this
     // to prevent potential infinite recursion.
-    String query = template.get();
+    String query = template;
     for (int i = 0; i < metricsProperties.getTemplateParameterDepth(); i++) {
       // Silly hack to make sonar happy.
       assert query != null;
