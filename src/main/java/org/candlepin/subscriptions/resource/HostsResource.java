@@ -85,7 +85,8 @@ public class HostsResource implements HostsApi {
           .putAll(getUomSorts())
           .build();
 
-  public static final Map<HostReportSort, Measurement.Uom> SORT_TO_UOM_MAP = getSortToUomMap();
+  public static final Map<HostReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
+      ImmutableMap.copyOf(getSortToUomMap());
 
   private static Map<HostReportSort, Measurement.Uom> getSortToUomMap() {
     return Arrays.stream(Measurement.Uom.values())
