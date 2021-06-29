@@ -51,7 +51,7 @@ public class SubscriptionSyncController {
   @Transactional
   public void syncSubscription(Subscription subscription) {
 
-    // TODO: add metrics for subscriptions created and updated //NOSONAR
+    // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
     final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
 
