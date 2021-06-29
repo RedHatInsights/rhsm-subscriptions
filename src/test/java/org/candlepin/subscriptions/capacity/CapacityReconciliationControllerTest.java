@@ -67,7 +67,8 @@ class CapacityReconciliationControllerTest {
   void shouldAddNewCapacitiesIfNotAlreadyExisting() {
 
     List<String> productIds = List.of("RHEL");
-    Offering offering = Offering.builder().productIds(Collections.singletonList(45)).sku("MCT3718").build();
+    Offering offering =
+        Offering.builder().productIds(Collections.singletonList(45)).sku("MCT3718").build();
 
     Subscription newSubscription = createSubscription("456", 10);
     Collection<SubscriptionCapacity> capacities =
