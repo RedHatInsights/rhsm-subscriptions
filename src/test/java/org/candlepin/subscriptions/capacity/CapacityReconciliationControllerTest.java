@@ -76,7 +76,7 @@ class CapacityReconciliationControllerTest {
             .collect(Collectors.toList());
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(new HashSet<>(productIds));
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
         .thenReturn(Collections.emptyList());
@@ -132,7 +132,7 @@ class CapacityReconciliationControllerTest {
             .collect(Collectors.toList());
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
     when(offeringRepository.getById("MCT3718")).thenReturn(updatedOffering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
         .thenReturn(existingCapacities);
@@ -173,7 +173,7 @@ class CapacityReconciliationControllerTest {
                 .build());
 
     when(whitelist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(any()))
+    when(capacityProductExtractor.getProducts(offering))
         .thenReturn(Set.of("RHEL", "RHEL Workstation"));
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
@@ -193,7 +193,7 @@ class CapacityReconciliationControllerTest {
     Subscription subscription = createSubscription("456", 10);
 
     when(whitelist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(Set.of("RHEL1", "RHEL2"));
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(Set.of("RHEL1", "RHEL2"));
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
         .thenReturn(Collections.emptyList());
@@ -237,7 +237,7 @@ class CapacityReconciliationControllerTest {
                 .build());
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456")).thenReturn(staleCapacities);
 
