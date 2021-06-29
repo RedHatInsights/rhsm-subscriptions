@@ -29,7 +29,11 @@ import org.springframework.context.annotation.Configuration;
 
 /** Configuration class for product package. */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.product")
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.product",
+      "org.candlepin.subscriptions.capacity.files"
+    })
 public class ProductConfiguration {
   @Bean
   @Qualifier("product")
