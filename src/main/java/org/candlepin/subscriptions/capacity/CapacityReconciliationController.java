@@ -34,7 +34,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -49,6 +53,7 @@ public class CapacityReconciliationController {
   private final Counter capacityRecordsUpdated;
   private final Counter capacityRecordsDeleted;
 
+  @Autowired
   public CapacityReconciliationController(
       OfferingRepository offeringRepository,
       ProductWhitelist productWhitelist,
