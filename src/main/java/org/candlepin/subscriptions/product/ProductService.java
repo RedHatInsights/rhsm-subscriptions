@@ -60,6 +60,10 @@ public class ProductService {
     Optional<RESTProductTree> skuTree =
         Optional.ofNullable(productApi.getProductTree(sku, Boolean.TRUE));
 
+    /*
+     * Some (not all) inactive or obsolete products can be treeless. See also:
+     * https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.dumnkdjz1o1u
+     */
     if (skuTree.isEmpty()) {
       LOGGER.warn("sku={} does not exist, no product tree returned.", sku);
     }

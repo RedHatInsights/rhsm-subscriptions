@@ -1,0 +1,72 @@
+{
+  "products": [
+    {
+      "sku": "MW01484",
+      "description": "Red Hat OpenShift Dedicated on Customer Cloud Subscription (Hourly)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Dedicated"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCMW01484A",
+      "description": "Red Hat OpenShift Dedicated on Customer Cloud Subscription (Cluster Fee, 1 Cluster, 1 hour)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Dedicated"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCMW01484B",
+      "description": "Red Hat OpenShift Dedicated Worker Node on Customer Cloud Subscription (4 vCPUs, 1 hour, On-Demand)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Dedicated"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": [
+    {
+      "child": "SVCMW01484A"
+    },
+    {
+      "child": "SVCMW01484B"
+    }
+  ]
+}

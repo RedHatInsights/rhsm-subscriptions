@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.Set;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -150,7 +149,7 @@ class SubscriptionRepositoryTest {
       String sku, int productId, ServiceLevel sla, Usage usage, String role) {
     Offering o = new Offering();
     o.setSku(sku);
-    o.setProductIds(Collections.singletonList(productId));
+    o.setProductIds(Set.of(productId));
     o.setServiceLevel(sla);
     o.setUsage(usage);
     o.setRole(role);

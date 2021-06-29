@@ -20,24 +20,28 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.params.ParameterizedTest.*;
-import static org.mockito.Mockito.*;
+import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.*;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
+import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.files.MarketplaceMetric;
-import org.candlepin.subscriptions.files.ProductProfile;
-import org.candlepin.subscriptions.files.ProductProfileRegistry;
-import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
+import org.candlepin.subscriptions.json.TallySnapshot.Sla;
+import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
@@ -57,7 +61,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MarketplacePayloadMapperTest {
 
-  @Mock ProductProfileRegistry profileRegistry;
+  @Mock TagProfile tagProfile;
   @Mock MarketplaceProperties marketplaceProperties;
   @Mock MarketplaceSubscriptionIdProvider mockProvider;
 
@@ -67,32 +71,17 @@ class MarketplacePayloadMapperTest {
 
   @BeforeEach
   void init() {
-    ProductProfile productProfile = new ProductProfile();
-
-    MarketplaceMetric marketplaceMetric =
-        new MarketplaceMetric(
-            "redhat.com:openshift:cpu_hour",
-            Measurement.Uom.CORES.toString(),
-            Set.of(ProductId.OPENSHIFT_METRICS.toString()));
-
-    MarketplaceMetric osdMarketplaceMetric =
-        new MarketplaceMetric(
-            MarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR,
-            Measurement.Uom.CORES.toString(),
-            Set.of(ProductId.OPENSHIFT_DEDICATED_METRICS.toString()));
-
-    productProfile.setMarketplaceMetrics(Set.of(marketplaceMetric, osdMarketplaceMetric));
-
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
-        .when(profileRegistry.findProfileForSwatchProductId(anyString()))
-        .thenReturn(productProfile);
-    lenient()
         .when(marketplaceProperties.getEligibleSwatchProductIds())
-        .thenReturn(
-            List.of(
-                ProductId.OPENSHIFT_METRICS.toString(),
-                ProductId.OPENSHIFT_DEDICATED_METRICS.toString()));
+        .thenReturn(List.of(OPENSHIFT_METRICS.toString(), OPENSHIFT_DEDICATED_METRICS.toString()));
+    lenient()
+        .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_METRICS.toString(), Uom.CORES))
+        .thenReturn("redhat.com:openshift:cpu_hour");
+
+    lenient()
+        .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
+        .thenReturn(MarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
@@ -107,10 +96,10 @@ class MarketplacePayloadMapperTest {
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .withProductId(productId.toString())
             .withSnapshotDate(OffsetDateTime.now())
-            .withUsage(TallySnapshot.Usage.PRODUCTION)
+            .withUsage(Usage.PRODUCTION)
             .withTallyMeasurements(tallyMeasurements)
-            .withSla(TallySnapshot.Sla.PREMIUM)
-            .withGranularity(TallySnapshot.Granularity.HOURLY);
+            .withSla(Sla.PREMIUM)
+            .withGranularity(HOURLY);
 
     var actual = marketplacePayloadMapper.produceUsageMeasurements(snapshot, productId.toString());
 
@@ -124,17 +113,17 @@ class MarketplacePayloadMapperTest {
     TallyMeasurement physicalCoreMeasurement =
         new TallyMeasurement()
             .withHardwareMeasurementType("PHYSICAL")
-            .withUom(TallyMeasurement.Uom.CORES)
+            .withUom(Uom.CORES)
             .withValue(value);
     TallyMeasurement totalCoreMeasurment =
         new TallyMeasurement()
             .withHardwareMeasurementType("TOTAL")
-            .withUom(TallyMeasurement.Uom.CORES)
+            .withUom(Uom.CORES)
             .withValue(value);
     TallyMeasurement virtualCoreMeasurment =
         new TallyMeasurement()
             .withHardwareMeasurementType("VIRTUAL")
-            .withUom(TallyMeasurement.Uom.CORES)
+            .withUom(Uom.CORES)
             .withValue(value);
 
     UsageMeasurement usageMeasurement =
@@ -146,35 +135,32 @@ class MarketplacePayloadMapperTest {
 
     Arguments physical =
         Arguments.of(
-            ProductId.OPENSHIFT_METRICS,
-            List.of(physicalCoreMeasurement),
-            List.of(usageMeasurement));
+            OPENSHIFT_METRICS, List.of(physicalCoreMeasurement), List.of(usageMeasurement));
     Arguments virtual =
-        Arguments.of(
-            ProductId.OPENSHIFT_METRICS, List.of(virtualCoreMeasurment), List.of(usageMeasurement));
+        Arguments.of(OPENSHIFT_METRICS, List.of(virtualCoreMeasurment), List.of(usageMeasurement));
     Arguments physicalTotal =
         Arguments.of(
-            ProductId.OPENSHIFT_METRICS,
+            OPENSHIFT_METRICS,
             List.of(physicalCoreMeasurement, totalCoreMeasurment),
             List.of(usageMeasurement));
     Arguments virtualTotal =
         Arguments.of(
-            ProductId.OPENSHIFT_METRICS,
+            OPENSHIFT_METRICS,
             List.of(virtualCoreMeasurment, totalCoreMeasurment),
             List.of(usageMeasurement));
     Arguments physicalVirtual =
         Arguments.of(
-            ProductId.OPENSHIFT_METRICS,
+            OPENSHIFT_METRICS,
             List.of(physicalCoreMeasurement, virtualCoreMeasurment),
             List.of(usageMeasurement, usageMeasurement));
     Arguments physicalVirtualTotal =
         Arguments.of(
-            ProductId.OPENSHIFT_METRICS,
+            OPENSHIFT_METRICS,
             List.of(physicalCoreMeasurement, virtualCoreMeasurment, totalCoreMeasurment),
             List.of(usageMeasurement, usageMeasurement));
     Arguments physicalOsd =
         Arguments.of(
-            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            OPENSHIFT_DEDICATED_METRICS,
             List.of(physicalCoreMeasurement),
             List.of(divideByFourMeasurement));
     return Stream.of(
@@ -200,54 +186,54 @@ class MarketplacePayloadMapperTest {
         Arguments.of(
             new TallySnapshot()
                 .withProductId("OpenShift-metrics")
-                .withUsage(TallySnapshot.Usage.PRODUCTION)
-                .withSla(TallySnapshot.Sla.PREMIUM)
-                .withGranularity(TallySnapshot.Granularity.HOURLY),
+                .withUsage(Usage.PRODUCTION)
+                .withSla(Sla.PREMIUM)
+                .withGranularity(HOURLY),
             true);
 
     Arguments notEligibleBecauseSla =
         Arguments.of(
             new TallySnapshot()
                 .withProductId("OpenShift-metrics")
-                .withUsage(TallySnapshot.Usage.PRODUCTION)
-                .withSla(TallySnapshot.Sla.ANY)
-                .withGranularity(TallySnapshot.Granularity.HOURLY),
+                .withUsage(Usage.PRODUCTION)
+                .withSla(Sla.ANY)
+                .withGranularity(HOURLY),
             false);
 
     Arguments notEligibleBecauseGranularity =
         Arguments.of(
             new TallySnapshot()
                 .withProductId("OpenShift-metrics")
-                .withUsage(TallySnapshot.Usage.PRODUCTION)
-                .withSla(TallySnapshot.Sla.PREMIUM)
-                .withGranularity(TallySnapshot.Granularity.DAILY),
+                .withUsage(Usage.PRODUCTION)
+                .withSla(Sla.PREMIUM)
+                .withGranularity(DAILY),
             false);
 
     Arguments notElgibleBecauseUsage =
         Arguments.of(
             new TallySnapshot()
                 .withProductId("OpenShift-metrics")
-                .withUsage(TallySnapshot.Usage.ANY)
-                .withSla(TallySnapshot.Sla.PREMIUM)
-                .withGranularity(TallySnapshot.Granularity.HOURLY),
+                .withUsage(Usage.ANY)
+                .withSla(Sla.PREMIUM)
+                .withGranularity(HOURLY),
             false);
 
     Arguments eligbileOpenShiftDedicatedMetrics =
         Arguments.of(
             new TallySnapshot()
                 .withProductId("OpenShift-dedicated-metrics")
-                .withUsage(TallySnapshot.Usage.PRODUCTION)
-                .withSla(TallySnapshot.Sla.PREMIUM)
-                .withGranularity(TallySnapshot.Granularity.HOURLY),
+                .withUsage(Usage.PRODUCTION)
+                .withSla(Sla.PREMIUM)
+                .withGranularity(HOURLY),
             true);
 
     Arguments notEligibleBecauseProductId =
         Arguments.of(
             new TallySnapshot()
                 .withProductId("RHEL")
-                .withUsage(TallySnapshot.Usage.PRODUCTION)
-                .withSla(TallySnapshot.Sla.PREMIUM)
-                .withGranularity(TallySnapshot.Granularity.HOURLY),
+                .withUsage(Usage.PRODUCTION)
+                .withSla(Sla.PREMIUM)
+                .withGranularity(HOURLY),
             false);
 
     return Stream.of(
@@ -264,7 +250,7 @@ class MarketplacePayloadMapperTest {
     TallyMeasurement physicalCoreMeasurement =
         new TallyMeasurement()
             .withHardwareMeasurementType("PHYSICAL")
-            .withUom(TallyMeasurement.Uom.CORES)
+            .withUom(Uom.CORES)
             .withValue(36.0);
 
     when(mockProvider.findSubscriptionId(
@@ -284,10 +270,10 @@ class MarketplacePayloadMapperTest {
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
-            .withUsage(TallySnapshot.Usage.PRODUCTION)
+            .withUsage(Usage.PRODUCTION)
             .withTallyMeasurements(List.of(physicalCoreMeasurement))
-            .withSla(TallySnapshot.Sla.PREMIUM)
-            .withGranularity(TallySnapshot.Granularity.HOURLY);
+            .withSla(Sla.PREMIUM)
+            .withGranularity(HOURLY);
 
     String account = "test123";
     String orgId = "org123";
