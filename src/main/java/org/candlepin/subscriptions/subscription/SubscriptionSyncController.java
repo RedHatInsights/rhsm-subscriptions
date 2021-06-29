@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.subscription;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -88,17 +89,25 @@ public class SubscriptionSyncController {
     }
   }
 
-  protected void updateSubscription(
-      Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
-    if (dto.getEffectiveEndDate() != null) {
-      entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
-    }
-  }
-
   @Transactional
   public void syncSubscription(String subscriptionId) {
     Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
     syncSubscription(subscription);
+  }
+
+  @Transactional
+  public void syncSubscriptions(String orgId, String offset, Long limit){
+    int index = Integer.parseInt(offset);
+    int pageSize = Math.toIntExact(limit+1);
+    boolean hasMore = false;
+    List<Subscription> subscriptions = subscriptionService
+            .getSubscriptionsByOrgId(orgId, index, pageSize);
+    if(subscriptions.size() == limit+1)
+      hasMore = true;
+    subscriptions.forEach(this::syncSubscription);
+    if(hasMore){
+      
+    }
   }
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
@@ -114,4 +123,12 @@ public class SubscriptionSyncController {
         .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
         .build();
   }
+
+  protected void updateSubscription(
+          Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
+    if (dto.getEffectiveEndDate() != null) {
+      entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
+    }
+  }
+
 }

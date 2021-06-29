@@ -115,4 +115,8 @@ public class CapacityReconciliationController {
     }
     capacityRecordsDeleted.increment(toDelete.size());
   }
+
+  void reconcileCapacityForSubscriptionId(String subscriptionId){
+
+  }
 }
