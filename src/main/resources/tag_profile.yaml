@@ -1,3 +1,11 @@
+# Tags describe the categories that a particular offering should be placed in.  For example, a
+# customer who has a system with engineering product ID 68 (RHEL Desktop) should have that system
+# categorized as "RHEL" and as "RHEL Desktop".  Multiple attributes can affect which tag is applied.
+
+# The tagMappings section defines how tags relate to system attributes.  Each tagMapping has a
+# value, a value type, and the tags it is associate with.  For example, a system with architecture
+# "arm64" would get the "RHEL for ARM" tag.  The value is "arm64", the value type is "architecture",
+# and the tag is "RHEL for ARM".
 tagMappings:
   # OpenShift engineering product IDs
   - value: 290 # Red Hat OpenShift Container Platform
@@ -25,6 +33,10 @@ tagMappings:
     tags:
       - OpenShift-metrics
 
+# Individual tags can be measured in different ways.  The tagMetrics section defines these
+# measurements.  A tag will, at minimum, have a "uom" attribute (unit of measure) that defines the
+# units being tracked (e.g. cores).  Tags that rely on pulling information from Prometheus will have
+# additional information that defines the Prometheus metric being used, the metric ID, etc.
 tagMetrics:
   # OCP metrics
   - tag: OpenShift-metrics
@@ -45,6 +57,10 @@ tagMetrics:
     prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
     prometheusMetadataMetric: subscription_labels
 
+# The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
+# tags need to have their finest granularity defined so that we can create accurate snapshots.  A
+# tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata
+# can also be applied here in a key-value fashion.
 tagMetaData:
   - tags:
       - OpenShift Container Platform
