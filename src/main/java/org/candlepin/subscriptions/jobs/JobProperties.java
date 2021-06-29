@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,39 +20,29 @@
  */
 package org.candlepin.subscriptions.jobs;
 
-/**
- * Contains the configuration properties for all jobs.
- */
+import lombok.Getter;
+import lombok.Setter;
+
+/** Contains the configuration properties for all jobs. */
+@Getter
+@Setter
 public class JobProperties {
+  // Every hour on the hour
+  private String captureHourlySnapshotSchedule = "0 0 * * * ?";
 
-    private String captureSnapshotSchedule = "0 5 * * * ?";
-    // Once a day at 3am
-    private String purgeSnapshotSchedule = "0 0 3 * * ?";
+  private String captureSnapshotSchedule = "0 5 * * * ?";
 
-    private String meteringSchedule = "0 0 * ? * *"; // Every hour, on the hour.
+  // Once a day at 3am
+  private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
-    public String getCaptureSnapshotSchedule() {
-        return captureSnapshotSchedule;
-    }
+  // Every hour, on the hour
+  private String meteringSchedule = "0 0 * * * ?";
 
-    public void setCaptureSnapshotSchedule(String captureSnapshotSchedule) {
-        this.captureSnapshotSchedule = captureSnapshotSchedule;
-    }
+  public String getCaptureHourlySnapshotSchedule() {
+    return captureHourlySnapshotSchedule;
+  }
 
-    public String getPurgeSnapshotSchedule() {
-        return purgeSnapshotSchedule;
-    }
-
-    public void setPurgeSnapshotSchedule(String purgeSnapshotSchedule) {
-        this.purgeSnapshotSchedule = purgeSnapshotSchedule;
-    }
-
-    public String getMeteringSchedule() {
-        return meteringSchedule;
-    }
-
-    public void setMeteringSchedule(String meteringSchedule) {
-        this.meteringSchedule = meteringSchedule;
-    }
-
+  public void setCaptureHourlySnapshotSchedule(String captureHourlySnapshotSchedule) {
+    this.captureHourlySnapshotSchedule = captureHourlySnapshotSchedule;
+  }
 }

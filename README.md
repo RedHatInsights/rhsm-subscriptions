@@ -65,11 +65,20 @@ We have a number of profiles. Each profile activates a subset of components in t
 
 - `api`: Run the user-facing API
 - `capacity-ingress`: Run the internal only capacity ingress API
-- `purge-snapshots`: Run the retention job and exit
+- `capture-hourly-snapshots`: Run the tally job for hourly snapshots
 - `capture-snapshots`: Run the tally job and exit
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
-- `rhsm-conduit`: Run the worker for syncing systems between Hosted Candlepin and HBI
-- `marketplace`: Run the worker responsible for processing tally summaries and emitting usage to Marketplace.
+- `liquibase-only`: Run the Liquibase migrations and stop
+- `marketplace`: Run the worker responsible for processing tally summaries and
+  emitting usage to Marketplace.
+- `metering-jmx`: Expose the JMX bean to create metering jobs
+- `metering-job`: Create metering jobs and place them on the job queue
+- `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
+- `orgsync`:
+- `purge-snapshots`: Run the retention job and exit
+- `rhsm-conduit`: Run the worker for syncing systems between Hosted Candlepin
+  and HBI
+- `worker`: Process jobs off the job queue
 
 These can be specified most easily via the `SPRING_PROFILES_ACTIVE` environment variable. For example:
 
@@ -208,7 +217,7 @@ oc process -f templates/rhsm-subscriptions-worker.yml | oc create -f -
 
 ## Release Notes
 
-You can perform a release using `./gradlew release` **on the master
+You can perform a release using `./gradlew release` **on the develop
 branch**. This command will invoke a
 [plugin](https://github.com/researchgate/gradle-release) that will bump
 the version numbers and create a release tag. When you run the command,
@@ -216,16 +225,50 @@ it will ask for input. You can specify all the arguments on the CLI if
 necessary (e.g. doing a release via a CI environment). When asked for
 "This release version" specify the current version **without** the
 "-SNAPSHOT". When asked for the next version number enter the
-appropriate value prefixed **with** "-SNAPSHOT". The plugin should offer
-sane defaults that you can use.
-
-For example. If we are working on `1.0.0-SNAPSHOT`, you would answer the
-first question with `1.0.0` and the second question with
-`1.0.1-SNAPSHOT`.
+appropriate value prefixed **with** "-SNAPSHOT". Since we are not
+doing semantic versioning, simply accept the defaults.
 
 The plugin will create the tag and bump the version. You just need to
-push with `git push --follow-tags origin master`.
+push with `git push --follow-tags origin develop main`.
 
 ## Kafka
 
-See the detailed notes [here](README-kafka.md)
+`podman-compose` deploys a kafka instance w/ a UI at http://localhost:3030
+
+Two environment variables can be used to manipulate the offsets of the kafka
+consumers:
+
+- `KAFKA_SEEK_OVERRIDE_END` when set to `true` seeks to the very end
+- `KAFKA_SEEK_OVERRIDE_TIMESTAMP` when set to an OffsetDateTime, seeks the
+  queue to this position.
+
+These changes are permanent, committed the next time the kafka consumer is detected
+as idle.
+
+## Dashboard
+
+See App-SRE documentation on updating dashboards for more info.
+
+Essentially:
+
+1. Edit the dashboard on the stage grafana instance.
+2. Export the dashboard, choosing to "export for sharing externally", save JSON to a file.
+3. Rename the file to `subscription-watch-dashboard.json`.
+
+Use the following command to update the configmap YAML:
+
+```
+oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run > dashboards/grafana-dashboard-subscription-watch.configmap.yaml
+cat << EOF >> dashboards/grafana-dashboard-subscription-watch.configmap.yaml
+  annotations:
+    grafana-folder: /grafana-dashboard-definitions/Insights
+  labels:
+    grafana_dashboard: "true"
+EOF
+```
+
+Possibly useful, to extract the JSON from the k8s configmap file:
+
+```
+oc convert -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml -o go-template --template='{{ index .data "subscription-watch.json" }}' > subscription-watch.json
+```

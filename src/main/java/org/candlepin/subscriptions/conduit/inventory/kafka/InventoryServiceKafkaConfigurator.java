@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -31,32 +31,30 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 /**
- * Encapsulates the creation of all components required for producing Kafka
- * messages for the inventory service.
+ * Encapsulates the creation of all components required for producing Kafka messages for the
+ * inventory service.
  */
 @Component
 public class InventoryServiceKafkaConfigurator {
 
-    public DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> defaultProducerFactory(
-        KafkaProperties kafkaProperties, ObjectMapper mapper) {
-        Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
-        producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+  public DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> defaultProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper mapper) {
+    Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
+    producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
-        DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =
-            new DefaultKafkaProducerFactory<>(producerConfig);
-        // Because inventory requires us to not sent JSON fields that have null values,
-        // we need to customize the ObjectMapper used by spring-kafka. There is no way to customize
-        // it via configuration properties, so we use the custom one that is configured for the
-        // application that is created via the ApplicationConfiguration.
-        factory.setValueSerializer(new JsonSerializer<>(mapper));
-        return factory;
-    }
+    DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =
+        new DefaultKafkaProducerFactory<>(producerConfig);
+    // Because inventory requires us to not sent JSON fields that have null values,
+    // we need to customize the ObjectMapper used by spring-kafka. There is no way to customize
+    // it via configuration properties, so we use the custom one that is configured for the
+    // application that is created via the ApplicationConfiguration.
+    factory.setValueSerializer(new JsonSerializer<>(mapper));
+    return factory;
+  }
 
-    public KafkaTemplate<String, CreateUpdateHostMessage> taskMessageKafkaTemplate(
-        ProducerFactory<String, CreateUpdateHostMessage> factory) {
-        return new KafkaTemplate<>(factory);
-    }
+  public KafkaTemplate<String, CreateUpdateHostMessage> taskMessageKafkaTemplate(
+      ProducerFactory<String, CreateUpdateHostMessage> factory) {
+    return new KafkaTemplate<>(factory);
+  }
 }

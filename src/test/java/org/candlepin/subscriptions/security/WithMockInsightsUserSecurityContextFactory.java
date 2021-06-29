@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.security;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,31 +30,28 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithSecurityContextFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+public class WithMockInsightsUserSecurityContextFactory
+    implements WithSecurityContextFactory<WithMockRedHatPrincipal> {
 
-public class WithMockInsightsUserSecurityContextFactory implements
-    WithSecurityContextFactory<WithMockRedHatPrincipal> {
+  @Override
+  public SecurityContext createSecurityContext(WithMockRedHatPrincipal annotation) {
+    SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-    @Override
-    public SecurityContext createSecurityContext(WithMockRedHatPrincipal annotation) {
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
+    String account =
+        annotation.nullifyAccount() ? null : String.format("account%s", annotation.value());
+    String ownerId =
+        annotation.nullifyOwner() ? null : String.format("owner%s", annotation.value());
 
-        String account = annotation.nullifyAccount() ? null : String.format("account%s", annotation.value());
-        String ownerId = annotation.nullifyOwner() ? null : String.format("owner%s", annotation.value());
+    InsightsUserPrincipal principal = new InsightsUserPrincipal(ownerId, account);
 
-        InsightsUserPrincipal principal = new InsightsUserPrincipal(ownerId, account);
-
-        List<SimpleGrantedAuthority> authorities = Arrays.stream(annotation.roles())
+    List<SimpleGrantedAuthority> authorities =
+        Arrays.stream(annotation.roles())
             .map(SimpleGrantedAuthority::new)
             .collect(Collectors.toList());
 
-        Authentication auth =
-            new UsernamePasswordAuthenticationToken(principal, null, authorities);
-        context.setAuthentication(auth);
+    Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+    context.setAuthentication(auth);
 
-        return context;
-    }
-
+    return context;
+  }
 }

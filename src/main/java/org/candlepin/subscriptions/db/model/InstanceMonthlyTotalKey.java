@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,44 +20,38 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.json.Measurement;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-
 import javax.persistence.Embeddable;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.candlepin.subscriptions.json.Measurement;
 
-/**
- * Key for instance monthly totals
- */
+/** Key for instance monthly totals */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Embeddable
 public class InstanceMonthlyTotalKey implements Serializable {
-    private static final DateTimeFormatter MONTH_ID_FORMATTER = DateTimeFormatter.ofPattern("uuuu-MM");
+  private static final DateTimeFormatter MONTH_ID_FORMATTER =
+      DateTimeFormatter.ofPattern("uuuu-MM");
 
-    /**
-     * month in YYYY-MM format
-     */
-    private String month;
+  /** month in YYYY-MM format */
+  private String month;
 
-    @Enumerated(EnumType.STRING)
-    private Measurement.Uom uom;
+  @Enumerated(EnumType.STRING)
+  private Measurement.Uom uom;
 
-    public static String formatMonthId(OffsetDateTime reference) {
-        return reference.format(MONTH_ID_FORMATTER);
-    }
+  public static String formatMonthId(OffsetDateTime reference) {
+    return reference.format(MONTH_ID_FORMATTER);
+  }
 
-    public InstanceMonthlyTotalKey(OffsetDateTime reference, Measurement.Uom uom) {
-        this.month = formatMonthId(reference);
-        this.uom = uom;
-    }
+  public InstanceMonthlyTotalKey(OffsetDateTime reference, Measurement.Uom uom) {
+    this.month = formatMonthId(reference);
+    this.uom = uom;
+  }
 }

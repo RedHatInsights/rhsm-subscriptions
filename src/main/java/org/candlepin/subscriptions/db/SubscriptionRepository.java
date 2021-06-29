@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,46 +20,52 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.tally.UsageCalculation;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-/**
- * Repository for Subscription Entities
- */
-public interface SubscriptionRepository extends JpaRepository<Subscription,
-    Subscription.SubscriptionCompoundId> {
+/** Repository for Subscription Entities */
+public interface SubscriptionRepository
+    extends JpaRepository<Subscription, Subscription.SubscriptionCompoundId> {
 
-    /**
-     * Object a set of subscriptions
-     * @param ownerId the ownerId of the subscriptions
-     * @param subscriptionIds the list of subscriptionIds to filter on
-     * @return a list of subscriptions with the specified ownerId and a subscriptionId from the provided list
-     */
-    @Query("SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP " +
-        "AND s.ownerId = :ownerId AND s.subscriptionId IN :subscriptionIds")
-    List<Subscription> findActiveByOwnerIdAndSubscriptionIdIn(@Param("ownerId") String ownerId,
-        @Param("subscriptionIds") List<String> subscriptionIds);
+  /**
+   * Object a set of subscriptions
+   *
+   * @param ownerId the ownerId of the subscriptions
+   * @param subscriptionIds the list of subscriptionIds to filter on
+   * @return a list of subscriptions with the specified ownerId and a subscriptionId from the
+   *     provided list
+   */
+  @Query(
+      "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
+          + "AND s.ownerId = :ownerId AND s.subscriptionId IN :subscriptionIds")
+  List<Subscription> findActiveByOwnerIdAndSubscriptionIdIn(
+      @Param("ownerId") String ownerId, @Param("subscriptionIds") List<String> subscriptionIds);
 
-    @Query("SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP " +
-        "AND s.subscriptionId = :subscriptionId")
-    Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
+  @Query(
+      "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
+          + "AND s.subscriptionId = :subscriptionId")
+  Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
-    @Query("SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND " +
-        "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE " + ":#{#key.usage} = o.usage AND " +
-        ":#{#key.sla} = o.serviceLevel AND " +
-        "o.role IN :#{#roles}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND " +
-        "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> ''")
-    List<Subscription> findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-        @Param("accountNumber") String accountNumber, @Param("key") UsageCalculation.Key usageKey,
-        @Param("roles") Set<String> roles, @Param("rangeStart") OffsetDateTime rangeStart,
-        @Param("rangeEnd") OffsetDateTime rangeEnd);
+  @Query(
+      "SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND "
+          + "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE "
+          + ":#{#key.usage} = o.usage AND "
+          + ":#{#key.sla} = o.serviceLevel AND "
+          + "o.role IN :#{#roles}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND "
+          + "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> '' "
+          + "ORDER BY s.startDate DESC")
+  List<Subscription>
+      findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
+          @Param("accountNumber") String accountNumber,
+          @Param("key") UsageCalculation.Key usageKey,
+          @Param("roles") Set<String> roles,
+          @Param("rangeStart") OffsetDateTime rangeStart,
+          @Param("rangeEnd") OffsetDateTime rangeEnd);
 }

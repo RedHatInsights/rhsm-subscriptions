@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,5 +24,5 @@ package org.candlepin.subscriptions.task;
  * Interface for a component which is able to transform a TaskDescriptor into an executable Task.
  */
 public interface TaskFactory {
-    Task build(TaskDescriptor taskDescriptor);
+  Task build(TaskDescriptor taskDescriptor);
 }

@@ -82,6 +82,7 @@ properties:
             - Cores
             - Sockets
             - Core-seconds
+            - Instance-hours
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.

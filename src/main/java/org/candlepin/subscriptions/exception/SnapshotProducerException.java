@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,10 @@
  */
 package org.candlepin.subscriptions.exception;
 
-/**
- * An exception thrown when an error occurs during snapshot production.
- */
+/** An exception thrown when an error occurs during snapshot production. */
 public class SnapshotProducerException extends RuntimeException {
 
-    public SnapshotProducerException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public SnapshotProducerException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

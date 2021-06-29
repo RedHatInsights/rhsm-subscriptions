@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,43 +22,39 @@ package org.candlepin.subscriptions.marketplace;
 
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
-/**
- * Factory that produces marketplace API clients.
- */
+/** Factory that produces marketplace API clients. */
 public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
 
-    private static Logger log = LoggerFactory.getLogger(MarketplaceApiFactory.class);
+  private static Logger log = LoggerFactory.getLogger(MarketplaceApiFactory.class);
 
-    private final MarketplaceProperties serviceProperties;
+  private final MarketplaceProperties serviceProperties;
 
-    public MarketplaceApiFactory(MarketplaceProperties serviceProperties) {
-        this.serviceProperties = serviceProperties;
+  public MarketplaceApiFactory(MarketplaceProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
+  @Override
+  public MarketplaceApi getObject() throws Exception {
+    ApiClient apiClient = new ApiClient();
+    apiClient.setHttpClient(
+        HttpClient.buildHttpClient(
+            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
+    if (serviceProperties.getUrl() != null) {
+      log.info("Marketplace service URL: {}", serviceProperties.getUrl());
+      apiClient.setBasePath(serviceProperties.getUrl());
+    } else {
+      log.warn("Marketplace service URL not set...");
     }
 
-    @Override
-    public MarketplaceApi getObject() throws Exception {
-        ApiClient apiClient = new ApiClient();
-        apiClient.setHttpClient(HttpClient.buildHttpClient(serviceProperties, apiClient.getJSON(),
-            apiClient.isDebugging()));
-        if (serviceProperties.getUrl() != null) {
-            log.info("Marketplace service URL: {}", serviceProperties.getUrl());
-            apiClient.setBasePath(serviceProperties.getUrl());
-        }
-        else {
-            log.warn("Marketplace service URL not set...");
-        }
+    return new MarketplaceApi(apiClient);
+  }
 
-        return new MarketplaceApi(apiClient);
-    }
-
-    @Override
-    public Class<?> getObjectType() {
-        return MarketplaceApi.class;
-    }
-
+  @Override
+  public Class<?> getObjectType() {
+    return MarketplaceApi.class;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,34 +20,22 @@
  */
 package org.candlepin.subscriptions.user;
 
+import java.time.Duration;
+import lombok.Data;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
-import lombok.Data;
-
-import java.time.Duration;
-
-/**
- * Properties for interacting with the RH IT User service.
- */
+/** Properties for interacting with the RH IT User service. */
 @Data
 public class UserServiceProperties extends HttpClientProperties {
-    /**
-     * How many attempts before giving up.
-     */
-    private Integer maxAttempts;
+  /** How many attempts before giving up. */
+  private Integer maxAttempts;
 
-    /**
-     * Retry backoff interval.
-     */
-    private Duration backOffInitialInterval;
+  /** Retry backoff interval. */
+  private Duration backOffInitialInterval;
 
-    /**
-     * Retry backoff interval.
-     */
-    private Duration backOffMaxInterval;
+  /** Retry backoff interval. */
+  private Duration backOffMaxInterval;
 
-    /**
-     * Retry exponential backoff multiplier.
-     */
-    private Double backOffMultiplier;
+  /** Retry exponential backoff multiplier. */
+  private Double backOffMultiplier;
 }

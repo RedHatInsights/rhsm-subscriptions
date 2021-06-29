@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.db;
 
+import com.zaxxer.hikari.HikariDataSource;
+import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.tally.files.FileAccountSyncListSource;
 import org.candlepin.subscriptions.tally.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
-import com.zaxxer.hikari.HikariDataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -43,12 +43,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
-
-/**
- * A class to hold the inventory data source configuration.
- */
+/** A class to hold the inventory data source configuration. */
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
@@ -58,54 +53,55 @@ import javax.sql.DataSource;
 @ComponentScan(basePackages = "org.candlepin.subscriptions.db")
 public class RhsmSubscriptionsDataSourceConfiguration {
 
-    @Bean
-    @Validated
-    @Primary
-    @ConfigurationProperties("rhsm-subscriptions.datasource")
-    public DataSourceProperties rhsmDataSourceProperties() {
-        return new DataSourceProperties();
+  @Bean
+  @Validated
+  @Primary
+  @ConfigurationProperties("rhsm-subscriptions.datasource")
+  public DataSourceProperties rhsmDataSourceProperties() {
+    return new DataSourceProperties();
+  }
+
+  @Bean(name = "rhsmSubscriptionsDataSource")
+  @ConfigurationProperties("rhsm-subscriptions.datasource.hikari")
+  @Primary
+  public HikariDataSource rhsmSubscriptionsDataSource(
+      @Qualifier("rhsmDataSourceProperties") DataSourceProperties rhsmDataSourceProperties) {
+
+    return (HikariDataSource) rhsmDataSourceProperties.initializeDataSourceBuilder().build();
+  }
+
+  @Bean(name = "rhsmSubscriptionsEntityManagerFactory")
+  @Primary
+  public LocalContainerEntityManagerFactoryBean rhsmSubscriptionsEntityManagerFactory(
+      EntityManagerFactoryBuilder builder,
+      @Qualifier("rhsmSubscriptionsDataSource") DataSource dataSource) {
+    return builder
+        .dataSource(dataSource)
+        .packages("org.candlepin.subscriptions.db.model")
+        .persistenceUnit("rhsm-subscriptions")
+        .build();
+  }
+
+  @Bean(name = "rhsmSubscriptionsTransactionManager")
+  @Primary
+  public PlatformTransactionManager rhsmSubscriptionsTransactionManager(
+      @Qualifier("rhsmSubscriptionsEntityManagerFactory")
+          EntityManagerFactory entityManagerFactory) {
+    return new JpaTransactionManager(entityManagerFactory);
+  }
+
+  @Bean
+  public AccountListSource accountListSource(
+      ApplicationProperties applicationProperties,
+      AccountConfigRepository accountConfigRepository,
+      ApplicationClock clock) {
+
+    if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
+      return new FileAccountListSource(
+          new FileAccountSyncListSource(applicationProperties, clock),
+          new ReportingAccountWhitelist(applicationProperties, clock));
+    } else {
+      return new DatabaseAccountListSource(accountConfigRepository);
     }
-
-    @Bean(name = "rhsmSubscriptionsDataSource")
-    @ConfigurationProperties("rhsm-subscriptions.datasource.hikari")
-    @Primary
-    public HikariDataSource rhsmSubscriptionsDataSource(
-        @Qualifier("rhsmDataSourceProperties") DataSourceProperties rhsmDataSourceProperties) {
-
-        return (HikariDataSource) rhsmDataSourceProperties.initializeDataSourceBuilder().build();
-    }
-
-    @Bean(name = "rhsmSubscriptionsEntityManagerFactory")
-    @Primary
-    public LocalContainerEntityManagerFactoryBean rhsmSubscriptionsEntityManagerFactory(
-        EntityManagerFactoryBuilder builder,
-        @Qualifier("rhsmSubscriptionsDataSource") DataSource dataSource) {
-        return builder
-                   .dataSource(dataSource)
-                   .packages("org.candlepin.subscriptions.db.model")
-                   .persistenceUnit("rhsm-subscriptions")
-                   .build();
-    }
-
-    @Bean(name = "rhsmSubscriptionsTransactionManager")
-    @Primary
-    public PlatformTransactionManager rhsmSubscriptionsTransactionManager(
-        @Qualifier("rhsmSubscriptionsEntityManagerFactory") EntityManagerFactory entityManagerFactory) {
-        return new JpaTransactionManager(entityManagerFactory);
-    }
-
-    @Bean
-    public AccountListSource accountListSource(ApplicationProperties applicationProperties,
-        AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
-
-        if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
-            return new FileAccountListSource(
-                    new FileAccountSyncListSource(applicationProperties, clock),
-                    new ReportingAccountWhitelist(applicationProperties, clock)
-            );
-        }
-        else {
-            return new DatabaseAccountListSource(accountConfigRepository);
-        }
-    }
+  }
 }

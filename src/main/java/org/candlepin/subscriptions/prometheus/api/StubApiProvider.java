@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,32 +23,28 @@ package org.candlepin.subscriptions.prometheus.api;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 
-
-/**
- * A prometheus Query API provider that returns stubbed data.
- */
+/** A prometheus Query API provider that returns stubbed data. */
 public class StubApiProvider implements ApiProvider {
 
-    private QueryApi queryApi;
-    private QueryRangeApi rangeApi;
+  private QueryApi queryApi;
+  private QueryRangeApi rangeApi;
 
-    public StubApiProvider() {
-        this(new StubQueryApi(), new StubQueryRangeApi());
-    }
+  public StubApiProvider() {
+    this(new StubQueryApi(), new StubQueryRangeApi());
+  }
 
-    public StubApiProvider(QueryApi queryApi, QueryRangeApi rangeApi) {
-        this.queryApi = queryApi;
-        this.rangeApi = rangeApi;
-    }
+  public StubApiProvider(QueryApi queryApi, QueryRangeApi rangeApi) {
+    this.queryApi = queryApi;
+    this.rangeApi = rangeApi;
+  }
 
-    @Override
-    public QueryApi queryApi() {
-        return this.queryApi;
-    }
+  @Override
+  public QueryApi queryApi() {
+    return this.queryApi;
+  }
 
-    @Override
-    public QueryRangeApi queryRangeApi() {
-        return this.rangeApi;
-    }
-
+  @Override
+  public QueryRangeApi queryRangeApi() {
+    return this.rangeApi;
+  }
 }

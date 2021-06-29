@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,12 +22,15 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -37,89 +40,82 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
 public class OrgConfigRepositoryTest {
 
-    @Autowired
-    private OrgConfigRepository repository;
-    private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  @Autowired private OrgConfigRepository repository;
+  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
-    @BeforeAll
-    void cleanUpDatabase() {
-        repository.deleteAll();
-    }
+  @BeforeAll
+  void cleanUpDatabase() {
+    repository.deleteAll();
+  }
 
-    @Test
-    public void saveAndUpdate() {
-        OffsetDateTime creation = clock.now();
-        OffsetDateTime expectedUpdate = creation.plusDays(1);
+  @Test
+  public void saveAndUpdate() {
+    OffsetDateTime creation = clock.now();
+    OffsetDateTime expectedUpdate = creation.plusDays(1);
 
-        String org = "test-org";
-        OrgConfig config = new OrgConfig(org);
-        config.setOptInType(OptInType.JMX);
-        config.setSyncEnabled(true);
-        config.setCreated(creation);
-        config.setUpdated(expectedUpdate);
+    String org = "test-org";
+    OrgConfig config = new OrgConfig(org);
+    config.setOptInType(OptInType.JMX);
+    config.setSyncEnabled(true);
+    config.setCreated(creation);
+    config.setUpdated(expectedUpdate);
 
-        repository.saveAndFlush(config);
+    repository.saveAndFlush(config);
 
-        OrgConfig found = repository.getOne(org);
-        assertNotNull(found);
-        assertEquals(config, found);
+    OrgConfig found = repository.getOne(org);
+    assertNotNull(found);
+    assertEquals(config, found);
 
-        found.setSyncEnabled(false);
-        found.setOptInType(OptInType.API);
-        repository.saveAndFlush(found);
+    found.setSyncEnabled(false);
+    found.setOptInType(OptInType.API);
+    repository.saveAndFlush(found);
 
-        OrgConfig updated = repository.getOne(org);
-        assertNotNull(updated);
-        assertEquals(Boolean.FALSE, updated.getSyncEnabled());
-        assertEquals(OptInType.API, updated.getOptInType());
-    }
+    OrgConfig updated = repository.getOne(org);
+    assertNotNull(updated);
+    assertEquals(Boolean.FALSE, updated.getSyncEnabled());
+    assertEquals(OptInType.API, updated.getOptInType());
+  }
 
-    @Test
-    public void testDelete() {
-        OrgConfig config = createConfig("an-org", true);
-        repository.saveAndFlush(config);
+  @Test
+  public void testDelete() {
+    OrgConfig config = createConfig("an-org", true);
+    repository.saveAndFlush(config);
 
-        OrgConfig toDelete = repository.getOne(config.getOrgId());
-        assertNotNull(toDelete);
-        repository.delete(toDelete);
-        repository.flush();
+    OrgConfig toDelete = repository.getOne(config.getOrgId());
+    assertNotNull(toDelete);
+    repository.delete(toDelete);
+    repository.flush();
 
-        assertTrue(repository.findById(config.getOrgId()).isEmpty());
-    }
+    assertTrue(repository.findById(config.getOrgId()).isEmpty());
+  }
 
-    @Test
-    public void testFindOrgsWithEnabledSync() {
-        repository.saveAll(Arrays.asList(
+  @Test
+  public void testFindOrgsWithEnabledSync() {
+    repository.saveAll(
+        Arrays.asList(
             createConfig("A1", true),
             createConfig("A2", true),
             createConfig("A3", false),
-            createConfig("A4", false)
-        ));
-        repository.flush();
+            createConfig("A4", false)));
+    repository.flush();
 
-        List<String> orgsWithSync = repository.findSyncEnabledOrgs().collect(Collectors.toList());
-        assertEquals(2, orgsWithSync.size());
-        assertTrue(orgsWithSync.containsAll(Arrays.asList("A1", "A2")));
-    }
+    List<String> orgsWithSync = repository.findSyncEnabledOrgs().collect(Collectors.toList());
+    assertEquals(2, orgsWithSync.size());
+    assertTrue(orgsWithSync.containsAll(Arrays.asList("A1", "A2")));
+  }
 
-    private OrgConfig createConfig(String org, boolean canSync) {
-        OrgConfig config = new OrgConfig(org);
-        config.setOptInType(OptInType.API);
-        config.setSyncEnabled(canSync);
-        config.setCreated(clock.now());
-        config.setUpdated(config.getCreated().plusDays(1));
-        return config;
-    }
-
+  private OrgConfig createConfig(String org, boolean canSync) {
+    OrgConfig config = new OrgConfig(org);
+    config.setOptInType(OptInType.API);
+    config.setSyncEnabled(canSync);
+    config.setCreated(clock.now());
+    config.setUpdated(config.getCreated().plusDays(1));
+    return config;
+  }
 }

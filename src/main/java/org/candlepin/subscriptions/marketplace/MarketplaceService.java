@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,67 +20,63 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import io.micrometer.core.annotation.Timed;
+import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.marketplace.api.model.AuthGrantType;
 import org.candlepin.subscriptions.marketplace.api.model.AuthResponse;
 import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
 import org.candlepin.subscriptions.marketplace.auth.HttpBearerAuth;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import io.micrometer.core.annotation.Timed;
-
-import java.time.OffsetDateTime;
-
-/**
- * Encapsulates auth-related aspects of interacting with the Marketplace API.
- */
+/** Encapsulates auth-related aspects of interacting with the Marketplace API. */
 @Component
 public class MarketplaceService {
 
-    private final MarketplaceApi api;
-    private final String apiKey;
-    private final long tokenRefreshPeriodMs;
-    private String accessToken;
-    private long tokenRefreshCutoff;
+  private final MarketplaceApi api;
+  private final String apiKey;
+  private final long tokenRefreshPeriodMs;
+  private String accessToken;
+  private long tokenRefreshCutoff;
 
-    @Autowired
-    public MarketplaceService(MarketplaceProperties properties, MarketplaceApi api) {
-        this.api = api;
-        this.apiKey = properties.getApiKey();
-        this.tokenRefreshPeriodMs = properties.getTokenRefreshPeriod().toMillis() / 1000;
-        this.accessToken = null;
-        this.tokenRefreshCutoff = 0L;
+  @Autowired
+  public MarketplaceService(MarketplaceProperties properties, MarketplaceApi api) {
+    this.api = api;
+    this.apiKey = properties.getApiKey();
+    this.tokenRefreshPeriodMs = properties.getTokenRefreshPeriod().toMillis() / 1000;
+    this.accessToken = null;
+    this.tokenRefreshCutoff = 0L;
+  }
+
+  public synchronized void forceRefreshAccessToken() throws ApiException {
+    this.tokenRefreshCutoff = 0L;
+    ensureAccessToken();
+  }
+
+  public synchronized void ensureAccessToken() throws ApiException {
+    if (OffsetDateTime.now().toEpochSecond() > tokenRefreshCutoff) {
+      AuthResponse response =
+          api.getAccessToken(
+              AuthGrantType.URN_IBM_PARAMS_OAUTH_GRANT_TYPE_APIKEY.getValue(), apiKey);
+
+      accessToken = response.getAccessToken();
+      tokenRefreshCutoff = response.getExpiration() - (tokenRefreshPeriodMs);
+      HttpBearerAuth auth = (HttpBearerAuth) api.getApiClient().getAuthentication("accessToken");
+      auth.setBearerToken(accessToken);
     }
+  }
 
-    public synchronized void forceRefreshAccessToken() throws ApiException {
-        this.tokenRefreshCutoff = 0L;
-        ensureAccessToken();
-    }
+  @Timed("rhsm-subscriptions.marketplace.usage.request")
+  public StatusResponse submitUsageEvents(UsageRequest usageRequest) throws ApiException {
+    ensureAccessToken();
+    return api.submitUsageEvents(usageRequest);
+  }
 
-    public synchronized void ensureAccessToken() throws ApiException {
-        if (OffsetDateTime.now().toEpochSecond() > tokenRefreshCutoff) {
-            AuthResponse response =
-                api.getAccessToken(AuthGrantType.URN_IBM_PARAMS_OAUTH_GRANT_TYPE_APIKEY.getValue(), apiKey);
-
-            accessToken = response.getAccessToken();
-            tokenRefreshCutoff = response.getExpiration() - (tokenRefreshPeriodMs);
-            HttpBearerAuth auth = (HttpBearerAuth) api.getApiClient().getAuthentication("accessToken");
-            auth.setBearerToken(accessToken);
-        }
-    }
-
-    @Timed("rhsm-subscriptions.marketplace.usage.request")
-    public StatusResponse submitUsageEvents(UsageRequest usageRequest) throws ApiException {
-        ensureAccessToken();
-        return api.submitUsageEvents(usageRequest);
-    }
-
-    @Timed("rhsm-subscriptions.marketplace.usage.batch-check")
-    public StatusResponse getUsageBatchStatus(String batchId) throws ApiException {
-        ensureAccessToken();
-        return api.getUsageBatchStatus(batchId);
-    }
+  @Timed("rhsm-subscriptions.marketplace.usage.batch-check")
+  public StatusResponse getUsageBatchStatus(String batchId) throws ApiException {
+    ensureAccessToken();
+    return api.getUsageBatchStatus(batchId);
+  }
 }

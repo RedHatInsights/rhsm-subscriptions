@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,57 +22,55 @@ package org.candlepin.subscriptions.metering.job;
 
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-
 @ExtendWith(MockitoExtension.class)
-class OpenShiftMeteringJobTest {
+class MeteringJobTest {
 
-    @Mock
-    private PrometheusMetricsTaskManager tasks;
+  @Mock private PrometheusMetricsTaskManager tasks;
 
-    private ApplicationClock clock;
-    private PrometheusMetricsProperties metricProps;
-    private ApplicationProperties appProps;
-    private OpenShiftMeteringJob job;
+  private ApplicationClock clock;
+  private PrometheusMetricsProperties metricProps;
+  private ApplicationProperties appProps;
+  private MeteringJob job;
 
-    @BeforeEach
-    void setupTests() {
-        metricProps = new PrometheusMetricsProperties();
-        metricProps.getOpenshift().setRangeInMinutes(180); // 3h
+  @BeforeEach
+  void setupTests() {
+    metricProps = new PrometheusMetricsProperties();
+    metricProps.getOpenshift().setRangeInMinutes(180); // 3h
 
-        appProps = new ApplicationProperties();
-        appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
+    appProps = new ApplicationProperties();
+    appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
-        clock = new FixedClockConfiguration().fixedClock();
-        job = new OpenShiftMeteringJob(tasks, clock, metricProps, appProps);
-    }
+    clock = new FixedClockConfiguration().fixedClock();
+    job = new MeteringJob(tasks, clock, metricProps, appProps);
+  }
 
-    @Test
-    void testRunJob() {
-        Duration latency = appProps.getPrometheusLatencyDuration();
-        int range = metricProps.getOpenshift().getRangeInMinutes();
+  @Test
+  void testRunJob() {
+    Duration latency = appProps.getPrometheusLatencyDuration();
+    int range = metricProps.getOpenshift().getRangeInMinutes();
 
-        // NOW: 2019-05-24T12:35Z
-        // Metric Period: 2019-05-24T03:00Z -> 2019-05-24T06:00Z
-        OffsetDateTime expStartDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
-        OffsetDateTime expEndDate =
-            clock.endOfHour(expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
-        job.run();
+    // NOW: 2019-05-24T12:35Z
+    // Metric Period: 2019-05-24T03:00Z -> 2019-05-24T06:00Z
+    OffsetDateTime expStartDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
+    OffsetDateTime expEndDate =
+        clock.endOfHour(
+            expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
+    job.run();
 
-        verify(tasks).updateOpenshiftMetricsForAllAccounts(expStartDate, expEndDate);
-    }
+    verify(tasks).updateMetricsForAllAccounts("OpenShift", expStartDate, expEndDate);
+  }
 }

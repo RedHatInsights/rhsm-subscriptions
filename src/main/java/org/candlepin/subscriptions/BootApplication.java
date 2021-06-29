@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +20,14 @@
  */
 package org.candlepin.subscriptions;
 
+import java.time.ZoneOffset;
+import java.util.TimeZone;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
-
-import java.time.ZoneOffset;
-import java.util.TimeZone;
 
 /** Bootstrapper for Spring Boot. */
 @SpringBootConfiguration
@@ -38,16 +37,17 @@ import java.util.TimeZone;
 @Import(ApplicationConfiguration.class)
 @SuppressWarnings("checkstyle:hideutilityclassconstructor")
 public class BootApplication {
-    public static void main(String[] args) {
-        /*
-        Force the JVM to operate in UTC, see org.candlepin.subscriptions.util.ApplicationClock
+  public static void main(String[] args) {
+    /*
+    Force the JVM to operate in UTC, see org.candlepin.subscriptions.util.ApplicationClock
 
-        Hibernate will return OffsetDateTime in the system timezone, while we coerce dates into UTC in
-        ApplicationClock! Setting it here means the whole application deals exclusively with UTC.
-         */
-        TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
-        SpringApplication app = new SpringApplication(BootApplication.class);
-        app.run(args);
-    }
+    Hibernate will return OffsetDateTime in the system timezone, while we coerce dates into UTC in
+    ApplicationClock! Setting it here means the whole application deals exclusively with UTC.
+     */
+    TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
+    // Force liquibase-hub to off to avoid unnecessary warnings in our logs
+    System.setProperty("liquibase.hub.mode", "off");
+    SpringApplication app = new SpringApplication(BootApplication.class);
+    app.run(args);
+  }
 }
-

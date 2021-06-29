@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,6 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.model.EventRecord;
-import org.candlepin.subscriptions.json.Event;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -40,126 +29,186 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
 class EventRecordRepositoryTest {
-    private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
+  private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
 
-    @Autowired
-    private EventRecordRepository repository;
+  @Autowired private EventRecordRepository repository;
 
-    @Test
-    void saveAndUpdate() {
-        Event event = new Event();
-        event.setAccountNumber("account123");
-        event.setTimestamp(OffsetDateTime.now(CLOCK));
-        event.setInstanceId("instanceId");
-        event.setServiceType("RHEL System");
-        UUID eventId = UUID.randomUUID();
-        event.setEventId(eventId);
-        event.setEventSource("eventSource");
-        event.setDisplayName(Optional.empty());
+  @Test
+  void saveAndUpdate() {
+    Event event = new Event();
+    event.setAccountNumber("account123");
+    event.setTimestamp(OffsetDateTime.now(CLOCK));
+    event.setInstanceId("instanceId");
+    event.setServiceType("RHEL System");
+    UUID eventId = UUID.randomUUID();
+    event.setEventId(eventId);
+    event.setEventSource("eventSource");
+    event.setDisplayName(Optional.empty());
 
-        EventRecord record = new EventRecord(event);
-        repository.saveAndFlush(record);
+    EventRecord record = new EventRecord(event);
+    repository.saveAndFlush(record);
 
-        EventRecord found = repository.getOne(eventId);
-        assertNull(found.getEvent().getInventoryId());
-        assertNotNull(found.getEvent().getDisplayName());
-        assertFalse(found.getEvent().getDisplayName().isPresent());
-        assertEquals(record, found);
-    }
+    EventRecord found = repository.getOne(eventId);
+    assertNull(found.getEvent().getInventoryId());
+    assertNotNull(found.getEvent().getDisplayName());
+    assertFalse(found.getEvent().getDisplayName().isPresent());
+    assertEquals(record, found);
+  }
 
-    @Test
-    void testFindBeginInclusive() {
-        Event oldEvent = event("account123", "SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK).minusSeconds(1));
-        Event currentEvent = event("account123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK));
+  @Test
+  void testFindBeginInclusive() {
+    Event oldEvent =
+        event(
+            "account123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK).minusSeconds(1));
+    Event currentEvent =
+        event("account123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK));
 
-        repository.saveAll(Arrays.asList(new EventRecord(oldEvent), new EventRecord(currentEvent)));
-        repository.flush();
+    repository.saveAll(Arrays.asList(new EventRecord(oldEvent), new EventRecord(currentEvent)));
+    repository.flush();
 
-        List<EventRecord> found = repository
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp("account123",
-            OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK).plusYears(1))
+    List<EventRecord> found =
+        repository
+            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                "account123", OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK).plusYears(1))
             .collect(Collectors.toList());
 
-        assertEquals(1, found.size());
-        assertEquals(currentEvent.getEventId(), found.get(0).getId());
-    }
+    assertEquals(1, found.size());
+    assertEquals(currentEvent.getEventId(), found.get(0).getId());
+  }
 
-    @Test
-    void testFindEndExclusive() {
-        EventRecord futureEvent = new EventRecord(event("account123", "SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK)));
+  @Test
+  void testFindEndExclusive() {
+    EventRecord futureEvent =
+        new EventRecord(
+            event("account123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
 
-        EventRecord currentEvent = new EventRecord(event("account123", "SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK).minusSeconds(1)));
+    EventRecord currentEvent =
+        new EventRecord(
+            event(
+                "account123",
+                "SOURCE",
+                "TYPE",
+                "INSTANCE",
+                OffsetDateTime.now(CLOCK).minusSeconds(1)));
 
-        repository.saveAll(Arrays.asList(futureEvent, currentEvent));
-        repository.flush();
+    repository.saveAll(Arrays.asList(futureEvent, currentEvent));
+    repository.flush();
 
-        List<EventRecord> found = repository
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp("account123",
-            OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK))
+    List<EventRecord> found =
+        repository
+            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                "account123", OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK))
             .collect(Collectors.toList());
 
-        assertEquals(1, found.size());
-        assertEquals(currentEvent.getId(), found.get(0).getId());
-    }
+    assertEquals(1, found.size());
+    assertEquals(currentEvent.getId(), found.get(0).getId());
+  }
 
-    @SuppressWarnings({"linelength", "indentation"})
-    @Test
-    void findBySourceAndType() {
-        EventRecord e1 = new EventRecord(event("account123", "SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK)));
-        EventRecord e2 = new EventRecord(event("account123", "ANOTHER_SOURCE", "ANOTHER_TYPE",
-            "INSTANCE", OffsetDateTime.now(CLOCK).minusSeconds(1)));
-        EventRecord e3 = new EventRecord(event("account123", "SOURCE", "ANOTHER_TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK)));
-        EventRecord e4 = new EventRecord(event("account123", "ANOTHER_SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK)));
+  @SuppressWarnings({"linelength", "indentation"})
+  @Test
+  void findBySourceAndType() {
+    EventRecord e1 =
+        new EventRecord(
+            event("account123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
+    EventRecord e2 =
+        new EventRecord(
+            event(
+                "account123",
+                "ANOTHER_SOURCE",
+                "ANOTHER_TYPE",
+                "INSTANCE",
+                OffsetDateTime.now(CLOCK).minusSeconds(1)));
+    EventRecord e3 =
+        new EventRecord(
+            event("account123", "SOURCE", "ANOTHER_TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
+    EventRecord e4 =
+        new EventRecord(
+            event("account123", "ANOTHER_SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
 
-        repository.saveAll(List.of(e1, e2, e3, e4));
-        repository.flush();
+    repository.saveAll(List.of(e1, e2, e3, e4));
+    repository.flush();
 
-        List<EventRecord> found = repository.findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            e1.getAccountNumber(),
-            e1.getEventSource(),
-            e1.getEventType(),
-            OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK).plusYears(1))
-        .collect(Collectors.toList());
+    List<EventRecord> found =
+        repository
+            .findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                e1.getAccountNumber(),
+                e1.getEventSource(),
+                e1.getEventType(),
+                OffsetDateTime.now(CLOCK).minusYears(1),
+                OffsetDateTime.now(CLOCK).plusYears(1))
+            .collect(Collectors.toList());
 
-        assertEquals(1, found.size());
-        assertEquals(e1, found.get(0));
-    }
+    assertEquals(1, found.size());
+    assertEquals(e1, found.get(0));
+  }
 
-    @Test
-    void testUniqueConstraints() {
-        EventRecord e1 = new EventRecord(event("account123", "ANOTHER_SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK)));
+  @Test
+  void testUniqueConstraints() {
+    EventRecord e1 =
+        new EventRecord(
+            event("account123", "ANOTHER_SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
 
-        repository.saveAndFlush(e1);
+    repository.saveAndFlush(e1);
 
-        EventRecord e2 = new EventRecord(event("account123", "ANOTHER_SOURCE", "TYPE", "INSTANCE",
-            OffsetDateTime.now(CLOCK)));
+    EventRecord e2 =
+        new EventRecord(
+            event("account123", "ANOTHER_SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
 
-        assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(e2));
-    }
+    assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(e2));
+  }
 
-    private Event event(String account, String source, String type, String instanceId, OffsetDateTime time) {
-        UUID eventId = UUID.randomUUID();
-        Event event = new Event();
-        event.setEventId(eventId);
-        event.setAccountNumber(account);
-        event.setTimestamp(time);
-        event.setInstanceId(instanceId);
-        event.setEventSource(source);
-        event.setServiceType("SERVICE_TYPE");
-        event.setEventType(type);
-        event.setDisplayName(Optional.empty());
-        return event;
-    }
+  @Test
+  void testDeleteByTimestamp() {
+    var now = OffsetDateTime.now();
+
+    EventRecord event =
+        EventRecord.builder()
+            .id(UUID.randomUUID())
+            .accountNumber("bananas1")
+            .timestamp(now.minusDays(91L))
+            .build();
+    EventRecord event2 =
+        EventRecord.builder()
+            .id(UUID.randomUUID())
+            .accountNumber("bananas1")
+            .timestamp(now.minusDays(1L))
+            .build();
+
+    repository.saveAll(List.of(event, event2));
+
+    repository.deleteEventRecordsByTimestampBefore(now.minusDays(30L));
+
+    var results = repository.findAll();
+
+    assertEquals(1, results.size());
+  }
+
+  private Event event(
+      String account, String source, String type, String instanceId, OffsetDateTime time) {
+    UUID eventId = UUID.randomUUID();
+    Event event = new Event();
+    event.setEventId(eventId);
+    event.setAccountNumber(account);
+    event.setTimestamp(time);
+    event.setInstanceId(instanceId);
+    event.setEventSource(source);
+    event.setServiceType("SERVICE_TYPE");
+    event.setEventType(type);
+    event.setDisplayName(Optional.empty());
+    return event;
+  }
 }

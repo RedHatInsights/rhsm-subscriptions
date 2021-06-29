@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,13 +24,11 @@ import org.candlepin.subscriptions.user.api.model.Account;
 import org.candlepin.subscriptions.user.api.model.AccountSearch;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
 
-/**
- * Stub implementation of the Account API that returns a canned response.
- */
+/** Stub implementation of the Account API that returns a canned response. */
 public class StubAccountApi extends AccountApi {
 
-    @Override
-    public Account findAccount(AccountSearch accountSearch) throws ApiException {
-        return new Account().ebsAccountNumber("account123").id("org123");
-    }
+  @Override
+  public Account findAccount(AccountSearch accountSearch) throws ApiException {
+    return new Account().ebsAccountNumber("account123").id("org123");
+  }
 }

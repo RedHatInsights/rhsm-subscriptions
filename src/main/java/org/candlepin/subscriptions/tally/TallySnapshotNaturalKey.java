@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,36 +20,32 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.time.OffsetDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-import java.time.OffsetDateTime;
-
-/**
- * The business key for a TallySnapshot.
- */
+/** The business key for a TallySnapshot. */
 @Data
 @AllArgsConstructor
 public class TallySnapshotNaturalKey {
 
-    private String accountNumber;
-    private String swatchProductId;
-    private Granularity granularity;
-    private ServiceLevel serviceLevel;
-    private Usage usage;
-    private OffsetDateTime referenceDate;
+  private String accountNumber;
+  private String swatchProductId;
+  private Granularity granularity;
+  private ServiceLevel serviceLevel;
+  private Usage usage;
+  private OffsetDateTime referenceDate;
 
-    public TallySnapshotNaturalKey(TallySnapshot snapshot) {
-        this.accountNumber = snapshot.getAccountNumber();
-        this.swatchProductId = snapshot.getProductId();
-        this.granularity = snapshot.getGranularity();
-        this.serviceLevel = snapshot.getServiceLevel();
-        this.usage = snapshot.getUsage();
-        this.referenceDate = snapshot.getSnapshotDate();
-    }
+  public TallySnapshotNaturalKey(TallySnapshot snapshot) {
+    this.accountNumber = snapshot.getAccountNumber();
+    this.swatchProductId = snapshot.getProductId();
+    this.granularity = snapshot.getGranularity();
+    this.serviceLevel = snapshot.getServiceLevel();
+    this.usage = snapshot.getUsage();
+    this.referenceDate = snapshot.getSnapshotDate();
+  }
 }

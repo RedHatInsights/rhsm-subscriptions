@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,45 +24,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.Granularity;
-
 import org.junit.jupiter.api.Test;
 
 class SnapshotTimeAdjusterTest {
 
-    private ApplicationClock clock;
+  private ApplicationClock clock;
 
-    SnapshotTimeAdjusterTest() {
-        clock = new FixedClockConfiguration().fixedClock();
-    }
+  SnapshotTimeAdjusterTest() {
+    clock = new FixedClockConfiguration().fixedClock();
+  }
 
-    @Test
-    void testDailyTimeAdjusterCreation() {
-        SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.DAILY);
-        assertTrue(adjuster instanceof DailyTimeAdjuster);
-    }
+  @Test
+  void testDailyTimeAdjusterCreation() {
+    SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.DAILY);
+    assertTrue(adjuster instanceof DailyTimeAdjuster);
+  }
 
-    @Test
-    void testWeeklyTimeAdjusterCreation() {
-        SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.WEEKLY);
-        assertTrue(adjuster instanceof WeeklyTimeAdjuster);
-    }
+  @Test
+  void testWeeklyTimeAdjusterCreation() {
+    SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.WEEKLY);
+    assertTrue(adjuster instanceof WeeklyTimeAdjuster);
+  }
 
-    @Test
-    void testMonthlyTimeAdjusterCreation() {
-        SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.MONTHLY);
-        assertTrue(adjuster instanceof MonthlyTimeAdjuster);
-    }
+  @Test
+  void testMonthlyTimeAdjusterCreation() {
+    SnapshotTimeAdjuster adjuster =
+        SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.MONTHLY);
+    assertTrue(adjuster instanceof MonthlyTimeAdjuster);
+  }
 
-    @Test
-    void testYearlyTimeAdjusterCreation() {
-        SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.YEARLY);
-        assertTrue(adjuster instanceof YearlyTimeAdjuster);
-    }
+  @Test
+  void testYearlyTimeAdjusterCreation() {
+    SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.YEARLY);
+    assertTrue(adjuster instanceof YearlyTimeAdjuster);
+  }
 
-    @Test
-    void testQuarterlyTimeAdjusterCreation() {
-        SnapshotTimeAdjuster adjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.QUARTERLY);
-        assertTrue(adjuster instanceof QuarterlyTimeAdjuster);
-    }
-
+  @Test
+  void testQuarterlyTimeAdjusterCreation() {
+    SnapshotTimeAdjuster adjuster =
+        SnapshotTimeAdjuster.getTimeAdjuster(clock, Granularity.QUARTERLY);
+    assertTrue(adjuster instanceof QuarterlyTimeAdjuster);
+  }
 }

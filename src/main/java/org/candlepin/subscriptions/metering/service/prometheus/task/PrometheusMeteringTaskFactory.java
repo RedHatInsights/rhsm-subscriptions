@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,68 +20,62 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
+import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.metering.task.OpenShiftMetricsTask;
+import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskType;
-
 import org.springframework.util.StringUtils;
 
-import java.time.OffsetDateTime;
-
-
-/**
- * Creates metering related Tasks.
- */
+/** Creates metering related Tasks. */
 public class PrometheusMeteringTaskFactory implements TaskFactory {
 
-    private final PrometheusMeteringController controller;
+  private final PrometheusMeteringController controller;
 
-    public PrometheusMeteringTaskFactory(PrometheusMeteringController controller) {
-        this.controller = controller;
+  public PrometheusMeteringTaskFactory(PrometheusMeteringController controller) {
+    this.controller = controller;
+  }
+
+  @Override
+  public Task build(TaskDescriptor taskDescriptor) {
+    if (TaskType.METRICS_COLLECTION.equals(taskDescriptor.getTaskType())) {
+      return new MetricsTask(
+          controller,
+          validateString(taskDescriptor, "account"),
+          validateString(taskDescriptor, "productProfileId"),
+          Uom.fromValue(validateString(taskDescriptor, "metric")),
+          validateDate(taskDescriptor, "start"),
+          validateDate(taskDescriptor, "end"));
+    }
+    throw new IllegalArgumentException(
+        String.format("Could not build task. Unknown task type: %s", taskDescriptor.getTaskType()));
+  }
+
+  private String validateString(TaskDescriptor desc, String arg) {
+    if (!desc.hasArg(arg)) {
+      throw new IllegalArgumentException(
+          String.format("Could not build task. Missing task argument: %s", arg));
     }
 
-    @Override
-    public Task build(TaskDescriptor taskDescriptor) {
-        if (TaskType.OPENSHIFT_METRICS_COLLECTION.equals(taskDescriptor.getTaskType())) {
-            return new OpenShiftMetricsTask(
-                controller,
-                validateString(taskDescriptor, "account"),
-                validateDate(taskDescriptor, "start"),
-                validateDate(taskDescriptor, "end")
-            );
-        }
-        throw new IllegalArgumentException(
-            String.format("Could not build task. Unknown task type: %s", taskDescriptor.getTaskType()));
+    if (!StringUtils.hasText(desc.getArg(arg).get(0))) {
+      throw new IllegalArgumentException(
+          String.format("Could not build task. Task argument %s was empty.", arg));
     }
+    return desc.getArg(arg).get(0);
+  }
 
-    private String validateString(TaskDescriptor desc, String arg) {
-        if (!desc.hasArg(arg)) {
-            throw new IllegalArgumentException(
-                String.format("Could not build task. Missing task argument: %s", arg));
-        }
+  private OffsetDateTime validateDate(TaskDescriptor desc, String arg) {
+    String dateStr = validateString(desc, arg);
 
-        if (!StringUtils.hasText(desc.getArg(arg).get(0))) {
-            throw new IllegalArgumentException(
-                String.format("Could not build task. Task argument %s was empty.", arg));
-        }
-        return desc.getArg(arg).get(0);
+    try {
+      // Example format: 2018-03-20T09:12:28Z
+      return OffsetDateTime.parse(dateStr);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format("Unable to parse date arg '%s'. Invalid format.", arg));
     }
-
-    private OffsetDateTime validateDate(TaskDescriptor desc, String arg) {
-        String dateStr = validateString(desc, arg);
-
-        try {
-            // Example format: 2018-03-20T09:12:28Z
-            return OffsetDateTime.parse(dateStr);
-        }
-        catch (Exception e) {
-            throw new IllegalArgumentException(
-                String.format("Unable to parse date arg '%s'. Invalid format.", arg)
-            );
-        }
-
-    }
+  }
 }

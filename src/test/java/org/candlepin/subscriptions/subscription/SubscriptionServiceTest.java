@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,51 +24,42 @@ import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Collections;
-
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class SubscriptionServiceTest {
 
-    @MockBean
-    SearchApi searchApi;
+  @MockBean SearchApi searchApi;
 
-    @Autowired
-    SubscriptionService subject;
+  @Autowired SubscriptionService subject;
 
-    @Test
-    void verifySearchByAccountNumberTest() throws ApiException {
-        when(searchApi
-            .searchSubscriptionsByAccountNumber("123", 0, 1))
-            .thenReturn(Collections.emptyList());
-        subject.getSubscriptionsByAccountNumber("123", 0, 1);
-        verify(searchApi, only()).searchSubscriptionsByAccountNumber("123", 0, 1);
-    }
+  @Test
+  void verifySearchByAccountNumberTest() throws ApiException {
+    when(searchApi.searchSubscriptionsByAccountNumber("123", 0, 1))
+        .thenReturn(Collections.emptyList());
+    subject.getSubscriptionsByAccountNumber("123", 0, 1);
+    verify(searchApi, only()).searchSubscriptionsByAccountNumber("123", 0, 1);
+  }
 
-    @Test
-    void verifySearchByOrgIdTest() throws ApiException {
-        when(searchApi
-            .searchSubscriptionsByOrgId("123", 0, 1))
-            .thenReturn(Collections.emptyList());
-        subject.getSubscriptionsByOrgId("123", 0, 1);
-        verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
-    }
+  @Test
+  void verifySearchByOrgIdTest() throws ApiException {
+    when(searchApi.searchSubscriptionsByOrgId("123", 0, 1)).thenReturn(Collections.emptyList());
+    subject.getSubscriptionsByOrgId("123", 0, 1);
+    verify(searchApi, only()).searchSubscriptionsByOrgId("123", 0, 1);
+  }
 
-    @Test
-    void verifyGetByIdTest() throws ApiException {
-        when(searchApi
-            .getSubscriptionById("123"))
-            .thenReturn(new Subscription());
-        subject.getSubscriptionById("123");
-        verify(searchApi, only()).getSubscriptionById("123");
-    }
+  @Test
+  void verifyGetByIdTest() throws ApiException {
+    when(searchApi.getSubscriptionById("123")).thenReturn(new Subscription());
+    subject.getSubscriptionById("123");
+    verify(searchApi, only()).getSubscriptionById("123");
+  }
 }

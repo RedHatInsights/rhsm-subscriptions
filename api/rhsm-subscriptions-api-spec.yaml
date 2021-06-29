@@ -211,6 +211,12 @@ paths:
             format: date-time
           description: "Defines the end of the report period.  Defaults to the current time. Dates should
             be provided in UTC."
+        - name: use_running_totals_format
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'The request for a tally report was successful.'
@@ -260,6 +266,8 @@ paths:
                   next: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
+                  total_core_hours: 30
+                  total_instance_hours: 20
                   product: RHEL
                   granularity: Daily
                   service_level: Premium
@@ -829,6 +837,10 @@ components:
           properties:
             count:
               type: integer
+            total_core_hours:
+              type: double
+            total_instance_hours:
+              type: double
             product:
               $ref: '#/components/schemas/ProductId'
             service_level:
@@ -875,6 +887,11 @@ components:
           minimum: 0
           default: 0
         core_hours:
+          type: number
+          format: double
+          minimum: 0
+          default: 0
+        instance_hours:
           type: number
           format: double
           minimum: 0
@@ -1051,6 +1068,7 @@ components:
         - last_seen
         - measurement_type
         - core_hours
+        - instance_hours
     HostReport:
       properties:
         data:
@@ -1266,6 +1284,8 @@ components:
           items:
             type: string
         fqdn:
+          type: string
+        display_name:
           type: string
         mac_addresses:
           type: array

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,51 +20,47 @@
  */
 package org.candlepin.subscriptions.user;
 
+import javax.annotation.Nonnull;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 
-import javax.annotation.Nonnull;
-
-/**
- * Factory bean for AccountApi.
- */
+/** Factory bean for AccountApi. */
 public class AccountApiFactory extends AbstractFactoryBean<AccountApi> {
 
-    private static final Logger log = LoggerFactory.getLogger(AccountApiFactory.class);
+  private static final Logger log = LoggerFactory.getLogger(AccountApiFactory.class);
 
-    private final HttpClientProperties serviceProperties;
+  private final HttpClientProperties serviceProperties;
 
-    public AccountApiFactory(HttpClientProperties serviceProperties) {
-        this.serviceProperties = serviceProperties;
+  public AccountApiFactory(HttpClientProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
+  @Nonnull
+  @Override
+  protected AccountApi createInstance() {
+    if (serviceProperties.isUseStub()) {
+      log.info("Using stub user client");
+      return new StubAccountApi();
     }
-
-    @Nonnull
-    @Override
-    protected AccountApi createInstance() {
-        if (serviceProperties.isUseStub()) {
-            log.info("Using stub user client");
-            return new StubAccountApi();
-        }
-        ApiClient apiClient = Configuration.getDefaultApiClient();
-        apiClient.setHttpClient(HttpClient.buildHttpClient(serviceProperties, apiClient.getJSON(),
-            apiClient.isDebugging()));
-        if (serviceProperties.getUrl() != null) {
-            log.info("User service URL: {}", serviceProperties.getUrl());
-            apiClient.setBasePath(serviceProperties.getUrl());
-        }
-        else {
-            log.warn("User service URL not set...");
-        }
-        return new AccountApi(apiClient);
+    ApiClient apiClient = Configuration.getDefaultApiClient();
+    apiClient.setHttpClient(
+        HttpClient.buildHttpClient(
+            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
+    if (serviceProperties.getUrl() != null) {
+      log.info("User service URL: {}", serviceProperties.getUrl());
+      apiClient.setBasePath(serviceProperties.getUrl());
+    } else {
+      log.warn("User service URL not set...");
     }
+    return new AccountApi(apiClient);
+  }
 
-    @Override
-    public Class<?> getObjectType() {
-        return AccountApi.class;
-    }
+  @Override
+  public Class<?> getObjectType() {
+    return AccountApi.class;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,37 +22,31 @@ package org.candlepin.subscriptions.tally.tasks;
 
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
+import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.validator.ParameterDuration;
-
 import org.springframework.validation.annotation.Validated;
 
-import java.time.OffsetDateTime;
-
-/**
- * Captures hourly metrics between a given timeframe for a given account
- */
+/** Captures hourly metrics between a given timeframe for a given account */
 @Validated
 public class CaptureMetricsSnapshotTask implements Task {
 
-    private final String accountNumber;
-    private final TallySnapshotController snapshotController;
-    private final String startDateTime;
-    private final String endDateTime;
+  private final String accountNumber;
+  private final TallySnapshotController snapshotController;
+  private final DateRange dateRange;
 
-    @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
-    public CaptureMetricsSnapshotTask(TallySnapshotController snapshotController, String accountNumber,
-        String startDateTime, String endDateTime) {
-        this.snapshotController = snapshotController;
-        this.accountNumber = accountNumber;
-        this.startDateTime = startDateTime;
-        this.endDateTime = endDateTime;
+  @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
+  public CaptureMetricsSnapshotTask(
+      TallySnapshotController snapshotController,
+      String accountNumber,
+      String startDateTime,
+      String endDateTime) {
+    this.snapshotController = snapshotController;
+    this.accountNumber = accountNumber;
+    this.dateRange = DateRange.fromStrings(startDateTime, endDateTime);
+  }
 
-    }
-
-    @Override
-    public void execute() {
-        OffsetDateTime startDate = OffsetDateTime.parse(startDateTime);
-        OffsetDateTime endDate = OffsetDateTime.parse(endDateTime);
-        snapshotController.produceHourlySnapshotsForAccount(accountNumber, startDate, endDate);
-    }
+  @Override
+  public void execute() {
+    snapshotController.produceHourlySnapshotsForAccount(accountNumber, dateRange);
+  }
 }

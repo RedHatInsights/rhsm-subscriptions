@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,23 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountRepository;
 import org.candlepin.subscriptions.db.model.Account;
@@ -41,8 +55,9 @@ import org.candlepin.subscriptions.files.SyspurposeRole;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
+import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,131 +66,128 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Stream;
-
 @ExtendWith(MockitoExtension.class)
 class MetricUsageCollectorTest {
-    MetricUsageCollector metricUsageCollector;
+  MetricUsageCollector metricUsageCollector;
 
-    @Mock
-    AccountRepository accountRepo;
+  @Mock AccountRepository accountRepo;
 
-    @Mock
-    EventController eventController;
+  @Mock EventController eventController;
 
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
-    static final String SERVICE_TYPE = "SERVICE TYPE";
-    static final String RHEL_SERVER_SWATCH_PRODUCT_ID = "RHEL_SERVER";
-    static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL_WORKSTATION";
-    static final String RHEL = "RHEL";
+  static final String SERVICE_TYPE = "SERVICE TYPE";
+  static final String RHEL_SERVER_SWATCH_PRODUCT_ID = "RHEL_SERVER";
+  static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL_WORKSTATION";
+  static final String RHEL = "RHEL";
 
-    @BeforeEach
-    void setup() {
-        Set<SubscriptionWatchProduct> products = Set.of(
-            new SubscriptionWatchProduct("1234", Set.of(RHEL))
-        );
+  @BeforeEach
+  void setup() {
+    Set<SubscriptionWatchProduct> products =
+        Set.of(new SubscriptionWatchProduct("1234", Set.of(RHEL)));
 
-        ProductProfile profile = new ProductProfile("RHELProfile", products, Granularity.DAILY);
-        profile.setSyspurposeRoles(Set.of(
+    ProductProfile profile = new ProductProfile("RHELProfile", products, Granularity.DAILY);
+    profile.setSyspurposeRoles(
+        Set.of(
             new SyspurposeRole(Role.RED_HAT_ENTERPRISE_LINUX_SERVER.value(), Set.of("RHEL_SERVER")),
-            new SyspurposeRole(Role.RED_HAT_ENTERPRISE_LINUX_WORKSTATION.value(), Set.of("RHEL_WORKSTATION"))
-        ));
-        profile.setServiceType(SERVICE_TYPE);
-        profile.setDefaultUsage(Usage.PRODUCTION);
-        profile.setDefaultSla(ServiceLevel.PREMIUM);
-        metricUsageCollector = new MetricUsageCollector(profile, accountRepo, eventController, clock);
-    }
+            new SyspurposeRole(
+                Role.RED_HAT_ENTERPRISE_LINUX_WORKSTATION.value(), Set.of("RHEL_WORKSTATION"))));
+    profile.setServiceType(SERVICE_TYPE);
+    profile.setDefaultUsage(Usage.PRODUCTION);
+    profile.setDefaultSla(ServiceLevel.PREMIUM);
+    metricUsageCollector = new MetricUsageCollector(profile, accountRepo, eventController, clock);
+  }
 
-    @Test
-    void testCollectCreatesNewInstanceRecords() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void testCollectCreatesNewInstanceRecords() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement));
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
 
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
-        Host instance = account.getServiceInstances().get(event.getInstanceId());
-        assertNotNull(instance);
-    }
+    metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    Host instance = account.getServiceInstances().get(event.getInstanceId());
+    assertNotNull(instance);
+  }
 
-    @Test
-    void testPopulatesUsageCalculations() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void testPopulatesUsageCalculations() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of("1234"))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement));
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
-        UsageCalculation.Key usageCalculationKey =
-            new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
-        assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
-        assertEquals(Double.valueOf(42.0),
-            accountUsageCalculation.getCalculation(usageCalculationKey).getTotals(
-            HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(Measurement.Uom.CORES));
+  }
 
-    @ParameterizedTest
-    @EnumSource(Event.HardwareType.class)
-    void testCollectHandlesAllHardwareTypes(Event.HardwareType hardwareType) {
-        Event event = new Event()
+  @ParameterizedTest
+  @EnumSource(Event.HardwareType.class)
+  void testCollectHandlesAllHardwareTypes(Event.HardwareType hardwareType) {
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withHardwareType(hardwareType)
             .withCloudProvider(Event.CloudProvider.__EMPTY__)
             .withInstanceId(UUID.randomUUID().toString());
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
+  }
 
-    @ParameterizedTest
-    @EnumSource(Event.CloudProvider.class)
-    void testCollectHandlesAllCloudProviders(Event.CloudProvider cloudProvider) {
-        Event event = new Event()
+  @ParameterizedTest
+  @EnumSource(Event.CloudProvider.class)
+  void testCollectHandlesAllCloudProviders(Event.CloudProvider cloudProvider) {
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withHardwareType(Event.HardwareType.CLOUD)
             .withCloudProvider(cloudProvider)
             .withInstanceId(UUID.randomUUID().toString());
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
+  }
 
-    @Test
-    void testCollectAddsBucketsForApplicableUsageKeys() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void testCollectAddsBucketsForApplicableUsageKeys() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of("1234"))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
@@ -183,34 +195,38 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM);
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        Host instance = account.getServiceInstances().get(event.getInstanceId());
-        assertNotNull(instance);
-        Set<HostTallyBucket> expected = new HashSet<>();
-        Set.of(Usage._ANY, Usage.PRODUCTION).forEach(usage ->
-            Set.of(ServiceLevel._ANY, ServiceLevel.PREMIUM).forEach(sla -> {
-                HostBucketKey key = new HostBucketKey();
-                key.setProductId(RHEL);
-                key.setSla(sla);
-                key.setUsage(usage);
-                key.setAsHypervisor(false);
-                HostTallyBucket bucket = new HostTallyBucket();
-                bucket.setKey(key);
-                bucket.setHost(instance);
-                expected.add(bucket);
-            })
-        );
-        assertEquals(expected, new HashSet<>(instance.getBuckets()));
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    Host instance = account.getServiceInstances().get(event.getInstanceId());
+    assertNotNull(instance);
+    Set<HostTallyBucket> expected = new HashSet<>();
+    Set.of(Usage._ANY, Usage.PRODUCTION)
+        .forEach(
+            usage ->
+                Set.of(ServiceLevel._ANY, ServiceLevel.PREMIUM)
+                    .forEach(
+                        sla -> {
+                          HostBucketKey key = new HostBucketKey();
+                          key.setProductId(RHEL);
+                          key.setSla(sla);
+                          key.setUsage(usage);
+                          key.setAsHypervisor(false);
+                          HostTallyBucket bucket = new HostTallyBucket();
+                          bucket.setKey(key);
+                          bucket.setHost(instance);
+                          expected.add(bucket);
+                        }));
+    assertEquals(expected, new HashSet<>(instance.getBuckets()));
+  }
 
-    @Test
-    void testAddsAnySlaToBuckets() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void testAddsAnySlaToBuckets() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of("1234"))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
@@ -218,24 +234,28 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM);
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
-        UsageCalculation.Key usageCalculationKey = new UsageCalculation.Key(RHEL, ServiceLevel._ANY,
-            Usage.PRODUCTION);
-        assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
-        assertEquals(Double.valueOf(42.0),
-            accountUsageCalculation.getCalculation(usageCalculationKey).getTotals(
-            HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(RHEL, ServiceLevel._ANY, Usage.PRODUCTION);
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(Measurement.Uom.CORES));
+  }
 
-    @Test
-    void testAddsAnyUsageToBuckets() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void testAddsAnyUsageToBuckets() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of("1234"))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
@@ -243,23 +263,28 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
-        UsageCalculation.Key usageCalculationKey = new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM,
-            Usage._ANY);
-        assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
-        assertEquals(Double.valueOf(42.0), accountUsageCalculation.getCalculation(usageCalculationKey)
-            .getTotals(HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(Measurement.Uom.CORES));
+  }
 
-    @Test
-    void productsDefinedInRolesAreIncludedInBucketsWhenSetOnEvent() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void productsDefinedInRolesAreIncludedInBucketsWhenSetOnEvent() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
@@ -268,30 +293,36 @@ class MetricUsageCollectorTest {
             .withUsage(Event.Usage.PRODUCTION)
             .withRole(Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
 
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
 
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
 
-        UsageCalculation.Key serverKey = new UsageCalculation.Key(RHEL_SERVER_SWATCH_PRODUCT_ID,
-            ServiceLevel.PREMIUM, Usage._ANY);
-        assertTrue(accountUsageCalculation.containsCalculation(serverKey));
-        assertEquals(Double.valueOf(42.0), accountUsageCalculation.getCalculation(serverKey).getTotals(
-            HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
+    UsageCalculation.Key serverKey =
+        new UsageCalculation.Key(RHEL_SERVER_SWATCH_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY);
+    assertTrue(accountUsageCalculation.containsCalculation(serverKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(serverKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(Measurement.Uom.CORES));
 
-        // Not defined on the event, should not exist.
-        UsageCalculation.Key wsKey = new UsageCalculation.Key(RHEL_WORKSTATION_SWATCH_PRODUCT_ID,
-            ServiceLevel.PREMIUM, Usage._ANY);
-        assertFalse(accountUsageCalculation.containsCalculation(wsKey));
-    }
+    // Not defined on the event, should not exist.
+    UsageCalculation.Key wsKey =
+        new UsageCalculation.Key(
+            RHEL_WORKSTATION_SWATCH_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY);
+    assertFalse(accountUsageCalculation.containsCalculation(wsKey));
+  }
 
-    @Test
-    void productsAreIncludedInBucketsWhenEngIdIsSetOnEvent() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void productsAreIncludedInBucketsWhenEngIdIsSetOnEvent() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
@@ -300,32 +331,42 @@ class MetricUsageCollectorTest {
             .withUsage(Event.Usage.PRODUCTION)
             .withProductIds(List.of("1234"));
 
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
 
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
 
-        UsageCalculation.Key engIdKey = new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
-        assertTrue(accountUsageCalculation.containsCalculation(engIdKey));
-        assertEquals(Double.valueOf(42.0), accountUsageCalculation.getCalculation(engIdKey).getTotals(
-            HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
+    UsageCalculation.Key engIdKey =
+        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
+    assertTrue(accountUsageCalculation.containsCalculation(engIdKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(engIdKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(Measurement.Uom.CORES));
 
-        // Not defined on the event, should not exist.
-        List.of(RHEL_SERVER_SWATCH_PRODUCT_ID, RHEL_WORKSTATION_SWATCH_PRODUCT_ID).forEach(swatchProdId -> {
-            UsageCalculation.Key key = new UsageCalculation.Key(swatchProdId,
-                ServiceLevel.PREMIUM, Usage._ANY);
-            assertFalse(accountUsageCalculation.containsCalculation(key), "Unexpected calculation: " +
-                swatchProdId);
-        });
-    }
+    // Not defined on the event, should not exist.
+    List.of(RHEL_SERVER_SWATCH_PRODUCT_ID, RHEL_WORKSTATION_SWATCH_PRODUCT_ID)
+        .forEach(
+            swatchProdId -> {
+              UsageCalculation.Key key =
+                  new UsageCalculation.Key(swatchProdId, ServiceLevel.PREMIUM, Usage._ANY);
+              assertFalse(
+                  accountUsageCalculation.containsCalculation(key),
+                  "Unexpected calculation: " + swatchProdId);
+            });
+  }
 
-    @Test
-    void testHandlesDuplicateEvents() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @EnumSource
+  @ParameterizedTest
+  void testHandlesDuplicateEvents(Measurement.Uom uom) {
+    Measurement measurement = new Measurement().withUom(uom).withValue(42.0);
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of("1234"))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
@@ -333,130 +374,155 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
-        AccountUsageCalculation accountUsageCalculation = metricUsageCollector
-            .collectHour(account, OffsetDateTime.MIN);
-        assertNotNull(accountUsageCalculation);
-        UsageCalculation.Key usageCalculationKey =
-            new UsageCalculation.Key(RHEL,
-            ServiceLevel.PREMIUM, Usage._ANY);
-        assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
-        assertEquals(Double.valueOf(42.0),
-            accountUsageCalculation.getCalculation(usageCalculationKey).getTotals(
-            HardwareMeasurementType.PHYSICAL).getMeasurement(Measurement.Uom.CORES));
-    }
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+        .thenReturn(Stream.of(event, event));
+    AccountUsageCalculation accountUsageCalculation =
+        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    assertNotNull(accountUsageCalculation);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(uom));
+  }
 
-    @Test
-    void testUpdatesMonthlyTotal() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        Event event = new Event()
+  @Test
+  void testUpdatesMonthlyTotal() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    String instanceId = UUID.randomUUID().toString();
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
+            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-        Account account = new Account();
-        account.setAccountNumber("account123");
-        when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event, event));
 
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
-        Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
-        assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
-    }
+    Measurement instanceHoursMeasurement =
+        new Measurement().withUom(Uom.INSTANCE_HOURS).withValue(43.0);
+    Event instanceHoursEvent =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(instanceId)
+            .withMeasurements(Collections.singletonList(instanceHoursMeasurement))
+            .withUsage(Event.Usage.PRODUCTION);
+    Account account = new Account();
+    account.setAccountNumber("account123");
+    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+        .thenReturn(Stream.of(event, event, instanceHoursEvent, instanceHoursEvent));
 
-    @Test
-    void testRecalculatesMonthlyTotalWhenEventsAreOld() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        String instanceId = UUID.randomUUID().toString();
-        OffsetDateTime eventDate = clock.startOfCurrentHour();
-        Event event = new Event()
+    metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+    Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
+    assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
+    assertEquals(
+        Double.valueOf(86.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.INSTANCE_HOURS));
+  }
+
+  @Test
+  void testRecalculatesMonthlyTotalWhenEventsAreOld() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    String instanceId = UUID.randomUUID().toString();
+    OffsetDateTime eventDate = clock.startOfCurrentHour();
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-        Account account = new Account();
-        account.setAccountNumber("account123");
+    Account account = new Account();
+    account.setAccountNumber("account123");
 
-        OffsetDateTime instanceDate = eventDate.minusDays(1);
-        Host activeInstance = new Host();
-        activeInstance.setInstanceId(instanceId);
-        activeInstance.setInstanceType(SERVICE_TYPE);
-        activeInstance.setLastSeen(instanceDate);
-        account.getServiceInstances().put(instanceId, activeInstance);
+    OffsetDateTime instanceDate = eventDate.minusDays(1);
+    Host activeInstance = new Host();
+    activeInstance.setInstanceId(instanceId);
+    activeInstance.setInstanceType(SERVICE_TYPE);
+    activeInstance.setLastSeen(instanceDate);
+    account.getServiceInstances().put(instanceId, activeInstance);
 
-        String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-        when(eventController.fetchEventsInTimeRange(any(), any(), any()))
-            .thenAnswer(m -> {
-                OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
-                OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
-                if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
-                    return Stream.of(event);
-                }
-                return Stream.of();
+    String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
+    when(accountRepo.findById(any())).thenReturn(Optional.of(account));
+    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+        .thenAnswer(
+            m -> {
+              OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
+              OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
+              if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
+                return Stream.of(event);
+              }
+              return Stream.of();
             });
 
-        metricUsageCollector.collect("account123", instanceDate.minusHours(1), instanceDate.plusHours(1));
-        assertEquals(Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
-    }
+    metricUsageCollector.collect(
+        "account123", new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+    assertEquals(
+        Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+  }
 
-    @Test
-    void testClearsMeasurementsOnInactiveInstancesWhenRecalculating() {
-        Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
-        String instanceId = UUID.randomUUID().toString();
-        OffsetDateTime eventDate = clock.startOfCurrentHour();
-        Event event = new Event()
+  @Test
+  void testClearsMeasurementsOnInactiveInstancesWhenRecalculating() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    String instanceId = UUID.randomUUID().toString();
+    OffsetDateTime eventDate = clock.startOfCurrentHour();
+    Event event =
+        new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-        Account account = new Account();
-        account.setAccountNumber("account123");
+    Account account = new Account();
+    account.setAccountNumber("account123");
 
-        OffsetDateTime instanceDate = eventDate.minusDays(1);
-        Host activeInstance = new Host();
-        activeInstance.setInstanceId(instanceId);
-        activeInstance.setInstanceType(SERVICE_TYPE);
-        activeInstance.setLastSeen(instanceDate);
-        account.getServiceInstances().put(instanceId, activeInstance);
+    OffsetDateTime instanceDate = eventDate.minusDays(1);
+    Host activeInstance = new Host();
+    activeInstance.setInstanceId(instanceId);
+    activeInstance.setInstanceType(SERVICE_TYPE);
+    activeInstance.setLastSeen(instanceDate);
+    account.getServiceInstances().put(instanceId, activeInstance);
 
-        String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
-        Host staleInstance = new Host();
-        staleInstance.addToMonthlyTotal(monthId, Measurement.Uom.CORES, 11.0);
-        staleInstance.setInstanceType(SERVICE_TYPE);
-        staleInstance.setInstanceId(UUID.randomUUID().toString());
-        staleInstance.setLastSeen(instanceDate);
-        account.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
+    String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
+    Host staleInstance = new Host();
+    staleInstance.addToMonthlyTotal(monthId, Measurement.Uom.CORES, 11.0);
+    staleInstance.setInstanceType(SERVICE_TYPE);
+    staleInstance.setInstanceId(UUID.randomUUID().toString());
+    staleInstance.setLastSeen(instanceDate);
+    account.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
 
-        when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-        when(eventController.fetchEventsInTimeRange(any(), any(), any()))
-            .thenAnswer(m -> {
-                OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
-                OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
-                if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
-                    return Stream.of(event);
-                }
-                return Stream.of();
+    when(accountRepo.findById(any())).thenReturn(Optional.of(account));
+    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+        .thenAnswer(
+            m -> {
+              OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
+              OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
+              if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
+                return Stream.of(event);
+              }
+              return Stream.of();
             });
 
-        metricUsageCollector.collect("account123", instanceDate.minusHours(1), instanceDate.plusHours(1));
-        assertEquals(Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
-        assertNull(staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
-    }
+    metricUsageCollector.collect(
+        "account123", new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+    assertEquals(
+        Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+    assertNull(staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+  }
 
-    @Test
-    void collectionThrowsExceptionWhenDateRangeIsNotRounded() {
-        OffsetDateTime start = clock.startOfCurrentHour();
-        OffsetDateTime end = clock.now();
-
-        assertThrows(IllegalArgumentException.class,
-            () -> metricUsageCollector.collect("account123", start, end));
-    }
+  @Test
+  void collectionThrowsExceptionWhenDateRangeIsNotRounded() {
+    DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
+    assertThrows(
+        IllegalArgumentException.class, () -> metricUsageCollector.collect("account123", range));
+  }
 }

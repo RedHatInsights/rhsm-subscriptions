@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
+import java.util.Arrays;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
@@ -32,80 +33,71 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-
 @ExtendWith(MockitoExtension.class)
 class RhsmConduitJmxBeanTest {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
-    @Mock
-    InventoryController controller;
+  @Mock InventoryController controller;
 
-    @Mock
-    OrgConfigRepository repo;
+  @Mock OrgConfigRepository repo;
 
-    @Mock
-    OrgSyncTaskManager tasks;
+  @Mock OrgSyncTaskManager tasks;
 
-    @Test
-    void testHandlesCommas() throws RhsmJmxException {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
-        jmxBean.addOrgsToSyncList("1,2,3");
-        verify(repo).saveAll(matchOrgs("1", "2", "3"));
-    }
+  @Test
+  void testHandlesCommas() throws RhsmJmxException {
+    RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
+    jmxBean.addOrgsToSyncList("1,2,3");
+    verify(repo).saveAll(matchOrgs("1", "2", "3"));
+  }
 
-    @Test
-    void testHandlesWhitespace() throws RhsmJmxException {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
-        jmxBean.addOrgsToSyncList("1 2\n3");
-        verify(repo).saveAll(matchOrgs("1", "2", "3"));
-    }
+  @Test
+  void testHandlesWhitespace() throws RhsmJmxException {
+    RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
+    jmxBean.addOrgsToSyncList("1 2\n3");
+    verify(repo).saveAll(matchOrgs("1", "2", "3"));
+  }
 
-    @Test
-    void testHandlesAllDelimitersTogether() throws RhsmJmxException {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
-        jmxBean.addOrgsToSyncList("1,2 3\n4");
-        verify(repo).saveAll(matchOrgs("1", "2", "3", "4"));
-    }
+  @Test
+  void testHandlesAllDelimitersTogether() throws RhsmJmxException {
+    RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
+    jmxBean.addOrgsToSyncList("1,2 3\n4");
+    verify(repo).saveAll(matchOrgs("1", "2", "3", "4"));
+  }
 
-    @Test
-    void testHandlesAllDelimitersTogetherInCombination() throws RhsmJmxException {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
-        jmxBean.addOrgsToSyncList("1,\n2 ,3 \n4 ,\n5");
-        verify(repo).saveAll(matchOrgs("1", "2", "3", "4", "5"));
-    }
+  @Test
+  void testHandlesAllDelimitersTogetherInCombination() throws RhsmJmxException {
+    RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
+    jmxBean.addOrgsToSyncList("1,\n2 ,3 \n4 ,\n5");
+    verify(repo).saveAll(matchOrgs("1", "2", "3", "4", "5"));
+  }
 
-    @Test
-    void testGetInventoryCallsInventoryController()
-        throws MissingAccountNumberException, ApiException, RhsmJmxException {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
-        jmxBean.getInventoryForOrg("org-1234", null);
-        Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"), Mockito.eq(null));
-    }
+  @Test
+  void testGetInventoryCallsInventoryController()
+      throws MissingAccountNumberException, ApiException, RhsmJmxException {
+    RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
+    jmxBean.getInventoryForOrg("org-1234", null);
+    Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"), Mockito.eq(null));
+  }
 
-    @Test
-    void testUpdateInventoryDelegatesToTask()
-        throws RhsmJmxException, MissingAccountNumberException, ApiException {
-        RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
-        jmxBean.syncOrg("org-1234");
-        Mockito.verify(controller).updateInventoryForOrg(Mockito.eq("org-1234"));
-    }
+  @Test
+  void testUpdateInventoryDelegatesToTask()
+      throws RhsmJmxException, MissingAccountNumberException, ApiException {
+    RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
+    jmxBean.syncOrg("org-1234");
+    Mockito.verify(controller).updateInventoryForOrg(Mockito.eq("org-1234"));
+  }
 
-    private Iterable<? extends OrgConfig> matchOrgs(String... orgIds) {
-        return argThat(
-            containsInAnyOrder(
-                Arrays.stream(orgIds)
-                    .map(orgId -> OrgConfig.fromJmx(orgId, clock.now()))
-                    .toArray(OrgConfig[]::new)
-            )
-        );
-    }
-
+  private Iterable<? extends OrgConfig> matchOrgs(String... orgIds) {
+    return argThat(
+        containsInAnyOrder(
+            Arrays.stream(orgIds)
+                .map(orgId -> OrgConfig.fromJmx(orgId, clock.now()))
+                .toArray(OrgConfig[]::new)));
+  }
 }

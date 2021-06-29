@@ -20,3 +20,12 @@ logging:
   level:
     org:
       candlepin: INFO
+spring:
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          # Force the testing database into UTC to prevent test failures when the database
+          # determines the 'current' time in a query. NOTE: This is primarily when tests
+          # are run in a local environment and the DB is running in local time zone.
+          time_zone: UTC

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,86 +21,99 @@
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.Set;
+import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.OffsetDateTime;
-import java.util.Set;
-
-
 @ExtendWith(MockitoExtension.class)
 class PrometheusMetricsTaskManagerTest {
 
-    private static final String TASK_TOPIC = "metrics-tasks-topic";
+  private static final String TASK_TOPIC = "metrics-tasks-topic";
+  private static final String TEST_PROFILE_ID = "OpenShift";
 
-    @Mock
-    private TaskQueue queue;
+  @Mock private TaskQueue queue;
 
-    @Mock
-    private TaskQueueProperties queueProperties;
+  @Mock private TaskQueueProperties queueProperties;
 
-    @Mock
-    private PrometheusAccountSource accountSource;
+  @Mock private PrometheusAccountSource accountSource;
 
-    private PrometheusMetricsTaskManager manager;
+  @Mock private PrometheusMetricsProperties prometheusMetricsProperties;
 
-    @BeforeEach
-    void setupTest() {
-        when(queueProperties.getTopic()).thenReturn(TASK_TOPIC);
-        manager = new PrometheusMetricsTaskManager(queue, queueProperties, accountSource);
-    }
+  private PrometheusMetricsTaskManager manager;
 
-    @Test
-    void updateForSingleAccount() throws Exception {
-        String account = "single-account";
-        OffsetDateTime end = OffsetDateTime.now();
-        OffsetDateTime start = end.minusDays(1);
+  @BeforeEach
+  void setupTest() {
+    when(queueProperties.getTopic()).thenReturn(TASK_TOPIC);
+    when(prometheusMetricsProperties.getSupportedMetricsForProduct(any()))
+        .thenReturn(Map.of(Uom.CORES, new MetricProperties()));
+    manager =
+        new PrometheusMetricsTaskManager(
+            queue, queueProperties, accountSource, prometheusMetricsProperties);
+  }
 
-        TaskDescriptor expectedTask = TaskDescriptor.builder(
-            TaskType.OPENSHIFT_METRICS_COLLECTION, TASK_TOPIC)
+  @Test
+  void updateForSingleAccount() throws Exception {
+    String account = "single-account";
+    OffsetDateTime end = OffsetDateTime.now();
+    OffsetDateTime start = end.minusDays(1);
+
+    TaskDescriptor expectedTask =
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", account)
+            .setSingleValuedArg("productProfileId", TEST_PROFILE_ID)
+            .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
             .build();
-        manager.updateOpenshiftMetricsForAccount(account, start, end);
-        verify(queue).enqueue(expectedTask);
-    }
+    manager.updateMetricsForAccount(account, TEST_PROFILE_ID, start, end);
+    verify(queue).enqueue(expectedTask);
+  }
 
-    @Test
-    void updateForConfiguredAccounts() throws Exception {
-        OffsetDateTime end = OffsetDateTime.now();
-        OffsetDateTime start = end.minusDays(1);
+  @Test
+  void updateForConfiguredAccounts() throws Exception {
+    OffsetDateTime end = OffsetDateTime.now();
+    OffsetDateTime start = end.minusDays(1);
 
-        when(accountSource.getOpenShiftMarketplaceAccounts(any())).thenReturn(Set.of("a1", "a2"));
-        TaskDescriptor account1Task =
-            TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, TASK_TOPIC)
+    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), any()))
+        .thenReturn(Set.of("a1", "a2"));
+    TaskDescriptor account1Task =
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", "a1")
+            .setSingleValuedArg("productProfileId", TEST_PROFILE_ID)
+            .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
             .build();
-        TaskDescriptor account2Task =
-            TaskDescriptor.builder(TaskType.OPENSHIFT_METRICS_COLLECTION, TASK_TOPIC)
+    TaskDescriptor account2Task =
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", "a2")
+            .setSingleValuedArg("productProfileId", TEST_PROFILE_ID)
+            .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
             .build();
 
-        manager.updateOpenshiftMetricsForAllAccounts(start, end);
-        verify(queue).enqueue(account1Task);
-        verify(queue).enqueue(account2Task);
-        verifyNoMoreInteractions(queue);
-    }
+    manager.updateMetricsForAllAccounts(TEST_PROFILE_ID, start, end);
+    verify(queue).enqueue(account1Task);
+    verify(queue).enqueue(account2Task);
+    verifyNoMoreInteractions(queue);
+  }
 }

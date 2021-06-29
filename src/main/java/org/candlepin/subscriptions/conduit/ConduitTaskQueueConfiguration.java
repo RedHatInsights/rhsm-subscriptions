@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,21 +21,18 @@
 package org.candlepin.subscriptions.conduit;
 
 import org.candlepin.subscriptions.task.TaskQueueProperties;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Conduit task properties common to both producers and consumers.
- */
+/** Conduit task properties common to both producers and consumers. */
 @Configuration
 public class ConduitTaskQueueConfiguration {
-    @Bean
-    @Qualifier("conduitTaskQueueProperties")
-    @ConfigurationProperties(prefix = "rhsm-conduit.tasks")
-    TaskQueueProperties taskQueueProperties() {
-        return new TaskQueueProperties();
-    }
+  @Bean
+  @Qualifier("conduitTaskQueueProperties")
+  @ConfigurationProperties(prefix = "rhsm-conduit.tasks")
+  TaskQueueProperties taskQueueProperties() {
+    return new TaskQueueProperties();
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,90 +21,33 @@
 package org.candlepin.subscriptions.http;
 
 import java.io.File;
+import lombok.Getter;
+import lombok.Setter;
 
-/**
- * HTTP service client configuration.
- */
+/** HTTP service client configuration. */
+@Getter
+@Setter
 public class HttpClientProperties {
 
-    /**
-     * Use a stub of the service.
-     */
-    private boolean useStub;
+  /** Use a stub of the service. */
+  private boolean useStub;
 
-    /**
-     * The URL of the service.
-     */
-    private String url;
+  /** The URL of the service. */
+  private String url;
 
-    /**
-     * The auth token required to connect. This should be passed as part of the Authentication
-     * header.
-     *
-     * "Authentication: bearer &lt;token&gt;"
-     */
-    private String token;
+  /**
+   * The auth token required to connect. This should be passed as part of the Authentication header.
+   *
+   * <p>"Authentication: bearer &lt;token&gt;"
+   */
+  private String token;
 
-    /**
-     * Maximum number of simultaneous connections to the service.
-     */
-    private int maxConnections = 100;
+  /** Maximum number of simultaneous connections to the service. */
+  private int maxConnections = 100;
 
-    /**
-     * Certificate authenticate file path
-     */
-    private File keystore;
+  /** Certificate authenticate file path */
+  private File keystore;
 
-    /**
-     * Certificate authenticate file password
-     */
-    private char[] keystorePassword;
-
-    public boolean isUseStub() {
-        return useStub;
-    }
-
-    public void setUseStub(boolean useStub) {
-        this.useStub = useStub;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public int getMaxConnections() {
-        return maxConnections;
-    }
-
-    public void setMaxConnections(int maxConnections) {
-        this.maxConnections = maxConnections;
-    }
-
-    public File getKeystore() {
-        return keystore;
-    }
-
-    public void setKeystore(File keystorePath) {
-        this.keystore = keystorePath;
-    }
-
-    public char[] getKeystorePassword() {
-        return keystorePassword;
-    }
-
-    public void setKeystorePassword(char[] keystorePassword) {
-        this.keystorePassword = keystorePassword;
-    }
+  /** Certificate authenticate file password */
+  private char[] keystorePassword;
 }

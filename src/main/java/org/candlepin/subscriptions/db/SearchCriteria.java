@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,17 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.validation.constraints.NotNull;
-
-/**
- * Representation of a single constraint
- */
+/** Representation of a single constraint */
 @Getter
 @Setter
 @ToString
@@ -38,12 +35,9 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 public class SearchCriteria {
 
-    @NotNull
-    private String key;
+  @NotNull private String key;
 
-    @NotNull
-    private Object value;
+  @NotNull private Object value;
 
-    @NotNull
-    private SearchOperation operation;
+  @NotNull private SearchOperation operation;
 }

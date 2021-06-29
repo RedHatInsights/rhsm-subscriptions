@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 - 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,37 +23,33 @@ package org.candlepin.subscriptions.exception.mapper;
 import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.candlepin.subscriptions.utilization.api.model.Errors;
-
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-import javax.ws.rs.core.Response;
-
-
 class DefaultExceptionMapperTest {
 
-    @Test
-    void testExceptionMapping() {
-        String expectedDetail = "FORCED!";
-        String expectedTitle =
-            "An internal server error has occurred. Check the server logs for further details.";
+  @Test
+  void testExceptionMapping() {
+    String expectedDetail = "FORCED!";
+    String expectedTitle =
+        "An internal server error has occurred. Check the server logs for further details.";
 
-        DefaultExceptionMapper mapper = new DefaultExceptionMapper();
-        Response resp = mapper.toResponse(new RuntimeException(expectedDetail));
+    DefaultExceptionMapper mapper = new DefaultExceptionMapper();
+    Response resp = mapper.toResponse(new RuntimeException(expectedDetail));
 
-        Object entityObj = resp.getEntity();
-        assertNotNull(entityObj);
-        assertThat(entityObj, Matchers.instanceOf(Errors.class));
+    Object entityObj = resp.getEntity();
+    assertNotNull(entityObj);
+    assertThat(entityObj, Matchers.instanceOf(Errors.class));
 
-        Errors errors = (Errors) entityObj;
-        assertEquals(1, errors.getErrors().size());
+    Errors errors = (Errors) entityObj;
+    assertEquals(1, errors.getErrors().size());
 
-        Error error = errors.getErrors().get(0);
-        assertEquals("500", error.getStatus());
-        assertEquals(expectedTitle, error.getTitle());
-        assertEquals(expectedDetail, error.getDetail());
-    }
-
+    Error error = errors.getErrors().get(0);
+    assertEquals("500", error.getStatus());
+    assertEquals(expectedTitle, error.getTitle());
+    assertEquals(expectedDetail, error.getDetail());
+  }
 }

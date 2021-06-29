@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,29 +20,25 @@
  */
 package org.candlepin.subscriptions.rbac;
 
+import java.util.List;
 import org.candlepin.subscriptions.rbac.model.Access;
 import org.candlepin.subscriptions.rbac.resources.AccessApi;
 
-import java.util.List;
-
-/**
- * A wrapper around the RBAC API.
- */
+/** A wrapper around the RBAC API. */
 public class RbacApiImpl implements RbacApi {
 
-    private AccessApi accessApi;
+  private AccessApi accessApi;
 
-    public RbacApiImpl(ApiClient client) {
-        accessApi = new AccessApi(client);
-    }
+  public RbacApiImpl(ApiClient client) {
+    accessApi = new AccessApi(client);
+  }
 
-    @Override
-    public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-        try {
-            return accessApi.getPrincipalAccess(applicationName, null, null, null).getData();
-        }
-        catch (ApiException apie) {
-            throw new RbacApiException("Unable to get current user access.", apie);
-        }
+  @Override
+  public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
+    try {
+      return accessApi.getPrincipalAccess(applicationName, null, null, null).getData();
+    } catch (ApiException apie) {
+      throw new RbacApiException("Unable to get current user access.", apie);
     }
+  }
 }

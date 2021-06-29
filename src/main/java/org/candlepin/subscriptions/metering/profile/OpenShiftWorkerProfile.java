@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,10 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeterin
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
-import org.candlepin.subscriptions.metering.task.OpenShiftTasksConfiguration;
+import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,46 +39,48 @@ import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
-
 /**
- * Defines the beans for the openshift-metering-worker profile. By default, the worker
- * will also load the openshift metering JMX endpoints.
+ * Defines the beans for the openshift-metering-worker profile. By default, the worker will also
+ * load the openshift metering JMX endpoints.
  *
- * @see OpenShiftJmxProfile
+ * @see MeteringJmxProfile
  */
 @EnableRetry
 @Configuration
 @Profile("openshift-metering-worker")
 @Import({
-    PrometheusServiceConfiguration.class,
-    TaskConsumerConfiguration.class,
-    OpenShiftTasksConfiguration.class
+  PrometheusServiceConfiguration.class,
+  TaskConsumerConfiguration.class,
+  MeteringTasksConfiguration.class
 })
 public class OpenShiftWorkerProfile {
 
-    @Bean(name = "openshiftMetricRetryTemplate")
-    public RetryTemplate openshiftRetryTemplate(PrometheusMetricsProperties metricProperties) {
-        RetryTemplate retryTemplate = new RetryTemplate();
+  @Bean(name = "openshiftMetricRetryTemplate")
+  public RetryTemplate openshiftRetryTemplate(PrometheusMetricsProperties metricProperties) {
+    RetryTemplate retryTemplate = new RetryTemplate();
 
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(metricProperties.getOpenshift().getMaxAttempts());
-        retryTemplate.setRetryPolicy(retryPolicy);
+    SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+    retryPolicy.setMaxAttempts(metricProperties.getOpenshift().getMaxAttempts());
+    retryTemplate.setRetryPolicy(retryPolicy);
 
-        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
-        backOffPolicy.setMaxInterval(metricProperties.getOpenshift().getBackOffMaxInterval());
-        backOffPolicy.setInitialInterval(metricProperties.getOpenshift().getBackOffInitialInterval());
-        backOffPolicy.setMultiplier(metricProperties.getOpenshift().getBackOffMultiplier());
-        retryTemplate.setBackOffPolicy(backOffPolicy);
+    ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+    backOffPolicy.setMaxInterval(metricProperties.getOpenshift().getBackOffMaxInterval());
+    backOffPolicy.setInitialInterval(metricProperties.getOpenshift().getBackOffInitialInterval());
+    backOffPolicy.setMultiplier(metricProperties.getOpenshift().getBackOffMultiplier());
+    retryTemplate.setBackOffPolicy(backOffPolicy);
 
-        return retryTemplate;
-    }
+    return retryTemplate;
+  }
 
-    @Bean
-    PrometheusMeteringController getController(ApplicationClock clock, PrometheusMetricsProperties mProps,
-        PrometheusService service, EventController eventController,
-        @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
-        OptInController optInController) {
-        return new PrometheusMeteringController(clock, mProps, service, eventController,
-            openshiftRetryTemplate, optInController);
-    }
+  @Bean
+  PrometheusMeteringController getController(
+      ApplicationClock clock,
+      PrometheusMetricsProperties mProps,
+      PrometheusService service,
+      EventController eventController,
+      @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
+      OptInController optInController) {
+    return new PrometheusMeteringController(
+        clock, mProps, service, eventController, openshiftRetryTemplate, optInController);
+  }
 }

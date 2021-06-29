@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 - 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,27 +24,25 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 
-/**
- * Class to fill the given TallyReport's snapshots based on an HOURLY granularity.
- */
+/** Class to fill the given TallyReport's snapshots based on an HOURLY granularity. */
 public class HourlyTimeAdjuster extends SnapshotTimeAdjuster {
 
-    public HourlyTimeAdjuster(ApplicationClock clock) {
-        super(clock);
-    }
+  public HourlyTimeAdjuster(ApplicationClock clock) {
+    super(clock);
+  }
 
-    @Override
-    public TemporalAmount getSnapshotOffset() {
-        return Duration.ofHours(1);
-    }
+  @Override
+  public TemporalAmount getSnapshotOffset() {
+    return Duration.ofHours(1);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
-        return clock.startOfHour(toAdjust);
-    }
+  @Override
+  public OffsetDateTime adjustToPeriodStart(OffsetDateTime toAdjust) {
+    return clock.startOfHour(toAdjust);
+  }
 
-    @Override
-    public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
-        return clock.endOfHour(toAdjust);
-    }
+  @Override
+  public OffsetDateTime adjustToPeriodEnd(OffsetDateTime toAdjust) {
+    return clock.endOfHour(toAdjust);
+  }
 }

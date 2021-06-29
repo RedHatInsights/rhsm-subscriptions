@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,9 @@ package org.candlepin.subscriptions.db.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.json.Event;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,17 +34,17 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class EventRecordTest {
 
-    @Autowired
-    ObjectMapper objectMapper;
+  @Autowired ObjectMapper objectMapper;
 
-    @Test
-    void testJsonOptionalVsNull() throws JsonProcessingException {
-        String testData = "{\"event_id\":\"99f6b275-6031-4967-84b6-147bd0191474\",\"display_name\":null}";
-        EventRecord eventRecord = objectMapper.readValue(testData, EventRecord.class);
-        Event event = eventRecord.getEvent();
-        assertNotNull(event.getDisplayName());
-        assertFalse(event.getDisplayName().isPresent());
-        assertNull(event.getInventoryId());
-        assertEquals(testData, objectMapper.writeValueAsString(eventRecord.getEvent()));
-    }
+  @Test
+  void testJsonOptionalVsNull() throws JsonProcessingException {
+    String testData =
+        "{\"event_id\":\"99f6b275-6031-4967-84b6-147bd0191474\",\"display_name\":null}";
+    EventRecord eventRecord = objectMapper.readValue(testData, EventRecord.class);
+    Event event = eventRecord.getEvent();
+    assertNotNull(event.getDisplayName());
+    assertFalse(event.getDisplayName().isPresent());
+    assertNull(event.getInventoryId());
+    assertEquals(testData, objectMapper.writeValueAsString(eventRecord.getEvent()));
+  }
 }

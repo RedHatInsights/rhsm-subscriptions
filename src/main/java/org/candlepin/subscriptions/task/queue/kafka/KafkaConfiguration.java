@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,24 +20,28 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-/**
- * Configuration for Kafka common to both producers and consumers.
- */
+/** Configuration for Kafka common to both producers and consumers. */
 @Configuration
 class KafkaConfiguration {
-    @Bean
-    KafkaConfigurator kafkaConfigurator() {
-        return new KafkaConfigurator();
-    }
+  @Bean
+  KafkaConsumerRegistry kafkaConsumerRegistry() {
+    return new KafkaConsumerRegistry();
+  }
 
-    @Bean
-    @Primary
-    KafkaProperties taskQueueKafkaProperties() {
-        return new KafkaProperties();
-    }
+  @Bean
+  KafkaConfigurator kafkaConfigurator(KafkaConsumerRegistry registry) {
+    return new KafkaConfigurator(registry);
+  }
+
+  @Bean
+  @Primary
+  KafkaProperties taskQueueKafkaProperties() {
+    return new KafkaProperties();
+  }
 }

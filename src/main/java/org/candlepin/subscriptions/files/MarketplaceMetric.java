@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,35 +20,31 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.util.HashSet;
+import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.HashSet;
-import java.util.Set;
-
-/**
- * Represents marketplace metric features, including swatch product IDs.
- */
+/** Represents marketplace metric features, including swatch product IDs. */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
 public class MarketplaceMetric {
-    private String metricId;
-    private String uom;
-    private Set<String> swatchProductIds;
+  private String metricId;
+  private String uom;
+  private Set<String> swatchProductIds;
 
+  public MarketplaceMetric() {
+    this.swatchProductIds = new HashSet<>();
+  }
 
-    public MarketplaceMetric() {
-        this.swatchProductIds = new HashSet<>();
-    }
-
-    public MarketplaceMetric(String metricId, String uom, Set<String> swatchProductIds) {
-        this();
-        this.metricId = metricId;
-        this.uom = uom;
-        this.swatchProductIds = swatchProductIds;
-    }
+  public MarketplaceMetric(String metricId, String uom, Set<String> swatchProductIds) {
+    this();
+    this.metricId = metricId;
+    this.uom = uom;
+    this.swatchProductIds = swatchProductIds;
+  }
 }

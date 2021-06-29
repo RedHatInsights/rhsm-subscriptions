@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,24 +26,23 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * A module to represent a profile mapping between
- * a swatch product ID and its corresponding offering
- * product name
+ * A module to represent a profile mapping between a swatch product ID and its corresponding
+ * offering product name
  */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
 public class SwatchProductByOfferingProductName {
-    private String name;
-    private String swatchProductId;
+  private String name;
+  private String swatchProductId;
 
-    public SwatchProductByOfferingProductName() {
-        // Required for YAML
-    }
+  public SwatchProductByOfferingProductName() {
+    // Required for YAML
+  }
 
-    public SwatchProductByOfferingProductName(String name, String swatchProductId) {
-        this.name = name;
-        this.swatchProductId = swatchProductId;
-    }
+  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
+    this.name = name;
+    this.swatchProductId = swatchProductId;
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,35 +23,34 @@ package org.candlepin.subscriptions.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.jupiter.api.Test;
-
 import java.time.OffsetDateTime;
 import java.util.List;
-
+import org.junit.jupiter.api.Test;
 
 class DateRangeTest {
 
-    @Test
-    void testCreateFromCollection() {
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime expectedStart = now.minusMonths(4);
-        OffsetDateTime expectedEnd = now.plusMonths(4);
+  @Test
+  void testCreateFromCollection() {
+    OffsetDateTime now = OffsetDateTime.now();
+    OffsetDateTime expectedStart = now.minusMonths(4);
+    OffsetDateTime expectedEnd = now.plusMonths(4);
 
-        List<OffsetDateTime> dates = List.of(now, expectedStart, expectedEnd, expectedEnd, expectedStart);
-        DateRange range = DateRange.from(dates);
-        assertEquals(expectedStart, range.getStartDate());
-        assertEquals(expectedEnd, range.getEndDate());
-    }
+    List<OffsetDateTime> dates =
+        List.of(now, expectedStart, expectedEnd, expectedEnd, expectedStart);
+    DateRange range = DateRange.from(dates);
+    assertEquals(expectedStart, range.getStartDate());
+    assertEquals(expectedEnd, range.getEndDate());
+  }
 
-    @Test
-    void testValidateStartDateIsBeforeOrOnEndDate() {
-        OffsetDateTime now = OffsetDateTime.now();
-        new DateRange(now, now.plusHours(1)); // Verify starts before end date case.
-        new DateRange(now, now); // Verify on end date case.
+  @Test
+  void testValidateStartDateIsBeforeOrOnEndDate() {
+    OffsetDateTime now = OffsetDateTime.now();
+    new DateRange(now, now.plusHours(1)); // Verify starts before end date case.
+    new DateRange(now, now); // Verify on end date case.
 
-        // Start can't be after the end date.
-        OffsetDateTime start = now;
-        OffsetDateTime end = now.minusHours(1);
-        assertThrows(IllegalArgumentException.class, () -> new DateRange(start, end));
-    }
+    // Start can't be after the end date.
+    OffsetDateTime start = now;
+    OffsetDateTime end = now.minusHours(1);
+    assertThrows(IllegalArgumentException.class, () -> new DateRange(start, end));
+  }
 }

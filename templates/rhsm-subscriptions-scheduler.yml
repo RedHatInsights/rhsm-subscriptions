@@ -19,8 +19,12 @@ parameters:
     value: 0 3 * * *
   - name: CAPTURE_SNAPSHOT_SCHEDULE
     value: 0 1 * * *
-  - name: OPENSHIFT_METERING_SCHEDULE
+  - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
+    value: '@hourly'
+  - name: METERING_SCHEDULE
     value: 0 * * * *
+  - name: EVENT_RECORD_RETENTION
+    value: 90d
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: IMAGE
@@ -32,11 +36,21 @@ parameters:
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
-    value: 1744Mi
+    value: 1650Mi
   - name: CPU_REQUEST
     value: 500m
   - name: CPU_LIMIT
-    value: 1900m
+    value: 1800m
+  - name: SPLUNK_FORWARDER_IMAGE
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
+  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
+    value: 128Mi
+  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
+    value: 150Mi
+  - name: SPLUNK_FORWARDER_CPU_REQUEST
+    value: 50m
+  - name: SPLUNK_FORWARDER_CPU_LIMIT
+    value: 100m
   - name: HOURLY_TALLY_OFFSET
     value: 60m
   - name: TOKEN_REFRESHER_IMAGE
@@ -57,9 +71,9 @@ objects:
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:
-      name: openshift-metrics-cron
+      name: metrics-cron
     spec:
-      schedule: ${OPENSHIFT_METERING_SCHEDULE}
+      schedule: ${METERING_SCHEDULE}
       jobTemplate:
         spec:
           activeDeadlineSeconds: 1800
@@ -72,14 +86,16 @@ objects:
                 - name: quay-cloudservices-pull
               containers:
                 - image: ${IMAGE}:${IMAGE_TAG}
-                  name: rhsm-subscriptions-openshift-metering
+                  name: rhsm-subscriptions-metering
                   env:
                     - name: SPRING_PROFILES_ACTIVE
-                      value: openshift-metering-job,kafka-queue
+                      value: metering-job,kafka-queue
                     - name: JAVA_MAX_MEM_RATIO
                       value: '85'
                     - name: GC_MAX_METASPACE_SIZE
                       value: '256'
+                    - name: LOG_FILE
+                      value: /logs/server.log
                     - name: LOGGING_LEVEL_ROOT
                       value: ${LOGGING_LEVEL_ROOT}
                     - name: LOGGING_LEVEL_ORG_CANDLEPIN
@@ -147,7 +163,33 @@ objects:
                     limits:
                       cpu: ${CPU_LIMIT}
                       memory: ${MEMORY_LIMIT}
-
+                  volumeMounts:
+                    - name: logs
+                      mountPath: /logs
+                - name: splunk
+                  env:
+                    - name: SPLUNKMETA_namespace
+                      valueFrom:
+                        fieldRef:
+                          apiVersion: v1
+                          fieldPath: metadata.namespace
+                  image: ${SPLUNK_FORWARDER_IMAGE}
+                  resources:
+                    requests:
+                      cpu: ${SPLUNK_FORWARDER_CPU_REQUEST}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${SPLUNK_FORWARDER_CPU_LIMIT}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_LIMIT}
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+                  volumeMounts:
+                    - mountPath: /var/log/app
+                      name: logs
+                      readOnly: true
+                    - mountPath: /tls/splunk.pem
+                      name: splunk
+                      subPath: splunk.pem
                 - name: token-refresher
                   image: ${TOKEN_REFRESHER_IMAGE}
                   args:
@@ -185,6 +227,12 @@ objects:
                     limits:
                       cpu: ${TOKEN_REFRESHER_CPU_LIMIT}
                       memory: ${TOKEN_REFRESHER_MEMORY_LIMIT}
+              volumes:
+                - name: splunk
+                  secret:
+                    secretName: splunk
+                - name: logs
+                  emptyDir:
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:
@@ -211,6 +259,8 @@ objects:
                       value: '85'
                     - name: GC_MAX_METASPACE_SIZE
                       value: '256'
+                    - name: LOG_FILE
+                      value: /logs/server.log
                     - name: LOGGING_LEVEL_ROOT
                       value: ${LOGGING_LEVEL_ROOT}
                     - name: LOGGING_LEVEL_ORG_CANDLEPIN
@@ -269,7 +319,158 @@ objects:
                     limits:
                       cpu: ${CPU_LIMIT}
                       memory: ${MEMORY_LIMIT}
-
+                  volumeMounts:
+                    - name: logs
+                      mountPath: /logs
+                - name: splunk
+                  env:
+                    - name: SPLUNKMETA_namespace
+                      valueFrom:
+                        fieldRef:
+                          apiVersion: v1
+                          fieldPath: metadata.namespace
+                  image: ${SPLUNK_FORWARDER_IMAGE}
+                  resources:
+                    requests:
+                      cpu: ${SPLUNK_FORWARDER_CPU_REQUEST}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${SPLUNK_FORWARDER_CPU_LIMIT}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_LIMIT}
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+                  volumeMounts:
+                    - mountPath: /var/log/app
+                      name: logs
+                      readOnly: true
+                    - mountPath: /tls/splunk.pem
+                      name: splunk
+                      subPath: splunk.pem
+              volumes:
+                - name: splunk
+                  secret:
+                    secretName: splunk
+                - name: logs
+                  emptyDir:
+  - apiVersion: batch/v1beta1
+    kind: CronJob
+    metadata:
+      name: rhsm-subscriptions-cron-hourly-tally
+    spec:
+      schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 1800
+          template:
+            spec:
+              activeDeadlineSeconds: 1800
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: ${IMAGE_PULL_SECRET}
+                - name: quay-cloudservices-pull
+              containers:
+                - image: ${IMAGE}:${IMAGE_TAG}
+                  name: rhsm-subscriptions-cron-hourly-tally
+                  env:
+                    - name: SPRING_PROFILES_ACTIVE
+                      value: capture-hourly-snapshots,kafka-queue
+                    - name: JAVA_MAX_MEM_RATIO
+                      value: '85'
+                    - name: GC_MAX_METASPACE_SIZE
+                      value: '256'
+                    - name: LOG_FILE
+                      value: /logs/server.log
+                    - name: LOGGING_LEVEL_ROOT
+                      value: ${LOGGING_LEVEL_ROOT}
+                    - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                      value: ${LOGGING_LEVEL}
+                    - name: KAFKA_BOOTSTRAP_HOST
+                      value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.host
+                    - name: DATABASE_PORT
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.port
+                    - name: DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.user
+                    - name: DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.password
+                    - name: DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: rhsm-db
+                          key: db.name
+                    - name: INVENTORY_DATABASE_HOST
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.host
+                    - name: INVENTORY_DATABASE_DATABASE
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.name
+                    - name: INVENTORY_DATABASE_USERNAME
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.user
+                    - name: INVENTORY_DATABASE_PASSWORD
+                      valueFrom:
+                        secretKeyRef:
+                          name: host-inventory-db-readonly
+                          key: db.password
+                  resources:
+                    requests:
+                      cpu: ${CPU_REQUEST}
+                      memory: ${MEMORY_REQUEST}
+                    limits:
+                      cpu: ${CPU_LIMIT}
+                      memory: ${MEMORY_LIMIT}
+                  volumeMounts:
+                    - name: logs
+                      mountPath: /logs
+                - name: splunk
+                  env:
+                    - name: SPLUNKMETA_namespace
+                      valueFrom:
+                        fieldRef:
+                          apiVersion: v1
+                          fieldPath: metadata.namespace
+                  image: ${SPLUNK_FORWARDER_IMAGE}
+                  resources:
+                    requests:
+                      cpu: ${SPLUNK_FORWARDER_CPU_REQUEST}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${SPLUNK_FORWARDER_CPU_LIMIT}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_LIMIT}
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+                  volumeMounts:
+                    - mountPath: /var/log/app
+                      name: logs
+                      readOnly: true
+                    - mountPath: /tls/splunk.pem
+                      name: splunk
+                      subPath: splunk.pem
+              volumes:
+                - name: splunk
+                  secret:
+                    secretName: splunk
+                - name: logs
+                  emptyDir:
   - apiVersion: batch/v1beta1
     kind: CronJob
     metadata:
@@ -296,12 +497,16 @@ objects:
                       value: '85'
                     - name: GC_MAX_METASPACE_SIZE
                       value: '256'
+                    - name: LOG_FILE
+                      value: /logs/server.log
                     - name: LOGGING_LEVEL_ROOT
                       value: ${LOGGING_LEVEL_ROOT}
                     - name: LOGGING_LEVEL_ORG_CANDLEPIN
                       value: ${LOGGING_LEVEL}
                     - name: KAFKA_BOOTSTRAP_HOST
                       value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: EVENT_RECORD_RETENTION
+                      value: ${EVENT_RECORD_RETENTION}
                     - name: DATABASE_HOST
                       valueFrom:
                         secretKeyRef:
@@ -354,3 +559,36 @@ objects:
                     limits:
                       cpu: ${CPU_LIMIT}
                       memory: ${MEMORY_LIMIT}
+                  volumeMounts:
+                    - name: logs
+                      mountPath: /logs
+                - name: splunk
+                  env:
+                    - name: SPLUNKMETA_namespace
+                      valueFrom:
+                        fieldRef:
+                          apiVersion: v1
+                          fieldPath: metadata.namespace
+                  image: ${SPLUNK_FORWARDER_IMAGE}
+                  resources:
+                    requests:
+                      cpu: ${SPLUNK_FORWARDER_CPU_REQUEST}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${SPLUNK_FORWARDER_CPU_LIMIT}
+                      memory: ${SPLUNK_FORWARDER_MEMORY_LIMIT}
+                  terminationMessagePath: /dev/termination-log
+                  terminationMessagePolicy: File
+                  volumeMounts:
+                    - mountPath: /var/log/app
+                      name: logs
+                      readOnly: true
+                    - mountPath: /tls/splunk.pem
+                      name: splunk
+                      subPath: splunk.pem
+              volumes:
+                - name: splunk
+                  secret:
+                    secretName: splunk
+                - name: logs
+                  emptyDir:

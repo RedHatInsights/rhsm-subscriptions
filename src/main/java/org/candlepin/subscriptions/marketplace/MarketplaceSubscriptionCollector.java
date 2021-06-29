@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +20,14 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import org.candlepin.subscriptions.subscription.SubscriptionService;
-import org.candlepin.subscriptions.subscription.api.model.Subscription;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.subscription.SubscriptionService;
+import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * Class responsible for communicating with the Marketplace API and fetching the subscription ID.
@@ -36,29 +35,34 @@ import java.util.stream.Collectors;
 @Component
 public class MarketplaceSubscriptionCollector {
 
-    private static final String IBMMARKETPLACE = "ibmmarketplace";
-    private final SubscriptionService subscriptionService;
+  private static final String IBMMARKETPLACE = "ibmmarketplace";
+  private final SubscriptionService subscriptionService;
 
-    @Autowired
-    public MarketplaceSubscriptionCollector(SubscriptionService subscriptionService) {
-        this.subscriptionService = subscriptionService;
+  @Autowired
+  public MarketplaceSubscriptionCollector(SubscriptionService subscriptionService) {
+    this.subscriptionService = subscriptionService;
+  }
+
+  /**
+   * Given an org ID, query the IT Subscription Service and return subscriptions that have an ibm
+   * marketplace external reference as part of its payload
+   *
+   * @param orgId - org ID used to look up subscriptions.
+   * @return subscriptions
+   */
+  public List<Subscription> requestSubscriptions(String orgId) {
+    if (!StringUtils.hasText(orgId)) {
+      throw new IllegalArgumentException("The orgId parameter can not be null or empty.");
     }
 
-    /**
-     * Given an account number, query the IT Subscription Service and return subscriptions that have an ibm
-     * marketplace external reference as part of its payload
-     * @param accountNumber - account number aka oracle account number aka ebs account number
-     * @return subscriptions
-     */
-    public List<Subscription> requestSubscriptions(String accountNumber) {
-        var subscriptions = subscriptionService.getSubscriptionsByAccountNumber(accountNumber);
-        return filterNonApplicableSubscriptions(subscriptions);
-    }
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
+    return filterNonApplicableSubscriptions(subscriptions);
+  }
 
-    protected List<Subscription> filterNonApplicableSubscriptions(List<Subscription> subscriptions) {
-        return subscriptions.stream()
-            .filter(sub -> !Objects.isNull(sub.getExternalReferences()))
-            .filter(sub -> !Objects.isNull(sub.getExternalReferences().get(IBMMARKETPLACE)))
-            .collect(Collectors.toList());
-    }
+  protected List<Subscription> filterNonApplicableSubscriptions(List<Subscription> subscriptions) {
+    return subscriptions.stream()
+        .filter(sub -> !Objects.isNull(sub.getExternalReferences()))
+        .filter(sub -> !Objects.isNull(sub.getExternalReferences().get(IBMMARKETPLACE)))
+        .collect(Collectors.toList());
+  }
 }

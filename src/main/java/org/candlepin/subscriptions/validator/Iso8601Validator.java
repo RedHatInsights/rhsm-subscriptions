@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,46 +20,42 @@
  */
 package org.candlepin.subscriptions.validator;
 
-import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
-
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
+import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
 
-/**
- * A ConstraintValidator to ensure Strings are in ISO 8601 format.
- */
+/** A ConstraintValidator to ensure Strings are in ISO 8601 format. */
 public class Iso8601Validator implements ConstraintValidator<Iso8601, String> {
 
-    private Iso8601Format format;
+  private Iso8601Format format;
 
-    @Override
-    public void initialize(Iso8601 constraintAnnotation) {
-        this.format = constraintAnnotation.value();
+  @Override
+  public void initialize(Iso8601 constraintAnnotation) {
+    this.format = constraintAnnotation.value();
+  }
+
+  @Override
+  public boolean isValid(String value, ConstraintValidatorContext context) {
+    // Note that the Jakarta Bean Validation specification recommends to consider null values as
+    // being
+    // valid. If null is not a valid value for an element, it should be annotated with @NotNull
+    // explicitly
+    if (value == null) {
+      return true;
     }
 
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        // Note that the Jakarta Bean Validation specification recommends to consider null values as being
-        // valid. If null is not a valid value for an element, it should be annotated with @NotNull explicitly
-        if (value == null) {
-            return true;
-        }
+    DateTimeFormatter formatter = format.formatter;
 
-        DateTimeFormatter formatter = format.formatter;
-
-        try {
-            formatter.parse(value);
-            return true;
-        }
-        catch (DateTimeParseException e) {
-            HibernateConstraintValidatorContext hibernateContext = context.unwrap(
-                HibernateConstraintValidatorContext.class
-            );
-            hibernateContext.addMessageParameter("example", format.example);
-            return false;
-        }
+    try {
+      formatter.parse(value);
+      return true;
+    } catch (DateTimeParseException e) {
+      HibernateConstraintValidatorContext hibernateContext =
+          context.unwrap(HibernateConstraintValidatorContext.class);
+      hibernateContext.addMessageParameter("example", format.example);
+      return false;
     }
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,32 +20,28 @@
  */
 package org.candlepin.subscriptions.tally.tasks;
 
+import java.util.List;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
-/**
- * Updates the usage snapshots for a given account.
- */
+/** Updates the usage snapshots for a given account. */
 public class UpdateAccountSnapshotsTask implements Task {
-    private static final Logger log = LoggerFactory.getLogger(UpdateAccountSnapshotsTask.class);
+  private static final Logger log = LoggerFactory.getLogger(UpdateAccountSnapshotsTask.class);
 
-    private final List<String> accountNumbers;
-    private final TallySnapshotController snapshotController;
+  private final List<String> accountNumbers;
+  private final TallySnapshotController snapshotController;
 
-    public UpdateAccountSnapshotsTask(TallySnapshotController snapshotController,
-        List<String> accountNumbers) {
-        this.snapshotController = snapshotController;
-        this.accountNumbers = accountNumbers;
-    }
+  public UpdateAccountSnapshotsTask(
+      TallySnapshotController snapshotController, List<String> accountNumbers) {
+    this.snapshotController = snapshotController;
+    this.accountNumbers = accountNumbers;
+  }
 
-    @Override
-    public void execute() {
-        log.info("Updating snapshots for {} accounts.", accountNumbers.size());
-        snapshotController.produceSnapshotsForAccounts(accountNumbers);
-    }
+  @Override
+  public void execute() {
+    log.info("Updating snapshots for {} accounts.", accountNumbers.size());
+    snapshotController.produceSnapshotsForAccounts(accountNumbers);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,9 @@
 package org.candlepin.subscriptions.db;
 
 import org.candlepin.subscriptions.db.model.Account;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 
-/**
- * Defines all operations for interacting with the Account aggregate
- */
+/** Defines all operations for interacting with the Account aggregate */
 public interface AccountRepository extends JpaRepository<Account, String> {
-    /* intentionally empty */
+  /* intentionally empty */
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,164 +20,138 @@
  */
 package org.candlepin.subscriptions;
 
+import java.time.Duration;
+import lombok.Getter;
+import lombok.Setter;
 import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceProperties;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.time.Duration;
 
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
  *
- * NOTE: not annotated with @Component, as this doesn't live in a package that is picked up with package
- * scanning.
+ * <p>NOTE: not annotated with @Component, as this doesn't live in a package that is picked up with
+ * package scanning.
  *
  * @see ApplicationConfiguration
  */
-
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "rhsm-subscriptions")
 public class ApplicationProperties {
-    private String version;
+  private String version;
 
-    private boolean prettyPrintJson = false;
+  private boolean prettyPrintJson = false;
 
-    private boolean devMode = false;
+  private boolean devMode = false;
 
-    /**
-     * Job schedules when running in dev mode.
-     */
-    private JobProperties jobs;
+  /** Job schedules when running in dev mode. */
+  private JobProperties jobs;
 
-    /**
-     * Resource location of a file containing a list of accounts to process.
-     */
-    private String accountListResourceLocation;
+  /** Resource location of a file containing a list of accounts to process. */
+  private String accountListResourceLocation;
 
-    /**
-     * Resource location of a file containing a list of products (SKUs) to process. If not specified, all
-     * products will be processed.
-     */
-    private String productWhitelistResourceLocation;
+  /**
+   * Resource location of a file containing a list of products (SKUs) to process. If not specified,
+   * all products will be processed.
+   */
+  private String productWhitelistResourceLocation;
 
-    /**
-     * Resource location of a file containing the whitelisted accounts allowed to run reports.
-     */
-    private String reportingAccountWhitelistResourceLocation;
+  /** Resource location of a file containing the whitelisted accounts allowed to run reports. */
+  private String reportingAccountWhitelistResourceLocation;
 
-    /**
-     * Resource location of a file containing the list of product profiles
-     */
-    private String productProfileRegistryResourceLocation;
+  /** Resource location of a file containing the list of product profiles */
+  private String productProfileRegistryResourceLocation;
 
-    /**
-     * An hour based threshold used to determine whether an inventory host record's rhsm facts are outdated.
-     * The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is 24 hours.
-     */
-    private int hostLastSyncThresholdHours = 24;
+  /**
+   * An hour based threshold used to determine whether an inventory host record's rhsm facts are
+   * outdated. The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is
+   * 24 hours.
+   */
+  private int hostLastSyncThresholdHours = 24;
 
-    /**
-     * The batch size of account numbers that will be processed at a time while producing snapshots.
-     * Default: 500
-     */
-    private int accountBatchSize = 500;
+  /**
+   * The batch size of account numbers that will be processed at a time while producing snapshots.
+   * Default: 500
+   */
+  private int accountBatchSize = 500;
 
-    /**
-     * Amount of time to cache the account list, before allowing a re-read from the filesystem.
-     */
-    private Duration accountListCacheTtl = Duration.ofMinutes(5);
+  /** Amount of time to cache the account list, before allowing a re-read from the filesystem. */
+  private Duration accountListCacheTtl = Duration.ofMinutes(5);
 
-    /**
-     * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
-     */
-    private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
+  /**
+   * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
+   */
+  private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
 
-    /**
-     * Amount of time to cache the API access whitelist, before allowing a re-read from the filesystem.
-     */
-    private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
+  /**
+   * Amount of time to cache the API access whitelist, before allowing a re-read from the
+   * filesystem.
+   */
+  private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
 
-    /**
-     * Amount of time to cache the list of product profiles before allowing a re-read from the filesystem
-     */
-    private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
+  /**
+   * Amount of time to cache the list of product profiles before allowing a re-read from the
+   * filesystem
+   */
+  private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
 
-    /**
-     * The number of days after the inventory's stale_timestamp that the record will be culled.
-     * Currently HBI is calculating this value and setting it on messages. Right now the
-     * default is: stale_timestamp + 14 days. Adding this as a configuration setting since
-     * we may need to adjust it at some point to match.
-     */
-    private int cullingOffsetDays = 14;
+  /**
+   * The number of days after the inventory's stale_timestamp that the record will be culled.
+   * Currently HBI is calculating this value and setting it on messages. Right now the default is:
+   * stale_timestamp + 14 days. Adding this as a configuration setting since we may need to adjust
+   * it at some point to match.
+   */
+  private int cullingOffsetDays = 14;
 
-    /**
-     * Expected domain suffix for origin or referer headers.
-     *
-     * @see AntiCsrfFilter
-     */
-    private String antiCsrfDomainSuffix = ".redhat.com";
+  /**
+   * Expected domain suffix for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private String antiCsrfDomainSuffix = ".redhat.com";
 
-    /**
-     * Expected port for origin or referer headers.
-     *
-     * @see AntiCsrfFilter
-     */
-    private int antiCsrfPort = 443;
+  /**
+   * Expected port for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private int antiCsrfPort = 443;
 
-    /**
-     * The RBAC application name that defines the permissions for this application.
-     */
-    private String rbacApplicationName = "subscriptions";
+  /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
+  private String hawtioBasePath;
 
-    /**
-     * The base path for hawtio. Needed to serve hawtio behind a reverse proxy.
-     */
-    private String hawtioBasePath;
+  /** Enable or disable cloudigrade integration. */
+  private boolean cloudigradeEnabled = false;
 
-    /**
-     * Enable or disable cloudigrade integration.
-     */
-    private boolean cloudigradeEnabled = false;
+  /** Number of times to attempt query against cloudigrade for Tally integration. */
+  private int cloudigradeMaxAttempts = 2;
 
-    /**
-     * Number of times to attempt query against cloudigrade for Tally integration.
-     */
-    private int cloudigradeMaxAttempts = 2;
+  /**
+   * Offsets the range to look at metrics to account for delay in prometheus having metrics
+   * available
+   */
+  private Duration prometheusLatencyDuration = Duration.ofHours(4L);
 
-    /**
-     * Kafka topic for sending tally summaries.
-     */
-    private String tallySummaryTopic = "platform.rhsm-subscriptions.tally";
+  /**
+   * Amount of time from current timestamp to start looking for metrics during a tally, independent
+   * of the prometheus latency duration
+   */
+  private Duration metricLookupRangeDuration = Duration.ofHours(1L);
 
-    /**
-     * Offsets the range to look at metrics to account for delay in prometheus having metrics available
-     */
-    private Duration prometheusLatencyDuration = Duration.ofHours(4L);
+  /**
+   * Latency offset: how far back to set the hourly tally window.
+   *
+   * <p>The offset is subtracted from the beginning and ending times of the latency window, to delay
+   * the entire processing window. This ensures more metering tasks finish and report their totals
+   * before tallying begins.
+   */
+  private Duration hourlyTallyOffset = Duration.ofMinutes(60L);
 
-    /**
-     * Amount of time from current timestamp to start looking for metrics during a tally,
-     * indepedent of the prometheus latency duration
-     */
-    private Duration metricLookupRangeDuration = Duration.ofHours(24L);
+  /** Additional properties related to the Subscription Service */
+  private SubscriptionServiceProperties subscription = new SubscriptionServiceProperties();
 
-    /**
-     * Latency offset: how far back to set the hourly tally window.
-     *
-     * The offset is subtracted from the beginning and ending times of the latency window, to delay the entire
-     * processing window.  This ensures more metering tasks finish and report their totals before tallying
-     * begins.
-     */
-    private Duration hourlyTallyOffset = Duration.ofMinutes(60L);
-
-    /**
-     * Additional properties related to the Subscription Service
-     */
-    private SubscriptionServiceProperties subscription = new SubscriptionServiceProperties();
-
+  /** If enabled, will sync Offerings with the upstream product service. */
+  private boolean offeringSyncEnabled = false;
 }

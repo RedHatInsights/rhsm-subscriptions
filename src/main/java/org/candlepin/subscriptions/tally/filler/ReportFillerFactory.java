@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,27 +24,22 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 
-/**
- * Responsible for creating ReportFiller objects based on granularity.
- */
+/** Responsible for creating ReportFiller objects based on granularity. */
 public class ReportFillerFactory {
 
-    private ReportFillerFactory() {
-        throw new IllegalStateException("Utility class; should never be instantiated!");
-    }
+  private ReportFillerFactory() {
+    throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
 
-    /**
-     * Creates an instance of a ReportFiller based on a Granularity.
-     *
-     * @param clock an application clock instance to base dates off of.
-     * @param granularity the target granularity
-     * @return a ReportFiller instance for the specified granularity.
-     */
-    public static ReportFiller getInstance(ApplicationClock clock, Granularity granularity) {
-        SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
-        return new ReportFiller(timeAdjuster);
-    }
-
-
-
+  /**
+   * Creates an instance of a ReportFiller based on a Granularity.
+   *
+   * @param clock an application clock instance to base dates off of.
+   * @param granularity the target granularity
+   * @return a ReportFiller instance for the specified granularity.
+   */
+  public static ReportFiller getInstance(ApplicationClock clock, Granularity granularity) {
+    SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
+    return new ReportFiller(timeAdjuster, clock);
+  }
 }

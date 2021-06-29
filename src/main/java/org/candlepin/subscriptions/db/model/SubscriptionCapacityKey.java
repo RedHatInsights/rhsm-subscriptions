@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,65 +22,62 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
-/**
- * Primary key for record of capacity provided by a subscription for a given product.
- */
+/** Primary key for record of capacity provided by a subscription for a given product. */
 @Embeddable
 public class SubscriptionCapacityKey implements Serializable {
 
-    @Column(name = "owner_id")
-    private String ownerId;
+  @Column(name = "owner_id")
+  private String ownerId;
 
-    @Column(name = "product_id")
-    private String productId;
+  @Column(name = "product_id")
+  private String productId;
 
-    @Column(name = "subscription_id")
-    private String subscriptionId;
+  @Column(name = "subscription_id")
+  private String subscriptionId;
 
-    public String getProductId() {
-        return productId;
+  public String getProductId() {
+    return productId;
+  }
+
+  public void setProductId(String productId) {
+    this.productId = productId;
+  }
+
+  public String getOwnerId() {
+    return ownerId;
+  }
+
+  public void setOwnerId(String ownerId) {
+    this.ownerId = ownerId;
+  }
+
+  public String getSubscriptionId() {
+    return subscriptionId;
+  }
+
+  public void setSubscriptionId(String subscriptionId) {
+    this.subscriptionId = subscriptionId;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(ownerId, productId, subscriptionId);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
     }
-
-    public void setProductId(String productId) {
-        this.productId = productId;
+    if (!(obj instanceof SubscriptionCapacityKey)) {
+      return false;
     }
-
-    public String getOwnerId() {
-        return ownerId;
-    }
-
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
-    }
-
-    public String getSubscriptionId() {
-        return subscriptionId;
-    }
-
-    public void setSubscriptionId(String subscriptionId) {
-        this.subscriptionId = subscriptionId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ownerId, productId, subscriptionId);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (!(obj instanceof SubscriptionCapacityKey)) {
-            return false;
-        }
-        SubscriptionCapacityKey other = (SubscriptionCapacityKey) obj;
-        return Objects.equals(getOwnerId(), other.getOwnerId()) &&
-            Objects.equals(getProductId(), other.getProductId()) &&
-            Objects.equals(getSubscriptionId(), other.getSubscriptionId());
-    }
+    SubscriptionCapacityKey other = (SubscriptionCapacityKey) obj;
+    return Objects.equals(getOwnerId(), other.getOwnerId())
+        && Objects.equals(getProductId(), other.getProductId())
+        && Objects.equals(getSubscriptionId(), other.getSubscriptionId());
+  }
 }

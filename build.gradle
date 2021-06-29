@@ -6,21 +6,21 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:5.1.0"
-        classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.0"
+        classpath "org.openapitools:openapi-generator-gradle-plugin:5.1.1"
+        classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.1"
         classpath "de.undercouch:gradle-download-task:4.1.1"
     }
 }
 
 plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "checkstyle"
+    id "com.diffplug.spotless" version "5.14.0"
     id "jacoco"
-    id "org.sonarqube" version "3.1.1"
-    id "org.springframework.boot" version "2.4.4"
+    id "org.sonarqube" version "3.3"
+    id "org.springframework.boot" version "2.5.0"
     id "net.researchgate.release" version "2.8.1"
     id "GitProperties"
-    id 'com.adarshr.test-logger' version '2.1.1'
+    id 'com.adarshr.test-logger' version '3.0.0'
     // Only applied for the rhsm-subscriptions-kafka sub project; applied below.
     id "com.commercehub.gradle.plugin.avro-base" version "0.9.1" apply false
 }
@@ -28,14 +28,14 @@ plugins {
 
 ext {
     swagger_annotations_version = "1.6.2"
-    swagger_ui_version = "3.46.0"
+    swagger_ui_version = "3.50.0"
     resteasy_version = "3.6.3.Final"
-    spring_boot_version = "2.4.4"
-    jboss_jaxrs_api_version = "1.0.2.Final"
+    spring_boot_version = "2.5.0"
+    jboss_jaxrs_api_version = "2.0.1.Final"
     resteasy_spring_boot_starter_version = "3.0.0.Final"
-    kafka_avro_serializer_version = "6.1.1"
+    kafka_avro_serializer_version = "6.2.0"
     avro_version = "1.10.2"
-    webjars_locator_version = "0.40"
+    webjars_locator_version = "0.41"
     generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
 }
 
@@ -43,6 +43,16 @@ allprojects {
     apply plugin: "java"
     apply plugin: "io.spring.dependency-management"
 
+    apply plugin: "com.diffplug.spotless"
+    spotless {
+        java {
+            targetExclude '**/build/**' // exclude generated code
+            enforceCheck false //allows build task to be successful, even if there is a code style violation
+            googleJavaFormat()
+            licenseHeaderFile "${rootDir}/config/codestyle/HEADER.txt" //lets you specify code that you don't want to violate rules or be reformatted
+            toggleOffOn()
+        }
+    }
     // Define all versions here so that all projects will use the same versions.
     dependencyManagement {
         imports {
@@ -63,7 +73,7 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
-            dependency "io.hawt:hawtio-springboot:2.13.2"
+            dependency "io.hawt:hawtio-springboot:2.13.4"
         }
     }
 
@@ -81,10 +91,6 @@ allprojects {
 
     test {
         useJUnitPlatform()
-    }
-
-    checkstyle {
-        toolVersion = "8.39"
     }
 
     jacocoTestReport {
@@ -131,6 +137,12 @@ jsonSchema2Pojo {
     generateBuilders = true
     includeGetters = true
     includeSetters = true
+}
+
+// Disable the default jar; otherwise we end up with two different jars in the final image
+// See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
+jar {
+    enabled = false
 }
 
 bootJar {
@@ -182,6 +194,7 @@ dependencies {
     compile project(":marketplace-client")
     compile project(":prometheus-client")
     compile project(":user-client")
+    compile project(":product-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -205,6 +218,8 @@ dependencies {
     compile "org.springframework.retry:spring-retry"
     compile "org.springframework:spring-context-support"
     compile "org.springframework.kafka:spring-kafka"
+    // the following dep is necessary to avoid jackson kotlin warnings
+    compile "com.fasterxml.jackson.module:jackson-module-kotlin"
 
     compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
@@ -269,11 +284,6 @@ project.tasks["sonarqube"].dependsOn "jacocoTestReport"
 
 project(":api") {
     apply plugin: "org.openapi.generator"
-
-    // This project should only contain generated code.  No point in running checkstyle
-    checkstyle {
-        sourceSets = []
-    }
 
     ext {
         api_spec_path = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
@@ -379,7 +389,7 @@ project(":rhsm-client") {
     }
 
     dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.27.2"
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.28.1"
     }
 }
 
@@ -457,15 +467,20 @@ project(":user-client") {
     }
 }
 
-configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
-                                            'insights-inventory-client', 'subscription-client',
-                                            'marketplace-client', 'prometheus-client', 'user-client']}) {
+project(":product-client") {
     apply plugin: "org.openapi.generator"
 
-    // These projects should only contain generated code.  No point in running checkstyle.
-    checkstyle {
-        sourceSets = []
+    ext {
+        api_spec_path = "${projectDir}/product-api-spec.yaml"
+        config_file = "${projectDir}/product-client-config.json"
     }
+}
+
+configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
+                                            'insights-inventory-client', 'subscription-client',
+                                            'marketplace-client', 'prometheus-client', 'user-client',
+                                            'product-client']}) {
+    apply plugin: "org.openapi.generator"
 
     openApiValidate {
         inputSpec = api_spec_path

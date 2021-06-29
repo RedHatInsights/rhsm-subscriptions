@@ -1,0 +1,127 @@
+# This is a file maintained by the rhsm-subscription project that describes
+# a portion of the Red Hat IT Products API
+openapi: "3.0.2"
+info:
+  title: "product-api"
+  description: "Third-party specification for Subscription API"
+  version: 1.0.0
+
+paths:
+  /products/{sku}/tree:
+    get:
+      summary: "Get SKU parent/child hierarchy"
+      operationId: "getProductTree"
+      tags:
+        - product
+      parameters:
+        - name: sku
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: attributes
+          in: query
+          schema:
+            type: boolean
+      responses:
+        default:
+          description: "default response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RESTProductTree"
+  /engproducts/sku={sku}:
+    description: "Get Engineering Products for one or more SKUs, comma delimited."
+    get:
+      summary: "GET Engineering Products associated with SKUs"
+      operationId: "getEngineeringProductsForSkus"
+      tags:
+        - product
+      parameters:
+        - name: "sku"
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        default:
+          description: "default response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineeringProductMap"
+components:
+  schemas:
+    AttributeValue:
+      type: object
+      properties:
+        code:
+          type: string
+        value:
+          type: string
+    OperationalProduct:
+      type: object
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeValue"
+        roles:
+          type: array
+          items:
+            type: string
+        engineeringProductOids:
+          type: array
+          items:
+            type: integer
+            format: int32
+    RESTParentChild:
+      type: object
+      properties:
+        child:
+          type: string
+    RESTProductTree:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationalProduct"
+        parentMap:
+          type: array
+          items:
+            $ref: "#/components/schemas/RESTParentChild"
+    EngineeringProduct:
+      type: object
+      properties:
+        oid:
+          type: integer
+          # Originally spec'ed as int64, but no engOids get above even int16
+          format: int32
+    EngineeringProducts:
+      type: object
+      properties:
+        engProducts:
+          type: array
+          items:
+            $ref: "#/components/schemas/EngineeringProduct"
+    EngineeringProductMap:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkuEngProduct"
+    SkuEngProduct:
+      type: object
+      properties:
+        sku:
+          type: string
+        engProducts:
+          $ref: "#/components/schemas/EngineeringProducts"

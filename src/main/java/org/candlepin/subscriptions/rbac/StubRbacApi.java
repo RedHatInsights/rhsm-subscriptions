@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,19 +20,23 @@
  */
 package org.candlepin.subscriptions.rbac;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.rbac.model.Access;
 
-import java.util.Arrays;
-import java.util.List;
-
-/**
- * Stub implementation of the RbacApi.
- */
+/** Stub implementation of the RbacApi. */
 public class StubRbacApi implements RbacApi {
 
-    @Override
-    public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-        return Arrays.asList(new Access().permission("subscriptions:*:*"));
-    }
+  private final RbacProperties serviceProperties;
 
+  public StubRbacApi(RbacProperties serviceProperties) {
+    this.serviceProperties = serviceProperties;
+  }
+
+  @Override
+  public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
+    return serviceProperties.getStubPermissions().stream()
+        .map(p -> new Access().permission(p))
+        .collect(Collectors.toList());
+  }
 }

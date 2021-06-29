@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +20,14 @@
  */
 package org.candlepin.subscriptions.metering;
 
-/**
- * Root level exception for the metering.
- */
+/** Root level exception for the metering. */
 public class MeteringException extends RuntimeException {
 
-    public MeteringException(String message) {
-        super(message);
-    }
+  public MeteringException(String message) {
+    super(message);
+  }
 
-    public MeteringException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public MeteringException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
