@@ -603,6 +603,75 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       tags:
         - ingress
+  /subscriptions/products/{product_id}:
+    description: "Retrieve subscriptions table/inventory data."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The Swatch product identifier."
+    get:
+      summary: "Get RHSM subscriptions table/inventory data"
+      operationId: getSubscriptionsProducts
+      responses:
+        '200':
+          description: "The request for the account's subscription table/inventory data was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionTableInventory"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscription_ids: ["1234567890", "1234567891", "1234567892"]
+                    upcoming_event_date: "2020-04-01T00:00:00Z"
+                    upcoming_event_type: Subscription Begin
+                    total_subscription_quantity: 3
+                    physical_capacity: 3
+                    virtual_capacity: 3
+                    total_capacity: 6
+                    uom: Sockets
+                  - sku: RH00010
+                    product_name: "Red Hat Enterprise Linux Server"
+                    service_level: Self-Support
+                    usage: Production
+                    subscription_ids: ["1234567893", "1234567894", "1234567895"]
+                    upcoming_event_date: "2020-04-02T00:00:00Z"
+                    upcoming_event_type: Subscription Begin
+                    total_subscription_quantity: 3
+                    physical_capacity: 3
+                    virtual_capacity": 3
+                    total_capacity": 6
+                    uom: Sockets
+                  - sku: RH00009
+                    product_name: "Red Hat Enterprise Linux Server, Premium"
+                    service_level: Premium
+                    usage: Production
+                    subscription_ids: ["1234567896", "1234567897", "1234567898"]
+                    upcoming_event_date: "2020-04-01T00:00:00Z"
+                    upcoming_event_type: Subscription End
+                    total_subscription_quantity: 3
+                    physical_capacity: 6
+                    virtual_capacity: 6
+                    total_capacity: 12
+                    uom: Cores
+                meta:
+                  count: 3
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - subscription
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
@@ -1260,6 +1329,64 @@ components:
           type: string
         detail:
           type: string
+
+    SubscriptionTableInventory:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionInventory"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+          required:
+            - count
+
+    SubscriptionInventory:
+      properties:
+        sku:
+          description: "The identifier for the offering."
+          type: string
+        product_name:
+          description: "The offering name."
+          type: string
+        service_level:
+          $ref: "#/components/schemas/ServiceLevelType"
+        usage:
+          $ref: "#/components/schemas/UsageType"
+        subscription_ids:
+          description: "The identifiers of the subscriptions about the offering."
+          type: array
+          items:
+            type: string
+        upcoming_event_date:
+          description: "The most immediate date for a subscription event."
+          type: string
+          format: date-time
+        upcoming_event_type:
+          description: "The subscription event, such as a subscription beginning or ending."
+          type: string
+        total_subscription_quantity:
+          description: "The summed quantity of all active subscriptions for the offering."
+          type: integer
+          format: int32
+        physical_capacity:
+          description: "The summed physical capacity of the unit-of-measure of all active subscriptions for the offering."
+          type: integer
+          format: int32
+        virtual_capacity:
+          description: "The summed virutal capacity of the unit-of-measure of all active subscriptions for the offering."
+          type: integer
+          format: int32
+        total_capacity:
+          description: "The combined (physical and virtual) capacity for the offering."
+          type: integer
+          format: int32
+        uom:
+          description: "The unit-of-measure for the capacity."
+          $ref: "#/components/schemas/Uom"
 
 security:
   - 3ScaleIdentity: []
