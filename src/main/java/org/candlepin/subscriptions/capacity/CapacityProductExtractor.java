@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.slf4j.Logger;
@@ -50,16 +49,18 @@ public class CapacityProductExtractor {
   }
 
   public Set<String> getProducts(Collection<String> productIds) {
-    return mapEngProductsToSwatchIds(productIds.stream().map(CapacityProductExtractor::parseIntSkipUnparseable));
+    return mapEngProductsToSwatchIds(
+        productIds.stream().map(CapacityProductExtractor::parseIntSkipUnparseable));
   }
 
   public Set<String> getProducts(Offering offering) {
     return mapEngProductsToSwatchIds(offering.getProductIds().stream());
   }
 
-  private Set<String> mapEngProductsToSwatchIds(Stream<Integer> productIds){
+  private Set<String> mapEngProductsToSwatchIds(Stream<Integer> productIds) {
 
-    Set<String> products = productIds
+    Set<String> products =
+        productIds
             .filter(Objects::nonNull)
             .map(engProductIdToSwatchProductIdsMap::get)
             .filter(Objects::nonNull)

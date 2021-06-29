@@ -59,7 +59,8 @@ public class SubscriptionSyncController {
 
     if (subscriptionOptional.isPresent()) {
 
-      final org.candlepin.subscriptions.db.model.Subscription existingSubscription = subscriptionOptional.get();
+      final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
+          subscriptionOptional.get();
       if (!existingSubscription.equals(newOrUpdated)) {
         if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
           existingSubscription.endSubscription();
