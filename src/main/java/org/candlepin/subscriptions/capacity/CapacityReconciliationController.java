@@ -79,9 +79,7 @@ public class CapacityReconciliationController {
   private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription) {
 
     Offering offering = offeringRepository.getById(subscription.getSku());
-    Set<String> products =
-        productExtractor.getProducts(
-            offering.getProductIds().stream().map(Object::toString).collect(Collectors.toSet()));
+    Set<String> products = productExtractor.getProducts(offering.getProductIds().stream());
 
     return products.stream()
         .map(product -> from(subscription, offering, product))

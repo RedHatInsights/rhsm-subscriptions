@@ -26,6 +26,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +57,23 @@ public class CapacityProductExtractor {
             .filter(Objects::nonNull)
             .flatMap(Set::stream)
             .collect(Collectors.toSet());
+
+    if (setIsInvalid(products)) {
+      // Kick out the RHEL products since it's implicit with the RHEL-included product being there.
+      products = products.stream().filter(matchesRhel().negate()).collect(Collectors.toSet());
+    }
+
+    return products;
+  }
+
+  public Set<String> getProducts(Stream<Integer> productIds) {
+    Set<String> products =
+            productIds
+                    .filter(Objects::nonNull)
+                    .map(engProductIdToSwatchProductIdsMap::get)
+                    .filter(Objects::nonNull)
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
 
     if (setIsInvalid(products)) {
       // Kick out the RHEL products since it's implicit with the RHEL-included product being there.
