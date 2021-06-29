@@ -52,24 +52,24 @@ public class SubscriptionSyncController {
   public void syncSubscription(Subscription subscription) {
 
     // TODO: add metrics for subscriptions created and updated //NOSONAR
-    final Optional<org.candlepin.subscriptions.db.model.Subscription> maybePresent =
+    final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
 
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
 
-    if (maybePresent.isPresent()) {
+    if (subscriptionOptional.isPresent()) {
 
-      final org.candlepin.subscriptions.db.model.Subscription existing = maybePresent.get();
-      if (!existing.equals(newOrUpdated)) {
-        if (existing.quantityHasChanged(newOrUpdated.getQuantity())) {
-          existing.endSubscription();
-          subscriptionRepository.save(existing);
+      final org.candlepin.subscriptions.db.model.Subscription existingSubscription = subscriptionOptional.get();
+      if (!existingSubscription.equals(newOrUpdated)) {
+        if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
+          existingSubscription.endSubscription();
+          subscriptionRepository.save(existingSubscription);
           final org.candlepin.subscriptions.db.model.Subscription newSub =
               org.candlepin.subscriptions.db.model.Subscription.builder()
-                  .subscriptionId(existing.getSubscriptionId())
-                  .sku(existing.getSku())
-                  .ownerId(existing.getOwnerId())
-                  .accountNumber(existing.getAccountNumber())
+                  .subscriptionId(existingSubscription.getSubscriptionId())
+                  .sku(existingSubscription.getSku())
+                  .ownerId(existingSubscription.getOwnerId())
+                  .accountNumber(existingSubscription.getAccountNumber())
                   .quantity(subscription.getQuantity())
                   .startDate(OffsetDateTime.now())
                   .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
@@ -77,8 +77,8 @@ public class SubscriptionSyncController {
                   .build();
           subscriptionRepository.save(newSub);
         } else {
-          updateSubscription(subscription, existing);
-          subscriptionRepository.save(existing);
+          updateSubscription(subscription, existingSubscription);
+          subscriptionRepository.save(existingSubscription);
         }
         capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
       }
