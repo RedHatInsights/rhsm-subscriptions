@@ -75,9 +75,11 @@ public class QueryBuilder {
     // to prevent potential infinite recursion.
     String query = template;
     for (int i = 0; i < metricsProperties.getTemplateParameterDepth(); i++) {
-      // Silly hack to make sonar happy.
-      assert query != null;
       query = (String) parser.parseExpression(query, new TemplateParserContext()).getValue(context);
+      if (query == null) {
+        throw new IllegalStateException(
+            String.format("Unable to parse query template! %s", template));
+      }
     }
     return query;
   }
