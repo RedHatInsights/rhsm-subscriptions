@@ -62,7 +62,7 @@ public class PrometheusMeteringController {
   private final PrometheusService prometheusService;
   private final EventController eventController;
   private final ApplicationClock clock;
-  private final PrometheusMetricsProperties promMetricsProperties;
+  private final PrometheusMetricsProperties prometheusMetricsProperties;
   private final RetryTemplate openshiftRetry;
   private final OptInController optInController;
   private final QueryBuilder prometheusQueryBuilder;
@@ -70,7 +70,7 @@ public class PrometheusMeteringController {
 
   public PrometheusMeteringController(
       ApplicationClock clock,
-      PrometheusMetricsProperties promMetricsProperties,
+      PrometheusMetricsProperties prometheusMetricsProperties,
       PrometheusService service,
       QueryBuilder queryBuilder,
       EventController eventController,
@@ -78,7 +78,7 @@ public class PrometheusMeteringController {
       OptInController optInController,
       TagProfile tagProfile) {
     this.clock = clock;
-    this.promMetricsProperties = promMetricsProperties;
+    this.prometheusMetricsProperties = prometheusMetricsProperties;
     this.prometheusService = service;
     this.prometheusQueryBuilder = queryBuilder;
     this.eventController = eventController;
@@ -95,7 +95,7 @@ public class PrometheusMeteringController {
   @Transactional
   public void collectMetrics(
       String tag, Uom metric, String account, OffsetDateTime start, OffsetDateTime end) {
-    Optional<TagMetric> tagMetric = promMetricsProperties.getTagMetric(tag, metric);
+    Optional<TagMetric> tagMetric = prometheusMetricsProperties.getTagMetric(tag, metric);
     if (tagMetric.isEmpty()) {
       throw new UnsupportedOperationException(
           String.format("Unable to find TagMetric for tag %s and metric %s!", tag, metric));
@@ -108,7 +108,7 @@ public class PrometheusMeteringController {
     }
 
     MetricProperties metricProps =
-        promMetricsProperties.getSupportedMetricsForProduct(tag).get(metric);
+        prometheusMetricsProperties.getSupportedMetricsForProduct(tag).get(metric);
 
     // Reset the start/end dates to ensure they span a complete hour.
     // NOTE: If the prometheus query step changes, we will need to adjust this.
@@ -146,8 +146,8 @@ public class PrometheusMeteringController {
                     // We need to shift the start and end dates by the step, to account for the
                     // shift in the event start date when it is created. See note about eventDate
                     // below.
-                    startDate.minusSeconds(promMetricsProperties.getOpenshift().getStep()),
-                    endDate.minusSeconds(promMetricsProperties.getOpenshift().getStep()));
+                    startDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep()),
+                    endDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep()));
             log.debug("Found {} existing events.", existing.size());
 
             Map<EventKey, Event> events = new HashMap<>();
@@ -173,7 +173,7 @@ public class PrometheusMeteringController {
                 // actually represents the end of the measured period. The start of the event
                 // should be at the beginning.
                 OffsetDateTime eventDate =
-                    eventTermDate.minusSeconds(promMetricsProperties.getOpenshift().getStep());
+                    eventTermDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep());
 
                 Event event =
                     createOrUpdateEvent(
