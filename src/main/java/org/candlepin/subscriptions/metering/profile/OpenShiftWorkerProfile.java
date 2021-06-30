@@ -76,6 +76,7 @@ public class OpenShiftWorkerProfile {
     return retryTemplate;
   }
 
+  @SuppressWarnings("java:S107")
   @Bean
   PrometheusMeteringController getController(
       ApplicationClock clock,

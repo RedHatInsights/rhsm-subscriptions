@@ -68,6 +68,7 @@ public class PrometheusMeteringController {
   private final QueryBuilder prometheusQueryBuilder;
   private final TagProfile tagProfile;
 
+  @SuppressWarnings("java:S107")
   public PrometheusMeteringController(
       ApplicationClock clock,
       PrometheusMetricsProperties prometheusMetricsProperties,
