@@ -182,17 +182,7 @@ public class HostsResource implements HostsApi {
       // the selected month. This is also used for sorting purposes (same join). See
       // org.candlepin.subscriptions.db.HostSpecification#toPredicate and
       // org.candlepin.subscriptions.db.HostRepository#findAllBy.
-      Measurement.Uom referenceUom;
-      if (SORT_TO_UOM_MAP.containsKey(sort)) {
-        referenceUom = SORT_TO_UOM_MAP.get(sort);
-      } else {
-        referenceUom =
-            Optional.ofNullable(tagProfile.uomsForTag(productId.toString()))
-                .orElse(List.of())
-                .stream()
-                .findFirst()
-                .orElse(null);
-      }
+      Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
       hosts =
           repository.findAllBy(
               accountNumber,

@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.Host;
@@ -45,7 +46,8 @@ import org.springframework.util.StringUtils;
 
 /** Provides access to Host database entities. */
 @SuppressWarnings({"linelength", "indentation"})
-public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host> {
+public interface HostRepository
+    extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host>, TagProfileLookup {
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
@@ -143,15 +145,26 @@ public interface HostRepository extends JpaRepository<Host, UUID>, JpaSpecificat
     searchCriteria.add(
         new SearchCriteria(
             HostTallyBucket_.SOCKETS, minSockets, SearchOperation.GREATER_THAN_EQUAL));
-    if (StringUtils.hasText(month) && referenceUom != null) {
-      searchCriteria.add(
-          new SearchCriteria(
-              InstanceMonthlyTotalKey_.MONTH,
-              new InstanceMonthlyTotalKey(month, referenceUom),
-              SearchOperation.EQUAL));
+    if (StringUtils.hasText(month)) {
+      // Defaulting if null, since we need a UOM in order to properly filter against a given month
+      Uom effectiveUom =
+          Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
+      if (effectiveUom != null) {
+        searchCriteria.add(
+            new SearchCriteria(
+                InstanceMonthlyTotalKey_.MONTH,
+                new InstanceMonthlyTotalKey(month, effectiveUom),
+                SearchOperation.EQUAL));
+      }
     }
 
     return findAll(searchCriteria, pageable);
+  }
+
+  default Uom getDefaultUomForProduct(String productId) {
+    return Optional.ofNullable(getTagProfile().uomsForTag(productId)).orElse(List.of()).stream()
+        .findFirst()
+        .orElse(null);
   }
 
   @Query(
