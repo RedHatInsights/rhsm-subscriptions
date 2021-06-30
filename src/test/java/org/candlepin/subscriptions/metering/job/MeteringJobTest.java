@@ -60,7 +60,7 @@ class MeteringJobTest {
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
     clock = new FixedClockConfiguration().fixedClock();
-    job = new MeteringJob(tasks, clock, metricProps, appProps);
+    job = new MeteringJob(tasks, clock, tagProfile, metricProps, appProps);
 
     when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));
     when(tagProfile.measurementsByTag("OpenShift-metrics")).thenReturn(Set.of(Uom.CORES));

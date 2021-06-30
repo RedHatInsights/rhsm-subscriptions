@@ -72,10 +72,6 @@ public class PrometheusMetricsProperties {
     return metrics;
   }
 
-  public Collection<String> getMetricsEnabledProductTags() {
-    return tagProfile.getTagsWithPrometheusEnabledLookup();
-  }
-
   public Integer getMetricsTimeoutForProductTag(String productTag) {
     // NOTE(khowell): doesn't make sense for a given product tag (e.g. OSD) to have different
     // metrics timeouts. Grabbing the first one for now.
