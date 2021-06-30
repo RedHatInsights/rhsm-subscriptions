@@ -173,7 +173,8 @@ public class PrometheusMeteringController {
                 // actually represents the end of the measured period. The start of the event
                 // should be at the beginning.
                 OffsetDateTime eventDate =
-                    eventTermDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep());
+                    eventTermDate.minusSeconds(
+                        prometheusMetricsProperties.getOpenshift().getStep());
 
                 Event event =
                     createOrUpdateEvent(

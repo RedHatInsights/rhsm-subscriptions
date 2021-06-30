@@ -100,10 +100,11 @@ public class TagProfile {
   private void handleTagMetaData(TagMetaData tagMetaData) {
     tagMetaData
         .getTags()
-        .forEach(tag -> {
-          tagMetaDataToTagLookup.put(tag, tagMetaData);
-          finestGranularityLookup.put(tag, tagMetaData.getFinestGranularity());
-        });
+        .forEach(
+            tag -> {
+              tagMetaDataToTagLookup.put(tag, tagMetaData);
+              finestGranularityLookup.put(tag, tagMetaData.getFinestGranularity());
+            });
   }
 
   public boolean tagSupportsEngProduct(String tag, String engId) {
@@ -136,5 +137,4 @@ public class TagProfile {
     }
     return Optional.ofNullable(tagMetaDataToTagLookup.get(productTag));
   }
-
 }

@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +27,6 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.files.TagMetaData;
 import org.candlepin.subscriptions.files.TagMetric;
 import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Measurement.Uom;
@@ -109,5 +107,4 @@ public class PrometheusMetricsProperties {
         .filter(x -> productTag.equals(x.getTag()) && metric.equals(x.getUom()))
         .findFirst();
   }
-
 }
