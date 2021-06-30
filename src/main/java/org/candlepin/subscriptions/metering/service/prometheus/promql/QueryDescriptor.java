@@ -29,19 +29,19 @@ import org.candlepin.subscriptions.files.TagMetric;
  * Describes the variables to be applied to a query template. Within a template, these variables can
  * be utilized as follows:
  *
- * <p>#{tag.metricId} #{runtime[yourCustomProperty]}
+ * <p>#{metric.metricId} #{runtime[yourCustomProperty]}
  */
 @Getter
 public class QueryDescriptor {
 
   /** Any variables that should be provided by the tag configuration. */
-  private TagMetric tag;
+  private TagMetric metric;
 
   /** Any variable that are specified at runtime. */
   private Map<String, String> runtime;
 
-  public QueryDescriptor(TagMetric tag) {
-    this.tag = tag;
+  public QueryDescriptor(TagMetric metric) {
+    this.metric = metric;
     this.runtime = new HashMap<>();
   }
 

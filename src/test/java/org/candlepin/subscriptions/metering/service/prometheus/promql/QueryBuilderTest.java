@@ -39,7 +39,7 @@ class QueryBuilderTest {
   void testBuildQuery() {
     String templateKey = "test_template";
     String template =
-        "Account: #{runtime[account]} Metric ID: #{tag.metricId} P1: #{tag.queryParams[p1]}";
+        "Account: #{runtime[account]} Metric ID: #{metric.metricId} P1: #{metric.queryParams[p1]}";
 
     String metricId = "CORES";
     String account = "12345";
@@ -79,10 +79,10 @@ class QueryBuilderTest {
   @Test
   void supportsNestedExpressions() {
     String templateKey = "test_template";
-    String template = "#{tag.queryParams[account_exp]} #{tag.queryParams[metric_exp]}";
+    String template = "#{metric.queryParams[account_exp]} #{metric.queryParams[metric_exp]}";
 
     String accountExp = "Account: #{runtime[account]}";
-    String metricExp = "Metric ID: #{tag.metricId}";
+    String metricExp = "Metric ID: #{metric.metricId}";
 
     String metricId = "CORES";
     String account = "12345";

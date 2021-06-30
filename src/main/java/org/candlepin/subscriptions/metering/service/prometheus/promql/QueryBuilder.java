@@ -47,7 +47,7 @@ public class QueryBuilder {
   }
 
   public String build(QueryDescriptor queryDescriptor) {
-    String templateKey = queryDescriptor.getTag().getQueryKey();
+    String templateKey = queryDescriptor.getMetric().getQueryKey();
     Optional<String> template = metricsProperties.getQueryTemplate(templateKey);
 
     if (template.isEmpty()) {
@@ -58,7 +58,7 @@ public class QueryBuilder {
   }
 
   public String buildAccountLookupQuery(QueryDescriptor queryDescriptor) {
-    String templateKey = queryDescriptor.getTag().getAccountQueryKey();
+    String templateKey = queryDescriptor.getMetric().getAccountQueryKey();
     Optional<String> template = metricsProperties.getAccountQueryTemplate(templateKey);
     if (template.isEmpty()) {
       throw new IllegalArgumentException(

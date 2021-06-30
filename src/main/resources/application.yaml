@@ -108,7 +108,7 @@ rhsm-subscriptions:
       metric:
         accountQueryTemplates:
           default: >-
-            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(subscription_labels{product='#{tag.queryParams[product]}', ebs_account != '', billing_model='marketplace'}[1h]))
+            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(subscription_labels{product='#{metric.queryParams[product]}', ebs_account != '', billing_model='marketplace'}[1h]))
             by (ebs_account)}
     tasks:
       topic: ${METERING_TASK_TOPIC:platform.rhsm-subscriptions.metering-tasks}
