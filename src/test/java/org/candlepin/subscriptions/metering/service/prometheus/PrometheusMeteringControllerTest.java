@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -80,6 +81,8 @@ class PrometheusMeteringControllerTest {
 
   @Autowired private QueryBuilder queryBuilder;
 
+  @Autowired private TagProfile tagProfile;
+
   @MockBean private OptInController optInController;
 
   @Autowired
@@ -111,7 +114,8 @@ class PrometheusMeteringControllerTest {
             queryBuilder,
             eventController,
             openshiftRetry,
-            optInController);
+            optInController,
+            tagProfile);
 
     queries = new QueryHelper(promProps, queryBuilder);
   }

@@ -110,13 +110,4 @@ public class PrometheusMetricsProperties {
         .findFirst();
   }
 
-  public Optional<TagMetaData> getTagMetadata(String productTag) {
-    if (!StringUtils.hasText(productTag)) {
-      return Optional.empty();
-    }
-
-    return tagProfile.getTagMetaData().stream()
-        .filter(meta -> meta.getTags().contains(productTag))
-        .findFirst();
-  }
 }

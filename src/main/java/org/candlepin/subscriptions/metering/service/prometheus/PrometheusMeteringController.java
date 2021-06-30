@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.files.TagMetaData;
 import org.candlepin.subscriptions.files.TagMetric;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -65,6 +66,7 @@ public class PrometheusMeteringController {
   private final RetryTemplate openshiftRetry;
   private final OptInController optInController;
   private final QueryBuilder prometheusQueryBuilder;
+  private final TagProfile tagProfile;
 
   public PrometheusMeteringController(
       ApplicationClock clock,
@@ -73,7 +75,8 @@ public class PrometheusMeteringController {
       QueryBuilder queryBuilder,
       EventController eventController,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
-      OptInController optInController) {
+      OptInController optInController,
+      TagProfile tagProfile) {
     this.clock = clock;
     this.promMetricsProperties = promMetricsProperties;
     this.prometheusService = service;
@@ -81,6 +84,7 @@ public class PrometheusMeteringController {
     this.eventController = eventController;
     this.openshiftRetry = openshiftRetry;
     this.optInController = optInController;
+    this.tagProfile = tagProfile;
   }
 
   // Suppressing this sonar issue because we need to log plus throw an exception on retry
@@ -97,8 +101,7 @@ public class PrometheusMeteringController {
           String.format("Unable to find TagMetric for tag %s and metric %s!", tag, metric));
     }
 
-    Optional<TagMetaData> tagMetaData =
-        promMetricsProperties.getTagMetadata(tagMetric.get().getTag());
+    Optional<TagMetaData> tagMetaData = tagProfile.getTagMetaDataByTag(tagMetric.get().getTag());
     if (tagMetaData.isEmpty()) {
       throw new UnsupportedOperationException(
           String.format("Unable to determine service type for tag %s.", tagMetric.get().getTag()));
