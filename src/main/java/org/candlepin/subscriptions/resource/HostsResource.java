@@ -39,7 +39,6 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
@@ -109,14 +108,11 @@ public class HostsResource implements HostsApi {
 
   private final HostRepository repository;
   private final PageLinkCreator pageLinkCreator;
-  private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
-  public HostsResource(
-      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
+  public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
-    this.tagProfile = tagProfile;
   }
 
   @SuppressWarnings("java:S3776")
