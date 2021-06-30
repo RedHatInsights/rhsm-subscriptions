@@ -22,7 +22,9 @@ package org.candlepin.subscriptions.files;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -45,13 +47,13 @@ class TagProfileTest {
             .build();
     TagMapping tagMapping2 =
         TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of("RHEL for x86")).build();
+
+    Map<String, String> params = new HashMap<>();
+    params.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_cores:max:5m");
+    params.put("prometheusMetadataMetric", "subscription_labels");
+
     TagMetric tagMetric1 =
-        TagMetric.builder()
-            .tag("OpenShift-metrics")
-            .metricId("Cores")
-            .prometheusMetric("cluster:usage:workload:capacity_physical_cpu_cores:max:5m")
-            .prometheusMetadataMetric("subscription_labels")
-            .build();
+        TagMetric.builder().tag("OpenShift-metrics").metricId("Cores").queryParams(params).build();
     TagMetaData tagMetaData =
         TagMetaData.builder()
             .tags(Set.of("Openshift-metrics", "Openshift-dedicated-metrics"))

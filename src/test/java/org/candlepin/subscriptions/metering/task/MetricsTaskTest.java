@@ -34,7 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class OpenShiftMetricsTaskTest {
+class MetricsTaskTest {
 
   @Mock private PrometheusMeteringController controller;
 
@@ -50,6 +50,6 @@ class OpenShiftMetricsTaskTest {
     MetricsTask task =
         new MetricsTask(controller, expAccount, expProductProfileId, expMetric, expStart, expEnd);
     task.execute();
-    verify(controller).collectOpenshiftMetrics(expAccount, expStart, expEnd);
+    verify(controller).collectMetrics("OpenShift", Uom.CORES, expAccount, expStart, expEnd);
   }
 }

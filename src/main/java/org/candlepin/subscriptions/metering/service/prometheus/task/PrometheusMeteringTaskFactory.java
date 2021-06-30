@@ -45,7 +45,7 @@ public class PrometheusMeteringTaskFactory implements TaskFactory {
       return new MetricsTask(
           controller,
           validateString(taskDescriptor, "account"),
-          validateString(taskDescriptor, "productProfileId"),
+          validateString(taskDescriptor, "productTag"),
           Uom.fromValue(validateString(taskDescriptor, "metric")),
           validateDate(taskDescriptor, "start"),
           validateDate(taskDescriptor, "end"));

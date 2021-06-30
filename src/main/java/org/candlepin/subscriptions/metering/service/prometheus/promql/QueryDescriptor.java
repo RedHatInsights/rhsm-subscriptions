@@ -18,34 +18,34 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
-import static org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder.DEFAULT_METRIC_QUERY_KEY;
-
+import java.util.HashMap;
 import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.files.TagMetric;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
+/**
+ * Describes the variables to be applied to a query template. Within a template, these variables can
+ * be utilized as follows:
+ *
+ * <p>#{metric.metricId} #{runtime[yourCustomProperty]}
+ */
 @Getter
-@NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private Uom uom;
-  @Default private String queryKey = DEFAULT_METRIC_QUERY_KEY;
-  @Default private String accountQueryKey = DEFAULT_METRIC_QUERY_KEY;
-  private Map<String, String> queryParams;
+public class QueryDescriptor {
+
+  /** Any variables that should be provided by the tag configuration. */
+  private TagMetric metric;
+
+  /** Any variable that are specified at runtime. */
+  private Map<String, String> runtime;
+
+  public QueryDescriptor(TagMetric metric) {
+    this.metric = metric;
+    this.runtime = new HashMap<>();
+  }
+
+  public void addRuntimeVar(String name, String value) {
+    this.runtime.put(name, value);
+  }
 }

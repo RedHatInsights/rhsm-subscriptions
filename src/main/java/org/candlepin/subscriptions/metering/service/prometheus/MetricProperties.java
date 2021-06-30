@@ -28,12 +28,6 @@ import lombok.Setter;
 @Setter
 public class MetricProperties {
 
-  /** The PromQL to run when gathering the configured metric */
-  private String metricPromQL;
-
-  /** The PromQL to run when gathering a list of accounts to enable for this metric. */
-  private String enabledAccountPromQL;
-
   /** How long to wait for results from the query. */
   private int queryTimeout = 10000;
 
