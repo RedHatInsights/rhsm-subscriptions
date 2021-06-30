@@ -51,6 +51,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -109,6 +110,9 @@ public class TallyResource implements TallyApi {
        * their request is a non sequitur. */
       productProfileRegistry.validateGranularityCompatibility(productId, granularityFromValue);
     } catch (IllegalStateException e) {
+      // Combined with our logging configuration, this tells the OnMdcEvaluator class to suppress
+      // the stacktrace
+      MDC.put("INVALID_GRANULARITY", Boolean.TRUE.toString());
       throw new BadRequestException(e.getMessage());
     }
 
