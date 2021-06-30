@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
 import java.util.Optional;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.common.TemplateParserContext;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -31,6 +33,8 @@ import org.springframework.stereotype.Component;
 /** Builds PromQL queries based on a configured template. */
 @Component
 public class QueryBuilder {
+
+  private static final Logger log = LoggerFactory.getLogger(QueryBuilder.class);
 
   /**
    * The default metric query key. A query with this key must be defined in the config file as a
@@ -54,6 +58,7 @@ public class QueryBuilder {
       throw new IllegalArgumentException(
           String.format("Unable to find query template for key: %s", templateKey));
     }
+    log.debug("Building metric lookup PromQL.");
     return buildQuery(template.get(), queryDescriptor);
   }
 
@@ -64,6 +69,7 @@ public class QueryBuilder {
       throw new IllegalArgumentException(
           String.format("Unable to find account query template for key: %s", templateKey));
     }
+    log.debug("Building account lookup PromQL.");
     return buildQuery(template.get(), queryDescriptor);
   }
 
@@ -81,6 +87,7 @@ public class QueryBuilder {
             String.format("Unable to parse query template! %s", template));
       }
     }
+    log.debug("PromQL: {}", query);
     return query;
   }
 }
