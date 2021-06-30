@@ -6,19 +6,15 @@ import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.kafka.annotation.KafkaListener;
 
-public class SyncSubscriptionsWorker extends SeekableKafkaConsumer {
+public class SubscriptionWorker extends SeekableKafkaConsumer {
 
-    protected SyncSubscriptionsWorker(
+    protected SubscriptionWorker(
             TaskQueueProperties taskQueueProperties,
             KafkaConsumerRegistry kafkaConsumerRegistry) {
         super(taskQueueProperties, kafkaConsumerRegistry);
     }
 
-    @Timed("rhsm-subscriptions.marketplace.tally-summary")
-    @KafkaListener(
-            id = "#{__listener.groupId}",
-            topics = "#{__listener.topic}",
-            containerFactory = "kafkaTallySummaryListenerContainerFactory")
+    @KafkaListener(id = "subscription-worker", topics = "#{__listener.topic}")
     public void receive(SyncSubscriptionsTask syncSubscriptionsTask) {
         syncSubscriptionsTask.execute();
     }
