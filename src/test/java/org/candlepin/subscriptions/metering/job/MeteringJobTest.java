@@ -53,8 +53,7 @@ class MeteringJobTest {
 
   @BeforeEach
   void setupTests() {
-    metricProps = new PrometheusMetricsProperties();
-    metricProps.setTagProfile(tagProfile);
+    metricProps = new PrometheusMetricsProperties(tagProfile);
     metricProps.getOpenshift().setRangeInMinutes(180); // 3h
 
     appProps = new ApplicationProperties();

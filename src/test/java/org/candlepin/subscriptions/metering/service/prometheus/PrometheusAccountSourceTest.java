@@ -65,8 +65,7 @@ class PrometheusAccountSourceTest {
   void setupTest() {
     MetricProperties osProps = new MetricProperties();
 
-    promProps = new PrometheusMetricsProperties();
-    promProps.setTagProfile(tagProfile);
+    promProps = new PrometheusMetricsProperties(tagProfile);
     promProps.setOpenshift(osProps);
     promProps.setAccountQueryTemplates(Map.of(TEST_ACCT_QUERY_KEY, TEST_ACCOUNT_QUERY));
 

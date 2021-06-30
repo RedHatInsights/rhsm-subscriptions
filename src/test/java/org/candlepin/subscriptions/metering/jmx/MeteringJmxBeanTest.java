@@ -53,8 +53,7 @@ class MeteringJmxBeanTest {
 
   @BeforeEach
   void setupTests() {
-    metricProps = new PrometheusMetricsProperties();
-    metricProps.setTagProfile(tagProfile);
+    metricProps = new PrometheusMetricsProperties(tagProfile);
     metricProps.getOpenshift().setRangeInMinutes(60);
 
     clock = new FixedClockConfiguration().fixedClock();

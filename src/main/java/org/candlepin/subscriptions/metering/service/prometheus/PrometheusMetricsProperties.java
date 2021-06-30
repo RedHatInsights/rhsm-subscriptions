@@ -42,7 +42,7 @@ import org.springframework.util.StringUtils;
 @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
 public class PrometheusMetricsProperties {
 
-  @Autowired TagProfile tagProfile;
+  private final TagProfile tagProfile;
 
   private Map<String, String> queryTemplates = new HashMap<>();
 
@@ -55,6 +55,11 @@ public class PrometheusMetricsProperties {
   private int templateParameterDepth = 3;
 
   private MetricProperties openshift = new MetricProperties();
+
+  @Autowired
+  public PrometheusMetricsProperties(TagProfile tagProfile) {
+    this.tagProfile = tagProfile;
+  }
 
   public Map<Uom, MetricProperties> getSupportedMetricsForProduct(String productTag) {
     if (!tagProfile.tagIsPrometheusEnabled(productTag)) {
