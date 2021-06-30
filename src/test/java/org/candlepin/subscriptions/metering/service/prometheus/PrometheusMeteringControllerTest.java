@@ -37,8 +37,11 @@ import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
@@ -74,9 +77,11 @@ class PrometheusMeteringControllerTest {
 
   @MockBean OrgConfigRepository orgConfigRepository;
 
-  @Autowired private PrometheusMetricsProperties props;
-
   @Autowired private PrometheusMetricsProperties promProps;
+
+  @Autowired private QueryBuilder queryBuilder;
+
+  @Autowired private TagProfile tagProfile;
 
   @MockBean private OptInController optInController;
 
@@ -87,19 +92,32 @@ class PrometheusMeteringControllerTest {
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
   private final String expectedAccount = "my-test-account";
+  private final String expectedMetricId = "redhat.com:openshift_container_platform:cpu_hour";
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
   private final String expectedUsage = "Production";
   private final String expectedRole = "ocm";
+  private final String expectedServiceType = "OpenShift Cluster";
+  private final Uom expectedUom = Uom.CORES;
 
   private PrometheusMeteringController controller;
+  private QueryHelper queries;
 
   @BeforeEach
   void setupTest() {
     openshiftRetry.setBackOffPolicy(new NoBackOffPolicy());
     controller =
         new PrometheusMeteringController(
-            clock, promProps, service, eventController, openshiftRetry, optInController);
+            clock,
+            promProps,
+            service,
+            queryBuilder,
+            eventController,
+            openshiftRetry,
+            optInController,
+            tagProfile);
+
+    queries = new QueryHelper(promProps, queryBuilder);
   }
 
   @Test
@@ -122,7 +140,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = OffsetDateTime.now();
     OffsetDateTime end = start.plusDays(1);
 
-    controller.collectOpenshiftMetrics("account", start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, "account", start, end);
     verify(service, times(3)).runRangeQuery(anyString(), any(), any(), any(), any());
   }
 
@@ -139,14 +157,14 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
     when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
-    controller.collectOpenshiftMetrics(expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
     verify(service)
         .runRangeQuery(
-            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", expectedAccount),
             clock.startOfHour(start),
             clock.endOfHour(end),
-            props.getOpenshift().getStep(),
-            props.getOpenshift().getQueryTimeout());
+            promProps.getOpenshift().getStep(),
+            promProps.getOpenshift().getQueryTimeout());
   }
 
   @Test
@@ -162,14 +180,14 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
     when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
-    controller.collectOpenshiftMetrics(expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
     verify(service)
         .runRangeQuery(
-            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", expectedAccount),
             clock.startOfHour(start),
             clock.endOfHour(end),
-            props.getOpenshift().getStep(),
-            props.getOpenshift().getQueryTimeout());
+            promProps.getOpenshift().getStep(),
+            promProps.getOpenshift().getQueryTimeout());
     verify(optInController)
         .optInByAccountNumber(expectedAccount, OptInType.PROMETHEUS, true, true, true);
   }
@@ -190,7 +208,7 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     when(service.runRangeQuery(
-            eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
+            eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
             any(),
             any(),
             any(),
@@ -202,37 +220,43 @@ class PrometheusMeteringControllerTest {
 
     List<Event> expectedEvents =
         List.of(
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
                 expectedRole,
-                clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
+                clock.dateFromUnix(time1).minusSeconds(promProps.getOpenshift().getStep()),
                 clock.dateFromUnix(time1),
+                expectedServiceType,
+                expectedUom,
                 val1.doubleValue()),
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
                 expectedRole,
-                clock.dateFromUnix(time2).minusSeconds(props.getOpenshift().getStep()),
+                clock.dateFromUnix(time2).minusSeconds(promProps.getOpenshift().getStep()),
                 clock.dateFromUnix(time2),
+                expectedServiceType,
+                expectedUom,
                 val2.doubleValue()));
 
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
     doNothing().when(eventController).saveAll(saveCaptor.capture());
 
-    controller.collectOpenshiftMetrics(expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
 
     verify(service)
         .runRangeQuery(
-            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", expectedAccount),
             start,
             end,
-            props.getOpenshift().getStep(),
-            props.getOpenshift().getQueryTimeout());
+            promProps.getOpenshift().getStep(),
+            promProps.getOpenshift().getQueryTimeout());
     verify(eventController).saveAll(any());
 
     // Attempted to verify the eventController.saveAll(events) but
@@ -257,7 +281,7 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     when(service.runRangeQuery(
-            eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
+            eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
             any(),
             any(),
             any(),
@@ -268,58 +292,70 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
     Event updatedEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedMetricId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
             expectedRole,
-            clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
+            clock.dateFromUnix(time1).minusSeconds(promProps.getOpenshift().getStep()),
             clock.dateFromUnix(time1),
+            expectedServiceType,
+            expectedUom,
             val1.doubleValue());
 
     List<Event> expectedEvents =
         List.of(
             updatedEvent,
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
                 expectedRole,
-                clock.dateFromUnix(time2).minusSeconds(props.getOpenshift().getStep()),
+                clock.dateFromUnix(time2).minusSeconds(promProps.getOpenshift().getStep()),
                 clock.dateFromUnix(time2),
+                expectedServiceType,
+                expectedUom,
                 val2.doubleValue()));
 
     Event purgedEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedMetricId,
             "CLUSTER_NO_LONGER_EXISTS",
             expectedSla,
             expectedUsage,
             expectedRole,
-            clock.dateFromUnix(time1).minusSeconds(props.getOpenshift().getStep()),
+            clock.dateFromUnix(time1).minusSeconds(promProps.getOpenshift().getStep()),
             clock.dateFromUnix(time1),
+            expectedServiceType,
+            expectedUom,
             val1.doubleValue());
 
     List<Event> existingEvents =
         List.of(
             // This event will get updated by the incoming data from prometheus.
-            MeteringEventFactory.openShiftClusterCores(
+            MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
                 expectedRole,
                 updatedEvent.getTimestamp(),
                 updatedEvent.getExpiration().get(),
+                expectedServiceType,
+                expectedUom,
                 144.4),
             // This event should get purged because prometheus did not report this cluster.
             purgedEvent);
     when(eventController.mapEventsInTimeRange(
             expectedAccount,
-            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
-            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+            MeteringEventFactory.EVENT_SOURCE,
+            MeteringEventFactory.getEventType(expectedMetricId),
             start.minusSeconds(promProps.getOpenshift().getStep()),
             end.minusSeconds(promProps.getOpenshift().getStep())))
         .thenReturn(
@@ -332,15 +368,15 @@ class PrometheusMeteringControllerTest {
     ArgumentCaptor<Collection> purgeCaptor = ArgumentCaptor.forClass(Collection.class);
     doNothing().when(eventController).deleteEvents(purgeCaptor.capture());
 
-    controller.collectOpenshiftMetrics(expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
 
     verify(service)
         .runRangeQuery(
-            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", expectedAccount),
             start,
             end,
-            props.getOpenshift().getStep(),
-            props.getOpenshift().getQueryTimeout());
+            promProps.getOpenshift().getStep(),
+            promProps.getOpenshift().getQueryTimeout());
     verify(eventController).saveAll(any());
     verify(eventController).deleteEvents(any());
 
@@ -377,7 +413,7 @@ class PrometheusMeteringControllerTest {
     QueryResult data = new QueryResult().data(queryResultData);
 
     when(service.runRangeQuery(
-            eq(String.format(props.getOpenshift().getMetricPromQL(), expectedAccount)),
+            eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
             any(),
             any(),
             any(),
@@ -388,14 +424,17 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime end = clock.endOfHour(start.plusDays(1));
 
     Event updatedEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedMetricId,
             expectedClusterId,
             "Standard",
             expectedUsage,
             expectedRole,
-            clock.dateFromUnix(1616787308L).minusSeconds(props.getOpenshift().getStep()),
+            clock.dateFromUnix(1616787308L).minusSeconds(promProps.getOpenshift().getStep()),
             clock.dateFromUnix(1616787308L),
+            expectedServiceType,
+            expectedUom,
             4.0);
 
     var eventId = UUID.randomUUID();
@@ -404,14 +443,17 @@ class PrometheusMeteringControllerTest {
     List<Event> expectedEvents = List.of(updatedEvent);
 
     var existingEvent =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedMetricId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
             expectedRole,
             updatedEvent.getTimestamp(),
             updatedEvent.getExpiration().get(),
+            expectedServiceType,
+            expectedUom,
             144.4);
     existingEvent.setEventId(eventId);
     List<Event> existingEvents =
@@ -420,8 +462,8 @@ class PrometheusMeteringControllerTest {
             existingEvent);
     when(eventController.mapEventsInTimeRange(
             expectedAccount,
-            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
-            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+            MeteringEventFactory.EVENT_SOURCE,
+            MeteringEventFactory.getEventType(expectedMetricId),
             start.minusSeconds(promProps.getOpenshift().getStep()),
             end.minusSeconds(promProps.getOpenshift().getStep())))
         .thenReturn(
@@ -434,15 +476,15 @@ class PrometheusMeteringControllerTest {
     var purgeCaptor = ArgumentCaptor.forClass(Collection.class);
     doNothing().when(eventController).deleteEvents(purgeCaptor.capture());
 
-    controller.collectOpenshiftMetrics(expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
 
     verify(service)
         .runRangeQuery(
-            String.format(props.getOpenshift().getMetricPromQL(), expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", expectedAccount),
             start,
             end,
-            props.getOpenshift().getStep(),
-            props.getOpenshift().getQueryTimeout());
+            promProps.getOpenshift().getStep(),
+            promProps.getOpenshift().getQueryTimeout());
     verify(eventController).saveAll(any());
 
     // Attempted to verify the eventController calls below, but

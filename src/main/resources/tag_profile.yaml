@@ -42,20 +42,26 @@ tagMetrics:
   - tag: OpenShift-metrics
     metricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
-    prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
-    prometheusMetadataMetric: subscription_labels
+    queryParams:
+      product: ocp
+      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
+      prometheusMetadataMetric: subscription_labels
 
   # OSD metrics
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
-    prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
-    prometheusMetadataMetric: subscription_labels
+    queryParams:
+      product: osd
+      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
+      prometheusMetadataMetric: subscription_labels
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
-    prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
-    prometheusMetadataMetric: subscription_labels
+    queryParams:
+      product: osd
+      prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
+      prometheusMetadataMetric: subscription_labels
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A

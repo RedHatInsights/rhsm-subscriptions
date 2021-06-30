@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.capacity;
 
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -35,11 +34,7 @@ import org.springframework.context.annotation.Profile;
  */
 @Configuration
 @Profile("capacity-ingress")
-@Import({
-  ResteasyConfiguration.class,
-  RhsmSubscriptionsDataSourceConfiguration.class,
-  ProductMappingConfiguration.class
-})
+@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
 @ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
 public class CapacityIngressConfiguration {
   /* Intentionally empty */

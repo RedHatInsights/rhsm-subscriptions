@@ -63,45 +63,65 @@ public class PrometheusMetricsTaskManager {
   }
 
   public void updateMetricsForAccount(
-      String account, String productProfileId, OffsetDateTime start, OffsetDateTime end) {
+      String account, String productTag, OffsetDateTime start, OffsetDateTime end) {
+    prometheusProps
+        .getSupportedMetricsForProduct(productTag)
+        .keySet()
+        .forEach(
+            metric -> {
+              log.info("Queuing {} {} metric updates for account {}.", productTag, metric, account);
+              queueMetricUpdateForAccount(account, productTag, metric, start, end);
+              log.info("Done queuing updates of {} {} metric", productTag, metric);
+            });
+  }
+
+  private void queueMetricUpdateForAccount(
+      String account, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
     log.info(
-        "Queuing {} metrics update for account {} between {} and {}",
-        productProfileId,
+        "Queuing {} {} metric update for account {} between {} and {}",
+        productTag,
+        metric,
         account,
         start,
         end);
-    prometheusProps
-        .getSupportedMetricsForProduct(productProfileId)
-        .keySet()
-        .forEach(
-            metric ->
-                this.queue.enqueue(
-                    createMetricsTask(account, productProfileId, metric, start, end)));
+    this.queue.enqueue(createMetricsTask(account, productTag, metric, start, end));
   }
 
   @Transactional
   public void updateMetricsForAllAccounts(
-      String productProfileId, OffsetDateTime start, OffsetDateTime end) {
-    try (Stream<String> accountStream =
-        accountSource.getMarketplaceAccounts(productProfileId, end).stream()) {
-      log.info("Queuing {} metrics update for all configured accounts.", productProfileId);
-      accountStream.forEach(
-          account -> updateMetricsForAccount(account, productProfileId, start, end));
-      log.info("Done queuing updates of {} metrics", productProfileId);
-    }
+      String productTag, OffsetDateTime start, OffsetDateTime end) {
+    prometheusProps
+        .getSupportedMetricsForProduct(productTag)
+        .keySet()
+        .forEach(
+            metric -> {
+              try (Stream<String> accountStream =
+                  accountSource.getMarketplaceAccounts(productTag, metric, end).stream()) {
+                log.info(
+                    "Queuing {} {} metric updates for all configured accounts.",
+                    productTag,
+                    metric);
+                accountStream.forEach(
+                    account ->
+                        queueMetricUpdateForAccount(account, productTag, metric, start, end));
+                log.info("Done queuing updates of {} {} metric", productTag, metric);
+              }
+            });
   }
 
   private TaskDescriptor createMetricsTask(
-      String account,
-      String productProfileId,
-      Uom metric,
-      OffsetDateTime start,
-      OffsetDateTime end) {
-    log.debug("ACCOUNT: {} PRODUCT: {} START: {} END: {}", account, productProfileId, start, end);
+      String account, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+    log.info(
+        "ACCOUNT: {} TAG: {} METRIC: {} START: {} END: {}",
+        account,
+        productTag,
+        metric,
+        start,
+        end);
     TaskDescriptorBuilder builder =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic)
             .setSingleValuedArg("account", account)
-            .setSingleValuedArg("productProfileId", productProfileId)
+            .setSingleValuedArg("productTag", productTag)
             .setSingleValuedArg("metric", metric.value())
             .setSingleValuedArg("start", start.toString());
 

@@ -20,19 +20,17 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class OfferingTest {
 
   @Test
   void veriftySimpleGetSetTest() {
-    final List<String> skus = Arrays.asList("childsku1", "childsku2");
-    final List<Integer> productIds = Arrays.asList(1, 2);
+    final Set<String> skus = Set.of("childsku1", "childsku2");
+    final Set<Integer> productIds = Set.of(1, 2);
     final Offering offering = new Offering();
     offering.setSku("testsku");
     offering.setChildSkus(skus);
@@ -47,8 +45,8 @@ class OfferingTest {
     offering.setProductFamily("testproductfamily");
     offering.setProductName("testproductname");
     assertEquals("testsku", offering.getSku());
-    assertArrayEquals(skus.toArray(), offering.getChildSkus().toArray());
-    assertArrayEquals(productIds.toArray(), offering.getProductIds().toArray());
+    assertEquals(skus, offering.getChildSkus());
+    assertEquals(productIds, offering.getProductIds());
     assertEquals(Usage.DEVELOPMENT_TEST, offering.getUsage());
     assertEquals(ServiceLevel.PREMIUM, offering.getServiceLevel());
     assertEquals("testrole", offering.getRole());

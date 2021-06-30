@@ -78,7 +78,7 @@ class PrometheusMetricsTaskManagerTest {
     TaskDescriptor expectedTask =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", account)
-            .setSingleValuedArg("productProfileId", TEST_PROFILE_ID)
+            .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
@@ -92,12 +92,12 @@ class PrometheusMetricsTaskManagerTest {
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(1);
 
-    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), any()))
+    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any()))
         .thenReturn(Set.of("a1", "a2"));
     TaskDescriptor account1Task =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", "a1")
-            .setSingleValuedArg("productProfileId", TEST_PROFILE_ID)
+            .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
@@ -105,7 +105,7 @@ class PrometheusMetricsTaskManagerTest {
     TaskDescriptor account2Task =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
             .setSingleValuedArg("account", "a2")
-            .setSingleValuedArg("productProfileId", TEST_PROFILE_ID)
+            .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())

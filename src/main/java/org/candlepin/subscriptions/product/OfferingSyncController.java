@@ -22,10 +22,12 @@ package org.candlepin.subscriptions.product;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Update {@link Offering}s from product service responses. */
@@ -35,9 +37,31 @@ public class OfferingSyncController {
   private static final Logger LOGGER = LoggerFactory.getLogger(OfferingSyncController.class);
 
   private final OfferingRepository offeringRepository;
+  private final ProductWhitelist productAllowlist;
+  private final ProductService productService;
 
-  public OfferingSyncController(OfferingRepository offeringRepository) {
+  @Autowired
+  public OfferingSyncController(
+      OfferingRepository offeringRepository,
+      ProductWhitelist productAllowlist,
+      ProductService productService) {
     this.offeringRepository = offeringRepository;
+    this.productAllowlist = productAllowlist;
+    this.productService = productService;
+  }
+
+  /**
+   * @param sku the identifier of the marketing operational product
+   * @return An Offering with information filled by an upstream service, or empty if the product was
+   *     not found.
+   */
+  public Optional<Offering> getUpstreamOffering(String sku) {
+    if (!productAllowlist.productIdMatches(sku)) {
+      LOGGER.info("sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
+      return Optional.empty();
+    }
+    LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
+    return UpstreamProductData.offeringFromUpstream(sku, productService);
   }
 
   /**
@@ -49,6 +73,7 @@ public class OfferingSyncController {
    */
   public void syncOffering(Offering newState) {
     Optional<Offering> persistedOffering = offeringRepository.findById(newState.getSku());
+
     if (alreadySynced(persistedOffering, newState)) {
       LOGGER.debug(
           "The given sku=\"{}\" is equal to stored sku. Skipping sync.",

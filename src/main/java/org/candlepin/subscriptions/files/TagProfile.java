@@ -20,11 +20,13 @@
  */
 package org.candlepin.subscriptions.files;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
@@ -35,7 +37,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.springframework.util.StringUtils;
 
 /** A base class for tag profiles. This class and its composites are loaded from a YAML profile. */
 @AllArgsConstructor
@@ -50,9 +55,12 @@ public class TagProfile {
 
   private Map<String, Set<String>> tagToEngProductsLookup;
   private Map<ProductUom, String> productUomToMetricIdLookup;
-  private Set<String> tagsWithPrometheusEnabledLookup;
+  @Getter private Set<String> tagsWithPrometheusEnabledLookup;
+  private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
+  private Map<String, TagMetaData> tagMetaDataToTagLookup;
+  private Map<String, List<Measurement.Uom>> tagToUomLookup;
 
   /** Initialize lookup fields */
   @PostConstruct
@@ -60,8 +68,11 @@ public class TagProfile {
     tagToEngProductsLookup = new HashMap<>();
     productUomToMetricIdLookup = new HashMap<>();
     tagsWithPrometheusEnabledLookup = new HashSet<>();
+    measurementsByTagLookup = new HashMap<>();
     offeringProductNameToTagLookup = new HashMap<>();
+    tagMetaDataToTagLookup = new HashMap<>();
     finestGranularityLookup = new HashMap<>();
+    tagToUomLookup = new HashMap<>();
     tagMappings.forEach(this::handleTagMapping);
     tagMetrics.forEach(this::handleTagMetric);
     tagMetaData.forEach(this::handleTagMetaData);
@@ -85,12 +96,21 @@ public class TagProfile {
     tagsWithPrometheusEnabledLookup.add(tagMetric.getTag());
     productUomToMetricIdLookup.put(
         new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getMetricId());
+    measurementsByTagLookup
+        .computeIfAbsent(tagMetric.getTag(), k -> new HashSet<>())
+        .add(tagMetric.getUom());
+    List<Uom> uomList = tagToUomLookup.computeIfAbsent(tagMetric.getTag(), k -> new ArrayList<>());
+    uomList.add(tagMetric.getUom());
   }
 
   private void handleTagMetaData(TagMetaData tagMetaData) {
     tagMetaData
         .getTags()
-        .forEach(tag -> finestGranularityLookup.put(tag, tagMetaData.getFinestGranularity()));
+        .forEach(
+            tag -> {
+              tagMetaDataToTagLookup.put(tag, tagMetaData);
+              finestGranularityLookup.put(tag, tagMetaData.getFinestGranularity());
+            });
   }
 
   public boolean tagSupportsEngProduct(String tag, String engId) {
@@ -111,5 +131,20 @@ public class TagProfile {
 
   public String tagForOfferingProductName(String offeringProductName) {
     return offeringProductNameToTagLookup.get(offeringProductName);
+  }
+
+  public Set<Uom> measurementsByTag(String tag) {
+    return measurementsByTagLookup.getOrDefault(tag, new HashSet<>());
+  }
+
+  public Optional<TagMetaData> getTagMetaDataByTag(String productTag) {
+    if (!StringUtils.hasText(productTag)) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(tagMetaDataToTagLookup.get(productTag));
+  }
+
+  public List<Measurement.Uom> uomsForTag(String tag) {
+    return tagToUomLookup.get(tag);
   }
 }

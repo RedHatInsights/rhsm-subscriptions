@@ -1168,6 +1168,9 @@ components:
         core_hours:
           type: number
           format: double
+        instance_hours:
+          type: number
+          format: double
         hardware_type:
           description: What the type of the host is (e.g. hypervisor, physical, etc.).
           type: string

@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.junit.jupiter.api.Test;
 
 class MeteringEventFactoryTest {
@@ -40,13 +41,27 @@ class MeteringEventFactoryTest {
     String sla = "Premium";
     String usage = "Production";
     String role = "ocp";
+    String serviceType = "cluster-service-type";
+    String metricId = "cluster_metric_id";
     OffsetDateTime expiry = OffsetDateTime.now();
     OffsetDateTime measuredTime = expiry.minusHours(1);
     Double measuredValue = 23.0;
+    Uom uom = Uom.CORES;
 
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
-            account, clusterId, sla, usage, role, measuredTime, expiry, measuredValue);
+        MeteringEventFactory.createMetricEvent(
+            account,
+            metricId,
+            clusterId,
+            sla,
+            usage,
+            role,
+            measuredTime,
+            expiry,
+            serviceType,
+            uom,
+            measuredValue);
+
     assertEquals(account, event.getAccountNumber());
     assertEquals(measuredTime, event.getTimestamp());
     assertEquals(expiry, event.getExpiration().get());
@@ -54,26 +69,29 @@ class MeteringEventFactoryTest {
     assertEquals(Optional.of(clusterId), event.getDisplayName());
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
-    assertEquals(MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE, event.getEventSource());
-    assertEquals(MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE, event.getEventType());
-    assertEquals(MeteringEventFactory.OPENSHIFT_CLUSTER_SERVICE_TYPE, event.getServiceType());
+    assertEquals(MeteringEventFactory.EVENT_SOURCE, event.getEventSource());
+    assertEquals(MeteringEventFactory.getEventType(metricId), event.getEventType());
+    assertEquals(serviceType, event.getServiceType());
     assertEquals(1, event.getMeasurements().size());
     Measurement measurement = event.getMeasurements().get(0);
-    assertEquals(Measurement.Uom.CORES, measurement.getUom());
+    assertEquals(uom, measurement.getUom());
     assertEquals(measuredValue, measurement.getValue());
   }
 
   @Test
   void testOpenShiftClusterCoresHandlesNullServiceLevel() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             null,
             "Production",
             "ocp",
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertNull(event.getSla());
   }
@@ -81,14 +99,17 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             "None",
             "Production",
             "ocp",
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertEquals(Sla.__EMPTY__, event.getSla());
   }
@@ -96,14 +117,17 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             "UNKNOWN_SLA",
             "Production",
             "ocp",
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertNull(event.getSla());
   }
@@ -111,14 +135,17 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresInvalidUsageSetsNullValue() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             "Premium",
             "UNKNOWN_USAGE",
             "ocp",
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertNull(event.getUsage());
   }
@@ -126,14 +153,17 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresHandlesNullUsage() throws Exception {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             "Premium",
             null,
             "ocp",
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertNull(event.getUsage());
   }
@@ -141,14 +171,17 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresInvalidRoleSetsNullValue() {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
             "UNKNOWN_ROLE",
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertNull(event.getRole());
   }
@@ -156,15 +189,43 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresHandlesNullRole() {
     Event event =
-        MeteringEventFactory.openShiftClusterCores(
+        MeteringEventFactory.createMetricEvent(
             "my-account",
+            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
             null,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
             12.5);
     assertNull(event.getRole());
+  }
+
+  @Test
+  void testEventTypeGeneratedOnEventCreation() {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-account",
+            "metric-id",
+            "cluster-id",
+            "Premium",
+            "Production",
+            null,
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            Uom.CORES,
+            12.5);
+    assertEquals("snapshot_metric-id", event.getEventType());
+  }
+
+  @Test
+  void testEventTypeGeneration() {
+    assertEquals("snapshot_my-metric", MeteringEventFactory.getEventType("my-metric"));
+    assertEquals("snapshot", MeteringEventFactory.getEventType(null));
+    assertEquals("snapshot", MeteringEventFactory.getEventType(""));
   }
 }
