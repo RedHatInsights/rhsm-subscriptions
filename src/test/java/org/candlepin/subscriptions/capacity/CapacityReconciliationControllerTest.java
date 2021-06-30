@@ -67,7 +67,7 @@ class CapacityReconciliationControllerTest {
   void shouldAddNewCapacitiesIfNotAlreadyExisting() {
 
     List<String> productIds = List.of("RHEL");
-    Offering offering = Offering.builder().productIds(Arrays.asList(45)).sku("MCT3718").build();
+    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
 
     Subscription newSubscription = createSubscription("456", 10);
     Collection<SubscriptionCapacity> capacities =
@@ -76,7 +76,7 @@ class CapacityReconciliationControllerTest {
             .collect(Collectors.toList());
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(new HashSet<>(productIds));
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
         .thenReturn(Collections.emptyList());
@@ -93,7 +93,7 @@ class CapacityReconciliationControllerTest {
     Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
     Offering updatedOffering =
         Offering.builder()
-            .productIds(Arrays.asList(45, 25))
+            .productIds(Set.of(45, 25))
             .sku("MCT3718")
             .physicalCores(20)
             .physicalSockets(40)
@@ -132,7 +132,7 @@ class CapacityReconciliationControllerTest {
             .collect(Collectors.toList());
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
     when(offeringRepository.getById("MCT3718")).thenReturn(updatedOffering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
         .thenReturn(existingCapacities);
@@ -146,7 +146,7 @@ class CapacityReconciliationControllerTest {
   @Test
   void shouldNotAddNewCapacitiesWhenProductIsNotOnWhitelist() {
 
-    Offering offering = Offering.builder().productIds(Arrays.asList(45, 25)).sku("MCT3718").build();
+    Offering offering = Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").build();
     Subscription subscription = createSubscription("456", 10);
 
     List<SubscriptionCapacity> existingCapacities =
@@ -173,7 +173,7 @@ class CapacityReconciliationControllerTest {
                 .build());
 
     when(whitelist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(any()))
+    when(capacityProductExtractor.getProducts(offering))
         .thenReturn(Set.of("RHEL", "RHEL Workstation"));
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
@@ -189,11 +189,11 @@ class CapacityReconciliationControllerTest {
   @Test
   void shouldRemoveAllCapacitiesWhenProductIsNotOnWhitelist() {
 
-    Offering offering = Offering.builder().productIds(Arrays.asList(45, 25)).sku("MCT3718").build();
+    Offering offering = Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").build();
     Subscription subscription = createSubscription("456", 10);
 
     when(whitelist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(Set.of("RHEL1", "RHEL2"));
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(Set.of("RHEL1", "RHEL2"));
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456"))
         .thenReturn(Collections.emptyList());
@@ -206,8 +206,7 @@ class CapacityReconciliationControllerTest {
   void shouldAddNewCapacitiesAndRemoveAllStaleCapacities() {
 
     Set<String> productIds = Set.of("RHEL");
-    Offering offering =
-        Offering.builder().productIds(Collections.singletonList(45)).sku("MCT3718").build();
+    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
     Subscription subscription = createSubscription("456", 10);
 
     List<SubscriptionCapacity> newCapacities =
@@ -237,7 +236,7 @@ class CapacityReconciliationControllerTest {
                 .build());
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(any())).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
     when(offeringRepository.getById("MCT3718")).thenReturn(offering);
     when(subscriptionCapacityRepository.findByKeySubscriptionId("456")).thenReturn(staleCapacities);
 

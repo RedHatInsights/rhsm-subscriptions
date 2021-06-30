@@ -34,7 +34,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -49,6 +53,7 @@ public class CapacityReconciliationController {
   private final Counter capacityRecordsUpdated;
   private final Counter capacityRecordsDeleted;
 
+  @Autowired
   public CapacityReconciliationController(
       OfferingRepository offeringRepository,
       ProductWhitelist productWhitelist,
@@ -74,10 +79,7 @@ public class CapacityReconciliationController {
   private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription) {
 
     Offering offering = offeringRepository.getById(subscription.getSku());
-    Set<String> products =
-        productExtractor.getProducts(
-            offering.getProductIds().stream().map(Object::toString).collect(Collectors.toSet()));
-
+    Set<String> products = productExtractor.getProducts(offering);
     return products.stream()
         .map(product -> from(subscription, offering, product))
         .collect(Collectors.toList());
