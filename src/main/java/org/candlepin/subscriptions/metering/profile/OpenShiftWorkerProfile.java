@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
@@ -52,7 +51,6 @@ import org.springframework.retry.support.RetryTemplate;
 @Configuration
 @Profile("openshift-metering-worker")
 @Import({
-  ProductMappingConfiguration.class,
   PrometheusServiceConfiguration.class,
   TaskConsumerConfiguration.class,
   MeteringTasksConfiguration.class

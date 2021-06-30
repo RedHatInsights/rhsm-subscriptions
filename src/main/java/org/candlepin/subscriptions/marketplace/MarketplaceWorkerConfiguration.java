@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.marketplace;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -42,7 +41,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 /** Configuration for the Marketplace integration worker. */
 @Profile("marketplace")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.marketplace")
-@Import({SubscriptionServiceConfiguration.class, ProductMappingConfiguration.class})
+@Import(SubscriptionServiceConfiguration.class)
 public class MarketplaceWorkerConfiguration {
   @Bean
   @Qualifier("marketplaceRetryTemplate")

@@ -22,10 +22,12 @@ package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -37,6 +39,7 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
@@ -76,9 +79,32 @@ public class HostsResource implements HostsApi {
   public static final Map<HostReportSort, String> INSTANCE_SORT_PARAM_MAPPING =
       ImmutableMap.<HostReportSort, String>builder()
           .put(HostReportSort.DISPLAY_NAME, "displayName")
-          .put(HostReportSort.CORE_HOURS, "monthlyTotals")
           .put(HostReportSort.LAST_SEEN, "lastSeen")
+          .put(HostReportSort.CORE_HOURS, "monthlyTotals")
+          .putAll(getUomSorts())
           .build();
+
+  public static final Map<HostReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
+      ImmutableMap.copyOf(getSortToUomMap());
+
+  private static Map<HostReportSort, Measurement.Uom> getSortToUomMap() {
+    return Arrays.stream(Measurement.Uom.values())
+        .filter(
+            uom ->
+                Arrays.stream(HostReportSort.values())
+                    .map(HostReportSort::toString)
+                    .collect(Collectors.toSet())
+                    .contains(uom.value().toLowerCase().replace('-', '_')))
+        .collect(
+            Collectors.toMap(
+                uom -> HostReportSort.fromValue(uom.value().toLowerCase().replace('-', '_')),
+                Function.identity()));
+  }
+
+  private static Map<HostReportSort, String> getUomSorts() {
+    return getSortToUomMap().keySet().stream()
+        .collect(Collectors.toMap(Function.identity(), key -> "monthlyTotals"));
+  }
 
   private final HostRepository repository;
   private final PageLinkCreator pageLinkCreator;
@@ -148,7 +174,11 @@ public class HostsResource implements HostsApi {
       validateBeginningAndEndingDates(start, end);
 
       String month = InstanceMonthlyTotalKey.formatMonthId(start);
-
+      // We depend on a "reference UOM" in order to filter out instances that were not active in
+      // the selected month. This is also used for sorting purposes (same join). See
+      // org.candlepin.subscriptions.db.HostSpecification#toPredicate and
+      // org.candlepin.subscriptions.db.HostRepository#findAllBy.
+      Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
       hosts =
           repository.findAllBy(
               accountNumber,
@@ -159,6 +189,7 @@ public class HostsResource implements HostsApi {
               minCores,
               minSockets,
               month,
+              referenceUom,
               page);
       payload =
           ((Page<Host>) hosts)

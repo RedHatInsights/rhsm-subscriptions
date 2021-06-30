@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.metering.job.MeteringJob;
@@ -42,7 +41,6 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("metering-job")
 @Import({
-  ProductMappingConfiguration.class,
   PrometheusServiceConfiguration.class,
   MeteringTasksConfiguration.class,
   TaskProducerConfiguration.class
