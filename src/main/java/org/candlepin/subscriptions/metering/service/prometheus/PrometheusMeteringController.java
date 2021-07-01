@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
@@ -71,6 +72,105 @@ public class PrometheusMeteringController {
     this.eventController = eventController;
     this.openshiftRetry = openshiftRetry;
     this.optInController = optInController;
+  }
+
+  // Suppressing this sonar issue because we need to log plus throw an exception on retry
+  // otherwise we never know that we have failed during the retry cycle until all attempts
+  // are exhausted.
+  @SuppressWarnings("java:S2139")
+  @Timed("rhsm-subscriptions.metering.openshift")
+  @Transactional
+  public void collectPartnerOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
+    MetricProperties openshiftProperties = metricProperties.getOpenshift();
+    // Reset the start/end dates to ensure they span a complete hour.
+    // NOTE: If the prometheus query step changes, we will need to adjust this.
+    OffsetDateTime startDate = clock.startOfHour(start);
+    // Subtract 1 minute off the end date so that the date is guaranteed to never be
+    // at the top of an hour. Otherwise we would get an extra hour added onto the date
+    // when we moved it to the end of the hour.
+    OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
+    ensureOptIn(account);
+    openshiftRetry.execute(
+            context -> {
+              try {
+
+                log.info("Collecting OpenShift metrics");
+                Map<EventKey, Event> existing =
+                        eventController.mapEventsInTimeRange(
+                                account,
+                                MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
+                                MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+                                // We need to shift the start and end dates by the step, to account for the
+                                // shift
+                                // in the event start date when it is created. See note about eventDate below.
+                                startDate.minusSeconds(metricProperties.getOpenshift().getStep()),
+                                endDate.minusSeconds(metricProperties.getOpenshift().getStep()));
+                log.debug("Found {} existing events.", existing.size());
+
+                QueryResult metricData =
+                        prometheusService.runRangeQuery(
+                                // Substitute the account number into the query. The query is expected to
+                                // contain %s for replacement.
+                                String.format(openshiftProperties.getRestrictedCPUUsage(), account),
+                                startDate,
+                                endDate,
+                                openshiftProperties.getStep(),
+                                openshiftProperties.getQueryTimeout());
+
+                Map<EventKey, Event> events = new HashMap<>();
+                for (QueryResultDataResult r : metricData.getData().getResult()) {
+                  Map<String, String> labels = r.getMetric();
+                  String clusterId = labels.get("_id");
+                  String sla = labels.get("support");
+                  String usage = labels.get("usage");
+                  // NOTE: Role comes from the product label despite its name. The values set here
+                  //       are NOT engineering or swatch product IDs. They map to the roles in the
+                  //       product profile. For openshift, the values will be 'ocp' or 'osd'.
+                  String role = labels.get("product");
+
+                  // For the openshift metrics, we expect our results to be a 'matrix'
+                  // vector [(instant_time,value), ...] so we only look at the result's getValues()
+                  // data.
+                  for (List<BigDecimal> measurement : r.getValues()) {
+                    BigDecimal time = measurement.get(0);
+                    BigDecimal value = measurement.get(1);
+
+                    OffsetDateTime eventTermDate = clock.dateFromUnix(time);
+                    // Need to subtract the step because we are averaging and the metric value
+                    // actually represents the end of the measured period. The start of the event
+                    // should be at the beginning.
+                    OffsetDateTime eventDate =
+                            eventTermDate.minusSeconds(metricProperties.getOpenshift().getStep());
+
+                    Event event =
+                            createOrUpdateEvent(
+                                    existing,
+                                    account,
+                                    clusterId,
+                                    sla,
+                                    usage,
+                                    role,
+                                    eventDate,
+                                    eventTermDate,
+                                    value);
+                    events.putIfAbsent(EventKey.fromEvent(event), event);
+                  }
+                }
+
+                eventController.saveAll(events.values());
+                log.info("Persisted {} events for OpenShift metrics.", events.size());
+
+                // Delete any stale events found during the period.
+                deleteStaleEvents(existing.values());
+                return null;
+              } catch (Exception e) {
+                log.warn(
+                        "Exception thrown while updating OpenShift metrics. [Attempt: {}]: {}",
+                        context.getRetryCount() + 1,
+                        e.getCause().getMessage());
+                throw e;
+              }
+            });
   }
 
   // Suppressing this sonar issue because we need to log plus throw an exception on retry

@@ -46,7 +46,6 @@ import org.springframework.context.annotation.Profile;
  * <p>NOTE: The configuration annotation has been omitted on purpose as it should be imported.
  */
 public class MeteringTasksConfiguration {
-
   @Bean
   PrometheusAccountSource accountSource(
       PrometheusService service, PrometheusMetricsProperties metricProperties) {

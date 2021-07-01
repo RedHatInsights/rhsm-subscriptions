@@ -91,6 +91,56 @@ public class PrometheusMetricsTaskManager {
     }
   }
 
+  public void updateMetricsForPartner(
+          String account, String productProfileId, OffsetDateTime start, OffsetDateTime end) {
+    log.info(
+            "Queuing {} metrics update for account {} between {} and {}",
+            productProfileId,
+            account,
+            start,
+            end);
+    prometheusProps
+            .getSupportedMetricsForProduct(productProfileId)
+            .keySet()
+            .forEach(
+                    metric ->
+                            this.queue.enqueue(
+                                    createPartnersMetricsTask(account, productProfileId, metric, start, end)));
+  }
+
+  @Transactional
+  public void updateMetricsForAllPartners(
+          String productProfileId, OffsetDateTime start, OffsetDateTime end) {
+      log.info("Queuing {} metrics update for all partners.", productProfileId);
+    try (Stream<String> accountStream =
+                 accountSource.getMarketplaceAccounts(productProfileId, end).stream()) {
+      log.info("Queuing {} metrics update for all configured accounts.", productProfileId);
+      accountStream.forEach(
+              account -> updateMetricsForPartner(account, productProfileId, start, end));
+      log.info("Done queuing updates of {} metrics", productProfileId);
+    }
+  }
+
+  private TaskDescriptor createPartnersMetricsTask(
+          String account,
+          String productProfileId,
+          Uom metric,
+          OffsetDateTime start,
+          OffsetDateTime end) {
+    log.debug("PRODUCT: {} START: {} END: {}", productProfileId, start, end);
+    TaskDescriptorBuilder builder =
+            TaskDescriptor.builder(TaskType.PARTNERS_METRICS_COLLECTION, topic)
+                    .setSingleValuedArg("account", account)
+                    .setSingleValuedArg("productProfileId", productProfileId)
+                    .setSingleValuedArg("metric", metric.value())
+                    .setSingleValuedArg("start", start.toString());
+
+    if (end != null) {
+      builder.setSingleValuedArg("end", end.toString());
+    }
+    return builder.build();
+  }
+
   private TaskDescriptor createMetricsTask(
       String account,
       String productProfileId,

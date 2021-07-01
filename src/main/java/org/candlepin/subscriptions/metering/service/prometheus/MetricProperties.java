@@ -34,6 +34,9 @@ public class MetricProperties {
   /** The PromQL to run when gathering a list of accounts to enable for this metric. */
   private String enabledAccountPromQL;
 
+  /** The PromQL to run when gathering a restricted CPU usage */
+  private String restrictedCPUUsage;
+
   /** How long to wait for results from the query. */
   private int queryTimeout = 10000;
 
