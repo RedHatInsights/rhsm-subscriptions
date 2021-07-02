@@ -26,10 +26,14 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import lombok.Getter;
+import lombok.Setter;
 import org.candlepin.subscriptions.json.Measurement;
 
 /** Model object to the key for a given tally measurement */
 @Embeddable
+@Getter
+@Setter
 public class TallyMeasurementKey implements Serializable {
 
   @Enumerated(EnumType.STRING)
@@ -45,22 +49,6 @@ public class TallyMeasurementKey implements Serializable {
 
   public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, Measurement.Uom uom) {
     this.measurementType = hardwareMeasurementType;
-    this.uom = uom;
-  }
-
-  public HardwareMeasurementType getMeasurementType() {
-    return measurementType;
-  }
-
-  public void setMeasurementType(HardwareMeasurementType measurementType) {
-    this.measurementType = measurementType;
-  }
-
-  public Measurement.Uom getUom() {
-    return uom;
-  }
-
-  public void setUom(Measurement.Uom uom) {
     this.uom = uom;
   }
 

@@ -26,50 +26,28 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import javax.net.ssl.HostnameVerifier;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.springframework.util.StringUtils;
 
 /** Class to hold values used to build the ApiClient instance wrapped in an SSLContext. */
+@Getter
+@Setter
+@ToString(onlyExplicitlyIncluded = true)
 public class X509ApiClientFactoryConfiguration {
+  @ToString.Include private String keystoreFile;
+  @ToString.Include private String truststoreFile;
   private String keystorePassword;
-  private String keystoreFile;
-  private String truststoreFile;
   private String truststorePassword;
   private int maxConnections = 100;
 
+  /**
+   * -- SETTER -- Allow setting the HostnameVerifier implementation. NoopHostnameVerifier could be
+   * used in testing, for example
+   */
   private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
-
-  public String getKeystorePassword() {
-    return keystorePassword;
-  }
-
-  public void setKeystorePassword(String keystorePassword) {
-    this.keystorePassword = keystorePassword;
-  }
-
-  public String getTruststorePassword() {
-    return truststorePassword;
-  }
-
-  public void setTruststorePassword(String truststorePassword) {
-    this.truststorePassword = truststorePassword;
-  }
-
-  public String getKeystoreFile() {
-    return keystoreFile;
-  }
-
-  public void setKeystoreFile(String keystoreFile) {
-    this.keystoreFile = keystoreFile;
-  }
-
-  public String getTruststoreFile() {
-    return truststoreFile;
-  }
-
-  public void setTruststoreFile(String truststoreFile) {
-    this.truststoreFile = truststoreFile;
-  }
 
   public InputStream getKeystoreStream() throws IOException {
     if (keystoreFile == null) {
@@ -89,18 +67,6 @@ public class X509ApiClientFactoryConfiguration {
     return new ByteArrayInputStream(Files.readAllBytes(Paths.get(path)));
   }
 
-  public HostnameVerifier getHostnameVerifier() {
-    return hostnameVerifier;
-  }
-
-  /**
-   * Allow setting the HostnameVerifier implementation. NoopHostnameVerifier could be used in
-   * testing, for example
-   */
-  public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
-    this.hostnameVerifier = hostnameVerifier;
-  }
-
   public boolean usesClientAuth() {
     return (getKeystoreFile() != null
         && !getKeystoreFile().isEmpty()
@@ -109,19 +75,5 @@ public class X509ApiClientFactoryConfiguration {
 
   public boolean usesDefaultTruststore() {
     return !StringUtils.hasText(getTruststoreFile());
-  }
-
-  public String toString() {
-    return String.format(
-        "X509ApiClientFactoryConfiguration[truststore=%s, keystore=%s]",
-        truststoreFile, keystoreFile);
-  }
-
-  public int getMaxConnections() {
-    return maxConnections;
-  }
-
-  public void setMaxConnections(int maxConnections) {
-    this.maxConnections = maxConnections;
   }
 }

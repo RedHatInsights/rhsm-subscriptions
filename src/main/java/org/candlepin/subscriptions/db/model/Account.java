@@ -30,6 +30,8 @@ import javax.persistence.Id;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Aggregate for an account.
@@ -39,6 +41,8 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name = "account_config") // NOTE: we're abusing account_config here, table needs refactor?
+@Getter
+@Setter
 public class Account {
   @Id
   @Column(name = "account_number")
@@ -55,20 +59,4 @@ public class Account {
   // in hosts table)
   @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
   private Map<String, Host> serviceInstances = new HashMap<>();
-
-  public String getAccountNumber() {
-    return accountNumber;
-  }
-
-  public void setAccountNumber(String accountNumber) {
-    this.accountNumber = accountNumber;
-  }
-
-  public Map<String, Host> getServiceInstances() {
-    return serviceInstances;
-  }
-
-  public void setServiceInstances(Map<String, Host> hosts) {
-    this.serviceInstances = hosts;
-  }
 }

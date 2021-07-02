@@ -48,8 +48,7 @@ public class RhsmApiFactory implements FactoryBean<RhsmApi> {
     ApiClient client;
     if (properties.usesClientAuth()) {
       log.info("RHSM client configured with client-cert auth");
-      client =
-          new X509ApiClientFactory(properties.getX509ApiClientFactoryConfiguration()).getObject();
+      client = new X509ApiClientFactory(properties.getX509Config()).getObject();
     } else {
       log.info("RHSM client configured without client-cert auth");
       client = new ApiClient();
