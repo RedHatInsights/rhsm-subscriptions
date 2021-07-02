@@ -9,16 +9,21 @@
 
 * `minikube start`
 
-* Find out the version of `kubectl` used by minikube `minikube kubectl -- version`
+* Symlink kubectl from minikube. You may need to clear your shell's cache of path lookups (e.g.
+  `hash -d kubectl`.
 
-* [Install that version of `kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
-  E.g.
   ```
-  curl -LO https://dl.k8s.io/release/v1.20.2/bin/linux/amd64/kubectl
+  sudo ln -s $(which minikube) /usr/local/bin/kubectl
   ```
 
 * Make sure you're using the minikube context: `kubectl config use-context minikube`
   (I believe this context is created for you automatically when you bring the minikube VM up.)
+
+* Create an RHSM namespace
+
+  ```
+  kubectl create namespace rhsm
+  ```
 
 * `sudo dnf install golang`
 
@@ -47,20 +52,16 @@
   yourself under the `apps:` key
 
   ```
+  bonfire config write-default
   cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
   - name: rhsm-subscriptions
     components:
       - name: rhsm-subscriptions
         host: local
-        repo: /home/YOUR_USER/devel/rhsm-subscriptions
+        repo: $(pwd)
         path: deploy/rhsm-clowdapp.yaml
   BONFIRE
   ```
-
-* Log in the quay.io and go to your account settings.  Click "Robot Accounts"
-  and create a secret for Kubernetes named whatever you want.  After you
-  download it, rename the metaname->name to "quay-cloudservices-pull".  Import
-  that secret as instructed by quay.io.
 
 * Or to import an image yourself
   ```
@@ -69,13 +70,6 @@
   ```
 
 * Manually create the host-inventory-db-readonly secret
-
- 
-* Create an RHSM namespace
-
-  ```
-  kubectl create namespace rhsm
-  ```
 
 * Deploy using the following:
 
