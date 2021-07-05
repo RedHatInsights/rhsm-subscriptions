@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.files.TagMetric;
 import org.candlepin.subscriptions.files.TagProfile;
@@ -57,48 +58,45 @@ class PrometheusAccountSourceTest {
   @Mock TagProfile tagProfile;
 
   PrometheusAccountSource accountSource;
-  PrometheusMetricsProperties promProps;
+  MetricProperties metricProperties;
   QueryBuilder queryBuilder;
-  TagMetric tag1;
+  TagMetric tag;
 
   @BeforeEach
   void setupTest() {
-    MetricProperties osProps = new MetricProperties();
 
-    promProps = new PrometheusMetricsProperties(tagProfile);
-    promProps.setOpenshift(osProps);
-    promProps.setAccountQueryTemplates(Map.of(TEST_ACCT_QUERY_KEY, TEST_ACCOUNT_QUERY));
+    metricProperties = new MetricProperties();
+    metricProperties.setAccountQueryTemplates(Map.of(TEST_ACCT_QUERY_KEY, TEST_ACCOUNT_QUERY));
 
-    queryBuilder = new QueryBuilder(promProps);
-    accountSource = new PrometheusAccountSource(service, promProps, queryBuilder);
+    queryBuilder = new QueryBuilder(metricProperties);
+    accountSource =
+        new PrometheusAccountSource(service, metricProperties, queryBuilder, tagProfile);
 
-    tag1 =
+    tag =
         TagMetric.builder()
             .tag(TEST_PROD_TAG)
             .uom(Uom.CORES)
             .accountQueryKey(TEST_ACCT_QUERY_KEY)
             .build();
 
-    when(tagProfile.tagIsPrometheusEnabled(TEST_PROD_TAG)).thenReturn(true);
-    when(tagProfile.getTagMetrics()).thenReturn(List.of(tag1));
-    when(tagProfile.measurementsByTag(TEST_PROD_TAG)).thenReturn(Set.of(Uom.CORES));
+    when(tagProfile.getTagMetric(TEST_PROD_TAG, Uom.CORES)).thenReturn(Optional.of(tag));
   }
 
   @Test
   void buildsPromQLByAccountLookupTemplateKey() {
     OffsetDateTime expectedDate = OffsetDateTime.now();
     when(service.runQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
-            promProps.getOpenshift().getQueryTimeout()))
+            metricProperties.getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(List.of("A1")));
 
     accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
     verify(service)
         .runQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
-            promProps.getOpenshift().getQueryTimeout());
+            metricProperties.getQueryTimeout());
   }
 
   @Test
@@ -113,9 +111,9 @@ class PrometheusAccountSourceTest {
     accountList.add(expectedAccount);
 
     when(service.runQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
-            promProps.getOpenshift().getQueryTimeout()))
+            metricProperties.getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(accountList));
 
     Set<String> accounts =
@@ -130,9 +128,9 @@ class PrometheusAccountSourceTest {
     OffsetDateTime expectedDate = OffsetDateTime.now();
 
     when(service.runQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
-            promProps.getOpenshift().getQueryTimeout()))
+            metricProperties.getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(expectedAccounts));
 
     Set<String> accounts =

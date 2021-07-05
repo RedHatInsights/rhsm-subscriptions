@@ -20,9 +20,10 @@
  */
 package org.candlepin.subscriptions.metering.task;
 
+import org.candlepin.subscriptions.files.TagProfile;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMeteringTaskFactory;
@@ -51,9 +52,10 @@ public class MeteringTasksConfiguration {
   @Bean
   PrometheusAccountSource accountSource(
       PrometheusService service,
-      PrometheusMetricsProperties metricProperties,
-      QueryBuilder queryBuilder) {
-    return new PrometheusAccountSource(service, metricProperties, queryBuilder);
+      MetricProperties metricProperties,
+      QueryBuilder queryBuilder,
+      TagProfile tagProfile) {
+    return new PrometheusAccountSource(service, metricProperties, queryBuilder, tagProfile);
   }
 
   // Qualify this bean so that a new instance is created in the case that another
@@ -70,8 +72,8 @@ public class MeteringTasksConfiguration {
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
-      PrometheusMetricsProperties prometheusProps) {
-    return new PrometheusMetricsTaskManager(queue, queueProps, accountSource, prometheusProps);
+      TagProfile tagProfile) {
+    return new PrometheusMetricsTaskManager(queue, queueProps, accountSource, tagProfile);
   }
 
   // The following beans are defined for the worker profile only allowing

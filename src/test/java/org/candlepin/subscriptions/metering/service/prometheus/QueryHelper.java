@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import java.util.Optional;
 import org.candlepin.subscriptions.files.TagMetric;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
@@ -29,16 +30,16 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescr
 /** Common query utilities used for testing. */
 public class QueryHelper {
 
-  private PrometheusMetricsProperties props;
+  private TagProfile tagProfile;
   private QueryBuilder queryBuilder;
 
-  public QueryHelper(PrometheusMetricsProperties props, QueryBuilder builder) {
-    this.props = props;
+  public QueryHelper(TagProfile tagProfile, QueryBuilder builder) {
+    this.tagProfile = tagProfile;
     this.queryBuilder = builder;
   }
 
   public String expectedQuery(String productTag, String account) {
-    Optional<TagMetric> tag = props.getTagMetric(productTag, Uom.CORES);
+    Optional<TagMetric> tag = tagProfile.getTagMetric(productTag, Uom.CORES);
     if (tag.isEmpty()) {
       throw new RuntimeException("Bad test configuration! Could not find TagMetric!");
     }

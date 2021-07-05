@@ -20,12 +20,17 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** Properties related to a metric that is to be gathered from the prometheus service. */
+/** Properties related to all metrics that are to be gathered from the prometheus service. */
 @Getter
 @Setter
+@ConfigurationProperties(prefix = "rhsm-subscriptions.metering.prometheus.metric")
 public class MetricProperties {
 
   /** How long to wait for results from the query. */
@@ -59,4 +64,26 @@ public class MetricProperties {
    * The multiplier to use to generate the next backoff interval when retrying metrics gathering.
    */
   private double backOffMultiplier = 2;
+
+  private Map<String, String> queryTemplates = new HashMap<>();
+
+  private Map<String, String> accountQueryTemplates = new HashMap<>();
+
+  /**
+   * SPEL templates do not support nested expressions so the QueryBuilder will apply template
+   * parameters a set number of times to prevent recursion.
+   */
+  private int templateParameterDepth = 3;
+
+  public Optional<String> getQueryTemplate(String templateKey) {
+    return queryTemplates.containsKey(templateKey)
+        ? Optional.of(queryTemplates.get(templateKey))
+        : Optional.empty();
+  }
+
+  public Optional<String> getAccountQueryTemplate(String templateKey) {
+    return accountQueryTemplates.containsKey(templateKey)
+        ? Optional.of(accountQueryTemplates.get(templateKey))
+        : Optional.empty();
+  }
 }

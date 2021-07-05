@@ -62,7 +62,7 @@ public class PrometheusMeteringController {
   private final PrometheusService prometheusService;
   private final EventController eventController;
   private final ApplicationClock clock;
-  private final PrometheusMetricsProperties prometheusMetricsProperties;
+  private final MetricProperties metricProperties;
   private final RetryTemplate openshiftRetry;
   private final OptInController optInController;
   private final QueryBuilder prometheusQueryBuilder;
@@ -71,7 +71,7 @@ public class PrometheusMeteringController {
   @SuppressWarnings("java:S107")
   public PrometheusMeteringController(
       ApplicationClock clock,
-      PrometheusMetricsProperties prometheusMetricsProperties,
+      MetricProperties metricProperties,
       PrometheusService service,
       QueryBuilder queryBuilder,
       EventController eventController,
@@ -79,7 +79,7 @@ public class PrometheusMeteringController {
       OptInController optInController,
       TagProfile tagProfile) {
     this.clock = clock;
-    this.prometheusMetricsProperties = prometheusMetricsProperties;
+    this.metricProperties = metricProperties;
     this.prometheusService = service;
     this.prometheusQueryBuilder = queryBuilder;
     this.eventController = eventController;
@@ -96,7 +96,7 @@ public class PrometheusMeteringController {
   @Transactional
   public void collectMetrics(
       String tag, Uom metric, String account, OffsetDateTime start, OffsetDateTime end) {
-    Optional<TagMetric> tagMetric = prometheusMetricsProperties.getTagMetric(tag, metric);
+    Optional<TagMetric> tagMetric = tagProfile.getTagMetric(tag, metric);
     if (tagMetric.isEmpty()) {
       throw new UnsupportedOperationException(
           String.format("Unable to find TagMetric for tag %s and metric %s!", tag, metric));
@@ -107,9 +107,6 @@ public class PrometheusMeteringController {
       throw new UnsupportedOperationException(
           String.format("Unable to determine service type for tag %s.", tagMetric.get().getTag()));
     }
-
-    MetricProperties metricProps =
-        prometheusMetricsProperties.getSupportedMetricsForProduct(tag).get(metric);
 
     // Reset the start/end dates to ensure they span a complete hour.
     // NOTE: If the prometheus query step changes, we will need to adjust this.
@@ -130,8 +127,8 @@ public class PrometheusMeteringController {
                     buildPromQLForMetering(account, tagMetric.get()),
                     startDate,
                     endDate,
-                    metricProps.getStep(),
-                    metricProps.getQueryTimeout());
+                    metricProperties.getStep(),
+                    metricProperties.getQueryTimeout());
 
             if (StatusType.ERROR.equals(metricData.getStatus())) {
               throw new MeteringException(
@@ -147,8 +144,8 @@ public class PrometheusMeteringController {
                     // We need to shift the start and end dates by the step, to account for the
                     // shift in the event start date when it is created. See note about eventDate
                     // below.
-                    startDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep()),
-                    endDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep()));
+                    startDate.minusSeconds(metricProperties.getStep()),
+                    endDate.minusSeconds(metricProperties.getStep()));
             log.debug("Found {} existing events.", existing.size());
 
             Map<EventKey, Event> events = new HashMap<>();
@@ -173,9 +170,7 @@ public class PrometheusMeteringController {
                 // Need to subtract the step because we are averaging and the metric value
                 // actually represents the end of the measured period. The start of the event
                 // should be at the beginning.
-                OffsetDateTime eventDate =
-                    eventTermDate.minusSeconds(
-                        prometheusMetricsProperties.getOpenshift().getStep());
+                OffsetDateTime eventDate = eventTermDate.minusSeconds(metricProperties.getStep());
 
                 Event event =
                     createOrUpdateEvent(

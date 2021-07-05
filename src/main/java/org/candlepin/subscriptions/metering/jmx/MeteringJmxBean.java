@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.metering.jmx;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -44,16 +44,16 @@ public class MeteringJmxBean {
 
   private ApplicationClock clock;
 
-  private PrometheusMetricsProperties prometheusMetricsProperties;
+  private MetricProperties metricProperties;
 
   @Autowired
   public MeteringJmxBean(
       ApplicationClock clock,
       PrometheusMetricsTaskManager tasks,
-      PrometheusMetricsProperties prometheusMetricsProperties) {
+      MetricProperties metricProperties) {
     this.clock = clock;
     this.tasks = tasks;
-    this.prometheusMetricsProperties = prometheusMetricsProperties;
+    this.metricProperties = metricProperties;
   }
 
   @ManagedOperation(description = "Perform product metering for a single account.")
@@ -65,8 +65,7 @@ public class MeteringJmxBean {
     log.info("{} metering for {} triggered via JMX by {}", productTag, accountNumber, principal);
 
     OffsetDateTime end = getDate(null);
-    OffsetDateTime start =
-        getStartDate(end, prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag));
+    OffsetDateTime start = getStartDate(end, metricProperties.getRangeInMinutes());
 
     try {
       tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
@@ -110,9 +109,7 @@ public class MeteringJmxBean {
     log.info("Metering for all accounts triggered via JMX by {}", principal);
 
     OffsetDateTime end = getDate(null);
-    // ENT-3835 will change the data structures used here
-    OffsetDateTime start =
-        getStartDate(end, prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag));
+    OffsetDateTime start = getStartDate(end, metricProperties.getRangeInMinutes());
 
     try {
       tasks.updateMetricsForAllAccounts(productTag, start, end);

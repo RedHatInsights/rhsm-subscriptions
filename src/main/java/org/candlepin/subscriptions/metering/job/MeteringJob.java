@@ -26,7 +26,7 @@ import java.time.temporal.ChronoUnit;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.exception.JobFailureException;
 import org.candlepin.subscriptions.files.TagProfile;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
@@ -42,18 +42,18 @@ public class MeteringJob implements Runnable {
   private ApplicationClock clock;
   private final TagProfile tagProfile;
   private ApplicationProperties appProps;
-  private PrometheusMetricsProperties prometheusMetricsProperties;
+  private MetricProperties metricProperties;
 
   public MeteringJob(
       PrometheusMetricsTaskManager tasks,
       ApplicationClock clock,
       TagProfile tagProfile,
-      PrometheusMetricsProperties prometheusMetricsProperties,
+      MetricProperties metricProperties,
       ApplicationProperties appProps) {
     this.tasks = tasks;
     this.clock = clock;
     this.tagProfile = tagProfile;
-    this.prometheusMetricsProperties = prometheusMetricsProperties;
+    this.metricProperties = metricProperties;
     this.appProps = appProps;
   }
 
@@ -62,7 +62,7 @@ public class MeteringJob implements Runnable {
   public void run() {
     Duration latency = appProps.getPrometheusLatencyDuration();
     for (String productTag : tagProfile.getTagsWithPrometheusEnabledLookup()) {
-      int range = prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag);
+      int range = metricProperties.getRangeInMinutes();
       OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
       // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
       // time

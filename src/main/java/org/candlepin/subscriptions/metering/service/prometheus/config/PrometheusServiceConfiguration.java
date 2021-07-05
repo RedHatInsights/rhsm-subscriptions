@@ -24,7 +24,7 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.http.HttpClientProperties;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
@@ -50,8 +50,8 @@ public class PrometheusServiceConfiguration {
   }
 
   @Bean
-  public PrometheusMetricsProperties metricProperties(TagProfile tagProfile) {
-    return new PrometheusMetricsProperties(tagProfile);
+  public MetricProperties metricProperties(TagProfile tagProfile) {
+    return new MetricProperties();
   }
 
   @Bean
@@ -65,7 +65,7 @@ public class PrometheusServiceConfiguration {
   }
 
   @Bean
-  QueryBuilder queryBuilder(PrometheusMetricsProperties props) {
+  QueryBuilder queryBuilder(MetricProperties props) {
     return new QueryBuilder(props);
   }
 }

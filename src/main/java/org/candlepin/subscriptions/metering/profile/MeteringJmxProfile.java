@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.metering.jmx.MeteringJmxBean;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
@@ -51,7 +51,7 @@ public class MeteringJmxProfile {
   MeteringJmxBean meteringJmxBean(
       ApplicationClock clock,
       PrometheusMetricsTaskManager taskManager,
-      PrometheusMetricsProperties metricProperties) {
+      MetricProperties metricProperties) {
     return new MeteringJmxBean(clock, taskManager, metricProperties);
   }
 }
