@@ -18,24 +18,34 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
-import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Getter;
+import org.candlepin.subscriptions.files.TagMetric;
 
 /**
- * Configuration for the "capacity-ingress" profile.
+ * Describes the variables to be applied to a query template. Within a template, these variables can
+ * be utilized as follows:
  *
- * <p>This profile is used to receive capacity records from an internal service.
+ * <p>#{metric.metricId} #{runtime[yourCustomProperty]}
  */
-@Configuration
-@Profile("capacity-ingress")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
-@ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
-public class CapacityIngressConfiguration {
-  /* Intentionally empty */
+@Getter
+public class QueryDescriptor {
+
+  /** Any variables that should be provided by the tag configuration. */
+  private TagMetric metric;
+
+  /** Any variable that are specified at runtime. */
+  private Map<String, String> runtime;
+
+  public QueryDescriptor(TagMetric metric) {
+    this.metric = metric;
+    this.runtime = new HashMap<>();
+  }
+
+  public void addRuntimeVar(String name, String value) {
+    this.runtime.put(name, value);
+  }
 }

@@ -27,12 +27,19 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.files.TagMetaData;
+import org.candlepin.subscriptions.files.TagMetric;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
@@ -44,6 +51,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** A controller class that defines the business logic related to any metrics that are gathered. */
 @Component
@@ -54,23 +62,30 @@ public class PrometheusMeteringController {
   private final PrometheusService prometheusService;
   private final EventController eventController;
   private final ApplicationClock clock;
-  private final PrometheusMetricsProperties metricProperties;
+  private final PrometheusMetricsProperties prometheusMetricsProperties;
   private final RetryTemplate openshiftRetry;
   private final OptInController optInController;
+  private final QueryBuilder prometheusQueryBuilder;
+  private final TagProfile tagProfile;
 
+  @SuppressWarnings("java:S107")
   public PrometheusMeteringController(
       ApplicationClock clock,
-      PrometheusMetricsProperties metricProperties,
+      PrometheusMetricsProperties prometheusMetricsProperties,
       PrometheusService service,
+      QueryBuilder queryBuilder,
       EventController eventController,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
-      OptInController optInController) {
+      OptInController optInController,
+      TagProfile tagProfile) {
     this.clock = clock;
-    this.metricProperties = metricProperties;
+    this.prometheusMetricsProperties = prometheusMetricsProperties;
     this.prometheusService = service;
+    this.prometheusQueryBuilder = queryBuilder;
     this.eventController = eventController;
     this.openshiftRetry = openshiftRetry;
     this.optInController = optInController;
+    this.tagProfile = tagProfile;
   }
 
   // Suppressing this sonar issue because we need to log plus throw an exception on retry
@@ -79,8 +94,23 @@ public class PrometheusMeteringController {
   @SuppressWarnings("java:S2139")
   @Timed("rhsm-subscriptions.metering.openshift")
   @Transactional
-  public void collectOpenshiftMetrics(String account, OffsetDateTime start, OffsetDateTime end) {
-    MetricProperties openshiftProperties = metricProperties.getOpenshift();
+  public void collectMetrics(
+      String tag, Uom metric, String account, OffsetDateTime start, OffsetDateTime end) {
+    Optional<TagMetric> tagMetric = prometheusMetricsProperties.getTagMetric(tag, metric);
+    if (tagMetric.isEmpty()) {
+      throw new UnsupportedOperationException(
+          String.format("Unable to find TagMetric for tag %s and metric %s!", tag, metric));
+    }
+
+    Optional<TagMetaData> tagMetaData = tagProfile.getTagMetaDataByTag(tagMetric.get().getTag());
+    if (tagMetaData.isEmpty()) {
+      throw new UnsupportedOperationException(
+          String.format("Unable to determine service type for tag %s.", tagMetric.get().getTag()));
+    }
+
+    MetricProperties metricProps =
+        prometheusMetricsProperties.getSupportedMetricsForProduct(tag).get(metric);
+
     // Reset the start/end dates to ensure they span a complete hour.
     // NOTE: If the prometheus query step changes, we will need to adjust this.
     OffsetDateTime startDate = clock.startOfHour(start);
@@ -94,32 +124,31 @@ public class PrometheusMeteringController {
         context -> {
           try {
 
-            log.info("Collecting OpenShift metrics");
+            log.info("Collecting metrics for account {}: {} {}", account, tag, metric);
             QueryResult metricData =
                 prometheusService.runRangeQuery(
-                    // Substitute the account number into the query. The query is expected to
-                    // contain %s for replacement.
-                    String.format(openshiftProperties.getMetricPromQL(), account),
+                    buildPromQLForMetering(account, tagMetric.get()),
                     startDate,
                     endDate,
-                    openshiftProperties.getStep(),
-                    openshiftProperties.getQueryTimeout());
+                    metricProps.getStep(),
+                    metricProps.getQueryTimeout());
 
             if (StatusType.ERROR.equals(metricData.getStatus())) {
               throw new MeteringException(
-                  String.format("Unable to fetch OpenShift metrics: %s", metricData.getError()));
+                  String.format(
+                      "Unable to fetch %s %s metrics: %s", tag, metric, metricData.getError()));
             }
 
             Map<EventKey, Event> existing =
                 eventController.mapEventsInTimeRange(
                     account,
-                    MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
-                    MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+                    MeteringEventFactory.EVENT_SOURCE,
+                    MeteringEventFactory.getEventType(tagMetric.get().getMetricId()),
                     // We need to shift the start and end dates by the step, to account for the
-                    // shift
-                    // in the event start date when it is created. See note about eventDate below.
-                    startDate.minusSeconds(metricProperties.getOpenshift().getStep()),
-                    endDate.minusSeconds(metricProperties.getOpenshift().getStep()));
+                    // shift in the event start date when it is created. See note about eventDate
+                    // below.
+                    startDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep()),
+                    endDate.minusSeconds(prometheusMetricsProperties.getOpenshift().getStep()));
             log.debug("Found {} existing events.", existing.size());
 
             Map<EventKey, Event> events = new HashMap<>();
@@ -130,7 +159,7 @@ public class PrometheusMeteringController {
               String usage = labels.get("usage");
               // NOTE: Role comes from the product label despite its name. The values set here
               //       are NOT engineering or swatch product IDs. They map to the roles in the
-              //       product profile. For openshift, the values will be 'ocp' or 'osd'.
+              //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
               String role = labels.get("product");
 
               // For the openshift metrics, we expect our results to be a 'matrix'
@@ -145,32 +174,38 @@ public class PrometheusMeteringController {
                 // actually represents the end of the measured period. The start of the event
                 // should be at the beginning.
                 OffsetDateTime eventDate =
-                    eventTermDate.minusSeconds(metricProperties.getOpenshift().getStep());
+                    eventTermDate.minusSeconds(
+                        prometheusMetricsProperties.getOpenshift().getStep());
 
                 Event event =
                     createOrUpdateEvent(
                         existing,
                         account,
+                        tagMetric.get().getMetricId(),
                         clusterId,
                         sla,
                         usage,
                         role,
                         eventDate,
                         eventTermDate,
+                        tagMetaData.get().getServiceType(),
+                        tagMetric.get().getUom(),
                         value);
                 events.putIfAbsent(EventKey.fromEvent(event), event);
               }
             }
 
             eventController.saveAll(events.values());
-            log.info("Persisted {} events for OpenShift metrics.", events.size());
+            log.info("Persisted {} events for {} {} metrics.", events.size(), tag, metric);
 
             // Delete any stale events found during the period.
             deleteStaleEvents(existing.values());
             return null;
           } catch (Exception e) {
             log.warn(
-                "Exception thrown while updating OpenShift metrics. [Attempt: {}]: {}",
+                "Exception thrown while updating {} {} metrics. [Attempt: {}]: {}",
+                tag,
+                metric,
                 context.getRetryCount() + 1,
                 e.getMessage());
             throw e;
@@ -182,7 +217,11 @@ public class PrometheusMeteringController {
     try {
       optInController.optInByAccountNumber(account, OptInType.PROMETHEUS, true, true, true);
     } catch (Exception e) {
-      log.warn("Error while attempting to automatically opt-in account {}", account, e);
+      log.warn("Error while attempting to automatically opt-in account {}", account);
+      // Keep the logs clean unless specified.
+      if (log.isDebugEnabled()) {
+        log.debug("Opt-in error for account {}.", account, e);
+      }
     }
   }
 
@@ -190,34 +229,61 @@ public class PrometheusMeteringController {
   private Event createOrUpdateEvent(
       Map<EventKey, Event> existing,
       String account,
+      String metricId,
       String instanceId,
       String sla,
       String usage,
       String role,
       OffsetDateTime measuredDate,
       OffsetDateTime expired,
+      String serviceType,
+      Uom metric,
       BigDecimal value) {
     EventKey lookupKey =
         new EventKey(
             account,
-            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_SOURCE,
-            MeteringEventFactory.OPENSHIFT_CLUSTER_EVENT_TYPE,
+            MeteringEventFactory.EVENT_SOURCE,
+            MeteringEventFactory.getEventType(metricId),
             instanceId,
             measuredDate);
-
     Event event = existing.remove(lookupKey);
     if (event == null) {
       event = new Event();
     }
-    MeteringEventFactory.updateOpenShiftClusterCores(
-        event, account, instanceId, sla, usage, role, measuredDate, expired, value.doubleValue());
+    MeteringEventFactory.updateMetricEvent(
+        event,
+        account,
+        metricId,
+        instanceId,
+        sla,
+        usage,
+        role,
+        measuredDate,
+        expired,
+        serviceType,
+        metric,
+        value.doubleValue());
     return event;
   }
 
   private void deleteStaleEvents(Collection<Event> toDelete) {
     if (!toDelete.isEmpty()) {
-      log.info("Deleting {} stale OpenShift metric events.", toDelete.size());
+      log.info("Deleting {} stale metric events.", toDelete.size());
       eventController.deleteEvents(toDelete);
     }
+  }
+
+  private String buildPromQLForMetering(String account, TagMetric tagMetric) {
+    Map<String, String> args = new HashMap<>();
+    args.put("account", account);
+
+    // Default the query template if the tag profile didn't specify one.
+    if (!StringUtils.hasText(tagMetric.getQueryKey())) {
+      tagMetric.setQueryKey(QueryBuilder.DEFAULT_METRIC_QUERY_KEY);
+    }
+
+    QueryDescriptor descriptor = new QueryDescriptor(tagMetric);
+    descriptor.addRuntimeVar("account", account);
+    return prometheusQueryBuilder.build(descriptor);
   }
 }

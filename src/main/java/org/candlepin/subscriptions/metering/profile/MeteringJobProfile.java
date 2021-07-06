@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.metering.job.MeteringJob;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
@@ -55,9 +56,10 @@ public class MeteringJobProfile {
   MeteringJob meteringJob(
       PrometheusMetricsTaskManager tasks,
       ApplicationClock clock,
+      TagProfile tagProfile,
       PrometheusMetricsProperties metricProperties,
       ApplicationProperties appProps) {
-    return new MeteringJob(tasks, clock, metricProperties, appProps);
+    return new MeteringJob(tasks, clock, tagProfile, metricProperties, appProps);
   }
 
   @Bean

@@ -21,10 +21,12 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
@@ -72,15 +74,25 @@ public class OpenShiftWorkerProfile {
     return retryTemplate;
   }
 
+  @SuppressWarnings("java:S107")
   @Bean
   PrometheusMeteringController getController(
       ApplicationClock clock,
       PrometheusMetricsProperties mProps,
       PrometheusService service,
+      QueryBuilder queryBuilder,
       EventController eventController,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
-      OptInController optInController) {
+      OptInController optInController,
+      TagProfile tagProfile) {
     return new PrometheusMeteringController(
-        clock, mProps, service, eventController, openshiftRetryTemplate, optInController);
+        clock,
+        mProps,
+        service,
+        queryBuilder,
+        eventController,
+        openshiftRetryTemplate,
+        optInController,
+        tagProfile);
   }
 }

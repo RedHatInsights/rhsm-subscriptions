@@ -8,7 +8,7 @@ buildscript {
     dependencies {
         classpath "org.openapitools:openapi-generator-gradle-plugin:5.1.1"
         classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.1"
-        classpath "de.undercouch:gradle-download-task:4.1.1"
+        classpath "de.undercouch:gradle-download-task:4.1.2"
     }
 }
 
@@ -172,7 +172,7 @@ release {
     newVersionCommitMessage = '[Subscriptions Release] - version bump: '
     pushReleaseVersionBranch = 'main'
     git {
-        requireBranch = /develop|hotfix.*/
+        requireBranch = /release|hotfix.*/
         pushToRemote = false
     }
 }
@@ -389,7 +389,7 @@ project(":rhsm-client") {
     }
 
     dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.28.1"
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.29.0"
     }
 }
 

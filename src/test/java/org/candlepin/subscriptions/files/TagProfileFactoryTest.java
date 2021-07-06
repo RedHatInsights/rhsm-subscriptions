@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -93,5 +94,17 @@ class TagProfileFactoryTest {
     assertTrue(
         tagProfile.tagSupportsGranularity(
             ProductId.OPENSHIFT_METRICS.toString(), Granularity.HOURLY));
+  }
+
+  @Test
+  void canLookupMetaDataByTag() {
+    Optional<TagMetaData> ocpMeta = tagProfile.getTagMetaDataByTag("OpenShift-metrics");
+    assertFalse(ocpMeta.isEmpty());
+    assertTrue(ocpMeta.get().getTags().contains("OpenShift-metrics"));
+  }
+
+  @Test
+  void lookupMetaDataByTagWhenNotFound() {
+    assertTrue(tagProfile.getTagMetaDataByTag("UNKNOWN").isEmpty());
   }
 }

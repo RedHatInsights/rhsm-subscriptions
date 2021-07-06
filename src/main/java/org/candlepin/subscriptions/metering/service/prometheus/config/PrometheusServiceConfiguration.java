@@ -22,9 +22,11 @@ package org.candlepin.subscriptions.metering.service.prometheus.config;
 
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,8 +50,8 @@ public class PrometheusServiceConfiguration {
   }
 
   @Bean
-  public PrometheusMetricsProperties metricProperties() {
-    return new PrometheusMetricsProperties();
+  public PrometheusMetricsProperties metricProperties(TagProfile tagProfile) {
+    return new PrometheusMetricsProperties(tagProfile);
   }
 
   @Bean
@@ -60,5 +62,10 @@ public class PrometheusServiceConfiguration {
   @Bean
   EventController prometheusEventController(EventRecordRepository repo) {
     return new EventController(repo);
+  }
+
+  @Bean
+  QueryBuilder queryBuilder(PrometheusMetricsProperties props) {
+    return new QueryBuilder(props);
   }
 }

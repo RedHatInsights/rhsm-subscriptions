@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
@@ -69,7 +70,7 @@ class PrometheusMeteringTaskFactoryTest {
         factory.build(
             TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
                 .setSingleValuedArg("account", "12234")
-                .setSingleValuedArg("productProfileId", "OpenShift")
+                .setSingleValuedArg("productTag", "OpenShift")
                 .setSingleValuedArg("metric", "Cores")
                 .setSingleValuedArg("start", start.toString())
                 .setSingleValuedArg("end", end.toString())
@@ -78,7 +79,7 @@ class PrometheusMeteringTaskFactoryTest {
     assertTrue(task instanceof MetricsTask);
 
     task.execute();
-    verify(controller).collectOpenshiftMetrics("12234", start, end);
+    verify(controller).collectMetrics("OpenShift", Uom.CORES, "12234", start, end);
   }
 
   @Test
@@ -87,7 +88,7 @@ class PrometheusMeteringTaskFactoryTest {
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
-            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("step", "1h")
             .build();
@@ -100,7 +101,7 @@ class PrometheusMeteringTaskFactoryTest {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("account", "1234")
-            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
@@ -116,7 +117,7 @@ class PrometheusMeteringTaskFactoryTest {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("account", "1234")
-            .setSingleValuedArg("productProfileId", "OpenShift")
+            .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09")

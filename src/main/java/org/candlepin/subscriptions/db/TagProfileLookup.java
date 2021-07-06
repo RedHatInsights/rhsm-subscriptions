@@ -18,24 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
+import org.candlepin.subscriptions.files.TagProfile;
 
-/**
- * Configuration for the "capacity-ingress" profile.
- *
- * <p>This profile is used to receive capacity records from an internal service.
- */
-@Configuration
-@Profile("capacity-ingress")
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
-@ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
-public class CapacityIngressConfiguration {
-  /* Intentionally empty */
+/** Repository "fragment interface" that can be used to access tag profile from a Repository */
+public interface TagProfileLookup {
+  TagProfile getTagProfile();
 }
