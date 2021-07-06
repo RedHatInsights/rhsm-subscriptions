@@ -41,6 +41,8 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.transaction.Transactional;
+
 @Component
 @Slf4j
 public class CapacityReconciliationController {
@@ -69,6 +71,7 @@ public class CapacityReconciliationController {
     capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
   }
 
+  @Transactional
   public void reconcileCapacityForSubscription(Subscription subscription) {
 
     Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);
