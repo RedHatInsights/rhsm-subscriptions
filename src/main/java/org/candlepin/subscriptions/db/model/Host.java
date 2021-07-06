@@ -422,6 +422,7 @@ public class Host implements Serializable {
     // capture relationships between hosts & snapshots to derive coreHours within dynamic timeframes
 
     host.coreHours(getMonthlyTotal(monthId, Uom.CORES));
+    host.instanceHours(getMonthlyTotal(monthId, Uom.INSTANCE_HOURS));
 
     return host;
   }

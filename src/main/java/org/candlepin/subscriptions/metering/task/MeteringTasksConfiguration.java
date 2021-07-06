@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccount
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMeteringTaskFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.task.TaskFactory;
@@ -49,8 +50,10 @@ public class MeteringTasksConfiguration {
 
   @Bean
   PrometheusAccountSource accountSource(
-      PrometheusService service, PrometheusMetricsProperties metricProperties) {
-    return new PrometheusAccountSource(service, metricProperties);
+      PrometheusService service,
+      PrometheusMetricsProperties metricProperties,
+      QueryBuilder queryBuilder) {
+    return new PrometheusAccountSource(service, metricProperties, queryBuilder);
   }
 
   // Qualify this bean so that a new instance is created in the case that another

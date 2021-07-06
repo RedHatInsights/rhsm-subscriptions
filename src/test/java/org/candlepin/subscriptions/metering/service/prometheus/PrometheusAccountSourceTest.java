@@ -28,7 +28,13 @@ import static org.mockito.Mockito.when;
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.candlepin.subscriptions.files.TagMetric;
+import org.candlepin.subscriptions.files.TagProfile;
+import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
+import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
@@ -43,34 +49,54 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PrometheusAccountSourceTest {
 
-  final String TEST_QUERY = "TEST_QUERY";
-  final String TEST_PROFILE_ID = "OpenShift";
+  final String TEST_ACCT_QUERY_KEY = "TEST_QUERY";
+  final String TEST_ACCOUNT_QUERY = "ACCOUNT QUERY";
+  final String TEST_PROD_TAG = "OpenShift-metrics";
 
   @Mock PrometheusService service;
+  @Mock TagProfile tagProfile;
 
   PrometheusAccountSource accountSource;
   PrometheusMetricsProperties promProps;
+  QueryBuilder queryBuilder;
+  TagMetric tag1;
 
   @BeforeEach
   void setupTest() {
     MetricProperties osProps = new MetricProperties();
-    osProps.setEnabledAccountPromQL(TEST_QUERY);
 
-    promProps = new PrometheusMetricsProperties();
+    promProps = new PrometheusMetricsProperties(tagProfile);
     promProps.setOpenshift(osProps);
-    accountSource = new PrometheusAccountSource(service, promProps);
+    promProps.setAccountQueryTemplates(Map.of(TEST_ACCT_QUERY_KEY, TEST_ACCOUNT_QUERY));
+
+    queryBuilder = new QueryBuilder(promProps);
+    accountSource = new PrometheusAccountSource(service, promProps, queryBuilder);
+
+    tag1 =
+        TagMetric.builder()
+            .tag(TEST_PROD_TAG)
+            .uom(Uom.CORES)
+            .accountQueryKey(TEST_ACCT_QUERY_KEY)
+            .build();
+
+    when(tagProfile.tagIsPrometheusEnabled(TEST_PROD_TAG)).thenReturn(true);
+    when(tagProfile.getTagMetrics()).thenReturn(List.of(tag1));
+    when(tagProfile.measurementsByTag(TEST_PROD_TAG)).thenReturn(Set.of(Uom.CORES));
   }
 
   @Test
-  void usesPromQLFromConfig() {
+  void buildsPromQLByAccountLookupTemplateKey() {
     OffsetDateTime expectedDate = OffsetDateTime.now();
-    when(service.runQuery(TEST_QUERY, expectedDate, promProps.getOpenshift().getQueryTimeout()))
+    when(service.runQuery(
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            expectedDate,
+            promProps.getOpenshift().getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(List.of("A1")));
 
-    accountSource.getMarketplaceAccounts(TEST_PROFILE_ID, expectedDate);
+    accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
     verify(service)
         .runQuery(
-            promProps.getOpenshift().getEnabledAccountPromQL(),
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
             expectedDate,
             promProps.getOpenshift().getQueryTimeout());
   }
@@ -86,10 +112,14 @@ class PrometheusAccountSourceTest {
     accountList.add("");
     accountList.add(expectedAccount);
 
-    when(service.runQuery(TEST_QUERY, expectedDate, promProps.getOpenshift().getQueryTimeout()))
+    when(service.runQuery(
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            expectedDate,
+            promProps.getOpenshift().getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(accountList));
 
-    Set<String> accounts = accountSource.getMarketplaceAccounts(TEST_PROFILE_ID, expectedDate);
+    Set<String> accounts =
+        accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
     assertEquals(1, accounts.size());
     assertTrue(accounts.contains(expectedAccount));
   }
@@ -99,10 +129,14 @@ class PrometheusAccountSourceTest {
     List<String> expectedAccounts = List.of("A1", "A2");
     OffsetDateTime expectedDate = OffsetDateTime.now();
 
-    when(service.runQuery(TEST_QUERY, expectedDate, promProps.getOpenshift().getQueryTimeout()))
+    when(service.runQuery(
+            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag1)),
+            expectedDate,
+            promProps.getOpenshift().getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(expectedAccounts));
 
-    Set<String> accounts = accountSource.getMarketplaceAccounts(TEST_PROFILE_ID, expectedDate);
+    Set<String> accounts =
+        accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
     assertEquals(2, accounts.size());
     assertTrue(accounts.containsAll(expectedAccounts));
   }

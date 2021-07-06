@@ -35,7 +35,7 @@ public class MetricsTask implements Task {
   private static final Logger log = LoggerFactory.getLogger(MetricsTask.class);
 
   private final String account;
-  private final String productProfileId;
+  private final String productTag;
   private final Uom metric;
   private final OffsetDateTime start;
   private final OffsetDateTime end;
@@ -45,13 +45,13 @@ public class MetricsTask implements Task {
   public MetricsTask(
       PrometheusMeteringController controller,
       String account,
-      String productProfileId,
+      String productTag,
       Uom metric,
       OffsetDateTime start,
       OffsetDateTime end) {
     this.controller = controller;
     this.account = account;
-    this.productProfileId = productProfileId;
+    this.productTag = productTag;
     this.metric = metric;
     this.start = start;
     this.end = end;
@@ -59,13 +59,10 @@ public class MetricsTask implements Task {
 
   @Override
   public void execute() {
-    log.info("Running {} {} metrics update for account: {}", productProfileId, metric, account);
-    if (!productProfileId.equals("OpenShift") || metric != Uom.CORES) {
-      throw new UnsupportedOperationException("To be implemented in ENT-3871");
-    }
+    log.info("Running {} {} metrics update task for account: {}", productTag, metric, account);
     try {
-      controller.collectOpenshiftMetrics(this.account, start, end);
-      log.info("{} {} metrics task complete.", productProfileId, metric);
+      controller.collectMetrics(productTag, metric, this.account, start, end);
+      log.info("{} {} metrics task complete.", productTag, metric);
     } catch (Exception e) {
       log.error("Problem running task: {}", this.getClass().getSimpleName(), e);
     }

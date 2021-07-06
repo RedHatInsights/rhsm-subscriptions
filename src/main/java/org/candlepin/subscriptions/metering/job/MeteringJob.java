@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.exception.JobFailureException;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -39,16 +40,19 @@ public class MeteringJob implements Runnable {
 
   private PrometheusMetricsTaskManager tasks;
   private ApplicationClock clock;
+  private final TagProfile tagProfile;
   private ApplicationProperties appProps;
   private PrometheusMetricsProperties prometheusMetricsProperties;
 
   public MeteringJob(
       PrometheusMetricsTaskManager tasks,
       ApplicationClock clock,
+      TagProfile tagProfile,
       PrometheusMetricsProperties prometheusMetricsProperties,
       ApplicationProperties appProps) {
     this.tasks = tasks;
     this.clock = clock;
+    this.tagProfile = tagProfile;
     this.prometheusMetricsProperties = prometheusMetricsProperties;
     this.appProps = appProps;
   }
@@ -57,8 +61,8 @@ public class MeteringJob implements Runnable {
   @Scheduled(cron = "${rhsm-subscriptions.jobs.metering-schedule}")
   public void run() {
     Duration latency = appProps.getPrometheusLatencyDuration();
-    for (String productProfileId : prometheusMetricsProperties.getMetricsEnabledProductProfiles()) {
-      int range = prometheusMetricsProperties.getRangeInMinutesForProductProfile(productProfileId);
+    for (String productTag : tagProfile.getTagsWithPrometheusEnabledLookup()) {
+      int range = prometheusMetricsProperties.getRangeInMinutesForProductTag(productTag);
       OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
       // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
       // time
@@ -74,10 +78,9 @@ public class MeteringJob implements Runnable {
           clock.endOfHour(
               startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
 
-      log.info(
-          "Queuing {} metric updates for range: {} -> {}", productProfileId, startDate, endDate);
+      log.info("Queuing {} metric updates for range: {} -> {}", productTag, startDate, endDate);
       try {
-        tasks.updateMetricsForAllAccounts(productProfileId, startDate, endDate);
+        tasks.updateMetricsForAllAccounts(productTag, startDate, endDate);
       } catch (Exception e) {
         throw new JobFailureException("Unable to run MeteringJob.", e);
       }

@@ -28,7 +28,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
 import org.candlepin.subscriptions.db.AccountRepository;
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.files.ProductProfile;
 import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.http.HttpClientProperties;
@@ -65,7 +64,6 @@ import org.springframework.retry.support.RetryTemplate;
 @Import({
   TallyTaskQueueConfiguration.class,
   TaskConsumerConfiguration.class,
-  ProductMappingConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
   JmxBeansConfiguration.class
