@@ -31,11 +31,14 @@ import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 
 /** Defines the beans for the metering-job profile. */
 @Configuration
@@ -53,13 +56,26 @@ public class MeteringJobProfile {
   }
 
   @Bean
+  @Qualifier("meteringJobRetryTemplate")
+  public RetryTemplate meteringJobRetryTemplate(MetricProperties properties) {
+    return new RetryTemplateBuilder()
+        .maxAttempts(properties.getJobMaxAttempts())
+        .exponentialBackoff(
+            properties.getJobBackOffInitialInterval().toMillis(),
+            properties.getBackOffMultiplier(),
+            properties.getJobBackOffMaxInterval().toMillis())
+        .build();
+  }
+
+  @Bean
   MeteringJob meteringJob(
       PrometheusMetricsTaskManager tasks,
       ApplicationClock clock,
       TagProfile tagProfile,
       MetricProperties metricProperties,
-      ApplicationProperties appProps) {
-    return new MeteringJob(tasks, clock, tagProfile, metricProperties, appProps);
+      ApplicationProperties appProps,
+      @Qualifier("meteringJobRetryTemplate") RetryTemplate retryTemplate) {
+    return new MeteringJob(tasks, clock, tagProfile, metricProperties, appProps, retryTemplate);
   }
 
   @Bean

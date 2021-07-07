@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMe
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /** A cron job that sends a task message to capture metrics from prometheus for metering. */
@@ -43,18 +44,21 @@ public class MeteringJob implements Runnable {
   private final TagProfile tagProfile;
   private ApplicationProperties appProps;
   private MetricProperties metricProperties;
+  private RetryTemplate retryTemplate;
 
   public MeteringJob(
       PrometheusMetricsTaskManager tasks,
       ApplicationClock clock,
       TagProfile tagProfile,
       MetricProperties metricProperties,
-      ApplicationProperties appProps) {
+      ApplicationProperties appProps,
+      RetryTemplate retryTemplate) {
     this.tasks = tasks;
     this.clock = clock;
     this.tagProfile = tagProfile;
     this.metricProperties = metricProperties;
     this.appProps = appProps;
+    this.retryTemplate = retryTemplate;
   }
 
   @Override
@@ -80,7 +84,7 @@ public class MeteringJob implements Runnable {
 
       log.info("Queuing {} metric updates for range: {} -> {}", productTag, startDate, endDate);
       try {
-        tasks.updateMetricsForAllAccounts(productTag, startDate, endDate);
+        tasks.updateMetricsForAllAccounts(productTag, startDate, endDate, retryTemplate);
       } catch (Exception e) {
         throw new JobFailureException("Unable to run MeteringJob.", e);
       }
