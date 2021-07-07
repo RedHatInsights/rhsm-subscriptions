@@ -18,29 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions;
+package org.candlepin.subscriptions.security;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.core.env.ConfigurableEnvironment;
 
-import org.junit.jupiter.api.Test;
+/**
+ * This class includes GET requests in the list of HTTP verbs that must have a matching origin or
+ * referrer. It exists because Jolokia will invoke JMX Beans with GET requests which we want to
+ * protect from CSRF attacks.
+ */
+public class GetVerbIncludingAntiCsrfFilter extends AntiCsrfFilter {
 
-class FruitSaladTest {
-
-  @Test
-  void testSanity() {
-    assertTrue(true);
+  GetVerbIncludingAntiCsrfFilter(SecurityProperties props, ConfigurableEnvironment env) {
+    super(props, env);
   }
 
-  @Test
-  void testIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertTrue(fruitSalad.isYummyYummy());
-  }
-
-  @Test
-  void testNegativeIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertFalse(!fruitSalad.isYummyYummy());
+  @Override
+  protected boolean requestVerbAllowed(HttpServletRequest request) {
+    String verb = request.getMethod();
+    return !(MODIFYING_VERBS.contains(verb) || "GET".equals(verb));
   }
 }

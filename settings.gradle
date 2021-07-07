@@ -3,4 +3,4 @@ include ':api', ':insights-inventory-client', ':rhsm-client', ':cloudigrade-clie
         ':rbac-client', ':subscription-client', ':marketplace-client', ':prometheus-client',
         ':user-client', ':product-client'
 include 'swatch-core'
-
+include ':swatch-system-conduit'

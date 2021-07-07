@@ -18,29 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions;
+package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.time.Duration;
+import lombok.Data;
 
-import org.junit.jupiter.api.Test;
+@Data
+public class ProductProfileProperties {
+  /** Resource location of a file containing the list of product profiles */
+  private String productProfileRegistryResourceLocation;
 
-class FruitSaladTest {
-
-  @Test
-  void testSanity() {
-    assertTrue(true);
-  }
-
-  @Test
-  void testIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertTrue(fruitSalad.isYummyYummy());
-  }
-
-  @Test
-  void testNegativeIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertFalse(!fruitSalad.isYummyYummy());
-  }
+  /**
+   * Amount of time to cache the list of product profiles before allowing a re-read from the
+   * filesystem
+   */
+  private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
 }
