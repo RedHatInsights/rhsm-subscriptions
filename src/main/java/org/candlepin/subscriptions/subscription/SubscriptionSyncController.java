@@ -53,7 +53,7 @@ public class SubscriptionSyncController {
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate,
-      @Qualifier("marketplaceTasks") TaskQueueProperties props) {
+      @Qualifier("subscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
@@ -146,5 +146,4 @@ public class SubscriptionSyncController {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }
   }
-
 }
