@@ -2,16 +2,18 @@ plugins {
     id 'java'
 }
 
-group 'org.candlepin'
-version '0.0.1-SNAPSHOT'
+sourceCompatibility = "11"
+targetCompatibility = "11"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    implementation 'javax.validation:validation-api'
+
 }
 
 test {
