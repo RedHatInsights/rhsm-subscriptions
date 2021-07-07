@@ -22,11 +22,14 @@ package org.candlepin.subscriptions.inventory.client;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.convert.DurationUnit;
 
 /** Sub-class for inventory service properties */
 public class InventoryServiceProperties {
   private boolean useStub;
+  @Getter @Setter private boolean prettyPrintJson;
   private String url;
   private String apiKey;
   private String kafkaHostIngressTopic = "platform.inventory.host-ingress";

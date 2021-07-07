@@ -1,0 +1,109 @@
+plugins {
+    id "org.openapi.generator"
+    id "java"
+    id "org.springframework.boot"
+}
+
+ext {
+    api_spec_path = "${projectDir}/system-conduit-api-spec.yaml"
+    config_file = "${projectDir}/system-conduit-api-config.json"
+}
+
+sourceCompatibility = "11"
+targetCompatibility = "11"
+
+openApiGenerate {
+    generatorName = "jaxrs-spec"
+    inputSpec = api_spec_path
+    configFile = config_file
+    outputDir = "$buildDir/generated"
+    configOptions = [
+        interfaceOnly: "true",
+        generatePom: "false",
+        dateLibrary: "java8",
+    ]
+}
+
+openApiValidate {
+    inputSpec = api_spec_path
+}
+
+dependencies {
+    compile "com.fasterxml.jackson.core:jackson-annotations"
+    compile "javax.validation:validation-api"
+    compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
+    compile "io.swagger:swagger-annotations"
+    compile "com.google.code.findbugs:jsr305:3.0.2"
+    compile "org.openapitools:jackson-databind-nullable:0.2.1"
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
+compileJava.dependsOn tasks.openApiGenerate
+
+dependencies {
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
+    // code changes
+    implementation 'org.springframework.boot:spring-boot-devtools'
+
+    implementation project(":swatch-core")
+
+    //  NOTE(khowell): we use inventory API spec to get easy access to the Host schema.
+    implementation project(":insights-inventory-client")
+
+    implementation project(":rhsm-client")
+//    implementation project(":cloudigrade-client")
+//    implementation project(":rbac-client")
+//    implementation project(":subscription-client")
+//    implementation project(":marketplace-client")
+//    implementation project(":prometheus-client")
+//    implementation project(":user-client")
+//    implementation project(":product-client")
+//    implementation project(":kafka-schema")
+
+    // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
+    // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
+    implementation("org.jboss.resteasy:resteasy-spring-boot-starter") {
+        exclude group: "org.springframework.boot"
+    }
+    implementation("io.confluent:kafka-avro-serializer") {
+        exclude group: "org.apache.kafka"
+        // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
+        // logback and SLF4J issues a warning if more than one logging implementation is on the classpath.
+        // Frowny face to Zookeeper for adding a logging implementation to a library jar.
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+    }
+
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.retry:spring-retry"
+    implementation "org.springframework:spring-context-support"
+    implementation "org.springframework.kafka:spring-kafka"
+    // the following dep is necessary to avoid jackson kotlin warnings
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
+
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    //implementation "org.liquibase:liquibase-core"
+    implementation "org.yaml:snakeyaml"
+    implementation "org.postgresql:postgresql"
+    implementation "io.hawt:hawtio-springboot"
+    implementation "org.hibernate.validator:hibernate-validator"
+
+    testCompile "org.springframework.security:spring-security-test"
+    testCompile "org.springframework.kafka:spring-kafka-test"
+
+    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
+        exclude group: 'org.hibernate' // exclude older hibernate validator
+    }
+
+    runtime "org.hsqldb:hsqldb"
+    runtime "org.jolokia:jolokia-core"
+    // Use JUnit Jupiter API for testing.
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+
+    // Use JUnit Jupiter Engine for testing.
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+}

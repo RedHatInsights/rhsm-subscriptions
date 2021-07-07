@@ -18,29 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions;
+package org.candlepin.subscriptions.security;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import lombok.Data;
 
-import org.junit.jupiter.api.Test;
+@Data
+public class SecurityProperties {
+  private boolean devMode = false;
 
-class FruitSaladTest {
+  /**
+   * Expected domain suffix for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private String antiCsrfDomainSuffix = ".redhat.com";
 
-  @Test
-  void testSanity() {
-    assertTrue(true);
-  }
-
-  @Test
-  void testIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertTrue(fruitSalad.isYummyYummy());
-  }
-
-  @Test
-  void testNegativeIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertFalse(!fruitSalad.isYummyYummy());
-  }
+  /**
+   * Expected port for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private int antiCsrfPort = 443;
 }

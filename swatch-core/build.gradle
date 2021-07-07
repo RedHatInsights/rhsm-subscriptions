@@ -1,21 +1,50 @@
 plugins {
     id 'java'
+    id 'jsonschema2pojo'
 }
 
 sourceCompatibility = "11"
 targetCompatibility = "11"
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
-    implementation 'javax.validation:validation-api'
-
+    implementation project(":api") // for util methods in ResourceUtils
+    implementation project(":rbac-client") // for security integration w/ rbac
+    implementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+    implementation "org.hibernate.validator:hibernate-validator"
+    implementation "javax.validation:validation-api"
+    implementation "org.springframework.boot:spring-boot-starter"
+    implementation "org.springframework.boot:spring-boot-actuator-autoconfigure"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "com.google.guava:guava" // for ip address class
+    implementation "com.fasterxml.jackson.core:jackson-annotations" // for json generated models
+    implementation "com.fasterxml.jackson.core:jackson-databind" // for use of objectmapper in EventRecord
+    implementation "org.springframework.kafka:spring-kafka"
+    implementation "io.micrometer:micrometer-core"
+    implementation "io.hawt:hawtio-springboot"
+    implementation("io.confluent:kafka-avro-serializer") {
+        exclude group: "org.apache.kafka"
+        // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
+        // logback and SLF4J issues a warning if more than one logging implementation is on the classpath.
+        // Frowny face to Zookeeper for adding a logging implementation to a library jar.
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+    }
+    implementation project(":kafka-schema")
 }
 
-test {
-    useJUnitPlatform()
+jsonSchema2Pojo {
+    source = files("${projectDir}/schemas")
+    targetPackage = "org.candlepin.subscriptions.json"
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
 }

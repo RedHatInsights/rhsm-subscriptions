@@ -18,29 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions;
+package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Builder.Default;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 
-import org.junit.jupiter.api.Test;
-
-class FruitSaladTest {
-
-  @Test
-  void testSanity() {
-    assertTrue(true);
-  }
-
-  @Test
-  void testIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertTrue(fruitSalad.isYummyYummy());
-  }
-
-  @Test
-  void testNegativeIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertFalse(!fruitSalad.isYummyYummy());
-  }
+/** A composite class for tag profiles. Describes tag metric information. */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@Getter
+@NoArgsConstructor
+@Setter
+@ToString
+public class TagMetric {
+  private String tag;
+  private String metricId;
+  private Uom uom;
+  @Default private String queryKey = "default";
+  @Default private String accountQueryKey = "default";
+  private Map<String, String> queryParams;
 }

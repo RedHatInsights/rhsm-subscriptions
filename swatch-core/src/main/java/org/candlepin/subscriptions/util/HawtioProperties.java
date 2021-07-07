@@ -18,29 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions;
+package org.candlepin.subscriptions.util;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import lombok.Data;
 
-import org.junit.jupiter.api.Test;
-
-class FruitSaladTest {
-
-  @Test
-  void testSanity() {
-    assertTrue(true);
-  }
-
-  @Test
-  void testIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertTrue(fruitSalad.isYummyYummy());
-  }
-
-  @Test
-  void testNegativeIsYummyYummy() {
-    FruitSalad fruitSalad = new FruitSalad();
-    assertFalse(!fruitSalad.isYummyYummy());
-  }
+@Data
+public class HawtioProperties {
+  /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
+  private String hawtioBasePath;
 }
