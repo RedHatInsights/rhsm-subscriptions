@@ -178,6 +178,8 @@ release {
 }
 
 dependencies {
+    implementation project('swatch-core')
+
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor('org.hibernate:hibernate-jpamodelgen')
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
