@@ -21,9 +21,11 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
+import org.candlepin.subscriptions.files.ProductMappingConfiguration;
+import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.*;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
@@ -31,7 +33,12 @@ import org.springframework.retry.support.RetryTemplate;
 
 /** Configuration class for subscription package. */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
+@Import({
+  ResteasyConfiguration.class,
+  RhsmSubscriptionsDataSourceConfiguration.class,
+  ProductMappingConfiguration.class
+})
+@ComponentScan({"org.candlepin.subscriptions.subscription", "org.candlepin.subscriptions.capacity"})
 public class SubscriptionServiceConfiguration {
 
   @Bean

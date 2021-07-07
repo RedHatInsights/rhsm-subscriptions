@@ -27,15 +27,16 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Table;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /** Subscription entities represent data from a Candlepin Pool */
 @Entity
 @EqualsAndHashCode
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
 @IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
 public class Subscription {
@@ -83,4 +84,14 @@ public class Subscription {
       // default
     }
   }
+
+  public void endSubscription() {
+    endDate = OffsetDateTime.now();
+  }
+
+  public boolean quantityHasChanged(long newQuantity) {
+    return this.getQuantity() != newQuantity;
+  }
+
+  // TODO: https://issues.redhat.com/browse/ENT-4030 //NOSONAR
 }

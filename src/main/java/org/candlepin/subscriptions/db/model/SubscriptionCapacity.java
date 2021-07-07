@@ -27,10 +27,15 @@ import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 /** Capacity provided by a subscription for a given product. */
 @Entity
 @Table(name = "subscription_capacity")
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionCapacity implements Serializable {
   @EmbeddedId private SubscriptionCapacityKey key;
 
@@ -256,5 +261,27 @@ public class SubscriptionCapacity implements Serializable {
         usage,
         beginDate,
         endDate);
+  }
+
+  public static SubscriptionCapacity from(
+      Subscription subscription, Offering offering, String product) {
+    return SubscriptionCapacity.builder()
+        .key(
+            SubscriptionCapacityKey.builder()
+                .subscriptionId(subscription.getSubscriptionId())
+                .ownerId(subscription.getOwnerId())
+                .productId(product)
+                .build())
+        .accountNumber(subscription.getAccountNumber())
+        .beginDate(subscription.getStartDate())
+        .endDate(subscription.getEndDate())
+        .serviceLevel(offering.getServiceLevel())
+        .usage(offering.getUsage())
+        .sku(offering.getSku())
+        .physicalSockets(offering.getPhysicalSockets())
+        .virtualSockets(offering.getVirtualSockets())
+        .virtualCores(offering.getVirtualCores())
+        .physicalCores(offering.getPhysicalCores())
+        .build();
   }
 }

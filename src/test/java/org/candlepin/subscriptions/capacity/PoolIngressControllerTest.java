@@ -24,10 +24,8 @@ import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
@@ -50,8 +48,6 @@ class PoolIngressControllerTest {
 
   @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
 
-  @MockBean SubscriptionRepository subscriptionRepository;
-
   @MockBean CandlepinPoolCapacityMapper mapper;
 
   @MockBean ProductWhitelist whitelist;
@@ -64,7 +60,7 @@ class PoolIngressControllerTest {
         .thenReturn(Collections.emptyList());
 
     CandlepinPool pool = createTestPool("12345");
-    controller.updateCapacityForOrg("org", Collections.singletonList(pool));
+    controller.updateCapacityFromPools("org", Collections.singletonList(pool));
 
     verifyZeroInteractions(mapper);
     verify(subscriptionCapacityRepository).saveAll(Collections.emptyList());
@@ -81,7 +77,7 @@ class PoolIngressControllerTest {
         .thenReturn(Collections.singletonList(capacity));
 
     CandlepinPool pool = createTestPool("12345");
-    controller.updateCapacityForOrg("org", Collections.singletonList(pool));
+    controller.updateCapacityFromPools("org", Collections.singletonList(pool));
 
     verify(subscriptionCapacityRepository).saveAll(Collections.singletonList(capacity));
   }
@@ -100,7 +96,7 @@ class PoolIngressControllerTest {
         .thenReturn(Collections.singletonList(expected));
 
     CandlepinPool pool = createTestPool("12345");
-    controller.updateCapacityForOrg("org", Collections.singletonList(pool));
+    controller.updateCapacityFromPools("org", Collections.singletonList(pool));
 
     verify(subscriptionCapacityRepository).saveAll(Collections.singletonList(expected));
     verify(subscriptionCapacityRepository)
@@ -120,13 +116,14 @@ class PoolIngressControllerTest {
         .thenReturn(Arrays.asList(stale1, stale2));
 
     CandlepinPool pool = createTestPool("12345");
-    controller.updateCapacityForOrg("org", Collections.singletonList(pool));
+    controller.updateCapacityFromPools("org", Collections.singletonList(pool));
 
     verify(subscriptionCapacityRepository).saveAll(Collections.emptyList());
     verify(subscriptionCapacityRepository)
         .deleteAll(MockitoHamcrest.argThat(Matchers.containsInAnyOrder(stale1, stale2)));
   }
 
+  /*
   @Test
   void testSavesNewSkus() {
     List<Subscription> subscriptionList =
@@ -138,12 +135,13 @@ class PoolIngressControllerTest {
 
     CandlepinPool pool = createTestPool("12345");
     pool.setProductId("product-1");
-    controller.updateSubscriptionsForOrg("1", Collections.singletonList(pool));
+    controller.updateSubscriptionsAndCapacityFromSubscriptions("1", Collections.singletonList(pool));
 
     verify(subscriptionRepository).saveAll(subscriptionList);
     verify(subscriptionRepository).deleteAll(Collections.emptyList());
   }
 
+  // Commenting these out as this logic has now moved to Capacity Reconciliation Controller
   @Test
   void testUpdateExistingSkusWhileSavingNew() {
     Subscription subscription = createSubscription("1", "product-1", "12345");
@@ -158,7 +156,7 @@ class PoolIngressControllerTest {
     CandlepinPool pool2 = createTestPool("12345");
     pool2.setProductId("product-2");
 
-    controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
+    controller.updateSubscriptionsAndCapacityFromSubscriptions("1", Arrays.asList(pool1, pool2));
 
     verify(subscriptionRepository)
         .saveAll(Arrays.asList(subscription, createSubscription("1", "product-2", "12345")));
@@ -180,7 +178,7 @@ class PoolIngressControllerTest {
     CandlepinPool pool2 = createTestPool("2");
     pool2.setProductId("product-2");
 
-    controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
+    controller.updateSubscriptionsAndCapacityFromSubscriptions("1", Arrays.asList(pool1, pool2));
 
     verify(subscriptionRepository)
         .saveAll(Arrays.asList(subscription, createSubscription("1", "product-2", "2")));
@@ -202,11 +200,11 @@ class PoolIngressControllerTest {
     CandlepinPool pool2 = createTestPool("2");
     pool2.setProductId("product-1");
 
-    controller.updateSubscriptionsForOrg("1", Arrays.asList(pool1, pool2));
+    controller.updateSubscriptionsAndCapacityFromSubscriptions("1", Arrays.asList(pool1, pool2));
 
     verify(subscriptionRepository).saveAll(Arrays.asList(sub1, sub2));
     verify(subscriptionRepository).deleteAll(Collections.emptyList());
-  }
+  }*/
 
   private Subscription createSubscription(String orgId, String sku, String subscriptionId) {
     final Subscription subscription = new Subscription();

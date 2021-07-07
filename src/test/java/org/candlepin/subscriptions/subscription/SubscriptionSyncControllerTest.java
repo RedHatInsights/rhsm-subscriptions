@@ -20,10 +20,13 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.mockito.Mockito.verify;
+
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -44,13 +47,19 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
+  @MockBean CapacityReconciliationController capacityReconciliationController;
+
+  @MockBean SubscriptionService subscriptionService;
+
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 10);
     subject.syncSubscription(dto);
-    Mockito.verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
+    verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController)
+        .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
   @Test
@@ -59,7 +68,9 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 4);
     subject.syncSubscription(dto);
-    Mockito.verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController)
+        .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
   @Test
@@ -68,7 +79,19 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Optional.empty());
     var dto = createDto("456", 10);
     subject.syncSubscription(dto);
-    Mockito.verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
+    verify(capacityReconciliationController)
+        .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
+  }
+
+  @Test
+  void shouldSyncSubscriptionFromServiceForASubscriptionID() {
+    Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
+        .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
+    var dto = createDto("456", 10);
+    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
+    subject.syncSubscription(dto.getId().toString());
+    verify(subscriptionService).getSubscriptionById(Mockito.anyString());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {
@@ -91,6 +114,7 @@ class SubscriptionSyncControllerTest {
     dto.setSubscriptionNumber("123");
     dto.setEffectiveStartDate(NOW.toEpochSecond());
     dto.setEffectiveEndDate(NOW.plusDays(30).toEpochSecond());
+    dto.setWebCustomerId(1234);
 
     var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku("testsku");
     List<SubscriptionProduct> products = Collections.singletonList(product);

@@ -152,6 +152,6 @@ public class ApplicationProperties {
   /** Additional properties related to the Subscription Service */
   private SubscriptionServiceProperties subscription = new SubscriptionServiceProperties();
 
-  /** If enabled, will sync Offerings with the upstream product service. */
-  private boolean offeringSyncEnabled = false;
+  /** If enabled, will sync Subscriptions with the upstream subscription service. */
+  private boolean subscriptionSyncEnabled = false;
 }

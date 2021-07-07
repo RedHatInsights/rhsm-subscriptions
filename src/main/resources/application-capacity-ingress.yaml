@@ -1,2 +1,4 @@
 rhsm-subscriptions:
   product-whitelist-resource-location: ${PRODUCT_WHITELIST_RESOURCE_LOCATION:}
+  subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED}
+

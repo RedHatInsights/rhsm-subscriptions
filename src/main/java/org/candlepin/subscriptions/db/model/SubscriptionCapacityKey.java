@@ -24,9 +24,16 @@ import java.io.Serializable;
 import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 /** Primary key for record of capacity provided by a subscription for a given product. */
 @Embeddable
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionCapacityKey implements Serializable {
 
   @Column(name = "owner_id")
