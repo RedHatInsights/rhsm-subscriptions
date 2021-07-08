@@ -30,12 +30,16 @@ import javax.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 /** Capacity provided by a subscription for a given product. */
 @Entity
 @Table(name = "subscription_capacity")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@Setter
 public class SubscriptionCapacity implements Serializable {
   @EmbeddedId private SubscriptionCapacityKey key;
 
@@ -54,6 +58,8 @@ public class SubscriptionCapacity implements Serializable {
   @Column(name = "virtual_cores")
   private Integer virtualCores;
 
+  // Lombok would name the getter "isHasUnlimitedGuestSockets"
+  @Getter(AccessLevel.NONE)
   @Column(name = "has_unlimited_guest_sockets")
   private boolean hasUnlimitedGuestSockets;
 
@@ -74,22 +80,6 @@ public class SubscriptionCapacity implements Serializable {
 
   public SubscriptionCapacity() {
     key = new SubscriptionCapacityKey();
-  }
-
-  public SubscriptionCapacityKey getKey() {
-    return key;
-  }
-
-  public void setKey(SubscriptionCapacityKey key) {
-    this.key = key;
-  }
-
-  public String getAccountNumber() {
-    return accountNumber;
-  }
-
-  public void setAccountNumber(String accountNumber) {
-    this.accountNumber = accountNumber;
   }
 
   public String getProductId() {
@@ -116,84 +106,8 @@ public class SubscriptionCapacity implements Serializable {
     key.setOwnerId(ownerId);
   }
 
-  public Integer getPhysicalSockets() {
-    return physicalSockets;
-  }
-
-  public void setPhysicalSockets(Integer physicalSockets) {
-    this.physicalSockets = physicalSockets;
-  }
-
-  public Integer getVirtualSockets() {
-    return virtualSockets;
-  }
-
-  public void setVirtualSockets(Integer virtualSockets) {
-    this.virtualSockets = virtualSockets;
-  }
-
-  public Integer getPhysicalCores() {
-    return physicalCores;
-  }
-
-  public void setPhysicalCores(Integer physicalCores) {
-    this.physicalCores = physicalCores;
-  }
-
-  public Integer getVirtualCores() {
-    return virtualCores;
-  }
-
-  public void setVirtualCores(Integer virtualCores) {
-    this.virtualCores = virtualCores;
-  }
-
   public boolean getHasUnlimitedGuestSockets() {
     return hasUnlimitedGuestSockets;
-  }
-
-  public void setHasUnlimitedGuestSockets(boolean hasUnlimitedGuestSockets) {
-    this.hasUnlimitedGuestSockets = hasUnlimitedGuestSockets;
-  }
-
-  public OffsetDateTime getBeginDate() {
-    return beginDate;
-  }
-
-  public void setBeginDate(OffsetDateTime beginDate) {
-    this.beginDate = beginDate;
-  }
-
-  public OffsetDateTime getEndDate() {
-    return endDate;
-  }
-
-  public void setEndDate(OffsetDateTime endDate) {
-    this.endDate = endDate;
-  }
-
-  public String getSku() {
-    return sku;
-  }
-
-  public void setSku(String sku) {
-    this.sku = sku;
-  }
-
-  public ServiceLevel getServiceLevel() {
-    return serviceLevel;
-  }
-
-  public void setServiceLevel(ServiceLevel serviceLevel) {
-    this.serviceLevel = serviceLevel;
-  }
-
-  public Usage getUsage() {
-    return usage;
-  }
-
-  public void setUsage(Usage usage) {
-    this.usage = usage;
   }
 
   @Override

@@ -23,37 +23,17 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
+import lombok.Getter;
+import lombok.Setter;
 
 /** Class to represent rows in the hardware_measurements table */
 @Embeddable
+@Getter
+@Setter
 public class HardwareMeasurement implements Serializable {
   @Column(name = "instance_count")
   private int instanceCount;
 
   private int cores;
   private int sockets;
-
-  public int getCores() {
-    return cores;
-  }
-
-  public void setCores(int cores) {
-    this.cores = cores;
-  }
-
-  public int getInstanceCount() {
-    return instanceCount;
-  }
-
-  public void setInstanceCount(int instanceCount) {
-    this.instanceCount = instanceCount;
-  }
-
-  public int getSockets() {
-    return sockets;
-  }
-
-  public void setSockets(int sockets) {
-    this.sockets = sockets;
-  }
 }

@@ -32,7 +32,9 @@ import javax.persistence.Table;
 import javax.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.candlepin.subscriptions.json.Event;
 
 /**
@@ -43,6 +45,8 @@ import org.candlepin.subscriptions.json.Event;
 @Entity
 @Table(name = "events")
 @Builder
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class EventRecord {
@@ -89,54 +93,6 @@ public class EventRecord {
   @Column(name = "data")
   @Convert(converter = EventRecordConverter.class)
   private Event event;
-
-  public UUID getId() {
-    return id;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public String getAccountNumber() {
-    return accountNumber;
-  }
-
-  public void setAccountNumber(String accountNumber) {
-    this.accountNumber = accountNumber;
-  }
-
-  public String getEventType() {
-    return eventType;
-  }
-
-  public void setEventType(String eventType) {
-    this.eventType = eventType;
-  }
-
-  public String getEventSource() {
-    return eventSource;
-  }
-
-  public void setEventSource(String eventSource) {
-    this.eventSource = eventSource;
-  }
-
-  public OffsetDateTime getTimestamp() {
-    return timestamp;
-  }
-
-  public void setTimestamp(OffsetDateTime timestamp) {
-    this.timestamp = timestamp;
-  }
-
-  public Event getEvent() {
-    return event;
-  }
-
-  public void setEvent(Event event) {
-    this.event = event;
-  }
 
   @Override
   public boolean equals(Object o) {

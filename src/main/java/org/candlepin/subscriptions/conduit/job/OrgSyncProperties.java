@@ -20,31 +20,19 @@
  */
 package org.candlepin.subscriptions.conduit.job;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /** Properties related to the OrgSyncJob */
 @Component
 @ConfigurationProperties(prefix = "rhsm-conduit.org-sync")
+@Getter
+@Setter
 public class OrgSyncProperties {
   // Default to every 5 minutes
   private String schedule = "0 5 * * * ?";
   /** Artificial limit to number of orgs */
   private Integer limit = null;
-
-  public String getSchedule() {
-    return schedule;
-  }
-
-  public void setSchedule(String schedule) {
-    this.schedule = schedule;
-  }
-
-  public Integer getLimit() {
-    return limit;
-  }
-
-  public void setLimit(Integer limit) {
-    this.limit = limit;
-  }
 }

@@ -23,34 +23,20 @@ package org.candlepin.subscriptions.conduit.rhsm.client;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.net.ssl.HostnameVerifier;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
 /** Class to hold values used to build the ApiClient instance wrapped in an SSLContext for RHSM. */
+@Getter
+@Setter
 public class RhsmApiProperties {
-  private final X509ApiClientFactoryConfiguration x509Config =
-      new X509ApiClientFactoryConfiguration();
+  @Setter(AccessLevel.NONE)
+  private X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+
   private boolean useStub;
   private String url;
   private int requestBatchSize = 100;
-
-  public boolean isUseStub() {
-    return useStub;
-  }
-
-  public void setUseStub(boolean useStub) {
-    this.useStub = useStub;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public X509ApiClientFactoryConfiguration getX509ApiClientFactoryConfiguration() {
-    return x509Config;
-  }
 
   public String getKeystorePassword() {
     return x509Config.getKeystorePassword();
@@ -102,18 +88,6 @@ public class RhsmApiProperties {
 
   public boolean usesClientAuth() {
     return x509Config.usesClientAuth();
-  }
-
-  public int getRequestBatchSize() {
-    return requestBatchSize;
-  }
-
-  public void setRequestBatchSize(int requestBatchSize) {
-    this.requestBatchSize = requestBatchSize;
-  }
-
-  public int getMaxConnections() {
-    return x509Config.getMaxConnections();
   }
 
   public void setMaxConnections(int maxConnections) {

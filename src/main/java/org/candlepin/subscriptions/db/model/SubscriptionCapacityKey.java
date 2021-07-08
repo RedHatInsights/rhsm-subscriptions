@@ -27,9 +27,13 @@ import javax.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Primary key for record of capacity provided by a subscription for a given product. */
+@Getter
+@Setter
 @Embeddable
 @Builder
 @NoArgsConstructor
@@ -44,30 +48,6 @@ public class SubscriptionCapacityKey implements Serializable {
 
   @Column(name = "subscription_id")
   private String subscriptionId;
-
-  public String getProductId() {
-    return productId;
-  }
-
-  public void setProductId(String productId) {
-    this.productId = productId;
-  }
-
-  public String getOwnerId() {
-    return ownerId;
-  }
-
-  public void setOwnerId(String ownerId) {
-    this.ownerId = ownerId;
-  }
-
-  public String getSubscriptionId() {
-    return subscriptionId;
-  }
-
-  public void setSubscriptionId(String subscriptionId) {
-    this.subscriptionId = subscriptionId;
-  }
 
   @Override
   public int hashCode() {

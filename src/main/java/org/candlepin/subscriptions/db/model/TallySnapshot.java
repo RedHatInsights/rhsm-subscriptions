@@ -44,7 +44,9 @@ import javax.persistence.MapKeyEnumerated;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
@@ -53,6 +55,8 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 @Builder
 @Entity
 @Table(name = "tally_snapshots")
@@ -103,54 +107,6 @@ public class TallySnapshot implements Serializable {
   @Builder.Default
   private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
-  public UUID getId() {
-    return id;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public OffsetDateTime getSnapshotDate() {
-    return snapshotDate;
-  }
-
-  public void setSnapshotDate(OffsetDateTime snapshotDate) {
-    this.snapshotDate = snapshotDate;
-  }
-
-  public String getProductId() {
-    return productId;
-  }
-
-  public void setProductId(String productId) {
-    this.productId = productId;
-  }
-
-  public String getOwnerId() {
-    return ownerId;
-  }
-
-  public void setOwnerId(String ownerId) {
-    this.ownerId = ownerId;
-  }
-
-  public String getAccountNumber() {
-    return accountNumber;
-  }
-
-  public void setAccountNumber(String accountNumber) {
-    this.accountNumber = accountNumber;
-  }
-
-  public Granularity getGranularity() {
-    return granularity;
-  }
-
-  public void setGranularity(Granularity granularity) {
-    this.granularity = granularity;
-  }
-
   /**
    * @deprecated use getMeasurement instead
    * @return HardwareMeasurement for the passed type
@@ -167,14 +123,6 @@ public class TallySnapshot implements Serializable {
     hardwareMeasurements.put(type, measurement);
   }
 
-  public Map<TallyMeasurementKey, Double> getTallyMeasurements() {
-    return tallyMeasurements;
-  }
-
-  public void setTallyMeasurements(Map<TallyMeasurementKey, Double> tallyMeasurements) {
-    this.tallyMeasurements = tallyMeasurements;
-  }
-
   public Double getMeasurement(HardwareMeasurementType type, Measurement.Uom uom) {
     TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
     return getTallyMeasurements().get(key);
@@ -183,22 +131,6 @@ public class TallySnapshot implements Serializable {
   public void setMeasurement(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
     TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
     tallyMeasurements.put(key, value);
-  }
-
-  public ServiceLevel getServiceLevel() {
-    return serviceLevel;
-  }
-
-  public void setServiceLevel(ServiceLevel serviceLevel) {
-    this.serviceLevel = serviceLevel;
-  }
-
-  public Usage getUsage() {
-    return usage;
-  }
-
-  public void setUsage(Usage usage) {
-    this.usage = usage;
   }
 
   public org.candlepin.subscriptions.utilization.api.model.TallySnapshot asApiSnapshot() {
