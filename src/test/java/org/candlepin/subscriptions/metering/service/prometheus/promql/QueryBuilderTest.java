@@ -26,14 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.HashMap;
 import java.util.Map;
 import org.candlepin.subscriptions.files.TagMetric;
-import org.candlepin.subscriptions.files.TagProfile;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 class QueryBuilderTest {
-
-  @Autowired private PrometheusMetricsProperties props2;
 
   @Test
   void testBuildQuery() {
@@ -45,7 +41,7 @@ class QueryBuilderTest {
     String account = "12345";
     String param1 = "PARAM_1";
 
-    PrometheusMetricsProperties props = new PrometheusMetricsProperties(new TagProfile());
+    MetricProperties props = new MetricProperties();
     props.getQueryTemplates().put(templateKey, template);
 
     Map<String, String> params = new HashMap<>();
@@ -69,7 +65,7 @@ class QueryBuilderTest {
   @Test
   void testExceptionWhenInvalidTemplateSpecified() {
     String key = "UNKNOWN_KEY";
-    QueryBuilder builder = new QueryBuilder(new PrometheusMetricsProperties(new TagProfile()));
+    QueryBuilder builder = new QueryBuilder(new MetricProperties());
     QueryDescriptor descriptor = new QueryDescriptor(TagMetric.builder().queryKey(key).build());
     Throwable e = assertThrows(IllegalArgumentException.class, () -> builder.build(descriptor));
 
@@ -87,7 +83,7 @@ class QueryBuilderTest {
     String metricId = "CORES";
     String account = "12345";
 
-    PrometheusMetricsProperties props = new PrometheusMetricsProperties(new TagProfile());
+    MetricProperties props = new MetricProperties();
     props.getQueryTemplates().put(templateKey, template);
 
     Map<String, String> queryParams = new HashMap<>();

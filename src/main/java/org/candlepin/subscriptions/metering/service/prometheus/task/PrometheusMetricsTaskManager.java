@@ -23,9 +23,9 @@ package org.candlepin.subscriptions.metering.service.prometheus.task;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -48,25 +48,24 @@ public class PrometheusMetricsTaskManager {
 
   private PrometheusAccountSource accountSource;
 
-  private PrometheusMetricsProperties prometheusProps;
+  private TagProfile tagProfile;
 
   public PrometheusMetricsTaskManager(
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
-      PrometheusMetricsProperties prometheusProps) {
+      TagProfile tagProfile) {
     log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
     this.queue = queue;
     this.topic = queueProps.getTopic();
     this.accountSource = accountSource;
-    this.prometheusProps = prometheusProps;
+    this.tagProfile = tagProfile;
   }
 
   public void updateMetricsForAccount(
       String account, String productTag, OffsetDateTime start, OffsetDateTime end) {
-    prometheusProps
+    tagProfile
         .getSupportedMetricsForProduct(productTag)
-        .keySet()
         .forEach(
             metric -> {
               log.info("Queuing {} {} metric updates for account {}.", productTag, metric, account);
@@ -90,9 +89,8 @@ public class PrometheusMetricsTaskManager {
   @Transactional
   public void updateMetricsForAllAccounts(
       String productTag, OffsetDateTime start, OffsetDateTime end) {
-    prometheusProps
+    tagProfile
         .getSupportedMetricsForProduct(productTag)
-        .keySet()
         .forEach(
             metric -> {
               try (Stream<String> accountStream =

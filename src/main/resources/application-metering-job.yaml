@@ -5,5 +5,4 @@ rhsm-subscriptions:
   metering:
     prometheus:
       metric:
-        openshift:
-          rangeInMinutes: ${OPENSHIFT_METERING_RANGE:60}
+        rangeInMinutes: ${OPENSHIFT_METERING_RANGE:60}

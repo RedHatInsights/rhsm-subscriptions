@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.net.UrlEscapers;
 import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.StubApiProvider;
@@ -47,13 +48,13 @@ class PrometheusServiceTest {
 
   @MockBean private PrometheusAccountSource accountSource;
 
-  @Autowired private PrometheusMetricsProperties props;
-
   @Autowired private QueryBuilder queryBuilder;
+
+  @Autowired private TagProfile tagProfile;
 
   @Test
   void testRangeQueryApi() throws Exception {
-    QueryHelper queries = new QueryHelper(props, queryBuilder);
+    QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
     String query = queries.expectedQuery("OpenShift-metrics", "a1");
     String expectedQuery = UrlEscapers.urlFragmentEscaper().escape(query);
     QueryResult expectedResult = new QueryResult();
@@ -74,7 +75,7 @@ class PrometheusServiceTest {
 
   @Test
   void testQueryApi() throws Exception {
-    QueryHelper queries = new QueryHelper(props, queryBuilder);
+    QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
     String query = queries.expectedQuery("OpenShift-metrics", "a1");
     String expectedQuery = UrlEscapers.urlFragmentEscaper().escape(query);
     QueryResult expectedResult = new QueryResult();

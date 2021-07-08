@@ -77,7 +77,7 @@ class PrometheusMeteringControllerTest {
 
   @MockBean OrgConfigRepository orgConfigRepository;
 
-  @Autowired private PrometheusMetricsProperties promProps;
+  @Autowired private MetricProperties metricProperties;
 
   @Autowired private QueryBuilder queryBuilder;
 
@@ -109,7 +109,7 @@ class PrometheusMeteringControllerTest {
     controller =
         new PrometheusMeteringController(
             clock,
-            promProps,
+            metricProperties,
             service,
             queryBuilder,
             eventController,
@@ -117,7 +117,7 @@ class PrometheusMeteringControllerTest {
             optInController,
             tagProfile);
 
-    queries = new QueryHelper(promProps, queryBuilder);
+    queries = new QueryHelper(tagProfile, queryBuilder);
   }
 
   @Test
@@ -163,8 +163,8 @@ class PrometheusMeteringControllerTest {
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
             clock.startOfHour(start),
             clock.endOfHour(end),
-            promProps.getOpenshift().getStep(),
-            promProps.getOpenshift().getQueryTimeout());
+            metricProperties.getStep(),
+            metricProperties.getQueryTimeout());
   }
 
   @Test
@@ -186,8 +186,8 @@ class PrometheusMeteringControllerTest {
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
             clock.startOfHour(start),
             clock.endOfHour(end),
-            promProps.getOpenshift().getStep(),
-            promProps.getOpenshift().getQueryTimeout());
+            metricProperties.getStep(),
+            metricProperties.getQueryTimeout());
     verify(optInController)
         .optInByAccountNumber(expectedAccount, OptInType.PROMETHEUS, true, true, true);
   }
@@ -227,7 +227,7 @@ class PrometheusMeteringControllerTest {
                 expectedSla,
                 expectedUsage,
                 expectedRole,
-                clock.dateFromUnix(time1).minusSeconds(promProps.getOpenshift().getStep()),
+                clock.dateFromUnix(time1).minusSeconds(metricProperties.getStep()),
                 clock.dateFromUnix(time1),
                 expectedServiceType,
                 expectedUom,
@@ -239,7 +239,7 @@ class PrometheusMeteringControllerTest {
                 expectedSla,
                 expectedUsage,
                 expectedRole,
-                clock.dateFromUnix(time2).minusSeconds(promProps.getOpenshift().getStep()),
+                clock.dateFromUnix(time2).minusSeconds(metricProperties.getStep()),
                 clock.dateFromUnix(time2),
                 expectedServiceType,
                 expectedUom,
@@ -255,8 +255,8 @@ class PrometheusMeteringControllerTest {
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
             start,
             end,
-            promProps.getOpenshift().getStep(),
-            promProps.getOpenshift().getQueryTimeout());
+            metricProperties.getStep(),
+            metricProperties.getQueryTimeout());
     verify(eventController).saveAll(any());
 
     // Attempted to verify the eventController.saveAll(events) but
@@ -299,7 +299,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedRole,
-            clock.dateFromUnix(time1).minusSeconds(promProps.getOpenshift().getStep()),
+            clock.dateFromUnix(time1).minusSeconds(metricProperties.getStep()),
             clock.dateFromUnix(time1),
             expectedServiceType,
             expectedUom,
@@ -315,7 +315,7 @@ class PrometheusMeteringControllerTest {
                 expectedSla,
                 expectedUsage,
                 expectedRole,
-                clock.dateFromUnix(time2).minusSeconds(promProps.getOpenshift().getStep()),
+                clock.dateFromUnix(time2).minusSeconds(metricProperties.getStep()),
                 clock.dateFromUnix(time2),
                 expectedServiceType,
                 expectedUom,
@@ -329,7 +329,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedRole,
-            clock.dateFromUnix(time1).minusSeconds(promProps.getOpenshift().getStep()),
+            clock.dateFromUnix(time1).minusSeconds(metricProperties.getStep()),
             clock.dateFromUnix(time1),
             expectedServiceType,
             expectedUom,
@@ -356,8 +356,8 @@ class PrometheusMeteringControllerTest {
             expectedAccount,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
-            start.minusSeconds(promProps.getOpenshift().getStep()),
-            end.minusSeconds(promProps.getOpenshift().getStep())))
+            start.minusSeconds(metricProperties.getStep()),
+            end.minusSeconds(metricProperties.getStep())))
         .thenReturn(
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
@@ -375,8 +375,8 @@ class PrometheusMeteringControllerTest {
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
             start,
             end,
-            promProps.getOpenshift().getStep(),
-            promProps.getOpenshift().getQueryTimeout());
+            metricProperties.getStep(),
+            metricProperties.getQueryTimeout());
     verify(eventController).saveAll(any());
     verify(eventController).deleteEvents(any());
 
@@ -431,7 +431,7 @@ class PrometheusMeteringControllerTest {
             "Standard",
             expectedUsage,
             expectedRole,
-            clock.dateFromUnix(1616787308L).minusSeconds(promProps.getOpenshift().getStep()),
+            clock.dateFromUnix(1616787308L).minusSeconds(metricProperties.getStep()),
             clock.dateFromUnix(1616787308L),
             expectedServiceType,
             expectedUom,
@@ -464,8 +464,8 @@ class PrometheusMeteringControllerTest {
             expectedAccount,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
-            start.minusSeconds(promProps.getOpenshift().getStep()),
-            end.minusSeconds(promProps.getOpenshift().getStep())))
+            start.minusSeconds(metricProperties.getStep()),
+            end.minusSeconds(metricProperties.getStep())))
         .thenReturn(
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
@@ -483,8 +483,8 @@ class PrometheusMeteringControllerTest {
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
             start,
             end,
-            promProps.getOpenshift().getStep(),
-            promProps.getOpenshift().getQueryTimeout());
+            metricProperties.getStep(),
+            metricProperties.getQueryTimeout());
     verify(eventController).saveAll(any());
 
     // Attempted to verify the eventController calls below, but
