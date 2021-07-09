@@ -241,33 +241,47 @@ dependencies {
     runtime "org.jolokia:jolokia-core"
 }
 
-// Add a custom task to output dependency info in a machine parseable format. Used to generate dependency
-// reports for Product Security.
-// adapted from https://stackoverflow.com/a/34641632
-// easiest to use via `./gradlew -q dependencyJson`
-tasks.register('dependencyJson') {
-    println JsonOutput.toJson(project.configurations.runtime.incoming.resolutionResult.allDependencies.collect { dependency ->
-        ModuleVersionIdentifier artifact = dependency.selected.moduleVersion
-        ComponentIdentifier dependent = dependency.from.id
-        [
-            group: artifact.group,
-            name: artifact.name,
-            version: artifact.version,
-            dependent: dependent.displayName, // by collecting dependents, we can determine transitivity.
-            displayName: dependency.requested.displayName, // displayName starts with "project " for subprojects
-        ]
-    }.groupBy {
-        [
-            group: it.group,
-            name: it.name,
-            version: it.version,
-        ]
-    }.collect { artifactId, artifactInstances ->
-        artifactId + [
-            displayNames: artifactInstances.collect { it.displayName }.unique().sort(),
-            dependents: artifactInstances.collect { it.dependent },
-        ]
-    }.sort { "${it.group}:${it.name}:${it.version}" })
+allprojects {
+    // Add a custom task to output dependency info in a machine parseable format. Used to generate dependency
+    // reports for Product Security.
+    // adapted from https://stackoverflow.com/a/34641632
+    // easiest to use via `./gradlew -q dependencyJson`
+    tasks.register('dependencyJson') {
+        doLast {
+            def collectDeps = { ResolvedDependency dependency ->
+                def collectedDeps = []
+                // depth first traversal
+                def dependencyStack = [dependency]
+                while (!dependencyStack.isEmpty()) {
+                    ResolvedDependency current = dependencyStack.pop()
+                    collectedDeps.add(current)
+                    current.children.forEach { dependencyStack.push(it) }
+                }
+                return collectedDeps
+            }
+            Set allDeps = []
+            def nonTestProjects = allprojects.grep { project -> !project.name.endsWith("-test") }
+            for (Project project : nonTestProjects) {
+                // see https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_plugin_and_dependency_management
+                // "default" is all artifacts required at runtime
+                for (ResolvedDependency topLevelDependency : project.configurations.default.resolvedConfiguration.firstLevelModuleDependencies) {
+                    def collectedDeps = collectDeps(topLevelDependency)
+                    for (ResolvedDependency dependency : collectedDeps) {
+                        // skip deps that appear to be from this project
+                        if (dependency.moduleGroup != project.group || dependency.moduleVersion != project.version) {
+                            allDeps.add([
+                                    group  : dependency.moduleGroup,
+                                    name   : dependency.moduleName,
+                                    version: dependency.moduleVersion,
+                            ])
+                        }
+                    }
+
+                }
+            }
+            println JsonOutput.toJson(allDeps.sort { "${it.group}:${it.name}:${it.version}" })
+        }
+    }
 }
 
 sourceSets {
