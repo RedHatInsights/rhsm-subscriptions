@@ -47,6 +47,7 @@ sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 compileJava.dependsOn tasks.openApiGenerate
 
 dependencies {
+    // TODO(khowell) pair down dependency declarations, consolidate with above section
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
     // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
     // code changes
@@ -90,9 +91,4 @@ dependencies {
 
     runtime "org.hsqldb:hsqldb"
     runtime "org.jolokia:jolokia-core"
-    // Use JUnit Jupiter API for testing.
-    testImplementation("org.junit.jupiter:junit-jupiter-api")
-
-    // Use JUnit Jupiter Engine for testing.
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }

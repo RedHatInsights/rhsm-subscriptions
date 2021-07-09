@@ -35,6 +35,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.EnableRetry;
 
 /** Bootstrapper for Spring Boot. */
@@ -62,6 +63,7 @@ public class SystemConduitApplication {
 
   // TODO(khowell): move elsewhere
   @Bean
+  @Profile("!orgsync")
   TaskConsumer conduitTaskProcessor(
       TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
       ConduitTaskFactory conduitTaskFactory,
@@ -75,15 +77,5 @@ public class SystemConduitApplication {
   ApplicationClock applicationClock() {
     return new ApplicationClock();
   }
-
-  //  @Order(1)
-  //  @Configuration
-  //  class SecurityConfig extends WebSecurityConfigurerAdapter {
-  //
-  //    @Override
-  //    protected void configure(HttpSecurity http) throws Exception {
-  //      http.authorizeRequests().anyRequest().permitAll();
-  //    }
-  //  }
 
 }

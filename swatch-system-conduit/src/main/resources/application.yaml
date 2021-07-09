@@ -2,6 +2,23 @@
 spring:
   config:
     import: classpath:swatch-core/application.yaml
+  kafka:  # TODO(khowell) this should be in swatch-core
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
+    listener:
+      # The number of threads that will be processing messages (should match
+      # the number of partitions on the queue)
+      concurrency: ${KAFKA_MESSAGE_THREADS:1}
+      idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
+    consumer:
+      properties:
+        # Required kafka defaults
+        max.poll.interval.ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:1800000}
+        reconnect.backoff.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:2000}
+        reconnect.backoff.max.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:10000}
+        default.api.timeout.ms: ${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
+      # if no offset commit exists yet, set to earliest
+      auto-offset-reset: earliest
+      max-poll-records: 1
 rhsm-subscriptions:
   security:
     dev-mode: ${DEV_MODE:false}  # TODO(khowell) this should be in swatch-core
