@@ -22,16 +22,22 @@ package org.candlepin.subscriptions.task.queue.inmemory;
 
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Configuration that is common to both producers and consumers for in-memory task queues.
  *
  * <p>Only activated as a fallback (in case Kafka is disabled).
  */
+@Configuration
+@AutoConfigureAfter(KafkaTaskProducerConfiguration.class)
+@ConditionalOnMissingBean(TaskQueue.class)
 public class ExecutorTaskQueueConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ExecutorTaskQueueConfiguration.class);
 
@@ -44,7 +50,6 @@ public class ExecutorTaskQueueConfiguration {
    * @see TaskConsumerConfiguration
    */
   @Bean
-  @ConditionalOnMissingBean(TaskQueue.class)
   ExecutorTaskQueue inMemoryQueue() {
     log.info("Configuring an in-memory task queue.");
     return new ExecutorTaskQueue();
