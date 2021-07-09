@@ -12,6 +12,12 @@ ext {
 sourceCompatibility = "11"
 targetCompatibility = "11"
 
+// Disable the default jar; otherwise we end up with two different jars in the final image
+// See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
+jar {
+    enabled = false
+}
+
 openApiGenerate {
     generatorName = "jaxrs-spec"
     inputSpec = api_spec_path
