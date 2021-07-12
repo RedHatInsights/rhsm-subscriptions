@@ -20,10 +20,12 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,9 +78,28 @@ public class KafkaTaskProducerConfiguration {
   }
 
   @Bean
+  public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
+          KafkaProperties kafkaProperties) {
+    Map<String, Object> configProps =
+            Map.of(
+                    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
+                    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+
+    return new DefaultKafkaProducerFactory<>(configProps);
+
+  }
+
+  @Bean
   public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
       ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
     return new KafkaTemplate<>(tallySummaryProducerFactory);
+  }
+
+  @Bean
+  public KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate(
+          ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory) {
+    return new KafkaTemplate<>(syncSubscriptionsProducerFactory);
   }
 
   @Bean

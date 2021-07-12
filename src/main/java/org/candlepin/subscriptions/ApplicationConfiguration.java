@@ -97,7 +97,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
   @Bean
   @Qualifier("subscriptionTasks")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-tasks")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription.tasks")
   TaskQueueProperties syncSubscriptionQueueProperties() {
     return new TaskQueueProperties();
   }

@@ -50,7 +50,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"rhsm-conduit", "test"})
+@ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class KafkaEnabledInventoryServiceTest {
   @Autowired
   @Qualifier("kafkaRetryTemplate")

@@ -24,25 +24,60 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.subscription.SubscriptionDtoUtil;
+import org.candlepin.subscriptions.subscription.SubscriptionService;
+import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.subscription.SyncSubscriptionsKafkaTest;
+import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.tally.TallyTaskFactory;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 /** Base class for testing message sending and receiving via Kafka. */
 public class KafkaTaskQueueTester {
+
+  private static final OffsetDateTime NOW = OffsetDateTime.now();
 
   @MockBean private TallyTaskFactory factory;
 
   @Autowired private CaptureSnapshotsTaskManager manager;
 
   @Autowired private TaskQueueProperties taskQueueProperties;
+
+  @Autowired private SubscriptionSyncController subscriptionSyncController;
+
+  @Autowired
+  @Qualifier("subscriptionTasks")
+  private TaskQueueProperties subscriptionTaskQueueProperties;
+
+  @Autowired private ApplicationClock clock;
+
+  @MockBean
+  SubscriptionRepository subscriptionRepository;
+
+  @MockBean
+  CapacityReconciliationController capacityReconciliationController;
+
+  @MockBean
+  SubscriptionService subscriptionService;
 
   protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {
     String account = "12345";
@@ -58,6 +93,32 @@ public class KafkaTaskQueueTester {
     when(factory.build(eq(taskDescriptor))).thenReturn(cdt);
 
     manager.updateAccountSnapshots(account);
+
+    // Wait a max of 5 seconds for the task to be executed
+    latch.await(5L, TimeUnit.SECONDS);
+    assertTrue(cdt.taskWasExecuted(), "The task failed to execute. The message was not received.");
+  }
+
+  protected void runSendAndReceiveSubscriptionSyncTaskMessageTest() throws InterruptedException {
+
+    // Expect the task to be ran once.
+    CountDownLatch latch = new CountDownLatch(1);
+    KafkaTaskQueueTester.CountDownTask cdt = new KafkaTaskQueueTester.CountDownTask(latch);
+
+    List<Subscription> subscriptions = List.of(
+            createDto(100,  "456",10),
+            createDto(100,  "457",10),
+            createDto(100,  "458",10),
+            createDto(100,  "459",10),
+            createDto(100,  "500",10));
+
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt()))
+            .thenReturn(subscriptions);
+    subscriptions.forEach(subscription -> {
+      Mockito.when(subscriptionRepository.findActiveSubscription(subscription.getId().toString())).thenReturn(Optional.of(convertDto(subscription)));
+    });
+
+    subscriptionSyncController.syncSubscriptions("100", 0, 4);
 
     // Wait a max of 5 seconds for the task to be executed
     latch.await(5L, TimeUnit.SECONDS);
@@ -87,5 +148,37 @@ public class KafkaTaskQueueTester {
     public boolean taskWasExecuted() {
       return executed;
     }
+  }
+
+  private org.candlepin.subscriptions.subscription.api.model.Subscription createDto(
+          Integer orgId, String subId, int quantity) {
+    final var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+    dto.setQuantity(quantity);
+    dto.setId(Integer.valueOf(subId));
+    dto.setSubscriptionNumber("123");
+    dto.setEffectiveStartDate(NOW.toEpochSecond());
+    dto.setEffectiveEndDate(NOW.plusDays(30).toEpochSecond());
+    dto.setWebCustomerId(orgId);
+
+    var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku("testsku");
+    List<SubscriptionProduct> products = Collections.singletonList(product);
+    dto.setSubscriptionProducts(products);
+
+    return dto;
+  }
+
+
+  private org.candlepin.subscriptions.db.model.Subscription convertDto(org.candlepin.subscriptions.subscription.api.model.Subscription subscription) {
+
+    return org.candlepin.subscriptions.db.model.Subscription.builder()
+            .subscriptionId(String.valueOf(subscription.getId()))
+            .sku(SubscriptionDtoUtil.extractSku(subscription))
+            .ownerId(subscription.getWebCustomerId().toString())
+            .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
+            .quantity(subscription.getQuantity())
+            .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
+            .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
+            .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+            .build();
   }
 }

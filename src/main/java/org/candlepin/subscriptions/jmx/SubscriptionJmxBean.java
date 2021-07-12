@@ -1,6 +1,7 @@
-package org.candlepin.subscriptions.subscription;
+package org.candlepin.subscriptions.jmx;
 
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;

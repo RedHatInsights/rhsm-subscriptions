@@ -40,7 +40,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"rhsm-conduit", "test"})
+@ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class RhsmServiceTest {
   @Autowired
   @Qualifier("rhsmRetryTemplate")

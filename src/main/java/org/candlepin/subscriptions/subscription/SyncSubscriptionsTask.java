@@ -1,22 +1,35 @@
 package org.candlepin.subscriptions.subscription;
 
-import lombok.Builder;
+import lombok.*;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Builder
+@Getter
+@Setter
+@NoArgsConstructor
 public class SyncSubscriptionsTask implements Task {
     private static final Logger log = LoggerFactory.getLogger(SyncSubscriptionsTask.class);
 
-    private final SubscriptionSyncController subscriptionSyncController;
-    private final String orgId;
-    private final int offset;
-    private final int limit;
+   // private SubscriptionSyncController subscriptionSyncController;
+    private String orgId;
+    private int offset;
+    private int limit;
 
-    SyncSubscriptionsTask(SubscriptionSyncController subscriptionSyncController, String orgId,
-                                 int offset, int limit) {
-        this.subscriptionSyncController = subscriptionSyncController;
+    @Override
+    public String toString() {
+        return "SyncSubscriptionsTask{" +
+               // "subscriptionSyncController=" + subscriptionSyncController +
+                ", orgId='" + orgId + '\'' +
+                ", offset=" + offset +
+                ", limit=" + limit +
+                '}';
+    }
+
+    SyncSubscriptionsTask( String orgId,
+                          int offset, int limit) {
+        //this.subscriptionSyncController = subscriptionSyncController;
         this.orgId = orgId;
         this.offset = offset;
         this.limit = limit;
@@ -26,6 +39,6 @@ public class SyncSubscriptionsTask implements Task {
     public void execute() {
         log.info("Executing subscription sync for orgId={}, offset={}, limit={}",
                 orgId, offset, limit);
-        subscriptionSyncController.syncSubscriptions(orgId, offset, limit);
+       // subscriptionSyncController.syncSubscriptions(orgId, offset, limit);
     }
 }

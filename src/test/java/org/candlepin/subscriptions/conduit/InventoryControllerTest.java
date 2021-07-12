@@ -56,7 +56,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"rhsm-conduit", "test"})
+@ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class InventoryControllerTest {
   @MockBean InventoryService inventoryService;
 

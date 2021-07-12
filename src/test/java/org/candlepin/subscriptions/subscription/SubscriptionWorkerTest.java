@@ -1,6 +1,7 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
 @DirtiesContext
-@EmbeddedKafka(partitions = 1, brokerProperties = { "listeners=PLAINTEXT://localhost:9092", "port=9092" })
+@Disabled
 public class SubscriptionWorkerTest {
 
     @Autowired

@@ -31,7 +31,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"rhsm-conduit", "test", "test-api-client"})
+@ActiveProfiles({"rhsm-conduit", "test", "test-api-client", "kafka-queue"})
 class ApiClientTest {
   @Autowired private HostsApi hostsApi;
 

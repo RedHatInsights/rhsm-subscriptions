@@ -122,7 +122,8 @@ public class SubscriptionSyncController {
       syncSubscriptionsKafkaTemplate.send(
               syncSubscriptionsTopic,
               SyncSubscriptionsTask.builder()
-                      .subscriptionSyncController(this).orgId(orgId).offset(offset).limit(limit).build());
+                    //  .subscriptionSyncController(this)
+                      .orgId(orgId).offset(offset).limit(limit).build());
     }
   }
 
