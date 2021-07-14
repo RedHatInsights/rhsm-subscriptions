@@ -45,6 +45,9 @@ public class Subscription {
   @Column(name = "subscription_id")
   private String subscriptionId;
 
+  @Column(name = "subscription_number")
+  private String subscriptionNumber;
+
   @Column(name = "sku")
   private String sku;
 
