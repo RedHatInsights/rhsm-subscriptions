@@ -178,7 +178,7 @@ class SubscriptionRepositoryTest {
     subscription.setSku(sku);
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);
-    subscription.setSubscriptionNumber(subId+"1");
+    subscription.setSubscriptionNumber(subId + "1");
 
     return subscription;
   }

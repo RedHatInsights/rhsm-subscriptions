@@ -22,12 +22,10 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-
 import lombok.*;
 
 /** Capacity provided by a subscription for a given product. */
