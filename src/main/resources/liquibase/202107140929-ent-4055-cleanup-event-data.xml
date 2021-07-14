@@ -1,0 +1,50 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202107140929-1"  author="mstead" dbms="postgresql">
+    <comment>Temporarily drop unique constraint on events to temporarily allow duplicates.</comment>
+    <dropUniqueConstraint tableName="events" constraintName="events_event_type_event_source_instance_id_account_number_t_key" />
+  </changeSet>
+
+  <changeSet id="202107140929-2"  author="mstead" dbms="postgresql">
+    <comment>Update the OSD event source and type, which could cause duplicates.</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_redhat.com:openshift_dedicated:4cpu_hour"/>
+      <column name="event_source" value="prometheus"/>
+      <column name="data" valueComputed="jsonb_set(jsonb_set(data, '{event_type}', '&quot;snapshot_redhat.com:openshift_dedicated:4cpu_hour&quot;'), '{event_source}', '&quot;prometheus&quot;')" />
+      <where>data->>'role'='osd' and event_type='snapshot'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202107140929-3"  author="mstead" dbms="postgresql">
+    <comment>Update the OCP event source and type, which could cause duplicates.</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_redhat.com:openshift_container_platform:cpu_hour"/>
+      <column name="event_source" value="prometheus"/>
+      <column name="data" valueComputed="jsonb_set(jsonb_set(data, '{event_type}', '&quot;snapshot_redhat.com:openshift_container_platform:cpu_hour&quot;'), '{event_source}', '&quot;prometheus&quot;')" />
+      <where>data->>'role'='ocp' and event_type='snapshot'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202107140929-4"  author="mstead" dbms="postgresql">
+    <comment>Remove any duplicate events that we may have created.</comment>
+    <sql dbms="postgresql">
+      with to_keep as (
+      select id, rn from (select id, ROW_NUMBER() over (
+      partition by event_type, event_source, instance_id, account_number, timestamp) rn
+      from events) tmp
+      )
+      delete from events where id in (select id from to_keep where to_keep.rn > 1);
+    </sql>
+  </changeSet>
+
+  <changeSet id="202107140929-5"  author="mstead" dbms="postgresql">
+    <comment>Add the unique constraint back to the events table.</comment>
+    <addUniqueConstraint tableName="events"
+      columnNames="event_type, event_source, instance_id, account_number, timestamp"/>
+  </changeSet>
+
+</databaseChangeLog>
