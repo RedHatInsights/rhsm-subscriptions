@@ -33,10 +33,7 @@ import lombok.*;
 @Table(name = "subscription_capacity")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Getter
-@Setter
-@EqualsAndHashCode
-@ToString
+@Data
 public class SubscriptionCapacity implements Serializable {
   @EmbeddedId private SubscriptionCapacityKey key;
 
