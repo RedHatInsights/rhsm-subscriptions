@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
@@ -69,6 +70,7 @@ public class CapacityReconciliationController {
     capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
   }
 
+  @Transactional
   public void reconcileCapacityForSubscription(Subscription subscription) {
 
     Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);

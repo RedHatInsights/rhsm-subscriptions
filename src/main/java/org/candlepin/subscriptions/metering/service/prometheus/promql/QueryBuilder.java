@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
 import java.util.Optional;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.ExpressionParser;
@@ -40,19 +40,19 @@ public class QueryBuilder {
    * The default metric query key. A query with this key must be defined in the config file as a
    * query template.
    *
-   * @see PrometheusMetricsProperties
+   * @see MetricProperties
    */
   public static final String DEFAULT_METRIC_QUERY_KEY = "default";
 
-  private final PrometheusMetricsProperties metricsProperties;
+  private final MetricProperties metricProperties;
 
-  public QueryBuilder(PrometheusMetricsProperties metricsProperties) {
-    this.metricsProperties = metricsProperties;
+  public QueryBuilder(MetricProperties metricProperties) {
+    this.metricProperties = metricProperties;
   }
 
   public String build(QueryDescriptor queryDescriptor) {
     String templateKey = queryDescriptor.getMetric().getQueryKey();
-    Optional<String> template = metricsProperties.getQueryTemplate(templateKey);
+    Optional<String> template = metricProperties.getQueryTemplate(templateKey);
 
     if (template.isEmpty()) {
       throw new IllegalArgumentException(
@@ -64,7 +64,7 @@ public class QueryBuilder {
 
   public String buildAccountLookupQuery(QueryDescriptor queryDescriptor) {
     String templateKey = queryDescriptor.getMetric().getAccountQueryKey();
-    Optional<String> template = metricsProperties.getAccountQueryTemplate(templateKey);
+    Optional<String> template = metricProperties.getAccountQueryTemplate(templateKey);
     if (template.isEmpty()) {
       throw new IllegalArgumentException(
           String.format("Unable to find account query template for key: %s", templateKey));
@@ -80,7 +80,7 @@ public class QueryBuilder {
     // Only allow nested expressions based on a config setting. We need to do this
     // to prevent potential infinite recursion.
     String query = template;
-    for (int i = 0; i < metricsProperties.getTemplateParameterDepth(); i++) {
+    for (int i = 0; i < metricProperties.getTemplateParameterDepth(); i++) {
       query = (String) parser.parseExpression(query, new TemplateParserContext()).getValue(context);
       if (query == null) {
         throw new IllegalStateException(

@@ -22,9 +22,13 @@ package org.candlepin.subscriptions.inventory.client;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.convert.DurationUnit;
 
 /** Sub-class for inventory service properties */
+@Getter
+@Setter
 public class InventoryServiceProperties {
   private boolean useStub;
   private String url;
@@ -36,68 +40,4 @@ public class InventoryServiceProperties {
 
   @DurationUnit(ChronoUnit.HOURS)
   private Duration hostLastSyncThreshold = Duration.ofHours(24);
-
-  public boolean isUseStub() {
-    return useStub;
-  }
-
-  public void setUseStub(boolean useStub) {
-    this.useStub = useStub;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public String getApiKey() {
-    return apiKey;
-  }
-
-  public void setApiKey(String apiKey) {
-    this.apiKey = apiKey;
-  }
-
-  public int getApiHostUpdateBatchSize() {
-    return apiHostUpdateBatchSize;
-  }
-
-  public void setApiHostUpdateBatchSize(int apiHostUpdateBatchSize) {
-    this.apiHostUpdateBatchSize = apiHostUpdateBatchSize;
-  }
-
-  public int getStaleHostOffsetInDays() {
-    return staleHostOffsetInDays;
-  }
-
-  public void setStaleHostOffsetInDays(int staleHostOffsetInDays) {
-    this.staleHostOffsetInDays = staleHostOffsetInDays;
-  }
-
-  public String getKafkaHostIngressTopic() {
-    return kafkaHostIngressTopic;
-  }
-
-  public void setKafkaHostIngressTopic(String kafkaHostIngressTopic) {
-    this.kafkaHostIngressTopic = kafkaHostIngressTopic;
-  }
-
-  public Duration getHostLastSyncThreshold() {
-    return hostLastSyncThreshold;
-  }
-
-  public void setHostLastSyncThreshold(Duration hostLastSyncThreshold) {
-    this.hostLastSyncThreshold = hostLastSyncThreshold;
-  }
-
-  public boolean isAddUuidHyphens() {
-    return addUuidHyphens;
-  }
-
-  public void setAddUuidHyphens(boolean addUuidHyphens) {
-    this.addUuidHyphens = addUuidHyphens;
-  }
 }

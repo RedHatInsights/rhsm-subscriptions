@@ -60,12 +60,8 @@ public class PrometheusService {
           .queryRange(
               query, start.toEpochSecond(), end.toEpochSecond(), Integer.toString(step), timeout);
     } catch (ApiException apie) {
-      // ApiException message returned from prometheus server are huge and include the
-      // HTML error page body. Just output the code here.
       throw new ExternalServiceException(
-          ErrorCode.REQUEST_PROCESSING_ERROR,
-          String.format("Prometheus API Error! CODE: %s", apie.getCode()),
-          new ApiException(String.format("Prometheus API response code: %s", apie.getCode())));
+          ErrorCode.REQUEST_PROCESSING_ERROR, formatErrorMessage(apie), apie);
     }
   }
 
@@ -77,12 +73,9 @@ public class PrometheusService {
       log.debug("Running prometheus query: Time: {}, Query: {}", time.toEpochSecond(), query);
       return apiProvider.queryApi().query(query, time, timeout);
     } catch (ApiException apie) {
-      // ApiException message returned from prometheus server are huge and include the
-      // HTML error page body. Just output the code here.
+
       throw new ExternalServiceException(
-          ErrorCode.REQUEST_PROCESSING_ERROR,
-          String.format("Prometheus API Error! CODE: %s", apie.getCode()),
-          new ApiException(String.format("Prometheus API response code: %s", apie.getCode())));
+          ErrorCode.REQUEST_PROCESSING_ERROR, formatErrorMessage(apie), apie);
     }
   }
 
@@ -91,5 +84,10 @@ public class PrometheusService {
     //       it does not handle the curly braces correctly causing issues
     //       when the request is made.
     return UrlEscapers.urlFragmentEscaper().escape(promQL);
+  }
+
+  private String formatErrorMessage(ApiException apie) {
+    return String.format(
+        "Prometheus API Error! CODE: %s MESSAGE: %s", apie.getCode(), apie.getMessage());
   }
 }

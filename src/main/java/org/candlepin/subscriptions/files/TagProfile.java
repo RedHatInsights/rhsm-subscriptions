@@ -26,8 +26,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -145,6 +147,32 @@ public class TagProfile {
   }
 
   public List<Measurement.Uom> uomsForTag(String tag) {
-    return tagToUomLookup.get(tag);
+    return tagToUomLookup.getOrDefault(tag, Collections.emptyList());
+  }
+
+  public Optional<TagMetric> getTagMetric(String productTag, Uom metric) {
+    if (!StringUtils.hasText(productTag) || Objects.isNull(metric)) {
+      return Optional.empty();
+    }
+
+    List<TagMetric> matchedMetrics =
+        getTagMetrics().stream()
+            .filter(x -> productTag.equals(x.getTag()) && metric.equals(x.getUom()))
+            .collect(Collectors.toList());
+
+    if (matchedMetrics.size() > 1) {
+      throw new IllegalStateException(
+          String.format("Duplicate tag metric found: %s/%s", productTag, metric));
+    }
+    // Optional.empty if list is empty.
+    return matchedMetrics.stream().findFirst();
+  }
+
+  public Set<Uom> getSupportedMetricsForProduct(String productTag) {
+    if (!tagIsPrometheusEnabled(productTag)) {
+      throw new UnsupportedOperationException(
+          String.format("Metrics gathering for %s is not currently supported!", productTag));
+    }
+    return measurementsByTag(productTag);
   }
 }

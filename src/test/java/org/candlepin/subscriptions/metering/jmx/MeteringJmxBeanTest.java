@@ -23,14 +23,11 @@ package org.candlepin.subscriptions.metering.jmx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
-import java.util.Set;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.files.TagProfile;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,13 +45,13 @@ class MeteringJmxBeanTest {
   @Mock private TagProfile tagProfile;
 
   private ApplicationClock clock;
-  private PrometheusMetricsProperties metricProps;
+  private MetricProperties metricProps;
   private MeteringJmxBean jmx;
 
   @BeforeEach
   void setupTests() {
-    metricProps = new PrometheusMetricsProperties(tagProfile);
-    metricProps.getOpenshift().setRangeInMinutes(60);
+    metricProps = new MetricProperties();
+    metricProps.setRangeInMinutes(60);
 
     clock = new FixedClockConfiguration().fixedClock();
     jmx = new MeteringJmxBean(clock, tasks, metricProps);
@@ -64,10 +61,7 @@ class MeteringJmxBeanTest {
   void testMeteringForAccount() {
     String expectedAccount = "test-account";
     OffsetDateTime endDate = clock.startOfCurrentHour();
-    OffsetDateTime startDate = endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
-
-    when(tagProfile.tagIsPrometheusEnabled(PRODUCT_PROFILE_ID)).thenReturn(true);
-    when(tagProfile.measurementsByTag(PRODUCT_PROFILE_ID)).thenReturn(Set.of(Uom.CORES));
+    OffsetDateTime startDate = endDate.minusMinutes(metricProps.getRangeInMinutes());
 
     jmx.performMeteringForAccount(expectedAccount, PRODUCT_PROFILE_ID);
 
@@ -111,10 +105,7 @@ class MeteringJmxBeanTest {
   @Test
   void testPerformMeteringForAllAccounts() {
     OffsetDateTime endDate = clock.startOfCurrentHour();
-    OffsetDateTime startDate = endDate.minusMinutes(metricProps.getOpenshift().getRangeInMinutes());
-
-    when(tagProfile.tagIsPrometheusEnabled(PRODUCT_PROFILE_ID)).thenReturn(true);
-    when(tagProfile.measurementsByTag(PRODUCT_PROFILE_ID)).thenReturn(Set.of(Uom.CORES));
+    OffsetDateTime startDate = endDate.minusMinutes(metricProps.getRangeInMinutes());
 
     jmx.performMetering(PRODUCT_PROFILE_ID);
 

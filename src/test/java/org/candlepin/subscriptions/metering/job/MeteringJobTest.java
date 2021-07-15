@@ -30,8 +30,7 @@ import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.files.TagProfile;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMetricsProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,14 +46,14 @@ class MeteringJobTest {
   @Mock private TagProfile tagProfile;
 
   private ApplicationClock clock;
-  private PrometheusMetricsProperties metricProps;
+  private MetricProperties metricProps;
   private ApplicationProperties appProps;
   private MeteringJob job;
 
   @BeforeEach
   void setupTests() {
-    metricProps = new PrometheusMetricsProperties(tagProfile);
-    metricProps.getOpenshift().setRangeInMinutes(180); // 3h
+    metricProps = new MetricProperties();
+    metricProps.setRangeInMinutes(180); // 3h
 
     appProps = new ApplicationProperties();
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
@@ -63,14 +62,12 @@ class MeteringJobTest {
     job = new MeteringJob(tasks, clock, tagProfile, metricProps, appProps);
 
     when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));
-    when(tagProfile.measurementsByTag("OpenShift-metrics")).thenReturn(Set.of(Uom.CORES));
-    when(tagProfile.tagIsPrometheusEnabled("OpenShift-metrics")).thenReturn(true);
   }
 
   @Test
   void testRunJob() {
     Duration latency = appProps.getPrometheusLatencyDuration();
-    int range = metricProps.getOpenshift().getRangeInMinutes();
+    int range = metricProps.getRangeInMinutes();
 
     // NOW: 2019-05-24T12:35Z
     // Metric Period: 2019-05-24T03:00Z -> 2019-05-24T06:00Z
