@@ -75,6 +75,7 @@ public class SubscriptionSyncController {
                   .startDate(OffsetDateTime.now())
                   .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
                   .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+                  .subscriptionNumber(subscription.getSubscriptionNumber())
                   .build();
           subscriptionRepository.save(newSub);
         } else {
@@ -106,6 +107,7 @@ public class SubscriptionSyncController {
 
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
+        .subscriptionNumber(subscription.getSubscriptionNumber())
         .sku(SubscriptionDtoUtil.extractSku(subscription))
         .ownerId(subscription.getWebCustomerId().toString())
         .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
