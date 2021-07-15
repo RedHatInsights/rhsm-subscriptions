@@ -46,5 +46,6 @@
     <include file="liquibase/202102251446-add-constraints-indexes-fields-to-events.xml" />
     <include file="liquibase/202104051823-add-constraints-to-tally-snapshots.xml" />
     <include file="liquibase/202104091791-insert-openshift-skus.xml" />
+    <include file="liquibase/202107140929-ent-4055-cleanup-event-data.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
