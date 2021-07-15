@@ -172,7 +172,7 @@ release {
     newVersionCommitMessage = '[Subscriptions Release] - version bump: '
     pushReleaseVersionBranch = 'main'
     git {
-        requireBranch = /develop|hotfix.*/
+        requireBranch = /develop|hotfix.*|release/
         pushToRemote = false
     }
 }
