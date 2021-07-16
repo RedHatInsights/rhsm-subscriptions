@@ -1,18 +1,26 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
+import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.product.ProductConfiguration;
+import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
+import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.retry.annotation.EnableRetry;
 
+@Profile("subscription-sync")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
+@Import(SubscriptionServiceConfiguration.class)
 public class SubscriptionWorkerConfiguration {
 
     @Bean
@@ -31,8 +39,7 @@ public class SubscriptionWorkerConfiguration {
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>
-    kafkaTallySummaryListenerContainerFactory(
+    ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask> subscriptionSyncListenerContainerFactory(
             ConsumerFactory<String, SyncSubscriptionsTask> consumerFactory,
             KafkaProperties kafkaProperties,
             KafkaConsumerRegistry registry) {

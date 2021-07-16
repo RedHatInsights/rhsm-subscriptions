@@ -8,11 +8,12 @@ import org.slf4j.LoggerFactory;
 @Builder
 @Getter
 @Setter
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 public class SyncSubscriptionsTask implements Task {
     private static final Logger log = LoggerFactory.getLogger(SyncSubscriptionsTask.class);
 
-   // private SubscriptionSyncController subscriptionSyncController;
+    private SubscriptionSyncController subscriptionSyncController;
     private String orgId;
     private int offset;
     private int limit;
@@ -20,19 +21,11 @@ public class SyncSubscriptionsTask implements Task {
     @Override
     public String toString() {
         return "SyncSubscriptionsTask{" +
-               // "subscriptionSyncController=" + subscriptionSyncController +
+                "subscriptionSyncController=" + subscriptionSyncController +
                 ", orgId='" + orgId + '\'' +
                 ", offset=" + offset +
                 ", limit=" + limit +
                 '}';
-    }
-
-    SyncSubscriptionsTask( String orgId,
-                          int offset, int limit) {
-        //this.subscriptionSyncController = subscriptionSyncController;
-        this.orgId = orgId;
-        this.offset = offset;
-        this.limit = limit;
     }
 
     @Override
