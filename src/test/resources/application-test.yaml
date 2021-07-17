@@ -17,6 +17,7 @@ rhsm-subscriptions:
     use-stub: true
   user-service:
     use-stub: true
+  clowder-json-resource-location: classpath:/test-clowder-config.json
 logging:
   level:
     org:
