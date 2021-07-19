@@ -48,8 +48,10 @@ public class StubSearchApi extends SearchApi {
   }
 
   private Subscription createData() {
-    return new Subscription().subscriptionNumber("2253591")
-            .webCustomerId(123).oracleAccountNumber(345)
-            .addSubscriptionProductsItem(new SubscriptionProduct().sku("testsku"));
+    return new Subscription()
+        .subscriptionNumber("2253591")
+        .webCustomerId(123)
+        .oracleAccountNumber(345)
+        .addSubscriptionProductsItem(new SubscriptionProduct().sku("testsku"));
   }
 }
