@@ -22,24 +22,18 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 /** Capacity provided by a subscription for a given product. */
 @Entity
 @Table(name = "subscription_capacity")
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Getter
-@Setter
+@Data
 public class SubscriptionCapacity implements Serializable {
   @EmbeddedId private SubscriptionCapacityKey key;
 
@@ -108,73 +102,6 @@ public class SubscriptionCapacity implements Serializable {
 
   public boolean getHasUnlimitedGuestSockets() {
     return hasUnlimitedGuestSockets;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        getAccountNumber(),
-        getBeginDate(),
-        getEndDate(),
-        getHasUnlimitedGuestSockets(),
-        getOwnerId(),
-        getPhysicalSockets(),
-        getProductId(),
-        getSku(),
-        getSubscriptionId(),
-        getVirtualSockets(),
-        getPhysicalCores(),
-        getVirtualCores(),
-        getServiceLevel(),
-        getUsage());
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof SubscriptionCapacity)) {
-      return false;
-    }
-    SubscriptionCapacity that = (SubscriptionCapacity) o;
-    return getHasUnlimitedGuestSockets() == that.getHasUnlimitedGuestSockets()
-        && Objects.equals(getAccountNumber(), that.getAccountNumber())
-        && Objects.equals(getProductId(), that.getProductId())
-        && Objects.equals(getSku(), that.getSku())
-        && Objects.equals(getSubscriptionId(), that.getSubscriptionId())
-        && Objects.equals(getOwnerId(), that.getOwnerId())
-        && Objects.equals(getPhysicalSockets(), that.getPhysicalSockets())
-        && Objects.equals(getVirtualSockets(), that.getVirtualSockets())
-        && Objects.equals(getBeginDate(), that.getBeginDate())
-        && Objects.equals(getEndDate(), that.getEndDate())
-        && Objects.equals(getPhysicalCores(), that.getPhysicalCores())
-        && Objects.equals(getVirtualCores(), that.getVirtualCores())
-        && Objects.equals(getServiceLevel(), that.getServiceLevel())
-        && Objects.equals(getUsage(), that.getUsage());
-  }
-
-  @Override
-  public String toString() {
-    return String.format(
-        "SubscriptionCapacity{accountNumber=%s, sku=%s, productId=%s, "
-            + "subscriptionId=%s, ownerId=%s, physicalSockets=%s, virtualSockets=%s, "
-            + "hasUnlimitedGuestSockets=%s, physicalCores=%s, virtualCores=%s, serviceLevel=%s, usage=%s, "
-            + "beginDate=%s, endDate=%s}",
-        accountNumber,
-        sku,
-        key.getProductId(),
-        key.getSubscriptionId(),
-        key.getOwnerId(),
-        physicalSockets,
-        virtualSockets,
-        hasUnlimitedGuestSockets,
-        physicalCores,
-        virtualCores,
-        serviceLevel,
-        usage,
-        beginDate,
-        endDate);
   }
 
   public static SubscriptionCapacity from(
