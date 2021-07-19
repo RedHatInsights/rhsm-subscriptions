@@ -45,6 +45,7 @@ public class SubscriptionJmxBean {
     this.orgConfigRepository = orgConfigRepository;
   }
 
+  @Transactional
   @ManagedOperation
   void syncSubscription(String subscriptionId) {
     Object principal = ResourceUtils.getPrincipal();
@@ -52,6 +53,7 @@ public class SubscriptionJmxBean {
     subscriptionSyncController.syncSubscription(subscriptionId);
   }
 
+  @Transactional
   @ManagedOperation
   void syncSubscriptionsForOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
@@ -61,15 +63,10 @@ public class SubscriptionJmxBean {
 
   @Transactional
   @ManagedOperation(description = "Sync all subscriptions for sync-enabled orgs.")
-  public void syncAllSubscriptions() throws SubscriptionJmxException {
-    try {
-      log.info("syncAllSubscriptions MBean operation invoked");
-      orgConfigRepository
-          .findSyncEnabledOrgs()
-          .forEach(subscriptionSyncController::syncAllSubcriptionsForOrg);
-    } catch (Exception ex) {
-      log.error("Error occurred while handling syncAllSubscriptions Mbean operation", ex);
-      throw new SubscriptionJmxException(ex);
-    }
+  public void syncAllSubscriptions() {
+    log.info("syncAllSubscriptions MBean operation invoked");
+    orgConfigRepository
+        .findSyncEnabledOrgs()
+        .forEach(subscriptionSyncController::syncAllSubcriptionsForOrg);
   }
 }
