@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,15 @@ import org.springframework.transaction.annotation.Transactional;
 public interface CustomizedSubscriptionCapacityRepository {
   @Transactional
   List<SubscriptionCapacity> findByOwnerAndProductId(
+      String ownerId,
+      String productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      OffsetDateTime reportBegin,
+      OffsetDateTime reportEnd);
+
+  @Transactional
+  List<SubscriptionCapacityView> findByKeyOwnerIdAndKeyProductId(
       String ownerId,
       String productId,
       ServiceLevel serviceLevel,
