@@ -20,12 +20,7 @@
  */
 package org.candlepin.subscriptions.conduit;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Calendar;
-import java.util.TimeZone;
 import org.candlepin.subscriptions.jackson.TestPojo;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -36,9 +31,16 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Calendar;
+import java.util.TimeZone;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 @SpringBootTest
 @TestInstance(Lifecycle.PER_CLASS)
-@ActiveProfiles({"rhsm-conduit", "test"})
+@ActiveProfiles({"rhsm-conduit", "test","kafka-queue"})
 class HbiObjectMapperTest {
 
   @Autowired
