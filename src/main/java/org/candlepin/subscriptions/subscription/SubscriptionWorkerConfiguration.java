@@ -11,7 +11,6 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
-@Profile("subscription-sync")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
 @Import(SubscriptionServiceConfiguration.class)
 @Configuration

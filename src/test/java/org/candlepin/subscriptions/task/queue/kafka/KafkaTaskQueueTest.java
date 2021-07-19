@@ -38,9 +38,4 @@ class KafkaTaskQueueTest extends KafkaTaskQueueTester {
   void testSendAndReceiveTaskMessage() throws InterruptedException {
     runSendAndReceiveTaskMessageTest();
   }
-
-  @Test
-  void testSendAndReceiveSubscriptionsSyncTaskMessage() throws InterruptedException {
-    runSendAndReceiveSubscriptionSyncTaskMessageTest();
-  }
 }
