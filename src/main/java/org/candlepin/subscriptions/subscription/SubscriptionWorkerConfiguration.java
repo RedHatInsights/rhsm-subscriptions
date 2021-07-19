@@ -1,12 +1,6 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
-import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
-import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.product.ProductConfiguration;
-import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
-import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -16,20 +10,20 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.retry.annotation.EnableRetry;
 
 @Profile("subscription-sync")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
 @Import(SubscriptionServiceConfiguration.class)
+@Configuration
 public class SubscriptionWorkerConfiguration {
 
     @Bean
-    ConsumerFactory<String, SyncSubscriptionsTask> syncSubscriptionsConsumerFactory(
+    ConsumerFactory<String, SyncSubscriptions> syncSubscriptionsConsumerFactory(
             KafkaProperties kafkaProperties) {
         return new DefaultKafkaConsumerFactory<>(
                 kafkaProperties.buildConsumerProperties(),
                 new StringDeserializer(),
-                new JsonDeserializer<>(SyncSubscriptionsTask.class));
+                new JsonDeserializer<>(SyncSubscriptions.class));
     }
 
     @Bean
@@ -39,12 +33,12 @@ public class SubscriptionWorkerConfiguration {
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask> subscriptionSyncListenerContainerFactory(
-            ConsumerFactory<String, SyncSubscriptionsTask> consumerFactory,
+    ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptions> subscriptionSyncListenerContainerFactory(
+            ConsumerFactory<String, SyncSubscriptions> consumerFactory,
             KafkaProperties kafkaProperties,
             KafkaConsumerRegistry registry) {
 
-        var factory = new ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>();
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptions>();
         factory.setConsumerFactory(consumerFactory);
         // Concurrency should be set to the number of partitions for the target topic.
         factory.setConcurrency(kafkaProperties.getListener().getConcurrency());

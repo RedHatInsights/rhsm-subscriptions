@@ -20,12 +20,11 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
+import org.candlepin.subscriptions.subscription.SyncSubscriptions;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +77,7 @@ public class KafkaTaskProducerConfiguration {
   }
 
   @Bean
-  public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
+  public ProducerFactory<String, SyncSubscriptions> syncSubscriptionsProducerFactory(
           KafkaProperties kafkaProperties) {
     Map<String, Object> configProps =
             Map.of(
@@ -97,8 +96,8 @@ public class KafkaTaskProducerConfiguration {
   }
 
   @Bean
-  public KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate(
-          ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory) {
+  public KafkaTemplate<String, SyncSubscriptions> syncSubscriptionsKafkaTemplate(
+          ProducerFactory<String, SyncSubscriptions> syncSubscriptionsProducerFactory) {
     return new KafkaTemplate<>(syncSubscriptionsProducerFactory);
   }
 

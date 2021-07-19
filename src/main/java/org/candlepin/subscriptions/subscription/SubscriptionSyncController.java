@@ -25,34 +25,33 @@ import java.util.List;
 import java.util.Optional;
 import javax.transaction.Transactional;
 
-import io.micrometer.core.annotation.Timed;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /** Update subscriptions from subscription service responses. */
 @Component
+@Slf4j
 public class SubscriptionSyncController {
-  private final SubscriptionRepository subscriptionRepository;
-  private final SubscriptionService subscriptionService;
-  private final ApplicationClock clock;
-  private final CapacityReconciliationController capacityReconciliationController;
-  private final KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate;
-  private final String syncSubscriptionsTopic;
+  private SubscriptionRepository subscriptionRepository;
+  private SubscriptionService subscriptionService;
+  private ApplicationClock clock;
+  private CapacityReconciliationController capacityReconciliationController;
+  private KafkaTemplate<String, SyncSubscriptions> syncSubscriptionsKafkaTemplate;
+  private String syncSubscriptionsTopic;
 
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
-      KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate,
+      KafkaTemplate<String, SyncSubscriptions> syncSubscriptionsKafkaTemplate,
       @Qualifier("subscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionService = subscriptionService;
@@ -111,18 +110,19 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void syncSubscriptions(String orgId, int offset, int limit){
+    log.info("Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
 
     int pageSize = limit+1;
     boolean hasMore = false;
     List<Subscription> subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
-    if(subscriptions.size() == limit+1)
+    if(subscriptions.size() >= pageSize)
       hasMore = true;
     subscriptions.forEach(this::syncSubscription);
     if(hasMore){
+      offset = offset+limit;
       syncSubscriptionsKafkaTemplate.send(
               syncSubscriptionsTopic,
-              SyncSubscriptionsTask.builder()
-                      .subscriptionSyncController(this)
+              SyncSubscriptions.builder()
                       .orgId(orgId).offset(offset).limit(limit).build());
     }
   }
