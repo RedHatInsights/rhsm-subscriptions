@@ -20,12 +20,12 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
-
-import java.util.Collections;
-import java.util.List;
 
 /** Stub version of the SearchApi for the Subscription service for local testing. */
 public class StubSearchApi extends SearchApi {
@@ -52,6 +52,7 @@ public class StubSearchApi extends SearchApi {
         .subscriptionNumber("2253591")
         .webCustomerId(123)
         .oracleAccountNumber(345)
-        .addSubscriptionProductsItem(new SubscriptionProduct().sku("testsku"));
+        .addSubscriptionProductsItem(new SubscriptionProduct().sku("testsku"))
+        .quantity(new Random().nextInt());
   }
 }
