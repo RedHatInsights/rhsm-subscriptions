@@ -18,29 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
 import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 
-/** Represents Syspurpose Roles and the product families they slot into. */
+/** A composite class for tag profiles. Describes tag metadata. */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
 @Getter
+@NoArgsConstructor
 @Setter
 @ToString
-@EqualsAndHashCode
-public class SyspurposeRole {
-  private String name;
-  private Set<String> swatchProductIds;
-
-  public SyspurposeRole() {
-    // required for YAML
-  }
-
-  public SyspurposeRole(String name, Set<String> swatchProductIds) {
-    this.name = name;
-    this.swatchProductIds = swatchProductIds;
-  }
+public class TagMetaData {
+  private Set<String> tags;
+  private String serviceType;
+  private Granularity finestGranularity;
+  private ServiceLevel defaultSla;
+  private Usage defaultUsage;
 }

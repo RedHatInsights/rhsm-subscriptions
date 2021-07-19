@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -26,23 +26,24 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * A module to represent a profile mapping between a swatch product ID and its corresponding
- * offering product name
+ * This object represents the combination of swatch product id and Measurement.Uom. This should map
+ * to a unique metric ID. The ProductUom / metricId is used in the product profile registry.
  */
+@EqualsAndHashCode
 @Getter
 @Setter
 @ToString
-@EqualsAndHashCode
-public class SwatchProductByOfferingProductName {
-  private String name;
-  private String swatchProductId;
+public class ProductUom {
 
-  public SwatchProductByOfferingProductName() {
-    // Required for YAML
+  private String productId;
+  private String uom;
+
+  public ProductUom() {
+    // required for YAML
   }
 
-  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
-    this.name = name;
-    this.swatchProductId = swatchProductId;
+  public ProductUom(String productId, String uom) {
+    this.productId = productId;
+    this.uom = uom;
   }
 }

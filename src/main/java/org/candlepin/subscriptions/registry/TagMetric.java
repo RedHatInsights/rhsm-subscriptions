@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
 import static org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder.DEFAULT_METRIC_QUERY_KEY;
 

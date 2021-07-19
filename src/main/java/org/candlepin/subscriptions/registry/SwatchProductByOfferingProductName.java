@@ -18,33 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import java.util.HashSet;
-import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/** Represents marketplace metric features, including swatch product IDs. */
+/**
+ * A module to represent a profile mapping between a swatch product ID and its corresponding
+ * offering product name
+ */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
-public class MarketplaceMetric {
-  private String metricId;
-  private String uom;
-  private Set<String> swatchProductIds;
+public class SwatchProductByOfferingProductName {
+  private String name;
+  private String swatchProductId;
 
-  public MarketplaceMetric() {
-    this.swatchProductIds = new HashSet<>();
+  public SwatchProductByOfferingProductName() {
+    // Required for YAML
   }
 
-  public MarketplaceMetric(String metricId, String uom, Set<String> swatchProductIds) {
-    this();
-    this.metricId = metricId;
-    this.uom = uom;
-    this.swatchProductIds = swatchProductIds;
+  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
+    this.name = name;
+    this.swatchProductId = swatchProductId;
   }
 }

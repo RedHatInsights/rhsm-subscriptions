@@ -35,9 +35,10 @@ import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.conduit.ConduitConfiguration;
 import org.candlepin.subscriptions.conduit.job.OrgSyncConfiguration;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
+import org.candlepin.subscriptions.files.FileSourceConfiguration;
 import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
+import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
@@ -74,7 +75,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   TallyWorkerConfiguration.class,
   OrgSyncConfiguration.class,
   MarketplaceWorkerConfiguration.class,
-  ProductMappingConfiguration.class,
+  FileSourceConfiguration.class,
+  RegistryConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfig.class,
   HawtioConfiguration.class,

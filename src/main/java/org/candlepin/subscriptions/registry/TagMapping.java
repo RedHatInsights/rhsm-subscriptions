@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -28,11 +28,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
 
-/** A composite class for tag profiles. Describes tag metadata. */
+/** A composite class for tag profiles. Describes how tags are mapped. */
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode
@@ -40,10 +37,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 @NoArgsConstructor
 @Setter
 @ToString
-public class TagMetaData {
+public class TagMapping {
+  private String value;
+  private String valueType;
   private Set<String> tags;
-  private String serviceType;
-  private Granularity finestGranularity;
-  private ServiceLevel defaultSla;
-  private Usage defaultUsage;
 }

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.files.TagProfile;
+import org.candlepin.subscriptions.registry.TagProfile;
 
 /** Repository "fragment interface" that can be used to access tag profile from a Repository */
 public interface TagProfileLookup {
