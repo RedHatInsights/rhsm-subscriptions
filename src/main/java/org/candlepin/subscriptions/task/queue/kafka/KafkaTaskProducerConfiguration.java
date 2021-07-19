@@ -78,15 +78,14 @@ public class KafkaTaskProducerConfiguration {
 
   @Bean
   public ProducerFactory<String, SyncSubscriptions> syncSubscriptionsProducerFactory(
-          KafkaProperties kafkaProperties) {
+      KafkaProperties kafkaProperties) {
     Map<String, Object> configProps =
-            Map.of(
-                    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
-                    ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-                    ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        Map.of(
+            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
+            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
     return new DefaultKafkaProducerFactory<>(configProps);
-
   }
 
   @Bean
@@ -97,7 +96,7 @@ public class KafkaTaskProducerConfiguration {
 
   @Bean
   public KafkaTemplate<String, SyncSubscriptions> syncSubscriptionsKafkaTemplate(
-          ProducerFactory<String, SyncSubscriptions> syncSubscriptionsProducerFactory) {
+      ProducerFactory<String, SyncSubscriptions> syncSubscriptionsProducerFactory) {
     return new KafkaTemplate<>(syncSubscriptionsProducerFactory);
   }
 

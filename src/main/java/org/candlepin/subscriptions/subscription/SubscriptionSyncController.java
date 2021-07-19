@@ -20,6 +20,10 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -29,11 +33,6 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-
-import javax.transaction.Transactional;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
 
 /** Update subscriptions from subscription service responses. */
 @Component
@@ -110,21 +109,21 @@ public class SubscriptionSyncController {
   }
 
   @Transactional
-  public void syncSubscriptions(String orgId, int offset, int limit){
-    log.info("Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
+  public void syncSubscriptions(String orgId, int offset, int limit) {
+    log.info(
+        "Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
 
-    int pageSize = limit+1;
+    int pageSize = limit + 1;
     boolean hasMore = false;
-    List<Subscription> subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
-    if(subscriptions.size() >= pageSize)
-      hasMore = true;
+    List<Subscription> subscriptions =
+        subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
+    if (subscriptions.size() >= pageSize) hasMore = true;
     subscriptions.forEach(this::syncSubscription);
-    if(hasMore){
-      offset = offset+limit;
+    if (hasMore) {
+      offset = offset + limit;
       syncSubscriptionsKafkaTemplate.send(
-              syncSubscriptionsTopic,
-              SyncSubscriptions.builder()
-                      .orgId(orgId).offset(offset).limit(limit).build());
+          syncSubscriptionsTopic,
+          SyncSubscriptions.builder().orgId(orgId).offset(offset).limit(limit).build());
     }
   }
 
@@ -144,7 +143,7 @@ public class SubscriptionSyncController {
   }
 
   protected void updateSubscription(
-          Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
+      Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
     if (dto.getEffectiveEndDate() != null) {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }

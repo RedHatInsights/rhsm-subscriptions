@@ -22,9 +22,6 @@ package org.candlepin.subscriptions.marketplace;
 
 import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-
-import lombok.Getter;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -62,6 +59,4 @@ public class MarketplaceWorker extends SeekableKafkaConsumer {
         .filter(s -> !s.getData().isEmpty())
         .ifPresent(producer::submitUsageRequest);
   }
-
-
 }

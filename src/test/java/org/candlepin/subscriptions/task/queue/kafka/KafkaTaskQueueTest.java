@@ -31,7 +31,10 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"worker", "test", "kafka-test"})
 @EmbeddedKafka(
     partitions = 1,
-    topics = {"${rhsm-subscriptions.tasks.topic}", "${rhsm-subscriptions.subscription.tasks.topic}"})
+    topics = {
+      "${rhsm-subscriptions.tasks.topic}",
+      "${rhsm-subscriptions.subscription.tasks.topic}"
+    })
 class KafkaTaskQueueTest extends KafkaTaskQueueTester {
 
   @Test

@@ -1,3 +1,23 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
 package org.candlepin.subscriptions.subscription;
 
 import lombok.Getter;
@@ -13,27 +33,26 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class SubscriptionWorker extends SeekableKafkaConsumer {
 
-    @Getter
-    int noOfTimesSyncSubsExecuted = 0;
+  @Getter int noOfTimesSyncSubsExecuted = 0;
 
-    SubscriptionSyncController subscriptionSyncController;
-    protected SubscriptionWorker(
-            @Qualifier("subscriptionTasks") TaskQueueProperties taskQueueProperties,
-            KafkaConsumerRegistry kafkaConsumerRegistry,
-            SubscriptionSyncController subscriptionSyncController) {
-        super(taskQueueProperties, kafkaConsumerRegistry);
-        this.subscriptionSyncController = subscriptionSyncController;
-    }
+  SubscriptionSyncController subscriptionSyncController;
 
+  protected SubscriptionWorker(
+      @Qualifier("subscriptionTasks") TaskQueueProperties taskQueueProperties,
+      KafkaConsumerRegistry kafkaConsumerRegistry,
+      SubscriptionSyncController subscriptionSyncController) {
+    super(taskQueueProperties, kafkaConsumerRegistry);
+    this.subscriptionSyncController = subscriptionSyncController;
+  }
 
-    @KafkaListener(
-            id = "#{__listener.groupId}",
-            topics = "#{__listener.topic}",
-            containerFactory = "subscriptionSyncListenerContainerFactory")
-    public void receive(SyncSubscriptions syncSubscriptions) {
-        log.info("Subscription Worker is syncing subs with values: {} ", syncSubscriptions.toString());
-        noOfTimesSyncSubsExecuted++;
-        subscriptionSyncController.syncSubscriptions(
-                syncSubscriptions.getOrgId(), syncSubscriptions.getOffset(), syncSubscriptions.getLimit());
-    }
+  @KafkaListener(
+      id = "#{__listener.groupId}",
+      topics = "#{__listener.topic}",
+      containerFactory = "subscriptionSyncListenerContainerFactory")
+  public void receive(SyncSubscriptions syncSubscriptions) {
+    log.info("Subscription Worker is syncing subs with values: {} ", syncSubscriptions.toString());
+    noOfTimesSyncSubsExecuted++;
+    subscriptionSyncController.syncSubscriptions(
+        syncSubscriptions.getOrgId(), syncSubscriptions.getOffset(), syncSubscriptions.getLimit());
+  }
 }
