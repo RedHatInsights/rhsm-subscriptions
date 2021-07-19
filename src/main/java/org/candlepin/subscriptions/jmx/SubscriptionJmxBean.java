@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.jmx;
 
+import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.springframework.jmx.export.annotation.ManagedOperation;
@@ -34,8 +36,13 @@ public class SubscriptionJmxBean {
 
   SubscriptionSyncController subscriptionSyncController;
 
-  SubscriptionJmxBean(SubscriptionSyncController subscriptionSyncController) {
+  OrgConfigRepository orgConfigRepository;
+
+  SubscriptionJmxBean(
+      SubscriptionSyncController subscriptionSyncController,
+      OrgConfigRepository orgConfigRepository) {
     this.subscriptionSyncController = subscriptionSyncController;
+    this.orgConfigRepository = orgConfigRepository;
   }
 
   @ManagedOperation
@@ -49,6 +56,20 @@ public class SubscriptionJmxBean {
   void syncSubscriptionsForOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for org {} triggered over JMX by {}", orgId, principal);
-    subscriptionSyncController.syncSubscriptions(orgId, 0, 100);
+    subscriptionSyncController.syncAllSubcriptionsForOrg(orgId);
+  }
+
+  @Transactional
+  @ManagedOperation(description = "Sync all subscriptions for sync-enabled orgs.")
+  public void syncAllSubscriptions() throws SubscriptionJmxException {
+    try {
+      log.info("syncAllSubscriptions MBean operation invoked");
+      orgConfigRepository
+          .findSyncEnabledOrgs()
+          .forEach(subscriptionSyncController::syncAllSubcriptionsForOrg);
+    } catch (Exception ex) {
+      log.error("Error occurred while handling syncAllSubscriptions Mbean operation", ex);
+      throw new SubscriptionJmxException(ex);
+    }
   }
 }

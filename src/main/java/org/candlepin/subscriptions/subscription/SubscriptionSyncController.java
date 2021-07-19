@@ -108,8 +108,7 @@ public class SubscriptionSyncController {
     syncSubscription(subscription);
   }
 
-  @Transactional
-  public void syncSubscriptions(String orgId, int offset, int limit) {
+  void syncSubscriptions(String orgId, int offset, int limit) {
     log.info(
         "Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
 
@@ -125,6 +124,11 @@ public class SubscriptionSyncController {
           syncSubscriptionsTopic,
           SyncSubscriptions.builder().orgId(orgId).offset(offset).limit(limit).build());
     }
+  }
+
+  @Transactional
+  public void syncAllSubcriptionsForOrg(String orgId) {
+    syncSubscriptions(orgId, 0, 100);
   }
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
