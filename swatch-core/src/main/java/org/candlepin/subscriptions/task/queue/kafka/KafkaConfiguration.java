@@ -25,9 +25,11 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 /** Configuration for Kafka common to both producers and consumers. */
 @Configuration
+@Profile("kafka-queue")
 class KafkaConfiguration {
   @Bean
   KafkaConsumerRegistry kafkaConsumerRegistry() {
