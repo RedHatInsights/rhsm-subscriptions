@@ -1,0 +1,29 @@
+plugins {
+	id 'java'
+}
+
+
+repositories {
+	mavenCentral()
+}
+dependencies {
+     implementation project(":swatch-core")
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+     options.annotationProcessorGeneratedSourcesDirectory = file("src/generated/java")
+}
+
+
+sourceSets {
+    generated {
+        java {
+            srcDirs = ['src/generated/java']
+        }
+    }
+}
+
+test {
+	useJUnitPlatform()
+}
