@@ -18,27 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.inventory.client;
+package org.candlepin.subscriptions.security;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.convert.DurationUnit;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.core.env.ConfigurableEnvironment;
 
-/** Sub-class for inventory service properties */
-@Getter
-@Setter
-public class InventoryServiceProperties {
-  private boolean useStub;
-  @Getter @Setter private boolean prettyPrintJson;
-  private String url;
-  private String apiKey;
-  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-  private int apiHostUpdateBatchSize = 50;
-  private int staleHostOffsetInDays = 0;
-  private boolean addUuidHyphens = false;
+/**
+ * This class includes GET requests in the list of HTTP verbs that must have a matching origin or
+ * referrer. It exists because Jolokia will invoke JMX Beans with GET requests which we want to
+ * protect from CSRF attacks.
+ */
+public class GetVerbIncludingAntiCsrfFilter extends AntiCsrfFilter {
 
-  @DurationUnit(ChronoUnit.HOURS)
-  private Duration hostLastSyncThreshold = Duration.ofHours(24);
+  GetVerbIncludingAntiCsrfFilter(SecurityProperties props, ConfigurableEnvironment env) {
+    super(props, env);
+  }
+
+  @Override
+  protected boolean requestVerbAllowed(HttpServletRequest request) {
+    String verb = request.getMethod();
+    return !(MODIFYING_VERBS.contains(verb) || "GET".equals(verb));
+  }
 }

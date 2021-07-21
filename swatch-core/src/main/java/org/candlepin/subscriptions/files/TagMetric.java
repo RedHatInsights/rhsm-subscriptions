@@ -18,27 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.inventory.client;
+package org.candlepin.subscriptions.files;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Builder.Default;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.boot.convert.DurationUnit;
+import lombok.ToString;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 
-/** Sub-class for inventory service properties */
+/** A composite class for tag profiles. Describes tag metric information. */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
 @Getter
+@NoArgsConstructor
 @Setter
-public class InventoryServiceProperties {
-  private boolean useStub;
-  @Getter @Setter private boolean prettyPrintJson;
-  private String url;
-  private String apiKey;
-  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-  private int apiHostUpdateBatchSize = 50;
-  private int staleHostOffsetInDays = 0;
-  private boolean addUuidHyphens = false;
-
-  @DurationUnit(ChronoUnit.HOURS)
-  private Duration hostLastSyncThreshold = Duration.ofHours(24);
+@ToString
+public class TagMetric {
+  private String tag;
+  private String metricId;
+  private Uom uom;
+  @Default private String queryKey = "default";
+  @Default private String accountQueryKey = "default";
+  private Map<String, String> queryParams;
 }
