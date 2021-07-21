@@ -125,20 +125,6 @@ allprojects {
     }
 }
 
-apply plugin: 'jsonschema2pojo'
-jsonSchema2Pojo {
-    source = files("${projectDir}/schemas")
-    targetPackage = 'org.candlepin.subscriptions.json'
-    includeAdditionalProperties = false
-    includeJsr303Annotations = true
-    initializeCollections = false
-    dateTimeType = 'java.time.OffsetDateTime'
-    sourceType = 'yamlschema'
-    generateBuilders = true
-    includeGetters = true
-    includeSetters = true
-}
-
 // Disable the default jar; otherwise we end up with two different jars in the final image
 // See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
 jar {
@@ -178,6 +164,7 @@ release {
 }
 
 dependencies {
+    implementation project(':swatch-core')
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor('org.hibernate:hibernate-jpamodelgen')
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
