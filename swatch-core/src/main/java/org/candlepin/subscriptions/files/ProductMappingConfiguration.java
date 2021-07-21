@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.files;
 
 import java.io.IOException;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -35,8 +34,8 @@ public class ProductMappingConfiguration {
 
   @Bean
   public ProductProfileRegistrySource productProfileRegistrySource(
-      ApplicationProperties applicationProperties, ApplicationClock applicationClock) {
-    return new ProductProfileRegistrySource(applicationProperties, applicationClock);
+      ProductProfileProperties productProfileProperties, ApplicationClock applicationClock) {
+    return new ProductProfileRegistrySource(productProfileProperties, applicationClock);
   }
 
   @Bean

@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.utilization.api.model.Host;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
@@ -69,20 +68,21 @@ public interface TallyHostView {
   @Value("#{target.host.cloudProvider}")
   String getCloudProvider();
 
-  default Host asApiHost() {
-    return new Host()
-        .inventoryId(getInventoryId())
-        .insightsId(getInsightsId())
-        .hardwareType(getHardwareType())
-        .measurementType(getHardwareMeasurementType())
-        .cores(getCores())
-        .sockets(getSockets())
-        .displayName(getDisplayName())
-        .subscriptionManagerId(getSubscriptionManagerId())
-        .numberOfGuests(getNumberOfGuests())
-        .lastSeen(getLastSeen())
-        .isHypervisor(isHypervisor())
-        .isUnmappedGuest(isUnmappedGuest())
-        .cloudProvider(getCloudProvider());
-  }
+  // TODO(khowell) do this elsewhere
+  //  default Host asApiHost() {
+  //    return new Host()
+  //        .inventoryId(getInventoryId())
+  //        .insightsId(getInsightsId())
+  //        .hardwareType(getHardwareType())
+  //        .measurementType(getHardwareMeasurementType())
+  //        .cores(getCores())
+  //        .sockets(getSockets())
+  //        .displayName(getDisplayName())
+  //        .subscriptionManagerId(getSubscriptionManagerId())
+  //        .numberOfGuests(getNumberOfGuests())
+  //        .lastSeen(getLastSeen())
+  //        .isHypervisor(isHypervisor())
+  //        .isUnmappedGuest(isUnmappedGuest())
+  //        .cloudProvider(getCloudProvider());
+  //  }
 }

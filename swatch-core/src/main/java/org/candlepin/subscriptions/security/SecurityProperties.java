@@ -20,24 +20,27 @@
  */
 package org.candlepin.subscriptions.security;
 
-import javax.servlet.http.HttpServletRequest;
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.springframework.core.env.ConfigurableEnvironment;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/**
- * This class includes GET requests in the list of HTTP verbs that must have a matching origin or
- * referrer. It exists because Jolokia will invoke JMX Beans with GET requests which we want to
- * protect from CSRF attacks.
- */
-public class GetVerbIncludingAntiCsrfFilter extends AntiCsrfFilter {
+@Data
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.security")
+public class SecurityProperties {
+  private boolean devMode = false;
 
-  GetVerbIncludingAntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
-    super(props, env);
-  }
+  /**
+   * Expected domain suffix for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private String antiCsrfDomainSuffix = ".redhat.com";
 
-  @Override
-  protected boolean requestVerbAllowed(HttpServletRequest request) {
-    String verb = request.getMethod();
-    return !(MODIFYING_VERBS.contains(verb) || "GET".equals(verb));
-  }
+  /**
+   * Expected port for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private int antiCsrfPort = 443;
 }

@@ -20,32 +20,31 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import java.util.Map;
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
 /**
  * System purpose usage
  *
  * <p>Usage represents the class of usage for a given system or subscription.
  */
-public enum Usage implements StringValueEnum<UsageType> {
-  EMPTY("", UsageType.EMPTY),
-  PRODUCTION("Production", UsageType.PRODUCTION),
-  DEVELOPMENT_TEST("Development/Test", UsageType.DEVELOPMENT_TEST),
-  DISASTER_RECOVERY("Disaster Recovery", UsageType.DISASTER_RECOVERY),
-  _ANY("_ANY", UsageType._ANY); // NOSONAR
+// TODO(khowell): move mapping elsewhere
+public enum Usage { // implements StringValueEnum<UsageType> {
+  EMPTY(""), // , UsageType.EMPTY),
+  PRODUCTION("Production"), // , UsageType.PRODUCTION),
+  DEVELOPMENT_TEST("Development/Test"), // , UsageType.DEVELOPMENT_TEST),
+  DISASTER_RECOVERY("Disaster Recovery"), // , UsageType.DISASTER_RECOVERY),
+  _ANY("_ANY"); // , UsageType._ANY); // NOSONAR
 
-  private static final Map<String, Usage> VALUE_ENUM_MAP =
-      StringValueEnum.initializeImmutableMap(Usage.class);
+  //  private static final Map<String, Usage> VALUE_ENUM_MAP =
+  //      StringValueEnum.initializeImmutableMap(Usage.class);
 
   private final String value;
-  private final UsageType openApiEnum;
+  //  private final UsageType openApiEnum;
 
-  Usage(String value, UsageType openApiEnum) {
+  Usage(String value) { // , UsageType openApiEnum) {
     this.value = value;
-    this.openApiEnum = openApiEnum;
+    //    this.openApiEnum = openApiEnum;
   }
 
   /**
@@ -55,17 +54,18 @@ public enum Usage implements StringValueEnum<UsageType> {
    * @return the Usage enum
    */
   public static Usage fromString(String value) {
-    return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
+    //    return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
+    return Usage.valueOf(value);
   }
 
   public String getValue() {
     return value;
   }
 
-  @Override
-  public UsageType asOpenApiEnum() {
-    return openApiEnum;
-  }
+  //  @Override
+  //  public UsageType asOpenApiEnum() {
+  //    return openApiEnum;
+  //  }
 
   /** JPA converter for Usage */
   @Converter(autoApply = true)

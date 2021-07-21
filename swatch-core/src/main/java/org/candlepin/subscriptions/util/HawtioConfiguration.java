@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.util;
 
-import static io.hawt.web.filters.BaseTagHrefFilter.*;
-
 import io.hawt.springboot.HawtioManagementConfiguration;
 import io.hawt.web.filters.BaseTagHrefFilter;
 import java.util.Collections;
@@ -31,7 +29,6 @@ import java.util.Map;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.web.server.ConditionalOnManagementPort;
@@ -59,13 +56,14 @@ public class HawtioConfiguration {
   public void modifyBaseTagHrefFilter(
       @Qualifier("baseTagHrefFilter") FilterRegistrationBean<BaseTagHrefFilter> filter,
       ServletContext servletContext,
-      ApplicationProperties props)
+      CustomHawtioProperties props)
       throws ServletException {
     if (!StringUtils.isEmpty(props.getHawtioBasePath())) {
       BaseTagHrefFilter baseTagHrefFilter = filter.getFilter();
       BaseTagHrefFilterConfigOverride filterConfig =
           new BaseTagHrefFilterConfigOverride(servletContext);
-      filterConfig.setParameter(PARAM_APPLICATION_CONTEXT_PATH, props.getHawtioBasePath());
+      filterConfig.setParameter(
+          BaseTagHrefFilter.PARAM_APPLICATION_CONTEXT_PATH, props.getHawtioBasePath());
       baseTagHrefFilter.init(filterConfig);
     }
   }

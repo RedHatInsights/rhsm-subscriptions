@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.security;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -48,13 +47,13 @@ public class IdentityHeaderAuthenticationDetailsService
       LoggerFactory.getLogger(IdentityHeaderAuthenticationDetailsService.class);
 
   private Attributes2GrantedAuthoritiesMapper authMapper;
-  private ApplicationProperties props;
+  private SecurityProperties props;
   private RbacProperties rbacProps;
   private RoleProvider roleProvider;
   private RbacService rbacController;
 
   public IdentityHeaderAuthenticationDetailsService(
-      ApplicationProperties props,
+      SecurityProperties props,
       RbacProperties rbacProps,
       Attributes2GrantedAuthoritiesMapper authMapper,
       RbacService rbacController) {

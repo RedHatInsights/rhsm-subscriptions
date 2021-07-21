@@ -64,14 +64,6 @@ spring:
       auto-offset-reset: earliest
       max-poll-records: 1
 
-# See https://hawt.io/docs/configuration/ for details on built-in hawtio config
-hawtio:
-  # disable the remote connection tab, we do not need it
-  disableProxy: ${HAWTIO_DISABLE_PROXY:true}
-  authenticationEnabled: ${HAWTIO_AUTHENTICATION_ENABLED:false}
-  proxyAllowlist: ${HAWTIO_PROXY_ALLOWLIST:localhost,127.0.0.1}
-  localAddressProbing: ${HAWTIO_LOCAL_ADDRESS_PROBING:true}
-
 rhsm-subscriptions:
   dev-mode: ${DEV_MODE:false}
   package_uri_mappings:
@@ -98,8 +90,6 @@ rhsm-subscriptions:
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
-  # Base path override for reverse proxy support
-  hawtio-base-path: ${HAWTIO_BASE_PATH:}
   metering:
     prometheus:
       client:

@@ -18,44 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jackson;
+package org.candlepin.subscriptions.files;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Builder.Default;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 
-public class TestPojo {
-  private String value1;
-  private String value2;
-  private List<String> valueList = new ArrayList<>();
-
-  public TestPojo() {}
-
-  public TestPojo(String value1, String value2) {
-    this.value1 = value1;
-    this.value2 = value2;
-  }
-
-  public String getValue1() {
-    return value1;
-  }
-
-  public void setValue1(String value1) {
-    this.value1 = value1;
-  }
-
-  public String getValue2() {
-    return value2;
-  }
-
-  public void setValue2(String value2) {
-    this.value2 = value2;
-  }
-
-  public List<String> getValueList() {
-    return valueList;
-  }
-
-  public void setValueList(List<String> valueList) {
-    this.valueList = valueList;
-  }
+/** A composite class for tag profiles. Describes tag metric information. */
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode
+@Getter
+@NoArgsConstructor
+@Setter
+@ToString
+public class TagMetric {
+  private String tag;
+  private String metricId;
+  private Uom uom;
+  @Default private String queryKey = "default";
+  @Default private String accountQueryKey = "default";
+  private Map<String, String> queryParams;
 }

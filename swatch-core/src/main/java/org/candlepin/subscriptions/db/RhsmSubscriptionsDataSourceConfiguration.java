@@ -23,9 +23,6 @@ package org.candlepin.subscriptions.db;
 import com.zaxxer.hikari.HikariDataSource;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.tally.files.FileAccountSyncListSource;
-import org.candlepin.subscriptions.tally.files.ReportingAccountWhitelist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -40,7 +37,6 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 /** A class to hold the inventory data source configuration. */
@@ -91,17 +87,7 @@ public class RhsmSubscriptionsDataSourceConfiguration {
   }
 
   @Bean
-  public AccountListSource accountListSource(
-      ApplicationProperties applicationProperties,
-      AccountConfigRepository accountConfigRepository,
-      ApplicationClock clock) {
-
-    if (StringUtils.hasText(applicationProperties.getAccountListResourceLocation())) {
-      return new FileAccountListSource(
-          new FileAccountSyncListSource(applicationProperties, clock),
-          new ReportingAccountWhitelist(applicationProperties, clock));
-    } else {
+  public AccountListSource accountListSource(AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
       return new DatabaseAccountListSource(accountConfigRepository);
-    }
   }
 }

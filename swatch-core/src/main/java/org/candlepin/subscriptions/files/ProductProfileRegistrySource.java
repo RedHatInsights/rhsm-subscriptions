@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.files;
 
 import java.io.InputStream;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,7 @@ public class ProductProfileRegistrySource extends YamlFileSource<ProductProfileR
     implements FactoryBean<ProductProfileRegistry> {
   private static final Logger log = LoggerFactory.getLogger(ProductProfileRegistrySource.class);
 
-  public ProductProfileRegistrySource(ApplicationProperties properties, ApplicationClock clock) {
+  public ProductProfileRegistrySource(ProductProfileProperties properties, ApplicationClock clock) {
     super(
         properties.getProductProfileRegistryResourceLocation(),
         clock.getClock(),

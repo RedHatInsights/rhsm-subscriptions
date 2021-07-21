@@ -28,7 +28,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -46,7 +45,7 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
   private final String domainSuffix;
   private final String domainAndPortSuffix;
 
-  public AntiCsrfFilter(ApplicationProperties props, ConfigurableEnvironment env) {
+  public AntiCsrfFilter(SecurityProperties props, ConfigurableEnvironment env) {
     disabled =
         props.isDevMode() || Arrays.asList(env.getActiveProfiles()).contains("capacity-ingress");
     port = props.getAntiCsrfPort();

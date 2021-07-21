@@ -18,34 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.util;
 
-import static org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder.DEFAULT_METRIC_QUERY_KEY;
-
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
+import io.hawt.springboot.HawtioProperties;
+import java.util.Collections;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
 @Getter
-@NoArgsConstructor
 @Setter
-@ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private Uom uom;
-  @Default private String queryKey = DEFAULT_METRIC_QUERY_KEY;
-  @Default private String accountQueryKey = DEFAULT_METRIC_QUERY_KEY;
-  private Map<String, String> queryParams;
+@Component
+@ConfigurationProperties(prefix = "hawtio")
+public class CustomHawtioProperties extends HawtioProperties {
+  /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
+  private String hawtioBasePath;
+
+  public CustomHawtioProperties() {
+    super(Collections.emptyMap());
+  }
 }

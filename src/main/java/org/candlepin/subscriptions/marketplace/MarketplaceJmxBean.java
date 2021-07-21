@@ -20,18 +20,12 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.conduit.jmx.RhsmJmxException;
-import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
-import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
@@ -73,35 +67,35 @@ public class MarketplaceJmxBean {
     marketplaceService.forceRefreshAccessToken();
   }
 
-  @ManagedOperation(
-      description =
-          "Submit tally summary JSON to be converted to a usage event and send to"
-              + " RHM as a UsageRequest (available when enabled "
-              + "via MarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
-  @ManagedOperationParameter(
-      name = "tallySummaryJson",
-      description =
-          "String representation of Tally "
-              + "Summary json. Don't forget to escape quotation marks if you're trying to invoke this endpoint via "
-              + "curl command")
-  public void submitTallySummary(String tallySummaryJson)
-      throws JsonProcessingException, RhsmJmxException {
-    if (!properties.isDevMode() && !mktProperties.isManualMarketplaceSubmissionEnabled()) {
-      throw new JmxException("This feature is not currently enabled.");
-    }
-
-    TallySummary tallySummary = mapper.readValue(tallySummaryJson, TallySummary.class);
-    UsageRequest usageRequest = marketplacePayloadMapper.createUsageRequest(tallySummary);
-
-    log.info("usageRequest to be sent: {}", usageRequest);
-
-    try {
-      marketplaceProducer.submitUsageRequest(usageRequest);
-    } catch (Exception e) {
-      log.error("Error submitting usage info via JMX", e);
-      throw new RhsmJmxException(e);
-    }
-  }
+//  @ManagedOperation(
+//      description =
+//          "Submit tally summary JSON to be converted to a usage event and send to"
+//              + " RHM as a UsageRequest (available when enabled "
+//              + "via MarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
+//  @ManagedOperationParameter(
+//      name = "tallySummaryJson",
+//      description =
+//          "String representation of Tally "
+//              + "Summary json. Don't forget to escape quotation marks if you're trying to invoke this endpoint via "
+//              + "curl command")
+//  public void submitTallySummary(String tallySummaryJson)
+//      throws JsonProcessingException, RhsmJmxException {
+//    if (!properties.isDevMode() && !mktProperties.isManualMarketplaceSubmissionEnabled()) {
+//      throw new JmxException("This feature is not currently enabled.");
+//    }
+//
+//    TallySummary tallySummary = mapper.readValue(tallySummaryJson, TallySummary.class);
+//    UsageRequest usageRequest = marketplacePayloadMapper.createUsageRequest(tallySummary);
+//
+//    log.info("usageRequest to be sent: {}", usageRequest);
+//
+//    try {
+//      marketplaceProducer.submitUsageRequest(usageRequest);
+//    } catch (Exception e) {
+//      log.error("Error submitting usage info via JMX", e);
+//      throw new RhsmJmxException(e);
+//    }
+//  }
 
   @ManagedOperation(description = "Fetch a usage event status")
   public String getUsageEventStatus(String batchId) throws ApiException {
