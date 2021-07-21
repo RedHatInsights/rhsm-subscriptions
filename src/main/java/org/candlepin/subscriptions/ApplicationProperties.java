@@ -24,7 +24,6 @@ import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import org.candlepin.subscriptions.jobs.JobProperties;
-import org.candlepin.subscriptions.security.AntiCsrfFilter;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -44,8 +43,6 @@ public class ApplicationProperties {
 
   private boolean prettyPrintJson = false;
 
-  private boolean devMode = false;
-
   /** Job schedules when running in dev mode. */
   private JobProperties jobs;
 
@@ -60,9 +57,6 @@ public class ApplicationProperties {
 
   /** Resource location of a file containing the whitelisted accounts allowed to run reports. */
   private String reportingAccountWhitelistResourceLocation;
-
-  /** Resource location of a file containing the list of product profiles */
-  private String productProfileRegistryResourceLocation;
 
   /**
    * An hour based threshold used to determine whether an inventory host record's rhsm facts are
@@ -92,35 +86,12 @@ public class ApplicationProperties {
   private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
 
   /**
-   * Amount of time to cache the list of product profiles before allowing a re-read from the
-   * filesystem
-   */
-  private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
-
-  /**
    * The number of days after the inventory's stale_timestamp that the record will be culled.
    * Currently HBI is calculating this value and setting it on messages. Right now the default is:
    * stale_timestamp + 14 days. Adding this as a configuration setting since we may need to adjust
    * it at some point to match.
    */
   private int cullingOffsetDays = 14;
-
-  /**
-   * Expected domain suffix for origin or referer headers.
-   *
-   * @see AntiCsrfFilter
-   */
-  private String antiCsrfDomainSuffix = ".redhat.com";
-
-  /**
-   * Expected port for origin or referer headers.
-   *
-   * @see AntiCsrfFilter
-   */
-  private int antiCsrfPort = 443;
-
-  /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
-  private String hawtioBasePath;
 
   /** Enable or disable cloudigrade integration. */
   private boolean cloudigradeEnabled = false;

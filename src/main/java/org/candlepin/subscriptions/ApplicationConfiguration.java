@@ -34,8 +34,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
-import org.candlepin.subscriptions.conduit.ConduitConfiguration;
-import org.candlepin.subscriptions.conduit.job.OrgSyncConfiguration;
+import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
@@ -49,7 +48,6 @@ import org.candlepin.subscriptions.tally.job.CaptureHourlySnapshotsConfiguration
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -67,14 +65,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @Import({
   ApiConfiguration.class,
-  ConduitConfiguration.class,
   CapacityIngressConfiguration.class,
   CaptureSnapshotsConfiguration.class,
   CaptureHourlySnapshotsConfiguration.class,
   PurgeSnapshotsConfiguration.class,
   LiquibaseUpdateOnlyConfiguration.class,
   TallyWorkerConfiguration.class,
-  OrgSyncConfiguration.class,
   MarketplaceWorkerConfiguration.class,
   SubscriptionWorkerConfiguration.class,
   CapacityReconciliationWorkerConfiguration.class,
@@ -84,7 +80,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   HawtioConfiguration.class,
   MeteringConfiguration.class,
   SubscriptionServiceConfiguration.class,
-  UserServiceClientConfiguration.class
+  UserServiceClientConfiguration.class,
+  // NOTE(khowell): actually not needed in marketplace worker
+  RhsmSubscriptionsDataSourceConfiguration.class,
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
@@ -135,11 +133,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     objectMapper.registerModule(new Jdk8Module());
 
     return objectMapper;
-  }
-
-  @Bean
-  ApplicationClock applicationClock() {
-    return new ApplicationClock();
   }
 
   /* Do not declare a MethodValidationPostProcessor!

@@ -26,12 +26,14 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
 /** Allows syncing of offerings. */
+@Profile("capacity-ingress")
 @Component
 @ManagedResource
 @Slf4j

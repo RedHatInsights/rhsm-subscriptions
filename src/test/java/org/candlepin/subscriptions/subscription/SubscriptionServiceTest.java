@@ -32,7 +32,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"worker", "test"})
+@ActiveProfiles({"capacity-ingress", "test"})
 class SubscriptionServiceTest {
 
   @MockBean SearchApi searchApi;

@@ -1,0 +1,80 @@
+# This file defines properties that are common to all swatch services.
+# import via:
+# spring:
+#   config:
+#     import: classpath:swatch-core/application.yaml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - hawtio
+          - health
+          - info
+          - jolokia
+          - prometheus
+  endpoint:
+    shutdown:
+      enabled: true
+    prometheus:
+      enabled: true
+
+spring:
+  jmx:
+    enabled: ${JMX_ENABLED:true}
+  # general hibernate configurations
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: ${JDBC_BATCH_SIZE:100}
+        order_inserts: true
+        order_updates: true
+  liquibase:
+    change-log: classpath:/liquibase/changelog.xml
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
+    listener:
+      # The number of threads that will be processing messages (should match
+      # the number of partitions on the queue)
+      concurrency: ${KAFKA_MESSAGE_THREADS:1}
+      idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
+    consumer:
+      properties:
+        # Required kafka defaults
+        max.poll.interval.ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:1800000}
+        reconnect.backoff.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:2000}
+        reconnect.backoff.max.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:10000}
+        default.api.timeout.ms: ${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
+      # if no offset commit exists yet, set to earliest
+      auto-offset-reset: earliest
+      max-poll-records: 1
+
+# See https://hawt.io/docs/configuration/ for details on built-in hawtio config
+hawtio:
+  # disable the remote connection tab, we do not need it
+  disableProxy: ${HAWTIO_DISABLE_PROXY:true}
+  authenticationEnabled: ${HAWTIO_AUTHENTICATION_ENABLED:false}
+  proxyAllowlist: ${HAWTIO_PROXY_ALLOWLIST:localhost,127.0.0.1}
+  localAddressProbing: ${HAWTIO_LOCAL_ADDRESS_PROBING:true}
+  # Base path override for reverse proxy support
+  hawtio-base-path: ${HAWTIO_BASE_PATH:}
+
+rhsm-subscriptions:
+  security:
+    dev-mode: ${DEV_MODE:false}
+  package_uri_mappings:
+    # this mapping required here because it is used by our SecurityConfig, which is shared
+    org.candlepin.subscriptions.resteasy: ${PATH_PREFIX:api}/${APP_NAME:rhsm-subscriptions}/v1
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_DATABASE:rhsm-subscriptions}?reWriteBatchedInserts=true&stringtype=unspecified&sslmode=${DATABASE_SSL_MODE:disable}&sslrootcert=${DATABASE_SSL_CERT:/dev/null}
+    username: ${DATABASE_USERNAME:rhsm-subscriptions}
+    password: ${DATABASE_PASSWORD:rhsm-subscriptions}
+    driver-class-name: org.postgresql.Driver
+    platform: postgresql
+    hikari:
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT_MS:30000}
+      maximum-pool-size: ${DATABASE_MAX_POOL_SIZE:10}
+  product-profile:
+    product-profile-registry-resource-location: classpath:product_profile_registry.yaml

@@ -24,6 +24,7 @@ import java.io.IOException;
 import javax.annotation.PostConstruct;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
@@ -36,14 +37,15 @@ public class ReportingAccountWhitelist implements ResourceLoaderAware {
   private PerLineFileSource source;
   private boolean isDevMode;
 
-  public ReportingAccountWhitelist(ApplicationProperties props, ApplicationClock clock) {
+  public ReportingAccountWhitelist(
+      ApplicationProperties props, SecurityProperties securityProps, ApplicationClock clock) {
     String resourceLocation = props.getReportingAccountWhitelistResourceLocation();
     source =
         resourceLocation != null
             ? new PerLineFileSource(
                 resourceLocation, clock.getClock(), props.getReportingAccountWhitelistCacheTtl())
             : null;
-    this.isDevMode = props.isDevMode();
+    this.isDevMode = securityProps.isDevMode();
   }
 
   public boolean hasAccount(String account) throws IOException {

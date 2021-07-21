@@ -22,11 +22,10 @@ package org.candlepin.subscriptions.marketplace;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.conduit.jmx.RhsmJmxException;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.JmxException;
@@ -43,7 +42,7 @@ import org.springframework.stereotype.Component;
 public class MarketplaceJmxBean {
   private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
 
-  private final ApplicationProperties properties;
+  private final SecurityProperties properties;
   private final MarketplaceProperties mktProperties;
   private final MarketplaceService marketplaceService;
   private final MarketplaceProducer marketplaceProducer;
@@ -51,7 +50,7 @@ public class MarketplaceJmxBean {
   private final MarketplacePayloadMapper marketplacePayloadMapper;
 
   MarketplaceJmxBean(
-      ApplicationProperties properties,
+      SecurityProperties properties,
       MarketplaceProperties mktProperties,
       MarketplaceService marketplaceService,
       MarketplaceProducer marketplaceProducer,
@@ -84,8 +83,7 @@ public class MarketplaceJmxBean {
           "String representation of Tally "
               + "Summary json. Don't forget to escape quotation marks if you're trying to invoke this endpoint via "
               + "curl command")
-  public void submitTallySummary(String tallySummaryJson)
-      throws JsonProcessingException, RhsmJmxException {
+  public void submitTallySummary(String tallySummaryJson) throws JsonProcessingException {
     if (!properties.isDevMode() && !mktProperties.isManualMarketplaceSubmissionEnabled()) {
       throw new JmxException("This feature is not currently enabled.");
     }
@@ -99,7 +97,7 @@ public class MarketplaceJmxBean {
       marketplaceProducer.submitUsageRequest(usageRequest);
     } catch (Exception e) {
       log.error("Error submitting usage info via JMX", e);
-      throw new RhsmJmxException(e);
+      throw new JmxException("Error submitting usage info via JMX", e);
     }
   }
 
