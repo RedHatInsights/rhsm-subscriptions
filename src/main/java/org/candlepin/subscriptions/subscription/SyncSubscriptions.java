@@ -25,11 +25,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Builder
-@Getter
-@Setter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor
+@Getter
 @ToString
+@EqualsAndHashCode
 public class SyncSubscriptions {
   private static final Logger log = LoggerFactory.getLogger(SyncSubscriptions.class);
 

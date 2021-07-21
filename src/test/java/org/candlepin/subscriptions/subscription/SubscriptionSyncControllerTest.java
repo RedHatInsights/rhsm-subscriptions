@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
@@ -28,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -41,16 +39,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@DirtiesContext()
-@EmbeddedKafka(
-    partitions = 1,
-    brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "port=9092"})
-@ActiveProfiles({"worker", "test", "kafka-test", "kafka-queue"})
+@DirtiesContext
+@ActiveProfiles({"worker", "test"})
 class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
@@ -65,7 +60,7 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionService subscriptionService;
 
-  @Autowired SubscriptionWorker subscriptionWorker;
+  @MockBean KafkaTemplate<String, SyncSubscriptions> subscriptionsKafkaTemplate;
 
   @Autowired
   @Qualifier("subscriptionTasks")
@@ -140,8 +135,10 @@ class SubscriptionSyncControllerTest {
         });
 
     subscriptionSyncController.syncSubscriptions("100", 0, 2);
-    latch.await(10L, TimeUnit.SECONDS);
-    assertEquals(2, subscriptionWorker.noOfTimesSyncSubsExecuted);
+    verify(subscriptionsKafkaTemplate)
+        .send(
+            "platform.rhsm-subscriptions.sync",
+            SyncSubscriptions.builder().orgId("100").offset(2).limit(2).build());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

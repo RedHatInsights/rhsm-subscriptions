@@ -116,6 +116,7 @@ public class SubscriptionSyncController {
     boolean hasMore = false;
     List<Subscription> subscriptions =
         subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
+
     if (subscriptions.size() >= pageSize) hasMore = true;
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
