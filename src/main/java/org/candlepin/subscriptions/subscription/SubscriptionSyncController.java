@@ -20,10 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -34,6 +30,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import javax.transaction.Transactional;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+
 /** Update subscriptions from subscription service responses. */
 @Component
 @Slf4j
@@ -42,7 +43,7 @@ public class SubscriptionSyncController {
   private SubscriptionService subscriptionService;
   private ApplicationClock clock;
   private CapacityReconciliationController capacityReconciliationController;
-  private KafkaTemplate<String, SyncSubscriptions> syncSubscriptionsKafkaTemplate;
+  private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate;
   private String syncSubscriptionsTopic;
 
   public SubscriptionSyncController(
@@ -50,7 +51,7 @@ public class SubscriptionSyncController {
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
-      KafkaTemplate<String, SyncSubscriptions> syncSubscriptionsKafkaTemplate,
+      KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate,
       @Qualifier("subscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionService = subscriptionService;
@@ -123,7 +124,7 @@ public class SubscriptionSyncController {
       offset = offset + limit;
       syncSubscriptionsKafkaTemplate.send(
           syncSubscriptionsTopic,
-          SyncSubscriptions.builder().orgId(orgId).offset(offset).limit(limit).build());
+          SyncSubscriptionsTask.builder().orgId(orgId).offset(offset).limit(limit).build());
     }
   }
 

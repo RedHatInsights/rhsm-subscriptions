@@ -46,9 +46,9 @@ public class SubscriptionWorker extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "subscriptionSyncListenerContainerFactory")
-  public void receive(SyncSubscriptions syncSubscriptions) {
-    log.info("Subscription Worker is syncing subs with values: {} ", syncSubscriptions.toString());
+  public void receive(SyncSubscriptionsTask syncSubscriptionsTask) {
+    log.info("Subscription Worker is syncing subs with values: {} ", syncSubscriptionsTask.toString());
     subscriptionSyncController.syncSubscriptions(
-        syncSubscriptions.getOrgId(), syncSubscriptions.getOffset(), syncSubscriptions.getLimit());
+        syncSubscriptionsTask.getOrgId(), syncSubscriptionsTask.getOffset(), syncSubscriptionsTask.getLimit());
   }
 }

@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
 @Getter
 @ToString
 @EqualsAndHashCode
-public class SyncSubscriptions {
-  private static final Logger log = LoggerFactory.getLogger(SyncSubscriptions.class);
+public class SyncSubscriptionsTask {
+  private static final Logger log = LoggerFactory.getLogger(SyncSubscriptionsTask.class);
 
   private String orgId;
   private int offset;

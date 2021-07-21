@@ -20,13 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import static org.mockito.Mockito.verify;
-
-import java.time.OffsetDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -42,6 +35,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @DirtiesContext
@@ -60,7 +61,7 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionService subscriptionService;
 
-  @MockBean KafkaTemplate<String, SyncSubscriptions> subscriptionsKafkaTemplate;
+  @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
 
   @Autowired
   @Qualifier("subscriptionTasks")
@@ -138,7 +139,7 @@ class SubscriptionSyncControllerTest {
     verify(subscriptionsKafkaTemplate)
         .send(
             "platform.rhsm-subscriptions.sync",
-            SyncSubscriptions.builder().orgId("100").offset(2).limit(2).build());
+            SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

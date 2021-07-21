@@ -37,12 +37,12 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 public class SubscriptionWorkerConfiguration {
 
   @Bean
-  ConsumerFactory<String, SyncSubscriptions> syncSubscriptionsConsumerFactory(
+  ConsumerFactory<String, SyncSubscriptionsTask> syncSubscriptionsConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
         kafkaProperties.buildConsumerProperties(),
         new StringDeserializer(),
-        new JsonDeserializer<>(SyncSubscriptions.class));
+        new JsonDeserializer<>(SyncSubscriptionsTask.class));
   }
 
   @Bean
@@ -52,13 +52,13 @@ public class SubscriptionWorkerConfiguration {
   }
 
   @Bean
-  ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptions>
+  ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>
       subscriptionSyncListenerContainerFactory(
-          ConsumerFactory<String, SyncSubscriptions> consumerFactory,
+          ConsumerFactory<String, SyncSubscriptionsTask> consumerFactory,
           KafkaProperties kafkaProperties,
           KafkaConsumerRegistry registry) {
 
-    var factory = new ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptions>();
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>();
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
