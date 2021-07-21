@@ -21,10 +21,13 @@
 package org.candlepin.subscriptions.conduit;
 
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.task.queue.TaskConsumer;
+import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /** Conduit task properties common to both producers and consumers. */
 @Configuration
@@ -34,5 +37,15 @@ public class ConduitTaskQueueConfiguration {
   @ConfigurationProperties(prefix = "rhsm-conduit.tasks")
   TaskQueueProperties taskQueueProperties() {
     return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Profile("!orgsync")
+  TaskConsumer conduitTaskProcessor(
+      TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
+      ConduitTaskFactory conduitTaskFactory,
+      @Qualifier("conduitTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
+
+    return taskConsumerFactory.createTaskConsumer(conduitTaskFactory, taskQueueProperties);
   }
 }
