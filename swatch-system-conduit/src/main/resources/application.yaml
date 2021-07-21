@@ -19,6 +19,8 @@ spring:
       # if no offset commit exists yet, set to earliest
       auto-offset-reset: earliest
       max-poll-records: 1
+  profiles:
+    active: kafka-queue  # NOTE(khowell): this should be unnecessary w/
 rhsm-subscriptions:
   security:
     dev-mode: ${DEV_MODE:false}  # TODO(khowell) this should be in swatch-core
