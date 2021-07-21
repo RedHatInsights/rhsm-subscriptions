@@ -27,6 +27,7 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
     implementation project(":kafka-schema")
+    annotationProcessor('org.hibernate:hibernate-jpamodelgen')
 }
 
 jsonSchema2Pojo {
@@ -46,4 +47,13 @@ description = 'SWATCH Core Library'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+     options.annotationProcessorGeneratedSourcesDirectory = file("src/generated/java")
+}
+
+sourceSets {
+    generated {
+        java {
+            srcDirs = ['src/generated/java']
+        }
+    }
 }

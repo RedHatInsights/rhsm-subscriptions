@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.util;
 
 import java.util.Objects;
 import javax.servlet.http.HttpServletRequest;
