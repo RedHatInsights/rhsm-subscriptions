@@ -403,7 +403,7 @@ project(":rhsm-client") {
     }
 
     dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.29.0"
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.29.1"
     }
 }
 
