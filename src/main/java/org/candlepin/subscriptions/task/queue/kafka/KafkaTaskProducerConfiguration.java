@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +37,8 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+
+import java.util.Map;
 
 /**
  * Configuration for a component that produces task messages onto a kafka topic.
@@ -67,25 +69,21 @@ public class KafkaTaskProducerConfiguration {
   @Bean
   public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
       KafkaProperties kafkaProperties) {
-    Map<String, Object> configProps =
-        Map.of(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-
-    return new DefaultKafkaProducerFactory<>(configProps);
+    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
   }
 
   @Bean
   public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
       KafkaProperties kafkaProperties) {
-    Map<String, Object> configProps =
-        Map.of(
+    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+  }
+
+  @NotNull
+  private Map<String, Object> getConfigProps(KafkaProperties kafkaProperties) {
+    return Map.of(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-
-    return new DefaultKafkaProducerFactory<>(configProps);
   }
 
   @Bean
