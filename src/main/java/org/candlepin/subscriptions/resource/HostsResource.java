@@ -64,6 +64,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class HostsResource implements HostsApi {
 
+
+    //TODO after this gets moved to the swatch-api project
+    // HostEntityToPojoConverter hostEntityToPojoConverter;
+
   @SuppressWarnings("linelength")
   public static final Map<HostReportSort, String> HOST_SORT_PARAM_MAPPING =
       ImmutableMap.<HostReportSort, String>builderWithExpectedSize(5)
@@ -113,6 +117,8 @@ public class HostsResource implements HostsApi {
   public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
+    //TODO
+    // this.hostEntityToPojoConverter = new HostEntityToPojoConverter();
   }
 
   @SuppressWarnings("java:S3776")

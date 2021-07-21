@@ -68,21 +68,4 @@ public interface TallyHostView {
   @Value("#{target.host.cloudProvider}")
   String getCloudProvider();
 
-  // TODO(khowell) do this elsewhere
-  //  default Host asApiHost() {
-  //    return new Host()
-  //        .inventoryId(getInventoryId())
-  //        .insightsId(getInsightsId())
-  //        .hardwareType(getHardwareType())
-  //        .measurementType(getHardwareMeasurementType())
-  //        .cores(getCores())
-  //        .sockets(getSockets())
-  //        .displayName(getDisplayName())
-  //        .subscriptionManagerId(getSubscriptionManagerId())
-  //        .numberOfGuests(getNumberOfGuests())
-  //        .lastSeen(getLastSeen())
-  //        .isHypervisor(isHypervisor())
-  //        .isUnmappedGuest(isUnmappedGuest())
-  //        .cloudProvider(getCloudProvider());
-  //  }
 }
