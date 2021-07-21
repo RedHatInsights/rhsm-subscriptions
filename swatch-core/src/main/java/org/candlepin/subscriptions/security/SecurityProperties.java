@@ -18,27 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.inventory.client;
+package org.candlepin.subscriptions.security;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.convert.DurationUnit;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/** Sub-class for inventory service properties */
-@Getter
-@Setter
-public class InventoryServiceProperties {
-  private boolean useStub;
-  @Getter @Setter private boolean prettyPrintJson;
-  private String url;
-  private String apiKey;
-  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-  private int apiHostUpdateBatchSize = 50;
-  private int staleHostOffsetInDays = 0;
-  private boolean addUuidHyphens = false;
+@Data
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.security")
+public class SecurityProperties {
+  private boolean devMode = false;
 
-  @DurationUnit(ChronoUnit.HOURS)
-  private Duration hostLastSyncThreshold = Duration.ofHours(24);
+  /**
+   * Expected domain suffix for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private String antiCsrfDomainSuffix = ".redhat.com";
+
+  /**
+   * Expected port for origin or referer headers.
+   *
+   * @see AntiCsrfFilter
+   */
+  private int antiCsrfPort = 443;
 }

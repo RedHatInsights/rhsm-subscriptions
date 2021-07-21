@@ -18,27 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.inventory.client;
+package org.candlepin.subscriptions.util;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
+import io.hawt.springboot.HawtioProperties;
+import java.util.Collections;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.boot.convert.DurationUnit;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/** Sub-class for inventory service properties */
 @Getter
 @Setter
-public class InventoryServiceProperties {
-  private boolean useStub;
-  @Getter @Setter private boolean prettyPrintJson;
-  private String url;
-  private String apiKey;
-  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-  private int apiHostUpdateBatchSize = 50;
-  private int staleHostOffsetInDays = 0;
-  private boolean addUuidHyphens = false;
+@Component
+@ConfigurationProperties(prefix = "hawtio")
+public class CustomHawtioProperties extends HawtioProperties {
+  /** The base path for hawtio. Needed to serve hawtio behind a reverse proxy. */
+  private String hawtioBasePath;
 
-  @DurationUnit(ChronoUnit.HOURS)
-  private Duration hostLastSyncThreshold = Duration.ofHours(24);
+  public CustomHawtioProperties() {
+    super(Collections.emptyMap());
+  }
 }
