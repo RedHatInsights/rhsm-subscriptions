@@ -18,27 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.inventory.client;
+package org.candlepin.subscriptions.conduit;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.convert.DurationUnit;
+import org.candlepin.subscriptions.conduit.job.OrgSyncProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-/** Sub-class for inventory service properties */
-@Getter
-@Setter
-public class InventoryServiceProperties {
-  private boolean useStub;
-  @Getter @Setter private boolean prettyPrintJson;
-  private String url;
-  private String apiKey;
-  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-  private int apiHostUpdateBatchSize = 50;
-  private int staleHostOffsetInDays = 0;
-  private boolean addUuidHyphens = false;
+/**
+ * Configuration for the "rhsm-conduit" profile.
+ *
+ * <p>This profile serves the inventory syncing API (internally), as well as its own JMX API, and
+ * handles production and consumption of tasks from the rhsm-conduit task queue.
+ */
+// @Configuration
+// @Profile("rhsm-conduit")
+@EnableConfigurationProperties(OrgSyncProperties.class)
+// @ComponentScan(basePackages = "org.candlepin.subscriptions")
+public class ApplicationConfiguration {
 
-  @DurationUnit(ChronoUnit.HOURS)
-  private Duration hostLastSyncThreshold = Duration.ofHours(24);
+  //  // TODO(khowell): shouldn't be necessary
+  //  @Bean
+  //  KafkaTaskQueue taskQueue(KafkaTemplate<String, TaskMessage> producer) {
+  //    return new KafkaTaskQueue(producer);
+  //  }
 }

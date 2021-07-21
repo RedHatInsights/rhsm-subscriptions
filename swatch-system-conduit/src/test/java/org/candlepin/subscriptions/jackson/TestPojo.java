@@ -18,27 +18,44 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.inventory.client;
+package org.candlepin.subscriptions.jackson;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.convert.DurationUnit;
+import java.util.ArrayList;
+import java.util.List;
 
-/** Sub-class for inventory service properties */
-@Getter
-@Setter
-public class InventoryServiceProperties {
-  private boolean useStub;
-  @Getter @Setter private boolean prettyPrintJson;
-  private String url;
-  private String apiKey;
-  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
-  private int apiHostUpdateBatchSize = 50;
-  private int staleHostOffsetInDays = 0;
-  private boolean addUuidHyphens = false;
+public class TestPojo {
+  private String value1;
+  private String value2;
+  private List<String> valueList = new ArrayList<>();
 
-  @DurationUnit(ChronoUnit.HOURS)
-  private Duration hostLastSyncThreshold = Duration.ofHours(24);
+  public TestPojo() {}
+
+  public TestPojo(String value1, String value2) {
+    this.value1 = value1;
+    this.value2 = value2;
+  }
+
+  public String getValue1() {
+    return value1;
+  }
+
+  public void setValue1(String value1) {
+    this.value1 = value1;
+  }
+
+  public String getValue2() {
+    return value2;
+  }
+
+  public void setValue2(String value2) {
+    this.value2 = value2;
+  }
+
+  public List<String> getValueList() {
+    return valueList;
+  }
+
+  public void setValueList(List<String> valueList) {
+    this.valueList = valueList;
+  }
 }

@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.conduit.inventory.kafka.CreateUpdateHostMessage;
 import org.candlepin.subscriptions.conduit.inventory.kafka.InventoryServiceKafkaConfigurator;
 import org.candlepin.subscriptions.conduit.inventory.kafka.KafkaEnabledInventoryService;
@@ -53,12 +52,12 @@ public class InventoryServiceConfiguration {
 
   @Bean
   @Qualifier("hbiObjectMapper")
-  ObjectMapper hbiObjectMapper(ApplicationProperties applicationProperties) {
+  ObjectMapper hbiObjectMapper(InventoryServiceProperties inventoryServiceProperties) {
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
     objectMapper.configure(
-        SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
+        SerializationFeature.INDENT_OUTPUT, inventoryServiceProperties.isPrettyPrintJson());
     objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
     objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);

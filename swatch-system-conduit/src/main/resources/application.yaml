@@ -1,3 +1,10 @@
+# load the common core definitions
+spring:
+  config:
+    import: classpath:swatch-core/application.yaml
+rhsm-subscriptions:
+  security:
+    dev-mode: ${DEV_MODE:false}  # TODO(khowell) this should be in swatch-core
 rhsm-conduit:
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}
