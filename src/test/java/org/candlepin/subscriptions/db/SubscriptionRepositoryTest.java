@@ -20,13 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.Set;
-import javax.transaction.Transactional;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -36,7 +29,18 @@ import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
+
+import javax.transaction.Transactional;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.Random;
+import java.util.Set;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -143,6 +147,24 @@ class SubscriptionRepositoryTest {
     var result2 = resultList.get(1);
 
     assertTrue(result1.getStartDate().isAfter(result2.getStartDate()));
+  }
+
+  @Transactional
+  @Test
+  void findsAllSubscriptionsForAGivenSku() {
+
+    for(int i=0;i<5;i++){
+      Subscription subscription1 = createSubscription("1", "1001", "MCT3718", String.valueOf(new Random().nextInt()));
+      subscriptionRepo.saveAndFlush(subscription1);
+      Subscription subscription2 = createSubscription("1", "1001", "RH00798", String.valueOf(new Random().nextInt()));
+      subscriptionRepo.saveAndFlush(subscription2);
+      Subscription subscription3 = createSubscription("2", "1002", "MCT3718", String.valueOf(new Random().nextInt()));
+      subscriptionRepo.saveAndFlush(subscription3);
+    }
+
+    var result = subscriptionRepo.findBySku("MCT3718", Pageable.ofSize(5));
+    assertEquals(5, result.stream().count());
+    assertThat(result.getContent().get(0).getSubscriptionId()).isLessThan(result.getContent().get(1).getSubscriptionId());
   }
 
   private Offering createOffering(

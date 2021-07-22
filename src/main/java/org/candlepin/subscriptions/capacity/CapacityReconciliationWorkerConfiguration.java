@@ -21,21 +21,18 @@
 package org.candlepin.subscriptions.capacity;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 @ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
-@Import(SubscriptionServiceConfiguration.class)
 @Configuration
 public class CapacityReconciliationWorkerConfiguration {
 

@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.capacity.ReconcileCapacityByOfferingTask;
@@ -39,6 +38,8 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+
+import java.util.Map;
 
 /**
  * Configuration for a component that produces task messages onto a kafka topic.
@@ -62,7 +63,6 @@ public class KafkaTaskProducerConfiguration {
   @Bean
   public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
       ProducerFactory<String, TaskMessage> factory) {
-
     return kafkaConfigurator.taskMessageKafkaTemplate(factory);
   }
 
@@ -102,6 +102,12 @@ public class KafkaTaskProducerConfiguration {
   public KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate(
       ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory) {
     return new KafkaTemplate<>(syncSubscriptionsProducerFactory);
+  }
+
+  @Bean
+  public KafkaTemplate<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingTaskKafkaTemplate(
+          ProducerFactory<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingProducerFactory) {
+    return new KafkaTemplate<>(reconcileCapacityByOfferingProducerFactory);
   }
 
   @Bean

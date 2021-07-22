@@ -35,7 +35,7 @@ public class SubscriptionWorker extends SeekableKafkaConsumer {
   SubscriptionSyncController subscriptionSyncController;
 
   protected SubscriptionWorker(
-      @Qualifier("subscriptionTasks") TaskQueueProperties taskQueueProperties,
+      @Qualifier("syncSubscriptionTasks") TaskQueueProperties taskQueueProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       SubscriptionSyncController subscriptionSyncController) {
     super(taskQueueProperties, kafkaConsumerRegistry);
