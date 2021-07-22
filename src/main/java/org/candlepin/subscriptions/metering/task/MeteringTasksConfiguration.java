@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.metering.task;
 
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -28,6 +27,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMeteringTaskFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.task.TaskFactory;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;

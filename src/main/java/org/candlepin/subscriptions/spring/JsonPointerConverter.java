@@ -18,11 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.spring;
 
-import org.candlepin.subscriptions.registry.TagProfile;
+import com.fasterxml.jackson.core.JsonPointer;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBinding;
+import org.springframework.core.convert.converter.Converter;
 
-/** Repository "fragment interface" that can be used to access tag profile from a Repository */
-public interface TagProfileLookup {
-  TagProfile getTagProfile();
+/**
+ * Class that converts a String given in our app configuration (e.g. application.properties) into a
+ * <a href="http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-03">JSON Pointer</a> that can
+ * be used by the ClowderJson class.
+ */
+@ConfigurationPropertiesBinding
+public class JsonPointerConverter implements Converter<String, JsonPointer> {
+
+  @Override
+  public JsonPointer convert(String source) {
+    return JsonPointer.compile(source);
+  }
 }

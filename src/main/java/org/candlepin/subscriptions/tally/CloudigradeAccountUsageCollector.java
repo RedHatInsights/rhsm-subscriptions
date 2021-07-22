@@ -34,7 +34,7 @@ import org.candlepin.subscriptions.cloudigrade.api.model.UsageCount;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.ProductProfileRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

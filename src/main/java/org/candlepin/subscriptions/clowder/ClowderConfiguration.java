@@ -18,31 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.clowder;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import org.springframework.context.annotation.ComponentScan;
 
-/**
- * A module to represent a profile mapping between a swatch product ID and its corresponding
- * offering product name
- */
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode
-public class SwatchProductByOfferingProductName {
-  private String name;
-  private String swatchProductId;
-
-  public SwatchProductByOfferingProductName() {
-    // Required for YAML
-  }
-
-  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
-    this.name = name;
-    this.swatchProductId = swatchProductId;
-  }
-}
+/** Configuration that provides the relevant Clowder beans. */
+@ComponentScan(basePackages = "org.candlepin.subscriptions.clowder")
+public class ClowderConfiguration {}

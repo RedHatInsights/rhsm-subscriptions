@@ -18,11 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.registry;
 
-import org.candlepin.subscriptions.registry.TagProfile;
+import java.util.Set;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-/** Repository "fragment interface" that can be used to access tag profile from a Repository */
-public interface TagProfileLookup {
-  TagProfile getTagProfile();
+/** Represents the idea of products in Subscription Watch and what family they slot into. */
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+public class SubscriptionWatchProduct {
+  private String engProductId;
+  private Set<String> swatchProductIds;
+
+  public SubscriptionWatchProduct() {
+    // Required for YAML
+  }
+
+  public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
+    this.engProductId = engProductId;
+    this.swatchProductIds = swatchProductIds;
+  }
 }

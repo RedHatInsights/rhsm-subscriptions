@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.net.UrlEscapers;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.StubApiProvider;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

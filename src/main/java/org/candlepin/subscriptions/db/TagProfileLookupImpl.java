@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.files.TagProfile;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

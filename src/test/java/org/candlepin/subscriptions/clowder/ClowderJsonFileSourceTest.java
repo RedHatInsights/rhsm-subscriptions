@@ -18,41 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.clowder;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-class ProductProfileRegistrySourceTest {
-
+class ClowderJsonFileSourceTest {
   @Test
-  void deserializesYaml() throws Exception {
-    ProductProfileRegistrySource source =
-        initRegistrySource("classpath:test_product_profile_registry.yaml");
-    ProductProfileRegistry registry = source.getValue();
+  void deserializesClowderJson() throws Exception {
+    ClowderJsonFileSource source = initClowderJsonSource("classpath:test-clowder-config.json");
+    ClowderJson clowderJson = source.getValue();
 
-    HashSet<String> expected =
-        new HashSet<>(
-            Arrays.asList(
-                "RHELProducts",
-                "SatelliteProducts",
-                "OpenShiftHourlyProducts",
-                "OtherProducts",
-                "OpenShiftMetrics"));
-    assertEquals(expected, registry.listProfiles());
+    String actual = clowderJson.getString(JsonPointer.compile("/database/adminPassword"));
+    assertEquals("SECRET", actual);
   }
 
-  private ProductProfileRegistrySource initRegistrySource(String resourceLocation) {
+  private ClowderJsonFileSource initClowderJsonSource(String resourceLocation) {
     ApplicationProperties props = new ApplicationProperties();
-    props.setProductProfileRegistryResourceLocation(resourceLocation);
-    ProductProfileRegistrySource source =
-        new ProductProfileRegistrySource(props, new ApplicationClock());
+    props.setClowderJsonResourceLocation(resourceLocation);
+    ClowderJsonFileSource source =
+        new ClowderJsonFileSource(props, new ApplicationClock(), new ObjectMapper());
     source.setResourceLoader(new FileSystemResourceLoader());
     source.init();
     return source;

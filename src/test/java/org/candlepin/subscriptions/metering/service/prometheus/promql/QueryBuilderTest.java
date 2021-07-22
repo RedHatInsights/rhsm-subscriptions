@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.candlepin.subscriptions.files.TagMetric;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
+import org.candlepin.subscriptions.registry.TagMetric;
 import org.junit.jupiter.api.Test;
 
 class QueryBuilderTest {

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
 import java.io.IOException;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -30,8 +30,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 /** Configuration that provides the product ID to product map. */
-@ComponentScan(basePackages = "org.candlepin.subscriptions.files")
-public class ProductMappingConfiguration {
+@ComponentScan(basePackages = "org.candlepin.subscriptions.registry")
+public class RegistryConfiguration {
 
   @Bean
   public ProductProfileRegistrySource productProfileRegistrySource(

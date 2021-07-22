@@ -1,0 +1,66 @@
+{
+    "database": {
+        "adminPassword": "SECRET",
+        "adminUsername": "postgres",
+        "hostname": "rhsm-clowdapp-db.rhsm.svc",
+        "name": "rhsm-db",
+        "password": "ALSO_SECRET",
+        "port": 5432,
+        "sslMode": "disable",
+        "username": "my_user"
+    },
+    "endpoints": [
+        {
+            "app": "rhsm-clowdapp",
+            "hostname": "rhsm-clowdapp-service.rhsm.svc",
+            "name": "service",
+            "port": 8000
+        },
+        {
+            "app": "rbac",
+            "hostname": "rbac-service.rhsm.svc",
+            "name": "service",
+            "port": 8000
+        }
+    ],
+    "featureFlags": {
+        "hostname": "env-rhsm-featureflags.rhsm.svc",
+        "port": 4242
+    },
+    "kafka": {
+        "brokers": [
+            {
+                "hostname": "env-rhsm-kafka.rhsm.svc",
+                "port": 29092
+            }
+        ],
+        "topics": [
+            {
+                "name": "platform.rhsm-subscriptions.tally-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.tally"
+            },
+            {
+                "name": "platform.rhsm-subscriptions.tasks-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.tasks"
+            },
+            {
+                "name": "platform.rhsm-subscriptions.openshift-metering-tasks-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.openshift-metering-tasks"
+            }
+        ]
+    },
+    "logging": {
+        "cloudwatch": {
+            "accessKeyId": "",
+            "logGroup": "",
+            "region": "",
+            "secretAccessKey": ""
+        },
+        "type": "null"
+    },
+    "metricsPath": "/metrics",
+    "metricsPort": 9000,
+    "privatePort": 8080,
+    "publicPort": 8000,
+    "webPort": 8000
+}

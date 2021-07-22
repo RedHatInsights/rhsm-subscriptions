@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
+import org.candlepin.subscriptions.registry.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;

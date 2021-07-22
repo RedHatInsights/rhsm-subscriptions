@@ -21,11 +21,11 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import java.util.Optional;
-import org.candlepin.subscriptions.files.TagMetric;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
+import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.registry.TagProfile;
 
 /** Common query utilities used for testing. */
 public class QueryHelper {

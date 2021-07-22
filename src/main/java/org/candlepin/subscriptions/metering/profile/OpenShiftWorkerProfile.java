@@ -21,13 +21,13 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;

@@ -18,34 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import static org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder.DEFAULT_METRIC_QUERY_KEY;
-
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
+/**
+ * A module to represent a profile mapping between a swatch product ID and its corresponding
+ * offering product name
+ */
 @Getter
-@NoArgsConstructor
 @Setter
 @ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private Uom uom;
-  @Default private String queryKey = DEFAULT_METRIC_QUERY_KEY;
-  @Default private String accountQueryKey = DEFAULT_METRIC_QUERY_KEY;
-  private Map<String, String> queryParams;
+@EqualsAndHashCode
+public class SwatchProductByOfferingProductName {
+  private String name;
+  private String swatchProductId;
+
+  public SwatchProductByOfferingProductName() {
+    // Required for YAML
+  }
+
+  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
+    this.name = name;
+    this.swatchProductId = swatchProductId;
+  }
 }
