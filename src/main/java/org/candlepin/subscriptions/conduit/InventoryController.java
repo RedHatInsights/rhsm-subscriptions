@@ -130,10 +130,6 @@ public class InventoryController {
     this.validateHostTimer = meterRegistry.timer("rhsm-conduit.validate.host");
   }
 
-  private static boolean isEmpty(String value) {
-    return value == null || value.isEmpty();
-  }
-
   public ConduitFacts getFactsFromConsumer(Consumer consumer) {
     final Map<String, String> rhsmFacts = consumer.getFacts();
     ConduitFacts facts = new ConduitFacts();
@@ -208,7 +204,7 @@ public class InventoryController {
 
   private void extractHardwareFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
     String systemUuid = rhsmFacts.get(DMI_SYSTEM_UUID);
-    if (!isEmpty(systemUuid)) {
+    if (StringUtils.hasLength(systemUuid)) {
       if (systemUuid.matches(UUID_REGEX)) {
         facts.setBiosUuid(systemUuid);
       } else {
@@ -225,20 +221,20 @@ public class InventoryController {
 
     String cpuSockets = rhsmFacts.get(CPU_SOCKETS);
     String coresPerSocket = rhsmFacts.get(CPU_CORES_PER_SOCKET);
-    if (!isEmpty(cpuSockets)) {
+    if (StringUtils.hasLength(cpuSockets)) {
       Integer numCpuSockets = Integer.parseInt(cpuSockets);
       facts.setCpuSockets(numCpuSockets);
-      if (!isEmpty(coresPerSocket)) {
+      if (StringUtils.hasLength(coresPerSocket)) {
         Integer numCoresPerSocket = Integer.parseInt(coresPerSocket);
         facts.setCpuCores(numCoresPerSocket * numCpuSockets);
       }
     }
-    if (!isEmpty(coresPerSocket)) {
+    if (StringUtils.hasLength(coresPerSocket)) {
       facts.setCoresPerSocket(Integer.parseInt(coresPerSocket));
     }
 
     String memoryTotal = rhsmFacts.get(MEMORY_MEMTOTAL);
-    if (!isEmpty(memoryTotal)) {
+    if (StringUtils.hasLength(memoryTotal)) {
       try {
         BigDecimal memoryBytes = memtotalFromString(memoryTotal);
         // memtotal is a little less than accessible memory, round up to next GB
@@ -252,7 +248,7 @@ public class InventoryController {
     }
 
     String architecture = rhsmFacts.get(UNAME_MACHINE);
-    if (!isEmpty(architecture)) {
+    if (StringUtils.hasLength(architecture)) {
       facts.setArchitecture(architecture);
     }
   }
@@ -281,7 +277,7 @@ public class InventoryController {
   @SuppressWarnings("indentation")
   private void extractNetworkFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
     String fqdn = rhsmFacts.get(NETWORK_FQDN);
-    if (!isEmpty(fqdn)) {
+    if (StringUtils.hasLength(fqdn)) {
       facts.setFqdn(fqdn);
     }
 
@@ -314,7 +310,9 @@ public class InventoryController {
     Set<String> ipAddresses = new HashSet<>();
     rhsmFacts.entrySet().stream()
         .filter(
-            entry -> entry.getKey().matches(IP_ADDRESS_FACT_REGEX) && !isEmpty(entry.getValue()))
+            entry ->
+                entry.getKey().matches(IP_ADDRESS_FACT_REGEX)
+                    && StringUtils.hasLength(entry.getValue()))
         .forEach(
             entry -> {
               List<String> items = Arrays.asList(entry.getValue().split(COMMA_REGEX));
@@ -322,7 +320,7 @@ public class InventoryController {
                   items.stream()
                       .filter(
                           addr ->
-                              !isEmpty(addr)
+                              StringUtils.hasLength(addr)
                                   && !addr.equalsIgnoreCase(UNKNOWN)
                                   && !isTruncated(entry.getKey(), addr))
                       .collect(Collectors.toList()));
@@ -337,22 +335,22 @@ public class InventoryController {
       Consumer consumer, Map<String, String> rhsmFacts, ConduitFacts facts) {
 
     String isGuest = rhsmFacts.get(VIRT_IS_GUEST);
-    if (!isEmpty(isGuest) && !isGuest.equalsIgnoreCase(UNKNOWN)) {
+    if (StringUtils.hasLength(isGuest) && !isGuest.equalsIgnoreCase(UNKNOWN)) {
       facts.setIsVirtual(isGuest.equalsIgnoreCase(TRUE));
     }
 
     String vmHost = consumer.getHypervisorName();
-    if (!isEmpty(vmHost)) {
+    if (StringUtils.hasLength(vmHost)) {
       facts.setVmHost(vmHost);
     }
 
     String vmHypervisorUuid = consumer.getHypervisorUuid();
-    if (!isEmpty(vmHypervisorUuid)) {
+    if (StringUtils.hasLength(vmHypervisorUuid)) {
       facts.setVmHostUuid(vmHypervisorUuid);
     }
 
     String vmId = consumer.getGuestId();
-    if (!isEmpty(vmId)) {
+    if (StringUtils.hasLength(vmId)) {
       facts.setGuestId(vmId);
     }
   }
