@@ -50,10 +50,10 @@ import javax.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+//import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+//import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 /**
  * Represents a reported Host from inventory. This entity stores normalized facts for a Host
@@ -163,49 +163,6 @@ public class Host implements Serializable {
     this.accountNumber = accountNumber;
     this.orgId = orgId;
     this.subscriptionManagerId = subManId;
-  }
-
-  public Host(InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
-    this.instanceType = "HBI_HOST";
-    populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
-  }
-
-  public void populateFieldsFromHbi(
-      InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
-
-    if (inventoryHostFacts.getInventoryId() != null) {
-      this.inventoryId = inventoryHostFacts.getInventoryId().toString();
-      // We assume that the instance ID for any given HBI host record is the inventory ID; compare
-      // to
-      // an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-      this.instanceId = inventoryHostFacts.getInventoryId().toString();
-    }
-
-    this.insightsId = inventoryHostFacts.getInsightsId();
-    this.accountNumber = inventoryHostFacts.getAccount();
-    this.orgId = inventoryHostFacts.getOrgId();
-    this.displayName = inventoryHostFacts.getDisplayName();
-    this.subscriptionManagerId = inventoryHostFacts.getSubscriptionManagerId();
-    this.guest = normalizedFacts.isVirtual();
-    this.hypervisorUuid = normalizedFacts.getHypervisorUuid();
-
-    if (normalizedFacts.getCores() != null) {
-      this.measurements.put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
-    }
-
-    if (normalizedFacts.getSockets() != null) {
-      this.measurements.put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
-    }
-
-    this.isHypervisor = normalizedFacts.isHypervisor();
-    this.isUnmappedGuest = normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
-    this.cloudProvider =
-        normalizedFacts.getCloudProviderType() == null
-            ? null
-            : normalizedFacts.getCloudProviderType().name();
-
-    this.lastSeen = inventoryHostFacts.getModifiedOn();
-    this.hardwareType = normalizedFacts.getHardwareType();
   }
 
   /**
