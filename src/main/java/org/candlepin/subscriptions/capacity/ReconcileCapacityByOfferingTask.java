@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package org.candlepin.subscriptions.capacity;
 
 import lombok.*;
 import org.slf4j.Logger;
@@ -30,10 +30,10 @@ import org.slf4j.LoggerFactory;
 @Getter
 @ToString
 @EqualsAndHashCode
-public class SyncSubscriptionsTask {
-  private static final Logger log = LoggerFactory.getLogger(SyncSubscriptionsTask.class);
+public class ReconcileCapacityByOfferingTask {
+  private static final Logger log = LoggerFactory.getLogger(ReconcileCapacityByOfferingTask.class);
 
-  private String orgId;
+  private String sku;
   private int offset;
   private int limit;
 }

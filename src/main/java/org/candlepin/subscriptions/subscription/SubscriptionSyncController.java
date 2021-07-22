@@ -42,7 +42,7 @@ public class SubscriptionSyncController {
   private SubscriptionService subscriptionService;
   private ApplicationClock clock;
   private CapacityReconciliationController capacityReconciliationController;
-  private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate;
+  private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
   private String syncSubscriptionsTopic;
 
   public SubscriptionSyncController(
@@ -50,14 +50,14 @@ public class SubscriptionSyncController {
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
-      KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate,
-      @Qualifier("subscriptionTasks") TaskQueueProperties props) {
+      KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
+      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
     this.clock = clock;
     this.syncSubscriptionsTopic = props.getTopic();
-    this.syncSubscriptionsKafkaTemplate = syncSubscriptionsKafkaTemplate;
+    this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
   }
 
   @Transactional
@@ -121,7 +121,7 @@ public class SubscriptionSyncController {
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
       offset = offset + limit;
-      syncSubscriptionsKafkaTemplate.send(
+      syncSubscriptionsByOrgKafkaTemplate.send(
           syncSubscriptionsTopic,
           SyncSubscriptionsTask.builder().orgId(orgId).offset(offset).limit(limit).build());
     }

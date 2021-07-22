@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.task.queue.kafka;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.candlepin.subscriptions.capacity.ReconcileCapacityByOfferingTask;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
@@ -74,6 +75,12 @@ public class KafkaTaskProducerConfiguration {
   @Bean
   public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
       KafkaProperties kafkaProperties) {
+    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+  }
+
+  @Bean
+  public ProducerFactory<String, ReconcileCapacityByOfferingTask>
+      reconcileCapacityByOfferingProducerFactory(KafkaProperties kafkaProperties) {
     return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
   }
 

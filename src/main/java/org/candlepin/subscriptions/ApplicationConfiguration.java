@@ -33,6 +33,7 @@ import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.conduit.ConduitConfiguration;
 import org.candlepin.subscriptions.conduit.job.OrgSyncConfiguration;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
@@ -42,6 +43,7 @@ import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
+import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureHourlySnapshotsConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
@@ -74,6 +76,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   TallyWorkerConfiguration.class,
   OrgSyncConfiguration.class,
   MarketplaceWorkerConfiguration.class,
+  SubscriptionWorkerConfiguration.class,
+  CapacityReconciliationWorkerConfiguration.class,
   ProductMappingConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfig.class,
@@ -96,9 +100,16 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  @Qualifier("subscriptionTasks")
+  @Qualifier("syncSubscriptionTasks")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription.tasks")
   TaskQueueProperties syncSubscriptionQueueProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Qualifier("reconcileCapacityTasks")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.capacity.tasks")
+  TaskQueueProperties reconcileCapacityQueueProperties() {
     return new TaskQueueProperties();
   }
 

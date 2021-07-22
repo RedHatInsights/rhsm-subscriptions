@@ -130,6 +130,10 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.sync
       kafka-group-id: subscription-worker
+  capacity:
+    tasks:
+      topic: platform.rhsm-subscriptions.capacity.reconcile
+      kafka-group-id: subscription-worker
   user-service:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}
