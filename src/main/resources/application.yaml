@@ -127,6 +127,9 @@ rhsm-subscriptions:
     backOffInitialInterval: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL:1s}
     maxRetryAttempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
     pageSize: ${SUBSCRIPTION_PAGE_SIZE:500}
+    tasks:
+      topic: platform.rhsm-subscriptions.sync
+      kafka-group-id: subscription-worker
   user-service:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}

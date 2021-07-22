@@ -20,18 +20,13 @@
  */
 package org.candlepin.subscriptions.conduit;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
@@ -56,7 +51,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"rhsm-conduit", "test"})
+@ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class InventoryControllerTest {
   @MockBean InventoryService inventoryService;
 

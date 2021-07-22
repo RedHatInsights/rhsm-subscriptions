@@ -20,8 +20,9 @@
  */
 package org.candlepin.subscriptions.conduit;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Calendar;
@@ -38,7 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @TestInstance(Lifecycle.PER_CLASS)
-@ActiveProfiles({"rhsm-conduit", "test"})
+@ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class HbiObjectMapperTest {
 
   @Autowired

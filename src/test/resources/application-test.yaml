@@ -15,6 +15,9 @@ rhsm-subscriptions:
   subscription-sync-enabled: true
   subscription:
     use-stub: true
+    tasks:
+      topic: platform.rhsm-subscriptions.sync
+      kafka-group-id: subscription-worker
   user-service:
     use-stub: true
 logging:
