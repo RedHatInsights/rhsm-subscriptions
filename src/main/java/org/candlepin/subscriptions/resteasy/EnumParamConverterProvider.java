@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
 import javax.ws.rs.ext.Provider;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 /** ParamConverterProvider to enable use of enums in query providers. */
@@ -95,10 +96,13 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
       T result = stringToEnumMap.get(lookupValue);
       if (result != null) {
         return result;
+      } else {
+        // Combined with our logging configuration, this tells the OnMdcEvaluator class to suppress
+        // the stacktrace
+        MDC.put("INVALID_" + className.getSimpleName().toUpperCase(), Boolean.TRUE.toString());
+        throw new IllegalArgumentException(
+            String.format(INVALID_VALUE_EXCEPTION_MSG, value, className));
       }
-
-      throw new IllegalArgumentException(
-          String.format(INVALID_VALUE_EXCEPTION_MSG, value, className));
     }
 
     @Override

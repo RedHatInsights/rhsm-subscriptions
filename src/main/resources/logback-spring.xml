@@ -5,11 +5,18 @@
         <marker>SECURITY_STACKTRACE</marker>
     </evaluator>
 
+    <evaluator name="MDC_STACKTRACE_EVAL" class="org.candlepin.subscriptions.logback.OnMdcEvaluator">
+        <!-- Log events with the MDC keys listed below set to "true" will not have their stacktraces printed -->
+        <mdcKey>INVALID_GRANULARITY</mdcKey>
+        <mdcKey>INVALID_USAGETYPE</mdcKey>
+        <mdcKey>INVALID_SERVICELEVELTYPE</mdcKey>
+    </evaluator>
+
     <appender name="ConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!-- %ex{full, SECURITY_STACKTRACE_EVAL} will display the full stack trace of the exception only
              if the evaluator called SECURITY_STACKTRACE_EVAL returns false. -->
-            <pattern>%d{ISO8601} [thread=%thread] [%-5p] [%c] %X{user}- %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
+            <pattern>%d{ISO8601} [thread=%thread] [%-5p] [%c] %X{user}- %m%n%ex{full, SECURITY_STACKTRACE_EVAL, MDC_STACKTRACE_EVAL}</pattern>
         </encoder>
     </appender>
 
