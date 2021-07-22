@@ -20,6 +20,12 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import java.time.OffsetDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
@@ -43,13 +49,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.OffsetDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class CapacityReconciliationControllerTest {
@@ -62,8 +61,7 @@ class CapacityReconciliationControllerTest {
 
   @MockBean OfferingRepository offeringRepository;
 
-  @MockBean
-  SubscriptionRepository subscriptionRepository;
+  @MockBean SubscriptionRepository subscriptionRepository;
 
   @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
 
@@ -267,20 +265,21 @@ class CapacityReconciliationControllerTest {
   }
 
   @Test
-  void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext(){
+  void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext() {
 
     Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
 
     Page<Subscription> subscriptions = mock(Page.class);
     when(subscriptions.hasNext()).thenReturn(true);
 
-    when(subscriptionRepository.findBySku("MCT3718", ResourceUtils.getPageable(0, 2, Sort.by("subscriptionId"))))
-            .thenReturn(subscriptions);
+    when(subscriptionRepository.findBySku(
+            "MCT3718", ResourceUtils.getPageable(0, 2, Sort.by("subscriptionId"))))
+        .thenReturn(subscriptions);
     capacityReconciliationController.reconcileCapacityForOffering(offering.getSku(), 0, 2);
     verify(reconcileCapacityByOfferingKafkaTemplate)
-            .send("platform.rhsm-subscriptions.capacity.reconcile",
-                    ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(2).limit(2).build());
-
+        .send(
+            "platform.rhsm-subscriptions.capacity.reconcile",
+            ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(2).limit(2).build());
   }
 
   private Subscription createSubscription(String subId, int quantity) {
