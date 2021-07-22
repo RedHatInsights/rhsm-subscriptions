@@ -24,12 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Optional;
 import java.util.Set;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.product.OfferingSyncController;
@@ -42,6 +41,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OfferingJmxBeanTest {
 
   @Mock OfferingSyncController offeringSync;
+
+  @Mock CapacityReconciliationController capacityReconciliationController;
 
   @Test
   void testSyncOffering() {
@@ -59,7 +60,7 @@ class OfferingJmxBeanTest {
     expected.setServiceLevel(ServiceLevel.PREMIUM);
 
     when(offeringSync.getUpstreamOffering(anyString())).thenReturn(Optional.of(expected));
-    OfferingJmxBean subject = new OfferingJmxBean(offeringSync);
+    OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
     // When syncing the offering,
     String actualMessage = subject.syncOffering(sku);
@@ -76,7 +77,7 @@ class OfferingJmxBeanTest {
     // Given that an offering is either not allowlisted or not found upstream,
     var sku = "BOGUS";
     when(offeringSync.getUpstreamOffering(anyString())).thenReturn(Optional.empty());
-    OfferingJmxBean subject = new OfferingJmxBean(offeringSync);
+    OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
     // When syncing the offering,
     String actualMessage = subject.syncOffering(sku);

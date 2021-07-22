@@ -18,27 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.queue.kafka;
+package org.candlepin.subscriptions.subscription;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
+import lombok.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@SpringBootTest
-@DirtiesContext
-@ActiveProfiles({"worker", "test", "kafka-test"})
-@EmbeddedKafka(
-    partitions = 1,
-    topics = {
-      "${rhsm-subscriptions.tasks.topic}",
-      "${rhsm-subscriptions.subscription.tasks.topic}"
-    })
-class KafkaTaskQueueTest extends KafkaTaskQueueTester {
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@ToString
+@EqualsAndHashCode
+public class SyncSubscriptionsTask {
+  private static final Logger log = LoggerFactory.getLogger(SyncSubscriptionsTask.class);
 
-  @Test
-  void testSendAndReceiveTaskMessage() throws InterruptedException {
-    runSendAndReceiveTaskMessageTest();
-  }
+  private String orgId;
+  private int offset;
+  private int limit;
 }

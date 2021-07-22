@@ -15,6 +15,13 @@ rhsm-subscriptions:
   subscription-sync-enabled: true
   subscription:
     use-stub: true
+    tasks:
+      topic: platform.rhsm-subscriptions.sync
+      kafka-group-id: subscription-worker
+  capacity:
+    tasks:
+      topic: platform.rhsm-subscriptions.capacity.reconcile
+      kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: true
 logging:

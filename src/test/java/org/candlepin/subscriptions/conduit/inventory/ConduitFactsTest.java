@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.conduit.inventory;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
 import java.util.List;

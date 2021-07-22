@@ -26,6 +26,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,6 +54,8 @@ public interface SubscriptionRepository
       "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
           + "AND s.subscriptionId = :subscriptionId")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
+
+  Page<Subscription> findBySku(String sku, Pageable pageable);
 
   @Query(
       "SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND "

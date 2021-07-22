@@ -26,24 +26,33 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@DirtiesContext
 @ActiveProfiles({"worker", "test"})
 class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
 
-  @Autowired SubscriptionSyncController subject;
+  @Autowired SubscriptionSyncController subscriptionSyncController;
+
+  @Autowired private ApplicationClock clock;
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
@@ -51,12 +60,18 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionService subscriptionService;
 
+  @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
+
+  @Autowired
+  @Qualifier("syncSubscriptionTasks")
+  private TaskQueueProperties taskQueueProperties;
+
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 10);
-    subject.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController)
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
@@ -67,7 +82,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 4);
-    subject.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController)
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
@@ -78,7 +93,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.empty());
     var dto = createDto("456", 10);
-    subject.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController)
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
@@ -90,8 +105,40 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
-    subject.syncSubscription(dto.getId().toString());
+    subscriptionSyncController.syncSubscription(dto.getId().toString());
     verify(subscriptionService).getSubscriptionById(Mockito.anyString());
+  }
+
+  @Test
+  void shouldSyncSubscriptionsWithinLimitForOrgAndQueueTaskForNext() throws InterruptedException {
+
+    CountDownLatch latch = new CountDownLatch(1);
+    List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptions =
+        List.of(
+            createDto(100, "456", 10),
+            createDto(100, "457", 10),
+            createDto(100, "458", 10),
+            createDto(100, "459", 10),
+            createDto(100, "500", 10));
+
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 0, 3))
+        .thenReturn(List.of(subscriptions.get(0), subscriptions.get(1), subscriptions.get(2)));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 2, 3))
+        .thenReturn(List.of(subscriptions.get(2), subscriptions.get(3), subscriptions.get(4)));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 4, 3))
+        .thenReturn(List.of(subscriptions.get(4)));
+    subscriptions.forEach(
+        subscription -> {
+          Mockito.when(
+                  subscriptionRepository.findActiveSubscription(subscription.getId().toString()))
+              .thenReturn(Optional.of(convertDto(subscription)));
+        });
+
+    subscriptionSyncController.syncSubscriptions("100", 0, 2);
+    verify(subscriptionsKafkaTemplate)
+        .send(
+            "platform.rhsm-subscriptions.sync",
+            SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {
@@ -108,18 +155,39 @@ class SubscriptionSyncControllerTest {
 
   private org.candlepin.subscriptions.subscription.api.model.Subscription createDto(
       String subId, int quantity) {
+
+    return createDto(1234, subId, quantity);
+  }
+
+  private org.candlepin.subscriptions.subscription.api.model.Subscription createDto(
+      Integer orgId, String subId, int quantity) {
     final var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
     dto.setQuantity(quantity);
     dto.setId(Integer.valueOf(subId));
     dto.setSubscriptionNumber("123");
     dto.setEffectiveStartDate(NOW.toEpochSecond());
     dto.setEffectiveEndDate(NOW.plusDays(30).toEpochSecond());
-    dto.setWebCustomerId(1234);
+    dto.setWebCustomerId(orgId);
 
     var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku("testsku");
     List<SubscriptionProduct> products = Collections.singletonList(product);
     dto.setSubscriptionProducts(products);
 
     return dto;
+  }
+
+  private org.candlepin.subscriptions.db.model.Subscription convertDto(
+      org.candlepin.subscriptions.subscription.api.model.Subscription subscription) {
+
+    return org.candlepin.subscriptions.db.model.Subscription.builder()
+        .subscriptionId(String.valueOf(subscription.getId()))
+        .sku(SubscriptionDtoUtil.extractSku(subscription))
+        .ownerId(subscription.getWebCustomerId().toString())
+        .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
+        .quantity(subscription.getQuantity())
+        .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
+        .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
+        .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+        .build();
   }
 }
