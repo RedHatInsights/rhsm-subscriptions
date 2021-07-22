@@ -26,9 +26,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.JmxException;
@@ -47,12 +47,12 @@ import org.springframework.stereotype.Component;
 public class EventJmxBean {
   private static final Logger log = LoggerFactory.getLogger(EventJmxBean.class);
 
-  private final ApplicationProperties applicationProperties;
+  private final SecurityProperties applicationProperties;
   private final EventController eventController;
   private final ObjectMapper objectMapper;
 
   public EventJmxBean(
-      ApplicationProperties applicationProperties,
+      SecurityProperties applicationProperties,
       EventController eventController,
       ObjectMapper objectMapper) {
     this.applicationProperties = applicationProperties;

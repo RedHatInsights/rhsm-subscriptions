@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -72,7 +71,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Autowired protected ObjectMapper mapper;
-  @Autowired protected SecurityProperties appProps;
+  @Autowired protected SecurityProperties secProps;
   @Autowired protected RbacProperties rbacProperties;
   @Autowired protected ConfigurableEnvironment env;
   @Autowired protected RbacService rbacService;
@@ -82,14 +81,14 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
     // Add our AuthenticationProvider to the Provider Manager's list
     auth.authenticationProvider(
         identityHeaderAuthenticationProvider(
-            identityHeaderAuthenticationDetailsService(appProps, rbacProperties, rbacService)));
+            identityHeaderAuthenticationDetailsService(secProps, rbacProperties, rbacService)));
   }
 
   @Bean
   public IdentityHeaderAuthenticationDetailsService identityHeaderAuthenticationDetailsService(
-      ApplicationProperties appProps, RbacProperties rbacProperties, RbacService rbacService) {
+      SecurityProperties secProps, RbacProperties rbacProperties, RbacService rbacService) {
     return new IdentityHeaderAuthenticationDetailsService(
-        appProps, rbacProperties, identityHeaderAuthoritiesMapper(), rbacService);
+        secProps, rbacProperties, identityHeaderAuthoritiesMapper(), rbacService);
   }
 
   @Bean
@@ -143,8 +142,8 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
   // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
   // filter
   public AntiCsrfFilter antiCsrfFilter(
-      ApplicationProperties appProps, ConfigurableEnvironment env) {
-    return new AntiCsrfFilter(appProps, env);
+      SecurityProperties secProps, ConfigurableEnvironment env) {
+    return new AntiCsrfFilter(secProps, env);
   }
 
   // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
@@ -160,7 +159,7 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
             "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions.resteasy");
     http.addFilter(identityHeaderAuthenticationFilter())
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
-        .addFilterAt(antiCsrfFilter(appProps, env), CsrfFilter.class)
+        .addFilterAt(antiCsrfFilter(secProps, env), CsrfFilter.class)
         .csrf()
         .disable()
         .exceptionHandling()
