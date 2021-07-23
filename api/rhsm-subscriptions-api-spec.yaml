@@ -1503,6 +1503,12 @@ components:
             - count
             - product
 
+    SubscriptionEventType:
+      type: string
+      enum:
+        - Subscription Start
+        - Subscription End
+
     SkuCapacitySubscription:
       properties:
         id:
@@ -1532,8 +1538,8 @@ components:
           type: string
           format: date-time
         upcoming_event_type:
-          description: "The subscription event, such as a subscription beginning or ending."
-          type: string
+          description: "The most immediate subscription event, such as a subscription beginning or ending."
+          $ref: "#/components/schemas/SubscriptionEventType"
         quantity:
           description: "The summed subscription quantities across the active subscriptions for the offering."
           type: integer

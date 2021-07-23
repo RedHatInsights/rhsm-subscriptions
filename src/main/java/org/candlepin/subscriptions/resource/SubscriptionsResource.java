@@ -23,18 +23,16 @@ package org.candlepin.subscriptions.resource;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
 import javax.validation.constraints.Min;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ProductProfileRegistry;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
@@ -45,31 +43,25 @@ import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Subscriptions Table API implementation. */
 @Component
 public class SubscriptionsResource implements SubscriptionsApi {
   private final SubscriptionCapacityRepository subCapRepo;
-  //  private final OfferingRepository offeringRepo;
-  //  private final SubscriptionRepository subRepo;
   private final ApplicationClock clock;
-  private final ProductProfileRegistry productProfileRegistry;
 
-  public SubscriptionsResource(
-      SubscriptionCapacityRepository subCapRepo,
-      //      OfferingRepository offeringRepo,
-      ApplicationClock clock,
-      ProductProfileRegistry productProfileRegistry) {
+  public SubscriptionsResource(SubscriptionCapacityRepository subCapRepo, ApplicationClock clock) {
     this.subCapRepo = subCapRepo;
-    //    this.offeringRepo = offeringRepo;
     this.clock = clock;
-    this.productProfileRegistry = productProfileRegistry;
   }
 
+  @Transactional
   @ReportingAccessRequired
   @Override
   public SkuCapacityReport getSkuCapacityReport(
@@ -83,14 +75,23 @@ public class SubscriptionsResource implements SubscriptionsApi {
       Uom uom,
       SkuCapacityReportSort sort,
       SortDirection dir) {
+    /*
+    Notes:
+    - Ignoring beginning and ending query params, as the table should (currently, anyway) only
+      report on the latest subscription status information.
+    - The implementation will report "subscription end" events for Next Event ONLY. That is,
+      future-dated subs are not taken into account when reporting the Next Event; only currently
+      active subs are used for calculating Next Event.
+    */
+
     OffsetDateTime now = clock.now();
-    OffsetDateTime reportStart = Optional.ofNullable(beginning).orElse(now);
-    OffsetDateTime reportEnd = Optional.ofNullable(ending).orElse(now);
+    OffsetDateTime reportStart = now;
+    OffsetDateTime reportEnd = now;
 
     String ownerId = ResourceUtils.getOwnerId();
 
     // Map of SKUs to inventories.
-    Map<String, SkuCapacity> inventories = new TreeMap<>();
+    Map<String, SkuCapacity> inventories = new HashMap<>();
 
     // Grab all active and future subs.
     // Future subs are needed to calculate the nearest events like "Subscription Begin".
@@ -111,6 +112,8 @@ public class SubscriptionsResource implements SubscriptionsApi {
                 // with offering-specific data and default values. No information specific to an
                 // engineering product within an offering is added.
                 var inv = new SkuCapacity();
+
+                inv.setSku(sku);
 
                 String productName =
                     Optional.ofNullable(cap.getOffering())
@@ -144,72 +147,58 @@ public class SubscriptionsResource implements SubscriptionsApi {
                 return inv;
               });
 
-      // If the sub starts in the future (after the report end) see if it's the nearest event.
+      // If the sub ends in the future (it should since only active subs were grabbed),
+      // see if it's the nearest event for this SKU.
       OffsetDateTime nearestEventDate = inventory.getUpcomingEventDate();
-      OffsetDateTime subBegin = cap.getBeginDate();
-      if (subBegin != null
-          && reportEnd.isBefore(subBegin)
-          && (nearestEventDate == null || subBegin.isBefore(nearestEventDate))) {
-        nearestEventDate = subBegin;
-        inventory.setUpcomingEventDate(nearestEventDate);
-        inventory.setUpcomingEventType("Subscription Begin");
-      }
-
-      // If the sub ends in the future (after the report end), see if it's the nearest event.
       OffsetDateTime subEnd = cap.getEndDate();
       if (subEnd != null
-          && reportEnd.isBefore(subEnd)
+          && now.isBefore(subEnd)
           && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
         nearestEventDate = subEnd;
         inventory.setUpcomingEventDate(nearestEventDate);
-        inventory.setUpcomingEventType("Subscription End");
+        inventory.setUpcomingEventType(SubscriptionEventType.END);
       }
 
-      // If the sub is active (start date is before report end and end date is after report start)
-      // then add the sub to the list and add the capacities and quantity with the inventory.
-      if (isActive(cap, reportStart, reportEnd)) {
-        Optional.ofNullable(cap.getSubscription()).stream()
-            .forEach(
-                capSub -> {
-                  var invSub = new SkuCapacitySubscription();
-                  invSub.setId(capSub.getSubscriptionId());
-                  invSub.setNumber(capSub.getSubscriptionNumber());
-                  inventory.getSubscriptions().add(invSub);
+      // Because only active subs were grabbed from the subscription capacity repo, this sub can be
+      // added to the SKU's list of subs, and the capacity can be updated.
 
-                  inventory.setQuantity(inventory.getQuantity() + (int) capSub.getQuantity());
-                });
+      // Only add the sub info to the list if its information was provided.
+      Optional.ofNullable(cap.getSubscription())
+          .ifPresent(
+              capSub -> {
+                var invSub = new SkuCapacitySubscription();
+                invSub.setId(cap.getSubscriptionId());
+                invSub.setNumber(capSub.getSubscriptionNumber());
+                inventory.getSubscriptions().add(invSub);
 
-        var physicalSockets = cap.getPhysicalSockets();
-        var physicalCores = cap.getPhysicalCores();
-        if (physicalSockets != null && physicalSockets != 0) {
-          inventory.setPhysicalCapacity(physicalSockets);
-          if (inventory.getUom() == null) {
-            inventory.setUom(Uom.SOCKETS);
-          }
-        } else if (physicalCores != null && physicalCores != 0) {
-          inventory.setPhysicalCapacity(physicalCores);
-          if (inventory.getUom() == null) {
-            inventory.setUom(Uom.CORES);
-          }
+                inventory.setQuantity(inventory.getQuantity() + (int) capSub.getQuantity());
+              });
+
+      var physicalSockets = cap.getPhysicalSockets();
+      var physicalCores = cap.getPhysicalCores();
+      var virtualSockets = cap.getVirtualSockets();
+      var virtualCores = cap.getVirtualCores();
+      if (inventory.getUom() == Uom.SOCKETS) {
+        inventory.setPhysicalCapacity(inventory.getPhysicalCapacity() + physicalSockets);
+        inventory.setVirtualCapacity(inventory.getVirtualCapacity() + virtualSockets);
+      } else if (inventory.getUom() == Uom.CORES) {
+        inventory.setPhysicalCapacity(inventory.getPhysicalCapacity() + physicalCores);
+        inventory.setVirtualCapacity(inventory.getVirtualCapacity() + virtualCores);
+      } else if (physicalSockets != 0) {
+        inventory.setPhysicalCapacity(inventory.getPhysicalCapacity() + physicalSockets);
+        inventory.setVirtualCapacity(inventory.getVirtualCapacity() + virtualSockets);
+        if (inventory.getUom() == null) {
+          inventory.setUom(Uom.SOCKETS);
         }
-
-        Integer virtualSockets = cap.getVirtualSockets();
-        Integer virtualCores = cap.getVirtualCores();
-        if (virtualSockets != null && virtualSockets != 0) {
-          inventory.setVirtualCapacity(virtualSockets);
-          if (inventory.getUom() == null) {
-            inventory.setUom(Uom.SOCKETS);
-          }
-        } else if (virtualCores != null && virtualCores != 0) {
-          inventory.setVirtualCapacity(virtualCores);
-          if (inventory.getUom() == null) {
-            inventory.setUom(Uom.CORES);
-          }
+      } else if (physicalCores != 0) {
+        inventory.setPhysicalCapacity(inventory.getPhysicalCapacity() + physicalCores);
+        inventory.setVirtualCapacity(inventory.getVirtualCapacity() + virtualCores);
+        if (inventory.getUom() == null) {
+          inventory.setUom(Uom.CORES);
         }
-
-        inventory.setTotalCapacity(
-            inventory.getPhysicalCapacity() + inventory.getVirtualCapacity());
       }
+
+      inventory.setTotalCapacity(inventory.getPhysicalCapacity() + inventory.getVirtualCapacity());
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
@@ -228,16 +217,6 @@ public class SubscriptionsResource implements SubscriptionsApi {
     report.setMeta(meta);
 
     return report;
-  }
-
-  private static boolean isActive(
-      SubscriptionCapacity cap, OffsetDateTime start, OffsetDateTime end) {
-    OffsetDateTime subBegin = cap.getBeginDate();
-    OffsetDateTime subEnd = cap.getEndDate();
-
-    // Is this right?!?!
-    return (subBegin == null || subBegin.isBefore(end) || subBegin.isEqual(end))
-        && (subEnd == null || subEnd.isAfter(start) || subEnd.isEqual(start));
   }
 
   private static void sortCapacities(
