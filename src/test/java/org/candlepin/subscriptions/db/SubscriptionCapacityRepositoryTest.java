@@ -20,7 +20,12 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.candlepin.subscriptions.db.model.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -28,28 +33,35 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
 @ActiveProfiles("test")
 class SubscriptionCapacityRepositoryTest {
+
+  private static final OffsetDateTime NOW = OffsetDateTime.now();
   private static final OffsetDateTime LONG_AGO =
       OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
   private static final OffsetDateTime NOWISH =
       OffsetDateTime.of(2019, 6, 23, 0, 0, 0, 0, ZoneOffset.UTC);
   private static final OffsetDateTime FAR_FUTURE =
       OffsetDateTime.of(2099, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+  static final String ACCOUNT_NUMBER = "account";
+  static final String PRODUCT_ID = "123";
+  static final String SUBSCRIPTION_ID = "subscription";
+  static final String OWNER_ID = "ownerId";
 
   @Autowired private SubscriptionCapacityRepository repository;
+
+  @Autowired private SubscriptionCapacityRepository subscriptionCapacityRepository;
+
+  @Autowired private SubscriptionRepository subscriptionRepository;
+
+  @Autowired OfferingRepository offeringRepository;
 
   @Test
   void testSave() {
@@ -367,6 +379,30 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(3, found.size());
   }
 
+  @Transactional
+  @Test
+  void testCanQueryBySlaEmpty() {
+
+    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("premium");
+    premium.setSku("testSku1");
+    premium.setProductId("100");
+    subscriptionRepository.saveAndFlush(
+            createSubscription(
+                    OWNER_ID, ACCOUNT_NUMBER,
+                    premium.getSku(), premium.getSubscriptionId(),
+                    premium.getBeginDate(), premium.getEndDate()));
+
+    subscriptionCapacityRepository.saveAndFlush(premium);
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), premium.getServiceLevel(), premium.getUsage(), "role1"));
+
+    List<SubscriptionCapacity> subscriptionCapacities = subscriptionCapacityRepository.findAll();
+    List<Offering> offerings = offeringRepository.findAll();
+    List<Subscription> subscriptions = subscriptionRepository.findAll();
+    List<SubscriptionCapacityViewOld> found = repository.findByKeyOwnerIdAndKeyProductId(OWNER_ID, PRODUCT_ID, ServiceLevel.PREMIUM, Usage.PRODUCTION, premium.getBeginDate(), premium.getEndDate() );
+    assertEquals(1, found.size());
+  }
+
   private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
     capacity.setAccountNumber("account");
@@ -383,5 +419,43 @@ class SubscriptionCapacityRepositoryTest {
     capacity.setServiceLevel(ServiceLevel.PREMIUM);
     capacity.setUsage(Usage.PRODUCTION);
     return capacity;
+  }
+
+  private Offering createOffering(
+          String sku, int productId, ServiceLevel sla, Usage usage, String role) {
+    Offering o = new Offering();
+    o.setSku(sku);
+    o.setProductIds(Set.of(productId));
+    o.setServiceLevel(sla);
+    o.setUsage(usage);
+    o.setRole(role);
+    return o;
+  }
+
+  private Subscription createSubscription(
+          String orgId, String accountNumber, String sku, String subId) {
+    return createSubscription(orgId, accountNumber, sku, subId, NOW, NOW.plusDays(30));
+  }
+
+  private Subscription createSubscription(
+          String orgId,
+          String accountNumber,
+          String sku,
+          String subId,
+          OffsetDateTime startDate,
+          OffsetDateTime endDate) {
+
+    Subscription subscription = new Subscription();
+    subscription.setMarketplaceSubscriptionId("bananas");
+    subscription.setSubscriptionId(subId);
+    subscription.setOwnerId(orgId);
+    subscription.setAccountNumber(accountNumber);
+    subscription.setQuantity(4L);
+    subscription.setSku(sku);
+    subscription.setStartDate(startDate);
+    subscription.setEndDate(endDate);
+    subscription.setSubscriptionNumber(subId + "1");
+
+    return subscription;
   }
 }

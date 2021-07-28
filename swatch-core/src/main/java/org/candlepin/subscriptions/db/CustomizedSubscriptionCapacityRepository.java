@@ -20,13 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.time.OffsetDateTime;
-import java.util.List;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewOld;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.util.List;
 
 /**
  * Fragment interface defining methods for queries not handled well by Spring JPA's query methods
@@ -46,7 +47,7 @@ public interface CustomizedSubscriptionCapacityRepository {
       OffsetDateTime reportEnd);
 
   @Transactional
-  List<SubscriptionCapacityView> findByKeyOwnerIdAndKeyProductId(
+  List<SubscriptionCapacityViewOld> findByKeyOwnerIdAndKeyProductId(
       String ownerId,
       String productId,
       ServiceLevel serviceLevel,

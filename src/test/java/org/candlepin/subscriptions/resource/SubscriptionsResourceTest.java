@@ -20,34 +20,14 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
-import org.candlepin.subscriptions.utilization.api.model.Uom;
+import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,10 +35,28 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
 public class SubscriptionsResourceTest {
+
+  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
+  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+
+  @MockBean
+  SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   @MockBean SubscriptionCapacityRepository subCapRepo;
   @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
@@ -121,7 +119,7 @@ public class SubscriptionsResourceTest {
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
         givenCapacities(Org.STANDARD, productId, RH0180191.withSub(expectedSub));
-    when(subCapRepo.findByKeyOwnerIdAndKeyProductId(any(), anyString(), any(), any(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(any(), anyString(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -156,7 +154,7 @@ public class SubscriptionsResourceTest {
             productId,
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
-    when(subCapRepo.findByKeyOwnerIdAndKeyProductId(any(), anyString(), any(), any(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(any(), anyString(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -203,7 +201,7 @@ public class SubscriptionsResourceTest {
             productId,
             RH0180191.withSub(expectedNewerSub),
             RH00604F5.withSub(expectedOlderSub));
-    when(subCapRepo.findByKeyOwnerIdAndKeyProductId(any(), anyString(), any(), any(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(any(), anyString(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
@@ -261,73 +259,80 @@ public class SubscriptionsResourceTest {
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
   }
 
-  // These tests are adapted from tests in CapacityResourceTest.
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
-    //      SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //      capacity.setBeginDate(min);
-    //      capacity.setEndDate(max);
-    //
-    //      when(repository.findByOwnerAndProductId(
-    //              eq("owner123456"),
-    //              eq(RHEL.toString()),
-    //              eq(ServiceLevel._ANY),
-    //              eq(Usage._ANY),
-    //              eq(min),
-    //              eq(max)))
-    //              .thenReturn(Collections.singletonList(capacity));
-    //
-    //      CapacityReport report =
-    //              resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null,
-    // null, null);
-    //
-    //      assertEquals(9, report.getData().size());
+
+    ProductId productId = ProductId.RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+            givenCapacities(
+                    Org.STANDARD,
+                    productId,
+                    RH0180191.withSub(expectedOlderSub),
+                    RH0180191.withSub(expectedNewerSub));
+
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
+            eq("owner123456"),
+            eq(RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY)))
+            .thenReturn(givenCapacities);
+
+    SkuCapacityReport report = target.getSkuCapacityReport(RHEL, min, max, null, null,
+            null, null, null, SkuCapacityReportSort.SKU, null );
+    assertEquals(1, report.getData().size());
   }
 
   @Test
   void testShouldUseSlaQueryParam() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        capacity.setBeginDate(min);
-    //        capacity.setEndDate(max);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                eq("owner123456"),
-    //                eq(RHEL.toString()),
-    //                eq(ServiceLevel.PREMIUM),
-    //                eq(Usage._ANY),
-    //                eq(min),
-    //                eq(max)))
-    //                .thenReturn(Collections.singletonList(capacity));
-    //
-    //        CapacityReport report =
-    //                resource.getCapacityReport(
-    //                        RHEL, GranularityType.DAILY, min, max, null, null,
-    // ServiceLevelType.PREMIUM, null);
-    //
-    //        assertEquals(9, report.getData().size());
+    ProductId productId = ProductId.RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+            givenCapacities(
+                    Org.STANDARD,
+                    productId,
+                    RH0180191.withSub(expectedOlderSub),
+                    RH0180191.withSub(expectedNewerSub));
+
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
+            any(), any(), eq(ServiceLevel.STANDARD), any()))
+            .thenReturn(givenCapacities);
+
+    SkuCapacityReport reportForUnmatchedSLA = target.getSkuCapacityReport(RHEL_SERVER, min, max, null, null,
+            ServiceLevelType.PREMIUM, null, null, SkuCapacityReportSort.SKU, null );
+    assertEquals(0, reportForUnmatchedSLA.getData().size());
+
+    SkuCapacityReport reportForMatchingSLA = target.getSkuCapacityReport(RHEL_SERVER, min, max, null, null,
+            ServiceLevelType.STANDARD, null, null, SkuCapacityReportSort.SKU, null );
+    assertEquals(1, reportForMatchingSLA.getData().size());
   }
 
   @Test
   void testShouldUseUsageQueryParam() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        capacity.setBeginDate(min);
-    //        capacity.setEndDate(max);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                eq("owner123456"),
-    //                eq(RHEL.toString()),
-    //                eq(ServiceLevel._ANY),
-    //                eq(Usage.PRODUCTION),
-    //                eq(min),
-    //                eq(max)))
-    //                .thenReturn(Collections.singletonList(capacity));
-    //
-    //        CapacityReport report =
-    //                resource.getCapacityReport(
-    //                        RHEL, GranularityType.DAILY, min, max, null, null, null,
-    // UsageType.PRODUCTION);
-    //
-    //        assertEquals(9, report.getData().size());
+
+    ProductId productId = ProductId.RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+            givenCapacities(
+                    Org.STANDARD,
+                    productId,
+                    RH0180191.withSub(expectedOlderSub),
+                    RH0180191.withSub(expectedNewerSub));
+
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
+            any(), any(), any(), eq(Usage.PRODUCTION)))
+            .thenReturn(givenCapacities);
+
+    SkuCapacityReport reportForUnmatchedUsage = target.getSkuCapacityReport(RHEL_SERVER, min, max, null, null,
+            null, UsageType.DEVELOPMENT_TEST, null, SkuCapacityReportSort.SKU, null );
+    assertEquals(0, reportForUnmatchedUsage.getData().size());
+
+    SkuCapacityReport reportForMatchingUsage = target.getSkuCapacityReport(RHEL_SERVER, min, max, null, null,
+            null, UsageType.PRODUCTION, null, SkuCapacityReportSort.SKU, null );
+    assertEquals(1, reportForMatchingUsage.getData().size());
   }
 
   @Test
@@ -622,56 +627,28 @@ public class SubscriptionsResourceTest {
     }
 
     public SubscriptionCapacityView createSubCapView(Org org, ProductId productId) {
-      SubscriptionCapacityView givenCapacity = new SubscriptionCapacityView();
-      SubscriptionCapacityKey key =
-          SubscriptionCapacityKey.builder()
-              .ownerId(org.orgId())
-              .productId(productId.toString())
-              .subscriptionId(sub.id)
-              .build();
-      givenCapacity.setKey(key);
-
-      givenCapacity.setBeginDate(sub.start);
-      givenCapacity.setEndDate(sub.end);
-      givenCapacity.setAccountNumber(org.accountNumber());
-      givenCapacity.setPhysicalCores(physicalCores * sub.quantity);
-      givenCapacity.setPhysicalSockets(physicalSockets * sub.quantity);
-      givenCapacity.setVirtualSockets(virtualSockets * sub.quantity);
-      givenCapacity.setVirtualCores(virtualCores * sub.quantity);
-      givenCapacity.setServiceLevel(serviceLevel);
-      givenCapacity.setUsage(usage);
-      givenCapacity.setSku(sku);
-      givenCapacity.setHasUnlimitedGuestSockets(hashUnlimitedGuestSockets);
-      Subscription subscription =
-          Subscription.builder()
-              .sku(sku)
-              .subscriptionId(sub.id)
+      return SubscriptionCapacityView.builder()
+          .key(
+              SubscriptionCapacityKey.builder()
+                  .ownerId(org.orgId())
+                  .productId(productId.toString())
+                  .subscriptionId(sub.id)
+                  .build())
+          .quantity(sub.quantity)
               .subscriptionNumber(sub.number)
-              .marketplaceSubscriptionId(null)
-              .accountNumber(org.accountNumber())
-              .ownerId(org.orgId())
-              .quantity(sub.quantity)
-              .startDate(sub.start)
-              .endDate(sub.end)
-              .build();
-      givenCapacity.setSubscription(subscription);
-
-      Offering offering =
-          Offering.builder()
-              .sku(this.sku)
-              .productName(this.productName)
-              .physicalSockets(this.physicalSockets)
-              .physicalCores(this.physicalCores)
-              .virtualSockets(this.virtualSockets)
-              .virtualCores(this.virtualCores)
-              .usage(this.usage)
-              .serviceLevel(this.serviceLevel)
-              .build();
-      // childSkus, role, productFamily, and productIds are not specified since they aren't
-      // used (or in the case of sku, physical*, virtual*, etc, already known)
-      givenCapacity.setOffering(offering);
-
-      return givenCapacity;
+          .accountNumber(org.accountNumber)
+          .beginDate(sub.start)
+          .endDate(sub.end)
+          .physicalCores(physicalCores * sub.quantity)
+          .physicalSockets(physicalSockets * sub.quantity)
+          .virtualSockets(virtualSockets * sub.quantity)
+          .virtualCores(virtualCores * sub.quantity)
+          .hasUnlimitedGuestSockets(hashUnlimitedGuestSockets)
+          .sku(sku)
+          .serviceLevel(serviceLevel)
+          .usage(usage)
+          .productName(productName)
+          .build();
     }
   }
 }
