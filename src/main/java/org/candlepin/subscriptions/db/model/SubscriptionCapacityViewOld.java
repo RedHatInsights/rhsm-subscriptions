@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.ToString;
-
 import javax.persistence.*;
+import lombok.ToString;
 
 /**
  * A data projection around SubscriptionCapacity, Subscription, and Offering necessary to give us a
@@ -48,7 +47,7 @@ public class SubscriptionCapacityViewOld extends SubscriptionCapacity {
     this.subscription = subscription;
   }
 
- /* public Offering getOffering() {
+  /* public Offering getOffering() {
     return offering;
   }
 

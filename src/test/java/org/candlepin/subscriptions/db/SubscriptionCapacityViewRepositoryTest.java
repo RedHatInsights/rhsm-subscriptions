@@ -20,13 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.*;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -34,8 +28,13 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.candlepin.subscriptions.db.model.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @Transactional
@@ -84,18 +83,28 @@ class SubscriptionCapacityViewRepositoryTest {
     premium.setSku("testSku1");
     premium.setProductId("100");
     subscriptionRepository.saveAndFlush(
-            createSubscription(
-                    OWNER_ID, ACCOUNT_NUMBER,
-                    premium.getSku(), premium.getSubscriptionId(),
-                    premium.getBeginDate(), premium.getEndDate()));
+        createSubscription(
+            OWNER_ID,
+            ACCOUNT_NUMBER,
+            premium.getSku(),
+            premium.getSubscriptionId(),
+            premium.getBeginDate(),
+            premium.getEndDate()));
 
     subscriptionCapacityRepository.saveAndFlush(premium);
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
-   List<SubscriptionCapacity> subscriptionCapacities = subscriptionCapacityRepository.findAll();
-   List<Offering> offerings = offeringRepository.findAll();
-   List<Subscription> subscriptions = subscriptionRepository.findAll();
-    List<SubscriptionCapacityView> found = repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
+    List<SubscriptionCapacity> subscriptionCapacities = subscriptionCapacityRepository.findAll();
+    List<Offering> offerings = offeringRepository.findAll();
+    List<Subscription> subscriptions = subscriptionRepository.findAll();
+    List<SubscriptionCapacityView> found =
+        repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
             premium.getOwnerId(),
             premium.getProductId(),
             premium.getServiceLevel(),
@@ -123,7 +132,7 @@ class SubscriptionCapacityViewRepositoryTest {
   }
 
   private Offering createOffering(
-          String sku, int productId, ServiceLevel sla, Usage usage, String role) {
+      String sku, int productId, ServiceLevel sla, Usage usage, String role) {
     Offering o = new Offering();
     o.setSku(sku);
     o.setProductIds(Set.of(productId));
@@ -135,17 +144,17 @@ class SubscriptionCapacityViewRepositoryTest {
   }
 
   private Subscription createSubscription(
-          String orgId, String accountNumber, String sku, String subId) {
+      String orgId, String accountNumber, String sku, String subId) {
     return createSubscription(orgId, accountNumber, sku, subId, NOW, NOW.plusDays(30));
   }
 
   private Subscription createSubscription(
-          String orgId,
-          String accountNumber,
-          String sku,
-          String subId,
-          OffsetDateTime startDate,
-          OffsetDateTime endDate) {
+      String orgId,
+      String accountNumber,
+      String sku,
+      String subId,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate) {
 
     Subscription subscription = new Subscription();
     subscription.setMarketplaceSubscriptionId("bananas");

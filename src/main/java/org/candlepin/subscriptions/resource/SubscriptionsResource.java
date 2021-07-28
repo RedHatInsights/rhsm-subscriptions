@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.candlepin.subscriptions.utilization.api.resources.SubscriptionsApi;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.constraints.Min;
 import java.time.OffsetDateTime;
@@ -40,17 +41,17 @@ import java.util.Optional;
 @Component
 public class SubscriptionsResource implements SubscriptionsApi {
 
-    private final SubscriptionTableController subscriptionTableController;
+  private final SubscriptionTableController subscriptionTableController;
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   private final ApplicationClock clock;
 
 
   public SubscriptionsResource(
-          SubscriptionTableController subscriptionTableController,
+      SubscriptionTableController subscriptionTableController,
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
       ApplicationClock clock,
       ProductProfileRegistry productProfileRegistry) {
-      this.subscriptionTableController = subscriptionTableController;
+    this.subscriptionTableController = subscriptionTableController;
     this.subscriptionCapacityViewRepository = subscriptionCapacityViewRepository;
     this.clock = clock;
   }
@@ -69,9 +70,13 @@ public class SubscriptionsResource implements SubscriptionsApi {
       Uom uom,
       SkuCapacityReportSort sort,
       SortDirection dir) {
-    List<SkuCapacity> reportItems = new ArrayList<>(
-            subscriptionTableController.getSkuCapacityReport(productId, beginning, ending, offset, limit, sla, usage, uom, sort, dir)
-                    .values());
+
+    List<SkuCapacity> reportItems =
+        new ArrayList<>(
+            subscriptionTableController
+                .getSkuCapacityReport(
+                    productId, beginning, ending, offset, limit, sla, usage, uom, sort, dir)
+                .values());
     sortCapacities(reportItems, sort, dir);
     SkuCapacityReport report = new SkuCapacityReport();
     reportItems = getPage(reportItems, offset, limit);
