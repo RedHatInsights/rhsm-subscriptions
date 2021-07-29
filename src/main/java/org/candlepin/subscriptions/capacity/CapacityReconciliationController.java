@@ -35,11 +35,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -47,24 +54,36 @@ import org.springframework.stereotype.Component;
 public class CapacityReconciliationController {
 
   private final OfferingRepository offeringRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private KafkaTemplate<String, ReconcileCapacityByOfferingTask>
+      reconcileCapacityByOfferingKafkaTemplate;
   private final ProductWhitelist productWhitelist;
   private final CapacityProductExtractor productExtractor;
   private final SubscriptionCapacityRepository subscriptionCapacityRepository;
+
   private final Counter capacityRecordsCreated;
   private final Counter capacityRecordsUpdated;
   private final Counter capacityRecordsDeleted;
+  private String reconcileCapacityTopic;
 
   @Autowired
   public CapacityReconciliationController(
       OfferingRepository offeringRepository,
+      SubscriptionRepository subscriptionRepository,
       ProductWhitelist productWhitelist,
       CapacityProductExtractor productExtractor,
       SubscriptionCapacityRepository subscriptionCapacityRepository,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      KafkaTemplate<String, ReconcileCapacityByOfferingTask>
+          reconcileCapacityByOfferingKafkaTemplate,
+      @Qualifier("reconcileCapacityTasks") TaskQueueProperties props) {
     this.offeringRepository = offeringRepository;
+    this.subscriptionRepository = subscriptionRepository;
     this.productWhitelist = productWhitelist;
     this.productExtractor = productExtractor;
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
+    this.reconcileCapacityByOfferingKafkaTemplate = reconcileCapacityByOfferingKafkaTemplate;
+    this.reconcileCapacityTopic = props.getTopic();
     capacityRecordsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.records_created");
     capacityRecordsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.records_updated");
     capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
@@ -76,6 +95,21 @@ public class CapacityReconciliationController {
     Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);
     reconcileSubscriptionCapacities(
         newCapacities, subscription.getSubscriptionId(), subscription.getSku());
+  }
+
+  @Transactional
+  public void reconcileCapacityForOffering(String sku, int offset, int limit) {
+
+    Page<Subscription> subscriptions =
+        subscriptionRepository.findBySku(
+            sku, ResourceUtils.getPageable(offset, limit, Sort.by("subscriptionId")));
+    subscriptions.forEach(this::reconcileCapacityForSubscription);
+    if (subscriptions.hasNext()) {
+      offset = offset + limit;
+      reconcileCapacityByOfferingKafkaTemplate.send(
+          reconcileCapacityTopic,
+          ReconcileCapacityByOfferingTask.builder().sku(sku).offset(offset).limit(limit).build());
+    }
   }
 
   private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription) {

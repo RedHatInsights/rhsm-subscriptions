@@ -21,31 +21,43 @@
 package org.candlepin.subscriptions.subscription;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import javax.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /** Update subscriptions from subscription service responses. */
 @Component
+@Slf4j
 public class SubscriptionSyncController {
-  private final SubscriptionRepository subscriptionRepository;
-  private final SubscriptionService subscriptionService;
-  private final ApplicationClock clock;
-  private final CapacityReconciliationController capacityReconciliationController;
+  private SubscriptionRepository subscriptionRepository;
+  private SubscriptionService subscriptionService;
+  private ApplicationClock clock;
+  private CapacityReconciliationController capacityReconciliationController;
+  private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
+  private String syncSubscriptionsTopic;
 
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
       ApplicationClock clock,
       SubscriptionService subscriptionService,
-      CapacityReconciliationController capacityReconciliationController) {
+      CapacityReconciliationController capacityReconciliationController,
+      KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
+      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
     this.clock = clock;
+    this.syncSubscriptionsTopic = props.getTopic();
+    this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
   }
 
   @Transactional
@@ -90,17 +102,34 @@ public class SubscriptionSyncController {
     }
   }
 
-  protected void updateSubscription(
-      Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
-    if (dto.getEffectiveEndDate() != null) {
-      entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
-    }
-  }
-
   @Transactional
   public void syncSubscription(String subscriptionId) {
     Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
     syncSubscription(subscription);
+  }
+
+  void syncSubscriptions(String orgId, int offset, int limit) {
+    log.info(
+        "Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
+
+    int pageSize = limit + 1;
+    boolean hasMore = false;
+    List<Subscription> subscriptions =
+        subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
+
+    if (subscriptions.size() >= pageSize) hasMore = true;
+    subscriptions.forEach(this::syncSubscription);
+    if (hasMore) {
+      offset = offset + limit;
+      syncSubscriptionsByOrgKafkaTemplate.send(
+          syncSubscriptionsTopic,
+          SyncSubscriptionsTask.builder().orgId(orgId).offset(offset).limit(limit).build());
+    }
+  }
+
+  @Transactional
+  public void syncAllSubcriptionsForOrg(String orgId) {
+    syncSubscriptions(orgId, 0, 100);
   }
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
@@ -116,5 +145,12 @@ public class SubscriptionSyncController {
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
         .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
         .build();
+  }
+
+  protected void updateSubscription(
+      Subscription dto, org.candlepin.subscriptions.db.model.Subscription entity) {
+    if (dto.getEffectiveEndDate() != null) {
+      entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
+    }
   }
 }

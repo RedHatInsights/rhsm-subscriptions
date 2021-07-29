@@ -118,7 +118,7 @@ public class ResourceUtils {
    * @return Pageable holding paging and sorting information.
    */
   @NotNull
-  static Pageable getPageable(Integer offset, Integer limit, Sort sort) {
+  public static Pageable getPageable(Integer offset, Integer limit, Sort sort) {
     if (limit == null) {
       limit = DEFAULT_LIMIT;
     }

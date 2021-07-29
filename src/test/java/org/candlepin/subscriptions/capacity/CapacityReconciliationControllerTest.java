@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
@@ -29,17 +29,24 @@ import java.util.stream.Collectors;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.hamcrest.MockitoHamcrest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -54,9 +61,18 @@ class CapacityReconciliationControllerTest {
 
   @MockBean OfferingRepository offeringRepository;
 
+  @MockBean SubscriptionRepository subscriptionRepository;
+
   @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
 
   @MockBean CapacityProductExtractor capacityProductExtractor;
+
+  @MockBean
+  KafkaTemplate<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingKafkaTemplate;
+
+  @Autowired
+  @Qualifier("reconcileCapacityTasks")
+  private TaskQueueProperties taskQueueProperties;
 
   @AfterEach
   void afterEach() {
@@ -248,16 +264,22 @@ class CapacityReconciliationControllerTest {
                 Matchers.containsInAnyOrder(staleCapacities.get(0), staleCapacities.get(1))));
   }
 
-  private Subscription createSubscription(String orgId, String sku, String subId) {
-    final Subscription subscription = new Subscription();
-    subscription.setSubscriptionId(subId);
-    subscription.setOwnerId(orgId);
-    subscription.setQuantity(4L);
-    subscription.setSku(sku);
-    subscription.setStartDate(NOW);
-    subscription.setEndDate(NOW.plusDays(30));
+  @Test
+  void shouldReconcileCapacityWithinLimitForOrgAndQueueTaskForNext() {
 
-    return subscription;
+    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
+
+    Page<Subscription> subscriptions = mock(Page.class);
+    when(subscriptions.hasNext()).thenReturn(true);
+
+    when(subscriptionRepository.findBySku(
+            "MCT3718", ResourceUtils.getPageable(0, 2, Sort.by("subscriptionId"))))
+        .thenReturn(subscriptions);
+    capacityReconciliationController.reconcileCapacityForOffering(offering.getSku(), 0, 2);
+    verify(reconcileCapacityByOfferingKafkaTemplate)
+        .send(
+            "platform.rhsm-subscriptions.capacity.reconcile",
+            ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(2).limit(2).build());
   }
 
   private Subscription createSubscription(String subId, int quantity) {
