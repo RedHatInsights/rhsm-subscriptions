@@ -20,8 +20,12 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import javax.persistence.*;
 import lombok.ToString;
+
+import javax.persistence.FetchType;
+import javax.persistence.ManyToOne;
+import javax.persistence.MapsId;
+import javax.persistence.OneToOne;
 
 /**
  * A data projection around SubscriptionCapacity, Subscription, and Offering necessary to give us a
@@ -34,10 +38,10 @@ public class SubscriptionCapacityViewOld extends SubscriptionCapacity {
   @OneToOne(fetch = FetchType.EAGER)
   private Subscription subscription;
 
-  /*@ToString.Exclude
+  @ToString.Exclude
   @MapsId("sku")
   @ManyToOne(fetch = FetchType.EAGER)
-  private Offering offering;*/
+  private Offering offering;
 
   public Subscription getSubscription() {
     return subscription;
@@ -47,11 +51,11 @@ public class SubscriptionCapacityViewOld extends SubscriptionCapacity {
     this.subscription = subscription;
   }
 
-  /* public Offering getOffering() {
+  public Offering getOffering() {
     return offering;
   }
 
   public void setOffering(Offering offering) {
     this.offering = offering;
-  }*/
+  }
 }

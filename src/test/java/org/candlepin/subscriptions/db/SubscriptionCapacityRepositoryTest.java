@@ -20,7 +20,15 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -28,13 +36,8 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import org.candlepin.subscriptions.db.model.*;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
@@ -378,46 +381,6 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(3, found.size());
   }
 
-  @Transactional
-  @Test
-  void testCanQueryBySlaEmpty() {
-
-    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    premium.setSubscriptionId("premium");
-    premium.setSku("testSku1");
-    premium.setProductId("100");
-    subscriptionRepository.saveAndFlush(
-        createSubscription(
-            OWNER_ID,
-            ACCOUNT_NUMBER,
-            premium.getSku(),
-            premium.getSubscriptionId(),
-            premium.getBeginDate(),
-            premium.getEndDate()));
-
-    subscriptionCapacityRepository.saveAndFlush(premium);
-    offeringRepository.saveAndFlush(
-        createOffering(
-            premium.getSku(),
-            Integer.parseInt(premium.getProductId()),
-            premium.getServiceLevel(),
-            premium.getUsage(),
-            "role1"));
-
-    List<SubscriptionCapacity> subscriptionCapacities = subscriptionCapacityRepository.findAll();
-    List<Offering> offerings = offeringRepository.findAll();
-    List<Subscription> subscriptions = subscriptionRepository.findAll();
-    List<SubscriptionCapacityViewOld> found =
-        repository.findByKeyOwnerIdAndKeyProductId(
-            OWNER_ID,
-            PRODUCT_ID,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            premium.getBeginDate(),
-            premium.getEndDate());
-    assertEquals(1, found.size());
-  }
-
   private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
     capacity.setAccountNumber("account");
@@ -434,22 +397,6 @@ class SubscriptionCapacityRepositoryTest {
     capacity.setServiceLevel(ServiceLevel.PREMIUM);
     capacity.setUsage(Usage.PRODUCTION);
     return capacity;
-  }
-
-  private Offering createOffering(
-      String sku, int productId, ServiceLevel sla, Usage usage, String role) {
-    Offering o = new Offering();
-    o.setSku(sku);
-    o.setProductIds(Set.of(productId));
-    o.setServiceLevel(sla);
-    o.setUsage(usage);
-    o.setRole(role);
-    return o;
-  }
-
-  private Subscription createSubscription(
-      String orgId, String accountNumber, String sku, String subId) {
-    return createSubscription(orgId, accountNumber, sku, subId, NOW, NOW.plusDays(30));
   }
 
   private Subscription createSubscription(

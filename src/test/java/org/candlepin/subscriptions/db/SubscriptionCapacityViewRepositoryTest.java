@@ -20,14 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.List;
-import java.util.Set;
 import org.candlepin.subscriptions.db.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +27,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @Transactional
@@ -52,7 +53,7 @@ class SubscriptionCapacityViewRepositoryTest {
       OffsetDateTime.of(2099, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
   static final String ACCOUNT_NUMBER = "account";
   static final String PRODUCT_ID = "123";
-  static final String SUBSCRIPTION_ID = "subscription";
+  static final String SUBSCRIPTION_ID = "123456";
   static final String OWNER_ID = "ownerId";
 
   @Autowired private SubscriptionCapacityViewRepository repository;
@@ -63,53 +64,82 @@ class SubscriptionCapacityViewRepositoryTest {
 
   @Autowired OfferingRepository offeringRepository;
 
+
+
   @Transactional
   @Test
-  void aTest() {
-    Subscription subscription = createSubscription("1", "1000", "testSku1", "123");
-    subscriptionRepository.saveAndFlush(subscription);
+  void shouldFindAllSubsWithMatchingCriteria() {
 
-    Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
-    offeringRepository.save(o1);
+    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12345");
+    SubscriptionCapacity anotherPremium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12346");
+    subscriptionRepository.saveAllAndFlush(
+            List.of(
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), anotherPremium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(premium, anotherPremium));
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+
+    List<SubscriptionCapacityView> all = repository.findAll();
+    List<SubscriptionCapacityView> found = repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            premium.getOwnerId(),
+            premium.getProductId(),
+            premium.getServiceLevel(),
+            premium.getUsage(),
+            NOWISH, FAR_FUTURE.plusMonths(1));
+    assertEquals(2, found.size());
   }
 
   @Transactional
   @Test
-  void testCanQueryBySlaEmpty() {
+  void shouldFilterCapacityWithUnmatchedSLA() {
 
-    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    premium.setSubscriptionId("premium");
-    premium.setServiceLevel(ServiceLevel.PREMIUM);
-    premium.setSku("testSku1");
-    premium.setProductId("100");
-    subscriptionRepository.saveAndFlush(
-        createSubscription(
-            OWNER_ID,
-            ACCOUNT_NUMBER,
-            premium.getSku(),
-            premium.getSubscriptionId(),
-            premium.getBeginDate(),
-            premium.getEndDate()));
+    SubscriptionCapacity premium = createUnpersisted(NOWISH, FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12345");
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12346");
+    premium.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+            List.of(
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(premium, standard));
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
 
-    subscriptionCapacityRepository.saveAndFlush(premium);
-    offeringRepository.saveAndFlush(
-        createOffering(
-            premium.getSku(),
-            Integer.parseInt(premium.getProductId()),
-            null,
-            premium.getUsage(),
-            "role1"));
-
-    List<SubscriptionCapacity> subscriptionCapacities = subscriptionCapacityRepository.findAll();
-    List<Offering> offerings = offeringRepository.findAll();
-    List<Subscription> subscriptions = subscriptionRepository.findAll();
-    List<SubscriptionCapacityView> found =
-        repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
+    List<SubscriptionCapacityView> found = repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
             premium.getOwnerId(),
             premium.getProductId(),
             premium.getServiceLevel(),
-            premium.getUsage());
+            premium.getUsage(),
+            NOWISH.minusYears(1), FAR_FUTURE.plusMonths(1));
     assertEquals(1, found.size());
+    assertEquals(premium.getServiceLevel(), found.get(0).getServiceLevel());
+  }
+
+  @Transactional
+  @Test
+  void shouldIgnoreNullSLAInputParam() {
+
+    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12345");
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12346");
+    premium.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+            List.of(
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(premium, standard));
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+
+    List<SubscriptionCapacityView> found = repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            premium.getOwnerId(),
+            premium.getProductId(),
+            null,
+            premium.getUsage(),
+            NOW, FAR_FUTURE.plusMonths(1));
+    assertEquals(2, found.size());
   }
 
   private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {

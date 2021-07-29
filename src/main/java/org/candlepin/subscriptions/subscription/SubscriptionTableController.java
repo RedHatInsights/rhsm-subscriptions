@@ -20,9 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import java.time.OffsetDateTime;
-import java.util.*;
-import javax.validation.constraints.Min;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
@@ -31,6 +28,10 @@ import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.stereotype.Component;
+
+import javax.validation.constraints.Min;
+import java.time.OffsetDateTime;
+import java.util.*;
 
 @Component
 public class SubscriptionTableController {
@@ -66,8 +67,8 @@ public class SubscriptionTableController {
     */
 
     OffsetDateTime now = clock.now();
-    OffsetDateTime reportStart = now;
-    OffsetDateTime reportEnd = now;
+    OffsetDateTime reportStart = now.minusYears(1);
+
     String ownerId = ResourceUtils.getOwnerId();
 
     // Map of SKUs to inventories.
@@ -79,8 +80,8 @@ public class SubscriptionTableController {
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
 
     List<SubscriptionCapacityView> capacities =
-        subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            ownerId, productId.toString(), sanitizedSla, sanitizedUsage);
+        subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            ownerId, productId.toString(), sanitizedSla, sanitizedUsage, reportStart, now);
 
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {
       String sku = subscriptionCapacityView.getSku();

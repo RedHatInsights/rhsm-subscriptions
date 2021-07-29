@@ -20,21 +20,13 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -45,6 +37,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -117,8 +121,8 @@ public class SubscriptionsResourceTest {
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
         givenCapacities(Org.STANDARD, productId, RH0180191.withSub(expectedSub));
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            any(), anyString(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            any(), anyString(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -153,8 +157,8 @@ public class SubscriptionsResourceTest {
             productId,
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            any(), anyString(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            any(), anyString(), any(), any(),any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -201,8 +205,8 @@ public class SubscriptionsResourceTest {
             productId,
             RH0180191.withSub(expectedNewerSub),
             RH00604F5.withSub(expectedOlderSub));
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            any(), anyString(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            any(), anyString(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
@@ -248,7 +252,8 @@ public class SubscriptionsResourceTest {
   void testGetSkuCapacityReportNoSub() {
     // Given an org with no active subs,
     ProductId productId = ProductId.RHEL_SERVER;
-    when(subCapRepo.findByKeyOwnerIdAndKeyProductId(any(), anyString(), any(), any(), any(), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            any(), anyString(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     // When requesting a SKU capacity report for an eng product,
@@ -273,8 +278,8 @@ public class SubscriptionsResourceTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
 
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            eq("owner123456"), eq(RHEL.toString()), eq(ServiceLevel._ANY), eq(Usage._ANY)))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            eq("owner123456"), eq(RHEL.toString()), eq(ServiceLevel._ANY), eq(Usage._ANY), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport report =
@@ -295,8 +300,8 @@ public class SubscriptionsResourceTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
 
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            any(), any(), eq(ServiceLevel.STANDARD), any()))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedSLA =
@@ -341,8 +346,8 @@ public class SubscriptionsResourceTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
 
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsage(
-            any(), any(), any(), eq(Usage.PRODUCTION)))
+    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+            any(), any(), any(), eq(Usage.PRODUCTION), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedUsage =

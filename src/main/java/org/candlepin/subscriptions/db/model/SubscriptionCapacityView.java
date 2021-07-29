@@ -20,15 +20,14 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import java.time.OffsetDateTime;
+import lombok.*;
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.Subselect;
+
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.Immutable;
-import org.hibernate.annotations.Subselect;
+import java.time.OffsetDateTime;
 
 @Entity
 @Immutable
@@ -57,6 +56,8 @@ import org.hibernate.annotations.Subselect;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SubscriptionCapacityView {
 
   @EmbeddedId private SubscriptionCapacityKey key;
