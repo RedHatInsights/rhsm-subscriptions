@@ -22,10 +22,11 @@ package org.candlepin.subscriptions.subscription;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
@@ -43,12 +44,6 @@ public class SubscriptionWorkerConfiguration {
         kafkaProperties.buildConsumerProperties(),
         new StringDeserializer(),
         new JsonDeserializer<>(SyncSubscriptionsTask.class));
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  KafkaConsumerRegistry kafkaConsumerRegistry() {
-    return new KafkaConsumerRegistry();
   }
 
   @Bean
