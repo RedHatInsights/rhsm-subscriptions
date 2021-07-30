@@ -80,8 +80,7 @@ public class SubscriptionTableController {
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
 
     List<SubscriptionCapacityView> capacities =
-        subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
-            ownerId, productId.toString(), sanitizedSla, sanitizedUsage, reportStart, now);
+        subscriptionCapacityViewRepository.findAll();
 
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {
       String sku = subscriptionCapacityView.getSku();

@@ -20,18 +20,10 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.time.OffsetDateTime;
-import java.util.List;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface SubscriptionCapacityViewRepository
-    extends JpaRepository<SubscriptionCapacityView, SubscriptionCapacityKey> {
-
-  List<SubscriptionCapacityView> findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
-          String ownerId, String productId, ServiceLevel serviceLevel, Usage usage, OffsetDateTime begin, OffsetDateTime end);
-}
+    extends JpaRepository<SubscriptionCapacityView, SubscriptionCapacityKey>, JpaSpecificationExecutor<SubscriptionCapacityView> {}
