@@ -21,10 +21,10 @@
 package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
+import org.candlepin.subscriptions.db.SubscriptionCapacityViewSpecification;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.stereotype.Component;
@@ -33,11 +33,14 @@ import javax.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static org.candlepin.subscriptions.resource.ResourceUtils.*;
+
 @Component
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   private final ApplicationClock clock;
+  private SubscriptionCapacityViewSpecification specification;
 
   private SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
@@ -46,7 +49,7 @@ public class SubscriptionTableController {
     this.clock = clock;
   }
 
-  public Map<String, SkuCapacity> getSkuCapacityReport(
+  public SkuCapacityReport getSkuCapacityReport(
       ProductId productId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -66,33 +69,37 @@ public class SubscriptionTableController {
       active subs are used for calculating Next Event.
     */
 
-    OffsetDateTime now = clock.now();
-    OffsetDateTime reportStart = now.minusYears(1);
+    OffsetDateTime reportEnd = clock.now();
+    OffsetDateTime reportStart = reportEnd.minusYears(1);
+    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
+    Usage sanitizedUsage = sanitizeUsage(usage);
 
-    String ownerId = ResourceUtils.getOwnerId();
+    List<SubscriptionCapacityView> capacities = subscriptionCapacityViewRepository.findAllBy(getOwnerId(), productId.toString(), sanitizedServiceLevel, sanitizedUsage, reportStart, reportEnd);
 
-    // Map of SKUs to inventories.
     Map<String, SkuCapacity> inventories = new HashMap<>();
-
-    // Grab all active and future subs.
-    // Future subs are needed to calculate the nearest events like "Subscription Begin".
-    ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
-    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-
-    List<SubscriptionCapacityView> capacities =
-        subscriptionCapacityViewRepository.findAll();
-
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {
       String sku = subscriptionCapacityView.getSku();
       final SkuCapacity inventory =
           inventories.computeIfAbsent(
               sku, key -> initializeDefaultSkuCapacity(subscriptionCapacityView, uom));
-      calculateNextEvent(subscriptionCapacityView, inventory, now);
+      calculateNextEvent(subscriptionCapacityView, inventory, reportEnd);
       addSubscriptionInformation(subscriptionCapacityView, inventory);
       addTotalCapacity(subscriptionCapacityView, inventory);
     }
 
-    return inventories;
+    List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
+    sortCapacities(reportItems, sort, dir);
+    reportItems = getPage(reportItems, offset, limit);
+
+    return new SkuCapacityReport()
+        .data(reportItems)
+        .meta(
+            new HostReportMeta()
+                .count(reportItems.size())
+                .serviceLevel(sla)
+                .usage(usage)
+                .uom(uom)
+                .product(productId));
   }
 
   public SkuCapacity initializeDefaultSkuCapacity(
@@ -181,5 +188,66 @@ public class SubscriptionTableController {
 
     skuCapacity.setTotalCapacity(
         skuCapacity.getPhysicalCapacity() + skuCapacity.getVirtualCapacity());
+  }
+
+  private static void sortCapacities(
+      List<SkuCapacity> items, SkuCapacityReportSort sort, SortDirection dir) {
+    items.sort(
+        (left, right) -> {
+          var sortField = Optional.ofNullable(sort).orElse(SkuCapacityReportSort.SKU);
+          int sortDir = 1;
+          if (dir == SortDirection.DESC) {
+            sortDir = -1;
+          }
+          int diff = 0;
+          switch (sortField) {
+            case SKU:
+              diff = left.getSku().compareTo(right.getSku());
+              break;
+            case SLA:
+              diff = left.getServiceLevel().compareTo(right.getServiceLevel());
+              break;
+            case USAGE:
+              diff = left.getUsage().compareTo(right.getUsage());
+              break;
+            case QUANTITY:
+              diff = left.getQuantity().compareTo(right.getQuantity());
+              break;
+            case NEXT_EVENT:
+              diff = left.getUpcomingEventDate().compareTo(right.getUpcomingEventDate());
+              break;
+            case NEXT_EVENT_TYPE:
+              diff = left.getUpcomingEventType().compareTo(right.getUpcomingEventType());
+              break;
+          }
+          // If the two items are sorted by some other field than SKU and are equal, then break the
+          // tie by sorting by SKU. No two SKUs in the list are equal.
+          if (diff == 0 && sortField != SkuCapacityReportSort.SKU) {
+            diff = left.getSku().compareTo(right.getSku());
+          }
+
+          return diff * sortDir;
+        });
+  }
+
+  private static List<SkuCapacity> getPage(List<SkuCapacity> items, Integer offset, Integer limit) {
+    // Default to starting from the first item on the list
+    int fromIndex = 0;
+    if (offset != null) {
+      fromIndex = offset;
+    }
+
+    // Don't return all objects if the limit results in less items returned, default to all
+    int toIndex = items.size();
+    if (limit != null && offset + limit < toIndex) {
+      toIndex = offset + limit;
+    }
+
+    // If the page is beyond the size of the list then return an empty list, otherwise
+    // return the sublist.
+    if (toIndex <= fromIndex) {
+      return Collections.emptyList();
+    }
+    return items.subList(fromIndex, toIndex);
   }
 }

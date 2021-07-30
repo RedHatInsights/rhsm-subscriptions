@@ -71,24 +71,69 @@ class SubscriptionCapacityViewRepositoryTest {
 
     SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12345");
-    SubscriptionCapacity anotherPremium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    SubscriptionCapacity anotherPremium =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12346");
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), anotherPremium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                anotherPremium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, anotherPremium));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification
-                .builder().criteria(
-                        List.of(SearchCriteria.builder().key("ownerId").operation(SearchOperation.EQUAL).value(premium.getOwnerId()).build(),
-                                SearchCriteria.builder().key("productId").operation(SearchOperation.EQUAL).value(premium.getProductId()).build(),
-                                SearchCriteria.builder().key("serviceLevel").operation(SearchOperation.EQUAL).value(premium.getServiceLevel()).build(),
-                                SearchCriteria.builder().key("usage").operation(SearchOperation.EQUAL).value(premium.getUsage()).build(),
-                                SearchCriteria.builder().key("beginDate").operation(SearchOperation.AFTER_OR_ON).value(premium.getBeginDate()).build(),
-                                SearchCriteria.builder().key("endDate").operation(SearchOperation.BEFORE_OR_ON).value(premium.getEndDate()).build())).build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("ownerId")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getOwnerId())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("productId")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getProductId())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("serviceLevel")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getServiceLevel())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("usage")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getUsage())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("beginDate")
+                        .operation(SearchOperation.AFTER_OR_ON)
+                        .value(premium.getBeginDate())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("endDate")
+                        .operation(SearchOperation.BEFORE_OR_ON)
+                        .value(premium.getEndDate())
+                        .build()))
+            .build();
     List<SubscriptionCapacityView> all = repository.findAll(specification);
     assertEquals(2, all.size());
   }
@@ -103,16 +148,40 @@ class SubscriptionCapacityViewRepositoryTest {
     standard.setSubscriptionId("12346");
     standard.setServiceLevel(ServiceLevel.STANDARD);
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, standard));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     SubscriptionCapacityViewSpecification specification =
-            SubscriptionCapacityViewSpecification
-                    .builder().criteria(
-                            List.of(SearchCriteria.builder().key("serviceLevel").operation(SearchOperation.EQUAL).value(ServiceLevel.PREMIUM).build())).build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("serviceLevel")
+                        .operation(SearchOperation.EQUAL)
+                        .value(ServiceLevel.PREMIUM)
+                        .build()))
+            .build();
     List<SubscriptionCapacityView> all = repository.findAll(specification);
     assertEquals(1, all.size());
   }
@@ -131,25 +200,57 @@ class SubscriptionCapacityViewRepositoryTest {
     noSLA.setServiceLevel(ServiceLevel.EMPTY);
 
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), any.getSubscriptionId(), any.getBeginDate(), any.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), noSLA.getSubscriptionId(), noSLA.getBeginDate(), noSLA.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                any.getSubscriptionId(),
+                any.getBeginDate(),
+                any.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                noSLA.getSubscriptionId(),
+                noSLA.getBeginDate(),
+                noSLA.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, any, noSLA));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     SubscriptionCapacityViewSpecification specification =
-            SubscriptionCapacityViewSpecification
-                    .builder().criteria(
-                            List.of(SearchCriteria.builder()
-                                    .key("serviceLevel")
-                                    .operation(SearchOperation.NOT_IN)
-                                    .value(List.of(ServiceLevel.PREMIUM, ServiceLevel.STANDARD, ServiceLevel.SELF_SUPPORT))
-                                    .build()))
-                    .build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("serviceLevel")
+                        .operation(SearchOperation.NOT_IN)
+                        .value(
+                            List.of(
+                                ServiceLevel.PREMIUM,
+                                ServiceLevel.STANDARD,
+                                ServiceLevel.SELF_SUPPORT))
+                        .build()))
+            .build();
 
     List<SubscriptionCapacityView> all = repository.findAll(specification);
-    Assertions.assertThat(all).hasSize(2).extracting("serviceLevel").contains(ServiceLevel.EMPTY, ServiceLevel._ANY);
+    Assertions.assertThat(all)
+        .hasSize(2)
+        .extracting("serviceLevel")
+        .contains(ServiceLevel.EMPTY, ServiceLevel._ANY);
   }
 
   @Transactional
@@ -166,25 +267,57 @@ class SubscriptionCapacityViewRepositoryTest {
     noSLA.setServiceLevel(ServiceLevel.EMPTY);
 
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), noSLA.getSubscriptionId(), noSLA.getBeginDate(), noSLA.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                noSLA.getSubscriptionId(),
+                noSLA.getBeginDate(),
+                noSLA.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, standard, noSLA));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     SubscriptionCapacityViewSpecification specification =
-            SubscriptionCapacityViewSpecification
-                    .builder().criteria(
-                            List.of(SearchCriteria.builder()
-                                    .key("serviceLevel")
-                                    .operation(SearchOperation.IN)
-                                    .value(List.of(ServiceLevel.PREMIUM, ServiceLevel.STANDARD, ServiceLevel.SELF_SUPPORT))
-                                    .build()))
-                    .build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("serviceLevel")
+                        .operation(SearchOperation.IN)
+                        .value(
+                            List.of(
+                                ServiceLevel.PREMIUM,
+                                ServiceLevel.STANDARD,
+                                ServiceLevel.SELF_SUPPORT))
+                        .build()))
+            .build();
 
     List<SubscriptionCapacityView> all = repository.findAll(specification);
-    Assertions.assertThat(all).hasSize(2).extracting("serviceLevel").contains(ServiceLevel.PREMIUM, ServiceLevel.STANDARD);
+    Assertions.assertThat(all)
+        .hasSize(2)
+        .extracting("serviceLevel")
+        .contains(ServiceLevel.PREMIUM, ServiceLevel.STANDARD);
   }
 
   @Transactional
@@ -197,16 +330,40 @@ class SubscriptionCapacityViewRepositoryTest {
     standard.setSubscriptionId("12346");
     standard.setServiceLevel(ServiceLevel.STANDARD);
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, standard));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     SubscriptionCapacityViewSpecification specification =
-            SubscriptionCapacityViewSpecification
-                    .builder().criteria(
-                            List.of(SearchCriteria.builder().key("beginDate").operation(SearchOperation.AFTER_OR_ON).value(NOWISH.plusDays(1)).build())).build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("beginDate")
+                        .operation(SearchOperation.AFTER_OR_ON)
+                        .value(NOWISH.plusDays(1))
+                        .build()))
+            .build();
     List<SubscriptionCapacityView> all = repository.findAll();
     List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(2, found.size());
@@ -222,16 +379,40 @@ class SubscriptionCapacityViewRepositoryTest {
     standard.setSubscriptionId("12346");
     standard.setServiceLevel(ServiceLevel.STANDARD);
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, standard));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     SubscriptionCapacityViewSpecification specification =
-            SubscriptionCapacityViewSpecification
-                    .builder().criteria(
-                            List.of(SearchCriteria.builder().key("beginDate").operation(SearchOperation.BEFORE_OR_ON).value(FAR_FUTURE.plusYears(1)).build())).build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("beginDate")
+                        .operation(SearchOperation.BEFORE_OR_ON)
+                        .value(FAR_FUTURE.plusYears(1))
+                        .build()))
+            .build();
     List<SubscriptionCapacityView> all = repository.findAll();
     List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(2, found.size());
@@ -247,22 +428,66 @@ class SubscriptionCapacityViewRepositoryTest {
     standard.setSubscriptionId("12346");
     standard.setServiceLevel(ServiceLevel.STANDARD);
     subscriptionRepository.saveAllAndFlush(
-            List.of(
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, standard.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                premium.getSku(),
+                premium.getSubscriptionId(),
+                premium.getBeginDate(),
+                premium.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                standard.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, standard));
-    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            premium.getSku(),
+            Integer.parseInt(premium.getProductId()),
+            null,
+            premium.getUsage(),
+            "role1"));
 
     List<SubscriptionCapacityView> all = repository.findAll();
     SubscriptionCapacityViewSpecification specification =
-            SubscriptionCapacityViewSpecification
-                    .builder().criteria(
-                            List.of(SearchCriteria.builder().key("ownerId").operation(SearchOperation.EQUAL).value(premium.getOwnerId()).build(),
-                                    SearchCriteria.builder().key("productId").operation(SearchOperation.EQUAL).value(premium.getProductId()).build(),
-                                    SearchCriteria.builder().key("serviceLevel").operation(SearchOperation.EQUAL).value(premium.getServiceLevel()).build(),
-                                    SearchCriteria.builder().key("usage").operation(SearchOperation.EQUAL).value(premium.getUsage()).build(),
-                                    SearchCriteria.builder().key("beginDate").operation(SearchOperation.AFTER_OR_ON).value(NOWISH.minusYears(1)).build(),
-                                    SearchCriteria.builder().key("endDate").operation(SearchOperation.BEFORE_OR_ON).value(FAR_FUTURE.plusMonths(1)).build())).build();
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key("ownerId")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getOwnerId())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("productId")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getProductId())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("serviceLevel")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getServiceLevel())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("usage")
+                        .operation(SearchOperation.EQUAL)
+                        .value(premium.getUsage())
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("beginDate")
+                        .operation(SearchOperation.AFTER_OR_ON)
+                        .value(NOWISH.minusYears(1))
+                        .build(),
+                    SearchCriteria.builder()
+                        .key("endDate")
+                        .operation(SearchOperation.BEFORE_OR_ON)
+                        .value(FAR_FUTURE.plusMonths(1))
+                        .build()))
+            .build();
 
     List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(1, found.size());

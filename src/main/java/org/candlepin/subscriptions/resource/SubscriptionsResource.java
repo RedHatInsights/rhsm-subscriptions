@@ -76,7 +76,7 @@ public class SubscriptionsResource implements SubscriptionsApi {
             subscriptionTableController
                 .getSkuCapacityReport(
                     productId, beginning, ending, offset, limit, sla, usage, uom, sort, dir)
-                .values());
+                .getData());
     sortCapacities(reportItems, sort, dir);
     SkuCapacityReport report = new SkuCapacityReport();
     reportItems = getPage(reportItems, offset, limit);

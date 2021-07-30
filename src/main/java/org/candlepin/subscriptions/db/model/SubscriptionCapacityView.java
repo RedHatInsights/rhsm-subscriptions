@@ -104,5 +104,3 @@ public class SubscriptionCapacityView {
   @Column(name = "has_unlimited_guest_sockets")
   private boolean hasUnlimitedGuestSockets;
 }
-
-

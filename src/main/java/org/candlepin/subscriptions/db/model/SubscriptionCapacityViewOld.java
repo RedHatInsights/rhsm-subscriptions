@@ -20,12 +20,11 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.ToString;
-
 import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.OneToOne;
+import lombok.ToString;
 
 /**
  * A data projection around SubscriptionCapacity, Subscription, and Offering necessary to give us a

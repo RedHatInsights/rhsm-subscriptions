@@ -28,12 +28,10 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.subscription.SubscriptionTableController;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
-import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
-import org.candlepin.subscriptions.utilization.api.model.Uom;
+import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,16 +41,20 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
-public class SubscriptionsResourceTest {
+public class SubscriptionTableControllerTest {
 
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
@@ -62,7 +64,8 @@ public class SubscriptionsResourceTest {
   @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
 
-  @Autowired SubscriptionsResource target;
+  @Autowired
+  SubscriptionTableController target;
 
   @BeforeEach
   void setup() throws AccountListSourceException {
@@ -112,17 +115,18 @@ public class SubscriptionsResourceTest {
         .collect(Collectors.toUnmodifiableList());
   }
 
- /* @Test
+  @Test
   void testGetSkuCapacityReportSingleSub() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a socket
     // capacity of 2,
-    ProductId productId = ProductId.RHEL_SERVER;
+    ProductId productId = RHEL_SERVER;
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
         givenCapacities(Org.STANDARD, productId, RH0180191.withSub(expectedSub));
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
-            any(), anyString(), any(), any(), any(), any()))
-        .thenReturn(givenCapacities);
+
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), anyString(), any(), any(),any(), any()))
+            .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -137,8 +141,7 @@ public class SubscriptionsResourceTest {
     assertEquals(4, actualItem.getQuantity(), "Incorrect quantity");
     assertCapacities(8, 0, Uom.SOCKETS, actualItem);
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
-    assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
+    assertEquals(SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
     assertEquals(expectedSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
   }
 
@@ -147,7 +150,7 @@ public class SubscriptionsResourceTest {
     // Given an org with two active subs with different quantities for the same SKU,
     // and the subs have an eng product with a socket capacity of 2,
     // and the subs have different ending dates,
-    ProductId productId = ProductId.RHEL_SERVER;
+    ProductId productId = RHEL_SERVER;
     Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
     List<SubscriptionCapacityView> givenCapacities =
@@ -156,7 +159,7 @@ public class SubscriptionsResourceTest {
             productId,
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+    when(subscriptionCapacityViewRepository.findAllBy(
             any(), anyString(), any(), any(),any(), any()))
         .thenReturn(givenCapacities);
 
@@ -195,7 +198,7 @@ public class SubscriptionsResourceTest {
     // Given an org with two active subs with different quantities for different SKUs,
     // and the subs have an eng product with a socket capacity of 2,
     // and the subs have different ending dates,
-    ProductId productId = ProductId.RHEL_SERVER;
+    ProductId productId = RHEL_SERVER;
     Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
     List<SubscriptionCapacityView> givenCapacities =
@@ -204,7 +207,7 @@ public class SubscriptionsResourceTest {
             productId,
             RH0180191.withSub(expectedNewerSub),
             RH00604F5.withSub(expectedOlderSub));
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+    when(subscriptionCapacityViewRepository.findAllBy(
             any(), anyString(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
@@ -250,8 +253,8 @@ public class SubscriptionsResourceTest {
   @Test
   void testGetSkuCapacityReportNoSub() {
     // Given an org with no active subs,
-    ProductId productId = ProductId.RHEL_SERVER;
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+    ProductId productId = RHEL_SERVER;
+    when(subscriptionCapacityViewRepository.findAllBy(
             any(), anyString(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
@@ -267,7 +270,7 @@ public class SubscriptionsResourceTest {
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
 
-    ProductId productId = ProductId.RHEL_SERVER;
+    ProductId productId = RHEL_SERVER;
     Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
     List<SubscriptionCapacityView> givenCapacities =
@@ -277,7 +280,7 @@ public class SubscriptionsResourceTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
 
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+    when(subscriptionCapacityViewRepository.findAllBy(
             eq("owner123456"), eq(RHEL.toString()), eq(ServiceLevel._ANY), eq(Usage._ANY), any(), any()))
         .thenReturn(givenCapacities);
 
@@ -289,7 +292,7 @@ public class SubscriptionsResourceTest {
 
   @Test
   void testShouldUseSlaQueryParam() {
-    ProductId productId = ProductId.RHEL_SERVER;
+    ProductId productId = RHEL_SERVER;
     Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
     List<SubscriptionCapacityView> givenCapacities =
@@ -299,7 +302,7 @@ public class SubscriptionsResourceTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
 
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+    when(subscriptionCapacityViewRepository.findAllBy(
             any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any()))
         .thenReturn(givenCapacities);
 
@@ -335,7 +338,7 @@ public class SubscriptionsResourceTest {
   @Test
   void testShouldUseUsageQueryParam() {
 
-    ProductId productId = ProductId.RHEL_SERVER;
+    ProductId productId = RHEL_SERVER;
     Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
     List<SubscriptionCapacityView> givenCapacities =
@@ -345,7 +348,7 @@ public class SubscriptionsResourceTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
 
-    when(subscriptionCapacityViewRepository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
+    when(subscriptionCapacityViewRepository.findAllBy(
             any(), any(), any(), eq(Usage.PRODUCTION), any(), any()))
         .thenReturn(givenCapacities);
 
@@ -376,53 +379,8 @@ public class SubscriptionsResourceTest {
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(1, reportForMatchingUsage.getData().size());
-  }*/
-
-  @Test
-  void testShouldTreatEmptySlaAsNull() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        capacity.setBeginDate(min);
-    //        capacity.setEndDate(max);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                eq("owner123456"),
-    //                eq(RHEL.toString()),
-    //                eq(ServiceLevel._ANY),
-    //                eq(Usage._ANY),
-    //                eq(min),
-    //                eq(max)))
-    //                .thenReturn(Collections.singletonList(capacity));
-    //
-    //        CapacityReport report =
-    //                resource.getCapacityReport(
-    //                        RHEL, GranularityType.DAILY, min, max, null, null,
-    // ServiceLevelType.EMPTY, null);
-    //
-    //        assertEquals(9, report.getData().size());
   }
 
-  @Test
-  void testShouldTreatEmptyUsageAsNull() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        capacity.setBeginDate(min);
-    //        capacity.setEndDate(max);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                eq("owner123456"),
-    //                eq(RHEL.toString()),
-    //                eq(ServiceLevel._ANY),
-    //                eq(Usage._ANY),
-    //                eq(min),
-    //                eq(max)))
-    //                .thenReturn(Collections.singletonList(capacity));
-    //
-    //        CapacityReport report =
-    //                resource.getCapacityReport(
-    //                        RHEL, GranularityType.DAILY, min, max, null, null, null,
-    // UsageType.EMPTY);
-    //
-    //        assertEquals(9, report.getData().size());
-  }
 
   @Test
   void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {
