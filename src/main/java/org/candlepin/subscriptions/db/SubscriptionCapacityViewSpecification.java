@@ -20,16 +20,15 @@
  */
 package org.candlepin.subscriptions.db;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Objects;
+import javax.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.springframework.data.jpa.domain.Specification;
-
-import javax.persistence.criteria.*;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Objects;
 
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

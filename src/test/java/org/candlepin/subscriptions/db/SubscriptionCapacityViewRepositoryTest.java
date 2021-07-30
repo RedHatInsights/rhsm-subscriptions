@@ -20,6 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
 import org.assertj.core.api.Assertions;
 import org.candlepin.subscriptions.db.model.*;
 import org.junit.jupiter.api.Test;
@@ -28,15 +36,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @Transactional

@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.candlepin.subscriptions.resource.ResourceUtils.*;
+
+import java.time.OffsetDateTime;
+import java.util.*;
+import javax.validation.constraints.Min;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewSpecification;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -28,12 +33,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.stereotype.Component;
-
-import javax.validation.constraints.Min;
-import java.time.OffsetDateTime;
-import java.util.*;
-
-import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
 @Component
 public class SubscriptionTableController {
@@ -74,7 +73,14 @@ public class SubscriptionTableController {
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
     Usage sanitizedUsage = sanitizeUsage(usage);
 
-    List<SubscriptionCapacityView> capacities = subscriptionCapacityViewRepository.findAllBy(getOwnerId(), productId.toString(), sanitizedServiceLevel, sanitizedUsage, reportStart, reportEnd);
+    List<SubscriptionCapacityView> capacities =
+        subscriptionCapacityViewRepository.findAllBy(
+            getOwnerId(),
+            productId.toString(),
+            sanitizedServiceLevel,
+            sanitizedUsage,
+            reportStart,
+            reportEnd);
 
     Map<String, SkuCapacity> inventories = new HashMap<>();
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {

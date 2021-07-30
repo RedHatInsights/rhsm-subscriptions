@@ -20,6 +20,17 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
@@ -39,18 +50,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
@@ -64,8 +63,7 @@ public class SubscriptionTableControllerTest {
   @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
 
-  @Autowired
-  SubscriptionTableController target;
+  @Autowired SubscriptionTableController target;
 
   @BeforeEach
   void setup() throws AccountListSourceException {
@@ -125,8 +123,8 @@ public class SubscriptionTableControllerTest {
         givenCapacities(Org.STANDARD, productId, RH0180191.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anyString(), any(), any(),any(), any()))
-            .thenReturn(givenCapacities);
+            any(), anyString(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -141,7 +139,8 @@ public class SubscriptionTableControllerTest {
     assertEquals(4, actualItem.getQuantity(), "Incorrect quantity");
     assertCapacities(8, 0, Uom.SOCKETS, actualItem);
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
-    assertEquals(SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
+    assertEquals(
+        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
     assertEquals(expectedSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
   }
 
@@ -160,7 +159,7 @@ public class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anyString(), any(), any(),any(), any()))
+            any(), anyString(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -281,7 +280,12 @@ public class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            eq("owner123456"), eq(RHEL.toString()), eq(ServiceLevel._ANY), eq(Usage._ANY), any(), any()))
+            eq("owner123456"),
+            eq(RHEL.toString()),
+            eq(ServiceLevel._ANY),
+            eq(Usage._ANY),
+            any(),
+            any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport report =
@@ -380,7 +384,6 @@ public class SubscriptionTableControllerTest {
             null);
     assertEquals(1, reportForMatchingUsage.getData().size());
   }
-
 
   @Test
   void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {

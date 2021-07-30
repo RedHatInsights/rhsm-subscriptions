@@ -20,14 +20,13 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.*;
-import org.hibernate.annotations.Immutable;
-import org.hibernate.annotations.Subselect;
-
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import java.time.OffsetDateTime;
+import lombok.*;
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.Subselect;
 
 @Entity
 @Immutable
