@@ -24,6 +24,8 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.context.annotation.Configuration;
@@ -45,6 +47,12 @@ public class SubscriptionServiceConfiguration {
   @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription")
   public SubscriptionServiceProperties subscriptionServiceProperties() {
     return new SubscriptionServiceProperties();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  KafkaConsumerRegistry kafkaConsumerRegistry() {
+    return new KafkaConsumerRegistry();
   }
 
   @Bean
