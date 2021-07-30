@@ -27,3 +27,4 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface SubscriptionCapacityViewRepository
     extends JpaRepository<SubscriptionCapacityView, SubscriptionCapacityKey>, JpaSpecificationExecutor<SubscriptionCapacityView> {}
+

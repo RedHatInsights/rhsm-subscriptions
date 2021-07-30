@@ -13,7 +13,7 @@ import java.util.Objects;
 
 @Builder
 @AllArgsConstructor(access= AccessLevel.PRIVATE)
-public class SubscriptionCapacityViewSpecification implements Specification<SubscriptionCapacityView> {
+class SubscriptionCapacityViewSpecification implements Specification<SubscriptionCapacityView> {
 
     private final transient List<SearchCriteria> criteria;
 
@@ -38,7 +38,7 @@ public class SubscriptionCapacityViewSpecification implements Specification<Subs
             expression = root.get("key").get("ownerId");
         } else if ("subscriptionId".equals(criteria.getKey())) {
             expression = root.get("key").get("subscriptionId");
-        }else if("productId".equals(criteria.getKey())){
+        } else if("productId".equals(criteria.getKey())){
             expression = root.get("key").get("productId");
         }  else {
             expression = root.get(criteria.getKey());
@@ -52,9 +52,12 @@ public class SubscriptionCapacityViewSpecification implements Specification<Subs
             return builder.greaterThanOrEqualTo(expression, (OffsetDateTime)criteria.getValue());
         } else if (criteria.getOperation().equals(SearchOperation.BEFORE_OR_ON)) {
             return builder.lessThanOrEqualTo(expression, (OffsetDateTime)criteria.getValue());
+        } else if (criteria.getOperation().equals(SearchOperation.IN)) {
+            return builder.in(expression).value(criteria.getValue());
+        } else if (criteria.getOperation().equals(SearchOperation.NOT_IN)) {
+            return builder.in(expression).value(criteria.getValue()).not();
         } else {
             return builder.equal(expression, criteria.getValue());
         }
     }
-
 }
