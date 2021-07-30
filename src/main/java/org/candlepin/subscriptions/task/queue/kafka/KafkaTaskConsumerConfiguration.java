@@ -41,7 +41,12 @@ import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 @Profile("kafka-queue")
 @Import(KafkaConfiguration.class)
 public class KafkaTaskConsumerConfiguration {
-  @Autowired KafkaConfigurator kafkaConfigurator;
+  KafkaConfigurator kafkaConfigurator;
+
+  @Autowired
+  public KafkaTaskConsumerConfiguration(KafkaConfigurator kafkaConfigurator) {
+    this.kafkaConfigurator = kafkaConfigurator;
+  }
 
   @Bean
   public KafkaApplicationListener gracefulShutdown() {
