@@ -84,48 +84,123 @@ class SubscriptionCapacityViewRepositoryTest {
     SubscriptionCapacityViewSpecification specification =
         SubscriptionCapacityViewSpecification
                 .builder().criteria(
-                        SearchCriteria.builder()
-                                .key("ownerId")
-                                .operation(SearchOperation.EQUAL)
-                                .value(OWNER_ID)
-                                .build()).build();
+                        List.of(SearchCriteria.builder().key("ownerId").operation(SearchOperation.EQUAL).value(premium.getOwnerId()).build(),
+                                SearchCriteria.builder().key("productId").operation(SearchOperation.EQUAL).value(premium.getProductId()).build(),
+                                SearchCriteria.builder().key("serviceLevel").operation(SearchOperation.EQUAL).value(premium.getServiceLevel()).build(),
+                                SearchCriteria.builder().key("usage").operation(SearchOperation.EQUAL).value(premium.getUsage()).build(),
+                                SearchCriteria.builder().key("beginDate").operation(SearchOperation.AFTER_OR_ON).value(premium.getBeginDate()).build(),
+                                SearchCriteria.builder().key("endDate").operation(SearchOperation.BEFORE_OR_ON).value(premium.getEndDate()).build())).build();
     List<SubscriptionCapacityView> all = repository.findAll(specification);
-    /*List<SubscriptionCapacityView> found = repository.findAll(
-            premium.getOwnerId(),
-            premium.getProductId(),
-            premium.getServiceLevel(),
-            premium.getUsage(),
-            NOWISH, FAR_FUTURE.plusMonths(1));*/
     assertEquals(2, all.size());
   }
 
-  /*@Transactional
+  @Transactional
+  @Test
+  void shouldFindAllSubsWithMatchingSLA() {
+
+    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12345");
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    standard.setSubscriptionId("12346");
+    standard.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+            List.of(
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(premium, standard));
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+
+    SubscriptionCapacityViewSpecification specification =
+            SubscriptionCapacityViewSpecification
+                    .builder().criteria(
+                            List.of(SearchCriteria.builder().key("serviceLevel").operation(SearchOperation.EQUAL).value(ServiceLevel.PREMIUM).build())).build();
+    List<SubscriptionCapacityView> all = repository.findAll(specification);
+    assertEquals(1, all.size());
+  }
+
+  @Transactional
+  @Test
+  void shouldFindAllSubsWithStartDateAfterOrOnThanGivenDate() {
+
+    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12345");
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(3), FAR_FUTURE.plusDays(1));
+    standard.setSubscriptionId("12346");
+    standard.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+            List.of(
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(premium, standard));
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+
+    SubscriptionCapacityViewSpecification specification =
+            SubscriptionCapacityViewSpecification
+                    .builder().criteria(
+                            List.of(SearchCriteria.builder().key("beginDate").operation(SearchOperation.AFTER_OR_ON).value(NOWISH.plusDays(1)).build())).build();
+    List<SubscriptionCapacityView> all = repository.findAll();
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    assertEquals(2, found.size());
+  }
+
+  @Transactional
+  @Test
+  void shouldFindAllSubsWithEndDateBeforeOrOnThanGivenDate() {
+
+    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    premium.setSubscriptionId("12345");
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(3), FAR_FUTURE.plusDays(1));
+    standard.setSubscriptionId("12346");
+    standard.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+            List.of(
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(premium, standard));
+    offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
+
+    SubscriptionCapacityViewSpecification specification =
+            SubscriptionCapacityViewSpecification
+                    .builder().criteria(
+                            List.of(SearchCriteria.builder().key("beginDate").operation(SearchOperation.BEFORE_OR_ON).value(FAR_FUTURE.plusYears(1)).build())).build();
+    List<SubscriptionCapacityView> all = repository.findAll();
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    assertEquals(2, found.size());
+  }
+
+  @Transactional
   @Test
   void shouldFilterCapacityWithUnmatchedSLA() {
 
     SubscriptionCapacity premium = createUnpersisted(NOWISH, FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12345");
     SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    premium.setSubscriptionId("12346");
-    premium.setServiceLevel(ServiceLevel.STANDARD);
+    standard.setSubscriptionId("12346");
+    standard.setServiceLevel(ServiceLevel.STANDARD);
     subscriptionRepository.saveAllAndFlush(
             List.of(
                     createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), premium.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate()),
-                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, premium.getSku(), standard.getSubscriptionId(), premium.getBeginDate(), premium.getEndDate())));
+                    createSubscription(OWNER_ID, ACCOUNT_NUMBER, standard.getSku(), standard.getSubscriptionId(), standard.getBeginDate(), standard.getEndDate())));
     subscriptionCapacityRepository.saveAll(List.of(premium, standard));
     offeringRepository.saveAndFlush(createOffering(premium.getSku(), Integer.parseInt(premium.getProductId()), null, premium.getUsage(), "role1"));
 
-    List<SubscriptionCapacityView> found = repository.findByKeyOwnerIdAndKeyProductIdAndServiceLevelAndUsageAndBeginDateGreaterThanEqualAndEndDateLessThanEqual(
-            premium.getOwnerId(),
-            premium.getProductId(),
-            premium.getServiceLevel(),
-            premium.getUsage(),
-            NOWISH.minusYears(1), FAR_FUTURE.plusMonths(1));
+    List<SubscriptionCapacityView> all = repository.findAll();
+    SubscriptionCapacityViewSpecification specification =
+            SubscriptionCapacityViewSpecification
+                    .builder().criteria(
+                            List.of(SearchCriteria.builder().key("ownerId").operation(SearchOperation.EQUAL).value(premium.getOwnerId()).build(),
+                                    SearchCriteria.builder().key("productId").operation(SearchOperation.EQUAL).value(premium.getProductId()).build(),
+                                    SearchCriteria.builder().key("serviceLevel").operation(SearchOperation.EQUAL).value(premium.getServiceLevel()).build(),
+                                    SearchCriteria.builder().key("usage").operation(SearchOperation.EQUAL).value(premium.getUsage()).build(),
+                                    SearchCriteria.builder().key("beginDate").operation(SearchOperation.AFTER_OR_ON).value(NOWISH.minusYears(1)).build(),
+                                    SearchCriteria.builder().key("endDate").operation(SearchOperation.BEFORE_OR_ON).value(FAR_FUTURE.plusMonths(1)).build())).build();
+
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(1, found.size());
     assertEquals(premium.getServiceLevel(), found.get(0).getServiceLevel());
   }
 
-  @Transactional
+  /*@Transactional
   @Test
   void shouldIgnoreNullSLAInputParam() {
 

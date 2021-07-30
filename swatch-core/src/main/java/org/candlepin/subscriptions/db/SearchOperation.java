@@ -31,6 +31,8 @@ public enum SearchOperation {
   CONTAINS,
   MATCH_START,
   MATCH_END,
+  AFTER_OR_ON,
+  BEFORE_OR_ON,
   IN,
   NOT_IN
 }
