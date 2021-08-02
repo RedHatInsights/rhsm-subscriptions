@@ -44,7 +44,7 @@ parameters:
   - name: CPU_LIMIT
     value: 1800m
   - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:4a75424
   - name: SPLUNK_FORWARDER_MEMORY_REQUEST
     value: 128Mi
   - name: SPLUNK_FORWARDER_MEMORY_LIMIT
