@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.candlepin.subscriptions.resource.ResourceUtils.getOwnerId;
-
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -117,7 +115,7 @@ public interface SubscriptionCapacityViewRepository
       Usage usage,
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
-    List<SearchCriteria> searchCriteria = defaultSearchCriteria(getOwnerId(), productId);
+    List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
 
     if (ServiceLevel.EMPTY.equals(serviceLevel) || ServiceLevel._ANY.equals(serviceLevel))
       searchCriteria.add(searchCriteriaForEmptyOrNullSLA());

@@ -27,6 +27,7 @@ import javax.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -51,31 +52,30 @@ public class SubscriptionCapacityViewSpecification
   private Predicate mapSingleSearchCriteriaToPredicate(
       Root<SubscriptionCapacityView> root, SearchCriteria criteria, CriteriaBuilder builder) {
 
-    Path expression = null;
-    if ("ownerId".equals(criteria.getKey())) {
-      expression = root.get("key").get("ownerId");
-    } else if ("subscriptionId".equals(criteria.getKey())) {
-      expression = root.get("key").get("subscriptionId");
-    } else if ("productId".equals(criteria.getKey())) {
-      expression = root.get("key").get("productId");
-    } else {
-      expression = root.get(criteria.getKey());
-    }
+    Path<?> expression = root;
+    if (SubscriptionCapacityKey_.OWNER_ID.equals(criteria.getKey())
+        || SubscriptionCapacityKey_.SUBSCRIPTION_ID.equals(criteria.getKey())
+        || SubscriptionCapacityKey_.PRODUCT_ID.equals(criteria.getKey()))
+      expression = root.get("key");
 
     if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
-      return builder.greaterThanOrEqualTo(expression, criteria.getValue().toString());
+      return builder.greaterThanOrEqualTo(
+          expression.get(criteria.getKey()), criteria.getValue().toString());
     } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {
-      return builder.lessThanOrEqualTo(expression, criteria.getValue().toString());
+      return builder.lessThanOrEqualTo(
+          expression.get(criteria.getKey()), criteria.getValue().toString());
     } else if (criteria.getOperation().equals(SearchOperation.AFTER_OR_ON)) {
-      return builder.greaterThanOrEqualTo(expression, (OffsetDateTime) criteria.getValue());
+      return builder.greaterThanOrEqualTo(
+          expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
     } else if (criteria.getOperation().equals(SearchOperation.BEFORE_OR_ON)) {
-      return builder.lessThanOrEqualTo(expression, (OffsetDateTime) criteria.getValue());
+      return builder.lessThanOrEqualTo(
+          expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
     } else if (criteria.getOperation().equals(SearchOperation.IN)) {
-      return builder.in(expression).value(criteria.getValue());
+      return builder.in(expression.get(criteria.getKey())).value(criteria.getValue());
     } else if (criteria.getOperation().equals(SearchOperation.NOT_IN)) {
-      return builder.in(expression).value(criteria.getValue()).not();
+      return builder.in(expression.get(criteria.getKey())).value(criteria.getValue()).not();
     } else {
-      return builder.equal(expression, criteria.getValue());
+      return builder.equal(expression.get(criteria.getKey()), criteria.getValue());
     }
   }
 }

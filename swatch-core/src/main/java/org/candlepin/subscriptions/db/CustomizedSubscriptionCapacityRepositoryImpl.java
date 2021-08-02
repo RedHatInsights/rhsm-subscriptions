@@ -30,7 +30,6 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityViewOld;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -57,46 +56,10 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
       Usage usage,
       OffsetDateTime reportBegin,
       OffsetDateTime reportEnd) {
-    return findCapacitiesByKeyOwnerIdAndKeyProductId(
-        SubscriptionCapacity.class,
-        ownerId,
-        productId,
-        serviceLevel,
-        usage,
-        reportBegin,
-        reportEnd);
-  }
-
-  @Override
-  public List<SubscriptionCapacityViewOld> findByKeyOwnerIdAndKeyProductId(
-      String ownerId,
-      String productId,
-      ServiceLevel serviceLevel,
-      Usage usage,
-      OffsetDateTime reportBegin,
-      OffsetDateTime reportEnd) {
-    return findCapacitiesByKeyOwnerIdAndKeyProductId(
-        SubscriptionCapacityViewOld.class,
-        ownerId,
-        productId,
-        serviceLevel,
-        usage,
-        reportBegin,
-        reportEnd);
-  }
-
-  private <T extends SubscriptionCapacity> List<T> findCapacitiesByKeyOwnerIdAndKeyProductId(
-      Class<T> clazz,
-      String ownerId,
-      String productId,
-      ServiceLevel serviceLevel,
-      Usage usage,
-      OffsetDateTime reportBegin,
-      OffsetDateTime reportEnd) {
 
     CriteriaBuilder cb = em.getCriteriaBuilder();
-    CriteriaQuery<T> cq = cb.createQuery(clazz);
-    Root<T> capacity = cq.from(clazz);
+    CriteriaQuery<SubscriptionCapacity> cq = cb.createQuery(SubscriptionCapacity.class);
+    Root<SubscriptionCapacity> capacity = cq.from(SubscriptionCapacity.class);
 
     List<Predicate> predicates = new ArrayList<>();
     predicates.add(cb.equal(capacity.get("key").get("ownerId"), ownerId));
