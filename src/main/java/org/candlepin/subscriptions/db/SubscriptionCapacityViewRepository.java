@@ -44,7 +44,7 @@ public interface SubscriptionCapacityViewRepository
         SubscriptionCapacityViewSpecification.builder()
             .criteria(
                 buildSearchCriteria(
-                    getOwnerId(), productId, serviceLevel, usage, reportStart, reportEnd))
+                    ownerId, productId, serviceLevel, usage, reportStart, reportEnd))
             .build());
   }
 

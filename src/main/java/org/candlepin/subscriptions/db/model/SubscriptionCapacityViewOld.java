@@ -20,21 +20,21 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import javax.persistence.FetchType;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapsId;
-import javax.persistence.OneToOne;
+import javax.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /**
  * A data projection around SubscriptionCapacity, Subscription, and Offering necessary to give us a
  * view of the data to be returned in the Subscription Table API.
  */
+@EqualsAndHashCode
 public class SubscriptionCapacityViewOld extends SubscriptionCapacity {
 
   @ToString.Exclude
   @MapsId("subscription_id")
   @OneToOne(fetch = FetchType.EAGER)
+  @Transient
   private Subscription subscription;
 
   @ToString.Exclude

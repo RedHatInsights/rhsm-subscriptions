@@ -45,7 +45,6 @@ public class SubscriptionCapacityViewSpecification
         criteria.stream()
             .map(c -> mapSingleSearchCriteriaToPredicate(root, c, builder))
             .filter(Objects::nonNull)
-            .peek(c -> System.out.println("Predicate returned: " + c.toString()))
             .toArray(Predicate[]::new));
   }
 

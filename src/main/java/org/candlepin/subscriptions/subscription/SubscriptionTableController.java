@@ -26,7 +26,6 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import javax.validation.constraints.Min;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityViewSpecification;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -39,9 +38,8 @@ public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   private final ApplicationClock clock;
-  private SubscriptionCapacityViewSpecification specification;
 
-  private SubscriptionTableController(
+  SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
       ApplicationClock clock) {
     this.subscriptionCapacityViewRepository = subscriptionCapacityViewRepository;
@@ -50,8 +48,6 @@ public class SubscriptionTableController {
 
   public SkuCapacityReport getSkuCapacityReport(
       ProductId productId,
-      OffsetDateTime beginning,
-      OffsetDateTime ending,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
       ServiceLevelType sla,

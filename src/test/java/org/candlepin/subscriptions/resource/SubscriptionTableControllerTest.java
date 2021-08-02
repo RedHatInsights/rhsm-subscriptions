@@ -53,7 +53,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
-public class SubscriptionTableControllerTest {
+class SubscriptionTableControllerTest {
 
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
@@ -128,8 +128,7 @@ public class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(
-            productId, null, null, null, null, null, null, null, null, null);
+        target.getSkuCapacityReport(productId, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -164,8 +163,7 @@ public class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(
-            productId, null, null, null, null, null, null, null, null, null);
+        target.getSkuCapacityReport(productId, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -213,7 +211,7 @@ public class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
         target.getSkuCapacityReport(
-            productId, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            productId, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
 
     // Then the report contains two inventory items containing a sub with appropriate
     // quantity and capacities, and RH00604F5 is listed first.
@@ -259,8 +257,7 @@ public class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(
-            productId, null, null, null, null, null, null, null, null, null);
+        target.getSkuCapacityReport(productId, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -290,7 +287,7 @@ public class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         target.getSkuCapacityReport(
-            RHEL, min, max, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            RHEL, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(1, report.getData().size());
   }
 
@@ -313,8 +310,6 @@ public class SubscriptionTableControllerTest {
     SkuCapacityReport reportForUnmatchedSLA =
         target.getSkuCapacityReport(
             RHEL_SERVER,
-            min,
-            max,
             null,
             null,
             ServiceLevelType.PREMIUM,
@@ -327,8 +322,6 @@ public class SubscriptionTableControllerTest {
     SkuCapacityReport reportForMatchingSLA =
         target.getSkuCapacityReport(
             RHEL_SERVER,
-            min,
-            max,
             null,
             null,
             ServiceLevelType.STANDARD,
@@ -359,8 +352,6 @@ public class SubscriptionTableControllerTest {
     SkuCapacityReport reportForUnmatchedUsage =
         target.getSkuCapacityReport(
             RHEL_SERVER,
-            min,
-            max,
             null,
             null,
             null,
@@ -373,8 +364,6 @@ public class SubscriptionTableControllerTest {
     SkuCapacityReport reportForMatchingUsage =
         target.getSkuCapacityReport(
             RHEL_SERVER,
-            min,
-            max,
             null,
             null,
             null,
@@ -383,128 +372,6 @@ public class SubscriptionTableControllerTest {
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(1, reportForMatchingUsage.getData().size());
-  }
-
-  @Test
-  void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        capacity.setVirtualSockets(5);
-    //        capacity.setPhysicalSockets(2);
-    //        capacity.setVirtualCores(20);
-    //        capacity.setPhysicalCores(8);
-    //        capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
-    //        capacity.setEndDate(max);
-    //
-    //        SubscriptionCapacity capacity2 = new SubscriptionCapacity();
-    //        capacity2.setVirtualSockets(7);
-    //        capacity2.setPhysicalSockets(11);
-    //        capacity2.setVirtualCores(14);
-    //        capacity2.setPhysicalCores(22);
-    //        capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
-    //        capacity2.setEndDate(max);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                eq("owner123456"), eq(RHEL.toString()), eq(null), eq(null), eq(min), eq(max)))
-    //                .thenReturn(Arrays.asList(capacity, capacity2));
-    //
-    //        CapacityReport report =
-    //                resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null,
-    // null, null);
-    //
-    //        CapacitySnapshot capacitySnapshot = report.getData().get(0);
-    //        assertEquals(12, capacitySnapshot.getHypervisorSockets().intValue());
-    //        assertEquals(13, capacitySnapshot.getPhysicalSockets().intValue());
-    //        assertEquals(34, capacitySnapshot.getHypervisorCores().intValue());
-    //        assertEquals(30, capacitySnapshot.getPhysicalCores().intValue());
-  }
-
-  @Test
-  void testShouldThrowExceptionOnBadOffset() {
-    //        SubscriptionsException e =
-    //                assertThrows(
-    //                        SubscriptionsException.class,
-    //                        () -> {
-    //                            resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max,
-    // 11, 10, null, null);
-    //                        });
-    //        assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
-  }
-
-  @Test
-  void testShouldRespectOffsetAndLimit() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        capacity.setBeginDate(min);
-    //        capacity.setEndDate(max);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                eq("owner123456"),
-    //                eq(RHEL.toString()),
-    //                eq(ServiceLevel._ANY),
-    //                eq(Usage._ANY),
-    //                eq(min),
-    //                eq(max)))
-    //                .thenReturn(Collections.singletonList(capacity));
-    //
-    //        CapacityReport report =
-    //                resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, 1, 1, null,
-    // null);
-    //
-    //        assertEquals(1, report.getData().size());
-    //        assertEquals(
-    //                OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
-    //                report.getData().get(0).getDate());
-  }
-
-  @Test
-  @WithMockRedHatPrincipal("1111")
-  public void testAccessDeniedWhenAccountIsNotWhitelisted() {
-    //        assertThrows(
-    //                AccessDeniedException.class,
-    //                () -> {
-    //                    resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null,
-    // null, null, null);
-    //                });
-  }
-
-  @Test
-  @WithMockRedHatPrincipal(
-      value = "123456",
-      roles = {})
-  public void testAccessDeniedWhenUserIsNotAnAdmin() {
-    //        assertThrows(
-    //                AccessDeniedException.class,
-    //                () -> {
-    //                    resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null,
-    // null, null, null);
-    //                });
-  }
-
-  @Test
-  void testGetCapacitiesWeekly() {
-    //        SubscriptionCapacity capacity = new SubscriptionCapacity();
-    //        OffsetDateTime begin = OffsetDateTime.parse("2020-12-03T10:15:30+00:00");
-    //        OffsetDateTime end = OffsetDateTime.parse("2020-12-17T10:15:30+00:00");
-    //        capacity.setBeginDate(begin);
-    //        capacity.setEndDate(end);
-    //
-    //        when(repository.findByOwnerAndProductId(
-    //                "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, begin,
-    // end))
-    //                .thenReturn(Collections.singletonList(capacity));
-    //
-    //        List<CapacitySnapshot> actual =
-    //                resource.getCapacities(
-    //                        "owner123456",
-    //                        RHEL,
-    //                        ServiceLevel.STANDARD,
-    //                        Usage.PRODUCTION,
-    //                        Granularity.WEEKLY,
-    //                        begin,
-    //                        end);
-    //
-    //        // Add one because we generate reports including both endpoints on the timeline
-    //        long expected = ChronoUnit.WEEKS.between(begin, end) + 1;
-    //        assertEquals(expected, actual.size());
   }
 
   private static void assertCapacities(
