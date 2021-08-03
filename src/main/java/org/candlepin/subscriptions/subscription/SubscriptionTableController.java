@@ -46,7 +46,7 @@ public class SubscriptionTableController {
     this.clock = clock;
   }
 
-  public SkuCapacityReport getSkuCapacityReport(
+  public SkuCapacityReport getSkuCapacityReport( // NOSONAR
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
