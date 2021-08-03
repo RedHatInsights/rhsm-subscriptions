@@ -18,11 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.subscription;
 
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
@@ -38,8 +40,8 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.subscription.SubscriptionTableController;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
@@ -48,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -63,7 +66,7 @@ class SubscriptionTableControllerTest {
   @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
 
-  @Autowired SubscriptionTableController target;
+  @Autowired SubscriptionTableController subscriptionTableController;
 
   @BeforeEach
   void setup() throws AccountListSourceException {
@@ -128,7 +131,8 @@ class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(productId, null, null, null, null, null, null, null);
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -163,7 +167,8 @@ class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(productId, null, null, null, null, null, null, null);
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -210,7 +215,7 @@ class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(
+        subscriptionTableController.capacityReportBySku(
             productId, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
 
     // Then the report contains two inventory items containing a sub with appropriate
@@ -257,7 +262,8 @@ class SubscriptionTableControllerTest {
 
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
-        target.getSkuCapacityReport(productId, null, null, null, null, null, null, null);
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -286,7 +292,7 @@ class SubscriptionTableControllerTest {
         .thenReturn(givenCapacities);
 
     SkuCapacityReport report =
-        target.getSkuCapacityReport(
+        subscriptionTableController.capacityReportBySku(
             RHEL, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(1, report.getData().size());
   }
@@ -308,7 +314,7 @@ class SubscriptionTableControllerTest {
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedSLA =
-        target.getSkuCapacityReport(
+        subscriptionTableController.capacityReportBySku(
             RHEL_SERVER,
             null,
             null,
@@ -320,7 +326,7 @@ class SubscriptionTableControllerTest {
     assertEquals(0, reportForUnmatchedSLA.getData().size());
 
     SkuCapacityReport reportForMatchingSLA =
-        target.getSkuCapacityReport(
+        subscriptionTableController.capacityReportBySku(
             RHEL_SERVER,
             null,
             null,
@@ -350,7 +356,7 @@ class SubscriptionTableControllerTest {
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedUsage =
-        target.getSkuCapacityReport(
+        subscriptionTableController.capacityReportBySku(
             RHEL_SERVER,
             null,
             null,
@@ -362,7 +368,7 @@ class SubscriptionTableControllerTest {
     assertEquals(0, reportForUnmatchedUsage.getData().size());
 
     SkuCapacityReport reportForMatchingUsage =
-        target.getSkuCapacityReport(
+        subscriptionTableController.capacityReportBySku(
             RHEL_SERVER,
             null,
             null,
@@ -372,6 +378,54 @@ class SubscriptionTableControllerTest {
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(1, reportForMatchingUsage.getData().size());
+  }
+
+  @Test
+  void testShouldThrowExceptionOnBadOffset() {
+    SubscriptionsException e =
+        assertThrows(
+            SubscriptionsException.class,
+            () ->
+                subscriptionTableController.capacityReportBySku(
+                    RHEL_SERVER,
+                    11,
+                    10,
+                    null,
+                    UsageType.PRODUCTION,
+                    null,
+                    SkuCapacityReportSort.SKU,
+                    null));
+    assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+  }
+
+  @Test
+  @WithMockRedHatPrincipal("1111")
+  public void testAccessDeniedWhenAccountIsNotWhitelisted() {
+    assertThrows(
+        AccessDeniedException.class,
+        () ->
+            subscriptionTableController.capacityReportBySku(
+                RHEL_SERVER,
+                0,
+                10,
+                null,
+                UsageType.PRODUCTION,
+                null,
+                SkuCapacityReportSort.SKU,
+                null));
+  }
+
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "123456",
+      roles = {})
+  public void testAccessDeniedWhenUserIsNotAnAdmin() {
+    //        assertThrows(
+    //                AccessDeniedException.class,
+    //                () -> {
+    //                    resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null,
+    // null, null, null);
+    //                });
   }
 
   private static void assertCapacities(

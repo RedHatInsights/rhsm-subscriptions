@@ -54,7 +54,7 @@ public class SubscriptionResource implements SubscriptionsApi {
       SkuCapacityReportSort sort,
       SortDirection dir) {
 
-    return subscriptionTableController.getSkuCapacityReport(
+    return subscriptionTableController.capacityReportBySku(
         productId, offset, limit, sla, usage, uom, sort, dir);
   }
 }

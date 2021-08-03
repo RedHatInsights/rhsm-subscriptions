@@ -29,8 +29,10 @@ import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -46,7 +48,7 @@ public class SubscriptionTableController {
     this.clock = clock;
   }
 
-  public SkuCapacityReport getSkuCapacityReport( // NOSONAR
+  public SkuCapacityReport capacityReportBySku( // NOSONAR
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
@@ -90,8 +92,9 @@ public class SubscriptionTableController {
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
+    Pageable pageable = ResourceUtils.getPageable(offset, limit);
+    reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);
-    reportItems = getPage(reportItems, offset, limit);
 
     return new SkuCapacityReport()
         .data(reportItems)
@@ -102,6 +105,15 @@ public class SubscriptionTableController {
                 .usage(usage)
                 .uom(uom)
                 .product(productId));
+  }
+
+  private List<SkuCapacity> paginate(List<SkuCapacity> capacities, Pageable pageable) {
+    if (pageable == null) {
+      return capacities;
+    }
+    int offset = pageable.getPageNumber() * pageable.getPageSize();
+    int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
+    return capacities.subList(offset, lastIndex);
   }
 
   public SkuCapacity initializeDefaultSkuCapacity(
