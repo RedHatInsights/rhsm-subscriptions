@@ -44,16 +44,22 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
   @Override
   public Response toResponse(T exception) {
     Error error = buildError(exception);
-    String message =
-        StringUtils.hasText(error.getCode())
-            ? String.format("%s: %s", error.getCode(), error.getTitle())
-            : error.getTitle();
+
+    StringBuilder messageBuf = new StringBuilder();
+    if (StringUtils.hasText(error.getCode())) {
+      messageBuf.append(error.getCode()).append(": ");
+    }
+    messageBuf.append(error.getTitle());
+    if (StringUtils.hasText(error.getDetail())) {
+      messageBuf.append(" - ").append(error.getDetail());
+    }
+
     Class<?> exClass = exception.getClass();
     if (AccessDeniedException.class.isAssignableFrom(exClass)
         || AuthenticationException.class.isAssignableFrom(exClass)) {
-      log.error(SECURITY_STACKTRACE, message, exception);
+      log.error(SECURITY_STACKTRACE, "{}", messageBuf, exception);
     } else {
-      log.error(message, exception);
+      log.error("{}", messageBuf, exception);
     }
     return ExceptionUtil.toResponse(error);
   }
