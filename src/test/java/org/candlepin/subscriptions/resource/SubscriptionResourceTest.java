@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
@@ -28,12 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.time.OffsetDateTime;
-
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
