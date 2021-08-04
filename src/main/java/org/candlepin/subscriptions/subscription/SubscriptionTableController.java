@@ -243,25 +243,4 @@ public class SubscriptionTableController {
           return diff * sortDir;
         });
   }
-
-  private static List<SkuCapacity> getPage(List<SkuCapacity> items, Integer offset, Integer limit) {
-    // Default to starting from the first item on the list
-    int fromIndex = 0;
-    if (offset != null) {
-      fromIndex = offset;
-    }
-
-    // Don't return all objects if the limit results in less items returned, default to all
-    int toIndex = items.size();
-    if (limit != null && offset + limit < toIndex) {
-      toIndex = offset + limit;
-    }
-
-    // If the page is beyond the size of the list then return an empty list, otherwise
-    // return the sublist.
-    if (toIndex <= fromIndex) {
-      return Collections.emptyList();
-    }
-    return items.subList(fromIndex, toIndex);
-  }
 }

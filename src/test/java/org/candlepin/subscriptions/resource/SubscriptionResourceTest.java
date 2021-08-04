@@ -46,7 +46,7 @@ class SubscriptionResourceTest {
 
   @Test
   @WithMockRedHatPrincipal("1111")
-  public void testAccessDeniedWhenAccountIsNotWhitelisted() {
+  void testAccessDeniedWhenAccountIsNotWhitelisted() {
     assertThrows(
         AccessDeniedException.class,
         () ->
@@ -67,7 +67,7 @@ class SubscriptionResourceTest {
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
-  public void testAccessDeniedWhenUserIsNotAnAdmin() {
+  void testAccessDeniedWhenUserIsNotAnAdmin() {
     assertThrows(
         AccessDeniedException.class,
         () ->
