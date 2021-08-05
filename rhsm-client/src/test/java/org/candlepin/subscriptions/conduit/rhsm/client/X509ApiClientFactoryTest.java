@@ -29,6 +29,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import javax.net.ssl.SSLException;
@@ -114,7 +115,10 @@ class X509ApiClientFactoryTest {
 
     client.setBasePath(server.baseUrl());
     Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));
-    assertThat(e.getCause(), instanceOf(SSLException.class));
+    // NOTE: openjdk behavior changed w/ https://bugs.openjdk.java.net/browse/JDK-8263435
+    // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
+    // Using IOException (superclass of both) makes the test less brittle
+    assertThat(e.getCause(), instanceOf(IOException.class));
   }
 
   /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
