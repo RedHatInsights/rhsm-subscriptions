@@ -27,12 +27,14 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -42,6 +44,9 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +64,8 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Autowired ProductProfileRegistry registry;
 
+  @Autowired TagProfile tagProfile;
+
   @MockBean TallySnapshotRepository repo;
 
   @MockBean SnapshotSummaryProducer producer;
@@ -75,6 +82,10 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "account123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
         Map.of(
             OffsetDateTime.parse("2021-02-25T12:00:00Z"),
             noonUsage,
@@ -120,6 +131,10 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation day2Usage = createAccountUsageCalculation(usageKey, 3.0);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "account123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
         Map.of(hourlyTimestamp1, day1Usage, hourlyTimestamp2, day2Usage),
         Granularity.HOURLY,
         Double::sum);
@@ -179,6 +194,10 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "account123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
         Map.of(
             OffsetDateTime.parse("2021-02-25T12:00:00Z"),
             noonUsage,
@@ -224,6 +243,10 @@ class CombiningRollupSnapshotStrategyTest {
 
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "account123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
         Map.of(
             OffsetDateTime.parse("2021-02-25T12:00:00Z"),
             noonUsage,
@@ -247,6 +270,62 @@ class CombiningRollupSnapshotStrategyTest {
             .orElse(null);
     assertThat(talliesSaved, containsInAnyOrder(noonSnapshot, afternoonSnapshot, dailySnapshot));
     assertNotNull(actual);
+  }
+
+  @Test
+  void testFinestGranularitySnapsZeroOutOldMeasurementsWhenDataNoLongerFound() {
+    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+
+    TallySnapshot noonSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
+    TallySnapshot afternoonSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z", 3.0);
+    TallySnapshot dailySnapshot =
+        createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
+
+    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), eq(Granularity.HOURLY), any(), any()))
+        .thenReturn(Arrays.asList(noonSnapshot, afternoonSnapshot).stream());
+
+    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), eq(Granularity.DAILY), any(), any()))
+        .thenReturn(Arrays.asList(dailySnapshot).stream());
+
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
+
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "account123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        Map.of(OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage),
+        Granularity.HOURLY,
+        Double::sum);
+
+    ArgumentCaptor<TallySnapshot> tallySaveCapture = ArgumentCaptor.forClass(TallySnapshot.class);
+    // 1 - noon snapshot that was reset
+    // 1 - afternoonSnapshot that was updated.
+    // 1 - daily snapshot that was updated.
+    verify(repo, times(3)).save(tallySaveCapture.capture());
+
+    List<TallySnapshot> talliesSaved = tallySaveCapture.getAllValues();
+    assertThat(talliesSaved, containsInAnyOrder(noonSnapshot, afternoonSnapshot, dailySnapshot));
+
+    // Any hourly tallies that were not represented by a calculation should have been reset.
+    noonSnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(0.0, v));
+
+    // Afternoon snapshot measurements should reflect the calculation.
+    afternoonSnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(3.0, v));
+
+    // Daily snapshot should total only the after noon tally since we did not include
+    // the afternoon tally in the calculation.
+    dailySnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(3.0, v));
   }
 
   private AccountUsageCalculation createAccountUsageCalculation(

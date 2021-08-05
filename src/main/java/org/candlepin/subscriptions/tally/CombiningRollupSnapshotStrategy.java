@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.DoubleBinaryOperator;
@@ -76,6 +77,9 @@ public class CombiningRollupSnapshotStrategy {
   }
 
   /**
+   * @param accountNumber The target account
+   * @param affectedRange the overall date range that we looked for calculations
+   * @param affectedProductTags the set of product tags that are applicable
    * @param accountCalcs Map of times and account calculations at that time
    * @param finestGranularity the base granularity to be used for the calculations
    * @param reductionFunction how to reduce the set of lower granularity snapshots its higher
@@ -84,31 +88,21 @@ public class CombiningRollupSnapshotStrategy {
   @Transactional
   public void produceSnapshotsFromCalculations(
       String accountNumber,
+      DateRange affectedRange,
+      Set<String> affectedProductTags,
       Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
       Granularity finestGranularity,
       DoubleBinaryOperator reductionFunction) {
 
-    if (accountCalcs.isEmpty()) {
-      // nothing to do here, return early
-      log.info(
-          "No account calculations available. No snapshots will be produced for account: {}",
-          accountNumber);
-      return;
-    }
-
-    Set<String> swatchProductIds = getSwatchProductIds(accountCalcs);
-
     Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots = new HashMap<>();
     Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots = new HashMap<>();
 
-    DateRange reportRange = DateRange.from(accountCalcs.keySet());
     catalogExistingSnapshots(
         accountNumber,
-        reportRange.getStartDate(),
-        reportRange.getEndDate(),
+        affectedRange,
         totalExistingSnapshots,
         derivedExistingSnapshots,
-        swatchProductIds);
+        affectedProductTags);
 
     List<TallySnapshot> finestGranularitySnapshots =
         produceFinestGranularitySnapshots(totalExistingSnapshots, accountCalcs, finestGranularity);
@@ -145,8 +139,7 @@ public class CombiningRollupSnapshotStrategy {
 
   private void catalogExistingSnapshots(
       String accountNumber,
-      OffsetDateTime startDateTime,
-      OffsetDateTime endDateTime,
+      DateRange reportDateRange,
       Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots,
       Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots,
       Set<String> swatchProductIds) {
@@ -162,21 +155,26 @@ public class CombiningRollupSnapshotStrategy {
 
       if (granularityWillBeRolledUp) {
         // need to fetch all component snapshots of the rollups affected
-        effectiveStartTime = clock.calculateStartOfRange(startDateTime, rollupGranularity);
-        effectiveEndTime = clock.calculateEndOfRange(endDateTime, rollupGranularity);
+        effectiveStartTime =
+            clock.calculateStartOfRange(reportDateRange.getStartDate(), rollupGranularity);
+        effectiveEndTime =
+            clock.calculateEndOfRange(reportDateRange.getEndDate(), rollupGranularity);
       } else {
-        effectiveStartTime = clock.calculateStartOfRange(startDateTime, granularity);
-        effectiveEndTime = endDateTime;
+        effectiveStartTime =
+            clock.calculateStartOfRange(reportDateRange.getStartDate(), granularity);
+        effectiveEndTime = reportDateRange.getEndDate();
       }
 
-      var existingSnapshots =
+      var snapMap =
           getCurrentSnapshotsByAccount(
-                  List.of(accountNumber),
-                  swatchProductIds,
-                  granularity,
-                  effectiveStartTime,
-                  effectiveEndTime)
-              .getOrDefault(accountNumber, Collections.emptyList());
+              List.of(accountNumber),
+              swatchProductIds,
+              granularity,
+              effectiveStartTime,
+              effectiveEndTime);
+
+      List<TallySnapshot> existingSnapshots =
+          snapMap.getOrDefault(accountNumber, Collections.emptyList());
 
       existingSnapshots.forEach(
           snap -> {
@@ -269,7 +267,22 @@ public class CombiningRollupSnapshotStrategy {
       Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
       Granularity granularity) {
 
-    List<TallySnapshot> saved = new ArrayList<>();
+    List<TallySnapshot> toSave = new ArrayList<>();
+
+    Map<TallySnapshotNaturalKey, TallySnapshot> affectedSnaps =
+        existingSnapshotLookup.entrySet().stream()
+            .filter(existing -> existing.getValue().getGranularity() == granularity)
+            .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+
+    // Reset the measurements for all existing finest granularity snapshots so that
+    // they reflect the values of the incoming account calculations.
+    affectedSnaps.values().stream()
+        .forEach(
+            existing ->
+                existing
+                    .getTallyMeasurements()
+                    .keySet()
+                    .forEach(key -> existing.getTallyMeasurements().put(key, 0.0)));
 
     accountCalcs.forEach(
         (offset, accountCalc) -> {
@@ -283,7 +296,7 @@ public class CombiningRollupSnapshotStrategy {
                     usageKey.getUsage(),
                     offset);
 
-            TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
+            TallySnapshot existing = affectedSnaps.remove(snapshotKey);
             TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
 
             UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
@@ -296,10 +309,13 @@ public class CombiningRollupSnapshotStrategy {
                 granularity);
 
             snapshot.setSnapshotDate(offset);
-            saved.add(tallyRepo.save(snapshot));
+            toSave.add(tallyRepo.save(snapshot));
           }
         });
-    return saved;
+
+    // Add remaining snaps from the affected as they will have been reset.
+    affectedSnaps.values().forEach(snapshot -> toSave.add(tallyRepo.save(snapshot)));
+    return toSave;
   }
 
   private List<TallySnapshot> produceRollups(
