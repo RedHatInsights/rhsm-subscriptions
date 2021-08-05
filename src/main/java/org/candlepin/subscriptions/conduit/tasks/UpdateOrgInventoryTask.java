@@ -53,7 +53,7 @@ public class UpdateOrgInventoryTask implements Task {
     } catch (MissingAccountNumberException e) {
       log.warn("Org {} is missing account number", orgId);
     } catch (ApiException e) {
-      log.error("Exception calling RHSM", e);
+      log.error("Exception calling RHSM for org {}", orgId, e);
     }
   }
 }
