@@ -70,7 +70,7 @@ public enum ErrorCode {
   SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR(
       3001, "Could not find marketplace subscription id");
 
-  private final String CODE_PREFIX = "SUBSCRIPTIONS";
+  private static final String CODE_PREFIX = "SUBSCRIPTIONS";
 
   private String code;
   private String description;

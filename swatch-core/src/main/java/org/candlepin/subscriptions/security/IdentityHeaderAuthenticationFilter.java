@@ -57,7 +57,7 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
     String identityHeader = request.getHeader(RH_IDENTITY_HEADER);
 
     // If the header is missing it will be passed down the chain.
-    if (StringUtils.isEmpty(identityHeader)) {
+    if (!StringUtils.hasText(identityHeader)) {
       log.debug("{} is empty", RH_IDENTITY_HEADER);
       return null;
     }

@@ -425,7 +425,7 @@ public class InventoryController {
     // Abort
     // and return an empty stream.  No sense in wasting time looping through everything.
     try {
-      if (StringUtils.isEmpty(feedPage.getBody().get(0).getAccountNumber())) {
+      if (!StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
         throw new MissingAccountNumberException();
       }
     } catch (NoSuchElementException e) {

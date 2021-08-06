@@ -29,9 +29,9 @@ import org.candlepin.subscriptions.utilization.api.model.Error;
  */
 public class SubscriptionsException extends RuntimeException {
 
-  private Status status;
-  private String detail;
-  private ErrorCode code;
+  private final Status status;
+  private final String detail;
+  private final ErrorCode code;
 
   public SubscriptionsException(ErrorCode code, Status status, String message, String detail) {
     this(code, status, message, detail, null);

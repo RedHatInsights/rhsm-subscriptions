@@ -60,7 +60,7 @@ public class HawtioConfiguration {
       ServletContext servletContext,
       CustomHawtioProperties props)
       throws ServletException {
-    if (!StringUtils.isEmpty(props.getHawtioBasePath())) {
+    if (StringUtils.hasText(props.getHawtioBasePath())) {
       BaseTagHrefFilter baseTagHrefFilter = filter.getFilter();
       BaseTagHrefFilterConfigOverride filterConfig =
           new BaseTagHrefFilterConfigOverride(servletContext);

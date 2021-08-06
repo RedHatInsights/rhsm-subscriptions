@@ -36,7 +36,7 @@ public class RbacService {
     // Get all permissions for the configured application name.
     try (Stream<Access> accessStream = api.getCurrentUserAccess(rbacAppName).stream()) {
       return accessStream
-          .filter(access -> access != null && !StringUtils.isEmpty(access.getPermission()))
+          .filter(access -> access != null && StringUtils.hasText(access.getPermission()))
           .map(Access::getPermission)
           .collect(Collectors.toList());
     }
