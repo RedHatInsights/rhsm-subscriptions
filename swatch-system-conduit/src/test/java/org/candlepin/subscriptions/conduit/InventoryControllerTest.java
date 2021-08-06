@@ -101,8 +101,8 @@ class InventoryControllerTest {
         .thenReturn(pageOf(consumer1, consumer2));
     controller.updateInventoryForOrg("123");
 
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(expectedFacts1));
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(expectedFacts2));
+    verify(inventoryService).scheduleHostUpdate(expectedFacts1);
+    verify(inventoryService).scheduleHostUpdate(expectedFacts2);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
 
@@ -143,7 +143,7 @@ class InventoryControllerTest {
     expected.setOrgId("456");
     expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid.toString());
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
+    verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
 
@@ -178,7 +178,7 @@ class InventoryControllerTest {
     expected.setOrgId("456");
     expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid1.toString());
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
+    verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
     verifyNoMoreInteractions(inventoryService);
   }
@@ -220,7 +220,7 @@ class InventoryControllerTest {
         .thenReturn(pageOf(consumer1, consumer2));
 
     controller.updateInventoryForOrg("123");
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(expected));
+    verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
 
@@ -499,8 +499,8 @@ class InventoryControllerTest {
     cfacts2.setOrgId("456");
     cfacts2.setAccountNumber("account");
     cfacts2.setSubscriptionManagerId(uuid2.toString());
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts1));
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts2));
+    verify(inventoryService).scheduleHostUpdate(cfacts1);
+    verify(inventoryService).scheduleHostUpdate(cfacts2);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
 
@@ -580,7 +580,7 @@ class InventoryControllerTest {
     cfacts.setAccountNumber("account");
     cfacts.setSubscriptionManagerId(uuid.toString());
     cfacts.setSysPurposeSla("Premium");
-    verify(inventoryService).scheduleHostUpdate(Mockito.eq(cfacts));
+    verify(inventoryService).scheduleHostUpdate(cfacts);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
 

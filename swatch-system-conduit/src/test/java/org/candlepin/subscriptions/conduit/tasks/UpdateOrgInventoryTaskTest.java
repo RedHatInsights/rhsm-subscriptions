@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.conduit.tasks;
 
-import static org.mockito.BDDMockito.*;
-
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
@@ -41,6 +39,6 @@ class UpdateOrgInventoryTaskTest {
     String expectedOrg = "my-org";
     UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg, null);
     task.execute();
-    Mockito.verify(controller).updateInventoryForOrg(eq(expectedOrg), eq(null));
+    Mockito.verify(controller).updateInventoryForOrg(expectedOrg, null);
   }
 }

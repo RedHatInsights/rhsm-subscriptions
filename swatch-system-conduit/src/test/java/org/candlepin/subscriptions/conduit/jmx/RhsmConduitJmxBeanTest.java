@@ -82,7 +82,7 @@ class RhsmConduitJmxBeanTest {
       throws MissingAccountNumberException, ApiException, RhsmJmxException {
     RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
     jmxBean.getInventoryForOrg("org-1234", null);
-    Mockito.verify(controller).getInventoryForOrg(Mockito.eq("org-1234"), Mockito.eq(null));
+    Mockito.verify(controller).getInventoryForOrg("org-1234", null);
   }
 
   @Test
@@ -90,7 +90,7 @@ class RhsmConduitJmxBeanTest {
       throws RhsmJmxException, MissingAccountNumberException, ApiException {
     RhsmConduitJmxBean jmxBean = new RhsmConduitJmxBean(controller, repo, tasks, clock);
     jmxBean.syncOrg("org-1234");
-    Mockito.verify(controller).updateInventoryForOrg(Mockito.eq("org-1234"));
+    Mockito.verify(controller).updateInventoryForOrg("org-1234");
   }
 
   private Iterable<? extends OrgConfig> matchOrgs(String... orgIds) {

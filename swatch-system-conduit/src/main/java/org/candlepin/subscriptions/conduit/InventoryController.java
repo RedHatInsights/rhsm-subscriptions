@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.conduit;
 
-import com.google.common.collect.ImmutableSet;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -97,8 +96,7 @@ public class InventoryController {
   public static final String UNKNOWN = "unknown";
   public static final String TRUE = "True";
   public static final String NONE = "none";
-  public static final Set<String> IGNORED_CONSUMER_TYPES =
-      ImmutableSet.of("candlepin", "satellite", "sam");
+  public static final Set<String> IGNORED_CONSUMER_TYPES = Set.of("candlepin", "satellite", "sam");
 
   private InventoryService inventoryService;
   private RhsmService rhsmService;
@@ -441,7 +439,7 @@ public class InventoryController {
   @SuppressWarnings("indentation")
   private Optional<ConduitFacts> validateConsumer(Consumer consumer) {
     try {
-      if (IGNORED_CONSUMER_TYPES.contains(consumer.getType())) {
+      if (consumer.getType() != null && IGNORED_CONSUMER_TYPES.contains(consumer.getType())) {
         return Optional.empty();
       }
       ConduitFacts facts = transformHostTimer.recordCallable(() -> getFactsFromConsumer(consumer));
