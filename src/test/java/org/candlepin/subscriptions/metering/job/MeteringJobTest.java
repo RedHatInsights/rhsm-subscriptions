@@ -38,12 +38,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.retry.support.RetryTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class MeteringJobTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private TagProfile tagProfile;
+  @Mock private RetryTemplate retryTemplate;
 
   private ApplicationClock clock;
   private MetricProperties metricProps;
@@ -59,7 +61,7 @@ class MeteringJobTest {
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
     clock = new FixedClockConfiguration().fixedClock();
-    job = new MeteringJob(tasks, clock, tagProfile, metricProps, appProps);
+    job = new MeteringJob(tasks, clock, tagProfile, metricProps, appProps, retryTemplate);
 
     when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));
   }
@@ -77,6 +79,7 @@ class MeteringJobTest {
             expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
     job.run();
 
-    verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics", expStartDate, expEndDate);
+    verify(tasks)
+        .updateMetricsForAllAccounts("OpenShift-metrics", expStartDate, expEndDate, retryTemplate);
   }
 }
