@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -34,8 +35,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -92,12 +91,12 @@ class AccountRepositoryTest {
 
   @Test
   void testHbiHostCanBeLoaded() {
-    NormalizedFacts normalizedFacts = new NormalizedFacts();
-    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
-    inventoryHostFacts.setInventoryId(UUID.randomUUID());
-    inventoryHostFacts.setDisplayName("foo");
-    inventoryHostFacts.setAccount("account123");
-    Host host = new Host(inventoryHostFacts, normalizedFacts);
+    Host host = new Host();
+    host.setInstanceType("HBI_HOST");
+    host.setInstanceId(UUID.randomUUID().toString());
+    host.setInventoryId(UUID.randomUUID().toString());
+    host.setDisplayName("foo");
+    host.setAccountNumber("account123");
     hostRepo.save(host);
 
     assertTrue(repo.findById("account123").isPresent());

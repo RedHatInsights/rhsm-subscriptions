@@ -50,7 +50,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"worker", "test"})
+@ActiveProfiles({"capacity-ingress", "test"})
 class CapacityReconciliationControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();

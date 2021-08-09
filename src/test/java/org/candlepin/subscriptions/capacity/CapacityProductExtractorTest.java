@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.files.ProductProfileProperties;
 import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
@@ -47,7 +47,7 @@ class CapacityProductExtractorTest {
 
   @BeforeAll
   void setup() throws IOException {
-    ApplicationProperties props = new ApplicationProperties();
+    ProductProfileProperties props = new ProductProfileProperties();
     props.setProductProfileRegistryResourceLocation("classpath:test_product_profile_registry.yaml");
 
     ProductProfileRegistrySource source = new ProductProfileRegistrySource(props, clock);
