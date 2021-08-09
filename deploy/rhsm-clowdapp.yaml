@@ -4,32 +4,98 @@ kind: Template
 metadata:
   name: rhsm
 parameters:
-  - name: IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
-  - name: IMAGE_TAG
-    value: latest
-  - name: IMAGE_PULL_SECRET
-    value: quay-cloudservices-pull
-  - name: ENV_NAME
-    value: env-rhsm
-  - name: NAMESPACE
-    value: rhsm
+
+  - name: HAWTIO_BASE_PATH
+    value: /app/rhsm-metrics/actuator/hawtio
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '48000'
-  - name: RBAC_HOST
-    # required: true
-    value: localhost
-    required: true
-  - name: RBAC_PORT
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: localhost/swatch
+    # value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    # value: latest
+    value: scratch
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1700Mi
+  - name: CPU_REQUEST
+    value: 450m
+  - name: CPU_LIMIT
+    value: 1800m
+  - name: SPLUNK_FORWARDER_IMAGE
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
+  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
+    value: 128Mi
+  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
+    value: 256Mi
+  - name: SPLUNK_FORWARDER_CPU_REQUEST
+    value: 50m
+  - name: SPLUNK_FORWARDER_CPU_LIMIT
+    value: 100m
+  - name: CLOUDIGRADE_ENABLED
+    value: 'false'
+  - name: CLOUDIGRADE_HOST
+    value: 'localhost'
+  - name: CLOUDIGRADE_PORT
     value: '8080'
+  - name: TOKEN_REFRESHER_IMAGE
+    value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
+  - name: TOKEN_REFRESHER_CPU_REQUEST
+    value: 50m
+  - name: TOKEN_REFRESHER_CPU_LIMIT
+    value: 100m
+  - name: TOKEN_REFRESHER_MEMORY_REQUEST
+    value: 128Mi
+  - name: TOKEN_REFRESHER_MEMORY_LIMIT
+    value: 150Mi
+  - name: PROM_URL
+    value: http://localhost:8082
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
+    value: '25'
+  - name: OPENSHIFT_BILLING_MODEL_FILTER
+    value: 'marketplace'
+  - name: USER_HOST
+    # required: true # FIXME Not sure where this is provided
+    value: 'user.qa.api.redhat.com'
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
     value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: ENV_NAME
+    value: env-rhsm
+  - name: NAMESPACE
+    value: rhsm
+  - name: RBAC_HOST
+    # required: true
+    value: localhost
+  - name: RBAC_PORT
+    value: '8080'
+
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
@@ -40,32 +106,165 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
     deployments:
-    - name: service
+#    - name: service
+#      web: true
+#      minReplicas: 1
+#      podSpec:
+#        image: ${IMAGE}:${IMAGE_TAG}
+#        command:
+#          - /bin/bash
+#          - /usr/local/s2i/run
+#        initContainers:
+#          - env:
+#            - name: SPRING_PROFILES_ACTIVE
+#              value: liquibase-only
+#            # DIRTY HACK to get the init container to run since it doesn't care about Kafka
+#            - name: KAFKA_BOOTSTRAP_HOST
+#              value: localhost
+#            inheritEnv: true
+#            command:
+#              - /bin/bash
+#              - /usr/local/s2i/run
+#        env:
+#          - name: SERVER_MAX_HTTP_HEADER_SIZE
+#            value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+#          - name: LOG_FILE
+#            value: /logs/server.log
+#          - name: SPRING_PROFILES_ACTIVE
+#            value: api
+#          - name: JAVA_MAX_MEM_RATIO
+#            value: '85'
+#          - name: GC_MAX_METASPACE_SIZE
+#            value: '256'
+#          - name: LOGGING_LEVEL_ROOT
+#            value: ${LOGGING_LEVEL_ROOT}
+#          - name: LOGGING_LEVEL_ORG_CANDLEPIN
+#            value: ${LOGGING_LEVEL}
+#          - name: KAFKA_BOOTSTRAP_HOST
+#            value: ${KAFKA_BOOTSTRAP_HOST}
+#          - name: RBAC_HOST
+#            value: ${RBAC_HOST}
+#          - name: RBAC_PORT
+#            value: ${RBAC_PORT}
+#          - name: DATABASE_HOST
+#            valueFrom:
+#              secretKeyRef:
+#                name: rhsm-clowdapp-db
+#                key: hostname
+#          - name: DATABASE_PORT
+#            valueFrom:
+#              secretKeyRef:
+#                name: rhsm-clowdapp-db
+#                key: port
+#          - name: DATABASE_USERNAME
+#            valueFrom:
+#              secretKeyRef:
+#                name: rhsm-clowdapp-db
+#                key: username
+#          - name: DATABASE_PASSWORD
+#            valueFrom:
+#              secretKeyRef:
+#                name: rhsm-clowdapp-db
+#                key: password
+#          - name: DATABASE_DATABASE
+#            valueFrom:
+#              secretKeyRef:
+#                name: rhsm-clowdapp-db
+#                key: name
+#          - name: DATABASE_CONNECTION_TIMEOUT_MS
+#            value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+#          - name: DATABASE_MAX_POOL_SIZE
+#            value: ${DATABASE_MAX_POOL_SIZE}
+#          - name: INVENTORY_DATABASE_HOST
+#            valueFrom:
+#              secretKeyRef:
+#                name: host-inventory-db-readonly
+#                key: db.host
+#          - name: INVENTORY_DATABASE_DATABASE
+#            valueFrom:
+#              secretKeyRef:
+#                name: host-inventory-db-readonly
+#                key: db.name
+#          - name: INVENTORY_DATABASE_USERNAME
+#            valueFrom:
+#              secretKeyRef:
+#                name: host-inventory-db-readonly
+#                key: db.user
+#          - name: INVENTORY_DATABASE_PASSWORD
+#            valueFrom:
+#              secretKeyRef:
+#                name: host-inventory-db-readonly
+#                key: db.password
+#        livenessProbe:
+#          failureThreshold: 3
+#          httpGet:
+#            path: /actuator/health
+#            port: 8080
+#            scheme: HTTP
+#          initialDelaySeconds: 90
+#          periodSeconds: 20
+#          successThreshold: 1
+#          timeoutSeconds: 5
+#        readinessProbe:
+#          failureThreshold: 3
+#          httpGet:
+#            path: /actuator/health
+#            port: 8080
+#            scheme: HTTP
+#          initialDelaySeconds: 90
+#          periodSeconds: 20
+#          successThreshold: 1
+#          timeoutSeconds: 5
+#        volumeMounts:
+#        - name: config
+#          mountPath: /config
+#        - name: logs
+#          mountPath: /logs
+#        volumes:
+#        - name: config
+#          configMap:
+#            name: rhsm-subscriptions-config
+#        - name: splunk
+#          secret:
+#            secretName: splunk
+#        - name: logs
+#          emptyDir:
+    - name: metrics-worker
       web: true
       minReplicas: 1
       podSpec:
         image: ${IMAGE}:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
         command:
-          - sh
+          - /bin/bash
           - /usr/local/s2i/run
         initContainers:
           - env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: liquibase-only
-            # DIRTY HACK to get the init container to run since it doesn't care about Kafka
-            - name: KAFKA_BOOTSTRAP_HOST
-              value: localhost
+              - name: SPRING_PROFILES_ACTIVE
+                value: liquibase-only
             inheritEnv: true
             command:
-              - bash
+              - /bin/bash
               - /usr/local/s2i/run
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
         env:
+           # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+          - name: AB_JOLOKIA_OFF
+            value: 'true'
           - name: SERVER_MAX_HTTP_HEADER_SIZE
             value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+          - name: HAWTIO_BASE_PATH
+            value: ${HAWTIO_BASE_PATH}
           - name: LOG_FILE
             value: /logs/server.log
           - name: SPRING_PROFILES_ACTIVE
-            value: api
+            value: openshift-metering-worker,kafka-queue
           - name: JAVA_MAX_MEM_RATIO
             value: '85'
           - name: GC_MAX_METASPACE_SIZE
@@ -74,8 +273,14 @@ objects:
             value: ${LOGGING_LEVEL_ROOT}
           - name: LOGGING_LEVEL_ORG_CANDLEPIN
             value: ${LOGGING_LEVEL}
-          - name: KAFKA_BOOTSTRAP_HOST
-            value: ${KAFKA_BOOTSTRAP_HOST}
+          - name: KAFKA_MESSAGE_THREADS
+            value: ${KAFKA_MESSAGE_THREADS}
+          - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+            value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+          - name: KAFKA_SEEK_OVERRIDE_END
+            value: ${KAFKA_SEEK_OVERRIDE_END}
+          - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+            value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
           - name: RBAC_HOST
             value: ${RBAC_HOST}
           - name: RBAC_PORT
@@ -129,40 +334,83 @@ objects:
               secretKeyRef:
                 name: host-inventory-db-readonly
                 key: db.password
+          - name: CLOUDIGRADE_ENABLED
+            value: ${CLOUDIGRADE_ENABLED}
+          - name: CLOUDIGRADE_HOST
+            value: ${CLOUDIGRADE_HOST}
+          - name: CLOUDIGRADE_PORT
+            value: ${CLOUDIGRADE_PORT}
+          - name: PROM_URL
+            value: ${PROM_URL}
+          - name: OPENSHIFT_BILLING_MODEL_FILTER
+            value: ${OPENSHIFT_BILLING_MODEL_FILTER}
+          - name: USER_HOST
+            value: ${USER_HOST}
+          - name: USER_MAX_CONNECTIONS
+            value: ${USER_MAX_CONNECTIONS}
+          - name: USER_MAX_ATTEMPTS
+            value: ${USER_MAX_ATTEMPTS}
+          - name: USER_BACK_OFF_MAX_INTERVAL
+            value: ${USER_BACK_OFF_MAX_INTERVAL}
+          - name: USER_BACK_OFF_INITIAL_INTERVAL
+            value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+          - name: USER_BACK_OFF_MULTIPLIER
+            value: ${USER_BACK_OFF_MULTIPLIER}
+          - name: RHSM_KEYSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: tls
+                key: keystore_password
+          - name: RHSM_KEYSTORE
+            value: /pinhead/keystore.jks
         livenessProbe:
           failureThreshold: 3
           httpGet:
             path: /actuator/health
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 90
+          # FIXME set long to avoid pod-killing during prototyping
+          initialDelaySeconds: 900
           periodSeconds: 20
           successThreshold: 1
-          timeoutSeconds: 3
+          timeoutSeconds: 5
         readinessProbe:
           failureThreshold: 3
           httpGet:
             path: /actuator/health
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 90
+          # FIXME set long to avoid pod-killing during prototyping
+          initialDelaySeconds: 900
           periodSeconds: 20
           successThreshold: 1
-          timeoutSeconds:
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
         volumeMounts:
-        - name: config
-          mountPath: /config
-        - name: logs
-          mountPath: /logs
+          - name: config
+            mountPath: /config
+          - name: logs
+            mountPath: /logs
+          - name: pinhead
+            mountPath: /pinhead
         volumes:
-        - name: config
-          configMap:
-            name: rhsm-subscriptions-config
-        - name: splunk
-          secret:
-            secretName: splunk
-        - name: logs
-          emptyDir:
+          - name: config
+            configMap:
+              name: rhsm-subscriptions-config
+          - name: splunk
+            secret:
+              secretName: splunk
+          - name: logs
+            emptyDir:
+          - name: pinhead
+            secret:
+              secretName: pinhead
 
     dependencies:
       - rbac
@@ -207,3 +455,22 @@ objects:
       # put /actuator calls on 8080
       management.server.port=8080
       management.server.ssl.enabled=false
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: pinhead
+  type: Opaque
+  data:
+    keystore.jks: >-
+***REMOVED***
+    truststore.jks: >-
+***REMOVED***
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: tls
+  type: Opaque
+  data:
+***REMOVED***
