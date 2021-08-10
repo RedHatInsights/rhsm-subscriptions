@@ -32,15 +32,17 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   private final ApplicationClock clock;
 
+  @Autowired
   SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
       ApplicationClock clock) {
@@ -67,7 +69,7 @@ public class SubscriptionTableController {
     */
 
     OffsetDateTime reportEnd = clock.now();
-    OffsetDateTime reportStart = reportEnd.minusYears(1);
+    OffsetDateTime reportStart = clock.now();
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
     Usage sanitizedUsage = sanitizeUsage(usage);
 
@@ -92,6 +94,9 @@ public class SubscriptionTableController {
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
+    // The pagination and sorting of capacities here is done in memory and can cause performance
+    // issues
+    // As an improvement this should be pushed lower into the Repository layer
     Pageable pageable = ResourceUtils.getPageable(offset, limit);
     reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.candlepin.subscriptions.db.model.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -66,30 +67,14 @@ public interface SubscriptionCapacityViewRepository
     return List.of(
         SearchCriteria.builder()
             .key(SubscriptionCapacityView_.beginDate.getName())
-            .operation(SearchOperation.AFTER_OR_ON)
-            .value(reportStart)
+            .operation(SearchOperation.BEFORE_OR_ON)
+            .value(reportEnd)
             .build(),
         SearchCriteria.builder()
             .key(SubscriptionCapacityView_.endDate.getName())
-            .operation(SearchOperation.BEFORE_OR_ON)
-            .value(reportEnd)
+            .operation(SearchOperation.AFTER_OR_ON)
+            .value(reportStart)
             .build());
-  }
-
-  private SearchCriteria searchCriteriaForEmptyOrNullSLA() {
-    return SearchCriteria.builder()
-        .key(SubscriptionCapacityView_.serviceLevel.getName())
-        .operation(SearchOperation.NOT_IN)
-        .value(List.of(ServiceLevel.PREMIUM, ServiceLevel.STANDARD, ServiceLevel.SELF_SUPPORT))
-        .build();
-  }
-
-  private SearchCriteria searchCriteriaForEmptyOrNullUsage() {
-    return SearchCriteria.builder()
-        .key(SubscriptionCapacityView_.usage.getName())
-        .operation(SearchOperation.NOT_IN)
-        .value(List.of(Usage.PRODUCTION, Usage.DEVELOPMENT_TEST, Usage.DISASTER_RECOVERY))
-        .build();
   }
 
   private SearchCriteria searchCriteriaMatchingSLA(ServiceLevel serviceLevel) {
@@ -115,15 +100,10 @@ public interface SubscriptionCapacityViewRepository
       Usage usage,
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
+
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
-
-    if (ServiceLevel.EMPTY.equals(serviceLevel) || ServiceLevel._ANY.equals(serviceLevel))
-      searchCriteria.add(searchCriteriaForEmptyOrNullSLA());
-    else searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
-
-    if (Usage.EMPTY.equals(usage) || Usage._ANY.equals(usage))
-      searchCriteria.add(searchCriteriaForEmptyOrNullUsage());
-    else searchCriteria.add(searchCriteriaMatchingUsage(usage));
+    if (Objects.nonNull(serviceLevel)) searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
+    if (Objects.nonNull(usage)) searchCriteria.add(searchCriteriaMatchingUsage(usage));
     searchCriteria.addAll(searchCriteriaForReportDuration(reportStart, reportEnd));
     return searchCriteria;
   }

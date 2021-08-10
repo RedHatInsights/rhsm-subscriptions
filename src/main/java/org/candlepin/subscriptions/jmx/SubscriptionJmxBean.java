@@ -49,7 +49,7 @@ public class SubscriptionJmxBean {
 
   @Transactional
   @ManagedOperation
-  void syncSubscription(String subscriptionId) {
+  public void syncSubscription(String subscriptionId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for subscription {} triggered over JMX by {}", subscriptionId, principal);
     subscriptionSyncController.syncSubscription(subscriptionId);
@@ -57,7 +57,7 @@ public class SubscriptionJmxBean {
 
   @Transactional
   @ManagedOperation
-  void syncSubscriptionsForOrg(String orgId) {
+  public void syncSubscriptionsForOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for org {} triggered over JMX by {}", orgId, principal);
     subscriptionSyncController.syncAllSubcriptionsForOrg(orgId);

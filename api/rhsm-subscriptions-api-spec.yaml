@@ -658,7 +658,7 @@ paths:
           in: query
           schema:
             $ref: '#/components/schemas/Uom'
-          description: "Filter hosts to those that contribute to a specific unit of measure"
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
         - name: sort
           in: query
           schema:
@@ -743,7 +743,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       tags:
-        - subscription
+        - capacity
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
