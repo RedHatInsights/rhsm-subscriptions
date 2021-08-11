@@ -1,5 +1,0 @@
-{
-  "modelPackage": "org.candlepin.subscriptions.utilization.api.model",
-  "groupId": "org.candlepin.subscriptions",
-  "artifactId": "rhsm-subscriptions"
-}

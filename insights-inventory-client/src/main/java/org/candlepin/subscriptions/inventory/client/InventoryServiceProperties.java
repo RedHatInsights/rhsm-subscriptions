@@ -31,7 +31,6 @@ import org.springframework.boot.convert.DurationUnit;
 @Setter
 public class InventoryServiceProperties {
   private boolean useStub;
-  private boolean prettyPrintJson;
   private String url;
   private String apiKey;
   private String kafkaHostIngressTopic = "platform.inventory.host-ingress";

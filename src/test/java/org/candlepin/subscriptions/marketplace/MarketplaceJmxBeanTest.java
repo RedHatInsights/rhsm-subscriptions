@@ -20,11 +20,10 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -41,7 +40,7 @@ class MarketplaceJmxBeanTest {
 
   @Test
   void testSubmitTallySummaryEnablement() throws Exception {
-    SecurityProperties appProps = new SecurityProperties();
+    ApplicationProperties appProps = new ApplicationProperties();
     MarketplaceProperties mktProps = new MarketplaceProperties();
     MarketplaceJmxBean bean =
         new MarketplaceJmxBean(appProps, mktProps, service, producer, objMapper, payloadMapper);

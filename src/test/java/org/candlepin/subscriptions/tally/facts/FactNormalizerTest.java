@@ -46,7 +46,6 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.files.ProductProfileProperties;
 import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -78,7 +77,7 @@ public class FactNormalizerTest {
 
   @BeforeAll
   public void setup() throws IOException {
-    ProductProfileProperties props = new ProductProfileProperties();
+    ApplicationProperties props = new ApplicationProperties();
     props.setProductProfileRegistryResourceLocation("classpath:test_product_profile_registry.yaml");
 
     ProductProfileRegistrySource registrySource = new ProductProfileRegistrySource(props, clock);

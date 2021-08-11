@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.rbac.RbacApi;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
@@ -96,7 +97,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
   }
 
   private Collection<String> extractRoles(boolean devMode) {
-    SecurityProperties props = new SecurityProperties();
+    ApplicationProperties props = new ApplicationProperties();
     RbacProperties rbacProps = new RbacProperties();
     props.setDevMode(devMode);
     IdentityHeaderAuthenticationDetailsService source =

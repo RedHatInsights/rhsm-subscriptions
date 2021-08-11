@@ -74,7 +74,10 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `metering-jmx`: Expose the JMX bean to create metering jobs
 - `metering-job`: Create metering jobs and place them on the job queue
 - `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
+- `orgsync`:
 - `purge-snapshots`: Run the retention job and exit
+- `rhsm-conduit`: Run the worker for syncing systems between Hosted Candlepin
+  and HBI
 - `worker`: Process jobs off the job queue
 
 These can be specified most easily via the `SPRING_PROFILES_ACTIVE` environment variable. For example:
@@ -130,9 +133,21 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `PRETTY_PRINT_JSON`: configure Jackson to indent outputted JSON
 * `APP_NAME`: application name for URLs (default: rhsm-subscriptions)
 * `PATH_PREFIX`: path prefix in the URLs (default: api)
+* `ORG_SYNC_SCHEDULE`: cron schedule for syncing hosts
+* `ORG_SYNC_STRATEGY`: file-based or DB-based sync strategy
+* `ORG_SYNC_RESOURCE_LOCATION`: location of resource with org sync list (if using file-based sync strategy)
+* `RHSM_USE_STUB`: Use RHSM API stub
+* `RHSM_URL`: RHSM service URL
+* `RHSM_KEYSTORE`: path to keystore with client cert
+* `RHSM_KEYSTORE_PASSWORD`: RHSM API client cert keystore password
+* `RHSM_BATCH_SIZE`: host sync batch size
+* `RHSM_MAX_CONNECTIONS`: maximum concurrent connections to RHSM API
 * `INVENTORY_USE_STUB`: Use stubbed inventory REST API
 * `INVENTORY_API_KEY`: API key for inventory service
 * `INVENTORY_HOST_LAST_SYNC_THRESHOLD`: reject hosts that haven't checked in since this duration (e.g. 24h)
+* `INVENTORY_ENABLE_KAFKA`: whether kafka should be used (inventory API otherwise)
+* `INVENTORY_HOST_INGRESS_TOPIC`: kafka topic to emit host records
+* `INVENTORY_ADD_UUID_HYPHENS`: whether to add missing UUID hyphens to the Insights ID
 * `INVENTORY_DATABASE_HOST`: inventory DB host
 * `INVENTORY_DATABASE_DATABASE`: inventory DB database
 * `INVENTORY_DATABASE_USERNAME`: inventory DB user
@@ -154,6 +169,8 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `TALLY_RETENTION_YEARLY`: number of yearly tallies to keep
 * `KAFKA_TOPIC`: topic for rhsm-subscriptions tasks
 * `KAFKA_GROUP_ID` kafka consumer group ID
+* `CONDUIT_KAFKA_TOPIC`: topic for rhsm-conduit tasks
+* `CONDUIT_KAFKA_GROUP_ID` rhsm-conduit kafka consumer group ID
 * `KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS`: kafka max poll interval in milliseconds
 * `KAFKA_MESSAGE_THREADS`: number of consumer threads
 * `KAFKA_BOOTSTRAP_HOST`: kafka bootstrap host

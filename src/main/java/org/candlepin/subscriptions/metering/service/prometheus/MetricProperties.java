@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -75,15 +74,6 @@ public class MetricProperties {
    * parameters a set number of times to prevent recursion.
    */
   private int templateParameterDepth = 3;
-
-  /** How many attempts before giving up on the MeteringJob. */
-  private Integer jobMaxAttempts;
-
-  /** Retry backoff initial interval of the MeteringJob. */
-  private Duration jobBackOffInitialInterval;
-
-  /** Retry backoff interval of the MeteringJob. */
-  private Duration jobBackOffMaxInterval;
 
   public Optional<String> getQueryTemplate(String templateKey) {
     return queryTemplates.containsKey(templateKey)

@@ -34,7 +34,6 @@ import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 /** Produces task messages related to pulling metrics back from Telemeter. */
@@ -90,33 +89,22 @@ public class PrometheusMetricsTaskManager {
   @Transactional
   public void updateMetricsForAllAccounts(
       String productTag, OffsetDateTime start, OffsetDateTime end) {
-    updateMetricsForAllAccounts(
-        productTag, start, end, RetryTemplate.builder().maxAttempts(1).build());
-  }
-
-  @Transactional
-  public void updateMetricsForAllAccounts(
-      String productTag, OffsetDateTime start, OffsetDateTime end, RetryTemplate retry) {
     tagProfile
         .getSupportedMetricsForProduct(productTag)
         .forEach(
-            metric ->
-                retry.execute(
-                    context -> {
-                      queueMetricUpdateForAllAccounts(productTag, metric, start, end);
-                      return null;
-                    }));
-  }
-
-  private void queueMetricUpdateForAllAccounts(
-      String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
-    try (Stream<String> accountStream =
-        accountSource.getMarketplaceAccounts(productTag, metric, end).stream()) {
-      log.info("Queuing {} {} metric updates for all configured accounts.", productTag, metric);
-      accountStream.forEach(
-          account -> queueMetricUpdateForAccount(account, productTag, metric, start, end));
-      log.info("Done queuing updates of {} {} metric", productTag, metric);
-    }
+            metric -> {
+              try (Stream<String> accountStream =
+                  accountSource.getMarketplaceAccounts(productTag, metric, end).stream()) {
+                log.info(
+                    "Queuing {} {} metric updates for all configured accounts.",
+                    productTag,
+                    metric);
+                accountStream.forEach(
+                    account ->
+                        queueMetricUpdateForAccount(account, productTag, metric, start, end));
+                log.info("Done queuing updates of {} {} metric", productTag, metric);
+              }
+            });
   }
 
   private TaskDescriptor createMetricsTask(

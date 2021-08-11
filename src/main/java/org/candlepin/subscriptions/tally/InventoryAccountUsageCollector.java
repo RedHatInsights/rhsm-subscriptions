@@ -39,8 +39,6 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
-import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -128,10 +126,10 @@ public class InventoryAccountUsageCollector {
           }
 
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
-          Host host = existingHost == null ? hostFromHbiFacts(hostFacts, facts) : existingHost;
+          Host host = existingHost == null ? new Host(hostFacts, facts) : existingHost;
           if (existingHost != null) {
             host.getBuckets().clear(); // ensure we recalculate to remove any stale buckets
-            populateHostFieldsFromHbi(host, hostFacts, facts);
+            host.populateFieldsFromHbi(hostFacts, facts);
           }
 
           if (facts.isHypervisor()) {
@@ -252,51 +250,5 @@ public class InventoryAccountUsageCollector {
         .map(hostRepository::findByAccountNumber)
         .flatMap(List::stream)
         .collect(Collectors.toList());
-  }
-
-  public static void populateHostFieldsFromHbi(
-      Host host, InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
-    if (inventoryHostFacts.getInventoryId() != null) {
-      host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
-      // We assume that the instance ID for any given HBI host record is the inventory ID; compare
-      // to
-      // an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-      host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
-    }
-
-    host.setInsightsId(inventoryHostFacts.getInsightsId());
-    host.setAccountNumber(inventoryHostFacts.getAccount());
-    host.setOrgId(inventoryHostFacts.getOrgId());
-    host.setDisplayName(inventoryHostFacts.getDisplayName());
-    host.setSubscriptionManagerId(inventoryHostFacts.getSubscriptionManagerId());
-    host.setGuest(normalizedFacts.isVirtual());
-    host.setHypervisorUuid(normalizedFacts.getHypervisorUuid());
-
-    if (normalizedFacts.getCores() != null) {
-      host.getMeasurements().put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
-    }
-
-    if (normalizedFacts.getSockets() != null) {
-      host.getMeasurements()
-          .put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
-    }
-
-    host.setHypervisor(normalizedFacts.isHypervisor());
-    host.setUnmappedGuest(normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown());
-    host.setCloudProvider(
-        normalizedFacts.getCloudProviderType() == null
-            ? null
-            : normalizedFacts.getCloudProviderType().name());
-
-    host.setLastSeen(inventoryHostFacts.getModifiedOn());
-    host.setHardwareType(normalizedFacts.getHardwareType());
-  }
-
-  public static Host hostFromHbiFacts(
-      InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
-    Host host = new Host();
-    host.setInstanceType("HBI_HOST");
-    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
-    return host;
   }
 }

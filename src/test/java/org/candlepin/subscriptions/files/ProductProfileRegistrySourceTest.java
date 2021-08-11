@@ -20,10 +20,11 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -48,7 +49,7 @@ class ProductProfileRegistrySourceTest {
   }
 
   private ProductProfileRegistrySource initRegistrySource(String resourceLocation) {
-    ProductProfileProperties props = new ProductProfileProperties();
+    ApplicationProperties props = new ApplicationProperties();
     props.setProductProfileRegistryResourceLocation(resourceLocation);
     ProductProfileRegistrySource source =
         new ProductProfileRegistrySource(props, new ApplicationClock());

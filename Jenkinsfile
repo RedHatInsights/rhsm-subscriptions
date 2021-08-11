@@ -18,6 +18,11 @@ pipeline {
             steps {
                 sh "./podman_run.sh ./gradlew --no-daemon test"
             }
+            post {
+                always {
+                    junit 'build/test-results/**/*.xml'
+                }
+            }
         }
         stage('Spotless') {
             steps {
@@ -72,7 +77,7 @@ pipeline {
 
     post {
         always {
-            junit '**/build/test-results/test/*.xml'
+            junit 'build/test-results/**/*.xml'
         }
     }
 }

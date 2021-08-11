@@ -34,14 +34,13 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
 /** Configuration class for subscription package. */
-@Profile("capacity-ingress")
 @Configuration
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
   ProductMappingConfiguration.class
 })
-@ComponentScan({"org.candlepin.subscriptions.subscription"})
+@ComponentScan({"org.candlepin.subscriptions.subscription", "org.candlepin.subscriptions.capacity"})
 public class SubscriptionServiceConfiguration {
 
   @Bean

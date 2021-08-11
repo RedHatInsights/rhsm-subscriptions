@@ -20,12 +20,12 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
-import static org.candlepin.subscriptions.db.model.Granularity.HOURLY;
+import static org.candlepin.subscriptions.db.model.Granularity.*;
 
 import java.time.Duration;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.files.ProductProfileProperties;
 import org.candlepin.subscriptions.files.ProductProfileRegistrySource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +63,7 @@ class HourlySnapshotRollerTest {
     @Bean
     @Primary
     public ProductProfileRegistrySource testRegistrySource(ApplicationClock clock) {
-      ProductProfileProperties properties = new ProductProfileProperties();
+      ApplicationProperties properties = new ApplicationProperties();
       properties.setProductProfileRegistryResourceLocation(
           "classpath:test_product_profile_registry.yaml");
       properties.setProductProfileListCacheTtl(Duration.ofSeconds(60));

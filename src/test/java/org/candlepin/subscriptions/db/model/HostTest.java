@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
@@ -39,7 +38,7 @@ class HostTest {
     InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
     NormalizedFacts normalizedFacts = new NormalizedFacts();
 
-    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    host.populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
 
     assertNull(host.getInventoryId());
     assertNull(host.getInsightsId());
@@ -62,7 +61,7 @@ class HostTest {
     InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
     NormalizedFacts normalizedFacts = getNormalizedFactsFull();
 
-    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    host.populateFieldsFromHbi(inventoryHostFacts, normalizedFacts);
 
     assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
     assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());

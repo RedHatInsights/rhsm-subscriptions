@@ -45,7 +45,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @DirtiesContext
-@ActiveProfiles({"capacity-ingress", "test"})
+@ActiveProfiles({"worker", "test"})
 class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
