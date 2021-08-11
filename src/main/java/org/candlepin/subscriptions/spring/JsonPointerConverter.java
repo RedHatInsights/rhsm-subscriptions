@@ -18,30 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.spring;
 
-import java.io.InputStream;
-import java.time.Clock;
-import java.time.Duration;
-import org.yaml.snakeyaml.Yaml;
+import com.fasterxml.jackson.core.JsonPointer;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBinding;
+import org.springframework.core.convert.converter.Converter;
 
 /**
- * Abstract class for loading data from a YAML file on the classpath or filesystem.
- *
- * @param <T> Expected return type for the loaded yaml.
+ * Class that converts a String given in our app configuration (e.g. application.properties) into a
+ * <a href="http://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-03">JSON Pointer</a> that can
+ * be used by the ClowderJson class.
  */
-public abstract class YamlFileSource<T> extends StructuredFileSource<T> {
-  protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-    super(resourceLocation, clock, cacheTtl);
-  }
+@ConfigurationPropertiesBinding
+public class JsonPointerConverter implements Converter<String, JsonPointer> {
 
-  /**
-   * Allow subclasses to redefine how the YAML for type T is deserialized
-   *
-   * @param s InputStream with the YAML
-   * @return an object of type T constructed from the YAML in InputStream s
-   */
-  protected T parse(InputStream s) {
-    return new Yaml().load(s);
+  @Override
+  public JsonPointer convert(String source) {
+    return JsonPointer.compile(source);
   }
 }
