@@ -42,23 +42,29 @@ public abstract class StructuredFileSource<T> implements ResourceLoaderAware {
 
   private final Cache<T> cachedValue;
   private final String resourceLocation;
+  private final boolean strictLoading;
   private ResourceLoader resourceLoader = new DefaultResourceLoader();
   private Resource fileResource;
 
-  protected StructuredFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-    log.debug("Opening file source at {}", resourceLocation);
+  protected StructuredFileSource(
+      String resourceLocation, Clock clock, Duration cacheTtl, boolean strictLoading) {
     this.resourceLocation = resourceLocation;
     this.cachedValue = new Cache(clock, cacheTtl);
+    this.strictLoading = strictLoading;
   }
 
   public T getValue() throws IOException {
     if (cachedValue.isExpired()) {
-      try (InputStream s = fileResource.getInputStream()) {
-        T value = parse(s);
-        if (value == null) {
-          return getDefault();
+      if (fileResource.exists()) {
+        try (InputStream s = fileResource.getInputStream()) {
+          T value = parse(s);
+          if (value == null) {
+            throw new IllegalStateException("Could not parse " + fileResource.getDescription());
+          }
+          cachedValue.setValue(value);
         }
-        cachedValue.setValue(value);
+      } else {
+        cachedValue.setValue(getDefault());
       }
     }
     return cachedValue.getValue();
@@ -84,9 +90,14 @@ public abstract class StructuredFileSource<T> implements ResourceLoaderAware {
 
   @PostConstruct
   public void init() {
+    log.debug("Opening file source at {}", resourceLocation);
     fileResource = resourceLoader.getResource(resourceLocation);
     if (!fileResource.exists()) {
-      throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
+      if (strictLoading) {
+        throw new IllegalStateException("Could not load resource " + fileResource.getDescription());
+      }
+
+      log.warn("Resource {} not found. Falling back to default.", fileResource.getDescription());
     }
   }
 }

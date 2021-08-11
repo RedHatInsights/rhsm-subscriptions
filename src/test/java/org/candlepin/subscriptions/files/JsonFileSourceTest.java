@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,7 +61,7 @@ public class JsonFileSourceTest {
   public static class DummyJsonFileSource extends JsonFileSource<Item> {
     protected DummyJsonFileSource(
         String resourceLocation, Clock clock, Duration cacheTtl, ObjectMapper mapper) {
-      super(resourceLocation, clock, cacheTtl, mapper);
+      super(resourceLocation, clock, cacheTtl, true, mapper);
     }
 
     @Override

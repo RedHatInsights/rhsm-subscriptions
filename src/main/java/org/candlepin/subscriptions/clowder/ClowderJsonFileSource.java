@@ -47,6 +47,7 @@ public class ClowderJsonFileSource extends JsonFileSource<ClowderJson>
         properties.getClowderJsonResourceLocation(),
         clock.getClock(),
         properties.getClowderJsonCacheTtl(),
+        properties.isStrictResourceLoadingMode(),
         mapper);
   }
 

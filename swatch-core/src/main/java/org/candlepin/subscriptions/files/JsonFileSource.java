@@ -35,8 +35,12 @@ public abstract class JsonFileSource<T> extends StructuredFileSource<T> {
   protected ObjectMapper mapper;
 
   protected JsonFileSource(
-      String resourceLocation, Clock clock, Duration cacheTtl, ObjectMapper mapper) {
-    super(resourceLocation, clock, cacheTtl);
+      String resourceLocation,
+      Clock clock,
+      Duration cacheTtl,
+      boolean strictLoading,
+      ObjectMapper mapper) {
+    super(resourceLocation, clock, cacheTtl, strictLoading);
     this.mapper = mapper;
   }
 
