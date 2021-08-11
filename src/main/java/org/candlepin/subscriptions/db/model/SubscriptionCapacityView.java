@@ -30,6 +30,7 @@ import org.hibernate.annotations.Subselect;
 
 @Entity
 @Immutable
+// TODO: Join should be moved to Specification https://issues.redhat.com/browse/ENT-4205 //NOSONAR
 @Subselect(
     "SELECT "
         + "sc.subscription_id,\n"
