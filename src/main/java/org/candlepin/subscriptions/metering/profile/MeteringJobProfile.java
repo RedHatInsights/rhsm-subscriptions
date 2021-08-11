@@ -21,13 +21,13 @@
 package org.candlepin.subscriptions.metering.profile;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.metering.job.MeteringJob;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;

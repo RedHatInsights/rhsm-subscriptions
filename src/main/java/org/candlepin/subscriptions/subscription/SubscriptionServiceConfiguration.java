@@ -22,13 +22,16 @@ package org.candlepin.subscriptions.subscription;
 
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
+import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Profile;
 import org.springframework.retry.backoff.ExponentialRandomBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
@@ -39,7 +42,7 @@ import org.springframework.retry.support.RetryTemplate;
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
-  ProductMappingConfiguration.class
+  RegistryConfiguration.class
 })
 @ComponentScan({"org.candlepin.subscriptions.subscription"})
 public class SubscriptionServiceConfiguration {

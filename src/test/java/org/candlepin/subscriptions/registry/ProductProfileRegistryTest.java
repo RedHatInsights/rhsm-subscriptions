@@ -18,11 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import static org.candlepin.subscriptions.db.model.Granularity.*;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.candlepin.subscriptions.db.model.Granularity.DAILY;
+import static org.candlepin.subscriptions.db.model.Granularity.HOURLY;
+import static org.candlepin.subscriptions.db.model.Granularity.YEARLY;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_CONTAINER_PLATFORM;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_DEDICATED_METRICS;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_METRICS;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_COMPUTE_NODE;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_FOR_ARM;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_FOR_X86;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.SATELLITE;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.SATELLITE_CAPSULE;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.SATELLITE_SERVER;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
