@@ -93,7 +93,9 @@ public class ResourceUtils {
    */
   public static String getIdentityHeader() {
     HttpServletRequest request =
-        ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        ((ServletRequestAttributes)
+                Objects.requireNonNull(RequestContextHolder.getRequestAttributes()))
+            .getRequest();
     return request.getHeader(IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER);
   }
 
