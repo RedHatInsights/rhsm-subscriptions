@@ -31,8 +31,9 @@ import org.yaml.snakeyaml.Yaml;
  * @param <T> Expected return type for the loaded yaml.
  */
 public abstract class YamlFileSource<T> extends StructuredFileSource<T> {
-  protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-    super(resourceLocation, clock, cacheTtl);
+  protected YamlFileSource(
+      String resourceLocation, Clock clock, Duration cacheTtl, boolean strictLoading) {
+    super(resourceLocation, clock, cacheTtl, strictLoading);
   }
 
   /**
