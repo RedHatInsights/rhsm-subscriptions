@@ -20,18 +20,23 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import com.fasterxml.jackson.core.JsonPointer;
+import java.time.Duration;
+import lombok.Data;
 
-/** Configuration that provides the relevant Clowder beans. */
-@Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.clowder")
-public class ClowderConfiguration {
-  @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.clowder")
-  ClowderProperties clowderProperties() {
-    return new ClowderProperties();
-  }
+/**
+ * Class to hold all properties derived from the configuration within the JSON file Clowder exposes
+ */
+@Data
+public class ClowderProperties {
+  private JsonPointer kafkaHostnamePointer;
+  private JsonPointer kafkaPortPointer;
+
+  /** Resource location of the Clowder JSON configuration */
+  private String jsonResourceLocation;
+
+  /** Amount of time to cache the Clowder JSON before re-reading from the filesystem */
+  private Duration jsonCacheTtl = Duration.ofMinutes(5);
+
+  private boolean strictClowderLoadingMode = true;
 }

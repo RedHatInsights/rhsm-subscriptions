@@ -20,11 +20,10 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -40,8 +39,8 @@ class ClowderJsonFileSourceTest {
   }
 
   private ClowderJsonFileSource initClowderJsonSource(String resourceLocation) {
-    ApplicationProperties props = new ApplicationProperties();
-    props.setClowderJsonResourceLocation(resourceLocation);
+    var props = new ClowderProperties();
+    props.setJsonResourceLocation(resourceLocation);
     ClowderJsonFileSource source =
         new ClowderJsonFileSource(props, new ApplicationClock(), new ObjectMapper());
     source.setResourceLoader(new FileSystemResourceLoader());

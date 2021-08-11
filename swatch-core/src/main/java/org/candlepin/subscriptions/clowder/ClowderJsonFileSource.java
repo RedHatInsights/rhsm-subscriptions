@@ -25,7 +25,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.JsonFileSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.FactoryBean;
@@ -42,12 +41,12 @@ public class ClowderJsonFileSource extends JsonFileSource<ClowderJson>
   public static final String EMPTY_JSON = "{}";
 
   public ClowderJsonFileSource(
-      ApplicationProperties properties, ApplicationClock clock, ObjectMapper mapper) {
+      ClowderProperties properties, ApplicationClock clock, ObjectMapper mapper) {
     super(
-        properties.getClowderJsonResourceLocation(),
+        properties.getJsonResourceLocation(),
         clock.getClock(),
-        properties.getClowderJsonCacheTtl(),
-        properties.isStrictResourceLoadingMode(),
+        properties.getJsonCacheTtl(),
+        properties.isStrictClowderLoadingMode(),
         mapper);
   }
 

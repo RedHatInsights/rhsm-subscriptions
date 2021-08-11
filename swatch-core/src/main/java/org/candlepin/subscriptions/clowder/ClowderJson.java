@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import org.springframework.util.Assert;
 
 /**
  * Accessor class to pull values from the Clowder JSON file. Values are queried using the <a
@@ -47,7 +48,7 @@ public class ClowderJson {
   }
 
   public String getString(JsonPointer jsonPtr) {
-    JsonNode node = root.at(jsonPtr);
+    JsonNode node = getNode(jsonPtr);
     if (node.isTextual()) {
       return node.asText();
     }
@@ -55,7 +56,7 @@ public class ClowderJson {
   }
 
   public boolean getBoolean(JsonPointer jsonPtr) {
-    JsonNode node = root.at(jsonPtr);
+    JsonNode node = getNode(jsonPtr);
     if (node.isBoolean()) {
       return node.asBoolean();
     }
@@ -63,7 +64,7 @@ public class ClowderJson {
   }
 
   public int getInteger(JsonPointer jsonPtr) {
-    JsonNode node = root.at(jsonPtr);
+    JsonNode node = getNode(jsonPtr);
     if (node.canConvertToInt()) {
       return node.asInt();
     }
@@ -71,7 +72,7 @@ public class ClowderJson {
   }
 
   public long getLong(JsonPointer jsonPtr) {
-    JsonNode node = root.at(jsonPtr);
+    JsonNode node = getNode(jsonPtr);
     if (node.canConvertToLong()) {
       return node.asLong();
     }
@@ -79,11 +80,16 @@ public class ClowderJson {
   }
 
   public double getDouble(JsonPointer jsonPtr) {
-    JsonNode node = root.at(jsonPtr);
+    JsonNode node = getNode(jsonPtr);
     if (node.isDouble()) {
       return node.asDouble();
     }
     throw new IllegalStateException(jsonPtr + " does not point to a node of type double");
+  }
+
+  private JsonNode getNode(JsonPointer jsonPtr) {
+    Assert.notNull(jsonPtr, "The Clowder JSON pointer can not be null");
+    return root.at(jsonPtr);
   }
 
   public byte[] getBytes(JsonPointer jsonPtr) {

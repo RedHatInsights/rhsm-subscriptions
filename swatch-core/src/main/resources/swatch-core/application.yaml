@@ -34,7 +34,7 @@ spring:
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
+    # bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
     listener:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)
@@ -84,3 +84,7 @@ rhsm-subscriptions:
     keystore: file:${PRODUCT_KEYSTORE:}
     keystorePassword: ${PRODUCT_KEYSTORE_PASSWORD:redhat}
     maxConnections: ${PRODUCT_MAX_CONNECTIONS:100}
+  clowder:
+    json-resource-location: file:/cdapp/cdappconfig.json
+    kafka-hostname-pointer: /kafka/brokers/0/hostname
+    kafka-port-pointer: /kafka/brokers/0/port

@@ -24,7 +24,8 @@ rhsm-subscriptions:
       kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: true
-  clowder-json-resource-location: classpath:/test-clowder-config.json
+  clowder:
+    json-resource-location: classpath:/test-clowder-config.json
 logging:
   level:
     org:
