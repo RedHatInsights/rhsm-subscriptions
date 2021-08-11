@@ -158,7 +158,7 @@ class OfferingSyncControllerTest {
             69, 70, 185, 194, 197, 201, 205, 240, 271, 290, 311, 317, 318, 326, 329, 408, 458, 473,
             479, 491, 518, 519, 546, 579, 588, 603, 604, 608, 610, 645));
     expected.setProductFamily("OpenShift Enterprise");
-    expected.setProductName("OpenShift Container Platform");
+    expected.setProductName("Red Hat OpenShift Container Platform (Hourly)");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
 
     // When getting the upstream Offering,
@@ -177,7 +177,7 @@ class OfferingSyncControllerTest {
     expected.setChildSkus(Set.of("SVCMW01484A", "SVCMW01484B"));
     expected.setProductIds(Collections.emptySet());
     expected.setProductFamily("OpenShift Enterprise");
-    expected.setProductName("OpenShift Dedicated");
+    expected.setProductName("Red Hat OpenShift Dedicated on Customer Cloud Subscription (Hourly)");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
 
     // When getting the upstream Offering,
@@ -204,7 +204,8 @@ class OfferingSyncControllerTest {
     expected.setPhysicalSockets(2);
     expected.setVirtualSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
-    expected.setProductName("RHEL for SAP HANA");
+    expected.setProductName(
+        "Red Hat Enterprise Linux Server for SAP HANA for Virtual Datacenters with Smart Management, Premium");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
     // (Usage ends up coming from derived SKU RH00618F5)
     expected.setUsage(Usage.PRODUCTION);
@@ -233,7 +234,8 @@ class OfferingSyncControllerTest {
     expected.setRole("Red Hat Enterprise Linux Server");
     expected.setPhysicalSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
-    expected.setProductName("RHEL Server");
+    expected.setProductName(
+        "Red Hat Enterprise Linux Server, Standard (1-2 sockets) (Up to 4 guests) with Smart Management");
     expected.setServiceLevel(ServiceLevel.STANDARD);
     expected.setUsage(Usage.PRODUCTION);
 
@@ -260,7 +262,7 @@ class OfferingSyncControllerTest {
     expected.setPhysicalCores(4); // Because IFL is 1 which gets multiplied by magical constant 4
     expected.setPhysicalSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
-    expected.setProductName("RHEL Developer Workstation");
+    expected.setProductName("Red Hat Enterprise Linux Developer Workstation, Enterprise");
     expected.setServiceLevel(ServiceLevel.EMPTY); // Because Dev-Enterprise isn't a ServiceLevel yet
     expected.setUsage(Usage.DEVELOPMENT_TEST);
 
