@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions;
 
-import com.fasterxml.jackson.core.JsonPointer;
 import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,9 +61,6 @@ public class ApplicationProperties {
   /** Resource location of a file containing the whitelisted accounts allowed to run reports. */
   private String reportingAccountWhitelistResourceLocation;
 
-  /** Resource location of the Clowder JSON configuration */
-  private String clowderJsonResourceLocation;
-
   /**
    * An hour based threshold used to determine whether an inventory host record's rhsm facts are
    * outdated. The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is
@@ -91,9 +87,6 @@ public class ApplicationProperties {
    * filesystem.
    */
   private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
-
-  /** Amount of time to cache the Clowder JSON before re-reading from the filesystem */
-  private Duration clowderJsonCacheTtl = Duration.ofMinutes(5);
 
   /**
    * The number of days after the inventory's stale_timestamp that the record will be culled.
@@ -135,6 +128,4 @@ public class ApplicationProperties {
 
   /** If enabled, will sync Subscriptions with the upstream subscription service. */
   private boolean subscriptionSyncEnabled = false;
-
-  private JsonPointer kafkaHostnamePointer;
 }
