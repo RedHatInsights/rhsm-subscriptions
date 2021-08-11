@@ -101,3 +101,5 @@ rhsm-subscriptions:
     kafka-group-id: marketplace-worker
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  kafka-hostname-pointer: /kafka/brokers/0/hostname
+  clowder-json-resource-location: file:/cdapp/cdappconfig.json

@@ -20,28 +20,34 @@
  */
 package org.candlepin.subscriptions.files;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.Duration;
-import org.yaml.snakeyaml.Yaml;
 
 /**
- * Abstract class for loading data from a YAML file on the classpath or filesystem.
+ * Abstract class for loading data from a JSON file on the classpath or filesystem.
  *
  * @param <T> Expected return type for the loaded yaml.
  */
-public abstract class YamlFileSource<T> extends StructuredFileSource<T> {
-  protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
+public abstract class JsonFileSource<T> extends StructuredFileSource<T> {
+  protected ObjectMapper mapper;
+
+  protected JsonFileSource(
+      String resourceLocation, Clock clock, Duration cacheTtl, ObjectMapper mapper) {
     super(resourceLocation, clock, cacheTtl);
+    this.mapper = mapper;
   }
 
   /**
-   * Allow subclasses to redefine how the YAML for type T is deserialized
+   * Very simple implementation to deserialize a JSON object. Subclasses will likely wish to
+   * redefine how the JSON for type T is deserialized.
    *
-   * @param s InputStream with the YAML
-   * @return an object of type T constructed from the YAML in InputStream s
+   * @param s InputStream with the JSON
+   * @return an object of type T constructed from the JSON in InputStream s
    */
-  protected T parse(InputStream s) {
-    return new Yaml().load(s);
+  protected T parse(InputStream s) throws IOException {
+    return mapper.readValue(s, (Class<T>) getObjectType());
   }
 }
