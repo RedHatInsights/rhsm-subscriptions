@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
-import lombok.*;
-
 import javax.validation.constraints.NotNull;
+import lombok.*;
 
 /** Representation of a single constraint */
 @Getter

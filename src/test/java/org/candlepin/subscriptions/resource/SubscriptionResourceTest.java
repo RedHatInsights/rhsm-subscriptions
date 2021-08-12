@@ -36,52 +36,52 @@ import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_S
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-@ActiveProfiles({"api", "test"})
+@ActiveProfiles({"api", "test", "capacity-ingress"})
 @WithMockRedHatPrincipal("123456")
 class SubscriptionResourceTest {
 
-    private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-    private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
+  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
-    @Autowired SubscriptionResource subscriptionResource;
+  @Autowired SubscriptionResource subscriptionResource;
 
-    @Test
-    @WithMockRedHatPrincipal("1111")
-    void testAccessDeniedWhenAccountIsNotWhitelisted() {
-        assertThrows(
-                AccessDeniedException.class,
-                () ->
-                        subscriptionResource.getSkuCapacityReport(
-                                RHEL_SERVER,
-                                min,
-                                max,
-                                0,
-                                10,
-                                null,
-                                UsageType.PRODUCTION,
-                                null,
-                                SkuCapacityReportSort.SKU,
-                                null));
-    }
+  @Test
+  @WithMockRedHatPrincipal("1111")
+  void testAccessDeniedWhenAccountIsNotWhitelisted() {
+    assertThrows(
+        AccessDeniedException.class,
+        () ->
+            subscriptionResource.getSkuCapacityReport(
+                RHEL_SERVER,
+                min,
+                max,
+                0,
+                10,
+                null,
+                UsageType.PRODUCTION,
+                null,
+                SkuCapacityReportSort.SKU,
+                null));
+  }
 
-    @Test
-    @WithMockRedHatPrincipal(
-            value = "123456",
-            roles = {})
-    void testAccessDeniedWhenUserIsNotAnAdmin() {
-        assertThrows(
-                AccessDeniedException.class,
-                () ->
-                        subscriptionResource.getSkuCapacityReport(
-                                RHEL,
-                                min,
-                                max,
-                                0,
-                                10,
-                                null,
-                                UsageType.PRODUCTION,
-                                null,
-                                SkuCapacityReportSort.SKU,
-                                null));
-    }
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "123456",
+      roles = {})
+  void testAccessDeniedWhenUserIsNotAnAdmin() {
+    assertThrows(
+        AccessDeniedException.class,
+        () ->
+            subscriptionResource.getSkuCapacityReport(
+                RHEL,
+                min,
+                max,
+                0,
+                10,
+                null,
+                UsageType.PRODUCTION,
+                null,
+                SkuCapacityReportSort.SKU,
+                null));
+  }
 }

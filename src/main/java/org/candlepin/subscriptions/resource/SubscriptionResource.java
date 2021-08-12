@@ -24,6 +24,7 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.subscription.SubscriptionTableController;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.candlepin.subscriptions.utilization.api.resources.SubscriptionsApi;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.Min;
@@ -31,32 +32,30 @@ import java.time.OffsetDateTime;
 
 /** Subscriptions Table API implementation. */
 @Component
+@Profile("capacity-ingress")
 public class SubscriptionResource implements SubscriptionsApi {
 
-    private final SubscriptionTableController
-            subscriptionTableController;
+  private final SubscriptionTableController subscriptionTableController;
 
-    public SubscriptionResource(
-            SubscriptionTableController
-                    subscriptionTableController) {
-        this.subscriptionTableController = subscriptionTableController;
-    }
+  public SubscriptionResource(SubscriptionTableController subscriptionTableController) {
+    this.subscriptionTableController = subscriptionTableController;
+  }
 
-    @ReportingAccessRequired
-    @Override
-    public SkuCapacityReport getSkuCapacityReport(
-            ProductId productId,
-            OffsetDateTime beginning,
-            OffsetDateTime ending,
-            @Min(0) Integer offset,
-            @Min(1) Integer limit,
-            ServiceLevelType sla,
-            UsageType usage,
-            Uom uom,
-            SkuCapacityReportSort sort,
-            SortDirection dir) {
+  @ReportingAccessRequired
+  @Override
+  public SkuCapacityReport getSkuCapacityReport(
+      ProductId productId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      @Min(0) Integer offset,
+      @Min(1) Integer limit,
+      ServiceLevelType sla,
+      UsageType usage,
+      Uom uom,
+      SkuCapacityReportSort sort,
+      SortDirection dir) {
 
-        return subscriptionTableController.capacityReportBySku(
-                productId, offset, limit, sla, usage, uom, sort, dir);
-    }
+    return subscriptionTableController.capacityReportBySku(
+        productId, offset, limit, sla, usage, uom, sort, dir);
+  }
 }
