@@ -20,12 +20,9 @@
  */
 package org.candlepin.subscriptions.db;
 
+import lombok.*;
+
 import javax.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 
 /** Representation of a single constraint */
 @Getter
@@ -33,6 +30,7 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class SearchCriteria {
 
   @NotNull private String key;
