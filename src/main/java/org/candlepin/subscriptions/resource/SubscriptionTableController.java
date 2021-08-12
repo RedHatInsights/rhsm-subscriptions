@@ -18,27 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.resource.ResourceUtils.*;
-
-import java.time.OffsetDateTime;
-import java.util.*;
-import javax.validation.constraints.Min;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import javax.validation.constraints.Min;
+import java.time.OffsetDateTime;
+import java.util.*;
+
+import static org.candlepin.subscriptions.resource.ResourceUtils.*;
+
 @Service
-@Profile("capacity-ingress")
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
