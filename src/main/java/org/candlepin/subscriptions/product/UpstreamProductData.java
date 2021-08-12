@@ -67,9 +67,10 @@ import org.slf4j.LoggerFactory;
     SOCKET_LIMIT,
     SERVICE_TYPE,
     PRODUCT_FAMILY,
-    PRODUCT_NAME,
     USAGE,
-    /** Role originates from opProd field roles, not an attribute. */
+    /** Name of Offering comes from opProd description field, not the PRODUCT_NAME attribute. */
+    X_DESCRIPTION,
+    /** Role originates from opProd roles field, not an attribute. */
     X_ROLE;
   }
 
@@ -125,6 +126,8 @@ import org.slf4j.LoggerFactory;
     var children = products.subList(1, products.size());
 
     var offer = new UpstreamProductData(parent.getSku());
+    String name = parent.getDescription();
+    offer.attrs.put(Attr.X_DESCRIPTION, name);
     // Though theoretically possible, none of the products in use by Candlepin (which includes the
     // allowlisted swatch products) ever has more than one role.
     String role = parent.getRoles().stream().findFirst().orElse(null);
@@ -152,7 +155,7 @@ import org.slf4j.LoggerFactory;
     offering.setProductIds(Set.copyOf(engOids));
     offering.setRole(attrs.get(Attr.X_ROLE));
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
-    offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
+    offering.setProductName(attrs.get(Attr.X_DESCRIPTION));
 
     calcCapacityForOffering(offering);
 

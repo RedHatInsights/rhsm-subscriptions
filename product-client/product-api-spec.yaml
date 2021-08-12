@@ -64,7 +64,7 @@ components:
       properties:
         sku:
           type: string
-        name:
+        description:
           type: string
         status:
           type: string
