@@ -91,7 +91,22 @@ allprojects {
     }
 
     test {
-        useJUnitPlatform()
+        useJUnitPlatform {
+            excludeTags("smoke", "integration")
+        }
+    }
+
+    tasks.register("smokeTest", Test) {
+        useJUnitPlatform {
+            includeTags("smoke")
+            excludeTags("integration")
+        }
+    }
+
+    tasks.register("integrationTest", Test) {
+        useJUnitPlatform {
+            includeTags("integration")
+        }
     }
 
     jacocoTestReport {
@@ -119,9 +134,13 @@ allprojects {
         testCompile "org.mockito:mockito-core"
         testCompile "org.mockito:mockito-junit-jupiter"
         testCompile "org.hamcrest:hamcrest"
+        testCompile "io.projectreactor:reactor-core"
+        testImplementation "org.testcontainers:postgresql:1.15.3"
 
         testRuntime "org.junit.jupiter:junit-jupiter-engine"
         testRuntime "ch.qos.logback:logback-classic"
+        testRuntime "org.springframework:spring-webflux"
+        testRuntime "io.projectreactor.netty:reactor-netty-http"
     }
 }
 

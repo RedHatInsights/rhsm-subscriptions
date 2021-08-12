@@ -255,3 +255,46 @@ Possibly useful, to extract the JSON from the k8s configmap file:
 ```
 oc convert -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml -o go-template --template='{{ index .data "subscription-watch.json" }}' > subscription-watch.json
 ```
+
+## Tests
+
+There are 3 types of tests:
+
+- `./gradlew test` invokes unit tests
+- `./gradlew smokeTest` invokes REST-based smoke tests (excerices the API) of a running service at http://localhost:8080
+- `./gradlew integrationTest` which runs REST-based tests using `@SpringBootTest` (similar to smoke tests but assumes dev-mode is disabled).
+
+NOTE: (Some) integration tests require some prerequisite host setup:
+
+1. Enable the podman user socket via `systemctl --user enable --now podman.socket`
+2. Configure testcontainers to use the podman socket via `export DOCKER_HOST=unix:///run/user/$UID/podman/podman.sock`
+3. Configure testcontainers to disable Ryuk (requires privileged containers) via `export TESTCONTAINERS_RYUK_DISABLED=true`
+
+(The exports can be put in an rc file or profile)
+
+An integration test should use `@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)` and then inject the port via `@LocalServerPort Integer serverPort`
+(see `git grep LocalServerPort` for examples). It should also use the `test` profile in `@ActiveProfiles` to use an in-memory DB.
+
+### Jolokia in Integration Tests
+An integration test needing Jolokia access should add `spring.jmx.enabled=true` to the `properties` of the `@SpringBootTest` annotation.
+
+### Prometheus in Integration Tests
+An integration test needing Prometheus access should add `@AutoConfigureMetrics` to the test class.
+
+### Kafka in Integration Tests
+An integration test needing kafka should use `@EmbeddedKafka` and the `test-kafka` profile.
+
+### Postgres in Integration Tests
+An integration test needing Postgres (and not HSQL) can use testcontainers to spin one up dynamically.
+
+Configure the test's datasource properties to use testcontainers:
+
+```java
+@SpringBootTest(
+    properties = {
+      "rhsm-subscriptions.inventory-service.datasource.url=jdbc:tc:postgresql:latest:///inventory?TC_DAEMON=true",
+      "rhsm-subscriptions.inventory-service.datasource.platform=postgresql",
+      "rhsm-subscriptions.inventory-service.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
+    }
+)
+```
