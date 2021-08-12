@@ -18,31 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import java.time.Duration;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/**
- * A module to represent a profile mapping between a swatch product ID and its corresponding
- * offering product name
- */
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode
-public class SwatchProductByOfferingProductName {
-  private String name;
-  private String swatchProductId;
+@Data
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.product-profile")
+public class ProductProfileProperties {
+  /** Resource location of a file containing the list of product profiles */
+  private String productProfileRegistryResourceLocation;
 
-  public SwatchProductByOfferingProductName() {
-    // Required for YAML
-  }
-
-  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
-    this.name = name;
-    this.swatchProductId = swatchProductId;
-  }
+  /**
+   * Amount of time to cache the list of product profiles before allowing a re-read from the
+   * filesystem
+   */
+  private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
 }

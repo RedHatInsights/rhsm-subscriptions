@@ -18,9 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
 import java.io.InputStream;
+import org.candlepin.subscriptions.files.YamlFileSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

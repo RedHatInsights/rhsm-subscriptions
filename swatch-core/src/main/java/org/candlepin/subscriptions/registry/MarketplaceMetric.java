@@ -18,29 +18,33 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
+import java.util.HashSet;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/** Represents Syspurpose Roles and the product families they slot into. */
+/** Represents marketplace metric features, including swatch product IDs. */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
-public class SyspurposeRole {
-  private String name;
+public class MarketplaceMetric {
+  private String metricId;
+  private String uom;
   private Set<String> swatchProductIds;
 
-  public SyspurposeRole() {
-    // required for YAML
+  public MarketplaceMetric() {
+    this.swatchProductIds = new HashSet<>();
   }
 
-  public SyspurposeRole(String name, Set<String> swatchProductIds) {
-    this.name = name;
+  public MarketplaceMetric(String metricId, String uom, Set<String> swatchProductIds) {
+    this();
+    this.metricId = metricId;
+    this.uom = uom;
     this.swatchProductIds = swatchProductIds;
   }
 }

@@ -35,9 +35,9 @@ import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.files.ProductMappingConfiguration;
 import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
+import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
@@ -74,7 +74,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   MarketplaceWorkerConfiguration.class,
   SubscriptionWorkerConfiguration.class,
   CapacityReconciliationWorkerConfiguration.class,
-  ProductMappingConfiguration.class,
+  RegistryConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfig.class,
   HawtioConfiguration.class,

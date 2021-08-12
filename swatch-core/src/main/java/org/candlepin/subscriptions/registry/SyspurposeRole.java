@@ -18,32 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
+import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * This object represents the combination of swatch product id and Measurement.Uom. This should map
- * to a unique metric ID. The ProductUom / metricId is used in the product profile registry.
- */
-@EqualsAndHashCode
+/** Represents Syspurpose Roles and the product families they slot into. */
 @Getter
 @Setter
 @ToString
-public class ProductUom {
+@EqualsAndHashCode
+public class SyspurposeRole {
+  private String name;
+  private Set<String> swatchProductIds;
 
-  private String productId;
-  private String uom;
-
-  public ProductUom() {
+  public SyspurposeRole() {
     // required for YAML
   }
 
-  public ProductUom(String productId, String uom) {
-    this.productId = productId;
-    this.uom = uom;
+  public SyspurposeRole(String name, Set<String> swatchProductIds) {
+    this.name = name;
+    this.swatchProductIds = swatchProductIds;
   }
 }

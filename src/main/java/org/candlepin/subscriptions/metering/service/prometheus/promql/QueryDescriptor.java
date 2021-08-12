@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.metering.service.prometheus.promql;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
-import org.candlepin.subscriptions.files.TagMetric;
+import org.candlepin.subscriptions.registry.TagMetric;
 
 /**
  * Describes the variables to be applied to a query template. Within a template, these variables can

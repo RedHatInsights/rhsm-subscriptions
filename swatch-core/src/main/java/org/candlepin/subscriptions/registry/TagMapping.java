@@ -18,20 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import java.util.Map;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
-/** A composite class for tag profiles. Describes tag metric information. */
+/** A composite class for tag profiles. Describes how tags are mapped. */
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode
@@ -39,11 +37,8 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 @NoArgsConstructor
 @Setter
 @ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private Uom uom;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
+public class TagMapping {
+  private String value;
+  private String valueType;
+  private Set<String> tags;
 }

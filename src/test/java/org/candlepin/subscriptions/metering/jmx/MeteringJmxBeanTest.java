@@ -26,9 +26,9 @@ import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

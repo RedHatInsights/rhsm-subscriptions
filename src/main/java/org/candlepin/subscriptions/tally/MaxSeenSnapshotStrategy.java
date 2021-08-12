@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.files.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.ProductProfileRegistry;
 import org.candlepin.subscriptions.tally.roller.BaseSnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.HourlySnapshotRoller;

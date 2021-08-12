@@ -18,23 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import java.time.Duration;
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+import java.util.Set;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-@Data
-@Component
-@ConfigurationProperties(prefix = "rhsm-subscriptions.product-profile")
-public class ProductProfileProperties {
-  /** Resource location of a file containing the list of product profiles */
-  private String productProfileRegistryResourceLocation;
+/** Represents the idea of products in Subscription Watch and what family they slot into. */
+@Getter
+@Setter
+@ToString
+@EqualsAndHashCode
+public class SubscriptionWatchProduct {
+  private String engProductId;
+  private Set<String> swatchProductIds;
 
-  /**
-   * Amount of time to cache the list of product profiles before allowing a re-read from the
-   * filesystem
-   */
-  private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
+  public SubscriptionWatchProduct() {
+    // Required for YAML
+  }
+
+  public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
+    this.engProductId = engProductId;
+    this.swatchProductIds = swatchProductIds;
+  }
 }

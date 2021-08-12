@@ -18,29 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.registry;
 
-import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/** Represents the idea of products in Subscription Watch and what family they slot into. */
+/**
+ * A module to represent a profile mapping between a swatch product ID and its corresponding
+ * offering product name
+ */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
-public class SubscriptionWatchProduct {
-  private String engProductId;
-  private Set<String> swatchProductIds;
+public class SwatchProductByOfferingProductName {
+  private String name;
+  private String swatchProductId;
 
-  public SubscriptionWatchProduct() {
+  public SwatchProductByOfferingProductName() {
     // Required for YAML
   }
 
-  public SubscriptionWatchProduct(String engProductId, Set<String> swatchProductIds) {
-    this.engProductId = engProductId;
-    this.swatchProductIds = swatchProductIds;
+  public SwatchProductByOfferingProductName(String name, String swatchProductId) {
+    this.name = name;
+    this.swatchProductId = swatchProductId;
   }
 }

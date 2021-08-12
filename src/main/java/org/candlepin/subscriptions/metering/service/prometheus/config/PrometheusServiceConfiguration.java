@@ -22,13 +22,13 @@ package org.candlepin.subscriptions.metering.service.prometheus.config;
 
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.files.TagProfile;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
