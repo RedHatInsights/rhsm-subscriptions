@@ -20,6 +20,19 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
@@ -40,22 +53,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import javax.ws.rs.core.Response;
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-
 @SpringBootTest
-@ActiveProfiles({"api","test"})
+@ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
 class SubscriptionTableControllerTest {
 
@@ -67,8 +66,7 @@ class SubscriptionTableControllerTest {
   @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
 
-  @Autowired
-  SubscriptionTableController subscriptionTableController;
+  @Autowired SubscriptionTableController subscriptionTableController;
 
   @BeforeEach
   void setup() throws AccountListSourceException {
