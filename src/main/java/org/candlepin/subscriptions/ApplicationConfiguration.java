@@ -53,6 +53,7 @@ import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -84,6 +85,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   // NOTE(khowell): actually not needed in marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
 })
+@ComponentScan("org.candlepin.subscriptions.util")
 public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   ApplicationProperties applicationProperties() {

@@ -39,6 +39,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
+/** Configuration for the kafka listener that handles capacity reconciliation tasks. */
 @Profile("capacity-ingress")
 @ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
 @Configuration
