@@ -640,7 +640,6 @@ paths:
           description: "Include only capacity for the specified usage level."
         - name: beginning
           in: query
-          required: true
           schema:
             type: string
             format: date-time
@@ -648,7 +647,6 @@ paths:
              format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
         - name: ending
           in: query
-          required: true
           schema:
             type: string
             format: date-time
