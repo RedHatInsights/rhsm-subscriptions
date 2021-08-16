@@ -119,10 +119,14 @@ public class SubscriptionCapacity implements Serializable {
         .serviceLevel(offering.getServiceLevel())
         .usage(offering.getUsage())
         .sku(offering.getSku())
-        .physicalSockets(offering.getPhysicalSockets())
-        .virtualSockets(offering.getVirtualSockets())
-        .virtualCores(offering.getVirtualCores())
-        .physicalCores(offering.getPhysicalCores())
+        .physicalSockets(totalCapacity(offering.getPhysicalSockets(), subscription.getQuantity()))
+        .virtualSockets(totalCapacity(offering.getVirtualSockets(), subscription.getQuantity()))
+        .virtualCores(totalCapacity(offering.getVirtualCores(), subscription.getQuantity()))
+        .physicalCores(totalCapacity(offering.getPhysicalCores(), subscription.getQuantity()))
         .build();
+  }
+
+  private static Integer totalCapacity(Integer capacity, long quantity) {
+    return capacity == null ? null : capacity * (int) quantity;
   }
 }
