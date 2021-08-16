@@ -52,12 +52,12 @@ class SubscriptionResourceTest {
         () ->
             subscriptionResource.getSkuCapacityReport(
                 RHEL_SERVER,
-                min,
-                max,
                 0,
                 10,
                 null,
                 UsageType.PRODUCTION,
+                min,
+                max,
                 null,
                 SkuCapacityReportSort.SKU,
                 null));
@@ -73,12 +73,12 @@ class SubscriptionResourceTest {
         () ->
             subscriptionResource.getSkuCapacityReport(
                 RHEL,
-                min,
-                max,
                 0,
                 10,
                 null,
                 UsageType.PRODUCTION,
+                min,
+                max,
                 null,
                 SkuCapacityReportSort.SKU,
                 null));

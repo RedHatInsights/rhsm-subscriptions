@@ -41,12 +41,12 @@ public class SubscriptionResource implements SubscriptionsApi {
   @Override
   public SkuCapacityReport getSkuCapacityReport(
       ProductId productId,
-      OffsetDateTime beginning,
-      OffsetDateTime ending,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
       ServiceLevelType sla,
       UsageType usage,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
       Uom uom,
       SkuCapacityReportSort sort,
       SortDirection dir) {
