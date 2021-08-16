@@ -20,14 +20,13 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.*;
-
+import java.io.Serializable;
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-import java.io.Serializable;
-import java.time.OffsetDateTime;
+import lombok.*;
 
 /** Capacity provided by a subscription for a given product. */
 @Entity
@@ -120,11 +119,11 @@ public class SubscriptionCapacity implements Serializable {
         .serviceLevel(offering.getServiceLevel())
         .usage(offering.getUsage())
         .sku(offering.getSku())
-            .physicalSockets(totalCapacity(offering.getPhysicalSockets(), subscription.getQuantity()))
-            .virtualSockets(totalCapacity(offering.getVirtualSockets(), subscription.getQuantity()))
-            .virtualCores(totalCapacity(offering.getVirtualCores(), subscription.getQuantity()))
-            .physicalCores(totalCapacity(offering.getPhysicalCores(), subscription.getQuantity()))
-            .build();
+        .physicalSockets(totalCapacity(offering.getPhysicalSockets(), subscription.getQuantity()))
+        .virtualSockets(totalCapacity(offering.getVirtualSockets(), subscription.getQuantity()))
+        .virtualCores(totalCapacity(offering.getVirtualCores(), subscription.getQuantity()))
+        .physicalCores(totalCapacity(offering.getPhysicalCores(), subscription.getQuantity()))
+        .build();
   }
 
   private static Integer totalCapacity(Integer capacity, long quantity) {
