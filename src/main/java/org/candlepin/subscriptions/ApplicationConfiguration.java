@@ -50,10 +50,10 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
+import org.candlepin.subscriptions.util.UtilConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -84,8 +84,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   UserServiceClientConfiguration.class,
   // NOTE(khowell): actually not needed in marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
+  UtilConfiguration.class,
 })
-@ComponentScan("org.candlepin.subscriptions.util")
 public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   ApplicationProperties applicationProperties() {
