@@ -35,7 +35,6 @@ import org.springframework.boot.actuate.autoconfigure.web.server.ConditionalOnMa
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
@@ -52,7 +51,6 @@ import org.springframework.util.StringUtils;
 @Configuration
 @ConditionalOnManagementPort(ManagementPortType.SAME)
 @AutoConfigureAfter(HawtioManagementConfiguration.class)
-@ComponentScan("org.candlepin.subscriptions.util")
 public class HawtioConfiguration {
   @Autowired
   public void modifyBaseTagHrefFilter(

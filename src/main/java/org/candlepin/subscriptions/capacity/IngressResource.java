@@ -25,9 +25,11 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.utilization.api.model.CandlepinPool;
 import org.candlepin.subscriptions.utilization.api.resources.IngressApi;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /** Updates subscription capacity based on Candlepin pool data. */
+@Profile("capacity-ingress")
 @Component
 public class IngressResource implements IngressApi {
 
