@@ -8,6 +8,8 @@ First, ensure you have podman-compose, podman and java 11 installed:
 sudo dnf install -y podman-compose podman java-11-openjdk-devel
 ```
 
+*NOTE*: You can also use docker if don't want to or are unable to use docker. Make sure docker and docker-compose are installed.
+
 Ensure the checkout has the HBI submodule initialized:
 
 ```
@@ -16,21 +18,33 @@ git submodule update --init --recursive
 
 ## Dependent services
 
-Start via:
+*NOTE*: To run any of the following commands using docker, 
+
+replace podman-compose with
 
 ```
+docker compose
+```
+
+replace podman with
+
+```
+docker
+```
+
+Start via:
+```
 podman-compose up -d
+```
+If using docker, start via
+```
+docker compose up -d
 ```
 
 *NOTE*: if the DB hasn't finished starting up (likely), HBI will fail to
 start, to remedy: `podman start rhsm-subscriptions_inventory_1`.
 
-Stop via (backup data first if desired):
-```
-podman-compose down
-```
-
-For more details about what services are defined, see `container-compose.yml`
+For more details about what services are defined, see `docker-compose.yml`
 
 Note that the compose assumes that none of the services are already running
 locally (hint: might need to `sudo systemctl stop postgresql`). If you want to
