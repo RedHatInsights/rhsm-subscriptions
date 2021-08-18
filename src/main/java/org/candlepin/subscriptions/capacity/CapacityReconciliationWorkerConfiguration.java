@@ -20,29 +20,23 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
-
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 /** Configuration for the kafka listener that handles capacity reconciliation tasks. */
 @Profile("capacity-ingress")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
 @Configuration
+@Import(CapacityReconciliationConfiguration.class)
 public class CapacityReconciliationWorkerConfiguration {
 
   @Bean
@@ -80,31 +74,5 @@ public class CapacityReconciliationWorkerConfiguration {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
-  }
-
-  @Bean
-  public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
-      KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
-  }
-
-  @Bean
-  public ProducerFactory<String, ReconcileCapacityByOfferingTask>
-      reconcileCapacityByOfferingProducerFactory(KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
-  }
-
-  @Bean
-  public KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate(
-      ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory) {
-    return new KafkaTemplate<>(syncSubscriptionsProducerFactory);
-  }
-
-  @Bean
-  public KafkaTemplate<String, ReconcileCapacityByOfferingTask>
-      reconcileCapacityByOfferingTaskKafkaTemplate(
-          ProducerFactory<String, ReconcileCapacityByOfferingTask>
-              reconcileCapacityByOfferingProducerFactory) {
-    return new KafkaTemplate<>(reconcileCapacityByOfferingProducerFactory);
   }
 }
