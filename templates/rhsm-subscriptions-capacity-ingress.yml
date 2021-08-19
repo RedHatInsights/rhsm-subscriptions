@@ -115,6 +115,9 @@ objects:
             - image: ${IMAGE}:${IMAGE_TAG}
               name: rhsm-subscriptions-capacity-ingress
               env:
+                # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+                - name: AB_JOLOKIA_OFF
+                  value: 'true'
                 - name: LOG_FILE
                   value: /logs/server.log
                 - name: JAVA_OPTIONS
