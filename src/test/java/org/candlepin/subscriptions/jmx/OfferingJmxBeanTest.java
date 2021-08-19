@@ -31,6 +31,7 @@ import java.util.Set;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.jmx.capacity.OfferingJmxBean;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

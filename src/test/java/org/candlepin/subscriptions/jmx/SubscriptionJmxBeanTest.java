@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.jmx;
 
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.jmx.capacity.SubscriptionJmxBean;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
