@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.jmx.capacity;
 
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -30,8 +31,6 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 /** Allows syncing of offerings. */
 @Profile("capacity-ingress")
