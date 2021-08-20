@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,9 +30,11 @@ import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -38,24 +43,35 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class SubscriptionSyncController {
+  private static final int SUBS_PAGE_SIZE = 1000;
+
   private SubscriptionRepository subscriptionRepository;
+  private OrgConfigRepository orgRepository;
   private SubscriptionService subscriptionService;
   private ApplicationClock clock;
   private CapacityReconciliationController capacityReconciliationController;
+  private Timer syncTimer;
+  private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
   private String syncSubscriptionsTopic;
 
+  @Autowired
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
+      OrgConfigRepository orgRepository,
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
+      MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
+    this.orgRepository = orgRepository;
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
     this.clock = clock;
+    this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
+    this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
   }
@@ -111,25 +127,54 @@ public class SubscriptionSyncController {
   void syncSubscriptions(String orgId, int offset, int limit) {
     log.info(
         "Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
+    Timer.Sample syncTime = Timer.start();
 
     int pageSize = limit + 1;
-    boolean hasMore = false;
     List<Subscription> subscriptions =
         subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
 
-    if (subscriptions.size() >= pageSize) hasMore = true;
+    boolean hasMore = subscriptions.size() >= pageSize;
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
       offset = offset + limit;
-      syncSubscriptionsByOrgKafkaTemplate.send(
-          syncSubscriptionsTopic,
-          SyncSubscriptionsTask.builder().orgId(orgId).offset(offset).limit(limit).build());
+      enqueueSubscriptionSync(orgId, offset, limit);
     }
+    Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
+    log.info(
+        "Fetched and synced numSubs={} for orgId={} offset={} limit={} in subSyncedTimeMillis={}",
+        subscriptions.size(),
+        orgId,
+        offset,
+        limit,
+        syncDuration.toMillis());
+  }
+
+  private void enqueueSubscriptionSync(String orgId, int offset, int limit) {
+    log.debug("Enqueuing subscription sync for orgId={} offset={} limit={}", orgId, offset, limit);
+    syncSubscriptionsByOrgKafkaTemplate.send(
+        syncSubscriptionsTopic,
+        SyncSubscriptionsTask.builder().orgId(orgId).offset(offset).limit(limit).build());
   }
 
   @Transactional
   public void syncAllSubcriptionsForOrg(String orgId) {
-    syncSubscriptions(orgId, 0, 100);
+    syncSubscriptions(orgId, 0, SUBS_PAGE_SIZE);
+  }
+
+  /**
+   * Enqueues all enrolled organizations to sync their subscriptions with the upstream subscription
+   * service.
+   */
+  @Transactional
+  public void syncAllSubscriptionsForAllOrgs() {
+    Timer.Sample enqueueAllTime = Timer.start();
+    orgRepository
+        .findSyncEnabledOrgs()
+        .forEach(orgId -> enqueueSubscriptionSync(orgId, 0, SUBS_PAGE_SIZE));
+    Duration enqueueAllDuration = Duration.ofNanos(enqueueAllTime.stop(enqueueAllTimer));
+    log.info(
+        "Enqueued orgs to sync subscriptions from upstream in enqueueTimeMillis={}",
+        enqueueAllDuration.toMillis());
   }
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
