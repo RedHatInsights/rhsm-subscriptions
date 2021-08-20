@@ -120,5 +120,8 @@ rhsm-subscriptions:
     keystore: file:${PRODUCT_KEYSTORE:}
     keystorePassword: ${PRODUCT_KEYSTORE_PASSWORD:redhat}
     maxConnections: ${PRODUCT_MAX_CONNECTIONS:100}
+    tasks:
+      topic: platform.rhsm-subscriptions.offering-sync
+      kafka-group-id: offering-worker
   clowder:
     json-resource-location: file:/cdapp/cdappconfig.json

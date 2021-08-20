@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.files;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -49,6 +51,18 @@ class ProductWhitelistTest {
   void testDisallowsProductsNotInWhitelist() throws IOException {
     ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
     assertFalse(whitelist.productIdMatches("not on the list :-("));
+  }
+
+  @Test
+  void testAllProducts() throws IOException {
+    ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
+    assertEquals(Set.of("I1", "I2", "I3"), whitelist.allProducts());
+  }
+
+  @Test
+  void testAllProductsNoSource() throws IOException {
+    ProductWhitelist whitelist = initProductWhitelist("");
+    assertEquals(Collections.emptySet(), whitelist.allProducts());
   }
 
   private ProductWhitelist initProductWhitelist(String resourceLocation) throws IOException {

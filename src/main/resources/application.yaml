@@ -46,6 +46,8 @@ rhsm-subscriptions:
     capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     metering-schedule: ${METERING_SCHEDULE:0 0 1 * * ?}
+    subscription-sync-schedule: ${SUBSCRIPTION_SYNC_SCHEDULE:0 10 * * *}
+    offering-sync-schedule: ${OFFERING_SYNC_SCHEDULE:0 2 * * *}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   tasks:
     topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}

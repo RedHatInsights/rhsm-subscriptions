@@ -87,4 +87,17 @@ class OfferingJmxBeanTest {
     assertEquals(
         "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}", actualMessage);
   }
+
+  @Test
+  void testSyncAllOfferings() {
+    when(offeringSync.syncAllOfferings()).thenReturn(2);
+    OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
+
+    // When requesting all offerings to be synced via the JMX bean interface,
+    String message = subject.syncAllOfferings();
+
+    // Then the offering sync controller's sync all method is called and a message of how many
+    // offerings were enqueued is returned.
+    assertEquals("Enqueued 2 offerings to be synced.", message);
+  }
 }
