@@ -34,7 +34,7 @@ spring:
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
   kafka:
-    # bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
     listener:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)
@@ -86,5 +86,10 @@ rhsm-subscriptions:
     maxConnections: ${PRODUCT_MAX_CONNECTIONS:100}
   clowder:
     json-resource-location: file:/cdapp/cdappconfig.json
-    kafka-hostname-pointer: /kafka/brokers/0/hostname
-    kafka-port-pointer: /kafka/brokers/0/port
+
+# Variables derived from Clowder should have their defaults defined here. Failure to do so will
+# result in an exception at start-up when the clowder property cannot be successfully resolved.
+# The values can still be overridden using environment variables as they have a higher precedence
+# than the defaults defined here.
+KAFKA_BOOTSTRAP_HOST: ${clowder.kafka.brokers[0].hostname:localhost}
+KAFKA_BOOTSTRAP_PORT: ${clowder.kafka.brokers[0].port:9092}

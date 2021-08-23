@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import com.fasterxml.jackson.core.JsonPointer;
-import java.time.Duration;
 import lombok.Data;
 
 /**
@@ -29,14 +27,6 @@ import lombok.Data;
  */
 @Data
 public class ClowderProperties {
-  private JsonPointer kafkaHostnamePointer;
-  private JsonPointer kafkaPortPointer;
-
   /** Resource location of the Clowder JSON configuration */
   private String jsonResourceLocation;
-
-  /** Amount of time to cache the Clowder JSON before re-reading from the filesystem */
-  private Duration jsonCacheTtl = Duration.ofMinutes(5);
-
-  private boolean strictClowderLoadingMode = true;
 }

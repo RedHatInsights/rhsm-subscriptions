@@ -20,9 +20,6 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import java.util.List;
-import org.candlepin.subscriptions.clowder.ClowderJson;
-import org.candlepin.subscriptions.clowder.ClowderProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -48,12 +45,7 @@ class KafkaConfiguration {
 
   @Bean
   @Primary
-  KafkaProperties taskQueueKafkaProperties(
-      ClowderProperties clowderProperties, ClowderJson clowderJson) {
-    KafkaProperties properties = new KafkaProperties();
-    String server = clowderJson.getString(clowderProperties.getKafkaHostnamePointer());
-    int port = clowderJson.getInteger(clowderProperties.getKafkaPortPointer());
-    properties.setBootstrapServers(List.of(server + ":" + port));
-    return properties;
+  KafkaProperties taskQueueKafkaProperties() {
+    return new KafkaProperties();
   }
 }

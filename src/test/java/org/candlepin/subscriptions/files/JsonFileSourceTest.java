@@ -32,7 +32,7 @@ import java.time.Clock;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
-public class JsonFileSourceTest {
+class JsonFileSourceTest {
 
   public static final String TEST_ITEM =
       "{\n" + "    \"id\": 1,\n" + "    \"itemName\": \"theItem\"\n" + "}";

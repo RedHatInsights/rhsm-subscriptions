@@ -49,7 +49,7 @@ public abstract class StructuredFileSource<T> implements ResourceLoaderAware {
   protected StructuredFileSource(
       String resourceLocation, Clock clock, Duration cacheTtl, boolean strictLoading) {
     this.resourceLocation = resourceLocation;
-    this.cachedValue = new Cache(clock, cacheTtl);
+    this.cachedValue = new Cache<>(clock, cacheTtl);
     this.strictLoading = strictLoading;
   }
 

@@ -42,7 +42,6 @@ import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
-import org.candlepin.subscriptions.spring.JsonPointerConverter;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
@@ -160,10 +159,5 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public TimedAspect timedAspect(MeterRegistry registry) {
     return new TimedAspect(registry);
-  }
-
-  @Bean
-  public JsonPointerConverter jsonPointerConverter() {
-    return new JsonPointerConverter();
   }
 }
