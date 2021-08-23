@@ -194,6 +194,13 @@ objects:
                     secretKeyRef:
                       name: tls
                       key: keystore_password
+                - name: PRODUCT_KEYSTORE
+                  value: /ingress/keystore.jks
+                - name: PRODUCT_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
                 - name: TRUSTSTORE
                   value: /ingress/truststore.jks
                 - name: TRUSTSTORE_PASSWORD
