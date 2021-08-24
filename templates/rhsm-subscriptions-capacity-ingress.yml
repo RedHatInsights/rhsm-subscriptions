@@ -195,7 +195,7 @@ objects:
                       name: tls
                       key: keystore_password
                 - name: PRODUCT_KEYSTORE
-                  value: /ingress/keystore.jks
+                  value: /service-certs/keystore.jks
                 - name: PRODUCT_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
@@ -249,6 +249,8 @@ objects:
                   mountPath: /capacity-allowlist
                 - name: logs
                   mountPath: /logs
+                - name: service-certs
+                  mountPath: /service-certs
               workingDir: /
             - name: splunk
               env:
@@ -287,6 +289,9 @@ objects:
             - name: splunk
               secret:
                 secretName: splunk
+            - name: service-certs
+              secret:
+                secretName: pinhead
             - name: logs
               emptyDir:
           restartPolicy: Always

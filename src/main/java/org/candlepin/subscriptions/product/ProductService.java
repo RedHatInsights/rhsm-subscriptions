@@ -70,7 +70,7 @@ public class ProductService {
 
     return skuTree;
     }catch (ApiException e){
-      LOGGER.error("Got API exception in ProductService: {}", e.toString());
+      LOGGER.error("Got API exception in ProductService: Message {} Response Code {}", e.getMessage(), e.getCode());
       return Optional.empty();
     }
   }
