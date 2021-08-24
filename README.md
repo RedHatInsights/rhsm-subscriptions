@@ -4,6 +4,8 @@
 
 First, ensure you have podman-compose, podman and java 11 installed:
 
+If you want to use docker-compose for your local setup, look into the docker folder README for instructions.
+
 ```
 sudo dnf install -y podman-compose podman java-11-openjdk-devel
 ```
