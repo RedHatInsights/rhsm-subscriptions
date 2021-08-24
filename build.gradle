@@ -70,6 +70,7 @@ allprojects {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
                 entry "resteasy-validator-provider-11"
+                entry "resteasy-jackson2-provider"
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
