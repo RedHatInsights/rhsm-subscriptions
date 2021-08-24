@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +33,7 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
+import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.registry.ProductProfile;
 import org.candlepin.subscriptions.registry.ProductProfileRegistry;
@@ -41,12 +44,16 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
@@ -160,5 +167,17 @@ public class TallyWorkerConfiguration {
       throw new IllegalStateException("Could not find product profile for OpenShiftMetrics!");
     }
     return new MetricUsageCollector(profile.get(), accountRepo, eventController, clock);
+  }
+
+  @Bean
+  public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
+      KafkaProperties kafkaProperties) {
+    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+  }
+
+  @Bean
+  public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
+      ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
+    return new KafkaTemplate<>(tallySummaryProducerFactory);
   }
 }

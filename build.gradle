@@ -14,10 +14,10 @@ buildscript {
 
 plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "com.diffplug.spotless" version "5.14.2"
+    id "com.diffplug.spotless" version "5.14.3"
     id "jacoco"
     id "org.sonarqube" version "3.3"
-    id "org.springframework.boot" version "2.5.3"
+    id "org.springframework.boot" version "2.5.4"
     id "net.researchgate.release" version "2.8.1"
     id "GitProperties"
     id 'com.adarshr.test-logger' version '3.0.0'
@@ -30,7 +30,7 @@ ext {
     swagger_annotations_version = "1.6.2"
     swagger_ui_version = "3.51.2"
     resteasy_version = "3.6.3.Final"
-    spring_boot_version = "2.5.3"
+    spring_boot_version = "2.5.4"
     jboss_jaxrs_api_version = "2.0.2.Final"
     resteasy_spring_boot_starter_version = "3.9.0.Final"
     kafka_avro_serializer_version = "6.2.0"
@@ -70,6 +70,7 @@ allprojects {
                 entry "resteasy-client"
                 entry "resteasy-multipart-provider"
                 entry "resteasy-validator-provider-11"
+                entry "resteasy-jackson2-provider"
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
