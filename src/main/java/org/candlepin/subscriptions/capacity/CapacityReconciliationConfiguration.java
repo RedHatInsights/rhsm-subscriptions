@@ -20,8 +20,16 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
+
+import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 
 /**
  * Configuration that should be imported for any component that needs to be able to use capacity
@@ -30,5 +38,29 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
 public class CapacityReconciliationConfiguration {
-  /* Intentionally empty */
+  @Bean
+  public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
+      KafkaProperties kafkaProperties) {
+    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+  }
+
+  @Bean
+  public ProducerFactory<String, ReconcileCapacityByOfferingTask>
+      reconcileCapacityByOfferingProducerFactory(KafkaProperties kafkaProperties) {
+    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+  }
+
+  @Bean
+  public KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsKafkaTemplate(
+      ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory) {
+    return new KafkaTemplate<>(syncSubscriptionsProducerFactory);
+  }
+
+  @Bean
+  public KafkaTemplate<String, ReconcileCapacityByOfferingTask>
+      reconcileCapacityByOfferingTaskKafkaTemplate(
+          ProducerFactory<String, ReconcileCapacityByOfferingTask>
+              reconcileCapacityByOfferingProducerFactory) {
+    return new KafkaTemplate<>(reconcileCapacityByOfferingProducerFactory);
+  }
 }
