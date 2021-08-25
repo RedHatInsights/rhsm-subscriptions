@@ -165,8 +165,6 @@ objects:
                   value: ${DATABASE_MAX_POOL_SIZE}
                 - name: SUBSCRIPTION_SYNC_ENABLED
                   value: ${SUBSCRIPTION_SYNC_ENABLED}
-                - name: PRODUCT_URL
-                  value: ${PRODUCT_URL}
                 - name: INVENTORY_DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
