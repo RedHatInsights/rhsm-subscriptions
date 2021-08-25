@@ -172,6 +172,8 @@ public class MetricUsageCollector {
         eventController
             .fetchEventsInTimeRange(account.getAccountNumber(), startDateTime, endDateTime)
             .filter(event -> event.getServiceType().equals(productProfile.getServiceType()))
+            // We group fetched events by instanceId so that we can clear the measurements
+            // on first access, if the instance already exists for the account.
             .collect(Collectors.groupingBy(Event::getInstanceId));
 
     Map<String, Host> thisHoursInstances = new HashMap<>();
@@ -185,12 +187,9 @@ public class MetricUsageCollector {
           // collected.
           host.getMeasurements().clear();
           thisHoursInstances.put(instanceId, host);
+          account.getServiceInstances().put(instanceId, host);
 
-          events.forEach(
-              event -> {
-                updateInstanceFromEvent(event, host);
-                account.getServiceInstances().put(instanceId, host);
-              });
+          events.forEach(event -> updateInstanceFromEvent(event, host));
         });
 
     return tallyCurrentAccountState(account.getAccountNumber(), thisHoursInstances);

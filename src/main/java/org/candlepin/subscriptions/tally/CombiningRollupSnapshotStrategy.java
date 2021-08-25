@@ -276,13 +276,7 @@ public class CombiningRollupSnapshotStrategy {
 
     // Reset the measurements for all existing finest granularity snapshots so that
     // they reflect the values of the incoming account calculations.
-    affectedSnaps.values().stream()
-        .forEach(
-            existing ->
-                existing
-                    .getTallyMeasurements()
-                    .keySet()
-                    .forEach(key -> existing.getTallyMeasurements().put(key, 0.0)));
+    affectedSnaps.values().stream().forEach(existing -> existing.getTallyMeasurements().clear());
 
     accountCalcs.forEach(
         (offset, accountCalc) -> {
