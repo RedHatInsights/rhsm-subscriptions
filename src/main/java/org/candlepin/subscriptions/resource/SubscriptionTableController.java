@@ -20,11 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.resource.ResourceUtils.*;
-
-import java.time.OffsetDateTime;
-import java.util.*;
-import javax.validation.constraints.Min;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
@@ -35,7 +31,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import javax.validation.constraints.Min;
+import java.time.OffsetDateTime;
+import java.util.*;
+
+import static org.candlepin.subscriptions.resource.ResourceUtils.*;
+
 @Service
+@Slf4j
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
@@ -72,6 +75,19 @@ public class SubscriptionTableController {
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
     Usage sanitizedUsage = sanitizeUsage(usage);
 
+    log.info(
+        "Finding all subscription capacities for "
+            + "owner: {}, "
+            + "productId: {}, "
+            + "SLA: {}, "
+            + "Usage: {} "
+            + "between {} and {}",
+        getOwnerId(),
+        productId.toString(),
+        sanitizedServiceLevel,
+        sanitizedUsage,
+        reportStart,
+        reportEnd);
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
             getOwnerId(),
@@ -81,6 +97,9 @@ public class SubscriptionTableController {
             reportStart,
             reportEnd);
 
+    for(SubscriptionCapacityView capacityView: capacities){
+      log.info("Got Capacity: {}", capacityView.toString());
+    }
     Map<String, SkuCapacity> inventories = new HashMap<>();
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {
       String sku = subscriptionCapacityView.getSku();
@@ -179,11 +198,16 @@ public class SubscriptionTableController {
 
   public void addTotalCapacity(
       SubscriptionCapacityView subscriptionCapacityView, SkuCapacity skuCapacity) {
+    log.info("Calculating total capacity using {}", skuCapacity.toString());
 
     var physicalSockets = subscriptionCapacityView.getPhysicalSockets();
     var physicalCores = subscriptionCapacityView.getPhysicalCores();
     var virtualSockets = subscriptionCapacityView.getVirtualSockets();
     var virtualCores = subscriptionCapacityView.getVirtualCores();
+    log.info("Got value physicalSockets: {}", physicalSockets);
+    log.info("Got value physicalCores: {}", physicalCores);
+    log.info("Got value virtualSockets: {}", virtualSockets);
+    log.info("Got value virtualCores: {}", virtualCores);
     if (skuCapacity.getUom() == Uom.SOCKETS) {
       skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalSockets);
       skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualSockets);

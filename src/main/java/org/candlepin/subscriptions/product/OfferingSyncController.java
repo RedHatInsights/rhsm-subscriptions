@@ -57,7 +57,8 @@ public class OfferingSyncController {
    */
   public Optional<Offering> getUpstreamOffering(String sku) {
     if (!productAllowlist.productIdMatches(sku)) {
-      LOGGER.info("sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
+      LOGGER.debug(
+          "sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
       return Optional.empty();
     }
     LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
@@ -72,10 +73,11 @@ public class OfferingSyncController {
    * @param newState the updated Offering
    */
   public void syncOffering(Offering newState) {
+    LOGGER.info("New state of offering to save: {}", newState.toString());
     Optional<Offering> persistedOffering = offeringRepository.findById(newState.getSku());
 
     if (alreadySynced(persistedOffering, newState)) {
-      LOGGER.debug(
+      LOGGER.info(
           "The given sku=\"{}\" is equal to stored sku. Skipping sync.",
           persistedOffering.get().getSku());
       return;

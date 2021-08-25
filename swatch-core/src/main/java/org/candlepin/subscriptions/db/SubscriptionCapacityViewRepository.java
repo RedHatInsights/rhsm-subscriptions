@@ -39,6 +39,7 @@ public interface SubscriptionCapacityViewRepository
       Usage usage,
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
+
     return findAll(
         SubscriptionCapacityViewSpecification.builder()
             .criteria(

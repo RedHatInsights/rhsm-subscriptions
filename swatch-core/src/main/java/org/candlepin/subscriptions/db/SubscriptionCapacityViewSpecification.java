@@ -27,12 +27,14 @@ import javax.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.springframework.data.jpa.domain.Specification;
 
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Slf4j
 public class SubscriptionCapacityViewSpecification
     implements Specification<SubscriptionCapacityView> {
 

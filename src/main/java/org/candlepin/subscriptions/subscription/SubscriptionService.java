@@ -20,11 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
@@ -32,8 +28,15 @@ import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
+
 /** The Subscription Service wrapper for all subscription service interfaces. */
 @Service
+@Slf4j
 public class SubscriptionService {
 
   private static final String ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG =
@@ -63,6 +66,7 @@ public class SubscriptionService {
           try {
             return searchApi.getSubscriptionById(id);
           } catch (ApiException e) {
+            log.info("Api exception from subscription service: {}", e.getMessage());
             throw new ExternalServiceException(
                 ErrorCode.REQUEST_PROCESSING_ERROR,
                 ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
