@@ -20,13 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import org.candlepin.subscriptions.db.model.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.candlepin.subscriptions.db.model.*;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface SubscriptionCapacityViewRepository
     extends JpaRepository<SubscriptionCapacityView, SubscriptionCapacityKey>,
@@ -103,8 +104,8 @@ public interface SubscriptionCapacityViewRepository
       OffsetDateTime reportEnd) {
 
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
-    if (Objects.nonNull(serviceLevel)) searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
-    if (Objects.nonNull(usage)) searchCriteria.add(searchCriteriaMatchingUsage(usage));
+    if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY)) searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
+    if (Objects.nonNull(usage)  && !serviceLevel.equals(ServiceLevel._ANY)) searchCriteria.add(searchCriteriaMatchingUsage(usage));
     searchCriteria.addAll(searchCriteriaForReportDuration(reportStart, reportEnd));
     return searchCriteria;
   }

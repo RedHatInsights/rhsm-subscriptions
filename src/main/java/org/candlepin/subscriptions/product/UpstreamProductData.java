@@ -20,8 +20,7 @@
  */
 package org.candlepin.subscriptions.product;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -34,12 +33,17 @@ import org.candlepin.subscriptions.product.api.model.RESTProductTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
  * Provides an easier way to translate an operational product, its children, and their derived
  * products into an Offering. The upstream product data are put into this intermediate structure
  * which can then be "merged down" into its ultimate Offering form.
  */
-/* package-protected */ class UpstreamProductData {
+/* package-protected */
+@ToString
+class UpstreamProductData {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UpstreamProductData.class);
   private static final String MSG_TEMPLATE =
@@ -126,7 +130,7 @@ import org.slf4j.LoggerFactory;
 
     // For each child, merge its unconflicting information into the parent.
     children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
-
+    LOGGER.debug("Offering from tree: {}", offer.toString());
     return offer;
   }
 
@@ -332,7 +336,7 @@ import org.slf4j.LoggerFactory;
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
       conflicts.add(msg);
     }
-
+    LOGGER.debug("Attribute is allowed and has key: {} and value{} in product service", key, val);
     return old;
   }
 
