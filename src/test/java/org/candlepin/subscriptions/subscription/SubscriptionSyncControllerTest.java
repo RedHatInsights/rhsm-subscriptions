@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
@@ -27,8 +30,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.IntStream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -55,6 +60,8 @@ class SubscriptionSyncControllerTest {
   @Autowired private ApplicationClock clock;
 
   @MockBean SubscriptionRepository subscriptionRepository;
+
+  @MockBean OrgConfigRepository orgConfigRepository;
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
 
@@ -139,6 +146,17 @@ class SubscriptionSyncControllerTest {
         .send(
             "platform.rhsm-subscriptions.sync",
             SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
+  }
+
+  @Test
+  void shouldEnqueueAllOrgsFromOrgConfigRepository() {
+    Mockito.when(orgConfigRepository.findSyncEnabledOrgs())
+        .thenReturn(IntStream.range(1, 10).mapToObj(String::valueOf));
+
+    subscriptionSyncController.syncAllSubscriptionsForAllOrgs();
+
+    verify(subscriptionsKafkaTemplate, times(9))
+        .send(anyString(), any(SyncSubscriptionsTask.class));
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

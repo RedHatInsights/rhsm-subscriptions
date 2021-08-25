@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.jmx;
 
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.springframework.context.annotation.Profile;
@@ -38,13 +37,8 @@ public class SubscriptionJmxBean {
 
   SubscriptionSyncController subscriptionSyncController;
 
-  OrgConfigRepository orgConfigRepository;
-
-  SubscriptionJmxBean(
-      SubscriptionSyncController subscriptionSyncController,
-      OrgConfigRepository orgConfigRepository) {
+  SubscriptionJmxBean(SubscriptionSyncController subscriptionSyncController) {
     this.subscriptionSyncController = subscriptionSyncController;
-    this.orgConfigRepository = orgConfigRepository;
   }
 
   @Transactional
@@ -64,12 +58,11 @@ public class SubscriptionJmxBean {
   }
 
   @Transactional
-  @ManagedOperation(description = "Sync all subscriptions for sync-enabled orgs.")
+  @ManagedOperation(
+      description = "Enqueue all sync-enabled orgs to sync their subscriptions with upstream.")
   public void syncAllSubscriptions() {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for all sync enabled orgs triggered over JMX by {}", principal);
-    orgConfigRepository
-        .findSyncEnabledOrgs()
-        .forEach(subscriptionSyncController::syncAllSubcriptionsForOrg);
+    subscriptionSyncController.syncAllSubscriptionsForAllOrgs();
   }
 }

@@ -46,6 +46,7 @@ import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureHourlySnapshotsConfiguration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsConfiguration;
+import org.candlepin.subscriptions.tally.job.SubscriptionSyncConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.HawtioConfiguration;
@@ -74,6 +75,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   TallyWorkerConfiguration.class,
   MarketplaceWorkerConfiguration.class,
   SubscriptionWorkerConfiguration.class,
+  SubscriptionSyncConfiguration.class,
   CapacityReconciliationWorkerConfiguration.class,
   RegistryConfiguration.class,
   DevModeConfiguration.class,

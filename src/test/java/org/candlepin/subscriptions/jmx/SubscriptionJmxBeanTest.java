@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.jmx;
 
-import java.util.stream.IntStream;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,22 +33,17 @@ class SubscriptionJmxBeanTest {
 
   @Mock private SubscriptionSyncController subscriptionSyncController;
 
-  @Mock private OrgConfigRepository orgConfigRepository;
-
   private SubscriptionJmxBean subject;
 
   @BeforeEach
   void setup() {
-    subject = new SubscriptionJmxBean(subscriptionSyncController, orgConfigRepository);
+    subject = new SubscriptionJmxBean(subscriptionSyncController);
   }
 
   @Test
   void syncAllSubscriptionsTest() {
-    Mockito.when(orgConfigRepository.findSyncEnabledOrgs())
-        .thenReturn(IntStream.range(1, 10).mapToObj(String::valueOf));
     subject.syncAllSubscriptions();
-    Mockito.verify(subscriptionSyncController, Mockito.times(9))
-        .syncAllSubcriptionsForOrg(Mockito.anyString());
+    Mockito.verify(subscriptionSyncController).syncAllSubscriptionsForAllOrgs();
   }
 
   @Test
