@@ -335,7 +335,6 @@ class UpstreamProductData {
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
       conflicts.add(msg);
     }
-    LOGGER.debug("Attribute is allowed and has key: {} and value{} in product service", key, val);
     return old;
   }
 

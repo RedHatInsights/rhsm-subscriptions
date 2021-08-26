@@ -20,11 +20,10 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.*;
-
-import javax.persistence.*;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import javax.persistence.*;
+import lombok.*;
 
 /** Subscription entities represent data from a Candlepin Pool */
 @Entity
