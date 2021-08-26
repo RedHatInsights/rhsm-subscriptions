@@ -201,6 +201,13 @@ objects:
                     secretKeyRef:
                       name: tls
                       key: keystore_password
+                - name: SUBSCRIPTION_KEYSTORE
+                  value: /service-certs/keystore.jks
+                - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
                 - name: TRUSTSTORE
                   value: /ingress/truststore.jks
                 - name: TRUSTSTORE_PASSWORD
