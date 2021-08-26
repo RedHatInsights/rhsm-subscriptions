@@ -20,14 +20,11 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import lombok.*;
+
+import javax.persistence.*;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.Table;
-import lombok.*;
 
 /** Subscription entities represent data from a Candlepin Pool */
 @Entity
@@ -39,6 +36,7 @@ import lombok.*;
 @NoArgsConstructor
 @IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
+@ToString
 public class Subscription {
 
   @Id

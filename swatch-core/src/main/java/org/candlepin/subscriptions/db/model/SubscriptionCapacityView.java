@@ -20,13 +20,14 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import java.time.OffsetDateTime;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
 import lombok.*;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Subselect;
+
+import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
+import javax.persistence.Entity;
+import java.time.OffsetDateTime;
 
 @Entity
 @Immutable
@@ -52,6 +53,7 @@ import org.hibernate.annotations.Subselect;
         + "o.product_name \n"
         + "FROM subscription_capacity sc \n"
         + "JOIN subscription s on sc.subscription_id = s.subscription_id \n"
+        + "AND s.end_date > CURRENT_TIMESTAMP \n"
         + "JOIN offering o on sc.sku = o.sku")
 @Getter
 @Setter
