@@ -203,7 +203,7 @@ objects:
                       key: keystore_password
                 - name: SUBSCRIPTION_KEYSTORE
                   value: /service-certs/keystore.jks
-                - name: SUBSCRIPTION_KEYSTORE
+                - name: SUBSCRIPTION_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: tls
