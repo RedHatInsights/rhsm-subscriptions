@@ -129,7 +129,7 @@ class UpstreamProductData {
 
     // For each child, merge its unconflicting information into the parent.
     children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
-    LOGGER.debug("Offering from tree: {}", offer.toString());
+    LOGGER.debug("Offering from tree: {}", offer);
     return offer;
   }
 

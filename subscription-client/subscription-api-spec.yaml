@@ -18,7 +18,7 @@ paths:
           type: string
     get:
       summary: "Get a single subscription"
-      operationId: "GetSubscriptionById"
+      operationId: "getSubscriptionById"
       tags:
         - search
       responses:

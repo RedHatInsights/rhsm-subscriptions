@@ -82,7 +82,7 @@ public class SubscriptionTableController {
             + "Usage: {} "
             + "between {} and {}",
         getOwnerId(),
-        productId.toString(),
+        productId,
         sanitizedServiceLevel,
         sanitizedUsage,
         reportStart,
@@ -196,8 +196,8 @@ public class SubscriptionTableController {
       SubscriptionCapacityView subscriptionCapacityView, SkuCapacity skuCapacity) {
     log.debug(
         "Calculating total capacity using sku capacity {} and subscription capacity view {}",
-        skuCapacity.toString(),
-        subscriptionCapacityView.toString());
+        skuCapacity,
+        subscriptionCapacityView);
 
     var physicalSockets = subscriptionCapacityView.getPhysicalSockets();
     var physicalCores = subscriptionCapacityView.getPhysicalCores();

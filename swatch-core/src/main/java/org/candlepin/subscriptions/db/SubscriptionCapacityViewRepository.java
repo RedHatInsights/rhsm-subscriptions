@@ -105,7 +105,7 @@ public interface SubscriptionCapacityViewRepository
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
     if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))
       searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
-    if (Objects.nonNull(usage) && !serviceLevel.equals(ServiceLevel._ANY))
+    if (Objects.nonNull(usage) && !usage.equals(Usage._ANY))
       searchCriteria.add(searchCriteriaMatchingUsage(usage));
     searchCriteria.addAll(searchCriteriaForReportDuration(reportStart, reportEnd));
     return searchCriteria;
