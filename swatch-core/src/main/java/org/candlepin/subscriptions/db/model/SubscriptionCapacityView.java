@@ -60,6 +60,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class SubscriptionCapacityView {
 
   @EmbeddedId private SubscriptionCapacityKey key;
@@ -80,16 +81,16 @@ public class SubscriptionCapacityView {
   private Usage usage;
 
   @Column(name = "physical_sockets")
-  private Integer physicalSockets;
+  private int physicalSockets;
 
   @Column(name = "virtual_sockets")
-  private Integer virtualSockets;
+  private int virtualSockets;
 
   @Column(name = "physical_cores")
-  private Integer physicalCores;
+  private int physicalCores;
 
   @Column(name = "virtual_cores")
-  private Integer virtualCores;
+  private int virtualCores;
 
   @Column(name = "end_date")
   private OffsetDateTime endDate;
