@@ -20,6 +20,10 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -29,11 +33,6 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
-
-import javax.transaction.Transactional;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
 
 /** Update subscriptions from subscription service responses. */
 @Component
@@ -63,18 +62,18 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
-    log.info("Syncing subscription from external service: {}", subscription.toString());
+    log.debug("Syncing subscription from external service: {}", subscription.toString());
     // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
     final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
 
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
-    log.info("New subscription that will need to be saved: {}", newOrUpdated.toString());
+    log.debug("New subscription that will need to be saved: {}", newOrUpdated.toString());
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
-      log.info("Existing subscription in swatch db: {}", existingSubscription);
+      log.debug("Existing subscription in DB: {}", existingSubscription);
       if (!existingSubscription.equals(newOrUpdated)) {
         if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
           existingSubscription.endSubscription();

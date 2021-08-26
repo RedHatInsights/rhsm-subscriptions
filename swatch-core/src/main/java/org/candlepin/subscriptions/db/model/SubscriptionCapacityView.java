@@ -20,15 +20,14 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import lombok.*;
-import org.hibernate.annotations.Immutable;
-import org.hibernate.annotations.Subselect;
-
+import java.time.OffsetDateTime;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import java.time.OffsetDateTime;
-import java.util.Objects;
+import lombok.*;
+import org.hibernate.annotations.Immutable;
+import org.hibernate.annotations.Subselect;
 
 @Entity
 @Immutable
@@ -108,20 +107,19 @@ public class SubscriptionCapacityView {
   @Column(name = "has_unlimited_guest_sockets")
   private boolean hasUnlimitedGuestSockets;
 
-
-  public Integer getPhysicalSockets(){
-    return Objects.isNull(physicalSockets)? 0: physicalSockets;
+  public Integer getPhysicalSockets() {
+    return Objects.isNull(physicalSockets) ? 0 : physicalSockets;
   }
 
-  public Integer getPhysicalCores(){
-    return Objects.isNull(physicalCores)? 0: physicalCores;
+  public Integer getPhysicalCores() {
+    return Objects.isNull(physicalCores) ? 0 : physicalCores;
   }
 
-  public Integer getVirtualCores(){
-    return Objects.isNull(virtualCores)? 0: virtualCores;
+  public Integer getVirtualCores() {
+    return Objects.isNull(virtualCores) ? 0 : virtualCores;
   }
 
-  public Integer getVirtualSockets(){
-    return Objects.isNull(virtualSockets)? 0: virtualSockets;
+  public Integer getVirtualSockets() {
+    return Objects.isNull(virtualSockets) ? 0 : virtualSockets;
   }
 }

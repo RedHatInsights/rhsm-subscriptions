@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.product;
 
+import java.util.Objects;
+import java.util.Optional;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -27,9 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
-import java.util.Optional;
 
 /** Update {@link Offering}s from product service responses. */
 @Component
@@ -58,7 +57,8 @@ public class OfferingSyncController {
    */
   public Optional<Offering> getUpstreamOffering(String sku) {
     if (!productAllowlist.productIdMatches(sku)) {
-      LOGGER.debug("sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
+      LOGGER.debug(
+          "sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
       return Optional.empty();
     }
     LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);

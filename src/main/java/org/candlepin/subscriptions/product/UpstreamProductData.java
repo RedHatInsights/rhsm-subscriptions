@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.product;
 
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -32,9 +34,6 @@ import org.candlepin.subscriptions.product.api.model.OperationalProduct;
 import org.candlepin.subscriptions.product.api.model.RESTProductTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Provides an easier way to translate an operational product, its children, and their derived
