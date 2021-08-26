@@ -28,6 +28,7 @@ import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 
 @Entity
 @Immutable
@@ -81,16 +82,16 @@ public class SubscriptionCapacityView {
   private Usage usage;
 
   @Column(name = "physical_sockets")
-  private int physicalSockets;
+  private Integer physicalSockets;
 
   @Column(name = "virtual_sockets")
-  private int virtualSockets;
+  private Integer virtualSockets;
 
   @Column(name = "physical_cores")
-  private int physicalCores;
+  private Integer physicalCores;
 
   @Column(name = "virtual_cores")
-  private int virtualCores;
+  private Integer virtualCores;
 
   @Column(name = "end_date")
   private OffsetDateTime endDate;
@@ -106,4 +107,21 @@ public class SubscriptionCapacityView {
 
   @Column(name = "has_unlimited_guest_sockets")
   private boolean hasUnlimitedGuestSockets;
+
+
+  public Integer getPhysicalSockets(){
+    return Objects.isNull(physicalSockets)? 0: physicalSockets;
+  }
+
+  public Integer getPhysicalCores(){
+    return Objects.isNull(physicalCores)? 0: physicalCores;
+  }
+
+  public Integer getVirtualCores(){
+    return Objects.isNull(virtualCores)? 0: virtualCores;
+  }
+
+  public Integer getVirtualSockets(){
+    return Objects.isNull(virtualSockets)? 0: virtualSockets;
+  }
 }
