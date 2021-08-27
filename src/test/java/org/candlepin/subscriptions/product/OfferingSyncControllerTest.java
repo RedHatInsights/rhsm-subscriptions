@@ -298,4 +298,18 @@ class OfferingSyncControllerTest {
     // Then there is no resulting offering.
     assertTrue(actual.isEmpty(), "When a sku doesn't exist upstream, return an empty Optional.");
   }
+
+  /** Valid given MW00330 sku with core value set to 16, physical core value is 16 */
+  @Test()
+  void testOpenShiftUpSteamProductPhysicalCores() {
+    // Given an Openshift SKU that does exist upstream,
+    var sku = "MW00330";
+    // create file for MW00330
+
+    // When given the result of a physical,
+    var actual = subject.getUpstreamOffering(sku).orElseThrow();
+
+    // Then cores equals 16
+    assertEquals(16, actual.getPhysicalCores());
+  }
 }
