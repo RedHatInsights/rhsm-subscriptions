@@ -39,6 +39,7 @@ public interface SubscriptionCapacityViewRepository
       Usage usage,
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
+
     return findAll(
         SubscriptionCapacityViewSpecification.builder()
             .criteria(
@@ -102,8 +103,10 @@ public interface SubscriptionCapacityViewRepository
       OffsetDateTime reportEnd) {
 
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
-    if (Objects.nonNull(serviceLevel)) searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
-    if (Objects.nonNull(usage)) searchCriteria.add(searchCriteriaMatchingUsage(usage));
+    if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))
+      searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
+    if (Objects.nonNull(usage) && !usage.equals(Usage._ANY))
+      searchCriteria.add(searchCriteriaMatchingUsage(usage));
     searchCriteria.addAll(searchCriteriaForReportDuration(reportStart, reportEnd));
     return searchCriteria;
   }

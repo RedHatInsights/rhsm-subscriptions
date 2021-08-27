@@ -72,10 +72,11 @@ public class OfferingSyncController {
    * @param newState the updated Offering
    */
   public void syncOffering(Offering newState) {
+    LOGGER.debug("New state of offering to save: {}", newState);
     Optional<Offering> persistedOffering = offeringRepository.findById(newState.getSku());
 
     if (alreadySynced(persistedOffering, newState)) {
-      LOGGER.debug(
+      LOGGER.info(
           "The given sku=\"{}\" is equal to stored sku. Skipping sync.",
           persistedOffering.get().getSku());
       return;

@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 import java.time.OffsetDateTime;
 import java.util.*;
 import javax.validation.constraints.Min;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
@@ -36,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
@@ -72,6 +74,19 @@ public class SubscriptionTableController {
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
     Usage sanitizedUsage = sanitizeUsage(usage);
 
+    log.info(
+        "Finding all subscription capacities for "
+            + "owner: {}, "
+            + "productId: {}, "
+            + "SLA: {}, "
+            + "Usage: {} "
+            + "between {} and {}",
+        getOwnerId(),
+        productId,
+        sanitizedServiceLevel,
+        sanitizedUsage,
+        reportStart,
+        reportEnd);
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
             getOwnerId(),
@@ -179,6 +194,10 @@ public class SubscriptionTableController {
 
   public void addTotalCapacity(
       SubscriptionCapacityView subscriptionCapacityView, SkuCapacity skuCapacity) {
+    log.debug(
+        "Calculating total capacity using sku capacity {} and subscription capacity view {}",
+        skuCapacity,
+        subscriptionCapacityView);
 
     var physicalSockets = subscriptionCapacityView.getPhysicalSockets();
     var physicalCores = subscriptionCapacityView.getPhysicalCores();

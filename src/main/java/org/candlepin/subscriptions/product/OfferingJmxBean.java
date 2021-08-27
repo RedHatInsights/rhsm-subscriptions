@@ -18,15 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jmx;
+package org.candlepin.subscriptions.product;
 
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -52,21 +52,31 @@ public class OfferingJmxBean {
   @ManagedOperation(description = "Sync an offering from the upstream source.")
   @ManagedOperationParameter(name = "sku", description = "A marketing SKU")
   public String syncOffering(String sku) {
-    Object principal = ResourceUtils.getPrincipal();
-    log.info("Sync for offering {} triggered over JMX by {}", sku, principal);
-    Optional<Offering> upstream = offeringSync.getUpstreamOffering(sku);
-    upstream.ifPresent(offeringSync::syncOffering);
-    return upstream
-        .map(Offering::toString)
-        .orElseGet(
-            () -> "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}");
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Sync for offering {} triggered over JMX by {}", sku, principal);
+      Optional<Offering> upstream = offeringSync.getUpstreamOffering(sku);
+      upstream.ifPresent(offeringSync::syncOffering);
+      return upstream
+          .map(Offering::toString)
+          .orElseGet(
+              () -> "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}");
+    } catch (Exception e) {
+      log.error("Error syncing offering", e);
+      throw new JmxException("Error syncing offering. See log for details.");
+    }
   }
 
   @ManagedOperation(description = "Reconcile capacity for an offering from the upstream source.")
   @ManagedOperationParameter(name = "sku", description = "A marketing SKU")
   public void forceReconcileOffering(String sku) {
-    Object principal = ResourceUtils.getPrincipal();
-    log.info("Capacity Reconciliation for sku {} triggered over JMX by {}", sku, principal);
-    capacityReconciliationController.reconcileCapacityForOffering(sku, 0, 100);
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Capacity Reconciliation for sku {} triggered over JMX by {}", sku, principal);
+      capacityReconciliationController.reconcileCapacityForOffering(sku, 0, 100);
+    } catch (Exception e) {
+      log.error("Error reconciling offering", e);
+      throw new JmxException("Error reconciling offering. See log for details.");
+    }
   }
 }

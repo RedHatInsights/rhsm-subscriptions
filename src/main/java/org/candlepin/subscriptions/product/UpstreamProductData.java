@@ -20,18 +20,9 @@
  */
 package org.candlepin.subscriptions.product;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
+import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -49,7 +40,9 @@ import org.slf4j.LoggerFactory;
  * products into an Offering. The upstream product data are put into this intermediate structure
  * which can then be "merged down" into its ultimate Offering form.
  */
-/* package-protected */ class UpstreamProductData {
+/* package-protected */
+@ToString
+class UpstreamProductData {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UpstreamProductData.class);
   private static final String MSG_TEMPLATE =
@@ -136,7 +129,7 @@ import org.slf4j.LoggerFactory;
 
     // For each child, merge its unconflicting information into the parent.
     children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
-
+    LOGGER.debug("Offering from tree: {}", offer);
     return offer;
   }
 
@@ -342,7 +335,6 @@ import org.slf4j.LoggerFactory;
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
       conflicts.add(msg);
     }
-
     return old;
   }
 
