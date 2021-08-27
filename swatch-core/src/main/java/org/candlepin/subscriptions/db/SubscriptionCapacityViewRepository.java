@@ -103,8 +103,10 @@ public interface SubscriptionCapacityViewRepository
       OffsetDateTime reportEnd) {
 
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
-    if (Objects.nonNull(serviceLevel)) searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
-    if (Objects.nonNull(usage)) searchCriteria.add(searchCriteriaMatchingUsage(usage));
+    if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))
+      searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
+    if (Objects.nonNull(usage) && !serviceLevel.equals(ServiceLevel._ANY))
+      searchCriteria.add(searchCriteriaMatchingUsage(usage));
     searchCriteria.addAll(searchCriteriaForReportDuration(reportStart, reportEnd));
     return searchCriteria;
   }
