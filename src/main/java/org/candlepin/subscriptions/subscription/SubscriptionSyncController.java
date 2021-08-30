@@ -25,13 +25,19 @@ import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
+import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,10 +49,11 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class SubscriptionSyncController {
-  private static final int SUBS_PAGE_SIZE = 1000;
+  private static final int SUBS_PAGE_SIZE = 2000;
 
   private SubscriptionRepository subscriptionRepository;
   private OrgConfigRepository orgRepository;
+  private OfferingRepository offeringRepository;
   private SubscriptionService subscriptionService;
   private ApplicationClock clock;
   private CapacityReconciliationController capacityReconciliationController;
@@ -54,42 +61,67 @@ public class SubscriptionSyncController {
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
   private String syncSubscriptionsTopic;
+  private final ProductWhitelist productWhitelist;
 
   @Autowired
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
       OrgConfigRepository orgRepository,
+      OfferingRepository offeringRepository,
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
+      ProductWhitelist productWhitelist,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
+    this.offeringRepository = offeringRepository;
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
     this.clock = clock;
     this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
     this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
+    this.productWhitelist = productWhitelist;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
   }
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
-    log.debug("Syncing subscription from external service: {}", subscription);
+    String sku = sku(subscription);
+
+    if (!productWhitelist.productIdMatches(sku)) {
+      log.info(
+          "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
+          sku,
+          subscription.getId(),
+          subscription.getWebCustomerId());
+      return;
+    }
+
+    if (!offeringRepository.existsById(sku)) {
+      log.info(
+          "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
+          sku,
+          subscription.getId(),
+          subscription.getWebCustomerId());
+      return;
+    }
+
+    log.debug("Syncing subscription from external service={}", subscription);
     // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
     final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
 
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
-    log.debug("New subscription that will need to be saved: {}", newOrUpdated);
+    log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
-      log.debug("Existing subscription in DB: {}", existingSubscription);
+      log.debug("Existing subscription in DB={}", existingSubscription);
       if (!existingSubscription.equals(newOrUpdated)) {
         if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
           existingSubscription.endSubscription();
@@ -126,13 +158,16 @@ public class SubscriptionSyncController {
   }
 
   void syncSubscriptions(String orgId, int offset, int limit) {
-    log.info(
-        "Syncing subscriptions for org: {} with offset: {} and limit: {} ", orgId, offset, limit);
+    log.info("Syncing subscriptions for org={} with offset={} and limit={} ", orgId, offset, limit);
     Timer.Sample syncTime = Timer.start();
 
     int pageSize = limit + 1;
     List<Subscription> subscriptions =
         subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
+    log.info(
+        "Fetched subscriptions of size={} for org={} from external service ",
+        subscriptions.size(),
+        orgId);
 
     boolean hasMore = subscriptions.size() >= pageSize;
     subscriptions.forEach(this::syncSubscription);
@@ -198,5 +233,20 @@ public class SubscriptionSyncController {
     if (dto.getEffectiveEndDate() != null) {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }
+  }
+
+  private String sku(Subscription subscription) {
+    return subscription.getSubscriptionProducts().stream()
+        .filter(
+            subscriptionProduct ->
+                Objects.isNull(subscriptionProduct.getParentSubscriptionProductId()))
+        .map(SubscriptionProduct::getSku)
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new ExternalServiceException(
+                    ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
+                    "Sku not present on subscription with id " + subscription.getId(),
+                    null));
   }
 }
