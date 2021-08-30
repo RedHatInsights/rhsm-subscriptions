@@ -22,8 +22,7 @@ package org.candlepin.subscriptions.subscription;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -32,7 +31,10 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
+import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -59,6 +61,10 @@ class SubscriptionSyncControllerTest {
 
   @Autowired private ApplicationClock clock;
 
+  @MockBean ProductWhitelist whitelist;
+
+  @MockBean OfferingRepository offeringRepository;
+
   @MockBean SubscriptionRepository subscriptionRepository;
 
   @MockBean OrgConfigRepository orgConfigRepository;
@@ -77,6 +83,8 @@ class SubscriptionSyncControllerTest {
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
+    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
+    when(whitelist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
@@ -88,6 +96,8 @@ class SubscriptionSyncControllerTest {
   void shouldUpdateRecordOnNoQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
+    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
+    when(whitelist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 4);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
@@ -99,6 +109,8 @@ class SubscriptionSyncControllerTest {
   void shouldCreateNewRecordOnNotFound() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.empty());
+    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
+    when(whitelist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
@@ -110,10 +122,30 @@ class SubscriptionSyncControllerTest {
   void shouldSyncSubscriptionFromServiceForASubscriptionID() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
+    Mockito.when(offeringRepository.findById(anyString()))
+        .thenReturn(Optional.of(Offering.builder().sku("testSku").build()));
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
     verify(subscriptionService).getSubscriptionById(Mockito.anyString());
+  }
+
+  @Test
+  void shouldSkipSyncSubscriptionIfSkuIsNotOnAllowList() {
+    when(whitelist.productIdMatches(any())).thenReturn(false);
+    var dto = createDto("456", 10);
+    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
+    subscriptionSyncController.syncSubscription(dto.getId().toString());
+    verifyNoInteractions(subscriptionRepository);
+  }
+
+  @Test
+  void shouldSkipSyncSubscriptionIfSkuIsNotInOfferingRepository() {
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    var dto = createDto("456", 10);
+    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
+    subscriptionSyncController.syncSubscription(dto.getId().toString());
+    verifyNoInteractions(subscriptionRepository);
   }
 
   @Test
