@@ -144,7 +144,7 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.syncSubscriptions("100", 0, 2);
     verify(subscriptionsKafkaTemplate)
         .send(
-            "platform.rhsm-subscriptions.sync",
+            "platform.rhsm-subscriptions.subscription-sync",
             SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
   }
 
