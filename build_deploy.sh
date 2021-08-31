@@ -27,8 +27,8 @@ for service in $SERVICES; do
   SERVICE_IMAGE="quay.io/cloudservices/$service"
   docker --config="$DOCKER_CONF" build --no-cache -t "${SERVICE_IMAGE}:${IMAGE_TAG}" . -f $service/Dockerfile
   docker --config="$DOCKER_CONF" push "${SERVICE_IMAGE}:${IMAGE_TAG}"
-  docker --config="$DOCKER_CONF" tag "${SERVICE_IMAGE}:${IMAGE_TAG}" "${IMAGE}:${SMOKE_TEST_TAG}"
+  docker --config="$DOCKER_CONF" tag "${SERVICE_IMAGE}:${IMAGE_TAG}" "${SERVICE_IMAGE}:${SMOKE_TEST_TAG}"
   docker --config="$DOCKER_CONF" push "${SERVICE_IMAGE}:${SMOKE_TEST_TAG}"
-  docker --config="$DOCKER_CONF" tag "${SERVICE_IMAGE}:${IMAGE_TAG}" "${IMAGE}:qa"
+  docker --config="$DOCKER_CONF" tag "${SERVICE_IMAGE}:${IMAGE_TAG}" "${SERVICE_IMAGE}:qa"
   docker --config="$DOCKER_CONF" push "${SERVICE_IMAGE}:qa"
 done
