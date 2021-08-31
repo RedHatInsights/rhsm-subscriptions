@@ -22,22 +22,29 @@ package org.candlepin.subscriptions.subscription;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
+import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+
+import javax.transaction.Transactional;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /** Update subscriptions from subscription service responses. */
 @Component
@@ -54,6 +61,8 @@ public class SubscriptionSyncController {
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
   private String syncSubscriptionsTopic;
+  private ProductWhitelist productWhitelist;
+  private OfferingRepository offeringRepository;
 
   @Autowired
   public SubscriptionSyncController(
@@ -64,7 +73,9 @@ public class SubscriptionSyncController {
       CapacityReconciliationController capacityReconciliationController,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
-      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
+      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
+      ProductWhitelist productWhitelist,
+      OfferingRepository offeringRepository) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
     this.subscriptionService = subscriptionService;
@@ -74,17 +85,38 @@ public class SubscriptionSyncController {
     this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
+    this.productWhitelist = productWhitelist;
+    this.offeringRepository = offeringRepository;
   }
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
-    log.debug("Syncing subscription from external service: {}", subscription);
+    String sku = sku(subscription);
+    if (!productWhitelist.productIdMatches(sku)) {
+      log.info(
+              "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
+              sku,
+              subscription.getId(),
+              subscription.getWebCustomerId());
+      return;
+    }
+
+    if (offeringRepository.findById(sku).isEmpty()) {
+      log.info(
+              "Sku {} not in Offering repository, skipping subscription sync for subscriptionId: {} in org: {}",
+              sku,
+              subscription.getId(),
+              subscription.getWebCustomerId());
+      return;
+    }
+
+    log.info("Syncing subscription from external service: {}", subscription);
     // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
     final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
         subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
 
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
-    log.debug("New subscription that will need to be saved: {}", newOrUpdated);
+    log.info("New subscription that will need to be saved: {}", newOrUpdated);
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
@@ -198,5 +230,20 @@ public class SubscriptionSyncController {
     if (dto.getEffectiveEndDate() != null) {
       entity.setEndDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()));
     }
+  }
+
+  private String sku(Subscription subscription) {
+    return subscription.getSubscriptionProducts().stream()
+            .filter(
+                    subscriptionProduct ->
+                            Objects.isNull(subscriptionProduct.getParentSubscriptionProductId()))
+            .map(SubscriptionProduct::getSku)
+            .findFirst()
+            .orElseThrow(
+                    () ->
+                            new ExternalServiceException(
+                                    ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
+                                    "Sku not present on subscription with id " + subscription.getId(),
+                                    null));
   }
 }
