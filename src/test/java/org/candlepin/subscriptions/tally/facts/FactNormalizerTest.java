@@ -603,6 +603,30 @@ public class FactNormalizerTest {
     assertEquals(Usage.DEVELOPMENT_TEST, normalized.getUsage());
   }
 
+  @Test
+  void testCalculationOfVirtualCPU() {
+    InventoryHostFacts facts = createBaseHost("V1", "01");
+    facts.setSystemProfileArch("x86_64");
+    facts.setSystemProfileCoresPerSocket(16);
+    facts.setSystemProfileSockets(1);
+    facts.setSystemProfileInfrastructureType("virtual");
+    NormalizedFacts normalizedFacts = normalizer.normalize(facts, Collections.emptyMap());
+    assertEquals(8, normalizedFacts.getCores());
+    assertEquals(HostHardwareType.VIRTUALIZED, normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void testCalculationOfVirtualCPURoundsUP() {
+    InventoryHostFacts facts = createBaseHost("V1", "01");
+    facts.setSystemProfileArch("x86_64");
+    facts.setSystemProfileCoresPerSocket(9);
+    facts.setSystemProfileSockets(1);
+    facts.setSystemProfileInfrastructureType("virtual");
+    NormalizedFacts normalizedFacts = normalizer.normalize(facts, Collections.emptyMap());
+    assertEquals(5, normalizedFacts.getCores());
+    assertEquals(HostHardwareType.VIRTUALIZED, normalizedFacts.getHardwareType());
+  }
+
   private void assertClassification(
       NormalizedFacts check, boolean isHypervisor, boolean isHypervisorUnknown, boolean isVirtual) {
     assertEquals(isHypervisor, check.isHypervisor());

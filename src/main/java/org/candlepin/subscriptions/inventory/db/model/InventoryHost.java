@@ -56,6 +56,7 @@ import lombok.Setter;
             @ColumnResult(name = "system_profile_infrastructure_type"),
             @ColumnResult(name = "system_profile_cores_per_socket"),
             @ColumnResult(name = "system_profile_sockets"),
+            @ColumnResult(name = "system_profile_arch"),
             @ColumnResult(name = "qpc_products"),
             @ColumnResult(name = "qpc_product_ids"),
             @ColumnResult(name = "system_profile_product_ids"),
@@ -80,6 +81,12 @@ import lombok.Setter;
 /* This query is complex so that we can fetch all the product IDs as a comma-delimited string all in one
  * query.  It's inspired by https://dba.stackexchange.com/a/54289. See also
  * https://stackoverflow.com/a/28557803/6124862
+ *
+ * To add new query date must make updates in the following order
+ * First step -> update queries with the following structure (h.facts ->> rhsm ->> new field as new field,)
+ * check insights-host-inventory/blob/master/swagger/system_profile.spec.yaml for queries on HBI Database.
+ * Second step: Add new field as a ColumnResult
+ * Third step : update inventory host facts contstructor for new column
  */
 @NamedNativeQuery(
     name = "InventoryHost.getFacts",
@@ -106,6 +113,7 @@ import lombok.Setter;
             + "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, "
             + "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, "
             + "h.system_profile_facts->>'cloud_provider' as cloud_provider, "
+            + "h.system_profile_facts->>'arch' as system_profile_arch,"
             + "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, "
             + "h.canonical_facts->>'insights_id' as insights_id, "
             + "rhsm_products.products, "

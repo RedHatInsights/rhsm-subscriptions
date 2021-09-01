@@ -206,7 +206,23 @@ public class FactNormalizer {
       normalizedFacts.setCores(
           hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
     }
+    if (hostFacts.getSystemProfileArch().equals("x86_64")
+        && hostFacts.getSystemProfileInfrastructureType().equals("virtual")) {
+      var effectiveCores = calculateVirtualCPU(hostFacts);
+      normalizedFacts.setCores(effectiveCores);
+    }
     getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
+  }
+
+  private Integer calculateVirtualCPU(InventoryHostFacts virtualFacts) {
+    //  For x86, guests: if we know the number of threads per core and its greater than one,
+    //  then we divide the number of cores by that number.
+    //  Otherwise we divide by two.
+    int cpu =
+        virtualFacts.getSystemProfileCoresPerSocket() * virtualFacts.getSystemProfileSockets();
+
+    // If we have the actual threads per core, you can use it here.
+    return Double.valueOf(Math.ceil(cpu / 2.0)).intValue();
   }
 
   private void getProductsFromProductIds(
