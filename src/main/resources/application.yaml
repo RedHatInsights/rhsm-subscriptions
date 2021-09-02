@@ -80,11 +80,11 @@ rhsm-subscriptions:
     maxRetryAttempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
     pageSize: ${SUBSCRIPTION_PAGE_SIZE:500}
     tasks:
-      topic: platform.rhsm-subscriptions.sync
+      topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
   capacity:
     tasks:
-      topic: platform.rhsm-subscriptions.capacity.reconcile
+      topic: platform.rhsm-subscriptions.capacity-reconcile
       kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: ${USER_USE_STUB:false}

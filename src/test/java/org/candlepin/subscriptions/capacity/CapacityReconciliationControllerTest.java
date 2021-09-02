@@ -278,7 +278,7 @@ class CapacityReconciliationControllerTest {
     capacityReconciliationController.reconcileCapacityForOffering(offering.getSku(), 0, 2);
     verify(reconcileCapacityByOfferingKafkaTemplate)
         .send(
-            "platform.rhsm-subscriptions.capacity.reconcile",
+            "platform.rhsm-subscriptions.capacity-reconcile",
             ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(2).limit(2).build());
   }
 
