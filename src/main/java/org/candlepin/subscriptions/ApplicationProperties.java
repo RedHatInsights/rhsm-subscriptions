@@ -43,9 +43,6 @@ public class ApplicationProperties {
 
   private boolean prettyPrintJson = false;
 
-  /** Fail to start the application is a FileSource is missing */
-  private boolean strictResourceLoadingMode = true;
-
   /** Job schedules when running in dev mode. */
   private JobProperties jobs;
 
