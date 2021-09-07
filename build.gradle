@@ -35,7 +35,7 @@ ext {
     resteasy_spring_boot_starter_version = "3.9.0.Final"
     kafka_avro_serializer_version = "6.2.0"
     avro_version = "1.10.2"
-    webjars_locator_version = "0.41"
+    webjars_locator_version = "0.42"
     generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
 }
 
