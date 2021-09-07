@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,10 +81,9 @@ public class EventController {
    * @return the event ID
    */
   @Transactional
-  public UUID saveEvent(Event event) {
+  public Event saveEvent(Event event) {
     EventRecord eventRecord = new EventRecord(event);
-    repo.save(eventRecord);
-    return eventRecord.getId();
+    return repo.save(eventRecord).getEvent();
   }
 
   /**
@@ -92,8 +92,10 @@ public class EventController {
    * @param events the event JSON objects to save.
    */
   @Transactional
-  public void saveAll(Collection<Event> events) {
-    repo.saveAll(events.stream().map(EventRecord::new).collect(Collectors.toList()));
+  public List<Event> saveAll(Collection<Event> events) {
+    return repo.saveAll(events.stream().map(EventRecord::new).collect(Collectors.toList())).stream()
+        .map(EventRecord::getEvent)
+        .collect(Collectors.toList());
   }
 
   /**
@@ -114,5 +116,10 @@ public class EventController {
   @Transactional
   public void deleteEvents(Collection<Event> toDelete) {
     repo.deleteInBatch(toDelete.stream().map(EventRecord::new).collect(Collectors.toList()));
+  }
+
+  @Transactional
+  public void deleteEvent(UUID eventId) {
+    repo.deleteById(eventId);
   }
 }

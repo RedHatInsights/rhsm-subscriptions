@@ -31,6 +31,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.slf4j.Logger;
@@ -55,6 +56,7 @@ public class TallySnapshotController {
   private final RetryTemplate retryTemplate;
   private final RetryTemplate cloudigradeRetryTemplate;
   private final Set<String> applicableProducts;
+  private final TagProfile tagProfile;
 
   @Autowired
   public TallySnapshotController(
@@ -66,7 +68,8 @@ public class TallySnapshotController {
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
       @Qualifier("OpenShiftMetricsUsageCollector") MetricUsageCollector metricUsageCollector,
-      CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy) {
+      CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
+      TagProfile tagProfile) {
 
     this.props = props;
     this.applicableProducts = applicableProducts;
@@ -77,6 +80,7 @@ public class TallySnapshotController {
     this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
+    this.tagProfile = tagProfile;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -123,17 +127,22 @@ public class TallySnapshotController {
         snapshotRange.getStartString(),
         snapshotRange.getEndString());
     try {
-      var accountCalcs =
+      var result =
           retryTemplate.execute(
               context -> metricUsageCollector.collect(accountNumber, snapshotRange));
 
       var applicableUsageCalculations =
-          accountCalcs.entrySet().stream()
+          result.getCalculations().entrySet().stream()
               .filter(TallySnapshotController::isCombiningRollupStrategySupported)
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
       combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-          accountNumber, applicableUsageCalculations, Granularity.HOURLY, Double::sum);
+          accountNumber,
+          result.getRange(),
+          tagProfile.getTagsWithPrometheusEnabledLookup(),
+          applicableUsageCalculations,
+          Granularity.HOURLY,
+          Double::sum);
       log.info("Finished producing hourly snapshots for account: {}", accountNumber);
     } catch (Exception e) {
       log.error(

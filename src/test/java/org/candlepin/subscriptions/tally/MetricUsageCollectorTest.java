@@ -525,4 +525,45 @@ class MetricUsageCollectorTest {
     assertThrows(
         IllegalArgumentException.class, () -> metricUsageCollector.collect("account123", range));
   }
+
+  @Test
+  void collectHourClearsAllMeasurementsForInstanceBeforeApplyingEvents() {
+    String accountNumber = "account123";
+    String instanceId = UUID.randomUUID().toString();
+    OffsetDateTime eventDate = clock.startOfCurrentHour();
+    double expectedCoresMeasurement = 150.0;
+
+    Account account = new Account();
+    account.setAccountNumber(accountNumber);
+
+    OffsetDateTime instanceDate = eventDate.minusDays(1);
+    Host activeInstance = new Host();
+    activeInstance.setInstanceId(instanceId);
+    activeInstance.setInstanceType(SERVICE_TYPE);
+    activeInstance.setLastSeen(instanceDate);
+    activeInstance.setMeasurement(Uom.CORES, 122.5);
+    activeInstance.setMeasurement(Uom.INSTANCE_HOURS, 50.0);
+    account.getServiceInstances().put(instanceId, activeInstance);
+
+    Measurement coresMeasurement =
+        new Measurement().withUom(Uom.CORES).withValue(expectedCoresMeasurement);
+    Event coresEvent =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(instanceId)
+            .withMeasurements(Collections.singletonList(coresMeasurement))
+            .withUsage(Event.Usage.PRODUCTION);
+
+    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+        .thenReturn(Stream.of(coresEvent));
+
+    metricUsageCollector.collectHour(account, eventDate);
+    // Cores measurement should be present and updated to the new expected value from the event.
+    assertEquals(
+        Double.valueOf(expectedCoresMeasurement), activeInstance.getMeasurement(Uom.CORES));
+    // Instance hours measurement should no longer be present since it was not reported by an event.
+    assertNull(activeInstance.getMeasurement(Uom.INSTANCE_HOURS));
+  }
 }
