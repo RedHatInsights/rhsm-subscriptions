@@ -18,31 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.files;
+package org.candlepin.subscriptions.clowder;
 
-import java.io.InputStream;
-import java.time.Clock;
-import java.time.Duration;
-import org.yaml.snakeyaml.Yaml;
+import lombok.Data;
 
 /**
- * Abstract class for loading data from a YAML file on the classpath or filesystem.
- *
- * @param <T> Expected return type for the loaded yaml.
+ * Class to hold all properties derived from the configuration within the JSON file Clowder exposes
  */
-public abstract class YamlFileSource<T> extends StructuredFileSource<T> {
-  protected YamlFileSource(
-      String resourceLocation, Clock clock, Duration cacheTtl, boolean strictLoading) {
-    super(resourceLocation, clock, cacheTtl, strictLoading);
-  }
-
-  /**
-   * Allow subclasses to redefine how the YAML for type T is deserialized
-   *
-   * @param s InputStream with the YAML
-   * @return an object of type T constructed from the YAML in InputStream s
-   */
-  protected T parse(InputStream s) {
-    return new Yaml().load(s);
-  }
+@Data
+public class ClowderProperties {
+  /** Resource location of the Clowder JSON configuration */
+  private String jsonResourceLocation;
 }

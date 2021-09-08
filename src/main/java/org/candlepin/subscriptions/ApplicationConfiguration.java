@@ -34,6 +34,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
+import org.candlepin.subscriptions.clowder.ClowderConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
@@ -78,6 +79,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   SubscriptionSyncConfiguration.class,
   CapacityReconciliationWorkerConfiguration.class,
   RegistryConfiguration.class,
+  ClowderConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfig.class,
   HawtioConfiguration.class,
@@ -128,10 +130,8 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
 
     // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
-    // order to
-    // avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
-    // deserialization
-    // to ignore @JsonProperty on OpenApi classes.
+    // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
+    // deserialization to ignore @JsonProperty on OpenApi classes.
     objectMapper.registerModule(new JaxbAnnotationModule());
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.registerModule(new Jdk8Module());
