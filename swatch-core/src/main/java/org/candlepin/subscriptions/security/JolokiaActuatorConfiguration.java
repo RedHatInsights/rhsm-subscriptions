@@ -21,11 +21,16 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -42,9 +47,37 @@ import org.springframework.security.web.csrf.CsrfFilter;
 @Configuration
 public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
 
-  @Autowired private SecurityProperties appProps;
+  @Autowired private SecurityProperties secProps;
   @Autowired private ConfigurableEnvironment env;
   @Autowired protected ObjectMapper mapper;
+
+  @Override
+  protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    auth.authenticationProvider(
+        jolokiaIdentityHeaderAuthenticationProvider(
+            jolokiaIdentityHeaderAuthenticationDetailsService(secProps)));
+  }
+
+  @Bean
+  public AuthenticationProvider jolokiaIdentityHeaderAuthenticationProvider(
+      @Qualifier("jolokiaIdentityHeaderAuthenticationDetailsService")
+          IdentityHeaderAuthenticationDetailsService detailsService) {
+    return new IdentityHeaderAuthenticationProvider(detailsService);
+  }
+
+  @Bean
+  public IdentityHeaderAuthenticationDetailsService
+      jolokiaIdentityHeaderAuthenticationDetailsService(SecurityProperties secProps) {
+    // NOTE: we use empty rbac properties and null rbac controller because jolokia access doesn't
+    // use RBAC service.
+    return new IdentityHeaderAuthenticationDetailsService(
+        secProps, new RbacProperties(), jolokiaIdentityHeaderAuthoritiesMapper(), null);
+  }
+
+  @Bean
+  public IdentityHeaderAuthoritiesMapper jolokiaIdentityHeaderAuthoritiesMapper() {
+    return new IdentityHeaderAuthoritiesMapper();
+  }
 
   // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
   // filter
@@ -81,7 +114,7 @@ public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
         .disable()
         .addFilter(identityHeaderAuthenticationFilter())
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
-        .addFilterAt(getVerbIncludingAntiCsrfFilter(appProps, env), CsrfFilter.class)
+        .addFilterAt(getVerbIncludingAntiCsrfFilter(secProps, env), CsrfFilter.class)
         .authorizeRequests()
         .requestMatchers(EndpointRequest.to("jolokia"))
         .permitAll()

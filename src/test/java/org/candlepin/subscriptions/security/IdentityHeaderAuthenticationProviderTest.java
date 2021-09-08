@@ -26,6 +26,7 @@ import static org.mockito.Mockito.*;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -42,9 +43,13 @@ class IdentityHeaderAuthenticationProviderTest {
 
   @MockBean PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails details;
 
-  @MockBean IdentityHeaderAuthenticationDetailsService detailsService;
+  @MockBean
+  @Qualifier("identityHeaderAuthenticationDetailsService")
+  IdentityHeaderAuthenticationDetailsService detailsService;
 
-  @Autowired AuthenticationProvider manager;
+  @Autowired
+  @Qualifier("identityHeaderAuthenticationProvider")
+  AuthenticationProvider manager;
 
   @Test
   void testMissingOrgId() {
