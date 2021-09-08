@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -93,7 +94,8 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Bean
   public AuthenticationProvider identityHeaderAuthenticationProvider(
-      IdentityHeaderAuthenticationDetailsService detailsService) {
+      @Qualifier("identityHeaderAuthenticationDetailsService")
+          IdentityHeaderAuthenticationDetailsService detailsService) {
     return new IdentityHeaderAuthenticationProvider(detailsService);
   }
 
