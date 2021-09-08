@@ -24,12 +24,16 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.candlepin.subscriptions.db.AccountRepository;
 import org.candlepin.subscriptions.db.model.Account;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -71,8 +75,7 @@ public class MetricUsageCollector {
   }
 
   @Transactional
-  public Map<OffsetDateTime, AccountUsageCalculation> collect(
-      String accountNumber, DateRange range) {
+  public CollectionResult collect(String accountNumber, DateRange range) {
     if (!clock.isHourlyRange(range)) {
       throw new IllegalArgumentException(
           String.format(
@@ -156,27 +159,37 @@ public class MetricUsageCollector {
       }
     }
     accountRepository.save(account);
-    return accountCalcs;
+
+    return new CollectionResult(
+        new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);
   }
 
   @Transactional
   public AccountUsageCalculation collectHour(Account account, OffsetDateTime startDateTime) {
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
-    Stream<Event> eventStream =
+    Map<String, List<Event>> eventToHostMapping =
         eventController
             .fetchEventsInTimeRange(account.getAccountNumber(), startDateTime, endDateTime)
-            .filter(event -> event.getServiceType().equals(productProfile.getServiceType()));
+            .filter(event -> event.getServiceType().equals(productProfile.getServiceType()))
+            // We group fetched events by instanceId so that we can clear the measurements
+            // on first access, if the instance already exists for the account.
+            .collect(Collectors.groupingBy(Event::getInstanceId));
 
     Map<String, Host> thisHoursInstances = new HashMap<>();
-    eventStream.forEach(
-        event -> {
-          String instanceId = event.getInstanceId();
+    eventToHostMapping.forEach(
+        (instanceId, events) -> {
           Host existing = account.getServiceInstances().get(instanceId);
           Host host = existing == null ? new Host() : existing;
-          updateInstanceFromEvent(event, host);
+          // Clear all measurements before processing the events so that we do
+          // not add old measurements to the new account calculations. Once collect()
+          // is completed, the instance will contain the measurements of the last hour
+          // collected.
+          host.getMeasurements().clear();
           thisHoursInstances.put(instanceId, host);
           account.getServiceInstances().put(instanceId, host);
+
+          events.forEach(event -> updateInstanceFromEvent(event, host));
         });
 
     return tallyCurrentAccountState(account.getAccountNumber(), thisHoursInstances);
@@ -350,5 +363,13 @@ public class MetricUsageCollector {
         .forEach(productIds::addAll);
 
     return productIds;
+  }
+
+  @AllArgsConstructor
+  @Getter
+  public class CollectionResult {
+    private DateRange range;
+    private Map<OffsetDateTime, AccountUsageCalculation> calculations;
+    private boolean wasRecalculated;
   }
 }
