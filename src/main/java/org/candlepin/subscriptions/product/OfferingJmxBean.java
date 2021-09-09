@@ -60,7 +60,10 @@ public class OfferingJmxBean {
       return upstream
           .map(Offering::toString)
           .orElseGet(
-              () -> "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}");
+              () ->
+                  "{\"message\": \"offeringSku=\""
+                      + sku
+                      + "\" was not found in upstream service\"}");
     } catch (Exception e) {
       log.error("Error syncing offering", e);
       throw new JmxException("Error syncing offering. See log for details.");

@@ -85,6 +85,7 @@ class OfferingJmxBeanTest {
     verify(offeringSync).getUpstreamOffering(sku);
     verify(offeringSync, never()).syncOffering(any());
     assertEquals(
-        "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}", actualMessage);
+        "{\"message\": \"offeringSku=\"" + sku + "\" was not found in upstream service\"}",
+        actualMessage);
   }
 }

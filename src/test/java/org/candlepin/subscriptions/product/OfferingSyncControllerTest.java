@@ -20,16 +20,6 @@
  */
 package org.candlepin.subscriptions.product;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -46,6 +36,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.Collections;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = {OfferingSyncControllerTest.TestProductConfiguration.class})
 @ActiveProfiles({"worker", "test"})
@@ -279,11 +277,13 @@ class OfferingSyncControllerTest {
     when(allowlist.productIdMatches(anyString())).thenReturn(false);
     var sku = "MW01485"; // The SKU would normally be successfully retrieved, but is denied
 
-    // When getting the upstream Offering,
-    var actual = subject.getUpstreamOffering(sku);
-
-    // Then there is no resulting offering.
-    assertTrue(actual.isEmpty(), "A sku not in the allowlist should not be returned.");
+    assertEquals(
+        "sku=MW01485 is not in allowlist. Will not retrieve offering from upstream.",
+        assertThrows(
+                RuntimeException.class,
+                () -> subject.getUpstreamOffering(sku),
+                "A sku not in the allowlist should not be returned.")
+            .getMessage());
     verify(allowlist).productIdMatches(sku);
   }
 

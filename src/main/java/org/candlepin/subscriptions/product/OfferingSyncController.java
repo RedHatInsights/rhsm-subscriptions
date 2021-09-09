@@ -58,7 +58,8 @@ public class OfferingSyncController {
   public Optional<Offering> getUpstreamOffering(String sku) {
     if (!productAllowlist.productIdMatches(sku)) {
       LOGGER.info("sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
-      return Optional.empty();
+      throw new RuntimeException(
+          "sku=" + sku + " is not in allowlist. Will not retrieve offering from upstream.");
     }
     LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
     return UpstreamProductData.offeringFromUpstream(sku, productService);
