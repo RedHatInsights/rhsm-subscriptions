@@ -44,6 +44,7 @@ public class InventoryHostFacts {
   private String systemProfileInfrastructureType;
   private Integer systemProfileCoresPerSocket;
   private Integer systemProfileSockets;
+  private String systemProfileArch;
   private boolean isVirtual;
   private String hypervisorUuid;
   private String satelliteHypervisorUuid;
@@ -69,6 +70,10 @@ public class InventoryHostFacts {
   }
 
   @SuppressWarnings("squid:S00107")
+  /**
+   * Constructor represent current query structure for reads from HBI Must be consistent with
+   * InventoryHost (Any changes here must be made in this Object. vice versa)
+   */
   public InventoryHostFacts(
       UUID inventoryId,
       OffsetDateTime modifiedOn,
@@ -82,6 +87,7 @@ public class InventoryHostFacts {
       String systemProfileInfrastructureType,
       String systemProfileCores,
       String systemProfileSockets,
+      String systemProfileArch,
       String qpcProducts,
       String qpcProductIds,
       String systemProfileProductIds,
@@ -115,6 +121,7 @@ public class InventoryHostFacts {
     this.systemProfileInfrastructureType = systemProfileInfrastructureType;
     this.systemProfileCoresPerSocket = asInt(systemProfileCores);
     this.systemProfileSockets = asInt(systemProfileSockets);
+    this.systemProfileArch = systemProfileArch;
     this.systemProfileProductIds = asStringSet(systemProfileProductIds);
     this.syspurposeRole = syspurposeRole;
     this.syspurposeSla = syspurposeSla;
