@@ -224,7 +224,7 @@ public class FactNormalizer {
         virtualFacts.getSystemProfileCoresPerSocket() * virtualFacts.getSystemProfileSockets();
 
     var threadsPerCore = 2.0;
-    return Double.valueOf(Math.ceil(cpu / threadsPerCore)).intValue();
+    return (int) Math.ceil(cpu / threadsPerCore);
   }
 
   private void getProductsFromProductIds(
