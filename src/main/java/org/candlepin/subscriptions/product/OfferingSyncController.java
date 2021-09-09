@@ -20,14 +20,21 @@
  */
 package org.candlepin.subscriptions.product;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /** Update {@link Offering}s from product service responses. */
@@ -39,15 +46,24 @@ public class OfferingSyncController {
   private final OfferingRepository offeringRepository;
   private final ProductWhitelist productAllowlist;
   private final ProductService productService;
+  private final Timer enqueueAllTimer;
+  private final KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
+  private final String offeringSyncTopic;
 
   @Autowired
   public OfferingSyncController(
       OfferingRepository offeringRepository,
       ProductWhitelist productAllowlist,
-      ProductService productService) {
+      ProductService productService,
+      MeterRegistry meterRegistry,
+      KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate,
+      @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties) {
     this.offeringRepository = offeringRepository;
     this.productAllowlist = productAllowlist;
     this.productService = productService;
+    this.enqueueAllTimer = meterRegistry.timer("swatch_offering_sync_enqueue_all");
+    this.offeringSyncKafkaTemplate = offeringSyncKafkaTemplate;
+    this.offeringSyncTopic = taskQueueProperties.getTopic();
   }
 
   /**
@@ -90,9 +106,34 @@ public class OfferingSyncController {
     // taskManager.reconcileCapacityForOffering(...); //NOSONAR
   }
 
+  /**
+   * Enqueues all offerings listed in the product allowlist to be synced with upstream.
+   *
+   * @return number of enqueued products
+   */
+  public int syncAllOfferings() {
+    Timer.Sample enqueueTime = Timer.start();
+
+    Set<String> products = productAllowlist.allProducts();
+    products.forEach(this::enqueueOfferingSyncTask);
+
+    Duration enqueueDuration = Duration.ofNanos(enqueueTime.stop(enqueueAllTimer));
+    int numProducts = products.size();
+    LOGGER.info(
+        "Enqueued numOfferingSyncTasks={} to sync offerings from upstream in enqueueTimeMillis={}",
+        numProducts,
+        enqueueDuration.toMillis());
+
+    return numProducts;
+  }
+
   // If there is an existing offering in the DB, and it exactly matches the latest upstream
   // version then return true. False means we should sync with the latest upstream version.
   private boolean alreadySynced(Optional<Offering> persisted, Offering latest) {
     return persisted.isPresent() && Objects.equals(persisted.get(), latest);
+  }
+
+  private void enqueueOfferingSyncTask(String sku) {
+    offeringSyncKafkaTemplate.send(offeringSyncTopic, new OfferingSyncTask(sku));
   }
 }

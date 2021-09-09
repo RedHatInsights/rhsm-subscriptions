@@ -26,6 +26,11 @@ rhsm-subscriptions:
     use-stub: true
   clowder:
     json-resource-location: classpath:/test-clowder-config.json
+  product:
+    use-stub: true
+    tasks:
+      topic: platform.rhsm-subscriptions.offering-sync
+      kafka-group-id: offering-worker
 logging:
   level:
     org:
