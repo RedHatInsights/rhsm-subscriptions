@@ -33,7 +33,7 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("offering-sync")
 @Import(TaskProducerConfiguration.class)
-@ComponentScan({"org.candlepin.subscriptions.product"})
+@ComponentScan({"org.candlepin.subscriptions.tally.job", "org.candlepin.subscriptions.product"})
 public class OfferingSyncConfiguration {
   @Bean
   JobRunner jobRunner(OfferingSyncJob job, ApplicationContext applicationContext) {
