@@ -23,11 +23,13 @@ package org.candlepin.subscriptions.tally.job;
 import org.candlepin.subscriptions.exception.JobFailureException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /** A cron job to sync offerings to the latest upstream state for all allowlisted offerings. */
 @Component
+@Profile("offering-sync")
 public class OfferingSyncJob implements Runnable {
 
   private final OfferingSyncController controller;

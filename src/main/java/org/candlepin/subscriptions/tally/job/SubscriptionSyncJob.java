@@ -26,11 +26,13 @@ import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /** A cron job to sync subscriptions to the latest upstream state for all opted-in organizations. */
 @Component
+@Profile("subscription-sync")
 public class SubscriptionSyncJob implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(SubscriptionSyncJob.class);
 
