@@ -245,10 +245,10 @@ class PrometheusMeteringControllerTest {
                 expectedUom,
                 val2.doubleValue()));
 
-    ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
-    doNothing().when(eventController).saveAll(saveCaptor.capture());
-
     controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+
+    ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
+    verify(eventController).saveAll(saveCaptor.capture());
 
     verify(service)
         .runRangeQuery(
@@ -362,13 +362,13 @@ class PrometheusMeteringControllerTest {
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
 
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
-    doNothing().when(eventController).saveAll(saveCaptor.capture());
+    verify(eventController).saveAll(saveCaptor.capture());
 
     ArgumentCaptor<Collection> purgeCaptor = ArgumentCaptor.forClass(Collection.class);
-    doNothing().when(eventController).deleteEvents(purgeCaptor.capture());
-
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+    verify(eventController).deleteEvents(purgeCaptor.capture());
 
     verify(service)
         .runRangeQuery(
@@ -377,8 +377,6 @@ class PrometheusMeteringControllerTest {
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
-    verify(eventController).saveAll(any());
-    verify(eventController).deleteEvents(any());
 
     // Attempted to verify the eventController calls below, but
     // couldn't find a way to get mockito to match on collection of HashMap.Value.
@@ -470,13 +468,10 @@ class PrometheusMeteringControllerTest {
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
 
-    var saveCaptor = ArgumentCaptor.forClass(Collection.class);
-    doNothing().when(eventController).saveAll(saveCaptor.capture());
-
-    var purgeCaptor = ArgumentCaptor.forClass(Collection.class);
-    doNothing().when(eventController).deleteEvents(purgeCaptor.capture());
-
     controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+
+    var saveCaptor = ArgumentCaptor.forClass(Collection.class);
+    verify(eventController).saveAll(saveCaptor.capture());
 
     verify(service)
         .runRangeQuery(
@@ -485,7 +480,6 @@ class PrometheusMeteringControllerTest {
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
-    verify(eventController).saveAll(any());
 
     // Attempted to verify the eventController calls below, but
     // couldn't find a way to get mockito to match on collection of HashMap.Value.

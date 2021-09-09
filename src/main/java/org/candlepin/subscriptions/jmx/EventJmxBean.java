@@ -20,11 +20,13 @@
  */
 package org.candlepin.subscriptions.jmx;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -68,28 +70,81 @@ public class EventJmxBean {
   public String fetchEventsInTimeRange(String accountNumber, String begin, String end) {
     OffsetDateTime beginValue = OffsetDateTime.parse(begin);
     OffsetDateTime endValue = OffsetDateTime.parse(end);
-    Stream<Event> eventStream =
-        eventController.fetchEventsInTimeRange(accountNumber, beginValue, endValue);
-    return String.format("[%s]", eventStream.map(Event::toString).collect(Collectors.joining(",")));
+
+    try {
+      List<Event> events =
+          eventController
+              .fetchEventsInTimeRange(accountNumber, beginValue, endValue)
+              .collect(Collectors.toList());
+      return objectMapper.writeValueAsString(events);
+    } catch (Exception e) {
+      throw new JmxException("Unable to deserialize event list.", e);
+    }
   }
 
   @ManagedOperation(description = "Fetch an event")
   @ManagedOperationParameter(name = "eventId", description = "Event UUID")
   public String getEvent(String eventId) {
-    return eventController.getEvent(UUID.fromString(eventId)).toString();
+    Optional<Event> event = eventController.getEvent(UUID.fromString(eventId));
+    try {
+      return event.isPresent() ? objectMapper.writeValueAsString(event.get()) : null;
+    } catch (Exception e) {
+      throw new JmxException("Unable to serialize event!", e);
+    }
+  }
+
+  @ManagedOperation(description = "Delete an event")
+  @ManagedOperationParameter(name = "eventId", description = "Event UUID")
+  public String deleteEvent(String eventId) {
+    try {
+      eventController.deleteEvent(UUID.fromString(eventId));
+      return String.format("Successfully deleted Event with ID: %s", eventId);
+    } catch (Exception e) {
+      return String.format(
+          "Failed to delete Event with ID: %s  Cause: %s", eventId, e.getMessage());
+    }
   }
 
   @ManagedOperation(description = "Save an event. Supported only in dev-mode.")
   @ManagedOperationParameter(name = "json", description = "Event JSON")
-  public String saveEvent(String json) {
-    if (!applicationProperties.isDevMode()) {
-      throw new JmxException("Unsupported outside dev-mode!");
-    }
+  public String saveEvent(String json) throws JmxException {
+    Event event;
     try {
-      return eventController.saveEvent(objectMapper.readValue(json, Event.class)).toString();
+      event = eventController.saveEvent(objectMapper.readValue(json, Event.class));
+    } catch (JsonProcessingException e) {
+      throw new JmxException("Error deserializing incoming event data", e);
     } catch (Exception e) {
-      log.error("Error saving event", e);
+      throw new JmxException("Error saving event. See log for details.", e);
+    }
+
+    try {
+      return objectMapper.writeValueAsString(event);
+    } catch (JsonProcessingException e) {
+      throw new JmxException("Error serializing saved event data!", e);
+    }
+  }
+
+  @ManagedOperation(description = "Save a list of events. Supported only in dev-mode.")
+  @ManagedOperationParameter(
+      name = "jsonListOfEvents",
+      description = "Event list specified as JSON")
+  public String saveEvents(String jsonListOfEvents) throws JmxException {
+    List<Event> saved;
+    try {
+      saved =
+          eventController.saveAll(
+              objectMapper.readValue(
+                  jsonListOfEvents,
+                  objectMapper.getTypeFactory().constructCollectionType(List.class, Event.class)));
+    } catch (Exception e) {
+      log.error("Error saving events", e);
       throw new JmxException("Error saving event. See log for details.");
+    }
+
+    try {
+      return objectMapper.writeValueAsString(saved);
+    } catch (JsonProcessingException e) {
+      throw new JmxException("Error serializing saved event data!", e);
     }
   }
 }

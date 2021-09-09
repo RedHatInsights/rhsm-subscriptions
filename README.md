@@ -190,6 +190,58 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `CLOUDIGRADE_PORT`: cloudigrade service port
 * `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
 
+### Clowder
+
+Clowder exposes the services it provides in an Openshift config map.  This config map appears 
+in the container as a JSON file located by default at `/cdapp/cdappconfig.json`.  The 
+`ClowderJsonEnvironmentPostProcessor` takes this JSON file and flattens it into Java style 
+properties (with the namespace `clowder` prefixed).  For example,
+
+```json
+{ "kafka": {
+  "brokers": [{
+    "hostname": "localhost"
+  }]
+}}
+```
+
+Becomes `clowder.kafka.brokers[0].hostname`.  These properties are then passed into the Spring 
+Environment and may be used elsewhere (the `ClowderJsonEnvironmentPostProcessor` runs *before* 
+most other environment processing classes).
+
+The pattern we follow is to assign the Clowder style properties to an **intermediate** property 
+that follows Spring Boot's environment variable
+[binding conventions](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config.typesafe-configuration-properties.relaxed-binding.environment-variables)
+
+It is important to note, this intermediate property ***must*** be given a default via the `$
+{value:default}` syntax.  If a default is not provided *and* the Clowder JSON is not available 
+(such as in development runs), Spring will fail to start because the `clowder.` property will 
+not resolve to anything.
+
+An example of an intermediate property would be
+
+```
+KAFKA_BOOTSTRAP_HOST=${clowder.kafka.brokers[0].hostname:localhost}
+```
+
+This pattern has the useful property of allowing us to override any Clowder settings (in 
+development, for example) with environment variables since a value specified in the environment 
+has a higher [precedence](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config)
+than values defined in config data files (e.g. `application.properties`).
+
+The intermediate property is then assigned to any actual property that we wish to use, e.g. 
+`spring.kafka.bootstrap-servers`.  Thus, it is trivial to either allow a value to be specified 
+by Clowder, overridden from Clowder via environment variable, or not given by Clowder at all and 
+instead based on a default.
+
+A Clowder environment can be simulated in development by pointing the Clowder JSON file 
+location property (`rhsm-subscriptions.clowder.json-resource-location`) to a mock Clowder JSON file
+
+E.g.
+```
+$ RHSM_SUBSCRIPTIONS_CLOWDER_JSON_RESOURCE_LOCATION=file:$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./gradlew bootRun
+```
+
 ## Deploy to Openshift
 
 Prerequisite secrets:

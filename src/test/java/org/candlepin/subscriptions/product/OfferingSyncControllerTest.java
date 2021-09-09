@@ -20,6 +20,20 @@
  */
 package org.candlepin.subscriptions.product;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.Optional;
+import java.util.Set;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -35,15 +49,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = {OfferingSyncControllerTest.TestProductConfiguration.class})
 @ActiveProfiles({"worker", "test"})
@@ -70,6 +77,7 @@ class OfferingSyncControllerTest {
 
   @MockBean OfferingRepository repo;
   @MockBean ProductWhitelist allowlist;
+  @MockBean KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   @Autowired OfferingSyncController subject;
 
   @BeforeEach
@@ -287,7 +295,7 @@ class OfferingSyncControllerTest {
     verify(allowlist).productIdMatches(sku);
   }
 
-  @Test()
+  @Test
   void testGetUpstreamOfferingNotFound() {
     // Given a marketing SKU that doesn't exist upstream,
     var sku = "BOGUS";
@@ -311,5 +319,32 @@ class OfferingSyncControllerTest {
 
     // Then cores equals 16
     assertEquals(16, actual.getPhysicalCores());
+  }
+
+  @Test
+  void testSyncAllOfferings() {
+    // Given the allowlist has a list of SKUs,
+    when(allowlist.allProducts()).thenReturn(Set.of("RH00604F5", "RH0180191"));
+
+    // When a request is made to sync all offerings,
+    int numEnqueued = subject.syncAllOfferings();
+
+    // Then the SKUs are enqueud to sync.
+    assertEquals(
+        2, numEnqueued, "Number of enqueued offerings should match what was given by allowlist.");
+    verify(offeringSyncKafkaTemplate, times(2)).send(anyString(), any(OfferingSyncTask.class));
+  }
+
+  @Test
+  void testSyncAllOfferingsEmptyWithAllowList() {
+    // Given the allowlist has no source (that is, no allowlist is provided),
+    when(allowlist.allProducts()).thenReturn(Collections.emptySet());
+
+    // When a request is made to sync all offerings,
+    int numEnqueued = subject.syncAllOfferings();
+
+    // Then no SKUs are synced.
+    assertEquals(0, numEnqueued, "Nothing should be synced when no allowlist exists.");
+    verify(offeringSyncKafkaTemplate, never()).send(anyString(), any(OfferingSyncTask.class));
   }
 }

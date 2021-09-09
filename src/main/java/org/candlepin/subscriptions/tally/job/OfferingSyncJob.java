@@ -20,43 +20,30 @@
  */
 package org.candlepin.subscriptions.tally.job;
 
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.exception.JobFailureException;
-import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** A cron job to sync subscriptions to the latest upstream state for all opted-in organizations. */
+/** A cron job to sync offerings to the latest upstream state for all allowlisted offerings. */
 @Component
-@Profile("subscription-sync")
-public class SubscriptionSyncJob implements Runnable {
-  private static final Logger log = LoggerFactory.getLogger(SubscriptionSyncJob.class);
+@Profile("offering-sync")
+public class OfferingSyncJob implements Runnable {
 
-  private final SubscriptionSyncController controller;
-  private final ApplicationProperties applicationProperties;
+  private final OfferingSyncController controller;
 
   @Autowired
-  public SubscriptionSyncJob(
-      SubscriptionSyncController controller, ApplicationProperties applicationProperties) {
+  public OfferingSyncJob(OfferingSyncController controller) {
     this.controller = controller;
-    this.applicationProperties = applicationProperties;
   }
 
   @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.subscription-sync-schedule}")
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.offering-sync-schedule}")
   public void run() {
-    if (!applicationProperties.isSubscriptionSyncEnabled()) {
-      log.info(
-          "Will not sync subscriptions for all opted-in orgs even though job was scheduled because subscriptionSyncEnabled=false.");
-      return;
-    }
-
     try {
-      controller.syncAllSubscriptionsForAllOrgs();
+      controller.syncAllOfferings();
     } catch (Exception e) {
       throw new JobFailureException("Failed to run " + this.getClass().getSimpleName(), e);
     }

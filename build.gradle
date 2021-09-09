@@ -32,10 +32,10 @@ ext {
     resteasy_version = "3.6.3.Final"
     spring_boot_version = "2.5.4"
     jboss_jaxrs_api_version = "2.0.2.Final"
-    resteasy_spring_boot_starter_version = "3.9.0.Final"
+    resteasy_spring_boot_starter_version = "3.9.1.Final"
     kafka_avro_serializer_version = "6.2.0"
     avro_version = "1.10.2"
-    webjars_locator_version = "0.41"
+    webjars_locator_version = "0.42"
     generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
 }
 
@@ -392,7 +392,7 @@ project(":rhsm-client") {
     }
 
     dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.30.1"
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.31.0"
     }
 }
 

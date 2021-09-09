@@ -70,6 +70,20 @@ public class OfferingJmxBean {
     }
   }
 
+  @ManagedOperation(
+      description = "Syncs all offerings listed in allow list from the upstream source.")
+  public String syncAllOfferings() {
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Sync all offerings triggered over JMX by {}", principal);
+      int numProducts = offeringSync.syncAllOfferings();
+
+      return "Enqueued " + numProducts + " offerings to be synced.";
+    } catch (RuntimeException e) {
+      throw new JmxException("Error enqueueing offerings to be synced. See log for details.");
+    }
+  }
+
   @ManagedOperation(description = "Reconcile capacity for an offering from the upstream source.")
   @ManagedOperationParameter(name = "sku", description = "A marketing SKU")
   public void forceReconcileOffering(String sku) {

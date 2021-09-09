@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.capacity.files;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.PostConstruct;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
@@ -64,6 +67,26 @@ public class ProductWhitelist implements ResourceLoaderAware {
     } catch (Exception e) {
       log.error("Error reading whitelist", e);
       return false;
+    }
+  }
+
+  /**
+   * Lists all products allowed by the list.
+   *
+   * @return a set of all allowed products, or an empty set if no products are allowed or no source
+   *     was specified.
+   */
+  public Set<String> allProducts() {
+    if (source == null) {
+      log.warn("No source exists.");
+      return Collections.emptySet();
+    }
+
+    try {
+      return Collections.unmodifiableSet(source.set());
+    } catch (IOException e) {
+      log.error("Error reading whitelist", e);
+      return Collections.emptySet();
     }
   }
 
