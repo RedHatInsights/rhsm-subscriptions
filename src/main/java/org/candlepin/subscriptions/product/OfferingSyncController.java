@@ -43,9 +43,13 @@ public class OfferingSyncController {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OfferingSyncController.class);
 
+  private static final String SYNC_LOG_TEMPLATE =
+      "{} for offeringSku=\"{}\" in offeringSyncTimeMills={}.";
+
   private final OfferingRepository offeringRepository;
   private final ProductWhitelist productAllowlist;
   private final ProductService productService;
+  private final Timer syncTimer;
   private final Timer enqueueAllTimer;
   private final KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   private final String offeringSyncTopic;
@@ -61,9 +65,39 @@ public class OfferingSyncController {
     this.offeringRepository = offeringRepository;
     this.productAllowlist = productAllowlist;
     this.productService = productService;
+    this.syncTimer = meterRegistry.timer("swatch_offering_sync");
     this.enqueueAllTimer = meterRegistry.timer("swatch_offering_sync_enqueue_all");
     this.offeringSyncKafkaTemplate = offeringSyncKafkaTemplate;
     this.offeringSyncTopic = taskQueueProperties.getTopic();
+  }
+
+  /**
+   * Fetches the latest upstream version of an offering and updates Swatch's version if different.
+   *
+   * @param sku the identifier of the marketing operational product
+   */
+  public SyncResult syncOffering(String sku) {
+    Timer.Sample syncTime = Timer.start();
+
+    if (!productAllowlist.productIdMatches(sku)) {
+      SyncResult result = SyncResult.SKIPPED_NOT_ALLOWLISTED;
+      Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
+      LOGGER.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
+      return result;
+    }
+
+    try {
+      SyncResult result =
+          getUpstreamOffering(sku).map(this::syncOffering).orElse(SyncResult.SKIPPED_NOT_FOUND);
+      Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
+      LOGGER.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
+      return result;
+    } catch (RuntimeException ex) {
+      SyncResult result = SyncResult.FAILED;
+      Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
+      LOGGER.warn(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
+      throw ex;
+    }
   }
 
   /**
@@ -71,11 +105,7 @@ public class OfferingSyncController {
    * @return An Offering with information filled by an upstream service, or empty if the product was
    *     not found.
    */
-  public Optional<Offering> getUpstreamOffering(String sku) {
-    if (!productAllowlist.productIdMatches(sku)) {
-      LOGGER.info("sku=\"{}\" is not in allowlist. Will not retrieve offering from upstream.", sku);
-      return Optional.empty();
-    }
+  private Optional<Offering> getUpstreamOffering(String sku) {
     LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
     return UpstreamProductData.offeringFromUpstream(sku, productService);
   }
@@ -86,16 +116,16 @@ public class OfferingSyncController {
    * Offering with the matching SKU is updated with the given Offering.
    *
    * @param newState the updated Offering
+   * @return {@link SyncResult#FETCHED_AND_SYNCED} if upstream offering was stored, or {@link
+   *     SyncResult#SKIPPED_MATCHING} if the upstream offering matches what was stored and syncing
+   *     was skipped.
    */
-  public void syncOffering(Offering newState) {
+  private SyncResult syncOffering(Offering newState) {
     LOGGER.debug("New state of offering to save: {}", newState);
     Optional<Offering> persistedOffering = offeringRepository.findById(newState.getSku());
 
     if (alreadySynced(persistedOffering, newState)) {
-      LOGGER.info(
-          "The given sku=\"{}\" is equal to stored sku. Skipping sync.",
-          persistedOffering.get().getSku());
-      return;
+      return SyncResult.SKIPPED_MATCHING;
     }
 
     // Update to the new entry or create it.
@@ -104,6 +134,7 @@ public class OfferingSyncController {
     // TODO ENT-2658 mentions calling TaskManager.reconcileCapacityForOffering if there //NOSONAR
     // are changes, but this doesn't exist.
     // taskManager.reconcileCapacityForOffering(...); //NOSONAR
+    return SyncResult.FETCHED_AND_SYNCED;
   }
 
   /**
