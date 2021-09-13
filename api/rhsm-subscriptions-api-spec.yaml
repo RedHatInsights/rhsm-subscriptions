@@ -391,7 +391,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       tags:
-        - capacity
+        - subscriptions
   /hosts/products/{product_id}:
     description: 'Operations for hosts for a given account and product'
     parameters:
@@ -1429,11 +1429,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SkuCapacitySubscription"
-        upcoming_event_date:
+        next_event_date:
           description: "The most immediate date for a subscription event."
           type: string
           format: date-time
-        upcoming_event_type:
+        next_event_type:
           description: "The most immediate subscription event, such as a subscription beginning or ending."
           $ref: "#/components/schemas/SubscriptionEventType"
         quantity:
@@ -1460,9 +1460,9 @@ components:
       type: string
       enum:
         - sku
-        - sla
+        - service_level
         - usage
-        - next_event
+        - next_event_date
         - next_event_type
         - quantity
 

@@ -143,8 +143,8 @@ class SubscriptionTableControllerTest {
     assertCapacities(8, 0, Uom.SOCKETS, actualItem);
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
-    assertEquals(expectedSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 
   @Test
@@ -182,10 +182,10 @@ class SubscriptionTableControllerTest {
         9, actualItem.getQuantity(), "Item should contain the sum of all subs' quantities");
     assertCapacities(18, 0, Uom.SOCKETS, actualItem);
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
         expectedOlderSub.end,
-        actualItem.getUpcomingEventDate(),
+        actualItem.getNextEventDate(),
         "Wrong upcoming event date. Given two or more subs, the even take should be the subscription enddate closest to now.");
 
     SkuCapacitySubscription actualSub = actualItem.getSubscriptions().get(0);
@@ -234,9 +234,8 @@ class SubscriptionTableControllerTest {
     assertCapacities(10, 10, Uom.SOCKETS, actualItem);
     assertSubscription(expectedOlderSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
-    assertEquals(
-        expectedOlderSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedOlderSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
 
     actualItem = actual.getData().get(1);
     assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
@@ -247,9 +246,8 @@ class SubscriptionTableControllerTest {
     assertCapacities(8, 0, Uom.SOCKETS, actualItem);
     assertSubscription(expectedNewerSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
-    assertEquals(
-        expectedNewerSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedNewerSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 
   @Test

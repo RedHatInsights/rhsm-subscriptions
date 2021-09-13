@@ -55,7 +55,7 @@ public class SubscriptionTableController {
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
-      ServiceLevelType sla,
+      ServiceLevelType serviceLevel,
       UsageType usage,
       Uom uom,
       SkuCapacityReportSort sort,
@@ -71,14 +71,14 @@ public class SubscriptionTableController {
 
     OffsetDateTime reportEnd = clock.now();
     OffsetDateTime reportStart = clock.now();
-    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
+    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
 
     log.info(
         "Finding all subscription capacities for "
             + "owner: {}, "
             + "productId: {}, "
-            + "SLA: {}, "
+            + "Service Level: {}, "
             + "Usage: {} "
             + "between {} and {}",
         getOwnerId(),
@@ -120,7 +120,7 @@ public class SubscriptionTableController {
         .meta(
             new HostReportMeta()
                 .count(reportItems.size())
-                .serviceLevel(sla)
+                .serviceLevel(serviceLevel)
                 .usage(usage)
                 .uom(uom)
                 .product(productId));
@@ -170,14 +170,14 @@ public class SubscriptionTableController {
       SkuCapacity skuCapacity,
       OffsetDateTime now) {
 
-    OffsetDateTime nearestEventDate = skuCapacity.getUpcomingEventDate();
+    OffsetDateTime nearestEventDate = skuCapacity.getNextEventDate();
     OffsetDateTime subEnd = subscriptionCapacityView.getEndDate();
     if (subEnd != null
         && now.isBefore(subEnd)
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
-      skuCapacity.setUpcomingEventDate(nearestEventDate);
-      skuCapacity.setUpcomingEventType(SubscriptionEventType.END);
+      skuCapacity.setNextEventDate(nearestEventDate);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
   }
 
@@ -241,7 +241,7 @@ public class SubscriptionTableController {
             case SKU:
               diff = left.getSku().compareTo(right.getSku());
               break;
-            case SLA:
+            case SERVICE_LEVEL:
               diff = left.getServiceLevel().compareTo(right.getServiceLevel());
               break;
             case USAGE:
@@ -250,11 +250,11 @@ public class SubscriptionTableController {
             case QUANTITY:
               diff = left.getQuantity().compareTo(right.getQuantity());
               break;
-            case NEXT_EVENT:
-              diff = left.getUpcomingEventDate().compareTo(right.getUpcomingEventDate());
+            case NEXT_EVENT_DATE:
+              diff = left.getNextEventDate().compareTo(right.getNextEventDate());
               break;
             case NEXT_EVENT_TYPE:
-              diff = left.getUpcomingEventType().compareTo(right.getUpcomingEventType());
+              diff = left.getNextEventType().compareTo(right.getNextEventType());
               break;
           }
           // If the two items are sorted by some other field than SKU and are equal, then break the
