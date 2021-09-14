@@ -41,6 +41,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -118,6 +119,7 @@ public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
   }
 
   @TestConfiguration
+  @Profile("test-kafka")
   static class KafkaTaskQueueSchemaRegistryTestConfiguration {
 
     @Bean
