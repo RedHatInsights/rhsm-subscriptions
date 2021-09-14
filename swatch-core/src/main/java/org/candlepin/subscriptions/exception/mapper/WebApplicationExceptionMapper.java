@@ -34,14 +34,19 @@ import org.springframework.stereotype.Component;
 @Component
 @Provider
 public class WebApplicationExceptionMapper extends BaseExceptionMapper<WebApplicationException> {
-  public static final String ERROR_TITLE = "An rhsm-conduit API error has occurred.";
-
   @Override
   protected Error buildError(WebApplicationException wae) {
-    return new Error()
-        .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
-        .status(String.valueOf(wae.getResponse().getStatus()))
-        .title(ERROR_TITLE)
-        .detail(wae.getMessage());
+    // Because WebApplicationException is an HTTP-oriented wrapper around an exception, we handle
+    // it a little differently. We assume that the message makes a good error title, and we use
+    // the wrapped exception's message as detail (if a wrapped exception is present).
+    Error error =
+        new Error()
+            .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
+            .status(String.valueOf(wae.getResponse().getStatus()))
+            .title(wae.getMessage());
+    if (wae.getCause() != null) {
+      error.setDetail(wae.getCause().getMessage());
+    }
+    return error;
   }
 }
