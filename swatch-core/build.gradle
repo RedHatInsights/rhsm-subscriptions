@@ -5,7 +5,6 @@ plugins {
 
 dependencies {
     implementation project(":api") // for util methods in ResourceUtils
-    implementation 'org.junit.jupiter:junit-jupiter:5.8.0'
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "javax.validation:validation-api"
