@@ -391,7 +391,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       tags:
-        - subscriptions
+        - capacity
   /hosts/products/{product_id}:
     description: 'Operations for hosts for a given account and product'
     parameters:
@@ -687,8 +687,8 @@ paths:
                         number: "1234567893"
                       - id: "1234567894"
                         number: "1234567895"
-                    upcoming_event_date: "2020-04-01T00:00:00Z"
-                    upcoming_event_type: Subscription Begin
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Begin
                     quantity: 3
                     physical_capacity: 3
                     virtual_capacity: 3
@@ -705,8 +705,8 @@ paths:
                         number: "1234567899"
                       - id: "1234567900"
                         number: "1234567901"
-                    upcoming_event_date: "2020-04-02T00:00:00Z"
-                    upcoming_event_type: Subscription Begin
+                    next_event_date: "2020-04-02T00:00:00Z"
+                    next_event_type: Subscription Begin
                     quantity: 3
                     physical_capacity: 3
                     virtual_capacity": 3
@@ -723,8 +723,8 @@ paths:
                         number: "1234567905"
                       - id: "1234567906"
                         number: "1234567907"
-                    upcoming_event_date: "2020-04-01T00:00:00Z"
-                    upcoming_event_type: Subscription End
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription End
                     quantity: 3
                     physical_capacity: 6
                     virtual_capacity: 6
@@ -741,7 +741,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       tags:
-        - capacity
+        - subscriptions
   /openapi.json:
     get:
       description: "Get the OpenAPI spec in JSON format."
