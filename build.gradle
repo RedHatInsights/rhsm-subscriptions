@@ -174,15 +174,15 @@ dependencies {
     compile('org.springframework.boot:spring-boot-devtools')
 
     compile project(":api")
-    compile project(":insights-inventory-client")
-    compile project(":rhsm-client")
-    compile project(":cloudigrade-client")
-    compile project(":rbac-client")
-    compile project(":subscription-client")
-    compile project(":marketplace-client")
-    compile project(":prometheus-client")
-    compile project(":user-client")
-    compile project(":product-client")
+    compile project(":clients:cloudigrade-client")
+    compile project(":clients:insights-inventory-client")
+    compile project(":clients:marketplace-client")
+    compile project(":clients:product-client")
+    compile project(":clients:prometheus-client")
+    compile project(":clients:rbac-client")
+    compile project(":clients:rhsm-client")
+    compile project(":clients:subscription-client")
+    compile project(":clients:user-client")
     compile project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
@@ -351,186 +351,6 @@ project(":api") {
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
     processResources.dependsOn tasks.generateOpenApiJson
-}
-
-project(":insights-inventory-client") {
-    apply plugin: "org.openapi.generator"
-    apply plugin: "de.undercouch.download"
-
-    ext {
-        api_spec_path = "${buildDir}/api.spec.yaml"
-        config_file = "${projectDir}/insights-inventory-client-config.json"
-    }
-
-    // work around https://github.com/OpenAPITools/openapi-generator/issues/8255 by downloading the spec manually
-    task downloadSpec(type: Download) {
-        src 'https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/075f8e4433ecfb2e227e02108096847242e14e19/swagger/api.spec.yaml'
-        dest buildDir
-        overwrite false
-    }
-
-    task downloadSystemProfileSpec(type: Download) {
-        src 'https://raw.githubusercontent.com/RedHatInsights/insights-host-inventory/d479778d9ae72fea9a493429ea44142364648ec5/swagger/system_profile.spec.yaml'
-        dest buildDir
-        overwrite false
-    }
-
-    tasks.openApiGenerate.dependsOn downloadSpec
-    tasks.openApiGenerate.dependsOn downloadSystemProfileSpec
-
-    dependencies {
-        compileOnly 'org.springframework.boot:spring-boot'
-    }
-}
-
-project(":rhsm-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/rhsm-client-spec.yaml"
-        config_file = "${projectDir}/rhsm-client-config.json"
-    }
-
-    dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.31.0"
-    }
-}
-
-project(":rbac-client") {
-    apply plugin: "org.openapi.generator"
-    apply plugin: "de.undercouch.download"
-
-    ext {
-        api_spec_path = "${buildDir}/openapi.json"
-        config_file = "${projectDir}/rbac-client-config.json"
-    }
-
-    // work around https://github.com/OpenAPITools/openapi-generator/issues/8255 by downloading the spec manually
-    task downloadSpec(type: Download) {
-        src 'https://raw.githubusercontent.com/RedHatInsights/insights-rbac/stable/docs/source/specs/openapi.json'
-        dest buildDir
-        overwrite false
-    }
-
-    tasks.openApiGenerate.dependsOn downloadSpec
-
-    dependencies {
-        compileOnly "org.springframework:spring-web"
-        compileOnly "javax.servlet:javax.servlet-api"
-    }
-}
-
-project(":cloudigrade-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/cloudigrade-api-spec.yaml"
-        config_file = "${projectDir}/cloudigrade-client-config.json"
-    }
-}
-
-project(":subscription-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/subscription-api-spec.yaml"
-        config_file = "${projectDir}/subscription-client-config.json"
-    }
-}
-
-project(":marketplace-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/marketplace-api-spec.yaml"
-        config_file = "${projectDir}/marketplace-client-config.json"
-    }
-
-    dependencies {
-        compileOnly "org.springframework:spring-web"
-        compileOnly "javax.servlet:javax.servlet-api"
-    }
-}
-
-project(":prometheus-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/prometheus-query-api-spec.yaml"
-        config_file = "${projectDir}/prometheus-client-config.json"
-    }
-}
-
-project(":user-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/user-api-spec.yaml"
-        config_file = "${projectDir}/user-client-config.json"
-    }
-}
-
-project(":product-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/product-api-spec.yaml"
-        config_file = "${projectDir}/product-client-config.json"
-    }
-}
-
-configure(subprojects.findAll { it.name in ["cloudigrade-client", 'rbac-client', 'rhsm-client',
-                                            'insights-inventory-client', 'subscription-client',
-                                            'marketplace-client', 'prometheus-client', 'user-client',
-                                            'product-client']}) {
-    apply plugin: "org.openapi.generator"
-
-    openApiValidate {
-        inputSpec = api_spec_path
-    }
-
-    task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
-        generatorName = "html"
-        inputSpec = api_spec_path
-        outputDir = "$buildDir/docs"
-        generateApiDocumentation = true
-        generateModelDocumentation = true
-        generateModelTests = false
-        generateApiTests = false
-        withXml = false
-    }
-
-    openApiGenerate {
-        inputSpec = api_spec_path
-        configFile = config_file
-        outputDir = "${buildDir}/generated"
-        generatorName = "java"
-        configOptions = [
-                generatePom: "false",
-                library: "resteasy",
-                java8: "true",
-                dateLibrary: "java8"
-        ]
-    }
-
-    dependencies {
-        compile "org.jboss.resteasy:resteasy-client"
-        compile "org.jboss.resteasy:resteasy-multipart-provider"
-
-        compile "com.fasterxml.jackson.core:jackson-annotations"
-        compile "com.fasterxml.jackson.core:jackson-databind"
-        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
-
-        compile "org.springframework:spring-context"
-        compile "org.slf4j:slf4j-api"
-        compile "io.swagger:swagger-annotations"
-        compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.1"
-    }
-
-    sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
-
-    compileJava.dependsOn tasks.openApiGenerate
 }
 
 project(":kafka-schema") {
