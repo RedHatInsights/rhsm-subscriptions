@@ -46,7 +46,7 @@ parameters:
   - name: DATABASE_MAX_POOL_SIZE
     value: '10'
   - name: SUBSCRIPTION_SYNC_ENABLED
-    value: 'false'
+    value: 'true'
 
 objects:
   - apiVersion: v1
