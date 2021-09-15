@@ -20,12 +20,7 @@
  */
 package org.candlepin.subscriptions.product;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import java.time.Duration;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -40,17 +35,15 @@ import org.springframework.stereotype.Service;
 @Profile("capacity-ingress")
 public class OfferingWorker extends SeekableKafkaConsumer {
 
-  private final Timer syncTimer;
   private final OfferingSyncController controller;
 
   @Autowired
   protected OfferingWorker(
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
-      MeterRegistry meterRegistry,
       OfferingSyncController controller) {
     super(taskQueueProperties, kafkaConsumerRegistry);
-    this.syncTimer = meterRegistry.timer("swatch_offering_sync");
+
     this.controller = controller;
   }
 
@@ -61,17 +54,7 @@ public class OfferingWorker extends SeekableKafkaConsumer {
   public void receive(OfferingSyncTask task) {
     String sku = task.getSku();
     log.info("Sync for offeringSku={} triggered by OfferingSyncTask", sku);
-    Timer.Sample syncTime = Timer.start();
 
-    Optional<Offering> upstream = controller.getUpstreamOffering(sku);
-    upstream.ifPresentOrElse(
-        controller::syncOffering,
-        () -> log.warn("offeringSku={} was not found in upstream service.", sku));
-
-    Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
-    log.info(
-        "Fetched and synced offeringSku={} in offeringSyncedTimeMillis={}",
-        sku,
-        syncDuration.toMillis());
+    controller.syncOffering(sku);
   }
 }

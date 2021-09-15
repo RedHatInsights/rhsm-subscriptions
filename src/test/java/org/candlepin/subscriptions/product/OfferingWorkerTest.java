@@ -20,17 +20,11 @@
  */
 package org.candlepin.subscriptions.product;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import java.util.Optional;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.junit.jupiter.api.Test;
@@ -42,41 +36,17 @@ class OfferingWorkerTest {
     // Given a SKU is allowlisted and retrievable from upstream,
     TaskQueueProperties props = mock(TaskQueueProperties.class);
     KafkaConsumerRegistry consumerReg = mock(KafkaConsumerRegistry.class);
-    MeterRegistry meterReg = mock(MeterRegistry.class);
     OfferingSyncController controller = mock(OfferingSyncController.class);
 
-    Offering expected = new Offering();
-    when(controller.getUpstreamOffering(anyString())).thenReturn(Optional.of(expected));
-    when(meterReg.timer(anyString())).thenReturn(mock(Timer.class));
+    when(controller.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
 
-    OfferingWorker subject = new OfferingWorker(props, consumerReg, meterReg, controller);
+    OfferingWorker subject = new OfferingWorker(props, consumerReg, controller);
 
     // When an allowlisted SKU is received,
-    subject.receive(new OfferingSyncTask("RH00604F5"));
+    String sku = "RH00604F5";
+    subject.receive(new OfferingSyncTask(sku));
 
     // Then the offering should be synced.
-    verify(controller).getUpstreamOffering(anyString());
-    verify(controller).syncOffering(expected);
-  }
-
-  @Test
-  void testReceiveUnfetchable() {
-    // Given a SKU is allowlisted, but isn't retrieveable from upstream for some reason,
-    TaskQueueProperties props = mock(TaskQueueProperties.class);
-    KafkaConsumerRegistry consumerReg = mock(KafkaConsumerRegistry.class);
-    MeterRegistry meterReg = mock(MeterRegistry.class);
-    OfferingSyncController controller = mock(OfferingSyncController.class);
-
-    when(controller.getUpstreamOffering(anyString())).thenReturn(Optional.empty());
-    when(meterReg.timer(anyString())).thenReturn(mock(Timer.class));
-
-    OfferingWorker subject = new OfferingWorker(props, consumerReg, meterReg, controller);
-
-    // When an allowlisted SKU is received,
-    subject.receive(new OfferingSyncTask("RH00604F5"));
-
-    // Then the offering should not be synced.
-    verify(controller).getUpstreamOffering(anyString());
-    verify(controller, never()).syncOffering(any());
+    verify(controller).syncOffering(sku);
   }
 }

@@ -21,20 +21,21 @@
 package org.candlepin.subscriptions.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jmx.JmxException;
 
 @ExtendWith(MockitoExtension.class)
 class OfferingJmxBeanTest {
@@ -58,34 +59,34 @@ class OfferingJmxBeanTest {
     expected.setProductName("OpenShift Container Platform");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
 
-    when(offeringSync.getUpstreamOffering(anyString())).thenReturn(Optional.of(expected));
+    when(offeringSync.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
     OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
     // When syncing the offering,
     String actualMessage = subject.syncOffering(sku);
 
     // Then the offering was successfully fetched and synced, and the offering details are returned.
-    verify(offeringSync).getUpstreamOffering(sku);
-    verify(offeringSync).syncOffering(expected);
-    assertTrue(
-        actualMessage.contains("Offering(sku=MW01485"), "Offering should have synced successfully");
+    verify(offeringSync).syncOffering(sku);
+    String expectedMessage =
+        "syncResult=FETCHED_AND_SYNCED (Successfully fetched and synced updated value from upstream) for offeringSku=\""
+            + sku
+            + "\".";
+    assertEquals(expectedMessage, actualMessage);
   }
 
   @Test
-  void testSyncOfferingNoOffering() {
-    // Given that an offering is either not allowlisted or not found upstream,
-    var sku = "BOGUS";
-    when(offeringSync.getUpstreamOffering(anyString())).thenReturn(Optional.empty());
+  void testSyncOfferingWithServiceException() {
+    // Given there are connection issues with the upstream product service,
+    when(offeringSync.syncOffering(anyString()))
+        .thenThrow(
+            new ExternalServiceException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                "Unable to retrieve upstream offeringSku=\"BOGUS\"",
+                new ApiException("Badness")));
     OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
-    // When syncing the offering,
-    String actualMessage = subject.syncOffering(sku);
-
-    // Then no attempt was made to sync the offering and an error message is returned.
-    verify(offeringSync).getUpstreamOffering(sku);
-    verify(offeringSync, never()).syncOffering(any());
-    assertEquals(
-        "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}", actualMessage);
+    // When syncing the offering, then a JmxException is thrown.
+    assertThrows(JmxException.class, () -> subject.syncOffering("BOGUS"));
   }
 
   @Test

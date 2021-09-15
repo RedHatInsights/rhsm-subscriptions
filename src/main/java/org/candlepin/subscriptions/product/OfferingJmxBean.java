@@ -20,10 +20,8 @@
  */
 package org.candlepin.subscriptions.product;
 
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jmx.JmxException;
@@ -55,12 +53,9 @@ public class OfferingJmxBean {
     try {
       Object principal = ResourceUtils.getPrincipal();
       log.info("Sync for offering {} triggered over JMX by {}", sku, principal);
-      Optional<Offering> upstream = offeringSync.getUpstreamOffering(sku);
-      upstream.ifPresent(offeringSync::syncOffering);
-      return upstream
-          .map(Offering::toString)
-          .orElseGet(
-              () -> "{\"message\": \"offeringSku=\"" + sku + "\" was not found/allowlisted.\"}");
+      SyncResult result = offeringSync.syncOffering(sku);
+
+      return String.format("%s for offeringSku=\"%s\".", result, sku);
     } catch (Exception e) {
       log.error("Error syncing offering", e);
       throw new JmxException("Error syncing offering. See log for details.");
