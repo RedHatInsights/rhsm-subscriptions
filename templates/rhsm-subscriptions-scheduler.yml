@@ -786,6 +786,8 @@ objects:
                   volumeMounts:
                     - name: logs
                       mountPath: /logs
+                    - name: capacity-allowlist
+                      mountPath: /capacity-allowlist
                 - name: splunk
                   env:
                     - name: SPLUNKMETA_namespace
@@ -816,3 +818,6 @@ objects:
                     secretName: splunk
                 - name: logs
                   emptyDir:
+                - name: capacity-allowlist
+                  configMap:
+                    name: capacity-allowlist
