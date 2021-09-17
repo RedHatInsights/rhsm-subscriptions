@@ -47,6 +47,10 @@ parameters:
     value: '10'
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
+  - name: SUBSCRIPTION_URL
+    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+  - name: PRODUCT_URL
+    value: https://product.qa.api.redhat.com/svcrest/product/v3
 
 objects:
   - apiVersion: v1
@@ -203,6 +207,10 @@ objects:
                       key: keystore_password
                 - name: SUBSCRIPTION_KEYSTORE
                   value: /service-certs/keystore.jks
+                - name: SUBSCRIPTION_URL
+                  value: ${SUBSCRIPTION_URL}
+                - name: PRODUCT_URL
+                  value: ${PRODUCT_URL}
                 - name: SUBSCRIPTION_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
