@@ -627,6 +627,19 @@ public class FactNormalizerTest {
     assertEquals(HostHardwareType.VIRTUALIZED, normalizedFacts.getHardwareType());
   }
 
+  @Test
+  void testCalculationOfRhsmVirtualCPUFacts() {
+    InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), 7, 1, null, clock.now());
+
+    facts.setSystemProfileArch("x86_64");
+    facts.setSystemProfileCoresPerSocket(7);
+    facts.setSystemProfileSockets(1);
+    facts.setSystemProfileInfrastructureType("virtual");
+    NormalizedFacts normalizedFacts = normalizer.normalize(facts, Collections.emptyMap());
+    assertEquals(4, normalizedFacts.getCores());
+    assertEquals(HostHardwareType.VIRTUALIZED, normalizedFacts.getHardwareType());
+  }
+
   private void assertClassification(
       NormalizedFacts check, boolean isHypervisor, boolean isHypervisorUnknown, boolean isVirtual) {
     assertEquals(isHypervisor, check.isHypervisor());

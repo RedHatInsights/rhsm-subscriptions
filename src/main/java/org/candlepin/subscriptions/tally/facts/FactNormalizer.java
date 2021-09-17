@@ -212,6 +212,7 @@ public class FactNormalizer {
             .equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType())) {
       var effectiveCores = calculateVirtualCPU(hostFacts);
       normalizedFacts.setCores(effectiveCores);
+      hostFacts.setCores(effectiveCores); // <-- workaround to prevent rhsm from overwriting logic
     }
     getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
   }
