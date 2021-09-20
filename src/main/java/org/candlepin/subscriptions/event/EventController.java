@@ -122,4 +122,11 @@ public class EventController {
   public void deleteEvent(UUID eventId) {
     repo.deleteById(eventId);
   }
+
+  @Transactional
+  public boolean hasEventsInTimeRange(
+      String accountNumber, OffsetDateTime startDate, OffsetDateTime endDate) {
+    return repo.existsByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThan(
+        accountNumber, startDate, endDate);
+  }
 }
