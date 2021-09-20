@@ -46,7 +46,7 @@ class UpstreamProductData {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UpstreamProductData.class);
   private static final String MSG_TEMPLATE =
-      "sku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
+      "offeringSku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
 
   /** List of opProd attribute codes used in the making of an Offering. */
@@ -94,7 +94,7 @@ class UpstreamProductData {
    *     not found.
    */
   public static Optional<Offering> offeringFromUpstream(String sku, ProductService productService) {
-    LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
+    LOGGER.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
 
     try {
       return productService
@@ -137,7 +137,7 @@ class UpstreamProductData {
     if (!conflicts.isEmpty()) {
       String conflictItems = String.join(System.lineSeparator(), conflicts);
       LOGGER.info(
-          "Encountered conflicting attribute values when pulling offering sku={} from upstream:\n{}",
+          "Encountered conflicting attribute values when pulling offeringSku=\"{}\" from upstream:\n{}",
           sku,
           conflictItems);
     }
@@ -167,20 +167,21 @@ class UpstreamProductData {
     https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.8dadhnye8ysf
     */
     var serviceType = attrs.get(Attr.SERVICE_TYPE);
-    if (serviceType != null) {
-      var level = ServiceLevel.fromString(serviceType);
-      if (level == ServiceLevel.EMPTY) {
-        LOGGER.warn("Offering sku=\"{}\" has unsupported SERVICE_TYPE=\"{}\"", sku, serviceType);
-      }
-      offering.setServiceLevel(level);
+    var level = ServiceLevel.fromString(serviceType);
+    offering.setServiceLevel(level);
+    // If the string-based serviceType had a value, but the ServiceLevel result is still empty,
+    // then warn about the unsupported value.
+    if (serviceType != null && level == ServiceLevel.EMPTY) {
+      LOGGER.warn("offeringSku=\"{}\" has unsupported SERVICE_TYPE=\"{}\"", sku, serviceType);
     }
+
     var usageVal = attrs.get(Attr.USAGE);
-    if (usageVal != null) {
-      var usage = Usage.fromString(usageVal);
-      if (usage == Usage.EMPTY) {
-        LOGGER.warn("Offering sku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
-      }
-      offering.setUsage(usage);
+    var usage = Usage.fromString(usageVal);
+    offering.setUsage(usage);
+    // If the string-based usageVal had a value, but the Usage result is still empty, then warn
+    // about the unsupported value.
+    if (usageVal != null && usage == Usage.EMPTY) {
+      LOGGER.warn("offeringSku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
     }
 
     return offering;
@@ -209,15 +210,14 @@ class UpstreamProductData {
         Optional<UpstreamProductData> derived =
             productService.getTree(derivedSku).map(UpstreamProductData::createFromTree);
         if (derived.isEmpty()) {
-          LOGGER.warn(
-              "No tree found for derivedSku=\"{}\" of offering sku=\"{}\"", derivedSku, sku);
+          LOGGER.warn("No tree found for derivedSku=\"{}\" of offeringSku=\"{}\"", derivedSku, sku);
         } else {
           merge(derived.get());
         }
       } catch (ApiException e) {
         throw new ExternalServiceException(
             ErrorCode.REQUEST_PROCESSING_ERROR,
-            "Unable to retrieve derivedSku=\"" + derivedSku + "\" for offering sku=\"" + sku + "\"",
+            "Unable to retrieve derivedSku=\"" + derivedSku + "\" for offeringSku=\"" + sku + "\"",
             e);
       }
     }
@@ -232,7 +232,7 @@ class UpstreamProductData {
     to fetch engOIDs for derived SKUs.
     */
     Set<String> allSkus = allSkus();
-    LOGGER.debug("Retrieving engOids for skus=\"{}\" of offering sku=\"{}\"", allSkus, sku);
+    LOGGER.debug("Retrieving engOids for skus=\"{}\" of offeringSku=\"{}\"", allSkus, sku);
     try {
       Map<String, List<EngineeringProduct>> engProds =
           productService.getEngineeringProductsForSkus(allSkus);
@@ -240,7 +240,7 @@ class UpstreamProductData {
     } catch (ApiException e) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
-          "Unable to retrieve engOids of skus=\"" + allSkus + "\" for offering sku=" + sku,
+          "Unable to retrieve engOids of skus=\"" + allSkus + "\" for offeringSku=\"" + sku + "\"",
           e);
     }
 

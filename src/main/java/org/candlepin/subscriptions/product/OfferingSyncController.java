@@ -106,7 +106,7 @@ public class OfferingSyncController {
    *     not found.
    */
   private Optional<Offering> getUpstreamOffering(String sku) {
-    LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
+    LOGGER.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
     return UpstreamProductData.offeringFromUpstream(sku, productService);
   }
 
