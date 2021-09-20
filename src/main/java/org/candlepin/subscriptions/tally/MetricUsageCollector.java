@@ -80,6 +80,11 @@ public class MetricUsageCollector {
               range.getStartString(), range.getEndString()));
     }
 
+    if (!eventController.hasEventsInTimeRange(
+        accountNumber, range.getStartDate(), range.getEndDate())) {
+      return Collections.emptyMap();
+    }
+
     /* load the latest account state, so we can update host records conveniently */
     Account account =
         accountRepository

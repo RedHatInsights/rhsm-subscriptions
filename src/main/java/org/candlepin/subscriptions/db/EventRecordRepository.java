@@ -53,6 +53,9 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
       findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
           String accountNumber, OffsetDateTime begin, OffsetDateTime end);
 
+  boolean existsByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThan(
+      String accountNumber, OffsetDateTime begin, OffsetDateTime end);
+
   /**
    * Fetch a stream of events for a given account, event type and event source for a given time
    * range.
