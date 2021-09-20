@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -109,6 +110,7 @@ class OfferingSyncControllerTest {
             491, 311, 194, 197, 317, 318, 201, 205, 326, 329, 271, 518, 579, 519, 458, 645, 588,
             408, 290, 473, 479, 240, 603, 604, 185, 546, 608, 69, 70, 610));
     persisted.setServiceLevel(ServiceLevel.PREMIUM);
+    persisted.setUsage(Usage.EMPTY);
 
     // When syncing the Offering,
     SyncResult result = subject.syncOffering(sku);
@@ -132,6 +134,8 @@ class OfferingSyncControllerTest {
             491, 311, 194, 197, 317, 318, 201, 205, 326, 329, 271, 518, 579, 519, 458, 645, 588,
             408, 290, 473, 479, 240, 603, 604, 185, 546, 608, 69, 70, 610));
     persisted.setServiceLevel(ServiceLevel.PREMIUM);
+    persisted.setUsage(Usage.EMPTY);
+
     when(repo.findById(anyString())).thenReturn(Optional.of(persisted));
 
     // When syncing the Offering,

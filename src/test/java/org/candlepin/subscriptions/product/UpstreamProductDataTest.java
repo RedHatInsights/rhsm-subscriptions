@@ -48,6 +48,7 @@ class UpstreamProductDataTest {
     expected.setProductFamily("OpenShift Enterprise");
     expected.setProductName("Red Hat OpenShift Container Platform (Hourly)");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
+    expected.setUsage(Usage.EMPTY);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -67,6 +68,7 @@ class UpstreamProductDataTest {
     expected.setProductFamily("OpenShift Enterprise");
     expected.setProductName("Red Hat OpenShift Dedicated on Customer Cloud Subscription (Hourly)");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
+    expected.setUsage(Usage.EMPTY);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
