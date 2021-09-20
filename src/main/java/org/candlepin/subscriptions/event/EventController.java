@@ -115,4 +115,11 @@ public class EventController {
   public void deleteEvents(Collection<Event> toDelete) {
     repo.deleteInBatch(toDelete.stream().map(EventRecord::new).collect(Collectors.toList()));
   }
+
+  @Transactional
+  public boolean hasEventsInTimeRange(
+      String accountNumber, OffsetDateTime startDate, OffsetDateTime endDate) {
+    return repo.existsByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThan(
+        accountNumber, startDate, endDate);
+  }
 }
