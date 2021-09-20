@@ -68,7 +68,7 @@ parameters:
   - name: TOKEN_REFRESHER_MEMORY_LIMIT
     value: 150Mi
   - name: SUBSCRIPTION_SYNC_ENABLED
-    value: true
+    value: 'true'
   # TODO: this should be removed once OCM has non-standard billing_model clusters
   - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
     value: "group(min_over_time(subscription_labels{ebs_account != '', billing_model='standard'}[1h])) by (ebs_account)"
