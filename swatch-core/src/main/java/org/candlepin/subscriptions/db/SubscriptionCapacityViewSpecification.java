@@ -76,6 +76,8 @@ public class SubscriptionCapacityViewSpecification
       return builder.in(expression.get(criteria.getKey())).value(criteria.getValue());
     } else if (criteria.getOperation().equals(SearchOperation.NOT_IN)) {
       return builder.in(expression.get(criteria.getKey())).value(criteria.getValue()).not();
+    } else if (criteria.getOperation().equals(SearchOperation.IS_NOT_NULL)) {
+      return builder.isNotNull(expression.get(criteria.getKey()));
     } else {
       return builder.equal(expression.get(criteria.getKey()), criteria.getValue());
     }

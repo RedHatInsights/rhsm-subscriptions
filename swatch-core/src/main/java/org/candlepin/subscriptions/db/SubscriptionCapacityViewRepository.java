@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -38,13 +39,14 @@ public interface SubscriptionCapacityViewRepository
       ServiceLevel serviceLevel,
       Usage usage,
       OffsetDateTime reportStart,
-      OffsetDateTime reportEnd) {
+      OffsetDateTime reportEnd,
+      Uom uom) {
 
     return findAll(
         SubscriptionCapacityViewSpecification.builder()
             .criteria(
                 buildSearchCriteria(
-                    ownerId, productId, serviceLevel, usage, reportStart, reportEnd))
+                    ownerId, productId, serviceLevel, usage, reportStart, reportEnd, uom))
             .build());
   }
 
@@ -94,15 +96,42 @@ public interface SubscriptionCapacityViewRepository
         .build();
   }
 
+  private List<SearchCriteria> searchCriteriaMatchingUomOfCores() {
+    return List.of(
+        SearchCriteria.builder()
+            .key(SubscriptionCapacityView_.physicalCores.getName())
+            .operation(SearchOperation.IS_NOT_NULL)
+            .build(),
+        SearchCriteria.builder()
+            .key(SubscriptionCapacityView_.virtualCores.getName())
+            .operation(SearchOperation.IS_NOT_NULL)
+            .build());
+  }
+
+  private List<SearchCriteria> searchCriteriaMatchingUomOfSockets() {
+    return List.of(
+        SearchCriteria.builder()
+            .key(SubscriptionCapacityView_.physicalSockets.getName())
+            .operation(SearchOperation.IS_NOT_NULL)
+            .build(),
+        SearchCriteria.builder()
+            .key(SubscriptionCapacityView_.virtualSockets.getName())
+            .operation(SearchOperation.IS_NOT_NULL)
+            .build());
+  }
+
   private List<SearchCriteria> buildSearchCriteria(
       String ownerId,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
       OffsetDateTime reportStart,
-      OffsetDateTime reportEnd) {
+      OffsetDateTime reportEnd,
+      Uom uom) {
 
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
+    if (Uom.CORES.equals(uom)) searchCriteria.addAll(searchCriteriaMatchingUomOfCores());
+    if (Uom.SOCKETS.equals(uom)) searchCriteria.addAll(searchCriteriaMatchingUomOfSockets());
     if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))
       searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
     if (Objects.nonNull(usage) && !usage.equals(Usage._ANY))
