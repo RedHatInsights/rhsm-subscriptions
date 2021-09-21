@@ -131,6 +131,9 @@ objects:
     - name: api
       web: true
       minReplicas: 1
+      webServices:
+        public:
+          enabled: true
       podSpec:
         image: ${IMAGE}:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
