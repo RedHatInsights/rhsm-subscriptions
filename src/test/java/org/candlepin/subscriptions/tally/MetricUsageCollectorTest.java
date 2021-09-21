@@ -64,6 +64,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -462,6 +463,7 @@ class MetricUsageCollectorTest {
               }
               return Stream.of();
             });
+    when(eventController.hasEventsInTimeRange(any(), any(), any())).thenReturn(true);
 
     metricUsageCollector.collect(
         "account123", new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
@@ -511,6 +513,7 @@ class MetricUsageCollectorTest {
               }
               return Stream.of();
             });
+    when(eventController.hasEventsInTimeRange(any(), any(), any())).thenReturn(true);
 
     metricUsageCollector.collect(
         "account123", new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
@@ -565,5 +568,15 @@ class MetricUsageCollectorTest {
         Double.valueOf(expectedCoresMeasurement), activeInstance.getMeasurement(Uom.CORES));
     // Instance hours measurement should no longer be present since it was not reported by an event.
     assertNull(activeInstance.getMeasurement(Uom.INSTANCE_HOURS));
+  }
+
+  @Test
+  void testAccountRepoNotTouchedIfNoEventsExist() {
+    when(eventController.hasEventsInTimeRange(any(), any(), any())).thenReturn(false);
+    metricUsageCollector.collect(
+        "account123",
+        new DateRange(
+            clock.startOfCurrentHour().minusHours(1), clock.startOfCurrentHour().plusHours(1)));
+    Mockito.verifyNoInteractions(accountRepo);
   }
 }
