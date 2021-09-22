@@ -108,3 +108,7 @@ Set the `IMAGE` and `IMAGE_TAG` values in the `ClowdApp` template and then run
 I have specifically defined the image tag here because otherwise, `bonfire` will actually run a
 `git rev-parse HEAD` and attempt to use that hash as an image tag.  Figuring out how that's meant
 to work is on the TODO list.
+
+Once your pods are up and running, you can expose them directly or the associated
+service using `port-forward`.  For example: `kubectl port-forward svc/rhsm-clowdapp-api 8000`
+will forward your localhost's port 8000 to the service (and underlying pod).
