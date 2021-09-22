@@ -379,6 +379,35 @@ class SubscriptionTableControllerTest {
   }
 
   @Test
+  void testCountReturnedInMetaIgnoresOffsetAndLimit() {
+
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(
+            Org.STANDARD,
+            RHEL_SERVER,
+            RH0180191.withSub(Sub.sub("1236", "1237", 5, 6, 6)),
+            RH00604F5.withSub(Sub.sub("1234", "1235", 4, 5, 7)),
+            SubCapSpec.offering(
+                    "RH00604F6", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                .withSub(Sub.sub("1237", "1235", 4, 5, 7)),
+            SubCapSpec.offering(
+                    "RH00604F7", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                .withSub(Sub.sub("1238", "1235", 4, 5, 7)),
+            SubCapSpec.offering(
+                    "RH0060192", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                .withSub(Sub.sub("1239", "1235", 4, 5, 7)));
+
+    when(subscriptionCapacityViewRepository.findAllBy(any(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    SkuCapacityReport reportWithOffsetAndLimit =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_SERVER, 0, 2, null, null, null, SkuCapacityReportSort.SKU, null);
+    assertEquals(2, reportWithOffsetAndLimit.getData().size());
+    assertEquals(5, reportWithOffsetAndLimit.getMeta().getCount());
+  }
+
+  @Test
   void testShouldThrowExceptionOnBadOffset() {
     SubscriptionsException e =
         assertThrows(

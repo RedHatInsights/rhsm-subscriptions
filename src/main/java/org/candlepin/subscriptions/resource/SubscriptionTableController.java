@@ -119,7 +119,7 @@ public class SubscriptionTableController {
         .data(reportItems)
         .meta(
             new HostReportMeta()
-                .count(reportItems.size())
+                .count(capacities.size())
                 .serviceLevel(serviceLevel)
                 .usage(usage)
                 .uom(uom)
