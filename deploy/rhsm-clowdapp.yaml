@@ -89,11 +89,6 @@ parameters:
     value: env-rhsm
   - name: NAMESPACE
     value: rhsm
-  - name: RBAC_HOST
-    # required: true
-    value: localhost
-  - name: RBAC_PORT
-    value: '8080'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -183,10 +178,6 @@ objects:
             value: ${KAFKA_SEEK_OVERRIDE_END}
           - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
             value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-          - name: RBAC_HOST
-            value: ${RBAC_HOST}
-          - name: RBAC_PORT
-            value: ${RBAC_PORT}
           - name: DATABASE_HOST
             valueFrom:
               secretKeyRef:
@@ -366,10 +357,6 @@ objects:
             value: ${KAFKA_SEEK_OVERRIDE_END}
           - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
             value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-          - name: RBAC_HOST
-            value: ${RBAC_HOST}
-          - name: RBAC_PORT
-            value: ${RBAC_PORT}
           - name: DATABASE_HOST
             valueFrom:
               secretKeyRef:
