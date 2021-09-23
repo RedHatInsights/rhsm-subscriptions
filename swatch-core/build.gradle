@@ -18,6 +18,7 @@ dependencies {
     implementation "org.springframework.kafka:spring-kafka"
     implementation "io.micrometer:micrometer-core"
     implementation "io.hawt:hawtio-springboot"
+    implementation "com.jayway.jsonpath:json-path"
     implementation("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
@@ -26,6 +27,8 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
     implementation project(":kafka-schema")
+
+    testImplementation project(":swatch-core-test")
 }
 
 jsonSchema2Pojo {

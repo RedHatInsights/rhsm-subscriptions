@@ -34,7 +34,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
-import org.candlepin.subscriptions.clowder.ClowderConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
@@ -83,7 +82,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   OfferingWorkerConfiguration.class,
   OfferingSyncConfiguration.class,
   RegistryConfiguration.class,
-  ClowderConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfig.class,
   HawtioConfiguration.class,
