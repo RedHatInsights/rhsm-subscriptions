@@ -20,18 +20,30 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
-/** Configuration that provides the relevant Clowder beans. */
-@Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.clowder")
-public class ClowderConfiguration {
-  @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.clowder")
-  ClowderProperties clowderProperties() {
-    return new ClowderProperties();
+/** Class to represent the clowder JSON for the ClowderJsonPathPropertySource */
+public class ClowderJson {
+  public static final String EMPTY_JSON = "{}";
+
+  private final JsonNode root;
+
+  public ClowderJson() throws IOException {
+    InputStream s = new ByteArrayInputStream(EMPTY_JSON.getBytes(StandardCharsets.UTF_8));
+    ObjectMapper mapper = new ObjectMapper();
+    this.root = mapper.readTree(s);
+  }
+
+  public ClowderJson(InputStream s, ObjectMapper mapper) throws IOException {
+    this.root = mapper.readTree(s);
+  }
+
+  public JsonNode getRoot() {
+    return root;
   }
 }
