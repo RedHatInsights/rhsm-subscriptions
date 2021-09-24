@@ -26,7 +26,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,14 +37,14 @@ import org.springframework.stereotype.Component;
 public class PageLinkCreator {
 
   /**
-   * Create a Links object with first, last, previous, next API links.
+   * Create a PageLinks object with first, last, previous, next API links.
    *
    * @param uriInfo pre-existing URI to be used as a template for the page links
    * @param page Spring Data JPA page object
-   * @return a populate TallyReportLinks object
+   * @return a populate PageLinks object
    */
-  public TallyReportLinks getPaginationLinks(UriInfo uriInfo, Page page) {
-    TallyReportLinks links = new TallyReportLinks();
+  public PageLinks getPaginationLinks(UriInfo uriInfo, Page page) {
+    PageLinks links = new PageLinks();
     if (page.previousPageable() != Pageable.unpaged()) {
       links.setPrevious(formatUri(uriWithOffset(uriInfo, page.previousPageable().getOffset())));
     }

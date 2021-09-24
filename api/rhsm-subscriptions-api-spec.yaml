@@ -952,6 +952,19 @@ components:
     # If we need additional responses, look at
     # https://swagger.io/docs/specification/data-models/inheritance-and-polymorphism/ to reduce
     # redundancy
+    PageLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
     TallyReport:
       properties:
         data:
@@ -959,19 +972,7 @@ components:
           items:
             $ref: "#/components/schemas/TallySnapshot"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: "#/components/schemas/PageLinks"
         meta:
           type: object
           properties:
@@ -1117,19 +1118,7 @@ components:
           items:
             $ref: "#/components/schemas/CapacitySnapshot"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: "#/components/schemas/PageLinks"
         meta:
           type: object
           properties:
@@ -1218,19 +1207,7 @@ components:
           items:
             $ref: "#/components/schemas/Host"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: "#/components/schemas/PageLinks"
         meta:
           type: object
           properties:
@@ -1259,19 +1236,7 @@ components:
           items:
             $ref: "#/components/schemas/Host"
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: "#/components/schemas/PageLinks"
         meta:
           type: object
           properties:
@@ -1476,19 +1441,7 @@ components:
           items:
             $ref: '#/components/schemas/SkuCapacity'
         links:
-          type: object
-          properties:
-            first:
-              type: string
-            last:
-              type: string
-            previous:
-              type: string
-            next:
-              type: string
-          required:
-            - first
-            - last
+          $ref: "#/components/schemas/PageLinks"
         meta:
           type: object
           properties:
