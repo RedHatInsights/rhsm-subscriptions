@@ -978,9 +978,11 @@ components:
             count:
               type: integer
             total_core_hours:
-              type: double
+              type: number
+              format: double
             total_instance_hours:
-              type: double
+              type: number
+              format: double
             product:
               $ref: '#/components/schemas/ProductId'
             service_level:
