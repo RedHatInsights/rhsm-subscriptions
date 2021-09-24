@@ -76,17 +76,19 @@ public class SubscriptionTableController {
 
     log.info(
         "Finding all subscription capacities for "
-            + "owner: {}, "
-            + "productId: {}, "
-            + "Service Level: {}, "
-            + "Usage: {} "
-            + "between {} and {}",
+            + "owner={}, "
+            + "productId={}, "
+            + "Service Level={}, "
+            + "Usage={} "
+            + "between={} and {}"
+            + "and uom={}",
         getOwnerId(),
         productId,
         sanitizedServiceLevel,
         sanitizedUsage,
         reportStart,
-        reportEnd);
+        reportEnd,
+        uom);
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
             getOwnerId(),
@@ -94,7 +96,8 @@ public class SubscriptionTableController {
             sanitizedServiceLevel,
             sanitizedUsage,
             reportStart,
-            reportEnd);
+            reportEnd,
+            uom);
 
     Map<String, SkuCapacity> inventories = new HashMap<>();
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {
