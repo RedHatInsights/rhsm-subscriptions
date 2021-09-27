@@ -48,7 +48,7 @@ public class QuarterlyReportFillerTest {
     OffsetDateTime start = clock.startOfCurrentQuarter();
     OffsetDateTime end = start.plusYears(1);
     TallyReport report = new TallyReport();
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(5, filled.size());
@@ -69,7 +69,7 @@ public class QuarterlyReportFillerTest {
     OffsetDateTime expectedStart = clock.startOfQuarter(start);
 
     TallyReport report = new TallyReport();
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(5, filled.size());
@@ -90,7 +90,7 @@ public class QuarterlyReportFillerTest {
     List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
     TallyReport report = new TallyReport().data(snaps);
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(5, filled.size());
@@ -114,7 +114,7 @@ public class QuarterlyReportFillerTest {
     List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
     TallyReport report = new TallyReport().data(snaps);
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(5, filled.size());
