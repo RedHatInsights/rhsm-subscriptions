@@ -511,7 +511,7 @@ class SubscriptionCapacityViewRepositoryTest {
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     socketsAndCores.setSubscriptionId("socketsAndCores");
     socketsAndCores.setPhysicalCores(10);
-    socketsAndCores.setVirtualCores(10);
+    socketsAndCores.setVirtualCores(null);
     socketsAndCores.setPhysicalSockets(10);
     socketsAndCores.setVirtualSockets(10);
 
@@ -553,10 +553,6 @@ class SubscriptionCapacityViewRepositoryTest {
                     SearchCriteria.builder()
                         .key(SubscriptionCapacityView_.physicalCores.getName())
                         .operation(SearchOperation.IS_NOT_NULL)
-                        .build(),
-                    SearchCriteria.builder()
-                        .key(SubscriptionCapacityView_.virtualCores.getName())
-                        .operation(SearchOperation.IS_NOT_NULL)
                         .build()))
             .build();
     List<SubscriptionCapacityView> found = repository.findAll(specification);
@@ -590,7 +586,7 @@ class SubscriptionCapacityViewRepositoryTest {
     socketsAndCores.setPhysicalCores(10);
     socketsAndCores.setVirtualCores(10);
     socketsAndCores.setPhysicalSockets(10);
-    socketsAndCores.setVirtualSockets(10);
+    socketsAndCores.setVirtualSockets(null);
 
     subscriptionRepository.saveAllAndFlush(
         List.of(
@@ -629,10 +625,6 @@ class SubscriptionCapacityViewRepositoryTest {
                 List.of(
                     SearchCriteria.builder()
                         .key(SubscriptionCapacityView_.physicalSockets.getName())
-                        .operation(SearchOperation.IS_NOT_NULL)
-                        .build(),
-                    SearchCriteria.builder()
-                        .key(SubscriptionCapacityView_.virtualSockets.getName())
                         .operation(SearchOperation.IS_NOT_NULL)
                         .build()))
             .build();
