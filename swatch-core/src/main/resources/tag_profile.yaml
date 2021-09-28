@@ -42,6 +42,7 @@ tagMetrics:
   - tag: OpenShift-metrics
     metricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
+    queryKey: 5mSamples
     queryParams:
       product: ocp
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
@@ -51,6 +52,7 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
+    queryKey: 5mSamples
     queryParams:
       product: osd
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
@@ -58,6 +60,7 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
+    queryKey: 5mSamples
     queryParams:
       product: osd
       prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
