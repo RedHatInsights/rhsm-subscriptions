@@ -282,6 +282,19 @@ class CapacityReconciliationControllerTest {
             ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(2).limit(2).build());
   }
 
+  @Test
+  void enqueueShouldOnlyCreateKafkaMessage() {
+    // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
+    // In that case, the client should be able to enqueue the first capacity reconciliation page,
+    // rather than have it be worked on immediately.
+    capacityReconciliationController.enqueueReconcileCapacityForOffering("MCT3718");
+    verify(reconcileCapacityByOfferingKafkaTemplate)
+        .send(
+            "platform.rhsm-subscriptions.capacity-reconcile",
+            ReconcileCapacityByOfferingTask.builder().sku("MCT3718").offset(0).limit(100).build());
+    verifyNoInteractions(subscriptionRepository);
+  }
+
   private Subscription createSubscription(String subId, int quantity) {
 
     return Subscription.builder()

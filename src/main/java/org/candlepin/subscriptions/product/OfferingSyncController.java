@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -44,11 +45,12 @@ public class OfferingSyncController {
   private static final Logger LOGGER = LoggerFactory.getLogger(OfferingSyncController.class);
 
   private static final String SYNC_LOG_TEMPLATE =
-      "{} for offeringSku=\"{}\" in offeringSyncTimeMills={}.";
+      "{} for offeringSku=\"{}\" in offeringSyncTimeMillis={}.";
 
   private final OfferingRepository offeringRepository;
   private final ProductWhitelist productAllowlist;
   private final ProductService productService;
+  private final CapacityReconciliationController capacityReconciliationController;
   private final Timer syncTimer;
   private final Timer enqueueAllTimer;
   private final KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
@@ -59,12 +61,14 @@ public class OfferingSyncController {
       OfferingRepository offeringRepository,
       ProductWhitelist productAllowlist,
       ProductService productService,
+      CapacityReconciliationController capacityReconciliationController,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate,
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties) {
     this.offeringRepository = offeringRepository;
     this.productAllowlist = productAllowlist;
     this.productService = productService;
+    this.capacityReconciliationController = capacityReconciliationController;
     this.syncTimer = meterRegistry.timer("swatch_offering_sync");
     this.enqueueAllTimer = meterRegistry.timer("swatch_offering_sync_enqueue_all");
     this.offeringSyncKafkaTemplate = offeringSyncKafkaTemplate;
@@ -129,11 +133,11 @@ public class OfferingSyncController {
     }
 
     // Update to the new entry or create it.
-    offeringRepository.save(newState);
+    offeringRepository.saveAndFlush(newState);
 
-    // TODO ENT-2658 mentions calling TaskManager.reconcileCapacityForOffering if there //NOSONAR
-    // are changes, but this doesn't exist.
-    // taskManager.reconcileCapacityForOffering(...); //NOSONAR
+    // Existing capacities might need updated if certain parts of the offering was changed.
+    capacityReconciliationController.enqueueReconcileCapacityForOffering(newState.getSku());
+
     return SyncResult.FETCHED_AND_SYNCED;
   }
 

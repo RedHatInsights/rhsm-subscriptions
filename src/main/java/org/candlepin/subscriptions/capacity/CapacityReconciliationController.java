@@ -112,6 +112,12 @@ public class CapacityReconciliationController {
     }
   }
 
+  public void enqueueReconcileCapacityForOffering(String sku) {
+    reconcileCapacityByOfferingKafkaTemplate.send(
+        reconcileCapacityTopic,
+        ReconcileCapacityByOfferingTask.builder().sku(sku).offset(0).limit(100).build());
+  }
+
   private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription) {
 
     Offering offering = offeringRepository.getById(subscription.getSku());

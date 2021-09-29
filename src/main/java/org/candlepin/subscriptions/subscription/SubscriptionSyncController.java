@@ -172,8 +172,7 @@ public class SubscriptionSyncController {
     boolean hasMore = subscriptions.size() >= pageSize;
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
-      offset = offset + limit;
-      enqueueSubscriptionSync(orgId, offset, limit);
+      enqueueSubscriptionSync(orgId, offset + limit, limit);
     }
     Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
     log.info(
