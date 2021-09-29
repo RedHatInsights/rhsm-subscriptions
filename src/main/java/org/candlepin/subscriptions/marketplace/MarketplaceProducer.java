@@ -42,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /**
  * Component that is responsible for emitting usage info to Marketplace, including handling retries.
@@ -52,6 +53,7 @@ public class MarketplaceProducer {
   private static final Logger log = LoggerFactory.getLogger(MarketplaceProducer.class);
   public static final String ACCEPTED_STATUS = "accepted";
   public static final String IN_PROGRESS_STATUS = "inprogress";
+  public static final String FAILED_STATUS = "failed";
   private static final List<String> SUCCESSFUL_SUBMISSION_STATUSES =
       List.of(ACCEPTED_STATUS, IN_PROGRESS_STATUS);
 
@@ -81,6 +83,17 @@ public class MarketplaceProducer {
   public void submitUsageRequest(UsageRequest usageRequest) {
     try {
       StatusResponse status = retryTemplate.execute(context -> tryRequest(usageRequest));
+      // tryRequest will return a failed status if it's due to amendments being not yet supported
+      if (FAILED_STATUS.equals(status.getStatus())) {
+        if (log.isWarnEnabled()) {
+          log.warn(
+              "Amendment attempted (but not supported) w/ eventIds={}. Skipping verification",
+              usageRequest.getData().stream()
+                  .map(UsageEvent::getEventId)
+                  .collect(Collectors.joining(",")));
+        }
+        return;
+      }
       Set<String> batchIds =
           Optional.ofNullable(status.getData()).orElse(Collections.emptyList()).stream()
               .map(BatchStatus::getBatchId)
@@ -116,7 +129,7 @@ public class MarketplaceProducer {
       String status = Objects.requireNonNull(response.getStatus());
       if (IN_PROGRESS_STATUS.equals(status)) {
         // throw an exception so that retry logic re-checks the batch
-        throw new MarketplaceUsageSubmissionException(response.getMessage(), status);
+        throw new MarketplaceUsageSubmissionException(response);
       } else if (!ACCEPTED_STATUS.equals(status)) {
         log.error(
             "Marketplace rejected batch {} with status {} and message {}",
@@ -141,8 +154,8 @@ public class MarketplaceProducer {
     try {
       StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
       log.debug("Marketplace response: {}", status);
-      if (!SUCCESSFUL_SUBMISSION_STATUSES.contains(status.getStatus())) {
-        throw new MarketplaceUsageSubmissionException(status.getStatus(), status.getMessage());
+      if (!isSuccessfulResponse(status)) {
+        throw new MarketplaceUsageSubmissionException(status);
       }
       if (status.getData() != null) {
         status
@@ -166,5 +179,19 @@ public class MarketplaceProducer {
           "Exception submitting usage record to Marketplace",
           e);
     }
+  }
+
+  private boolean isSuccessfulResponse(StatusResponse status) {
+    return SUCCESSFUL_SUBMISSION_STATUSES.contains(status.getStatus())
+        || failedOnlyDueToAmendmentUnsupported(status);
+  }
+
+  private boolean failedOnlyDueToAmendmentUnsupported(StatusResponse status) {
+    if (!StringUtils.hasText(properties.getAmendmentNotSupportedMarker())) {
+      return false;
+    }
+    return Optional.ofNullable(status.getData()).orElse(Collections.emptyList()).stream()
+        .map(BatchStatus::getMessage)
+        .allMatch(m -> m != null && m.contains(properties.getAmendmentNotSupportedMarker()));
   }
 }

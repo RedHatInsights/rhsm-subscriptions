@@ -67,6 +67,8 @@ parameters:
     value: 'true'
   - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
     value: 'false'
+  - name: MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
+    value: '(amendments) is not available'
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
@@ -243,6 +245,8 @@ objects:
                   value: ${MARKETPLACE_VERIFY_BATCHES}
                 - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
                   value: ${MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
+                - name: MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
+                  value: ${MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER}
                 - name: SUBSCRIPTION_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
