@@ -96,28 +96,18 @@ public interface SubscriptionCapacityViewRepository
         .build();
   }
 
-  private List<SearchCriteria> searchCriteriaMatchingUomOfCores() {
-    return List.of(
-        SearchCriteria.builder()
-            .key(SubscriptionCapacityView_.physicalCores.getName())
-            .operation(SearchOperation.IS_NOT_NULL)
-            .build(),
-        SearchCriteria.builder()
-            .key(SubscriptionCapacityView_.virtualCores.getName())
-            .operation(SearchOperation.IS_NOT_NULL)
-            .build());
+  private SearchCriteria searchCriteriaMatchingUomOfCores() {
+    return SearchCriteria.builder()
+        .key(SubscriptionCapacityView_.physicalCores.getName())
+        .operation(SearchOperation.IS_NOT_NULL)
+        .build();
   }
 
-  private List<SearchCriteria> searchCriteriaMatchingUomOfSockets() {
-    return List.of(
-        SearchCriteria.builder()
-            .key(SubscriptionCapacityView_.physicalSockets.getName())
-            .operation(SearchOperation.IS_NOT_NULL)
-            .build(),
-        SearchCriteria.builder()
-            .key(SubscriptionCapacityView_.virtualSockets.getName())
-            .operation(SearchOperation.IS_NOT_NULL)
-            .build());
+  private SearchCriteria searchCriteriaMatchingUomOfSockets() {
+    return SearchCriteria.builder()
+        .key(SubscriptionCapacityView_.physicalSockets.getName())
+        .operation(SearchOperation.IS_NOT_NULL)
+        .build();
   }
 
   private List<SearchCriteria> buildSearchCriteria(
@@ -130,8 +120,8 @@ public interface SubscriptionCapacityViewRepository
       Uom uom) {
 
     List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
-    if (Uom.CORES.equals(uom)) searchCriteria.addAll(searchCriteriaMatchingUomOfCores());
-    if (Uom.SOCKETS.equals(uom)) searchCriteria.addAll(searchCriteriaMatchingUomOfSockets());
+    if (Uom.CORES.equals(uom)) searchCriteria.add(searchCriteriaMatchingUomOfCores());
+    if (Uom.SOCKETS.equals(uom)) searchCriteria.add(searchCriteriaMatchingUomOfSockets());
     if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))
       searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
     if (Objects.nonNull(usage) && !usage.equals(Usage._ANY))
