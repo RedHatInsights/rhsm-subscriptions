@@ -49,7 +49,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class SubscriptionSyncController {
-  private static final int SUBS_PAGE_SIZE = 2000;
+  private static final int SUBS_PAGE_SIZE = 100;
 
   private SubscriptionRepository subscriptionRepository;
   private OrgConfigRepository orgRepository;
