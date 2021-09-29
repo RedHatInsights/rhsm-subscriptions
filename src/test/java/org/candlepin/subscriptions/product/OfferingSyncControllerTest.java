@@ -26,11 +26,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -74,6 +76,7 @@ class OfferingSyncControllerTest {
 
   @MockBean OfferingRepository repo;
   @MockBean ProductWhitelist allowlist;
+  @MockBean CapacityReconciliationController capController;
   @MockBean KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   @Autowired OfferingSyncController subject;
 
@@ -91,9 +94,10 @@ class OfferingSyncControllerTest {
     // When syncing the Offering,
     SyncResult result = subject.syncOffering(sku);
 
-    // Then the Offering should be persisted.
+    // Then the Offering should be persisted and capacities reconciled.
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
-    verify(repo).save(any(Offering.class));
+    verify(repo).saveAndFlush(any(Offering.class));
+    verify(capController).enqueueReconcileCapacityForOffering("MW01485");
   }
 
   @Test
@@ -115,9 +119,10 @@ class OfferingSyncControllerTest {
     // When syncing the Offering,
     SyncResult result = subject.syncOffering(sku);
 
-    // Then the updated Offering should be persisted.
+    // Then the Offering should be persisted and capacities reconciled.
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
-    verify(repo).save(any(Offering.class));
+    verify(repo).saveAndFlush(any(Offering.class));
+    verify(capController).enqueueReconcileCapacityForOffering("MW01485");
   }
 
   @Test
@@ -141,9 +146,10 @@ class OfferingSyncControllerTest {
     // When syncing the Offering,
     SyncResult result = subject.syncOffering(sku);
 
-    // Then no persisting should happen.
+    // Then no persisting or capacity reconciliation should happen.
     assertEquals(SyncResult.SKIPPED_MATCHING, result);
-    verify(repo, never()).save(any(Offering.class));
+    verify(repo, never()).saveAndFlush(any(Offering.class));
+    verifyNoInteractions(capController);
   }
 
   @Test
@@ -157,9 +163,11 @@ class OfferingSyncControllerTest {
     // When syncing the Offering,
     SyncResult result = subject.syncOffering("MW01484");
 
-    // Then it should still persist, since there are Offerings that we need that have no eng prods.
+    // Then it should still persist, since there are Offerings that we need that have no eng prods,
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
-    verify(repo).save(any(Offering.class));
+    verify(repo).saveAndFlush(any(Offering.class));
+    // and it should still reconcile capacities.
+    verify(capController).enqueueReconcileCapacityForOffering("MW01484");
   }
 
   @Test
@@ -171,12 +179,14 @@ class OfferingSyncControllerTest {
     // When getting the upstream Offering,
     var actual = subject.syncOffering(sku);
 
-    // Then syncing the offering is rejected and no attempt was made to fetch or store it.
+    // Then syncing the offering is rejected, no attempt was made to fetch or store it, and no
+    // capacities are reconciled.
     assertEquals(
         SyncResult.SKIPPED_NOT_ALLOWLISTED,
         actual,
         "A sku not in the allowlist should not be synced.");
     verify(allowlist).productIdMatches(sku);
+    verifyNoInteractions(repo, capController);
   }
 
   @Test

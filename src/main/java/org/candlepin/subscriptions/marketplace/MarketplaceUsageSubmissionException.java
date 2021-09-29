@@ -22,15 +22,17 @@ package org.candlepin.subscriptions.marketplace;
 
 import lombok.Getter;
 import lombok.ToString;
+import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
 
 /** Exception for any issue submitting usage to Marketplace. */
 @Getter
 @ToString
 public class MarketplaceUsageSubmissionException extends RuntimeException {
-  private final String status;
+  public MarketplaceUsageSubmissionException(StatusResponse status) {
+    super(extractMessage(status));
+  }
 
-  public MarketplaceUsageSubmissionException(String message, String status) {
-    super(message);
-    this.status = status;
+  private static String extractMessage(StatusResponse status) {
+    return status.toString();
   }
 }

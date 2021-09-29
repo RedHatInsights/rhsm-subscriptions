@@ -128,4 +128,30 @@ class MarketplaceProducerTest {
 
     assertEquals(1.0, rejectedCounter.count());
   }
+
+  @Test
+  void testMarketplaceSkipsVerificationIfAmendmentRejected() throws ApiException {
+    RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
+    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    MeterRegistry registry = new SimpleMeterRegistry();
+    var properties = new MarketplaceProperties();
+    properties.setAmendmentNotSupportedMarker("(amendments) is not available");
+    MarketplaceProducer marketplaceProducer =
+        new MarketplaceProducer(marketplaceService, retryTemplate, registry, properties);
+    when(marketplaceService.submitUsageEvents(any()))
+        .thenReturn(
+            new StatusResponse()
+                .status("failed")
+                .addDataItem(
+                    new BatchStatus()
+                        .batchId("foo")
+                        .message(
+                            "Requested feature (amendments) is not available on this environment")));
+
+    var usageRequest = new UsageRequest();
+    marketplaceProducer.submitUsageRequest(usageRequest);
+
+    verify(marketplaceService, times(1)).submitUsageEvents(any());
+    verifyNoMoreInteractions(marketplaceService);
+  }
 }
