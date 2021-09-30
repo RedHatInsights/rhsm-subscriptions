@@ -132,10 +132,10 @@ RBAC service can via configured by environment variables (see below).
 
 For development purposes, the RBAC service can be stubbed out so that the connection
 to the RBAC service is bypassed and all users recieve the 'subscriptions:*:*' role. This
-can be enabled by setting `RBAC_USE_STUB=true`
+can be enabled by setting `RHSM_RBAC_USE_STUB=true`
 
 ```sh
-RBAC_USE_STUB=true ./gradlew bootRun
+RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 ```
 
 ### Environment Variables
@@ -179,11 +179,12 @@ RBAC_USE_STUB=true ./gradlew bootRun
 * `KAFKA_SCHEMA_REGISTRY_HOST`: kafka schema server host
 * `KAFKA_SCHEMA_REGISTRY_PORT`: kafka schema server port
 * `KAFKA_AUTO_REGISTER_SCHEMAS`: enable auto registration of schemas
-* `RBAC_USE_STUB`: stub out the rbac service
-* `RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`), by default this property is set to 'subscriptions'.
-* `RBAC_HOST`: RBAC service hostname
-* `RBAC_PORT`: RBAC service port
-* `RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
+* `RHSM_RBAC_USE_STUB`: stub out the rbac service
+* `RHSM_RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`),
+  by default this property is set to 'subscriptions'.
+* `RHSM_RBAC_HOST`: RBAC service hostname
+* `RHSM_RBAC_PORT`: RBAC service port
+* `RHSM_RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
 * `CLOUDIGRADE_ENABLED`: set to `true` to query cloudigrade for RHEL usage
 * `CLOUDIGRADE_MAX_ATTEMPTS`: maximum number of attempts to query cloudigrade
 * `CLOUDIGRADE_HOST`: cloudigrade service host
