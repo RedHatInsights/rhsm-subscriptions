@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -158,30 +159,44 @@ public class SubscriptionSyncController {
   }
 
   void syncSubscriptions(String orgId, int offset, int limit) {
-    log.info("Syncing subscriptions for org={} with offset={} and limit={} ", orgId, offset, limit);
+    log.info(
+        "Syncing subscriptions for orgId={} with offset={} and limit={} ", orgId, offset, limit);
     Timer.Sample syncTime = Timer.start();
 
     int pageSize = limit + 1;
     List<Subscription> subscriptions =
         subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
+    int numFetchedSubs = subscriptions.size();
+    boolean hasMore = numFetchedSubs >= pageSize;
     log.info(
-        "Fetched subscriptions of size={} for org={} from external service ",
-        subscriptions.size(),
-        orgId);
+        "Fetched numFetchedSubs={} for orgId={} from external service.", numFetchedSubs, orgId);
 
-    boolean hasMore = subscriptions.size() >= pageSize;
+    subscriptions =
+        subscriptions.stream().filter(this::shouldSyncSub).collect(Collectors.toUnmodifiableList());
+    int numKeptSubs = subscriptions.size();
+
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
       enqueueSubscriptionSync(orgId, offset + limit, limit);
     }
     Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
     log.info(
-        "Fetched and synced numSubs={} for orgId={} offset={} limit={} in subSyncedTimeMillis={}",
-        subscriptions.size(),
+        "Fetched numFetchedSubs={} and synced numSyncedSubs={} active/recent subscriptions for orgId={} offset={} limit={} in subSyncedTimeMillis={}",
+        numFetchedSubs,
+        numKeptSubs,
         orgId,
         offset,
         limit,
         syncDuration.toMillis());
+  }
+
+  private boolean shouldSyncSub(Subscription sub) {
+    // Reject subs expired long ago, or subs that won't be active quite yet.
+    OffsetDateTime now = clock.now();
+    long earliestAllowedFutureStartDate = now.plusMonths(2).toEpochSecond() * 1000;
+    long latestAllowedExpiredEndDate = now.minusMonths(2).toEpochSecond() * 1000;
+    return sub.getEffectiveStartDate() < earliestAllowedFutureStartDate
+        && sub.getEffectiveEndDate() > latestAllowedExpiredEndDate;
   }
 
   private void enqueueSubscriptionSync(String orgId, int offset, int limit) {

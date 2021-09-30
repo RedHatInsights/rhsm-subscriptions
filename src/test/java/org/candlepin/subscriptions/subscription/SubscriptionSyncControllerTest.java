@@ -21,14 +21,17 @@
 package org.candlepin.subscriptions.subscription;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
@@ -149,9 +152,10 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void shouldSyncSubscriptionsWithinLimitForOrgAndQueueTaskForNext() throws InterruptedException {
+  void shouldSyncSubscriptionsWithinLimitForOrgAndQueueTaskForNext() {
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
 
-    CountDownLatch latch = new CountDownLatch(1);
     List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptions =
         List.of(
             createDto(100, "456", 10),
@@ -174,10 +178,60 @@ class SubscriptionSyncControllerTest {
         });
 
     subscriptionSyncController.syncSubscriptions("100", 0, 2);
+    verify(subscriptionRepository, times(3)).save(any());
     verify(subscriptionsKafkaTemplate)
         .send(
             "platform.rhsm-subscriptions.subscription-sync",
             SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
+  }
+
+  @Test
+  void shouldSyncSubscriptionsSyncSubIfRecent() {
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
+
+    // When syncing an org's subs, a sub should be synced if it is within effective*Dates
+    var dto = createDto("456", 10);
+    dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(6)));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(6)));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
+        .thenReturn(List.of(dto));
+
+    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+
+    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
+    verify(subscriptionRepository).save(any());
+  }
+
+  @Test
+  void shouldSyncSubscriptionsSkipSubIfTooExpired() {
+    // When syncing an org's subs, don't sync subscriptions that expired more than 2 months ago
+    var dto = createDto("456", 10);
+    dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(14)));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.minusMonths(2)));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
+        .thenReturn(List.of(dto));
+
+    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+
+    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
+    verifyNoInteractions(whitelist, offeringRepository, subscriptionRepository);
+  }
+
+  @Test
+  void shouldSyncSubscriptionsSkipSubIfTooFutureDated() {
+    // When syncing an org's subs, don't sync subscriptions future-dated more than 2 months from now
+    var dto = createDto("456", 10);
+    dto.setEffectiveStartDate(toEpochMillis(NOW.plusMonths(2).plusDays(1)));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(14).plusDays(1)));
+    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
+
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
+        .thenReturn(List.of(dto));
+    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+
+    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
+    verifyNoInteractions(whitelist, offeringRepository, subscriptionRepository);
   }
 
   @Test
@@ -215,8 +269,8 @@ class SubscriptionSyncControllerTest {
     dto.setQuantity(quantity);
     dto.setId(Integer.valueOf(subId));
     dto.setSubscriptionNumber("123");
-    dto.setEffectiveStartDate(NOW.toEpochSecond());
-    dto.setEffectiveEndDate(NOW.plusDays(30).toEpochSecond());
+    dto.setEffectiveStartDate(toEpochMillis(NOW));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.plusDays(30)));
     dto.setWebCustomerId(orgId);
 
     var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku("testsku");
@@ -239,5 +293,12 @@ class SubscriptionSyncControllerTest {
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
         .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
         .build();
+  }
+
+  private static Long toEpochMillis(OffsetDateTime offsetDateTime) {
+    if (offsetDateTime == null) {
+      return null;
+    }
+    return offsetDateTime.toEpochSecond() * 1000L;
   }
 }
