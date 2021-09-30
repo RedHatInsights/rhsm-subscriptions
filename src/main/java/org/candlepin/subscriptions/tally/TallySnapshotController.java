@@ -130,6 +130,9 @@ public class TallySnapshotController {
       var result =
           retryTemplate.execute(
               context -> metricUsageCollector.collect(accountNumber, snapshotRange));
+      if (result == null) {
+        return;
+      }
 
       var applicableUsageCalculations =
           result.getCalculations().entrySet().stream()

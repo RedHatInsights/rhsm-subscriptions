@@ -21,7 +21,9 @@
 package org.candlepin.subscriptions.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -52,5 +54,19 @@ class DateRangeTest {
     OffsetDateTime start = now;
     OffsetDateTime end = now.minusHours(1);
     assertThrows(IllegalArgumentException.class, () -> new DateRange(start, end));
+  }
+
+  @Test
+  void testContains() {
+    OffsetDateTime now = OffsetDateTime.now();
+    OffsetDateTime expectedStart = now.minusHours(4);
+    OffsetDateTime expectedEnd = now.plusHours(4);
+
+    DateRange range = new DateRange(expectedStart, expectedEnd);
+    assertTrue(range.contains(now));
+    assertTrue(range.contains(expectedStart));
+    assertTrue(range.contains(expectedEnd));
+    assertFalse(range.contains(now.minusHours(5)));
+    assertFalse(range.contains(now.plusHours(5)));
   }
 }
