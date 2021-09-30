@@ -104,6 +104,25 @@ public class CombiningRollupSnapshotStrategy {
         derivedExistingSnapshots,
         affectedProductTags);
 
+    // Reset the measurements for all existing finest granularity snapshots
+    // that fall in the affected date range, so that they reflect the values
+    // of the incoming account calculations.
+    totalExistingSnapshots.values().stream()
+        .filter(
+            existing ->
+                existing.getGranularity() == finestGranularity
+                    && affectedRange.contains(existing.getSnapshotDate()))
+        .forEach(
+            snapshot -> {
+              log.debug(
+                  "Clearing {} snapshot measurements occurring on {} for product {} and account {}",
+                  snapshot.getGranularity(),
+                  snapshot.getSnapshotDate(),
+                  snapshot.getProductId(),
+                  snapshot.getAccountNumber());
+              snapshot.getTallyMeasurements().clear();
+            });
+
     List<TallySnapshot> finestGranularitySnapshots =
         produceFinestGranularitySnapshots(totalExistingSnapshots, accountCalcs, finestGranularity);
 
@@ -273,10 +292,6 @@ public class CombiningRollupSnapshotStrategy {
         existingSnapshotLookup.entrySet().stream()
             .filter(existing -> existing.getValue().getGranularity() == granularity)
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-
-    // Reset the measurements for all existing finest granularity snapshots so that
-    // they reflect the values of the incoming account calculations.
-    affectedSnaps.values().stream().forEach(existing -> existing.getTallyMeasurements().clear());
 
     accountCalcs.forEach(
         (offset, accountCalc) -> {

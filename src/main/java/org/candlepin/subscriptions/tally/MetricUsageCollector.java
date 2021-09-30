@@ -85,6 +85,7 @@ public class MetricUsageCollector {
 
     if (!eventController.hasEventsInTimeRange(
         accountNumber, range.getStartDate(), range.getEndDate())) {
+      log.info("No event metrics to process in range: {}", range);
       return null;
     }
 
