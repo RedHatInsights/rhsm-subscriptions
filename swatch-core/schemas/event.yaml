@@ -83,6 +83,7 @@ properties:
             - Sockets
             - Core-seconds
             - Instance-hours
+            - Storage-gibibytes
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
@@ -124,6 +125,7 @@ properties:
       - Red Hat Enterprise Linux Compute Node
       - ocp
       - osd
+      - rhosak
     required: false
   sla:
     description: Service level for the subject.

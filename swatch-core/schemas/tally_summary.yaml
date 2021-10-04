@@ -64,6 +64,7 @@ properties:
                   - Cores
                   - Sockets
                   - Instance-hours
+                  - Storage-gibibytes
                 required: false
               value:
                 description: Measurement value.
