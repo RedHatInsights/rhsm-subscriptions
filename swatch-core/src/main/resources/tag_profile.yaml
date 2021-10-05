@@ -33,6 +33,11 @@ tagMappings:
     tags:
       - OpenShift-metrics
 
+  - value: OpenShift Streams for Apache Kafka
+    valueType: productName
+    tags:
+      - rhosak
+
 # Individual tags can be measured in different ways.  The tagMetrics section defines these
 # measurements.  A tag will, at minimum, have a "uom" attribute (unit of measure) that defines the
 # units being tracked (e.g. cores).  Tags that rely on pulling information from Prometheus will have
@@ -66,6 +71,16 @@ tagMetrics:
       prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
       prometheusMetadataMetric: subscription_labels
 
+  # RHOSAK
+  - tag: rhosak
+    # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
+    metricId: redhat.com:rhosak:transfer_gb
+    uom: TRANSFER_GIBIBYTES
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
+      prometheusMetadataMetric: subscription_labels
+
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata
@@ -78,6 +93,12 @@ tagMetaData:
       - OpenShift-metrics
       - OpenShift-dedicated-metrics
     serviceType: OpenShift Cluster
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+  - tags:
+      - rhosak
+    serviceType: Kafka Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
