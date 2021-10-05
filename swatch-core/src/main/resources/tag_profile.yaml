@@ -73,12 +73,11 @@ tagMetrics:
 
   # RHOSAK
   - tag: rhosak
+    # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
     metricId: redhat.com:rhosak:transfer_gb
-    uom: TRANSFER_GIGABYTES
+    uom: TRANSFER_GIBIBYTES
     queryParams:
       product: rhosak
-      # Metric being reported is GiB, even though swatch refers to it as gigabyte.
-      # Swatch uses "gigabyte" as the general terminology and does no conversions
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
 
