@@ -77,6 +77,8 @@ tagMetrics:
     uom: TRANSFER_GIGABYTES
     queryParams:
       product: rhosak
+      # Metric being reported is GiB, even though swatch refers to it as gigabyte.
+      # Swatch uses "gigabyte" as the general terminology and does no conversions
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
 
