@@ -43,7 +43,6 @@ tagMappings:
     tags:
       - rhosak
 
-
 # Individual tags can be measured in different ways.  The tagMetrics section defines these
 # measurements.  A tag will, at minimum, have a "uom" attribute (unit of measure) that defines the
 # units being tracked (e.g. cores).  Tags that rely on pulling information from Prometheus will have
@@ -84,6 +83,14 @@ tagMetrics:
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes
+      prometheusMetadataMetric: subscription_labels
+  - tag: rhosak
+    # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
+    metricId: redhat.com:rhosak:transfer_gb
+    uom: TRANSFER_GIBIBYTES
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
