@@ -13,7 +13,7 @@ tagMappings:
     tags:
       - OpenShift Container Platform
 
-  # OpenShift syspurpose roles
+  # System Purpose roles
   - value: ocp
     valueType: role
     tags:
@@ -22,12 +22,17 @@ tagMappings:
     valueType: role
     tags:
       - OpenShift-dedicated-metrics
+  - value: rhosak
+    valueType: role
+    tags:
+      - rhosak
 
-  # OpenShift Offering Product Names
+  # Offering Product Names
   - value: OpenShift Dedicated
     valueType: productName
     tags:
       - OpenShift-dedicated-metrics
+
   - value: OpenShift Container Platform
     valueType: productName
     tags:
@@ -71,7 +76,14 @@ tagMetrics:
       prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
       prometheusMetadataMetric: subscription_labels
 
-  # RHOSAK
+  # RHOSAK metrics
+  - tag: rhosak
+    metricId: redhat.com:rhosak:storage_gb
+    uom: STORAGE_GIBIBYTES
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes
+      prometheusMetadataMetric: subscription_labels
   - tag: rhosak
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
     metricId: redhat.com:rhosak:transfer_gb
