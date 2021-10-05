@@ -65,6 +65,7 @@ properties:
                   - Sockets
                   - Instance-hours
                   - Storage-gibibytes
+                  - Transfer-gibibytes
                 required: false
               value:
                 description: Measurement value.
