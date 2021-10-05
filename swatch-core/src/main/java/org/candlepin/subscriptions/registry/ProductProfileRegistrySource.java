@@ -40,7 +40,8 @@ public class ProductProfileRegistrySource extends YamlFileSource<ProductProfileR
     super(
         properties.getProductProfileRegistryResourceLocation(),
         clock.getClock(),
-        properties.getProductProfileListCacheTtl());
+        properties.getProductProfileListCacheTtl(),
+        properties.isStrictProfileLoadingMode());
   }
 
   @Override

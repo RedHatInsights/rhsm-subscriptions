@@ -49,7 +49,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class SubscriptionSyncController {
-  private static final int SUBS_PAGE_SIZE = 2000;
+  private static final int SUBS_PAGE_SIZE = 100;
 
   private SubscriptionRepository subscriptionRepository;
   private OrgConfigRepository orgRepository;
@@ -172,8 +172,7 @@ public class SubscriptionSyncController {
     boolean hasMore = subscriptions.size() >= pageSize;
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
-      offset = offset + limit;
-      enqueueSubscriptionSync(orgId, offset, limit);
+      enqueueSubscriptionSync(orgId, offset + limit, limit);
     }
     Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
     log.info(

@@ -7,7 +7,7 @@ info:
   version: 1.0.0
 
 paths:
-  /id={id}:
+  /id={id}/options/options;products=ALL:
     description: "Get a subscription by ID"
     parameters:
       - name: id
@@ -18,7 +18,7 @@ paths:
           type: string
     get:
       summary: "Get a single subscription"
-      operationId: "GetSubscriptionById"
+      operationId: "getSubscriptionById"
       tags:
         - search
       responses:

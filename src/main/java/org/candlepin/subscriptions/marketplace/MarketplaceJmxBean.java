@@ -40,7 +40,9 @@ import org.springframework.stereotype.Component;
 // must log, then throw because the exception is passed to client and not logged.
 @SuppressWarnings("java:S2139")
 public class MarketplaceJmxBean {
+
   private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
+  public static final String USAGE_SUBMISSION_ERROR_MESSAGE = "Error submitting usage info via JMX";
 
   private final SecurityProperties properties;
   private final MarketplaceProperties mktProperties;
@@ -96,8 +98,35 @@ public class MarketplaceJmxBean {
     try {
       marketplaceProducer.submitUsageRequest(usageRequest);
     } catch (Exception e) {
-      log.error("Error submitting usage info via JMX", e);
-      throw new JmxException("Error submitting usage info via JMX", e);
+      log.error(USAGE_SUBMISSION_ERROR_MESSAGE, e);
+      throw new JmxException(USAGE_SUBMISSION_ERROR_MESSAGE, e);
+    }
+  }
+
+  @ManagedOperation(
+      description =
+          "Submit usage JSON to RHM (available when enabled "
+              + "via MarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
+  @ManagedOperationParameter(
+      name = "usageJson",
+      description =
+          "String representation of Usage json. "
+              + "Don't forget to escape quotation marks if you're trying to invoke this endpoint via "
+              + "curl command")
+  public void submitUsage(String usageJson) throws JsonProcessingException {
+    if (!properties.isDevMode() && !mktProperties.isManualMarketplaceSubmissionEnabled()) {
+      throw new JmxException("This feature is not currently enabled.");
+    }
+
+    UsageRequest usageRequest = mapper.readValue(usageJson, UsageRequest.class);
+
+    log.info("usageRequest to be sent: {}", usageRequest);
+
+    try {
+      marketplaceProducer.submitUsageRequest(usageRequest);
+    } catch (Exception e) {
+      log.error(USAGE_SUBMISSION_ERROR_MESSAGE, e);
+      throw new JmxException(USAGE_SUBMISSION_ERROR_MESSAGE, e);
     }
   }
 

@@ -27,12 +27,15 @@ import javax.persistence.criteria.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
 import org.springframework.data.jpa.domain.Specification;
 
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Slf4j
 public class SubscriptionCapacityViewSpecification
     implements Specification<SubscriptionCapacityView> {
 
@@ -58,7 +61,17 @@ public class SubscriptionCapacityViewSpecification
         || SubscriptionCapacityKey_.PRODUCT_ID.equals(criteria.getKey()))
       expression = root.get("key");
 
-    if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
+    if (SubscriptionCapacityView_.PHYSICAL_SOCKETS.equals(criteria.getKey())
+        && criteria.getOperation().equals(SearchOperation.IS_NOT_NULL)) {
+      return builder.or(
+          builder.isNotNull(expression.get(SubscriptionCapacityView_.VIRTUAL_SOCKETS)),
+          builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_SOCKETS)));
+    } else if (SubscriptionCapacityView_.PHYSICAL_CORES.equals(criteria.getKey())
+        && criteria.getOperation().equals(SearchOperation.IS_NOT_NULL)) {
+      return builder.or(
+          builder.isNotNull(expression.get(SubscriptionCapacityView_.VIRTUAL_CORES)),
+          builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_CORES)));
+    } else if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
       return builder.greaterThanOrEqualTo(
           expression.get(criteria.getKey()), criteria.getValue().toString());
     } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {

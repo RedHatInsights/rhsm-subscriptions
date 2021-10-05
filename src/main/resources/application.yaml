@@ -46,7 +46,10 @@ rhsm-subscriptions:
     capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     purge-snapshot-schedule: ${PURGE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     metering-schedule: ${METERING_SCHEDULE:0 0 1 * * ?}
+    subscription-sync-schedule: ${SUBSCRIPTION_SYNC_SCHEDULE:0 0 10 * * ?}
+    offering-sync-schedule: ${OFFERING_SYNC_SCHEDULE:0 0 2 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
+  product-whitelist-resource-location: ${PRODUCT_WHITELIST_RESOURCE_LOCATION:}
   tasks:
     topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
@@ -70,6 +73,7 @@ rhsm-subscriptions:
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:4h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
+  subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:false}
   subscription:
     useStub: ${SUBSCRIPTION_USE_STUB:false}
     url: ${SUBSCRIPTION_URL:https://subscription.qa.api.redhat.com/svcrest/subscription/v5}

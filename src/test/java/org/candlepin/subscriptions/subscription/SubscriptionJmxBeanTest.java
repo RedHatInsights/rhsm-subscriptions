@@ -18,9 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.jmx;
+package org.candlepin.subscriptions.subscription;
 
-import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
