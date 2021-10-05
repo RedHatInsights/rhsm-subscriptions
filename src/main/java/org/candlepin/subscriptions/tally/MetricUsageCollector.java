@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -47,7 +46,8 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.registry.ProductProfile;
+import org.candlepin.subscriptions.registry.TagMetaData;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
@@ -61,21 +61,21 @@ public class MetricUsageCollector {
   private final AccountRepository accountRepository;
   private final EventController eventController;
   private final ApplicationClock clock;
-  private final ProductProfile productProfile;
+  private final TagProfile tagProfile;
 
   public MetricUsageCollector(
-      ProductProfile productProfile,
+      TagProfile tagProfile,
       AccountRepository accountRepository,
       EventController eventController,
       ApplicationClock clock) {
     this.accountRepository = accountRepository;
     this.eventController = eventController;
     this.clock = clock;
-    this.productProfile = productProfile;
+    this.tagProfile = tagProfile;
   }
 
   @Transactional
-  public CollectionResult collect(String accountNumber, DateRange range) {
+  public CollectionResult collect(String serviceType, String accountNumber, DateRange range) {
     if (!clock.isHourlyRange(range)) {
       throw new IllegalArgumentException(
           String.format(
@@ -84,8 +84,8 @@ public class MetricUsageCollector {
     }
 
     if (!eventController.hasEventsInTimeRange(
-        accountNumber, range.getStartDate(), range.getEndDate())) {
-      log.info("No event metrics to process in range: {}", range);
+        accountNumber, serviceType, range.getStartDate(), range.getEndDate())) {
+      log.info("No event metrics to process for service type {} in range: {}", serviceType, range);
       return null;
     }
 
@@ -108,8 +108,10 @@ public class MetricUsageCollector {
     */
     Map<String, Host> existingInstances = new HashMap<>();
     OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
+    //  We should be pulling back only instances that match the service level.
+    //  ENT-4423 Should address the potential performance issue here.
     for (Host host : account.getServiceInstances().values()) {
-      if (productProfile.getServiceType().equals(host.getInstanceType())) {
+      if (serviceType.equals(host.getInstanceType())) {
         existingInstances.put(host.getInstanceId(), host);
         newestInstanceTimestamp =
             newestInstanceTimestamp.isAfter(host.getLastSeen())
@@ -159,7 +161,7 @@ public class MetricUsageCollector {
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
         offset = offset.plusHours(1)) {
-      AccountUsageCalculation accountUsageCalculation = collectHour(account, offset);
+      AccountUsageCalculation accountUsageCalculation = collectHour(serviceType, account, offset);
       if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
         accountCalcs.put(offset, accountUsageCalculation);
       }
@@ -171,13 +173,15 @@ public class MetricUsageCollector {
   }
 
   @Transactional
-  public AccountUsageCalculation collectHour(Account account, OffsetDateTime startDateTime) {
+  public AccountUsageCalculation collectHour(
+      String serviceType, Account account, OffsetDateTime startDateTime) {
+    Optional<TagMetaData> serviceTypeMeta = tagProfile.getTagMetaDataByServiceType(serviceType);
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
         eventController
-            .fetchEventsInTimeRange(account.getAccountNumber(), startDateTime, endDateTime)
-            .filter(event -> event.getServiceType().equals(productProfile.getServiceType()))
+            .fetchEventsInTimeRangeByServiceType(
+                account.getAccountNumber(), serviceType, startDateTime, endDateTime)
             // We group fetched events by instanceId so that we can clear the measurements
             // on first access, if the instance already exists for the account.
             .collect(Collectors.groupingBy(Event::getInstanceId));
@@ -195,7 +199,7 @@ public class MetricUsageCollector {
           thisHoursInstances.put(instanceId, host);
           account.getServiceInstances().put(instanceId, host);
 
-          events.forEach(event -> updateInstanceFromEvent(event, host));
+          events.forEach(event -> updateInstanceFromEvent(event, host, serviceTypeMeta));
         });
 
     return tallyCurrentAccountState(account.getAccountNumber(), thisHoursInstances);
@@ -233,7 +237,8 @@ public class MetricUsageCollector {
     return accountUsageCalculation;
   }
 
-  private void updateInstanceFromEvent(Event event, Host instance) {
+  private void updateInstanceFromEvent(
+      Event event, Host instance, Optional<TagMetaData> serviceTypeMeta) {
     instance.setAccountNumber(event.getAccountNumber());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
@@ -267,7 +272,7 @@ public class MetricUsageCollector {
               instance.addToMonthlyTotal(
                   event.getTimestamp(), measurement.getUom(), measurement.getValue());
             });
-    addBucketsFromEvent(instance, event);
+    addBucketsFromEvent(instance, event, serviceTypeMeta);
   }
 
   private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
@@ -328,17 +333,17 @@ public class MetricUsageCollector {
     }
   }
 
-  private void addBucketsFromEvent(Host host, Event event) {
+  private void addBucketsFromEvent(Host host, Event event, Optional<TagMetaData> serviceTypeMeta) {
     ServiceLevel effectiveSla =
         Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
-            .orElse(productProfile.getDefaultSla());
+            .orElse(serviceTypeMeta.map(TagMetaData::getDefaultSla).orElse(ServiceLevel.EMPTY));
     Usage effectiveUsage =
         Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
             .map(Usage::fromString)
-            .orElse(productProfile.getDefaultUsage());
+            .orElse(serviceTypeMeta.map(TagMetaData::getDefaultUsage).orElse(Usage.EMPTY));
     Set<String> productIds = getProductIds(event);
 
     for (String productId : productIds) {
@@ -354,17 +359,10 @@ public class MetricUsageCollector {
 
   private Set<String> getProductIds(Event event) {
     Set<String> productIds = new HashSet<>();
-    Stream.of(event.getRole())
-        .filter(Objects::nonNull)
-        .map(
-            role ->
-                productProfile
-                    .getSwatchProductsByRoles()
-                    .getOrDefault(role.value(), Collections.emptySet()))
-        .forEach(productIds::addAll);
+    productIds.addAll(tagProfile.getTagsByRole(event.getRole()));
 
     Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList()).stream()
-        .map(productProfile.getSwatchProductsByEngProducts()::get)
+        .map(tagProfile::getTagsByEngProduct)
         .filter(Objects::nonNull)
         .forEach(productIds::addAll);
 

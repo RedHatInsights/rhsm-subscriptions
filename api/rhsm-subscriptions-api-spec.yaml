@@ -854,6 +854,7 @@ components:
         - Satellite Server
         - OpenShift-metrics
         - OpenShift-dedicated-metrics
+        - rhosak
     Uom:
       type: string
       enum:
