@@ -40,3 +40,5 @@ config/
 
 .run/
 .env
+
+deploy/secrets.yaml
