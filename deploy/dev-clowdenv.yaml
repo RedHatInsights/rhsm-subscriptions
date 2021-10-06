@@ -3,11 +3,11 @@ apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   app: rhsm-subscriptions
-  template: marketplace-worker
+  template: rhsm-subscriptions
 metadata:
   annotations:
-    description: Components that handle submitting usage info to Marketplace.
-  name: marketplace-worker
+    description: Subscription Watch ClowdEnv
+  name: rhsm-subscriptions
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
 # Custom Resource defined as part of the Clowder API
