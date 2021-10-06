@@ -38,3 +38,5 @@ bin
 
 .run/
 .env
+
+deploy/secrets.yaml
