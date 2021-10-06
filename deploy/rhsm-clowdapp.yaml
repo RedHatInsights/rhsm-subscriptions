@@ -260,7 +260,6 @@ objects:
           failureThreshold: 3
           httpGet:
             path: /actuator/health
-            # FIXME need to pull from Clowder config
             port: 8000
             scheme: HTTP
           # FIXME set long to avoid pod-killing during prototyping
@@ -272,7 +271,6 @@ objects:
           failureThreshold: 3
           httpGet:
             path: /actuator/health
-            # FIXME need to pull from Clowder config
             port: 8000
             scheme: HTTP
           # FIXME set long to avoid pod-killing during prototyping
@@ -441,7 +439,7 @@ objects:
           failureThreshold: 3
           httpGet:
             path: /actuator/health
-            port: 8080
+            port: 8000
             scheme: HTTP
           # FIXME set long to avoid pod-killing during prototyping
           initialDelaySeconds: 900
@@ -452,7 +450,7 @@ objects:
           failureThreshold: 3
           httpGet:
             path: /actuator/health
-            port: 8080
+            port: 8000
             scheme: HTTP
           # FIXME set long to avoid pod-killing during prototyping
           initialDelaySeconds: 900
