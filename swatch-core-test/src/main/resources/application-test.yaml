@@ -25,7 +25,7 @@ rhsm-subscriptions:
   user-service:
     use-stub: true
   clowder:
-    json-resource-location: classpath:/test-clowder-config.json
+    strictLoading: false
   product:
     use-stub: true
     tasks:
