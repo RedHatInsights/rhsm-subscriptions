@@ -65,6 +65,7 @@ public class InventoryController {
   private static final BigDecimal KIBIBYTES_PER_GIBIBYTE = BigDecimal.valueOf(1048576);
   private static final BigDecimal BYTES_PER_KIBIBYTE = BigDecimal.valueOf(1024);
   private static final String COMMA_REGEX = ",\\s*";
+  private static final String NON_HYPHEN_REGEX = "[0-9a-fA-F]{8}([0-9a-fA-F]{4}){3}[0-9a-fA-F]{12}";
   private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
 
   public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
@@ -137,7 +138,7 @@ public class InventoryController {
     if (clusterId != null) {
       facts.setDisplayName(clusterId);
     }
-    facts.setSubscriptionManagerId(consumer.getUuid());
+    facts.setSubscriptionManagerId(normalizeUuid(consumer.getUuid()));
     facts.setInsightsId(normalizeUuid(rhsmFacts.get(INSIGHTS_ID)));
 
     if (consumer.getLastCheckin() != null) {
@@ -187,7 +188,7 @@ public class InventoryController {
       return null;
     }
     String trimmed = uuid.trim();
-    if (trimmed.contains("-") || !inventoryServiceProperties.isAddUuidHyphens()) {
+    if (trimmed.contains("-")) {
       return trimmed;
     } else {
       return String.join(
@@ -205,6 +206,8 @@ public class InventoryController {
     if (StringUtils.hasLength(systemUuid)) {
       if (systemUuid.matches(UUID_REGEX)) {
         facts.setBiosUuid(systemUuid);
+      } else if (systemUuid.matches(NON_HYPHEN_REGEX)) {
+        facts.setBiosUuid(normalizeUuid(systemUuid));
       } else {
         log.info(
             "Consumer {} in org {} has unparseable BIOS uuid: {}",
