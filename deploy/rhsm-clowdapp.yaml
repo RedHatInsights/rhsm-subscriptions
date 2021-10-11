@@ -124,7 +124,6 @@ objects:
     deployments:
 
     - name: api
-      web: true
       minReplicas: 1
       webServices:
         public:
@@ -262,8 +261,7 @@ objects:
             path: /actuator/health
             port: 8000
             scheme: HTTP
-          # FIXME set long to avoid pod-killing during prototyping
-          initialDelaySeconds: 900
+          initialDelaySeconds: 180
           periodSeconds: 20
           successThreshold: 1
           timeoutSeconds: 5
@@ -273,8 +271,7 @@ objects:
             path: /actuator/health
             port: 8000
             scheme: HTTP
-          # FIXME set long to avoid pod-killing during prototyping
-          initialDelaySeconds: 900
+          initialDelaySeconds: 180
           periodSeconds: 20
           successThreshold: 1
           timeoutSeconds: 5
@@ -305,8 +302,128 @@ objects:
             secret:
               secretName: pinhead
 
+    - name: scheduler
+      minReplicas: 1
+      webServices:
+        public:
+          enabled: true
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/bash
+          - /usr/local/s2i/run
+        initContainers:
+          - env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: liquibase-only
+            inheritEnv: true
+            command:
+              - /bin/bash
+              - /usr/local/s2i/run
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+        env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: capture-snapshots,kafka-queue
+          - name: JAVA_MAX_MEM_RATIO
+            value: '85'
+          - name: GC_MAX_METASPACE_SIZE
+            value: '256'
+          - name: LOG_FILE
+            value: /logs/server.log
+          - name: LOGGING_LEVEL_ROOT
+            value: ${LOGGING_LEVEL_ROOT}
+          - name: LOGGING_LEVEL_ORG_CANDLEPIN
+            value: ${LOGGING_LEVEL}
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: hostname
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: port
+          - name: DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: password
+          - name: DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-clowdapp-db
+                key: name
+          - name: INVENTORY_DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.host
+          - name: INVENTORY_DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.name
+          - name: INVENTORY_DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.user
+          - name: INVENTORY_DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.password
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 180
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 180
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+        volumeMounts:
+          - name: logs
+            mountPath: /logs
+        volumes:
+          - name: logs
+            emptyDir:
+
     - name: metrics-worker
-      web: true
+      webServices:
+        public:
+          enabled: true
       minReplicas: 1
       podSpec:
         image: ${IMAGE}:${IMAGE_TAG}
@@ -441,8 +558,7 @@ objects:
             path: /actuator/health
             port: 8000
             scheme: HTTP
-          # FIXME set long to avoid pod-killing during prototyping
-          initialDelaySeconds: 900
+          initialDelaySeconds: 180
           periodSeconds: 20
           successThreshold: 1
           timeoutSeconds: 5
@@ -452,8 +568,7 @@ objects:
             path: /actuator/health
             port: 8000
             scheme: HTTP
-          # FIXME set long to avoid pod-killing during prototyping
-          initialDelaySeconds: 900
+          initialDelaySeconds: 180
           periodSeconds: 20
           successThreshold: 1
           timeoutSeconds: 5
