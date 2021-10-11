@@ -61,6 +61,9 @@ objects:
       featureFlags:
         mode: local
 
+      pullSecrets:
+        - name: quay-cloudservices-pull
+          namespace: rhsm
     resourceDefaults:
       limits:
         cpu: "500m"
