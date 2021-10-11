@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -49,14 +50,13 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class SubscriptionSyncController {
-  private static final int SUBS_PAGE_SIZE = 100;
-
   private SubscriptionRepository subscriptionRepository;
   private OrgConfigRepository orgRepository;
   private OfferingRepository offeringRepository;
   private SubscriptionService subscriptionService;
   private ApplicationClock clock;
   private CapacityReconciliationController capacityReconciliationController;
+  private SubscriptionServiceProperties properties;
   private Timer syncTimer;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
@@ -71,6 +71,7 @@ public class SubscriptionSyncController {
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
+      SubscriptionServiceProperties properties,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
       ProductWhitelist productWhitelist,
@@ -81,6 +82,7 @@ public class SubscriptionSyncController {
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
     this.clock = clock;
+    this.properties = properties;
     this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
     this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
     this.productWhitelist = productWhitelist;
@@ -158,30 +160,65 @@ public class SubscriptionSyncController {
   }
 
   void syncSubscriptions(String orgId, int offset, int limit) {
-    log.info("Syncing subscriptions for org={} with offset={} and limit={} ", orgId, offset, limit);
+    log.info(
+        "Syncing subscriptions for orgId={} with offset={} and limit={} ", orgId, offset, limit);
     Timer.Sample syncTime = Timer.start();
 
     int pageSize = limit + 1;
     List<Subscription> subscriptions =
         subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
+    int numFetchedSubs = subscriptions.size();
+    boolean hasMore = numFetchedSubs >= pageSize;
     log.info(
-        "Fetched subscriptions of size={} for org={} from external service ",
-        subscriptions.size(),
-        orgId);
+        "Fetched numFetchedSubs={} for orgId={} from external service.", numFetchedSubs, orgId);
 
-    boolean hasMore = subscriptions.size() >= pageSize;
+    subscriptions =
+        subscriptions.stream().filter(this::shouldSyncSub).collect(Collectors.toUnmodifiableList());
+    int numKeptSubs = subscriptions.size();
+
     subscriptions.forEach(this::syncSubscription);
     if (hasMore) {
       enqueueSubscriptionSync(orgId, offset + limit, limit);
     }
     Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
     log.info(
-        "Fetched and synced numSubs={} for orgId={} offset={} limit={} in subSyncedTimeMillis={}",
-        subscriptions.size(),
+        "Fetched numFetchedSubs={} and synced numSyncedSubs={} active/recent subscriptions for orgId={} offset={} limit={} in subSyncedTimeMillis={}",
+        numFetchedSubs,
+        numKeptSubs,
         orgId,
         offset,
         limit,
         syncDuration.toMillis());
+  }
+
+  private boolean shouldSyncSub(Subscription sub) {
+    // Reject subs expired long ago, or subs that won't be active quite yet.
+    OffsetDateTime now = clock.now();
+
+    Long startDate = sub.getEffectiveStartDate();
+    Long endDate = sub.getEffectiveEndDate();
+
+    // Consider any sub with a null effective date as invalid, it could be an upstream data issue.
+    // Log this sub's info and skip it.
+    if (startDate == null || endDate == null) {
+      log.error(
+          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate={} and "
+              + "effectiveEndDate={} (neither should be null). Subscription data will need fixed "
+              + "in upstream service. Skipping sync.",
+          sub.getId(),
+          sub.getSubscriptionNumber(),
+          sub.getWebCustomerId(),
+          startDate,
+          endDate);
+      return false;
+    }
+
+    long earliestAllowedFutureStartDate =
+        now.plus(properties.getIgnoreStartingLaterThan()).toEpochSecond() * 1000;
+    long latestAllowedExpiredEndDate =
+        now.minus(properties.getIgnoreExpiredOlderThan()).toEpochSecond() * 1000;
+
+    return startDate < earliestAllowedFutureStartDate && endDate > latestAllowedExpiredEndDate;
   }
 
   private void enqueueSubscriptionSync(String orgId, int offset, int limit) {
@@ -193,7 +230,7 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void syncAllSubcriptionsForOrg(String orgId) {
-    syncSubscriptions(orgId, 0, SUBS_PAGE_SIZE);
+    syncSubscriptions(orgId, 0, properties.getPageSize());
   }
 
   /**
@@ -205,7 +242,7 @@ public class SubscriptionSyncController {
     Timer.Sample enqueueAllTime = Timer.start();
     orgRepository
         .findSyncEnabledOrgs()
-        .forEach(orgId -> enqueueSubscriptionSync(orgId, 0, SUBS_PAGE_SIZE));
+        .forEach(orgId -> enqueueSubscriptionSync(orgId, 0, properties.getPageSize()));
     Duration enqueueAllDuration = Duration.ofNanos(enqueueAllTime.stop(enqueueAllTimer));
     log.info(
         "Enqueued orgs to sync subscriptions from upstream in enqueueTimeMillis={}",

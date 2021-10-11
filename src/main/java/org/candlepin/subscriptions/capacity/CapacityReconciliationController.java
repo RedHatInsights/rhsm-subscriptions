@@ -26,6 +26,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -94,7 +95,10 @@ public class CapacityReconciliationController {
 
     Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);
     reconcileSubscriptionCapacities(
-        newCapacities, subscription.getSubscriptionId(), subscription.getSku());
+        newCapacities,
+        subscription.getOwnerId(),
+        subscription.getSubscriptionId(),
+        subscription.getSku());
   }
 
   @Transactional
@@ -128,11 +132,17 @@ public class CapacityReconciliationController {
   }
 
   private void reconcileSubscriptionCapacities(
-      Collection<SubscriptionCapacity> newCapacities, String subscriptionId, String sku) {
+      Collection<SubscriptionCapacity> newCapacities,
+      String ownerId,
+      String subscriptionId,
+      String sku) {
 
     Collection<SubscriptionCapacity> toSave = new ArrayList<>();
     Map<SubscriptionCapacityKey, SubscriptionCapacity> existingCapacityMap =
-        subscriptionCapacityRepository.findByKeySubscriptionId(subscriptionId).stream()
+        subscriptionCapacityRepository
+            .findByKeyOwnerIdAndKeySubscriptionIdIn(
+                ownerId, Collections.singletonList(subscriptionId))
+            .stream()
             .collect(Collectors.toMap(SubscriptionCapacity::getKey, Function.identity()));
 
     if (productWhitelist.productIdMatches(sku)) {

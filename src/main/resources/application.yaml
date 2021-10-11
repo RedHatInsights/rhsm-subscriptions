@@ -75,14 +75,16 @@ rhsm-subscriptions:
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:false}
   subscription:
-    useStub: ${SUBSCRIPTION_USE_STUB:false}
+    use-stub: ${SUBSCRIPTION_USE_STUB:false}
     url: ${SUBSCRIPTION_URL:https://subscription.qa.api.redhat.com/svcrest/subscription/v5}
     keystore: file:${SUBSCRIPTION_KEYSTORE:}
-    keystorePassword: ${SUBSCRIPTION_KEYSTORE_PASSWORD:changeit}
-    maxConnections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}
-    backOffInitialInterval: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL:1s}
-    maxRetryAttempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
-    pageSize: ${SUBSCRIPTION_PAGE_SIZE:500}
+    keystore-password: ${SUBSCRIPTION_KEYSTORE_PASSWORD:changeit}
+    max-connections: ${SUBSCRIPTION_MAX_CONNECTIONS:100}
+    back-off-initial-interval: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL:1s}
+    max-retry-attempts: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS:4}
+    page-size: ${SUBSCRIPTION_PAGE_SIZE:1000}
+    ignore-expired-older-than: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN:2m}
+    ignore-starting-later-than: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN:2m}
     tasks:
       topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
