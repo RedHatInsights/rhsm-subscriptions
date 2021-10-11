@@ -102,7 +102,6 @@ public class InventoryController {
   private InventoryService inventoryService;
   private RhsmService rhsmService;
   private Validator validator;
-  private InventoryServiceProperties inventoryServiceProperties;
   private OrgSyncTaskManager taskManager;
   private Counter queueNextPageCounter;
   private Counter finalizeOrgCounter;
@@ -121,7 +120,6 @@ public class InventoryController {
     this.inventoryService = inventoryService;
     this.rhsmService = rhsmService;
     this.validator = validator;
-    this.inventoryServiceProperties = inventoryServiceProperties;
     this.taskManager = taskManager;
     this.queueNextPageCounter = meterRegistry.counter("rhsm-conduit.queue.next-page");
     this.finalizeOrgCounter = meterRegistry.counter("rhsm-conduit.finalize.org");
