@@ -148,6 +148,7 @@ objects:
     envName: ${ENV_NAME}
     dependencies:
       - rbac
+      - host-inventory
 
     kafkaTopics:
       - replicas: 3
@@ -255,23 +256,23 @@ objects:
           - name: INVENTORY_DATABASE_HOST
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.host
+                name: host-inventory-db
+                key: host
           - name: INVENTORY_DATABASE_DATABASE
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.name
+                name: host-inventory-db
+                key: name
           - name: INVENTORY_DATABASE_USERNAME
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.user
+                name: host-inventory-db
+                key: username
           - name: INVENTORY_DATABASE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.password
+                name: host-inventory-db
+                key: password
           - name: CLOUDIGRADE_ENABLED
             value: ${CLOUDIGRADE_ENABLED}
           - name: CLOUDIGRADE_HOST
@@ -802,23 +803,23 @@ objects:
           - name: INVENTORY_DATABASE_HOST
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.host
+                name: host-inventory-db
+                key: host
           - name: INVENTORY_DATABASE_DATABASE
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.name
+                name: host-inventory-db
+                key: name
           - name: INVENTORY_DATABASE_USERNAME
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.user
+                name: host-inventory-db
+                key: username
           - name: INVENTORY_DATABASE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.password
+                name: host-inventory-db
+                key: password
           - name: CLOUDIGRADE_ENABLED
             value: ${CLOUDIGRADE_ENABLED}
           - name: CLOUDIGRADE_HOST
