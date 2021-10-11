@@ -21,21 +21,15 @@
 package org.candlepin.subscriptions.clowder;
 
 import static org.candlepin.subscriptions.clowder.ClowderJsonEnvironmentPostProcessor.JSON_RESOURCE_LOCATION;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Collections;
 import java.util.function.Supplier;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.test.context.support.TestPropertySourceUtils;
-import org.springframework.web.context.support.StandardServletEnvironment;
 
 class ClowderJsonEnvironmentPostProcessorTest {
   private ClowderJsonEnvironmentPostProcessor postProcessor;
@@ -60,64 +54,21 @@ class ClowderJsonEnvironmentPostProcessorTest {
     assertEquals("rhsm-db", environment.getProperty("clowder.database.name"));
   }
 
+  @Test
+  void handlesDefaults() {
+    addClowderJson();
+    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+        environment, "testDefault=${clowder.notFound:default}");
+    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+        environment, "testNoDefault=${clowder.database.name:defaultDbName}");
+    postProcessor.postProcessEnvironment(environment, null);
+
+    assertEquals("default", environment.getProperty("testDefault"));
+    assertEquals("rhsm-db", environment.getProperty("testNoDefault"));
+  }
+
   private void addClowderJson() {
     TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
         environment, JSON_RESOURCE_LOCATION + "=classpath:test-clowder-config.json");
-  }
-
-  @Test
-  void propertySourceShouldBeOrderedBeforeJndiPropertySource() {
-    testServletPropertySource(StandardServletEnvironment.JNDI_PROPERTY_SOURCE_NAME);
-  }
-
-  @Test
-  void propertySourceShouldBeOrderedBeforeServletContextPropertySource() {
-    testServletPropertySource(StandardServletEnvironment.SERVLET_CONTEXT_PROPERTY_SOURCE_NAME);
-  }
-
-  @Test
-  void propertySourceShouldBeOrderedBeforeServletConfigPropertySource() {
-    testServletPropertySource(StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME);
-  }
-
-  @Test
-  void propertySourceOrderingWhenMultipleServletSpecificPropertySources() {
-    MapPropertySource jndi =
-        getPropertySource(StandardServletEnvironment.JNDI_PROPERTY_SOURCE_NAME, "jndi");
-    environment.getPropertySources().addFirst(jndi);
-
-    MapPropertySource servlet =
-        getPropertySource(
-            StandardServletEnvironment.SERVLET_CONTEXT_PROPERTY_SOURCE_NAME, "servlet");
-    environment.getPropertySources().addFirst(servlet);
-
-    MapPropertySource custom = getPropertySource("custom", "custom");
-    environment.getPropertySources().addFirst(custom);
-
-    addClowderJson();
-
-    postProcessor.postProcessEnvironment(environment, null);
-    PropertySource<?> json = environment.getPropertySources().get("clowderProperties");
-
-    assertEquals("custom", environment.getProperty("clowder.database.name"));
-    // Using containsInRelativeOrder because there's actually an Inlined Test Properties source
-    // at index zero because of the addClowderJson method
-    assertThat(
-        environment.getPropertySources(),
-        Matchers.containsInRelativeOrder(custom, json, servlet, jndi));
-  }
-
-  private void testServletPropertySource(String servletContextPropertySourceName) {
-    environment
-        .getPropertySources()
-        .addFirst(getPropertySource(servletContextPropertySourceName, "servlet"));
-    addClowderJson();
-
-    postProcessor.postProcessEnvironment(environment, null);
-    assertEquals("rhsm-db", environment.getProperty("clowder.database.name"));
-  }
-
-  private MapPropertySource getPropertySource(String name, String value) {
-    return new MapPropertySource(name, Collections.singletonMap("clowder.database.name", value));
   }
 }

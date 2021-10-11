@@ -20,97 +20,37 @@
  */
 package org.candlepin.subscriptions.clowder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.boot.env.EnvironmentPostProcessor;
-import org.springframework.boot.json.JsonParser;
-import org.springframework.boot.json.JsonParserFactory;
-import org.springframework.boot.origin.Origin;
-import org.springframework.boot.origin.OriginLookup;
-import org.springframework.boot.origin.TextResourceOrigin;
-import org.springframework.boot.origin.TextResourceOrigin.Location;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
- * An {@link org.springframework.boot.env.EnvironmentPostProcessor} that takes Clowder JSON and
- * converts it into a form easily interoperable with the rest of the Spring configuration. The
- * Clowder JSON is flattened into properties where it can be referenced elsewhere and each property
- * is prefixed with the word "clowder".
- *
- * <p>For example:
- *
- * <pre><code>
- * { "kafka": {
- *   "brokers": [{
- *     "hostname": "localhost",
- *    }]
- * }}
- * </code></pre>
- *
- * becomes <code>clowder.kafka.brokers[0].hostname</code>.
- *
- * <p>These properties can be referenced elsewhere in application configuration using the "${}"
- * syntax and can be assigned to intermediate properties such as environment variables. This allows
- * usages like
- *
- * <pre><code>
- *   rhsm.kafka.host: ${KAKFA_HOST}
- *   KAFKA_HOST: ${clowder.kafka.brokers[0].hostname}
- * </code></pre>
- *
- * This use of an intermediate environment variable allows for succinct overriding during local
- * application development when the Clowder JSON is not available.
- *
- * <p>Properties that exist in both the Clowder JSON are at a high precedence in the property
- * resolution order. For example, if "clowder.kafka.brokers[0].hostname" is defined in
- * application.yaml, as a Java system property, and in the Clowder JSON, the value from the Clowder
- * JSON will win. Only command line arguments and property values defined in tests have higher
- * precedence.
- *
- * <p>This class is inspired by (and derived from) {@link
- * org.springframework.boot.cloud.CloudFoundryVcapEnvironmentPostProcessor} and {@link
- * org.springframework.boot.env.SpringApplicationJsonEnvironmentPostProcessor}
+ * An {@link org.springframework.boot.env.EnvironmentPostProcessor} that inserts a {@link
+ * ClowderJsonPathPropertySource} into the list of property sources.
  */
 public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
   public static final String JSON_RESOURCE_LOCATION =
       "rhsm-subscriptions.clowder.json-resource-location";
 
-  private static final String SERVLET_ENVIRONMENT_CLASS =
-      "org.springframework.web.context.support.StandardServletEnvironment";
+  public static final String CLOWDER_STRICT_LOADING = "rhsm-subscriptions.clowder.strict-loading";
 
-  private static final Set<String> SERVLET_ENVIRONMENT_PROPERTY_SOURCES =
-      new LinkedHashSet<>(
-          Arrays.asList(
-              StandardServletEnvironment.JNDI_PROPERTY_SOURCE_NAME,
-              StandardServletEnvironment.SERVLET_CONTEXT_PROPERTY_SOURCE_NAME,
-              StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME));
+  // At a minimum this needs to run after the ConfigDataEnvironmentPostProcessor so that we can read
+  // JSON_RESOURCE_LOCATION out of the config files
+  private int order = Ordered.LOWEST_PRECEDENCE;
 
-  public static final String CLOWDER_JSON_PREFIX = "clowder";
-
-  // Order before ConfigDataApplicationListener so values there can use Clowder values
-  private int order = ConfigDataEnvironmentPostProcessor.ORDER - 1;
+  private final ObjectMapper objectMapper;
   private final Log logger;
 
   @Override
@@ -124,24 +64,48 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
 
   public ClowderJsonEnvironmentPostProcessor(Log logger) {
     this.logger = logger;
+
+    /* If at some point we need to configure this objectMapper, it is possible by having the
+     * ClowderJsonEnvironmentPostProcessor accept a ConfigurableBootstrapContext parameter. We
+     * can then configure the ObjectMapper in the BootstrapContext.
+     */
+    this.objectMapper = new ObjectMapper();
   }
 
   @Override
   public void postProcessEnvironment(
       ConfigurableEnvironment environment, SpringApplication application) {
+    boolean strictLoading = environment.getProperty(CLOWDER_STRICT_LOADING, boolean.class, true);
+    Runnable onFailure;
+    String errMsg = "Could not read " + JSON_RESOURCE_LOCATION;
+    if (strictLoading) {
+      onFailure =
+          () -> {
+            throw new IllegalStateException(errMsg);
+          };
+    } else {
+      onFailure = () -> logger.warn(errMsg);
+    }
 
     MutablePropertySources propertySources = environment.getPropertySources();
     propertySources.stream()
         .map(getMapper())
         .filter(Objects::nonNull)
         .findFirst()
-        .ifPresent(v -> processJson(environment, v));
+        .ifPresentOrElse(clowderJson -> processJson(environment, clowderJson), onFailure);
   }
 
-  private Function<PropertySource<?>, ClowderJsonValue> getMapper() {
+  private Function<PropertySource<?>, ClowderJson> getMapper() {
     return propertySource -> {
       try {
-        return ClowderJsonValue.get(propertySource);
+        var value = propertySource.getProperty(JSON_RESOURCE_LOCATION);
+
+        if (value instanceof String && StringUtils.hasText((String) value)) {
+          ResourceLoader resourceLoader = new DefaultResourceLoader();
+          Resource resource = resourceLoader.getResource((String) value);
+          logger.debug("Loading Clowder configuration from " + resource.getURI());
+          return new ClowderJson(resource.getInputStream(), objectMapper);
+        }
       } catch (IOException e) {
         logger.warn("Could not read " + JSON_RESOURCE_LOCATION, e);
       }
@@ -149,172 +113,9 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
     };
   }
 
-  private void processJson(ConfigurableEnvironment environment, ClowderJsonValue propertyValue) {
+  private void processJson(ConfigurableEnvironment environment, ClowderJson clowderJson) {
     logger.info("Reading Clowder configuration...");
-    JsonParser parser = JsonParserFactory.getJsonParser();
-    Map<String, Object> map = parser.parseMap(propertyValue.getJson());
-    if (!map.isEmpty()) {
-      var jsonSource = new ClowderJsonPropertySource(propertyValue, flatten(map));
-      jsonSource.addToEnvironment(environment, logger);
-    }
-  }
-
-  /**
-   * Flatten the map keys using period separator.
-   *
-   * @param map the map that should be flattened
-   * @return the flattened map
-   */
-  private Map<String, Object> flatten(Map<String, Object> map) {
-    Map<String, Object> result = new LinkedHashMap<>();
-    flatten(CLOWDER_JSON_PREFIX, result, map);
-    return result;
-  }
-
-  private void flatten(String prefix, Map<String, Object> result, Map<String, Object> map) {
-    String namePrefix = (prefix != null) ? prefix + "." : "";
-    map.forEach((key, value) -> extract(namePrefix + key, result, value));
-  }
-
-  private void extract(String name, Map<String, Object> result, Object value) {
-    if (value instanceof Map) {
-      if (CollectionUtils.isEmpty((Map<?, ?>) value)) {
-        result.put(name, value);
-        return;
-      }
-      flatten(name, result, (Map<String, Object>) value);
-    } else if (value instanceof Collection) {
-      if (CollectionUtils.isEmpty((Collection<?>) value)) {
-        result.put(name, value);
-        return;
-      }
-      int index = 0;
-      for (Object object : (Collection<Object>) value) {
-        extract(name + "[" + index + "]", result, object);
-        index++;
-      }
-    } else {
-      result.put(name, value);
-    }
-  }
-
-  private static class ClowderJsonPropertySource extends MapPropertySource
-      implements OriginLookup<String> {
-
-    public static final String CLOWDER_PROPERTY_SOURCE_NAME = "clowderProperties";
-    private final ClowderJsonValue value;
-
-    ClowderJsonPropertySource(ClowderJsonValue value, Map<String, Object> source) {
-      super(CLOWDER_PROPERTY_SOURCE_NAME, source);
-      this.value = value;
-    }
-
-    @Override
-    public Origin getOrigin(String key) {
-      return this.value.getOrigin();
-    }
-
-    public ClowderJsonValue getJsonValue() {
-      return value;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (!super.equals(obj)) {
-        return false;
-      }
-      ClowderJsonPropertySource jsonObj = (ClowderJsonPropertySource) obj;
-      return value.equals(jsonObj.getJsonValue());
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(super.hashCode(), value);
-    }
-
-    public void addToEnvironment(ConfigurableEnvironment environment, Log logger) {
-      MutablePropertySources sources = environment.getPropertySources();
-      PropertySource<?> existing = sources.get(CLOWDER_PROPERTY_SOURCE_NAME);
-      if (existing != null) {
-        logger.warn(CLOWDER_PROPERTY_SOURCE_NAME + " already present. This is unexpected.");
-        return;
-      }
-
-      String name = findPropertySourceInsertionPoint(sources);
-      if (sources.contains(name)) {
-        sources.addBefore(name, this);
-      } else {
-        sources.addFirst(this);
-      }
-    }
-
-    /**
-     * Find where in the list of PropertySources the ClowderJsonPropertySource should be. The list
-     * of PropertySources defines the resolution order when the same variable is defined in multiple
-     * places. See <a
-     * href="https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config">Spring
-     * documentation</a> for a full listing of the resolution order.
-     *
-     * <p>This method follows the example of {@link
-     * org.springframework.boot.env.SpringApplicationJsonEnvironmentPostProcessor} where the
-     * PropertySource is inserted at a higher precedence than servlet init parameters but at a lower
-     * precedence than command line arguments.
-     *
-     * <p>This ordering means that a given property defined in the Clowder JSON will supersede a
-     * property of the same name that is defined in an application.yaml file, as an environment
-     * variable, or as a Java system property.
-     *
-     * @param sources a list of PropertySources
-     * @return the name of the property source the ClowderJsonPropertySource should be immediately
-     *     before
-     */
-    private String findPropertySourceInsertionPoint(MutablePropertySources sources) {
-      if (ClassUtils.isPresent(SERVLET_ENVIRONMENT_CLASS, null)) {
-        PropertySource<?> servletPropertySource =
-            sources.stream()
-                .filter(source -> SERVLET_ENVIRONMENT_PROPERTY_SOURCES.contains(source.getName()))
-                .findFirst()
-                .orElse(null);
-        if (servletPropertySource != null) {
-          return servletPropertySource.getName();
-        }
-      }
-      return StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME;
-    }
-  }
-
-  private static class ClowderJsonValue {
-    private static final Location START_OF_FILE = new Location(0, 0);
-
-    private final String json;
-    private final Resource resource;
-
-    ClowderJsonValue(String json, Resource resource) {
-      this.json = json;
-      this.resource = resource;
-    }
-
-    String getJson() {
-      return this.json;
-    }
-
-    Origin getOrigin() {
-      return new TextResourceOrigin(resource, START_OF_FILE);
-    }
-
-    static ClowderJsonValue get(PropertySource<?> propertySource) throws IOException {
-      Object value = propertySource.getProperty(JSON_RESOURCE_LOCATION);
-
-      if (value instanceof String && StringUtils.hasText((String) value)) {
-        ResourceLoader resourceLoader = new DefaultResourceLoader();
-        Resource resource = resourceLoader.getResource((String) value);
-        byte[] bytes = resource.getInputStream().readAllBytes();
-        String json = new String(bytes);
-
-        return new ClowderJsonValue(json, resource);
-      }
-
-      return null;
-    }
+    var jsonSource = new ClowderJsonPathPropertySource(clowderJson);
+    jsonSource.addToEnvironment(environment, logger);
   }
 }
