@@ -44,7 +44,7 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
   public static final String JSON_RESOURCE_LOCATION =
       "rhsm-subscriptions.clowder.json-resource-location";
 
-  public static final String CLOWDER_STRICT_LOADING = "rhsm-subscriptions.clowder.strictLoading";
+  public static final String CLOWDER_STRICT_LOADING = "rhsm-subscriptions.clowder.strict-loading";
 
   // At a minimum this needs to run after the ConfigDataEnvironmentPostProcessor so that we can read
   // JSON_RESOURCE_LOCATION out of the config files
