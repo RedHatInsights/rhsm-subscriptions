@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,11 +104,13 @@ public class TallySnapshotController {
       log.debug("Producing snapshots for accounts: {}", String.join(",", accounts));
     }
 
-    Map<String, AccountUsageCalculation> accountCalcs;
+    Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
     try {
-      accountCalcs =
-          retryTemplate.execute(
-              context -> usageCollector.collect(this.applicableProducts, accounts));
+      for (String account : accounts) {
+        accountCalcs.putAll(
+            retryTemplate.execute(
+                context -> usageCollector.collect(this.applicableProducts, account)));
+      }
       if (props.isCloudigradeEnabled()) {
         attemptCloudigradeEnrichment(accounts, accountCalcs);
       }

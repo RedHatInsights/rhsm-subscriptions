@@ -20,13 +20,14 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import javax.persistence.CascadeType;
-import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
-import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.MapKeyColumn;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -34,29 +35,55 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Aggregate for an account.
+ * Aggregate for an inventory of service instances for a given account.
  *
  * <p>Using an aggregate simplifies modification, as we can leverage JPA to track persistence of
- * hosts, etc.
+ * service instances.
  */
 @Entity
-@Table(name = "account_config") // NOTE: we're abusing account_config here, table needs refactor?
+@Table(name = "account_services")
 @Getter
 @Setter
-public class Account {
-  @Id
-  @Column(name = "account_number")
-  private String accountNumber;
+public class AccountServiceInventory implements Serializable {
+  @EmbeddedId private AccountServiceInventoryId id;
 
-  // NOTE: we'll probably need to do an abstraction per-service type in the future
-  @OneToMany(
-      cascade = CascadeType.ALL,
-      mappedBy = "accountNumber",
-      fetch = FetchType.EAGER,
-      orphanRemoval = true)
+  public AccountServiceInventory() {
+    id = new AccountServiceInventoryId();
+  }
+
+  public AccountServiceInventory(String accountNumber, String serviceType) {
+    id = new AccountServiceInventoryId(accountNumber, serviceType);
+  }
+
+  public String getAccountNumber() {
+    return id.getAccountNumber();
+  }
+
+  public void setAccountNumber(String accountNumber) {
+    id.setAccountNumber(accountNumber);
+  }
+
+  public String getServiceType() {
+    return id.getServiceType();
+  }
+
+  public void setServiceType(String serviceType) {
+    id.setServiceType(serviceType);
+  }
+
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+  @JoinColumn(
+      name = "account_number",
+      referencedColumnName = "account_number",
+      insertable = false,
+      updatable = false)
+  @JoinColumn(
+      name = "instance_type",
+      referencedColumnName = "service_type",
+      insertable = false,
+      updatable = false)
   // NOTE: insertable = false and updatable=false prevents extraneous update statements (they're
-  // handled
-  // in hosts table)
+  // handled in hosts table)
   @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
   private Map<String, Host> serviceInstances = new HashMap<>();
 }

@@ -23,18 +23,15 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import org.candlepin.subscriptions.db.model.Account;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.db.model.config.AccountConfig;
-import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -48,9 +45,9 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @TestInstance(Lifecycle.PER_CLASS)
-class AccountRepositoryTest {
+class AccountServiceInventoryRepositoryTest {
 
-  @Autowired AccountRepository repo;
+  @Autowired AccountServiceInventoryRepository repo;
 
   @Autowired AccountConfigRepository accountConfigRepo;
 
@@ -59,24 +56,17 @@ class AccountRepositoryTest {
   @Transactional
   @BeforeAll
   void setupTestData() {
+    AccountServiceInventory service = new AccountServiceInventory("account123", "HBI_HOST");
+
     Host host = new Host();
     host.setAccountNumber("account123");
     host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
     host.setDisplayName("name");
-    host.setInstanceType("Test");
-    hostRepo.save(host);
+    host.setInstanceType("HBI_HOST");
+    service.getServiceInstances().put(host.getInstanceId(), host);
 
-    AccountConfig accountConfig = new AccountConfig();
-    accountConfig.setAccountNumber("account123");
-    accountConfig.setReportingEnabled(true);
-    accountConfig.setSyncEnabled(true);
-    accountConfig.setOptInType(OptInType.DB);
-    accountConfig.setCreated(OffsetDateTime.now());
-    accountConfig.setUpdated(OffsetDateTime.now());
-    accountConfigRepo.save(accountConfig);
-
-    hostRepo.flush();
-    accountConfigRepo.flush();
+    repo.save(service);
+    repo.flush();
   }
 
   // NOTE: this cleanup necessary because @Transactional on the setup method does *not*
@@ -85,26 +75,18 @@ class AccountRepositoryTest {
   @Transactional
   @AfterAll
   void cleanupTestData() {
-    accountConfigRepo.deleteAll();
-    hostRepo.deleteAll();
+    repo.deleteAll();
   }
 
   @Test
   void testHbiHostCanBeLoaded() {
-    Host host = new Host();
-    host.setInstanceType("HBI_HOST");
-    host.setInstanceId(UUID.randomUUID().toString());
-    host.setInventoryId(UUID.randomUUID().toString());
-    host.setDisplayName("foo");
-    host.setAccountNumber("account123");
-    hostRepo.save(host);
-
-    assertTrue(repo.findById("account123").isPresent());
+    assertTrue(repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).isPresent());
   }
 
   @Test
   void testCanFetchExistingInstancesViaAccountRepository() {
-    Optional<Account> account = repo.findById("account123");
+    Optional<AccountServiceInventory> account =
+        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST"));
 
     assertTrue(account.isPresent());
     Map<String, Host> existingInstances = account.get().getServiceInstances();
@@ -115,7 +97,7 @@ class AccountRepositoryTest {
     expected.setAccountNumber("account123");
     expected.setDisplayName("name");
     expected.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
-    expected.setInstanceType("Test");
+    expected.setInstanceType("HBI_HOST");
 
     // we have no idea what the generated ID is, set it so equals comparison can succeed
     expected.setId(host.getId());
@@ -125,14 +107,15 @@ class AccountRepositoryTest {
   @Transactional
   @Test
   void testCanAddHostViaRepo() {
-    Account account = repo.findById("account123").orElseThrow();
+    AccountServiceInventory accountServiceInventory =
+        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
 
     String instanceId = "478edb89-b105-4dfd-9a46-0f1427514b76";
     Host host = new Host();
     host.setInstanceId(instanceId);
     host.setAccountNumber("account123");
     host.setDisplayName("name");
-    host.setInstanceType("Test");
+    host.setInstanceType("HBI_HOST");
     HostTallyBucket bucket =
         new HostTallyBucket(
             host,
@@ -145,11 +128,12 @@ class AccountRepositoryTest {
             HardwareMeasurementType.PHYSICAL);
     host.getBuckets().add(bucket);
 
-    account.getServiceInstances().put(instanceId, host);
-    repo.save(account);
+    accountServiceInventory.getServiceInstances().put(instanceId, host);
+    repo.save(accountServiceInventory);
     repo.flush();
 
-    Account fetched = repo.findById("account123").orElseThrow();
+    AccountServiceInventory fetched =
+        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
     assertTrue(fetched.getServiceInstances().containsKey(instanceId));
     Host fetchedInstance = fetched.getServiceInstances().get(instanceId);
     // set ID in order to compare, because JPA doesn't populate the existing object's ID
@@ -161,13 +145,15 @@ class AccountRepositoryTest {
   @Transactional
   @Test
   void testCanRemoveHostViaRepo() {
-    Account account = repo.findById("account123").orElseThrow();
+    AccountServiceInventory accountServiceInventory =
+        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
 
-    account.getServiceInstances().clear();
-    repo.save(account);
+    accountServiceInventory.getServiceInstances().clear();
+    repo.save(accountServiceInventory);
     repo.flush();
 
-    Account fetched = repo.findById("account123").orElseThrow();
+    AccountServiceInventory fetched =
+        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
     assertTrue(fetched.getServiceInstances().isEmpty());
   }
 }
