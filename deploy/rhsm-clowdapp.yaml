@@ -124,7 +124,7 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
-    name: rhsm-clowdapp
+    name: rhsm
     namespace: ${NAMESPACE}
   spec:
     # The name of the ClowdEnvironment providing the services
@@ -210,27 +210,27 @@ objects:
           - name: DATABASE_HOST
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: hostname
           - name: DATABASE_PORT
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: port
           - name: DATABASE_USERNAME
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: username
           - name: DATABASE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: password
           - name: DATABASE_DATABASE
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: name
           - name: DATABASE_CONNECTION_TIMEOUT_MS
             value: ${DATABASE_CONNECTION_TIMEOUT_MS}
@@ -531,27 +531,27 @@ objects:
           - name: DATABASE_HOST
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: hostname
           - name: DATABASE_PORT
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: port
           - name: DATABASE_USERNAME
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: username
           - name: DATABASE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: password
           - name: DATABASE_DATABASE
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: name
           - name: INVENTORY_DATABASE_HOST
             valueFrom:
@@ -663,27 +663,27 @@ objects:
           - name: DATABASE_HOST
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: hostname
           - name: DATABASE_PORT
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: port
           - name: DATABASE_USERNAME
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: username
           - name: DATABASE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: password
           - name: DATABASE_DATABASE
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: name
           - name: DATABASE_CONNECTION_TIMEOUT_MS
             value: ${DATABASE_CONNECTION_TIMEOUT_MS}
@@ -850,27 +850,27 @@ objects:
           - name: DATABASE_HOST
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: hostname
           - name: DATABASE_PORT
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: port
           - name: DATABASE_USERNAME
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: username
           - name: DATABASE_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: password
           - name: DATABASE_DATABASE
             valueFrom:
               secretKeyRef:
-                name: rhsm-clowdapp-db
+                name: rhsm-db
                 key: name
           - name: DATABASE_CONNECTION_TIMEOUT_MS
             value: ${DATABASE_CONNECTION_TIMEOUT_MS}
