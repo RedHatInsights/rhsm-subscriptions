@@ -412,29 +412,19 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testInsightsIdIsNormalized() {
-    String uuid = UUID.randomUUID().toString();
+  void testCanonicalFactsUuidIsNormalizedWithHyphens() {
     String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
+    String uuid = "ca85ccb82d384317a5d14dc05a6ea1e9";
+    String systemUuid = "961B0D0151A511CB97AF8FC366E1A390";
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
     consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
-
-    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertEquals("40819041673b443b98765b0a1c2cc1b1", conduitFacts.getInsightsId());
-  }
-
-  @Test
-  void testInsightsIdIsNormalizedWithHyphens() {
-    String uuid = UUID.randomUUID().toString();
-    String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
-    Consumer consumer = new Consumer();
-    consumer.setUuid(uuid);
-    consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
-
-    when(inventoryServiceProperties.isAddUuidHyphens()).thenReturn(true);
+    consumer.getFacts().put(InventoryController.DMI_SYSTEM_UUID, systemUuid);
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals("40819041-673b-443b-9876-5b0a1c2cc1b1", conduitFacts.getInsightsId());
+    assertEquals("ca85ccb8-2d38-4317-a5d1-4dc05a6ea1e9", conduitFacts.getSubscriptionManagerId());
+    assertEquals("961B0D01-51A5-11CB-97AF-8FC366E1A390", conduitFacts.getBiosUuid());
   }
 
   @Test
