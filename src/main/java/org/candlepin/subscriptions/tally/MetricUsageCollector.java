@@ -30,11 +30,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.Response;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.candlepin.subscriptions.db.AccountRepository;
-import org.candlepin.subscriptions.db.model.Account;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
@@ -43,8 +43,6 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -58,17 +56,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class MetricUsageCollector {
   private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
-  private final AccountRepository accountRepository;
+  private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final EventController eventController;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
 
   public MetricUsageCollector(
       TagProfile tagProfile,
-      AccountRepository accountRepository,
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock) {
-    this.accountRepository = accountRepository;
+    this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.eventController = eventController;
     this.clock = clock;
     this.tagProfile = tagProfile;
@@ -89,18 +87,11 @@ public class MetricUsageCollector {
       return null;
     }
 
-    /* load the latest account state, so we can update host records conveniently */
-    Account account =
-        accountRepository
-            .findById(accountNumber)
-            .orElseThrow(
-                () ->
-                    new SubscriptionsException(
-                        ErrorCode.OPT_IN_REQUIRED,
-                        Response.Status.BAD_REQUEST,
-                        "Account not found!",
-                        String.format(
-                            "Account %s was not found. Account not opted in?", accountNumber)));
+    /* load the latest accountServiceInventory state, so we can update host records conveniently */
+    AccountServiceInventory accountServiceInventory =
+        accountServiceInventoryRepository
+            .findById(new AccountServiceInventoryId(accountNumber, serviceType))
+            .orElse(new AccountServiceInventory(accountNumber, serviceType));
 
     /*
     Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
@@ -108,16 +99,12 @@ public class MetricUsageCollector {
     */
     Map<String, Host> existingInstances = new HashMap<>();
     OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
-    //  We should be pulling back only instances that match the service level.
-    //  ENT-4423 Should address the potential performance issue here.
-    for (Host host : account.getServiceInstances().values()) {
-      if (serviceType.equals(host.getInstanceType())) {
-        existingInstances.put(host.getInstanceId(), host);
-        newestInstanceTimestamp =
-            newestInstanceTimestamp.isAfter(host.getLastSeen())
-                ? newestInstanceTimestamp
-                : host.getLastSeen();
-      }
+    for (Host host : accountServiceInventory.getServiceInstances().values()) {
+      existingInstances.put(host.getInstanceId(), host);
+      newestInstanceTimestamp =
+          newestInstanceTimestamp.isAfter(host.getLastSeen())
+              ? newestInstanceTimestamp
+              : host.getLastSeen();
     }
     OffsetDateTime effectiveStartDateTime;
     OffsetDateTime effectiveEndDateTime;
@@ -161,12 +148,13 @@ public class MetricUsageCollector {
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
         offset = offset.plusHours(1)) {
-      AccountUsageCalculation accountUsageCalculation = collectHour(serviceType, account, offset);
+      AccountUsageCalculation accountUsageCalculation =
+          collectHour(accountServiceInventory, offset);
       if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
         accountCalcs.put(offset, accountUsageCalculation);
       }
     }
-    accountRepository.save(account);
+    accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(
         new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);
@@ -174,22 +162,26 @@ public class MetricUsageCollector {
 
   @Transactional
   public AccountUsageCalculation collectHour(
-      String serviceType, Account account, OffsetDateTime startDateTime) {
-    Optional<TagMetaData> serviceTypeMeta = tagProfile.getTagMetaDataByServiceType(serviceType);
+      AccountServiceInventory accountServiceInventory, OffsetDateTime startDateTime) {
+    Optional<TagMetaData> serviceTypeMeta =
+        tagProfile.getTagMetaDataByServiceType(accountServiceInventory.getServiceType());
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
         eventController
             .fetchEventsInTimeRangeByServiceType(
-                account.getAccountNumber(), serviceType, startDateTime, endDateTime)
+                accountServiceInventory.getAccountNumber(),
+                accountServiceInventory.getServiceType(),
+                startDateTime,
+                endDateTime)
             // We group fetched events by instanceId so that we can clear the measurements
-            // on first access, if the instance already exists for the account.
+            // on first access, if the instance already exists for the accountServiceInventory.
             .collect(Collectors.groupingBy(Event::getInstanceId));
 
     Map<String, Host> thisHoursInstances = new HashMap<>();
     eventToHostMapping.forEach(
         (instanceId, events) -> {
-          Host existing = account.getServiceInstances().get(instanceId);
+          Host existing = accountServiceInventory.getServiceInstances().get(instanceId);
           Host host = existing == null ? new Host() : existing;
           // Clear all measurements before processing the events so that we do
           // not add old measurements to the new account calculations. Once collect()
@@ -197,12 +189,12 @@ public class MetricUsageCollector {
           // collected.
           host.getMeasurements().clear();
           thisHoursInstances.put(instanceId, host);
-          account.getServiceInstances().put(instanceId, host);
+          accountServiceInventory.getServiceInstances().put(instanceId, host);
 
           events.forEach(event -> updateInstanceFromEvent(event, host, serviceTypeMeta));
         });
 
-    return tallyCurrentAccountState(account.getAccountNumber(), thisHoursInstances);
+    return tallyCurrentAccountState(accountServiceInventory.getAccountNumber(), thisHoursInstances);
   }
 
   private AccountUsageCalculation tallyCurrentAccountState(

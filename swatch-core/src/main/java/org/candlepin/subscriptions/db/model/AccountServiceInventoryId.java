@@ -18,12 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.db.model;
 
-import org.candlepin.subscriptions.db.model.Account;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.io.Serializable;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/** Defines all operations for interacting with the Account aggregate */
-public interface AccountRepository extends JpaRepository<Account, String> {
-  /* intentionally empty */
+@Data
+@Embeddable
+@NoArgsConstructor
+@AllArgsConstructor
+public class AccountServiceInventoryId implements Serializable {
+  @Column(name = "account_number")
+  private String accountNumber;
+
+  @Column(name = "service_type")
+  private String serviceType;
 }

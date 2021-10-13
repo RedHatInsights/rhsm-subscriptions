@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
-import org.candlepin.subscriptions.db.AccountRepository;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
@@ -157,10 +157,11 @@ public class TallyWorkerConfiguration {
   @Bean
   public MetricUsageCollector metricUsageCollector(
       TagProfile tagProfile,
-      AccountRepository accountRepo,
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock) {
-    return new MetricUsageCollector(tagProfile, accountRepo, eventController, clock);
+    return new MetricUsageCollector(
+        tagProfile, accountServiceInventoryRepository, eventController, clock);
   }
 
   @Bean

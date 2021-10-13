@@ -33,7 +33,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -56,38 +58,46 @@ import org.springframework.util.StringUtils;
 public class InventoryAccountUsageCollector {
 
   private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
+  public static final String HBI_INSTANCE_TYPE = "HBI_HOST";
 
   private final FactNormalizer factNormalizer;
   private final InventoryDatabaseOperations inventory;
-  private final HostRepository hostRepository;
+  private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final int culledOffsetDays;
   private final Counter totalHosts;
 
   public InventoryAccountUsageCollector(
       FactNormalizer factNormalizer,
       InventoryDatabaseOperations inventory,
-      HostRepository hostRepository,
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
       ApplicationProperties props,
       MeterRegistry meterRegistry) {
     this.factNormalizer = factNormalizer;
     this.inventory = inventory;
-    this.hostRepository = hostRepository;
+    this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
     this.totalHosts = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
   }
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public Map<String, AccountUsageCalculation> collect(
-      Collection<String> products, Collection<String> accounts) {
+  public Map<String, AccountUsageCalculation> collect(Collection<String> products, String account) {
 
-    List<Host> existing = getAccountHosts(accounts);
+    AccountServiceInventory accountServiceInventory =
+        accountServiceInventoryRepository
+            .findById(new AccountServiceInventoryId(account, HBI_INSTANCE_TYPE))
+            .orElse(new AccountServiceInventory(account, HBI_INSTANCE_TYPE));
+
+    Set<String> duplicateInstanceIds = new HashSet<>();
     Map<String, Host> inventoryHostMap =
-        existing.stream()
+        accountServiceInventory.getServiceInstances().values().stream()
             .filter(host -> host.getInventoryId() != null)
             .collect(
                 Collectors.toMap(
-                    Host::getInventoryId, Function.identity(), this::handleDuplicateHost));
+                    Host::getInventoryId,
+                    Function.identity(),
+                    (h1, h2) -> handleDuplicateHost(duplicateInstanceIds, h1, h2)));
+    duplicateInstanceIds.forEach(accountServiceInventory.getServiceInstances()::remove);
 
     Map<String, String> hypMapping = new HashMap<>();
     Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
@@ -96,16 +106,14 @@ public class InventoryAccountUsageCollector {
     Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
     inventory.reportedHypervisors(
-        accounts, reported -> hypMapping.put((String) reported[0], (String) reported[1]));
+        List.of(account), reported -> hypMapping.put((String) reported[0], (String) reported[1]));
     log.info("Found {} reported hypervisors.", hypMapping.size());
 
     Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
     inventory.processHostFacts(
-        accounts,
+        List.of(account),
         culledOffsetDays,
         hostFacts -> {
-          String account = hostFacts.getAccount();
-
           calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
 
           AccountUsageCalculation accountCalc = calcsByAccount.get(account);
@@ -181,7 +189,7 @@ public class InventoryAccountUsageCollector {
           // Save the host now that the buckets have been determined. Hypervisor hosts will
           // be persisted once all potential guests have been processed.
           if (!facts.isHypervisor()) {
-            hostRepository.save(host);
+            accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
           }
 
           totalHosts.increment();
@@ -197,23 +205,31 @@ public class InventoryAccountUsageCollector {
 
     log.info(
         "Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
-    hostRepository.deleteAll(inventoryHostMap.values());
+    inventoryHostMap.values().stream()
+        .map(Host::getInstanceId)
+        .forEach(accountServiceInventory.getServiceInstances()::remove);
 
     if (hypervisorHosts.size() > 0) {
       log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
-      hostRepository.saveAll(hypervisorHosts.values());
+      hypervisorHosts
+          .values()
+          .forEach(
+              host ->
+                  accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host));
     }
 
     if (log.isDebugEnabled()) {
       calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
     }
 
+    accountServiceInventoryRepository.save(accountServiceInventory);
+
     return calcsByAccount;
   }
 
-  private Host handleDuplicateHost(Host host1, Host host2) {
+  private Host handleDuplicateHost(Set<String> duplicateInstanceIds, Host host1, Host host2) {
     log.warn("Removing duplicate host record w/ inventory ID: {}", host2.getInventoryId());
-    hostRepository.delete(host2);
+    duplicateInstanceIds.add(host2.getInstanceId());
     return host1;
   }
 
@@ -245,13 +261,6 @@ public class InventoryAccountUsageCollector {
                     });
               });
         });
-  }
-
-  private List<Host> getAccountHosts(Collection<String> accounts) {
-    return accounts.stream()
-        .map(hostRepository::findByAccountNumber)
-        .flatMap(List::stream)
-        .collect(Collectors.toList());
   }
 
   public static void populateHostFieldsFromHbi(
@@ -295,7 +304,7 @@ public class InventoryAccountUsageCollector {
   public static Host hostFromHbiFacts(
       InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
     Host host = new Host();
-    host.setInstanceType("HBI_HOST");
+    host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     return host;
   }
