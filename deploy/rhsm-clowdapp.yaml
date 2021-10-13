@@ -34,8 +34,9 @@ parameters:
     value: 1000Mi
   - name: MEMORY_LIMIT
     value: 1700Mi
+    # FIXME decreased for dev
   - name: CPU_REQUEST
-    value: 450m
+    value: 250m
   - name: CPU_LIMIT
     value: 1800m
   - name: SPLUNK_FORWARDER_IMAGE
@@ -120,7 +121,23 @@ parameters:
   - name: NAMESPACE
     value: rhsm
 
+  - name: METERING_SCHEDULE
+    value: 0 * * * *
+  - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
+    value: '@hourly'
+
 objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: rhsm-jobs
+  spec:
+    appName: rhsm
+    jobs:
+      - metrics-cron
+      - cron-tally
+      - hourly-tally
+
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
@@ -152,7 +169,6 @@ objects:
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
     deployments:
-
     - name: api
       minReplicas: 1
       webServices:
@@ -389,6 +405,31 @@ objects:
             value: ${DATABASE_CONNECTION_TIMEOUT_MS}
           - name: DATABASE_MAX_POOL_SIZE
             value: ${DATABASE_MAX_POOL_SIZE}
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: hostname
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: port
+          - name: DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: password
+          - name: DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: name
           - name: INVENTORY_DATABASE_HOST
             valueFrom:
               secretKeyRef:
@@ -488,124 +529,6 @@ objects:
           - name: pinhead
             secret:
               secretName: pinhead
-
-    - name: scheduler
-      minReplicas: 1
-      webServices:
-        public:
-          enabled: true
-      podSpec:
-        image: ${IMAGE}:${IMAGE_TAG}
-        imagePullPolicy: IfNotPresent
-        command:
-          - /bin/bash
-          - /usr/local/s2i/run
-        initContainers:
-          - env:
-              - name: SPRING_PROFILES_ACTIVE
-                value: liquibase-only
-            inheritEnv: true
-            command:
-              - /bin/bash
-              - /usr/local/s2i/run
-            resources:
-              requests:
-                cpu: ${CPU_REQUEST}
-                memory: ${MEMORY_REQUEST}
-              limits:
-                cpu: ${CPU_LIMIT}
-                memory: ${MEMORY_LIMIT}
-        env:
-          - name: SPRING_PROFILES_ACTIVE
-            value: capture-snapshots,kafka-queue
-          - name: JAVA_MAX_MEM_RATIO
-            value: '85'
-          - name: GC_MAX_METASPACE_SIZE
-            value: '256'
-          - name: LOG_FILE
-            value: /logs/server.log
-          - name: LOGGING_LEVEL_ROOT
-            value: ${LOGGING_LEVEL_ROOT}
-          - name: LOGGING_LEVEL_ORG_CANDLEPIN
-            value: ${LOGGING_LEVEL}
-          - name: DATABASE_HOST
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: hostname
-          - name: DATABASE_PORT
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: port
-          - name: DATABASE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: username
-          - name: DATABASE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: password
-          - name: DATABASE_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: name
-          - name: INVENTORY_DATABASE_HOST
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.host
-          - name: INVENTORY_DATABASE_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.name
-          - name: INVENTORY_DATABASE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.user
-          - name: INVENTORY_DATABASE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db-readonly
-                key: db.password
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /actuator/health
-            port: 8000
-            scheme: HTTP
-          initialDelaySeconds: 300
-          periodSeconds: 20
-          successThreshold: 1
-          timeoutSeconds: 5
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /actuator/health
-            port: 8000
-            scheme: HTTP
-          initialDelaySeconds: 300
-          periodSeconds: 20
-          successThreshold: 1
-          timeoutSeconds: 5
-        resources:
-          requests:
-            cpu: ${CPU_REQUEST}
-            memory: ${MEMORY_REQUEST}
-          limits:
-            cpu: ${CPU_LIMIT}
-            memory: ${MEMORY_LIMIT}
-        volumeMounts:
-          - name: logs
-            mountPath: /logs
-        volumes:
-          - name: logs
-            emptyDir:
 
     - name: marketplace-worker
       webServices:
@@ -971,6 +894,123 @@ objects:
           - name: pinhead
             secret:
               secretName: pinhead
+
+    jobs:
+    - name: hourly-tally
+      schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
+      restartPolicy: Never
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/bash
+          - /usr/local/s2i/run
+        initContainers:
+          - env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: liquibase-only
+            inheritEnv: true
+            command:
+              - /bin/bash
+              - /usr/local/s2i/run
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+        env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: capture-snapshots,kafka-queue
+          - name: JAVA_MAX_MEM_RATIO
+            value: '85'
+          - name: GC_MAX_METASPACE_SIZE
+            value: '256'
+          - name: LOG_FILE
+            value: /logs/server.log
+          - name: LOGGING_LEVEL_ROOT
+            value: ${LOGGING_LEVEL_ROOT}
+          - name: LOGGING_LEVEL_ORG_CANDLEPIN
+            value: ${LOGGING_LEVEL}
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: hostname
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: port
+          - name: DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: password
+          - name: DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: name
+          - name: INVENTORY_DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.host
+          - name: INVENTORY_DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.name
+          - name: INVENTORY_DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.user
+          - name: INVENTORY_DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: host-inventory-db-readonly
+                key: db.password
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 300
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /actuator/health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 300
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+        volumeMounts:
+          - name: logs
+            mountPath: /logs
+        volumes:
+          - name: logs
+            emptyDir:
 
 - apiVersion: v1
   kind: ConfigMap
