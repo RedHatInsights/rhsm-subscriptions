@@ -61,6 +61,13 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
+  public Stream<Event> fetchEventsInTimeRangeByServiceType(
+      String accountNumber, String serviceType, OffsetDateTime begin, OffsetDateTime end) {
+    return repo.findByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+            accountNumber, serviceType, begin, end)
+        .map(EventRecord::getEvent);
+  }
+
   @SuppressWarnings({"linelength", "indentation"})
   public Map<EventKey, Event> mapEventsInTimeRange(
       String accountNumber,
@@ -125,8 +132,8 @@ public class EventController {
 
   @Transactional
   public boolean hasEventsInTimeRange(
-      String accountNumber, OffsetDateTime startDate, OffsetDateTime endDate) {
-    return repo.existsByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThan(
-        accountNumber, startDate, endDate);
+      String accountNumber, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
+    return repo.existsByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
+        accountNumber, serviceType, startDate, endDate);
   }
 }

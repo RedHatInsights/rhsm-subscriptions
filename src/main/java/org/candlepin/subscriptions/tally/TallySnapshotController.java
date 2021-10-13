@@ -67,7 +67,7 @@ public class TallySnapshotController {
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
-      @Qualifier("OpenShiftMetricsUsageCollector") MetricUsageCollector metricUsageCollector,
+      MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       TagProfile tagProfile) {
 
@@ -121,36 +121,47 @@ public class TallySnapshotController {
 
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
   public void produceHourlySnapshotsForAccount(String accountNumber, DateRange snapshotRange) {
-    log.info(
-        "Producing hourly snapshot for account {} between startDateTime {} and endDateTime {}",
-        accountNumber,
-        snapshotRange.getStartString(),
-        snapshotRange.getEndString());
-    try {
-      var result =
-          retryTemplate.execute(
-              context -> metricUsageCollector.collect(accountNumber, snapshotRange));
-      if (result == null) {
-        return;
-      }
+    tagProfile
+        .getServiceTypes()
+        .forEach(
+            serviceType -> {
+              log.info(
+                  "Producing hourly snapshots for account {} for service type {} "
+                      + "between startDateTime {} and endDateTime {}",
+                  accountNumber,
+                  serviceType,
+                  snapshotRange.getStartString(),
+                  snapshotRange.getEndString());
+              try {
+                var result =
+                    retryTemplate.execute(
+                        context ->
+                            metricUsageCollector.collect(
+                                serviceType, accountNumber, snapshotRange));
+                if (result == null) {
+                  return;
+                }
 
-      var applicableUsageCalculations =
-          result.getCalculations().entrySet().stream()
-              .filter(TallySnapshotController::isCombiningRollupStrategySupported)
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                var applicableUsageCalculations =
+                    result.getCalculations().entrySet().stream()
+                        .filter(TallySnapshotController::isCombiningRollupStrategySupported)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-      combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-          accountNumber,
-          result.getRange(),
-          tagProfile.getTagsWithPrometheusEnabledLookup(),
-          applicableUsageCalculations,
-          Granularity.HOURLY,
-          Double::sum);
-      log.info("Finished producing hourly snapshots for account: {}", accountNumber);
-    } catch (Exception e) {
-      log.error(
-          "Could not collect metrics and/or produce snapshots for account {}", accountNumber, e);
-    }
+                combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+                    accountNumber,
+                    result.getRange(),
+                    tagProfile.getTagsForServiceType(serviceType),
+                    applicableUsageCalculations,
+                    Granularity.HOURLY,
+                    Double::sum);
+                log.info("Finished producing hourly snapshots for account: {}", accountNumber);
+              } catch (Exception e) {
+                log.error(
+                    "Could not collect metrics and/or produce snapshots for account {}",
+                    accountNumber,
+                    e);
+              }
+            });
   }
 
   private void attemptCloudigradeEnrichment(
@@ -180,6 +191,7 @@ public class TallySnapshotController {
     var calculatedProducts = usageCalculations.getValue().getProducts();
 
     return calculatedProducts.contains(ProductId.OPENSHIFT_METRICS.toString())
-        || calculatedProducts.contains(ProductId.OPENSHIFT_DEDICATED_METRICS.toString());
+        || calculatedProducts.contains(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
+        || calculatedProducts.contains(ProductId.RHOSAK.toString());
   }
 }
