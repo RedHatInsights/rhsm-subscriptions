@@ -118,8 +118,6 @@ parameters:
     value: '2'
   - name: ENV_NAME
     value: env-rhsm
-  - name: NAMESPACE
-    value: rhsm
 
   - name: METERING_SCHEDULE
     value: 0 * * * *
@@ -142,7 +140,6 @@ objects:
   kind: ClowdApp
   metadata:
     name: rhsm
-    namespace: ${NAMESPACE}
   spec:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
@@ -1033,4 +1030,3 @@ objects:
       # put /actuator calls on 8080
       management.server.port=8080
       management.server.ssl.enabled=false
-
