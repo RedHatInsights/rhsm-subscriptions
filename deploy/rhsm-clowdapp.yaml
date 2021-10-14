@@ -34,9 +34,8 @@ parameters:
     value: 1000Mi
   - name: MEMORY_LIMIT
     value: 1700Mi
-    # FIXME decreased for dev
   - name: CPU_REQUEST
-    value: 250m
+    value: 450m
   - name: CPU_LIMIT
     value: 1800m
   - name: SPLUNK_FORWARDER_IMAGE
