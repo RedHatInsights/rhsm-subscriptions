@@ -268,9 +268,12 @@ public class InventoryAccountUsageCollector {
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
       // We assume that the instance ID for any given HBI host record is the inventory ID; compare
-      // to
-      // an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-      host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
+      // to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
+      if (host.getInstanceId() == null) {
+        // Don't overwrite the instanceId if already set, since that would cause potential
+        // duplicates in the serviceInstances map in AccountServiceInventory.
+        host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
+      }
     }
 
     host.setInsightsId(inventoryHostFacts.getInsightsId());
