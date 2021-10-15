@@ -1,7 +1,7 @@
 openapi: "3.0.2"
 info:
   title: "rhsm-subscriptions-api"
-  description: "REST interface for the rhsm-subscriptions service."
+  description: "REST interface for the rhsm-subscriptions service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
   version: 1.0.0
 
 servers:
@@ -261,8 +261,9 @@ paths:
         description: "The numbers of items to return"
     get:
       deprecated: true
-      summary: "Fetch a tally report for an account and product. If page header parameters are omitted,
+      summary: "(Deprecated for removal after 2022-05-01). Fetch a tally report for an account and product. If page header parameters are omitted,
                 then any gaps in the resulting report snapshots are filled with a default fake snapshot."
+      description: "Deprecated: use /tally/products/{product_id}/{metric_id} instead"
       operationId: getTallyReport
       parameters:
         - name: granularity
