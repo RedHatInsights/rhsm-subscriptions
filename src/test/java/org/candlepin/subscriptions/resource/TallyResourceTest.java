@@ -51,6 +51,7 @@ import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -661,7 +662,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -687,7 +688,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -718,7 +719,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -747,7 +748,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -775,7 +776,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -803,7 +804,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -827,7 +828,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -859,7 +860,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -888,7 +889,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -924,7 +925,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),
@@ -955,7 +956,7 @@ public class TallyResourceTest {
     TallyReportData response =
         resource.getTallyReportData(
             ProductId.RHEL,
-            "Cores",
+            MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
             OffsetDateTime.parse("2021-10-30T00:00Z"),

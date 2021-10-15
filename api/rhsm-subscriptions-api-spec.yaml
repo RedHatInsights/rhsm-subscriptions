@@ -167,7 +167,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/MetricId'
         description: "The metric ID to fetch graph data for"
       - name: category
         in: query
@@ -942,6 +942,15 @@ components:
         - OpenShift-metrics
         - OpenShift-dedicated-metrics
         - rhosak
+    MetricId:
+      type: string
+      enum:
+        - Cores
+        - Sockets
+        - Core-seconds
+        - Instance-hours
+        - Storage-gibibytes
+        - Transfer-gibibytes
     ReportCategory:
       type: string
       enum:

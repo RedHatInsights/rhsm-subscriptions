@@ -49,6 +49,7 @@ import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -98,7 +99,7 @@ public class TallyResource implements TallyApi {
   @Override
   public TallyReportData getTallyReportData(
       ProductId productId,
-      String metricId,
+      MetricId metricId,
       GranularityType granularityType,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -132,7 +133,7 @@ public class TallyResource implements TallyApi {
                 reportCriteria.getEnding(),
                 reportCriteria.getPageable());
 
-    Uom uom = Uom.fromValue(metricId);
+    Uom uom = Uom.fromValue(metricId.toString());
 
     List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
         snapshotPage.stream().collect(Collectors.toList());
@@ -231,7 +232,7 @@ public class TallyResource implements TallyApi {
   @SuppressWarnings("java:S107")
   private ReportCriteria extractReportCriteria(
       ProductId productId,
-      String metricId,
+      MetricId metricId,
       GranularityType granularityType,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -265,7 +266,7 @@ public class TallyResource implements TallyApi {
     return ReportCriteria.builder()
         .accountNumber(ResourceUtils.getAccountNumber())
         .productId(productId.toString())
-        .metricId(metricId)
+        .metricId(Optional.ofNullable(metricId).map(MetricId::toString).orElse(null))
         .granularity(granularityFromValue)
         .reportCategory(category)
         .serviceLevel(serviceLevel)
