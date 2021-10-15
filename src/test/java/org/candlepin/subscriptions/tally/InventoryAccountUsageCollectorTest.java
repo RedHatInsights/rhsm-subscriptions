@@ -23,8 +23,6 @@ package org.candlepin.subscriptions.tally;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.*;
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -654,7 +652,6 @@ public class InventoryAccountUsageCollectorTest {
     collector.collect(RHEL_PRODUCTS, account);
 
     assertEquals(1, accountServiceInventory.getServiceInstances().size());
-    assertThat(accountServiceInventory.getServiceInstances(), not(hasKey("i2")));
   }
 
   private void checkTotalsCalculation(
