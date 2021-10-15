@@ -42,6 +42,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 'infrastructure_type': hardware_type or 'PHYSICAL',
                 'cores_per_socket': cores // sockets,
                 'number_of_sockets': sockets,
+                'cloud_provider': cloud_provider,
             }),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
@@ -135,6 +136,10 @@ parser.add_argument('--num-guests',
                     type=int,
                     default=0,
                     help='Insert a number of mock guests, running on a single hypervisor')
+parser.add_argument('--num-aws',
+                    type=int,
+                    default=0,
+                    help='Insert a number of mock aws instances')
 parser.add_argument('--unmapped-guests',
                     default=False,
                     help='Are the guests to be created unmapped?')
@@ -151,9 +156,9 @@ parser.add_argument('--sla',
 parser.add_argument('--usage',
                     help='Set the usage for the inserted hosts')
 parser.add_argument('--cores', default=4,
-                    help='Set the cores for the inserted hosts')
+                    help='Set the cores for the inserted hosts', type=int)
 parser.add_argument('--sockets', default=1,
-                    help='Set the sockets for the inserted hosts')
+                    help='Set the sockets for the inserted hosts', type=int)
 parser.add_argument('--output-sql', action='store_true')
 parser.add_argument('--hbi', action='store_true', dest='is_hbi',
                     help='Mock HBI data rather than tally data')
@@ -200,6 +205,11 @@ for i in range(args.num_accounts):
 
     product = args.product or "RHEL"
 
+    for i in range(args.num_aws):
+        generate_host(account_number=account, hardware_type='VIRTUAL', measurement_type='CLOUD',
+                    product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hbi=args.is_hbi,
+                    cloud_provider='AWS')
+
     for i in range(args.num_physical):
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                     product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hbi=args.is_hbi)
@@ -207,7 +217,7 @@ for i in range(args.num_accounts):
     hypervisor = None
     for i in range(args.num_hypervisors):
         hypervisor = generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='VIRTUAL', product=args.product,
-                                sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True)
+                                sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True, is_hbi=args.is_hbi)
         # create a physical entry for the host as well.
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL', product=args.product,
                     sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True, is_hbi=args.is_hbi)
@@ -217,7 +227,7 @@ for i in range(args.num_accounts):
         if args.hypervisor_id:
             hypervisor_uuid = args.hypervisor_id
         elif hypervisor is not None:
-            hypervisor_uuid = hypervisor['subscription_manager_id']
+            hypervisor_uuid = hypervisor.get('subscription_manager_id') or json.loads(hypervisor['canonical_facts'])['subscription_manager_id']
             # If we are associating the guests with a created hypervisor host, don't allow it to be unmapped
             # since it was considered as reported.
             create_unmapped = False

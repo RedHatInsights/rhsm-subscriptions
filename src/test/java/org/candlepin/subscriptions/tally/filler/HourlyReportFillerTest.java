@@ -49,7 +49,7 @@ class HourlyReportFillerTest {
     OffsetDateTime end = start.plusHours(3);
 
     TallyReport report = new TallyReport();
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(4, filled.size());
@@ -71,7 +71,7 @@ class HourlyReportFillerTest {
     List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
     TallyReport report = new TallyReport().data(snaps);
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(5, filled.size());
@@ -105,7 +105,7 @@ class HourlyReportFillerTest {
     List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
     TallyReport report = new TallyReport().data(snaps);
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(4, filled.size());
@@ -129,7 +129,7 @@ class HourlyReportFillerTest {
     List<TallySnapshot> snaps = Arrays.asList(snap1, snap2);
 
     TallyReport report = new TallyReport().data(snaps);
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(4, filled.size());
@@ -159,7 +159,7 @@ class HourlyReportFillerTest {
     List<TallySnapshot> snaps = Arrays.asList(snap2, snap1);
 
     TallyReport report = new TallyReport().data(snaps);
-    filler.fillGaps(report, start, end, false);
+    report.setData(filler.fillGaps(report.getData(), start, end, false));
 
     List<TallySnapshot> filled = report.getData();
     assertEquals(4, filled.size());

@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
+import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -36,6 +38,7 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -48,13 +51,20 @@ import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -635,5 +645,326 @@ public class TallyResourceTest {
           resource.getTallyReport(
               RHEL_PRODUCT_ID, GranularityType.DAILY, min, max, null, null, null, null, false);
         });
+  }
+
+  @Test
+  void testTallyReportDataTotalUsingHardwareMeasurements() {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    HardwareMeasurement measurement = new HardwareMeasurement();
+    measurement.setCores(4);
+    snapshot.setHardwareMeasurement(HardwareMeasurementType.TOTAL, measurement);
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(
+        4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+  }
+
+  @Test
+  void testTallyReportDataTotalUsingTallyMeasurements() {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(
+        4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+  }
+
+  @EnumSource
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  void testTallyReportDataCategoriesUsingHardwareMeasurements(ReportCategory category) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
+      HardwareMeasurement measurement = new HardwareMeasurement();
+      measurement.setCores(4);
+      snapshot.setHardwareMeasurement(hardwareMeasurementType, measurement);
+    }
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(
+        4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+  }
+
+  @EnumSource
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  void testTallyReportDataCategoriesUsingTallyMeasurements(ReportCategory category) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
+      snapshot.setMeasurement(hardwareMeasurementType, Uom.CORES, 4.0);
+    }
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(
+        4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+  }
+
+  @Test
+  void testTallyReportDataMonthlyTotalsPopulatedUsingHardwareMeasurements() {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
+    cloudigradeMeasurement.setCores(4);
+    snapshot.setHardwareMeasurement(HardwareMeasurementType.TOTAL, cloudigradeMeasurement);
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(4.0, response.getMeta().getTotalMonthly().getValue());
+    assertEquals(
+        OffsetDateTime.parse("2021-10-05T00:00Z"), response.getMeta().getTotalMonthly().getDate());
+    assertTrue(response.getMeta().getTotalMonthly().getHasData());
+  }
+
+  @Test
+  void testTallyReportDataMonthlyTotalsPopulatedUsingTallyMeasurements() {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(4.0, response.getMeta().getTotalMonthly().getValue());
+    assertEquals(
+        OffsetDateTime.parse("2021-10-05T00:00Z"), response.getMeta().getTotalMonthly().getDate());
+    assertTrue(response.getMeta().getTotalMonthly().getHasData());
+  }
+
+  @Test
+  void testTallyReportDataReportFiller() {
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of()));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(30, response.getMeta().getCount());
+    assertEquals(30, response.getData().size());
+  }
+
+  @ValueSource(booleans = {true, false})
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  void testTallyReportDataHasCloudigradeDataUsingHardwareMeasurements(boolean hasCloudigradeData) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    if (hasCloudigradeData) {
+      HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
+      cloudigradeMeasurement.setCores(4);
+      snapshot.setHardwareMeasurement(
+          HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+    }
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(hasCloudigradeData, response.getMeta().getHasCloudigradeData());
+  }
+
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  @ValueSource(booleans = {true, false})
+  void testTallyReportDataHasCloudigradeDataUsingTallyMeasurements(
+      boolean hasCloudigradeMeasurement) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    if (hasCloudigradeMeasurement) {
+      snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.CORES, 4.0);
+    }
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(hasCloudigradeMeasurement, response.getMeta().getHasCloudigradeData());
+  }
+
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  @ValueSource(booleans = {true, false})
+  void testTallyReportDataHasCloudigradeMismatchUsingHardwareMeasurements(
+      boolean hasCloudigradeMismatch) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    HardwareMeasurement awsMeasurement = new HardwareMeasurement();
+    awsMeasurement.setCores(4);
+    HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
+    cloudigradeMeasurement.setCores(4);
+    if (hasCloudigradeMismatch) {
+      cloudigradeMeasurement.setCores(8);
+    }
+    snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, awsMeasurement);
+    snapshot.setHardwareMeasurement(
+        HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(hasCloudigradeMismatch, response.getMeta().getHasCloudigradeMismatch());
+  }
+
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  @ValueSource(booleans = {true, false})
+  void testTallyReportDataHasCloudigradeMismatchUsingTallyMeasurements(
+      boolean hasCloudigradeMismatch) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setAccountNumber("account123");
+    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.CORES, 4.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.CORES, 4.0);
+    if (hasCloudigradeMismatch) {
+      snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.CORES, 8.0);
+    }
+    when(repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-10-01T00:00Z"),
+            OffsetDateTime.parse("2021-10-30T00:00Z"),
+            null,
+            null,
+            null,
+            null,
+            null);
+    assertEquals(hasCloudigradeMismatch, response.getMeta().getHasCloudigradeMismatch());
   }
 }
