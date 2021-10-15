@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import static org.candlepin.subscriptions.clowder.ClowderJsonEnvironmentPostProcessor.JSON_RESOURCE_LOCATION;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.FileNotFoundException;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +30,7 @@ import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.test.context.support.TestPropertySourceUtils;
+import org.springframework.util.ResourceUtils;
 
 class ClowderJsonEnvironmentPostProcessorTest {
   private ClowderJsonEnvironmentPostProcessor postProcessor;
@@ -68,7 +69,13 @@ class ClowderJsonEnvironmentPostProcessorTest {
   }
 
   private void addClowderJson() {
-    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
-        environment, JSON_RESOURCE_LOCATION + "=classpath:test-clowder-config.json");
+    try {
+      TestPropertySourceUtils.addInlinedPropertiesToEnvironment(
+          environment,
+          "ACG_CONFIG="
+              + ResourceUtils.getFile("classpath:test-clowder-config.json").getAbsolutePath());
+    } catch (FileNotFoundException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
