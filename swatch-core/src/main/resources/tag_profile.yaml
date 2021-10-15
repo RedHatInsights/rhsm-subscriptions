@@ -92,6 +92,13 @@ tagMetrics:
       product: rhosak
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
+  - tag: rhosak
+    metricId: redhat.com:rhosak:cluster_hour
+    uom: INSTANCE_HOURS
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
+      prometheusMetadataMetric: subscription_labels
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A

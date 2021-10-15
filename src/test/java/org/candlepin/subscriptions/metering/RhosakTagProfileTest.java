@@ -74,6 +74,39 @@ class RhosakTagProfileTest {
                         "prometheusMetric",
                             "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes",
                         "prometheusMetadataMetric", "subscription_labels"))
+                .build()),
+        Arguments.of(
+            "rhosak",
+            Uom.TRANSFER_GIBIBYTES,
+            TagMetric.builder()
+                .tag("rhosak")
+                .metricId("redhat.com:rhosak:transfer_gb")
+                .uom(Uom.TRANSFER_GIBIBYTES)
+                .queryKey("default")
+                .accountQueryKey("default")
+                .queryParams(
+                    Map.of(
+                        "product",
+                        "rhosak",
+                        "prometheusMetric",
+                        "kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes",
+                        "prometheusMetadataMetric",
+                        "subscription_labels"))
+                .build()),
+        Arguments.of(
+            "rhosak",
+            Uom.INSTANCE_HOURS,
+            TagMetric.builder()
+                .tag("rhosak")
+                .metricId("redhat.com:rhosak:cluster_hour")
+                .uom(Uom.INSTANCE_HOURS)
+                .queryKey("default")
+                .accountQueryKey("default")
+                .queryParams(
+                    Map.of(
+                        "product", "rhosak",
+                        "prometheusMetric", "kafka_id:strimzi_resource_state:max_over_time1h",
+                        "prometheusMetadataMetric", "subscription_labels"))
                 .build()));
   }
 
@@ -108,6 +141,10 @@ class RhosakTagProfileTest {
   static Stream<Arguments> promethuesEnabledLookupArgs() {
     return Stream.of(
         Arguments.of(
-            "rhosak", TallyMeasurement.Uom.STORAGE_GIBIBYTES, "redhat.com:rhosak:storage_gb"));
+            "rhosak", TallyMeasurement.Uom.STORAGE_GIBIBYTES, "redhat.com:rhosak:storage_gb"),
+        Arguments.of(
+            "rhosak", TallyMeasurement.Uom.TRANSFER_GIBIBYTES, "redhat.com:rhosak:transfer_gb"),
+        Arguments.of(
+            "rhosak", TallyMeasurement.Uom.INSTANCE_HOURS, "redhat.com:rhosak:cluster_hour"));
   }
 }
