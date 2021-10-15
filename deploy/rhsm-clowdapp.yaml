@@ -23,8 +23,7 @@ parameters:
   - name: REPLICAS
     value: '1'
   - name: IMAGE
-    value: localhost/swatch
-    # value: quay.io/cloudservices/rhsm-subscriptions
+    value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     # value: latest
     value: scratch
@@ -895,6 +894,7 @@ objects:
     jobs:
     - name: hourly-tally
       schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
+      successfulJobsHistoryLimit: 2
       restartPolicy: Never
       podSpec:
         image: ${IMAGE}:${IMAGE_TAG}
