@@ -123,6 +123,3 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.offering-sync
       kafka-group-id: offering-worker
-  clowder:
-    json-resource-location: file:/cdapp/cdappconfig.json
-    strict-loading: true

@@ -22,15 +22,11 @@ package org.candlepin.subscriptions.clowder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Objects;
-import java.util.function.Function;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -41,10 +37,7 @@ import org.springframework.util.StringUtils;
  * ClowderJsonPathPropertySource} into the list of property sources.
  */
 public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
-  public static final String JSON_RESOURCE_LOCATION =
-      "rhsm-subscriptions.clowder.json-resource-location";
-
-  public static final String CLOWDER_STRICT_LOADING = "rhsm-subscriptions.clowder.strict-loading";
+  public static final String CLOWDER_CONFIG_LOCATION_PROPERTY = "ACG_CONFIG";
 
   // At a minimum this needs to run after the ConfigDataEnvironmentPostProcessor so that we can read
   // JSON_RESOURCE_LOCATION out of the config files
@@ -75,46 +68,28 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
   @Override
   public void postProcessEnvironment(
       ConfigurableEnvironment environment, SpringApplication application) {
-    boolean strictLoading = environment.getProperty(CLOWDER_STRICT_LOADING, boolean.class, true);
-    Runnable onFailure;
-    String errMsg = "Could not read " + JSON_RESOURCE_LOCATION;
-    if (strictLoading) {
-      onFailure =
-          () -> {
-            throw new IllegalStateException(errMsg);
-          };
+    String clowderConfigPath = environment.getProperty(CLOWDER_CONFIG_LOCATION_PROPERTY);
+    if (StringUtils.hasText(clowderConfigPath)) {
+      String clowderResourceLocation = "file:" + clowderConfigPath;
+      ClowderJson clowderJson = getMapper(clowderResourceLocation);
+      processJson(environment, clowderJson);
     } else {
-      onFailure = () -> logger.warn(errMsg);
+      logger.info(CLOWDER_CONFIG_LOCATION_PROPERTY + " undefined. Will not read clowder config.");
     }
-
-    MutablePropertySources propertySources = environment.getPropertySources();
-    propertySources.stream()
-        .map(getMapper())
-        .filter(Objects::nonNull)
-        .findFirst()
-        .ifPresentOrElse(clowderJson -> processJson(environment, clowderJson), onFailure);
   }
 
-  private Function<PropertySource<?>, ClowderJson> getMapper() {
-    return propertySource -> {
-      try {
-        var value = propertySource.getProperty(JSON_RESOURCE_LOCATION);
-
-        if (value instanceof String && StringUtils.hasText((String) value)) {
-          ResourceLoader resourceLoader = new DefaultResourceLoader();
-          Resource resource = resourceLoader.getResource((String) value);
-          logger.debug("Loading Clowder configuration from " + resource.getURI());
-          return new ClowderJson(resource.getInputStream(), objectMapper);
-        }
-      } catch (IOException e) {
-        logger.warn("Could not read " + JSON_RESOURCE_LOCATION, e);
-      }
-      return null;
-    };
+  private ClowderJson getMapper(String clowderResourceLocation) {
+    try {
+      ResourceLoader resourceLoader = new DefaultResourceLoader();
+      Resource resource = resourceLoader.getResource(clowderResourceLocation);
+      logger.info("Reading Clowder configuration from " + resource.getURI());
+      return new ClowderJson(resource.getInputStream(), objectMapper);
+    } catch (IOException e) {
+      throw new IllegalStateException("Could not read clowder config", e);
+    }
   }
 
   private void processJson(ConfigurableEnvironment environment, ClowderJson clowderJson) {
-    logger.info("Reading Clowder configuration...");
     var jsonSource = new ClowderJsonPathPropertySource(clowderJson);
     jsonSource.addToEnvironment(environment, logger);
   }

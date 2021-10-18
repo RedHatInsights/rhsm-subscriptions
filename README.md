@@ -193,9 +193,10 @@ RBAC_USE_STUB=true ./gradlew bootRun
 ### Clowder
 
 Clowder exposes the services it provides in an Openshift config map.  This config map appears 
-in the container as a JSON file located by default at `/cdapp/cdappconfig.json`.  The 
-`ClowderJsonEnvironmentPostProcessor` takes this JSON file and flattens it into Java style 
-properties (with the namespace `clowder` prefixed).  For example,
+in the container as a JSON file located by default at the path defined by `ACG_CONFIG` environment
+variable (typically `/cdapp/cdappconfig.json`).  The `ClowderJsonEnvironmentPostProcessor` takes
+this JSON file and flattens it into Java style properties (with the namespace `clowder` prefixed).
+For example,
 
 ```json
 { "kafka": {
@@ -234,12 +235,12 @@ The intermediate property is then assigned to any actual property that we wish t
 by Clowder, overridden from Clowder via environment variable, or not given by Clowder at all and 
 instead based on a default.
 
-A Clowder environment can be simulated in development by pointing the Clowder JSON file 
-location property (`rhsm-subscriptions.clowder.json-resource-location`) to a mock Clowder JSON file
+A Clowder environment can be simulated in development by pointing the `ACG_CONFIG` environment var
+to a mock Clowder JSON file.
 
 E.g.
 ```
-$ RHSM_SUBSCRIPTIONS_CLOWDER_JSON_RESOURCE_LOCATION=file:$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./gradlew bootRun
+$ ACG_CONFIG=$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./gradlew bootRun
 ```
 
 ## Deploy to Openshift

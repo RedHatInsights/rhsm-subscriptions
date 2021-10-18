@@ -24,8 +24,6 @@ rhsm-subscriptions:
       kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: true
-  clowder:
-    strictLoading: false
   product:
     use-stub: true
     tasks:
