@@ -25,8 +25,7 @@ parameters:
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
-    # value: latest
-    value: scratch
+    value: latest
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
