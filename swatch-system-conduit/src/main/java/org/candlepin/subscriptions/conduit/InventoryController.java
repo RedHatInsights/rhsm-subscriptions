@@ -26,14 +26,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -50,6 +43,7 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
+import org.candlepin.subscriptions.inventory.client.model.NetworkInterface;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,9 +59,12 @@ public class InventoryController {
   private static final BigDecimal KIBIBYTES_PER_GIBIBYTE = BigDecimal.valueOf(1048576);
   private static final BigDecimal BYTES_PER_KIBIBYTE = BigDecimal.valueOf(1024);
   private static final String COMMA_REGEX = ",\\s*";
+  private static final String PERIOD_REGEX = "\\.";
   private static final String NON_HYPHEN_REGEX = "[0-9a-fA-F]{8}([0-9a-fA-F]{4}){3}[0-9a-fA-F]{12}";
   private static final String UUID_REGEX = "[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}";
 
+  public static final String OS_DISTRIBUTION_NAME = "distribution.name";
+  public static final String OS_DISTRIBUTION_VERSION = "distribution.version";
   public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
   public static final String DMI_BIOS_VERSION = "dmi.bios.version";
   public static final String DMI_BIOS_VENDOR = "dmi.bios.vendor";
@@ -215,6 +212,9 @@ public class InventoryController {
       }
     }
 
+    facts.setOsName(rhsmFacts.get(OS_DISTRIBUTION_NAME));
+    facts.setOsVersion(rhsmFacts.get(OS_DISTRIBUTION_VERSION));
+
     facts.setBiosVersion(rhsmFacts.get(DMI_BIOS_VERSION));
     facts.setBiosVendor(rhsmFacts.get(DMI_BIOS_VENDOR));
 
@@ -280,6 +280,11 @@ public class InventoryController {
       facts.setFqdn(fqdn);
     }
 
+    List<NetworkInterface> networkInterfaces = populateNICs(rhsmFacts);
+    if (!networkInterfaces.isEmpty()) {
+      facts.setNetworkInterfaces(networkInterfaces);
+    }
+
     List<String> macAddresses = new ArrayList<>();
     rhsmFacts.entrySet().stream()
         .filter(
@@ -327,6 +332,70 @@ public class InventoryController {
 
     if (!ipAddresses.isEmpty()) {
       facts.setIpAddresses(new ArrayList<>(ipAddresses));
+    }
+  }
+
+  private List<NetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
+    var nicSet = new ArrayList<NetworkInterface>();
+    for (Map.Entry<String, String> entry : rhsmFacts.entrySet()) {
+      if (entry.getKey().startsWith(MAC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX)) {
+        String[] nicsName = entry.getKey().split(PERIOD_REGEX);
+        var mac = entry.getValue();
+        var networkInterface = new NetworkInterface();
+        networkInterface.setName(nicsName[2]);
+        networkInterface.setMacAddress(mac);
+        mapInterfaceIps(networkInterface, rhsmFacts, ".ipv4");
+        mapInterfaceIps(networkInterface, rhsmFacts, ".ipv6");
+        nicSet.add(networkInterface);
+      }
+    }
+    // creates a lo interface if ips exist for it, but no mac was given
+    checkLoopbackIPs(nicSet, rhsmFacts);
+    return nicSet;
+  }
+
+  private void mapInterfaceIps(
+      NetworkInterface networkInterface, Map<String, String> facts, String suffix) {
+    String prefix = MAC_PREFIX + networkInterface.getName() + suffix;
+    String[] ipList;
+
+    if (suffix.equalsIgnoreCase(".ipv4") && facts.containsKey(prefix + "_address_list")) {
+      ipList = facts.get(prefix + "_address_list").split(COMMA_REGEX);
+      for (String ip : ipList) networkInterface.addIpv4AddressesItem(ip);
+    } else if (facts.containsKey(prefix + "_address")) {
+      networkInterface.addIpv4AddressesItem(facts.get(prefix + "_address"));
+    }
+
+    if (facts.containsKey(prefix + "_address.global_list")) {
+      ipList = facts.get(prefix + "_address.global_list").split(COMMA_REGEX);
+      for (String ip : ipList) networkInterface.addIpv6AddressesItem(ip);
+    } else if (facts.containsKey(prefix + "_address.global")) {
+      networkInterface.addIpv6AddressesItem(facts.get(prefix + "_address.global"));
+    }
+
+    if (facts.containsKey(prefix + "_address.link_list")) {
+      ipList = facts.get(prefix + "_address.link_list").split(COMMA_REGEX);
+      for (String ip : ipList) networkInterface.addIpv6AddressesItem(ip);
+    } else if (facts.containsKey(prefix + "_address.link")) {
+      networkInterface.addIpv6AddressesItem(facts.get(prefix + "_address.link"));
+    }
+  }
+
+  private void checkLoopbackIPs(
+      List<NetworkInterface> networkInterfaces, Map<String, String> facts) {
+    boolean loExist = networkInterfaces.stream().anyMatch(nic -> "lo".equals(nic.getName()));
+    var lo = new NetworkInterface();
+
+    if (!loExist && facts.containsKey("net.interface.lo.ipv4_address")) {
+      lo.setName("lo");
+      lo.setMacAddress("00:00:00:00:00:00");
+      lo.addIpv4AddressesItem(facts.get("net.interface.lo.ipv4_address"));
+      networkInterfaces.add(lo);
+    } else if (!loExist && facts.containsKey("net.interface.lo.ipv6_address")) {
+      lo.setName("lo");
+      lo.setMacAddress("00:00:00:00:00:00");
+      lo.addIpv6AddressesItem(facts.get("net.interface.lo.ipv6_address"));
+      networkInterfaces.add(lo);
     }
   }
 
