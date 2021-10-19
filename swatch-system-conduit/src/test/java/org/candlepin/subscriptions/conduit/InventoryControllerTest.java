@@ -656,7 +656,7 @@ class InventoryControllerTest {
     Consumer consumer = new Consumer();
     consumer.setOrgId("123");
     consumer.setUuid(uuid.toString());
-    consumer.getFacts().put("openshift.cluster_id", "JustAnotherCluster");
+    consumer.getFacts().put("openshift.cluster_uuid", "JustAnotherCluster");
     consumer.setAccountNumber("account");
 
     ConduitFacts expected = new ConduitFacts();
