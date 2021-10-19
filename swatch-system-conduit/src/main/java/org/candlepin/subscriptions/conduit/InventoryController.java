@@ -91,7 +91,7 @@ public class InventoryController {
   public static final String UNAME_MACHINE = "uname.machine";
   public static final String VIRT_IS_GUEST = "virt.is_guest";
   public static final String INSIGHTS_ID = "insights_id";
-  public static final String OPENSHIFT_CLUSTER_ID = "openshift.cluster_id";
+  public static final String OPENSHIFT_CLUSTER_UUID = "openshift.cluster_uuid";
   public static final String OCM_UNITS = "ocm.units";
   public static final String OCM_BILLING_MODEL = "ocm.billing_model";
   public static final String UNKNOWN = "unknown";
@@ -131,10 +131,10 @@ public class InventoryController {
     final Map<String, String> rhsmFacts = consumer.getFacts();
     ConduitFacts facts = new ConduitFacts();
     facts.setOrgId(consumer.getOrgId());
-    String clusterId = rhsmFacts.get(OPENSHIFT_CLUSTER_ID);
+    String clusterUuid = rhsmFacts.get(OPENSHIFT_CLUSTER_UUID);
     // NOTE future displayName logic could consider more facts here
-    if (clusterId != null) {
-      facts.setDisplayName(clusterId);
+    if (clusterUuid != null) {
+      facts.setDisplayName(clusterUuid);
     }
     facts.setSubscriptionManagerId(normalizeUuid(consumer.getUuid()));
     facts.setInsightsId(normalizeUuid(rhsmFacts.get(INSIGHTS_ID)));
