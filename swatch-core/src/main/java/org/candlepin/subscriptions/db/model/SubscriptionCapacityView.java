@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -52,12 +53,14 @@ import org.hibernate.annotations.Subselect;
         + "o.product_name \n"
         + "FROM subscription_capacity sc \n"
         + "JOIN subscription s on sc.subscription_id = s.subscription_id \n"
+        + "AND s.end_date > CURRENT_TIMESTAMP \n"
         + "JOIN offering o on sc.sku = o.sku")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class SubscriptionCapacityView {
 
   @EmbeddedId private SubscriptionCapacityKey key;
@@ -103,4 +106,20 @@ public class SubscriptionCapacityView {
 
   @Column(name = "has_unlimited_guest_sockets")
   private boolean hasUnlimitedGuestSockets;
+
+  public Integer getPhysicalSockets() {
+    return Objects.isNull(physicalSockets) ? 0 : physicalSockets;
+  }
+
+  public Integer getPhysicalCores() {
+    return Objects.isNull(physicalCores) ? 0 : physicalCores;
+  }
+
+  public Integer getVirtualCores() {
+    return Objects.isNull(virtualCores) ? 0 : virtualCores;
+  }
+
+  public Integer getVirtualSockets() {
+    return Objects.isNull(virtualSockets) ? 0 : virtualSockets;
+  }
 }

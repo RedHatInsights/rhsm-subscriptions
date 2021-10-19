@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 
 /** Stub version of the SearchApi for the Subscription service for local testing. */
@@ -46,6 +48,11 @@ public class StubSearchApi extends SearchApi {
   }
 
   private Subscription createData() {
-    return new Subscription().subscriptionNumber("2253591");
+    var now = OffsetDateTime.now();
+    return new Subscription()
+        .subscriptionNumber("2253591")
+        .effectiveStartDate(now.minusYears(10).toEpochSecond() * 1000L)
+        .effectiveEndDate(now.plusYears(10).toEpochSecond() * 1000L)
+        .subscriptionProducts(List.of(new SubscriptionProduct().sku("sku")));
   }
 }

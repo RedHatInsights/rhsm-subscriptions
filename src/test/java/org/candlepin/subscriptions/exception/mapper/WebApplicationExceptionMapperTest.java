@@ -35,9 +35,9 @@ class WebApplicationExceptionMapperTest {
 
   @Test
   void testMapsWebApplicationException() {
-    String expectedDetail = "FORCED!";
+    String expectedTitle = "FORCED!";
 
-    WebApplicationException exception = new NotFoundException(expectedDetail);
+    WebApplicationException exception = new NotFoundException(expectedTitle);
 
     WebApplicationExceptionMapper mapper = new WebApplicationExceptionMapper();
     Response resp = mapper.toResponse(exception);
@@ -49,7 +49,28 @@ class WebApplicationExceptionMapperTest {
 
     Error error = errors.getErrors().get(0);
     assertEquals(String.valueOf(exception.getResponse().getStatus()), error.getStatus());
-    assertEquals(WebApplicationExceptionMapper.ERROR_TITLE, error.getTitle());
+    assertEquals(expectedTitle, error.getTitle());
+  }
+
+  @Test
+  void testMapsWrappedWebApplicationException() {
+    String expectedTitle = "FORCED!";
+    String expectedDetail = "Bad argument";
+
+    IllegalArgumentException cause = new IllegalArgumentException(expectedDetail);
+    WebApplicationException exception = new NotFoundException(expectedTitle, cause);
+
+    WebApplicationExceptionMapper mapper = new WebApplicationExceptionMapper();
+    Response resp = mapper.toResponse(exception);
+    Object entityObj = resp.getEntity();
+    assertNotNull(entityObj);
+    assertThat(entityObj, instanceOf(Errors.class));
+    Errors errors = (Errors) entityObj;
+    assertEquals(1, errors.getErrors().size());
+
+    Error error = errors.getErrors().get(0);
+    assertEquals(String.valueOf(exception.getResponse().getStatus()), error.getStatus());
+    assertEquals(expectedTitle, error.getTitle());
     assertEquals(expectedDetail, error.getDetail());
   }
 }

@@ -13,7 +13,7 @@ tagMappings:
     tags:
       - OpenShift Container Platform
 
-  # OpenShift syspurpose roles
+  # System Purpose roles
   - value: ocp
     valueType: role
     tags:
@@ -22,16 +22,26 @@ tagMappings:
     valueType: role
     tags:
       - OpenShift-dedicated-metrics
+  - value: rhosak
+    valueType: role
+    tags:
+      - rhosak
 
-  # OpenShift Offering Product Names
+  # Offering Product Names
   - value: OpenShift Dedicated
     valueType: productName
     tags:
       - OpenShift-dedicated-metrics
+
   - value: OpenShift Container Platform
     valueType: productName
     tags:
       - OpenShift-metrics
+
+  - value: OpenShift Streams for Apache Kafka
+    valueType: productName
+    tags:
+      - rhosak
 
 # Individual tags can be measured in different ways.  The tagMetrics section defines these
 # measurements.  A tag will, at minimum, have a "uom" attribute (unit of measure) that defines the
@@ -42,6 +52,7 @@ tagMetrics:
   - tag: OpenShift-metrics
     metricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
+    queryKey: 5mSamples
     queryParams:
       product: ocp
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
@@ -51,6 +62,7 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
+    queryKey: 5mSamples
     queryParams:
       product: osd
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
@@ -58,9 +70,34 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
+    queryKey: 5mSamples
     queryParams:
       product: osd
       prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
+      prometheusMetadataMetric: subscription_labels
+
+  # RHOSAK metrics
+  - tag: rhosak
+    metricId: redhat.com:rhosak:storage_gb
+    uom: STORAGE_GIBIBYTES
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes
+      prometheusMetadataMetric: subscription_labels
+  - tag: rhosak
+    # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
+    metricId: redhat.com:rhosak:transfer_gb
+    uom: TRANSFER_GIBIBYTES
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
+      prometheusMetadataMetric: subscription_labels
+  - tag: rhosak
+    metricId: redhat.com:rhosak:cluster_hour
+    uom: INSTANCE_HOURS
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
       prometheusMetadataMetric: subscription_labels
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
@@ -75,6 +112,12 @@ tagMetaData:
       - OpenShift-metrics
       - OpenShift-dedicated-metrics
     serviceType: OpenShift Cluster
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+  - tags:
+      - rhosak
+    serviceType: Kafka Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION

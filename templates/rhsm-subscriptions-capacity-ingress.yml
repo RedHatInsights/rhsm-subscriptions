@@ -15,6 +15,8 @@ parameters:
     value: INFO
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
   - name: REPLICAS
     value: '1'
   - name: IMAGE
@@ -46,7 +48,15 @@ parameters:
   - name: DATABASE_MAX_POOL_SIZE
     value: '10'
   - name: SUBSCRIPTION_SYNC_ENABLED
-    value: 'false'
+    value: 'true'
+  - name: SUBSCRIPTION_URL
+    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+  - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+    value: 2m
+  - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+    value: 2m
+  - name: PRODUCT_URL
+    value: https://product.qa.api.redhat.com/svcrest/product/v3
 
 objects:
   - apiVersion: v1
@@ -134,6 +144,8 @@ objects:
                   value: ${LOGGING_LEVEL}
                 - name: KAFKA_BOOTSTRAP_HOST
                   value: ${KAFKA_BOOTSTRAP_HOST}
+                - name: KAFKA_MESSAGE_THREADS
+                  value: ${KAFKA_MESSAGE_THREADS}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
@@ -194,6 +206,28 @@ objects:
                     secretKeyRef:
                       name: tls
                       key: keystore_password
+                - name: PRODUCT_KEYSTORE
+                  value: /service-certs/keystore.jks
+                - name: PRODUCT_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
+                - name: SUBSCRIPTION_KEYSTORE
+                  value: /service-certs/keystore.jks
+                - name: SUBSCRIPTION_URL
+                  value: ${SUBSCRIPTION_URL}
+                - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+                  value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
+                - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+                  value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
+                - name: PRODUCT_URL
+                  value: ${PRODUCT_URL}
+                - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
                 - name: TRUSTSTORE
                   value: /ingress/truststore.jks
                 - name: TRUSTSTORE_PASSWORD
@@ -233,9 +267,6 @@ objects:
                   protocol: TCP
                 - containerPort: 8080
                   protocol: TCP
-                - containerPort: 8778
-                  name: jolokia
-                  protocol: TCP
               volumeMounts:
                 - name: config
                   mountPath: /config
@@ -245,6 +276,8 @@ objects:
                   mountPath: /capacity-allowlist
                 - name: logs
                   mountPath: /logs
+                - name: service-certs
+                  mountPath: /service-certs
               workingDir: /
             - name: splunk
               env:
@@ -283,6 +316,9 @@ objects:
             - name: splunk
               secret:
                 secretName: splunk
+            - name: service-certs
+              secret:
+                secretName: pinhead
             - name: logs
               emptyDir:
           restartPolicy: Always

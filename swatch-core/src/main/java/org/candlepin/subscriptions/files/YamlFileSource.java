@@ -20,15 +20,9 @@
  */
 package org.candlepin.subscriptions.files;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.Duration;
-import javax.annotation.PostConstruct;
-import org.springframework.context.ResourceLoaderAware;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.yaml.snakeyaml.Yaml;
 
 /**
@@ -36,29 +30,10 @@ import org.yaml.snakeyaml.Yaml;
  *
  * @param <T> Expected return type for the loaded yaml.
  */
-public abstract class YamlFileSource<T> implements ResourceLoaderAware {
-
-  private final Cache<T> cachedValue;
-  private String resourceLocation;
-  private ResourceLoader resourceLoader = new DefaultResourceLoader();
-  private Resource fileResource;
-
-  protected YamlFileSource(String resourceLocation, Clock clock, Duration cacheTtl) {
-    this.resourceLocation = resourceLocation;
-    this.cachedValue = new Cache<>(clock, cacheTtl);
-  }
-
-  public T getValue() throws IOException {
-    if (cachedValue.isExpired()) {
-      try (InputStream s = fileResource.getInputStream()) {
-        T value = parse(s);
-        if (value == null) {
-          return getDefault();
-        }
-        cachedValue.setValue(value);
-      }
-    }
-    return cachedValue.getValue();
+public abstract class YamlFileSource<T> extends StructuredFileSource<T> {
+  protected YamlFileSource(
+      String resourceLocation, Clock clock, Duration cacheTtl, boolean strictLoading) {
+    super(resourceLocation, clock, cacheTtl, strictLoading);
   }
 
   /**
@@ -69,20 +44,5 @@ public abstract class YamlFileSource<T> implements ResourceLoaderAware {
    */
   protected T parse(InputStream s) {
     return new Yaml().load(s);
-  }
-
-  protected abstract T getDefault();
-
-  @Override
-  public void setResourceLoader(ResourceLoader resourceLoader) {
-    this.resourceLoader = resourceLoader;
-  }
-
-  @PostConstruct
-  public void init() {
-    fileResource = resourceLoader.getResource(resourceLocation);
-    if (!fileResource.exists()) {
-      throw new IllegalStateException("Resource not found: " + fileResource.getDescription());
-    }
   }
 }

@@ -44,9 +44,9 @@ import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 import org.springframework.data.domain.Page;
@@ -112,7 +112,7 @@ public class CapacityResource implements CapacityApi {
             ending);
 
     List<CapacitySnapshot> data;
-    TallyReportLinks links;
+    PageLinks links;
     if (offset != null || limit != null) {
       Pageable pageable = ResourceUtils.getPageable(offset, limit);
       data = paginate(capacities, pageable);

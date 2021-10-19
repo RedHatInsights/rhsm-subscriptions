@@ -47,10 +47,10 @@ import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.HostsApi;
@@ -218,7 +218,7 @@ public class HostsResource implements HostsApi {
               .getContent().stream().map(TallyHostView::asApiHost).collect(Collectors.toList());
     }
 
-    TallyReportLinks links;
+    PageLinks links;
     if (offset != null || limit != null) {
       links = pageLinkCreator.getPaginationLinks(uriInfo, hosts);
     } else {
@@ -253,7 +253,7 @@ public class HostsResource implements HostsApi {
     String accountNumber = ResourceUtils.getAccountNumber();
     Pageable page = ResourceUtils.getPageable(offset, limit);
     Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
-    TallyReportLinks links;
+    PageLinks links;
     if (offset != null || limit != null) {
       links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
     } else {

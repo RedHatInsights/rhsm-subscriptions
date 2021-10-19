@@ -104,4 +104,14 @@ public class DateRange {
   public String getEndString() {
     return endDate.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
   }
+
+  public boolean contains(OffsetDateTime testDate) {
+    return (testDate.isAfter(startDate) && testDate.isBefore(endDate))
+        || testDate.equals(startDate)
+        || testDate.equals(endDate);
+  }
+
+  public String toString() {
+    return String.format("[%s - %s]", getStartString(), getEndString());
+  }
 }
