@@ -70,12 +70,18 @@ parameters:
     value: http://localhost:8082
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
   - name: DATABASE_MAX_POOL_SIZE
-    value: '25'
+    value: '10'
   - name: INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
   - name: INVENTORY_DATABASE_MAX_POOL_SIZE
-    value: '25'
+    value: '10'
   - name: OPENSHIFT_BILLING_MODEL_FILTER
     value: 'marketplace'
   - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
