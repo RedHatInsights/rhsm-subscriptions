@@ -84,6 +84,8 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setOrgId("my_org");
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
+    expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
+    expectedFacts.setOsVersion("6.3");
 
     InventoryServiceProperties props = new InventoryServiceProperties();
     KafkaEnabledInventoryService service =
@@ -112,6 +114,9 @@ class KafkaEnabledInventoryServiceTest {
     assertNotNull(syncDate);
     assertEquals(syncDate, message.getData().getStaleTimestamp());
     assertEquals("rhsm-conduit", message.getData().getReporter());
+    assertEquals("6.3", message.getData().getSystemProfile().getOsRelease());
+    assertEquals(
+        "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().getValue());
   }
 
   @Test
