@@ -144,6 +144,14 @@ parameters:
     value: 90d
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
+  - name: SUBSCRIPTION_URL
+    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+  - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+    value: 2m
+  - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+    value: 2m
+  - name: PRODUCT_URL
+    value: https://product.qa.api.redhat.com/svcrest/product/v3
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -1062,6 +1070,206 @@ objects:
                 secretName: splunk
             - name: logs
               emptyDir:
+            - name: pinhead
+              secret:
+                secretName: pinhead
+
+      - name: capacity-ingress
+        webServices:
+          public:
+            enabled: true
+        minReplicas: 1
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: capacity-ingress
+            - name: JAVA_OPTIONS
+              value: -Dspring.config.additional-location=file:/config/ssl.properties
+            - name: SUBSCRIPTION_SYNC_ENABLED
+              value: ${SUBSCRIPTION_SYNC_ENABLED}
+
+            - name: AB_JOLOKIA_OFF
+              value: 'true'
+            - name: HAWTIO_BASE_PATH
+              value: ${HAWTIO_BASE_PATH}
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: KAFKA_MESSAGE_THREADS
+              value: ${KAFKA_MESSAGE_THREADS}
+            - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+              value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+            - name: KAFKA_SEEK_OVERRIDE_END
+              value: ${KAFKA_SEEK_OVERRIDE_END}
+            - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: DATABASE_CONNECTION_TIMEOUT_MS
+              value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+            - name: DATABASE_MAX_POOL_SIZE
+              value: ${DATABASE_MAX_POOL_SIZE}
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+            - name: INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS
+              value: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS}
+            - name: INVENTORY_DATABASE_MAX_POOL_SIZE
+              value: ${INVENTORY_DATABASE_MAX_POOL_SIZE}
+            - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+              value: file:/capacity-allowlist/product-allowlist.txt
+            - name: KEYSTORE
+              value: /ingress/keystore.jks
+            - name: KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: PRODUCT_KEYSTORE
+              value: /service-certs/keystore.jks
+            - name: PRODUCT_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: SUBSCRIPTION_KEYSTORE
+              value: /service-certs/keystore.jks
+            - name: SUBSCRIPTION_URL
+              value: ${SUBSCRIPTION_URL}
+            - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+              value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
+            - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+              value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
+            - name: PRODUCT_URL
+              value: ${PRODUCT_URL}
+            - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: TRUSTSTORE
+              value: /ingress/truststore.jks
+            - name: TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: logs
+              mountPath: /logs
+            - name: pinhead
+              mountPath: /pinhead
+          volumes:
+            - name: config
+              configMap:
+                name: rhsm-subscriptions-config
+            - name: splunk
+              secret:
+                secretName: splunk
+            - name: logs
+              emptyDir:
+            - name: ingress
+              secret:
+                secretName: ingress
+            - name: capacity-allowlist
+              configMap:
+                name: capacity-allowlist
             - name: pinhead
               secret:
                 secretName: pinhead
