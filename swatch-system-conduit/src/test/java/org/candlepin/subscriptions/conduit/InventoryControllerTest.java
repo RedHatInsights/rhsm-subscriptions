@@ -717,4 +717,26 @@ class InventoryControllerTest {
         conduitFacts.getNetworkInterfaces(),
         Matchers.containsInAnyOrder(expectedNIC1, expectedNIC2, loNIC));
   }
+
+  @Test
+  void testEmptyUuidNormalizedToNull() throws ApiException, MissingAccountNumberException {
+    Consumer consumer = new Consumer();
+    UUID uuid = UUID.randomUUID();
+    consumer.setUuid(uuid.toString());
+    consumer.setOrgId("org123");
+    consumer.getFacts().put(InventoryController.INSIGHTS_ID, "");
+    consumer.setAccountNumber("account123");
+
+    ConduitFacts expected = new ConduitFacts();
+    expected.setOrgId("org123");
+    expected.setSubscriptionManagerId(uuid.toString());
+    expected.setAccountNumber("account123");
+
+    when(rhsmService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString()))
+        .thenReturn(pageOf(consumer));
+
+    controller.updateInventoryForOrg("org123");
+    verify(inventoryService).scheduleHostUpdate(expected);
+    verify(inventoryService, times(1)).flushHostUpdates();
+  }
 }
