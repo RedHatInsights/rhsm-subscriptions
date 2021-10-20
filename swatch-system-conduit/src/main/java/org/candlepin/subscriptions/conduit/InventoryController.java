@@ -179,7 +179,7 @@ public class InventoryController {
   }
 
   private String normalizeUuid(String uuid) {
-    if (uuid == null) {
+    if (!StringUtils.hasText(uuid)) {
       return null;
     }
     String trimmed = uuid.trim();
