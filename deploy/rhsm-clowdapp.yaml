@@ -1113,7 +1113,6 @@ objects:
               value: -Dspring.config.additional-location=file:/config/ssl.properties
             - name: SUBSCRIPTION_SYNC_ENABLED
               value: ${SUBSCRIPTION_SYNC_ENABLED}
-
             - name: AB_JOLOKIA_OFF
               value: 'true'
             - name: HAWTIO_BASE_PATH
@@ -1199,14 +1198,14 @@ objects:
                   name: tls
                   key: keystore_password
             - name: PRODUCT_KEYSTORE
-              value: /service-certs/keystore.jks
+              value: /pinhead/keystore.jks
             - name: PRODUCT_KEYSTORE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: tls
                   key: keystore_password
             - name: SUBSCRIPTION_KEYSTORE
-              value: /service-certs/keystore.jks
+              value: /pinhead/keystore.jks
             - name: SUBSCRIPTION_URL
               value: ${SUBSCRIPTION_URL}
             - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
@@ -1259,6 +1258,10 @@ objects:
               mountPath: /config
             - name: logs
               mountPath: /logs
+            - name: ingress
+              mountPath: /ingress
+            - name: capacity-allowlist
+              mountPath: /capacity-allowlist
             - name: pinhead
               mountPath: /pinhead
           volumes:
