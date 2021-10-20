@@ -1025,6 +1025,6 @@ objects:
       server.ssl.trust-store=${TRUSTSTORE}
       server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
 
-      # put /actuator calls on 8080
-      management.server.port=8080
+      # put /actuator calls on 8000
+      management.server.port=8000
       management.server.ssl.enabled=false
