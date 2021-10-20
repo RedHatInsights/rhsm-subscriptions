@@ -116,10 +116,30 @@ parameters:
   - name: ENV_NAME
     value: env-rhsm
 
-  - name: METERING_SCHEDULE
-    value: 0 * * * *
+  - name: PURGE_SNAPSHOT_SCHEDULE
+    value: 0 3 * * *
+  - name: CAPTURE_SNAPSHOT_SCHEDULE
+    value: 0 1 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
+  - name: SUBSCRIPTION_SYNC_SCHEDULE
+    value: 0 10 * * *
+  - name: METERING_SCHEDULE
+    value: 0 * * * *
+  - name: OFFERING_SYNC_SCHEDULE
+    value: 0 2 * * *
+
+  - name: OPENSHIFT_METERING_RANGE
+    value: '60'
+  - name: HOURLY_TALLY_OFFSET
+    value: '60'
+  # TODO: this should be removed once OCM has non-standard billing_model clusters
+  - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
+    value: "group(min_over_time(subscription_labels{ebs_account != '', billing_model='standard'}[1h])) by (ebs_account)"
+  - name: EVENT_RECORD_RETENTION
+    value: 90d
+  - name: SUBSCRIPTION_SYNC_ENABLED
+    value: 'true'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -132,6 +152,9 @@ objects:
       - metrics-cron
       - cron-tally
       - hourly-tally
+      - cron-purge
+      - subscription-sync
+      - offering-sync
 
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
@@ -163,6 +186,7 @@ objects:
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
+
     deployments:
     - name: api
       minReplicas: 1
@@ -891,122 +915,727 @@ objects:
               secretName: pinhead
 
     jobs:
-    - name: hourly-tally
-      schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
-      successfulJobsHistoryLimit: 2
-      restartPolicy: Never
-      podSpec:
-        image: ${IMAGE}:${IMAGE_TAG}
-        imagePullPolicy: IfNotPresent
-        command:
-          - /bin/bash
-          - /usr/local/s2i/run
-        initContainers:
-          - env:
-              - name: SPRING_PROFILES_ACTIVE
-                value: liquibase-only
-            inheritEnv: true
-            command:
-              - /bin/bash
-              - /usr/local/s2i/run
-            resources:
-              requests:
-                cpu: ${CPU_REQUEST}
-                memory: ${MEMORY_REQUEST}
-              limits:
-                cpu: ${CPU_LIMIT}
-                memory: ${MEMORY_LIMIT}
-        env:
-          - name: SPRING_PROFILES_ACTIVE
-            value: capture-snapshots,kafka-queue
-          - name: JAVA_MAX_MEM_RATIO
-            value: '85'
-          - name: GC_MAX_METASPACE_SIZE
-            value: '256'
-          - name: LOG_FILE
-            value: /logs/server.log
-          - name: LOGGING_LEVEL_ROOT
-            value: ${LOGGING_LEVEL_ROOT}
-          - name: LOGGING_LEVEL_ORG_CANDLEPIN
-            value: ${LOGGING_LEVEL}
-          - name: DATABASE_HOST
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: hostname
-          - name: DATABASE_PORT
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: port
-          - name: DATABASE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: username
-          - name: DATABASE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: password
-          - name: DATABASE_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: rhsm-db
-                key: name
-          - name: INVENTORY_DATABASE_HOST
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db
-                key: hostname
-          - name: INVENTORY_DATABASE_DATABASE
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db
-                key: name
-          - name: INVENTORY_DATABASE_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db
-                key: username
-          - name: INVENTORY_DATABASE_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: host-inventory-db
-                key: password
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /actuator/health
-            port: 8000
-            scheme: HTTP
-          initialDelaySeconds: 300
-          periodSeconds: 20
-          successThreshold: 1
-          timeoutSeconds: 5
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /actuator/health
-            port: 8000
-            scheme: HTTP
-          initialDelaySeconds: 300
-          periodSeconds: 20
-          successThreshold: 1
-          timeoutSeconds: 5
-        resources:
-          requests:
-            cpu: ${CPU_REQUEST}
-            memory: ${MEMORY_REQUEST}
-          limits:
-            cpu: ${CPU_LIMIT}
-            memory: ${MEMORY_LIMIT}
-        volumeMounts:
-          - name: logs
-            mountPath: /logs
-        volumes:
-          - name: logs
-            emptyDir:
+      - name: metrics-cron
+        schedule: ${METERING_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: metering-job,kafka-queue
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: OPENSHIFT_METERING_RANGE
+              value: ${OPENSHIFT_METERING_RANGE}
+            - name: HOURLY_TALLY_OFFSET
+              value: ${HOURLY_TALLY_OFFSET}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+            - name: PROM_URL
+              value: http://localhost:8082
+            # TODO remove once non-standard billing_model lands in OCM
+            - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
+              value: ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+      - name: cron-tally
+        schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: capture-snapshots,kafka-queue
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+      - name: hourly-tally
+        schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: capture-hourly-snapshots,kafka-queue
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+      - name: cron-purge
+        schedule: ${PURGE_SNAPSHOT_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: purge-snapshots,kafka-queue
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: EVENT_RECORD_RETENTION
+              value: ${EVENT_RECORD_RETENTION}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+      - name: subscription-sync
+        schedule: ${SUBSCRIPTION_SYNC_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: subscription-sync,kafka-queue
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: SUBSCRIPTION_SYNC_ENABLED
+              value: ${SUBSCRIPTION_SYNC_ENABLED}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+      - name: offering-sync
+        schedule: ${OFFERING_SYNC_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: offering-sync,kafka-queue
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+              value: file:/capacity-allowlist/product-allowlist.txt
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: INVENTORY_DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: hostname
+            - name: INVENTORY_DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: name
+            - name: INVENTORY_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: username
+            - name: INVENTORY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: host-inventory-db
+                  key: password
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: capacity-allowlist
+              mountPath: /capacity-allowlist
+          volumes:
+            - name: logs
+              emptyDir:
+            - name: capacity-allowlist
+              configMap:
+                name: capacity-allowlist
 
 - apiVersion: v1
   kind: ConfigMap
