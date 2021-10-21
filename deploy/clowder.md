@@ -20,6 +20,8 @@
         path: deploy/rhsm-clowdapp.yaml
   BONFIRE
   ```
+* Make your life easier and install the [Kubernetes Lens
+  IDE](https://k8slens.dev/).  It's much easier to use than the browser console.
 
 ## Local Development
 You can do development locally using Minikube, but be aware that the resource
@@ -85,45 +87,8 @@ requirements are going to be **steep**.
 * Manually create the host-inventory-db-readonly secret.  You can pull values
   out of vault.devshift.net
 
-## Ephemeral Development
-This approach is the recommended one.  The definitive reference is going to be
-the "Onboarding to the Ephemeral Cluster" page in the Clouddout documentation,
-but here are some essentials:
-
-* Make sure you’re part of the
-  [RedHatInsights](https://github.com/RedHatInsights) GitHub org and a member of
-  the `ephemeral-users` role in your file under the `users` directory in
-  app-interface.
-
-* Install `oc` from the `CLI Tools Download Page` on the cluster.
-
-* Namespaces can be reserved with `bonfire`.  E.g. `bonfire namespace reserve
-  --duration HOURS` will reserve a random available namespace for the number of
-  hours you specify.  You can always increase a reservation by reserving the
-  namespace again: `bonfire namespace reserve NAMESPACE`.
-
-* Create an account on `quay.io` and create a image repository.  Use `podman
-  login` or `docker login` so that you can build and push your test images
-  there.
-
-* When you deploy with bonfire during development, specify the image and
-  image tag you want to use like so:
-
-  `bonfire deploy rhsm-subscriptions -n NAMESPACE -i
-  quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image`
-
-  The `-i` argument overrides the image tag that you're using.  The `-p`
-  overrides parameters in specific ClowdApp components (defined in
-  `~/.config/bonfire/config.yaml`).  In this case, we override the `IMAGE`
-  parameter in our template with the image to use.
-
-  If you don't specify the repo and tag with the `-i`
-  argument, `bonfire` is going to use what's defined in the ClowdApp which is
-  going to be the latest production image that's been pushed to the official
-  repo.
-
-# Development and Deployment
-## Prepare your shell
+### Development and Deployment
+#### Prepare your shell
 * Set up shell completion if you like
   * `source <(kubectl completion zsh)` or `bash` if you use bash
   * `source <(minikube completion zsh)` or `bash` if you use bash
@@ -131,9 +96,6 @@ but here are some essentials:
   * `source $ENV_LOCATION/bin/activate`
 * See below for discussion, but if using Docker, point your registry to Minikube
   * `eval $(minikube -p minikube docker-env)`
-
-Make your life easier and install the [Kubernetes Lens
-IDE](https://k8slens.dev/).  It's much easier to use than the browser console.
 
 If you're using minikube, it is easiest if you configure your container
 management program to work directly with the minikube container registry.
@@ -170,8 +132,69 @@ deploy.
 
 I have specifically defined the image tag here because otherwise, `bonfire` will
 actually run a `git rev-parse HEAD` and attempt to use that hash as an image
-tag.  Figuring out how that's meant to work is on the TODO list.
+tag.
 
 Once your pods are up and running, you can expose them directly or the associated
 service using `port-forward`.  For example: `kubectl port-forward svc/rhsm-api 8000`
 will forward your localhost's port 8000 to the service (and underlying pod).
+
+## Ephemeral Development
+This approach is the recommended one.  The definitive reference is going to be
+the "Onboarding to the Ephemeral Cluster" page in the Clouddout documentation,
+but here are some essentials:
+
+* Make sure you’re part of the
+  [RedHatInsights](https://github.com/RedHatInsights) GitHub org and a member of
+  the `ephemeral-users` role in your file under the `users` directory in
+  app-interface.
+
+* Install `oc` from the `CLI Tools Download Page` on the cluster.
+
+* Namespaces can be reserved with `bonfire`.  E.g. `bonfire namespace reserve
+  --duration HOURS` will reserve a random available namespace for the number of
+  hours you specify.  You can always increase a reservation by reserving the
+  namespace again: `bonfire namespace reserve NAMESPACE`.
+
+* Create an account on `quay.io` and create a image repository.  Use `podman
+  login` or `docker login` so that you can build and push your test images
+  there.  For example,
+
+  ```
+  $ podman login quay.io
+  $ podman build . -t quay.io/awood/rhsm
+  $ podman push quay.io/awood/rhsm
+  ```
+
+* When you deploy with bonfire during development, specify the image and
+  image tag you want to use like so:
+
+  `bonfire deploy rhsm-subscriptions -n NAMESPACE --remove-resources=false -i
+  quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image`
+
+  The `-i` argument overrides the image tag that you're using.  The `-p`
+  overrides parameters in specific ClowdApp components (defined in
+  `~/.config/bonfire/config.yaml`).  In this case, we override the `IMAGE`
+  parameter in our template with the image to use.
+
+  If you don't specify the repo and tag with the `-i`
+  argument, `bonfire` is going to use what's defined in the ClowdApp which is
+  going to be the latest production image that's been pushed to the official
+  repo.
+
+  The `--remove-resources=false` argument is extremely important. Without it,
+  bonfire will process the template and will **not** include our resource
+  requests. This "feature" is to prevent apps from requesting too much but the
+  default resources given are vastly insufficient for our purposes.
+
+* If you want to reset your ephemeral environment from the RHSM stuff entirely,
+  you can delete the special "app" resource that Clowder creates.  So `oc delete
+  app rhsm` will essentially delete all the pods, deployments, etc. associate
+  with RHSM while leaving other apps (like RBAC) in place.
+
+* Expose your pods using `oc port-forward`
+
+* Here's a one-liner to see who has what ephemeral environment reserved
+
+  ```
+  oc get project -l ephemeral-ns-reserved -L ephemeral-ns-requester-name,ephemeral-ns-reserved
+  ```
