@@ -63,6 +63,7 @@ public class TagProfile {
   @Getter private Set<String> tagsWithPrometheusEnabledLookup;
   private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
+  private Map<String, Set<String>> tagToOfferingProductNamesLookup;
   private Map<String, Set<String>> roleToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
   private Map<String, TagMetaData> tagMetaDataToTagLookup;
@@ -76,6 +77,7 @@ public class TagProfile {
     tagsWithPrometheusEnabledLookup = new HashSet<>();
     measurementsByTagLookup = new HashMap<>();
     offeringProductNameToTagLookup = new HashMap<>();
+    tagToOfferingProductNamesLookup = new HashMap<>();
     roleToTagLookup = new HashMap<>();
     tagMetaDataToTagLookup = new HashMap<>();
     finestGranularityLookup = new HashMap<>();
@@ -96,7 +98,15 @@ public class TagProfile {
                       .computeIfAbsent(tag, k -> new HashSet<>())
                       .add(mapping.getValue()));
     } else if ("productName".equals(mapping.getValueType())) {
-      mapping.getTags().forEach(tag -> offeringProductNameToTagLookup.put(mapping.getValue(), tag));
+      mapping
+          .getTags()
+          .forEach(
+              tag -> {
+                offeringProductNameToTagLookup.put(mapping.getValue(), tag);
+                tagToOfferingProductNamesLookup
+                    .computeIfAbsent(tag, k -> new HashSet<>())
+                    .add(mapping.getValue());
+              });
     } else if ("role".equals(mapping.getValueType())) {
       roleToTagLookup
           .computeIfAbsent(mapping.getValue(), k -> new HashSet<>())
@@ -228,5 +238,9 @@ public class TagProfile {
         .map(TagMetaData::getTags)
         .forEach(tags::addAll);
     return tags;
+  }
+
+  public Set<String> getOfferingProductNamesForTag(String productTag) {
+    return tagToOfferingProductNamesLookup.getOrDefault(productTag, Collections.emptySet());
   }
 }

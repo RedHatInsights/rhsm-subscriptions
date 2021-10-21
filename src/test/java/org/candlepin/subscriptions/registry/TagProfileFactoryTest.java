@@ -86,7 +86,7 @@ class TagProfileFactoryTest {
 
   @Test
   void testCanLookupTagByOfferingName() {
-    assertNotNull(tagProfile.tagForOfferingProductName("OpenShift Dedicated"));
+    assertNotNull(tagProfile.tagForOfferingProductName("OpenShift Container Platform"));
   }
 
   @Test
