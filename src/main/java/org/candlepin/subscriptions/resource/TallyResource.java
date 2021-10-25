@@ -97,6 +97,7 @@ public class TallyResource implements TallyApi {
   }
 
   @Override
+  @ReportingAccessRequired
   public TallyReportData getTallyReportData(
       ProductId productId,
       MetricId metricId,
