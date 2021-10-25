@@ -168,7 +168,7 @@ but here are some essentials:
 * When you deploy with bonfire during development, specify the image and
   image tag you want to use like so:
 
-  `bonfire deploy rhsm-subscriptions -n NAMESPACE --remove-resources=false -i
+  `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all -i
   quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image`
 
   The `-i` argument overrides the image tag that you're using.  The `-p`
@@ -181,7 +181,7 @@ but here are some essentials:
   going to be the latest production image that's been pushed to the official
   repo.
 
-  The `--remove-resources=false` argument is extremely important. Without it,
+  The `--no-remove-resources=all` argument is extremely important. Without it,
   bonfire will process the template and will **not** include our resource
   requests. This "feature" is to prevent apps from requesting too much but the
   default resources given are vastly insufficient for our purposes.
