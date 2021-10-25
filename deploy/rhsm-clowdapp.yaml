@@ -158,6 +158,8 @@ parameters:
     value: 2m
   - name: PRODUCT_URL
     value: https://product.qa.api.redhat.com/svcrest/product/v3
+  - name: RHSM_RBAC_USE_STUB
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -182,7 +184,6 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
     dependencies:
-      - rbac
       - host-inventory
 
     kafkaTopics:
@@ -338,6 +339,8 @@ objects:
                   key: keystore_password
             - name: RHSM_KEYSTORE
               value: /pinhead/keystore.jks
+            - name: RHSM_RBAC_USE_STUB
+              value: ${RHSM_RBAC_USE_STUB}
           livenessProbe:
             failureThreshold: 3
             httpGet:
