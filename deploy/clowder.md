@@ -9,8 +9,11 @@
   paste in the contents, replace `$(pwd)` with the directory where your
   subscription-watch checkout is
 
+  You can override parameters as shown below, or alternatively with the bonfire `-p` argument during the deploy step.  The parameters in the example below are useful for development environments.
+
   ```
   bonfire config write-default
+
   cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
   - name: rhsm-subscriptions
     components:
@@ -18,6 +21,11 @@
         host: local
         repo: $(pwd)
         path: deploy/rhsm-clowdapp.yaml
+        parameters:
+            REPLICAS: 1
+            RHSM_RBAC_USE_STUB: 'true'
+            MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
+
   BONFIRE
   ```
 * Make your life easier and install the [Kubernetes Lens
