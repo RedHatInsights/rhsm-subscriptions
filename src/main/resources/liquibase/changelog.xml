@@ -50,5 +50,6 @@
     <include file="liquibase/202107140929-ent-4055-cleanup-event-data.xml" />
     <include file="liquibase/202111331133-add-account-service-table.xml" />
     <include file="liquibase/202110211313-add-rhosak-offering.xml" />
+    <include file="liquibase/202110211314-add-description-column-to-offering.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

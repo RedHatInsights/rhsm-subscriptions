@@ -61,7 +61,7 @@ class UpstreamProductData {
     SERVICE_TYPE,
     PRODUCT_FAMILY,
     USAGE,
-    /** Name of Offering comes from opProd description field, not the PRODUCT_NAME attribute. */
+    PRODUCT_NAME,
     X_DESCRIPTION,
     /** Role originates from opProd roles field, not an attribute. */
     X_ROLE;
@@ -148,7 +148,8 @@ class UpstreamProductData {
     offering.setProductIds(Set.copyOf(engOids));
     offering.setRole(attrs.get(Attr.X_ROLE));
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
-    offering.setProductName(attrs.get(Attr.X_DESCRIPTION));
+    offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
+    offering.setDescription(attrs.get(Attr.X_DESCRIPTION));
 
     calcCapacityForOffering(offering);
 
