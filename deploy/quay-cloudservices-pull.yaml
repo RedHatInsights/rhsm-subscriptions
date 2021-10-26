@@ -1,7 +1,0 @@
-apiVersion: v1
-data:
-  .dockerconfigjson: ${REPLACE_ME}
-kind: Secret
-metadata:
-  name: quay-cloudservices-pull
-type: kubernetes.io/dockerconfigjson
