@@ -160,6 +160,9 @@ parameters:
     value: https://product.qa.api.redhat.com/svcrest/product/v3
   - name: RHSM_RBAC_USE_STUB
     value: 'false'
+  # TODO after enable individual functionality (see ENT-4487)
+  - name: DEV_MODE
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -523,6 +526,8 @@ objects:
                   key: keystore_password
             - name: RHSM_KEYSTORE
               value: /pinhead/keystore.jks
+            - name: DEV_MODE
+              value: ${DEV_MODE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
