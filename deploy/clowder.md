@@ -25,6 +25,7 @@
             REPLICAS: 1
             RHSM_RBAC_USE_STUB: 'true'
             MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
+            DEV_MODE: 'true'
 
   BONFIRE
   ```
