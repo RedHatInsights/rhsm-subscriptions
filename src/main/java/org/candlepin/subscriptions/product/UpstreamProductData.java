@@ -275,11 +275,21 @@ class UpstreamProductData {
 
     Integer sockets = nullOrInteger(attrs.get(Attr.SOCKET_LIMIT));
 
-    offering.setPhysicalCores(cores);
-    offering.setPhysicalSockets(sockets);
+    /*
+    There are no SKUs today (2021-10-27) that provide both physical capacity and virtual capacity
+    at the same time. It is one or the other.
 
-    // If there is a derived SKU, then virtual cores and sockets match the physical values.
-    if (attrs.get(Attr.DERIVED_SKU) != null) {
+    If there is no derived SKU, the set the physical capacities. Otherwise, set the virtual
+    capacities. Whenever there is a derived SKU, there are only engProds/content in the
+    derived/derived-children SKUs.
+
+    See https://issues.redhat.com/browse/ENT-4301?focusedCommentId=19210665 for details.
+    */
+
+    if (attrs.get(Attr.DERIVED_SKU) == null) {
+      offering.setPhysicalCores(cores);
+      offering.setPhysicalSockets(sockets);
+    } else {
       offering.setVirtualCores(cores);
       offering.setVirtualSockets(sockets);
     }
