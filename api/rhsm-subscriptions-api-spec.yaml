@@ -1516,6 +1516,13 @@ components:
           type: string
         detail:
           type: string
+
+    SubscriptionType:
+      type: string
+      enum:
+        - On-demand
+        - Annual
+
     SubscriptionEventType:
       type: string
       enum:
@@ -1607,9 +1614,12 @@ components:
               description: "The usage that the report was made against. Not set if it wasn't specified as a query parameter."
             uom:
               $ref: '#/components/schemas/Uom'
+            subscription_type:
+              $ref: '#/components/schemas/SubscriptionType'
           required:
             - count
             - product
+            - subscription_type
 
 security:
   - 3ScaleIdentity: []

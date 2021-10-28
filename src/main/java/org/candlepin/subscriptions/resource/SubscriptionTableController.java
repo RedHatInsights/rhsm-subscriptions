@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,12 +43,15 @@ public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   private final ApplicationClock clock;
+  private final TagProfile tagProfile;
 
   @Autowired
   SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
+      TagProfile tagProfile,
       ApplicationClock clock) {
     this.subscriptionCapacityViewRepository = subscriptionCapacityViewRepository;
+    this.tagProfile = tagProfile;
     this.clock = clock;
   }
 
@@ -119,10 +123,15 @@ public class SubscriptionTableController {
     reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);
 
+    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
+    SubscriptionType subscriptionType =
+        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
+
     return new SkuCapacityReport()
         .data(reportItems)
         .meta(
-            new HostReportMeta()
+            new SkuCapacityReportMeta()
+                .subscriptionType(subscriptionType)
                 .count(reportItemCount)
                 .serviceLevel(serviceLevel)
                 .usage(usage)
