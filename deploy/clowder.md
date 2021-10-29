@@ -164,26 +164,36 @@ but here are some essentials:
   hours you specify.  You can always increase a reservation by reserving the
   namespace again: `bonfire namespace reserve NAMESPACE`.
 
-* Create an account on `quay.io` and create a image repository.  Use `podman
-  login` or `docker login` so that you can build and push your test images
-  there.  For example,
+* Create an account on `quay.io` and create an image repository for each
+  component (Currently, one for rhsm-subscriptions and one for
+  swatch-system-conduit).  Use `podman login` or `docker login` so that you
+  can build and push your test images there.  For example,
 
   ```
   $ podman login quay.io
   $ podman build . -t quay.io/awood/rhsm
+  $ podman build . -f swatch-system-conduit/Dockerfile -t quay.io/awood/swatch-system-conduit
   $ podman push quay.io/awood/rhsm
+  $ podman push quay.io/awood/swatch-system-conduit
   ```
 
 * When you deploy with bonfire during development, specify the image and
   image tag you want to use like so:
 
   `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all -i
-  quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image`
+  quay.io/my-repo/my-image=my-tag
+  -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image
+  -p rhsm-subscriptions/CONDUIT_IMAGE=quay.io/my-repo/my-conduit-image`
 
   The `-i` argument overrides the image tag that you're using.  The `-p`
   overrides parameters in specific ClowdApp components (defined in
   `~/.config/bonfire/config.yaml`).  In this case, we override the `IMAGE`
-  parameter in our template with the image to use.
+  and `CONDUIT_IMAGE` parameters in our template with the image to use.
+
+  Note that you can also locally change the images used without the
+  parameters - simply add `IMAGE` and `CONDUIT_IMAGE` to `parameters` in
+  `~/.config/bonfire/config.yaml`. (If you do this, the `-p` arguments to
+  `bonfire` are redundant)
 
   If you don't specify the repo and tag with the `-i`
   argument, `bonfire` is going to use what's defined in the ClowdApp which is
