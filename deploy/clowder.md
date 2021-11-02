@@ -174,6 +174,9 @@ but here are some essentials:
   $ podman push quay.io/awood/rhsm
   ```
 
+* In order to turn on sidecar support in an ephemeral environment:
+  `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
+
 * When you deploy with bonfire during development, specify the image and
   image tag you want to use like so:
 
