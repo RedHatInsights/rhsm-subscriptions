@@ -65,6 +65,12 @@ class TagProfileTest {
             .build();
     TagMapping tagMapping2 =
         TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of("RHEL for x86")).build();
+    TagMapping tagMapping3 =
+        TagMapping.builder()
+            .valueType("productName")
+            .tags(Set.of(RHEL_DESKTOP_TAG))
+            .value("RHEL Desktop")
+            .build();
 
     TagMapping openshiftRoleMapping =
         TagMapping.builder()
@@ -114,7 +120,7 @@ class TagProfileTest {
 
     tagProfile =
         TagProfile.builder()
-            .tagMappings(List.of(tagMapping1, tagMapping2, openshiftRoleMapping))
+            .tagMappings(List.of(tagMapping1, tagMapping2, tagMapping3, openshiftRoleMapping))
             .tagMetrics(tagMetrics)
             .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData))
             .build();
@@ -221,5 +227,12 @@ class TagProfileTest {
     assertEquals(
         Set.of(OPENSHIFT_TAG, OPENSHIFT_DEDICATED_TAG),
         tagProfile.getTagsForServiceType(OPENSHIFT_CLUSTER_ST));
+  }
+
+  @Test
+  void lookupProductNamesByTag() {
+    Set<String> products = tagProfile.getOfferingProductNamesForTag(RHEL_DESKTOP_TAG);
+    assertEquals(1, products.size());
+    assertTrue(products.contains("RHEL Desktop"));
   }
 }

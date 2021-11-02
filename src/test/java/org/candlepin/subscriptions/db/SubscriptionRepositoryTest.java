@@ -80,17 +80,18 @@ class SubscriptionRepositoryTest {
     Subscription subscription = createSubscription("1", "1000", "testSku1", "123");
     subscriptionRepo.saveAndFlush(subscription);
 
-    Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
-    Offering o2 = createOffering("testSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    Offering o2 =
+        createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
     UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-    Set<String> roles = Set.of("ocp");
+    Set<String> productNames = Set.of("Test SKU 2");
     var resultList =
-        subscriptionRepo
-            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-                "1000", key, roles, NOW, NOW);
+        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
+            "1000", key, productNames, NOW, NOW);
     assertEquals(1, resultList.size());
 
     var result = resultList.get(0);
@@ -104,17 +105,20 @@ class SubscriptionRepositoryTest {
     Subscription subscription = createSubscription("1", "1000", "testSku", "123");
     subscriptionRepo.saveAndFlush(subscription);
 
-    Offering o1 = createOffering("otherSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering(
+            "otherSku1", "Other SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o1);
-    Offering o2 = createOffering("otherSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    Offering o2 =
+        createOffering(
+            "otherSku2", "Other SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
     UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-    Set<String> roles = Set.of("ocp");
+    Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
     var result =
-        subscriptionRepo
-            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-                "1000", key, roles, NOW, NOW);
+        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
+            "1000", key, productNames, NOW, NOW);
     assertEquals(0, result.size());
   }
 
@@ -129,16 +133,15 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription2);
 
     Offering offering =
-        createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(offering);
 
     UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-    Set<String> roles = Set.of("ocp");
+    Set<String> productNames = Set.of("Test SKU 1");
 
     var resultList =
-        subscriptionRepo
-            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-                "1000", key, roles, NOW, NOW);
+        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
+            "1000", key, productNames, NOW, NOW);
 
     assertEquals(2, resultList.size());
 
@@ -171,9 +174,10 @@ class SubscriptionRepositoryTest {
   }
 
   private Offering createOffering(
-      String sku, int productId, ServiceLevel sla, Usage usage, String role) {
+      String sku, String productName, int productId, ServiceLevel sla, Usage usage, String role) {
     Offering o = new Offering();
     o.setSku(sku);
+    o.setProductName(productName);
     o.setProductIds(Set.of(productId));
     o.setServiceLevel(sla);
     o.setUsage(usage);
