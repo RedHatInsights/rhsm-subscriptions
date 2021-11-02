@@ -21,16 +21,12 @@
 package org.candlepin.subscriptions.conduit.inventory;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
 import org.candlepin.subscriptions.inventory.client.model.FactSet;
 import org.candlepin.subscriptions.inventory.client.model.SystemProfile;
+import org.candlepin.subscriptions.inventory.client.model.SystemProfileOperatingSystem;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;
@@ -123,6 +119,10 @@ public abstract class InventoryService {
 
   private SystemProfile createSystemProfile(ConduitFacts facts) {
     SystemProfile systemProfile = new SystemProfile();
+    if (facts.getOsName() != null) {
+      systemProfile.setOperatingSystem(operatingSystemName(facts.getOsName()));
+    }
+    systemProfile.setOsRelease(facts.getOsVersion());
     systemProfile.setArch(facts.getArchitecture());
     systemProfile.setBiosVendor(facts.getBiosVendor());
     systemProfile.setBiosVersion(facts.getBiosVersion());
@@ -135,6 +135,7 @@ public abstract class InventoryService {
     systemProfile.setSystemMemoryBytes(facts.getSystemMemoryBytes());
     systemProfile.setNumberOfSockets(facts.getCpuSockets());
     systemProfile.setOwnerId(facts.getSubscriptionManagerId());
+    systemProfile.setNetworkInterfaces(facts.getNetworkInterfaces());
     return systemProfile;
   }
 
@@ -166,6 +167,15 @@ public abstract class InventoryService {
 
     rhsmFactMap.put("SYNC_TIMESTAMP", syncTimestamp);
     return rhsmFactMap;
+  }
+
+  private SystemProfileOperatingSystem operatingSystemName(String operatingSystemName) {
+    if (!operatingSystemName.toLowerCase().contains("red hat enterprise linux")) {
+      return null;
+    }
+    var operatingSystems = new SystemProfileOperatingSystem();
+    operatingSystems.setName(SystemProfileOperatingSystem.NameEnum.RHEL);
+    return operatingSystems;
   }
 
   private void addFact(Map<String, Object> factMap, String key, String value) {
