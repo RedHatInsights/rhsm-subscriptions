@@ -104,8 +104,7 @@ class UpstreamProductDataTest {
         Set.of(
             69, 70, 83, 84, 86, 91, 92, 93, 127, 176, 180, 182, 201, 205, 240, 241, 246, 248, 317,
             318, 394, 395, 408, 479, 491, 588));
-    // (because there is a derived sku, no physical capacity should be set, only virtual capacity.
-    // See https://issues.redhat.com/browse/ENT-4301?focusedCommentId=19210665 for details)
+    expected.setPhysicalSockets(2);
     expected.setVirtualSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
     expected.setProductName(

@@ -32,9 +32,7 @@ config/
 #VS Code
 .project
 .settings
-/**/bin/*
-!bin/hawtio-proxy.sh
-!bin/insert-mock-hosts
+bin
 .vscode
 .editorconfig
 
