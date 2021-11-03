@@ -8,7 +8,7 @@ nginx_config=$(mktemp --suffix=.conf --tmpdir nginx-XXXXXX)
 function cleanup() {
   rm -f "$nginx_config"
 
-  if ps -p "$port_forward_pid" > /dev/null; then
+  if [[ -v $port_forward_pid ]] && ps -p "$port_forward_pid" > /dev/null; then
     # The - signifies we should kill all processes in the process group
     kill -- -$port_forward_pid
   fi
