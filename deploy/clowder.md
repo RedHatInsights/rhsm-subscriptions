@@ -164,29 +164,40 @@ but here are some essentials:
   hours you specify.  You can always increase a reservation by reserving the
   namespace again: `bonfire namespace reserve NAMESPACE`.
 
-* Create an account on `quay.io` and create a image repository.  Use `podman
-  login` or `docker login` so that you can build and push your test images
-  there.  For example,
+* Create an account on `quay.io` and create an image repository for each
+  component (Currently, one for rhsm-subscriptions and one for
+  swatch-system-conduit).  Use `podman login` or `docker login` so that you
+  can build and push your test images there.  For example,
 
   ```
   $ podman login quay.io
   $ podman build . -t quay.io/awood/rhsm
+  $ podman build . -f swatch-system-conduit/Dockerfile -t quay.io/awood/swatch-system-conduit
   $ podman push quay.io/awood/rhsm
+  $ podman push quay.io/awood/swatch-system-conduit
   ```
 
 * In order to turn on sidecar support in an ephemeral environment:
   `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
 
-* When you deploy with bonfire during development, specify the image and
-  image tag you want to use like so:
+* When you deploy with bonfire during development, you'll want to specify the image and image tag you want to use like so:
 
-  `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all -i
-  quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image`
+  ```
+  `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all
+  -i quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image
+  -i quay.io/my-repo/my-conduit-image=my-tag -p rhsm-subscriptions/CONDUIT_IMAGE=quay.
+  io/my-repo/my-conduit-image
+  ```
 
   The `-i` argument overrides the image tag that you're using.  The `-p`
   overrides parameters in specific ClowdApp components (defined in
   `~/.config/bonfire/config.yaml`).  In this case, we override the `IMAGE`
-  parameter in our template with the image to use.
+  and `CONDUIT_IMAGE` parameters in our template with the image to use.
+
+  Note that you can also locally change the images used without the
+  parameters - simply add `IMAGE` and `CONDUIT_IMAGE` to `parameters` in
+  `~/.config/bonfire/config.yaml`. (If you do this, the `-p` arguments to
+  `bonfire` are redundant)
 
   If you don't specify the repo and tag with the `-i`
   argument, `bonfire` is going to use what's defined in the ClowdApp which is
@@ -210,3 +221,20 @@ but here are some essentials:
   ```
   oc get project -l ephemeral-ns-reserved -L ephemeral-ns-requester-name,ephemeral-ns-reserved
   ```
+
+# Special Notes
+## capacity-allowlist ConfigMap
+The capacity-ingress pod relies on a ConfigMap, called `capacity-allowlist`, found in GitLab.  The most straightforward way to get this config map is to manually add it via command line.  Make sure you're in the appropriate namespace using the `oc project` command, and then you can deploy the ConfigMap to that namespace using the following command:
+
+```bash
+curl https://gitlab.cee.redhat.com/rhsm/swatch-product-allowlist/-/raw/main/templates/capacity-allowlist.yml | oc process -f - | oc apply -f -
+```
+## bonfire "deploy" command and namespace reservation
+If you use `bonfire deploy` without already having a namespace reserved, it will reserve the namespace for you **BUT** if the app doesn't start up in the default amount of time, bonfire will take down/give up the namespace it reserved to begin with.  To get around this, you can manually reserve the namespace, then pass `-n <NAMESPACE>` as an argument when running `bonfire deploy`.
+
+# TL;DR Quickstart Steps
+1. Start bonfire virtual environment
+2. Reserve a namespace
+3. Create the sidecar enabled ClowdEnv with `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
+4. Apply the `capacity-allowlist` configmap
+5. Deploy rhsm with `bonfire deploy -n NAMESPACE`

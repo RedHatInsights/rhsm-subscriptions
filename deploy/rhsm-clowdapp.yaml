@@ -24,6 +24,8 @@ parameters:
     value: '1'
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
+  - name: CONDUIT_IMAGE
+    value: quay.io/cloudservices/swatch-system-conduit
   - name: IMAGE_TAG
     value: latest
   - name: IMAGE_PULL_SECRET
@@ -52,9 +54,8 @@ parameters:
     value: 'localhost'
   - name: CLOUDIGRADE_PORT
     value: '8080'
-  # TODO Don't know what this should be. Marked required in the original template.
   - name: RHSM_URL
-    value: FIXME
+    value: https://api.rhsm.qa.redhat.com/v1
 
   - name: TOKEN_REFRESHER_IMAGE
     value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
@@ -943,19 +944,20 @@ objects:
             - name: token-refresher
               enabled: true
 
-      - name: conduit
+      - name: system-conduit
         webServices:
           public:
             enabled: true
         minReplicas: 1
         podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
+          image: ${CONDUIT_IMAGE}:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
           initContainers:
-            - env:
+            - image: ${IMAGE}:${IMAGE_TAG}
+              env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
