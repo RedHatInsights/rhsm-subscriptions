@@ -180,10 +180,12 @@ but here are some essentials:
 * When you deploy with bonfire during development, specify the image and
   image tag you want to use like so:
 
-  `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all -i
-  quay.io/my-repo/my-image=my-tag
-  -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image
-  -p rhsm-subscriptions/CONDUIT_IMAGE=quay.io/my-repo/my-conduit-image`
+  ```
+  `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all
+  -i quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image
+  -i quay.io/my-repo/my-conduit-image=my-tag -p rhsm-subscriptions/CONDUIT_IMAGE=quay.
+  io/my-repo/my-conduit-image
+  ```
 
   The `-i` argument overrides the image tag that you're using.  The `-p`
   overrides parameters in specific ClowdApp components (defined in
