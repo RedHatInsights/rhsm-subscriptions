@@ -690,6 +690,83 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       tags:
         - ingress
+  /instances/products/{product_id}:
+    parameters:
+      - name: product_id
+        description: The ID for the product we wish to query
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ProductId'
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: "The numbers of items to return"
+    get:
+      operationId: getInstancesByProduct
+      parameters:
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only hosts for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only hosts for the specified usage level."
+        - name: display_name_contains
+          description: Include only hosts containing the specified display name. Passing an empty string behaves the same way as passing null
+          schema:
+            type: string
+            #Default to empty string to prevent complex jpql statement later
+            default: ''
+          in: query
+        - name: beginning
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+                     format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
+                     Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+        - name: ending
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period. Dates should be provided in ISO 8601
+                     format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z.
+                     Only applicable for OpenShift-dedicated-metrics and OpenShift-metrics products"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/InstanceReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      tags:
+        - instances
+      responses:
+        '200':
+          description: The request for instances was successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstanceResponse'
   /subscriptions/products/{product_id}:
     description: "Operations for total capacity by SKU for all of the owner's active subscriptions for given Swatch product ID."
     parameters:
@@ -1450,6 +1527,106 @@ components:
         cloud_provider:
           description: If applicable, the cloud provider for this host.
           type: string
+    InstanceMeta:
+      title: Root Type for InstanceMeta
+      description: The details of the entire list of InstanceData
+      type: object
+      properties:
+        count:
+          format: int32
+          type: integer
+        product:
+          $ref: '#/components/schemas/ProductId'
+        service_level:
+          $ref: '#/components/schemas/ServiceLevelType'
+        usage:
+          $ref: '#/components/schemas/UsageType'
+        measurements:
+          type: array
+          items:
+            type: string
+      example:
+        count: 10
+        product: RHEL
+        service_level: Premium
+        usage: Production
+        measurements:
+          - Instance-Hours
+          - Storage-Gibibytes
+          - Transfer-Gibibytes
+    InstanceResponse:
+      title: Root Type for InstanceResponse
+      description: The output data of a product instance metrics
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstanceData'
+        links:
+          $ref: '#/components/schemas/PageLinks'
+        meta:
+          $ref: '#/components/schemas/InstanceMeta'
+          properties:
+            count:
+              format: int32
+              type: integer
+      example:
+        data:
+          - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+            display_name: guest01.example.com
+            subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
+            last_seen: '2020-01-01T00:00:00Z'
+          - inventory_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+            display_name: guest02.example.com
+            subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
+            last_seen: '2020-01-01T00:00:00Z'
+        links:
+          first: string
+          last: string
+          next: string
+        meta:
+          count: 10
+    InstanceReportSort:
+      type: string
+      enum:
+        - display_name
+        - last_seen
+        - Cores
+        - Sockets
+        - Core-seconds
+        - Instance-hours
+        - Storage-gibibytes
+        - Transfer-gibibytes
+    InstanceData:
+      title: Root Type for Instance
+      description: The representation of a product cluster data
+      type: object
+      properties:
+        id:
+          type: string
+        display_name:
+          type: string
+        measurements:
+          description: >-
+            Must be in the same order as "measurements" in the meta. (i.e. in the example
+            instance.measurements[0] is the instance-hours, measurements[1] is storage-gibibytes,
+            and measurements[2] is the transfer-gibibytes.
+          type: array
+          items:
+            format: double
+            type: number
+        last_seen:
+          format: date-time
+          type: string
+      example:
+        id: d6214a0b-b344-4778-831c-d53dcacb2da3
+        display_name: rhv.example.com
+        measurements:
+          - 42
+          - null
+          - 1
+        last_seen: '2020-01-01T00:00:00Z'
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.
       properties:
@@ -1623,3 +1800,4 @@ components:
 
 security:
   - 3ScaleIdentity: []
+
