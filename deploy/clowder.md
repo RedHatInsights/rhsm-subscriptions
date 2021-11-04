@@ -177,6 +177,9 @@ but here are some essentials:
   $ podman push quay.io/awood/swatch-system-conduit
   ```
 
+* In order to turn on sidecar support in an ephemeral environment:
+  `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
+
 * When you deploy with bonfire during development, you'll want to specify the image and image tag you want to use like so:
 
   ```
@@ -232,5 +235,6 @@ If you use `bonfire deploy` without already having a namespace reserved, it will
 # TL;DR Quickstart Steps
 1. Start bonfire virtual environment
 2. Reserve a namespace
-3. Apply the `capacity-allowlist` configmap
-4. Deploy rhsm with `bonfire deploy`
+3. Create the sidecar enabled ClowdEnv with `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
+4. Apply the `capacity-allowlist` configmap
+5. Deploy rhsm with `bonfire deploy -n NAMESPACE`

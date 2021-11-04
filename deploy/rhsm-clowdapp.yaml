@@ -148,7 +148,7 @@ parameters:
   - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
     value: "group(min_over_time(subscription_labels{ebs_account != '', billing_model='standard'}[1h])) by (ebs_account)"
   - name: EVENT_RECORD_RETENTION
-    value: 90d
+    value: '90d'
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
   - name: SUBSCRIPTION_URL
@@ -940,6 +940,9 @@ objects:
             - name: pinhead
               secret:
                 secretName: pinhead
+          sidecars:
+            - name: token-refresher
+              enabled: true
 
       - name: system-conduit
         webServices:
@@ -1296,6 +1299,7 @@ objects:
     jobs:
       - name: metrics-cron
         schedule: ${METERING_SCHEDULE}
+        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1419,9 +1423,13 @@ objects:
           volumes:
             - name: logs
               emptyDir:
+          sidecars:
+            - name: token-refresher
+              enabled: true
 
       - name: cron-tally
         schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
+        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1539,6 +1547,7 @@ objects:
 
       - name: hourly-tally
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
+        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1656,6 +1665,7 @@ objects:
 
       - name: cron-purge
         schedule: ${PURGE_SNAPSHOT_SCHEDULE}
+        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1775,6 +1785,7 @@ objects:
 
       - name: subscription-sync
         schedule: ${SUBSCRIPTION_SYNC_SCHEDULE}
+        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1894,6 +1905,7 @@ objects:
 
       - name: offering-sync
         schedule: ${OFFERING_SYNC_SCHEDULE}
+        activeDeadlineSeconds: 1800
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
