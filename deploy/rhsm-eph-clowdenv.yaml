@@ -1,3 +1,5 @@
+# Derived from https://github.com/RedHatInsights/bonfire/blob/master/bonfire/resources/ephemeral-cluster-clowdenvironment.yaml
+# but with the token-refresher sidecar enabled
 apiVersion: v1
 kind: Template
 metadata:
