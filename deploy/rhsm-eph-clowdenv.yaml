@@ -1,0 +1,100 @@
+# Derived from https://github.com/RedHatInsights/bonfire/blob/master/bonfire/resources/ephemeral-cluster-clowdenvironment.yaml
+# but with the token-refresher sidecar enabled
+apiVersion: v1
+kind: Template
+metadata:
+  name: ephemeral-clowdenvironment
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdEnvironment
+  metadata:
+    name: ${ENV_NAME}
+  spec:
+    targetNamespace: ${NAMESPACE}
+    resourceDefaults:
+      limits:
+        cpu: 300m
+        memory: 256Mi
+      requests:
+        cpu: 30m
+        memory: 128Mi
+    providers:
+      sidecars:
+        tokenRefresher:
+          enabled: true
+      pullSecrets:
+        - name: ${PULL_SECRET_NAME}
+          namespace: ${PULL_SECRET_NAMESPACE}
+      testing:
+        # Level of access the testing pod has in the namespace
+        k8sAccessLevel: edit
+        # How much environment configuration the testing pod can see
+        configAccess: environment
+        iqe:
+          # Base image for iqe-tests
+          imageBase: "quay.io/cloudservices/iqe-tests"
+          # Grant IQE pod access to vault
+          vaultSecretRef:
+            name: ${IQE_VAULT_SECRET_NAME}
+            namespace: ${IQE_VAULT_SECRET_NAMESPACE}
+          # Resources the IQE pod spins up with
+          resources:
+            limits:
+              cpu: 1
+              memory: 2Gi
+            requests:
+              cpu: 200m
+              memory: 1Gi
+      web:
+        port: 8000
+        privatePort: 10000
+        mode: operator
+      featureFlags:
+        mode: local
+      metrics:
+        port: 9000
+        path: "/metrics"
+        prometheus:
+          deploy: true
+        mode: operator
+      kafka:
+        mode: operator
+        pvc: false
+        # disable tls/auth for now until core apps are ready
+        enableLegacyStrimzi: true
+        cluster:
+          version: "2.7.0"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 600Mi
+        connect:
+          version: "2.7.0"
+          image: "quay.io/cloudservices/xjoin-kafka-connect-strimzi:182ab8b"
+      db:
+        mode: local
+        pvc: false
+      logging:
+        mode: none
+      objectStore:
+        mode: minio
+      inMemoryDb:
+        mode: redis
+parameters:
+- name: NAMESPACE
+  description: Namespace that ClowdEnvironment components will be deployed to
+- name: ENV_NAME
+  description: Name of the ClowdEnvironment
+  required: true
+- name: PULL_SECRET_NAME
+  value: quay-cloudservices-pull
+- name: PULL_SECRET_NAMESPACE
+  value: ephemeral-base
+- name: IQE_VAULT_SECRET_NAME
+  value: iqe-vault
+- name: IQE_VAULT_SECRET_NAMESPACE
+  value: ephemeral-base
