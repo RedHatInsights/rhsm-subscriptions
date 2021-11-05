@@ -7,14 +7,23 @@ nginx_config=$(mktemp --suffix=.conf --tmpdir nginx-XXXXXX)
 
 function cleanup() {
   rm -f "$nginx_config"
-
-  if [[ -v $port_forward_pid ]] && ps -p "$port_forward_pid" > /dev/null; then
+  # Make sure the port_forward_pid variable is set
+  # See https://stackoverflow.com/a/13864829/6124862 but basically if the variable is unset, the
+  # expansion is nothing, otherwise it substitutes the string "x" (which covers the case of the
+  # empty string)
+  if [ -z ${port_forward_pid+x} ]; then
+    echo "No oc process to kill."
+  elif ps -p "$port_forward_pid" > /dev/null; then
     # The - signifies we should kill all processes in the process group
+    echo
+    echo "Killing oc port-forward process $port_forward_pid"
     kill -- -$port_forward_pid
   fi
 }
 
-trap cleanup INT TERM EXIT
+# We're only catching INT and TERM since normal use is for the user to hit ^C to quit
+# We actually don't want the trap to run if we `exit 1` due to a usage error
+trap cleanup INT TERM
 
 pod=$1
 if [ $# -lt 1 ]; then
@@ -82,10 +91,12 @@ http {
 EOF
 
 green=$(tput setaf 2)
+red=$(tput setaf 1)
 reset=$(tput sgr0)
 
 echo "Proxying pod $pod port $container_port at path $hawtio_base_path"
 echo "${green}Go to http://localhost:${NGINX_PORT}${hawtio_base_path}${reset}"
+echo "${red}^C to exit${reset}"
 
 podman run -p $NGINX_PORT:80 --network=host --rm --name hawtio-proxy -e NGINX_ENTRYPOINT_QUIET_LOGS=1 -v $nginx_config:/etc/nginx/nginx.conf:ro,z docker.io/nginx
 
