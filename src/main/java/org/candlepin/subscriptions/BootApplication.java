@@ -22,6 +22,7 @@ package org.candlepin.subscriptions;
 
 import java.time.ZoneOffset;
 import java.util.TimeZone;
+import org.candlepin.subscriptions.logback.RhsmSplunkHecUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -47,6 +48,8 @@ public class BootApplication {
     TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
     // Force liquibase-hub to off to avoid unnecessary warnings in our logs
     System.setProperty("liquibase.hub.mode", "off");
+
+    RhsmSplunkHecUtil.reportHttpEventCollectorError();
     SpringApplication app = new SpringApplication(BootApplication.class);
     app.run(args);
   }
