@@ -5,6 +5,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202110211313-1" author="mstead">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(1) FROM offering WHERE sku = 'MW01882'
+      </sqlCheck>
+    </preConditions>
     <comment>Add offering for RHOSAK SKU</comment>
     <insert tableName="offering">
       <column name="sku" value="MW01882"/>
