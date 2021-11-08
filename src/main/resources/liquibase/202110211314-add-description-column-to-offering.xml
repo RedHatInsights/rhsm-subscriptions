@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202110211010-1" author="mstead">
+    <comment>Add description column to offering table</comment>
+    <addColumn tableName="offering">
+      <column name="description" type="VARCHAR(255)" />
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202110211010-2" author="mstead">
+    <comment>Set the description for existing OpenShift offerings</comment>
+    <update tableName="offering">
+      <column name="description" value="Red Hat OpenShift Container Platform (Hourly)"/>
+      <where>sku='MW01485'</where>
+    </update>
+    <update tableName="offering">
+      <column name="description" value="Red Hat OpenShift Dedicated on Customer Cloud Subscription (Hourly)"/>
+      <where>sku='MW01484'</where>
+    </update>
+    <update tableName="offering">
+      <column name="description" value="Red Hat OpenShift Streams for Apache Kafka (Hourly)"/>
+      <where>sku='MW01882'</where>
+    </update>
+  </changeSet>
+</databaseChangeLog>
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->

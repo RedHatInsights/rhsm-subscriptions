@@ -50,7 +50,7 @@ import org.hibernate.annotations.Subselect;
         + "sc.has_unlimited_guest_sockets, \n"
         + "s.quantity, \n"
         + "s.subscription_number, \n"
-        + "o.product_name \n"
+        + "o.description as product_name \n"
         + "FROM subscription_capacity sc \n"
         + "JOIN subscription s on sc.subscription_id = s.subscription_id \n"
         + "AND s.end_date > CURRENT_TIMESTAMP \n"

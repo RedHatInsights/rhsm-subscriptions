@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.marketplace;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,8 +30,7 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.ProductProfile;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.slf4j.Logger;
@@ -54,7 +52,7 @@ public class MarketplaceSubscriptionIdProvider {
   private final MarketplaceSubscriptionCollector collector;
   private final SubscriptionRepository subscriptionRepo;
   private final SubscriptionSyncController syncController;
-  private final ProductProfileRegistry profileRegistry;
+  private final TagProfile tagProfile;
   private final Counter missingSubscriptionCounter;
   private final Counter ambiguousSubscriptionCounter;
 
@@ -63,12 +61,12 @@ public class MarketplaceSubscriptionIdProvider {
       MarketplaceSubscriptionCollector collector,
       SubscriptionRepository subscriptionRepo,
       SubscriptionSyncController syncController,
-      ProductProfileRegistry profileRegistry,
+      TagProfile tagProfile,
       MeterRegistry meterRegistry) {
     this.collector = collector;
     this.subscriptionRepo = subscriptionRepo;
     this.syncController = syncController;
-    this.profileRegistry = profileRegistry;
+    this.tagProfile = tagProfile;
     this.missingSubscriptionCounter =
         meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
     this.ambiguousSubscriptionCounter =
@@ -85,12 +83,14 @@ public class MarketplaceSubscriptionIdProvider {
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
     String productId = usageKey.getProductId();
-    ProductProfile profile = profileRegistry.findProfileForSwatchProductId(productId);
-    Set<String> roles =
-        profile.getRolesBySwatchProduct().getOrDefault(productId, Collections.emptySet());
+    Set<String> productNames = tagProfile.getOfferingProductNamesForTag(productId);
+    if (productNames.isEmpty()) {
+      log.warn("No product names configured for tag: {}", productId);
+      return Optional.empty();
+    }
 
     List<Subscription> result =
-        fetchSubscriptions(accountNumber, usageKey, roles, rangeStart, rangeEnd);
+        fetchSubscriptions(accountNumber, usageKey, productNames, rangeStart, rangeEnd);
 
     if (result.isEmpty()) {
       /* If we are missing the subscription, call out to the MarketplaceSubscriptionCollector
@@ -98,27 +98,27 @@ public class MarketplaceSubscriptionIdProvider {
       log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId);
       var subscriptions = collector.requestSubscriptions(orgId);
       subscriptions.forEach(syncController::syncSubscription);
-      result = fetchSubscriptions(accountNumber, usageKey, roles, rangeStart, rangeEnd);
+      result = fetchSubscriptions(accountNumber, usageKey, productNames, rangeStart, rangeEnd);
     }
 
     if (result.isEmpty()) {
       missingSubscriptionCounter.increment();
       log.error(
-          "No subscription found for account {} with key {} and roles {}",
+          "No subscription found for account {} with key {} and product names {}",
           accountNumber,
           usageKey,
-          roles);
+          productNames);
       return Optional.empty();
     }
 
     if (result.size() > 1) {
       ambiguousSubscriptionCounter.increment();
       log.warn(
-          "Multiple subscriptions found for account {} with key {} and roles {}. Selecting first"
-              + " result",
+          "Multiple subscriptions found for account {} with key {} and product names {}."
+              + " Selecting first result",
           accountNumber,
           usageKey,
-          roles);
+          productNames);
     }
     return Optional.of(result.get(0).getMarketplaceSubscriptionId());
   }
@@ -126,11 +126,10 @@ public class MarketplaceSubscriptionIdProvider {
   protected List<Subscription> fetchSubscriptions(
       String accountNumber,
       Key usageKey,
-      Set<String> roles,
+      Set<String> productNames,
       OffsetDateTime rangeStart,
       OffsetDateTime rangeEnd) {
-    return subscriptionRepo
-        .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-            accountNumber, usageKey, roles, rangeStart, rangeEnd);
+    return subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
+        accountNumber, usageKey, productNames, rangeStart, rangeEnd);
   }
 }

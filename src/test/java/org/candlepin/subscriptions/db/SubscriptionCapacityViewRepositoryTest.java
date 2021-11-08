@@ -628,7 +628,7 @@ class SubscriptionCapacityViewRepositoryTest {
                         .operation(SearchOperation.IS_NOT_NULL)
                         .build()))
             .build();
-    List<SubscriptionCapacityView> all = repository.findAll();
+
     List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(2, found.size());
     found.forEach(
@@ -636,6 +636,47 @@ class SubscriptionCapacityViewRepositoryTest {
           assertNotNull(subscriptionCapacityView.getPhysicalSockets());
           assertNotNull(subscriptionCapacityView.getVirtualSockets());
         });
+  }
+
+  @Transactional
+  @Test
+  void shouldSetNameFromOfferingDescription() {
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    standard.setSubscriptionId("12346");
+    standard.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                standard.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate())));
+    subscriptionCapacityRepository.save(standard);
+    Offering offering =
+        createOffering(
+            standard.getSku(),
+            Integer.parseInt(standard.getProductId()),
+            standard.getServiceLevel(),
+            standard.getUsage(),
+            "role1");
+    offeringRepository.saveAndFlush(offering);
+
+    SubscriptionCapacityViewSpecification specification =
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key(SubscriptionCapacityView_.sku.getName())
+                        .operation(SearchOperation.EQUAL)
+                        .value(standard.getSku())
+                        .build()))
+            .build();
+
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    assertEquals(1, found.size());
+    assertEquals(offering.getDescription(), found.get(0).getProductName());
   }
 
   private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
@@ -665,7 +706,8 @@ class SubscriptionCapacityViewRepositoryTest {
     o.setServiceLevel(sla);
     o.setUsage(usage);
     o.setRole(role);
-    o.setProductName("Description of sku");
+    o.setProductName("Sku: " + sku);
+    o.setDescription("Description of: " + sku);
     return o;
   }
 

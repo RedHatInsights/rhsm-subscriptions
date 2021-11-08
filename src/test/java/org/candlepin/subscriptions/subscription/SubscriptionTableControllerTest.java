@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_METRICS;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -486,6 +487,32 @@ class SubscriptionTableControllerTest {
                     SkuCapacityReportSort.SKU,
                     null));
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+  }
+
+  @Test
+  void testShouldPopulateAnnualSubscriptionType() {
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Collections.emptyList());
+
+    SkuCapacityReport report =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_SERVER, null, null, null, null, Uom.CORES, SkuCapacityReportSort.SKU, null);
+
+    assertEquals(SubscriptionType.ANNUAL, report.getMeta().getSubscriptionType());
+  }
+
+  @Test
+  void testShouldPopulateOnDemandSubscriptionType() {
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Collections.emptyList());
+
+    SkuCapacityReport report =
+        subscriptionTableController.capacityReportBySku(
+            OPENSHIFT_METRICS, null, null, null, null, Uom.CORES, SkuCapacityReportSort.SKU, null);
+
+    assertEquals(SubscriptionType.ON_DEMAND, report.getMeta().getSubscriptionType());
   }
 
   private static void assertCapacities(

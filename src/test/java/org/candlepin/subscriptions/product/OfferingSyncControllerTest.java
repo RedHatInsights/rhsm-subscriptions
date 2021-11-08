@@ -131,7 +131,8 @@ class OfferingSyncControllerTest {
     String sku = "MW01485";
     Offering persisted = new Offering();
     persisted.setSku(sku);
-    persisted.setProductName("Red Hat OpenShift Container Platform (Hourly)");
+    persisted.setProductName("OpenShift Container Platform");
+    persisted.setDescription("Red Hat OpenShift Container Platform (Hourly)");
     persisted.setProductFamily("OpenShift Enterprise");
     persisted.setChildSkus(Set.of("SVCMW01485"));
     persisted.setProductIds(
