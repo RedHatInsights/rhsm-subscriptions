@@ -59,7 +59,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CombiningRollupSnapshotStrategy {
 
   private static final Logger log = LoggerFactory.getLogger(CombiningRollupSnapshotStrategy.class);
-  private static final Granularity[] GRANULARITIES = {Granularity.HOURLY, Granularity.DAILY};
+  private static final Granularity[] GRANULARITIES = {Granularity.HOURLY, Granularity.DAILY, Granularity.MONTHLY};
 
   private final TallySnapshotRepository tallyRepo;
   private final SnapshotSummaryProducer summaryProducer;
