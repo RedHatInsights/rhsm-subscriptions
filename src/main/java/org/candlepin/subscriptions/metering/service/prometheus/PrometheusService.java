@@ -67,7 +67,7 @@ public class PrometheusService {
 
   public QueryResult runQuery(String promQL, OffsetDateTime time, Integer timeout)
       throws ExternalServiceException {
-    log.info("Fetching metrics from prometheus: {}", time);
+    log.debug("Fetching metrics from prometheus: {}", time);
     try {
       String query = sanitizeQuery(promQL);
       log.debug("Running prometheus query: Time: {}, Query: {}", time.toEpochSecond(), query);
