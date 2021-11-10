@@ -136,7 +136,7 @@ parameters:
   - name: SUBSCRIPTION_SYNC_SCHEDULE
     value: 0 10 * * *
   - name: METERING_SCHEDULE
-    value: 0 * * * *
+    value: '@hourly'
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
 
