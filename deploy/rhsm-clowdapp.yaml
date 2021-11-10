@@ -33,11 +33,11 @@ parameters:
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
-    value: 1700Mi
+    value: 1400Mi
   - name: CPU_REQUEST
-    value: 450m
+    value: 350m
   - name: CPU_LIMIT
-    value: 1800m
+    value: 1500m
   - name: SPLUNK_FORWARDER_IMAGE
     value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
   - name: SPLUNK_FORWARDER_MEMORY_REQUEST
