@@ -200,6 +200,9 @@ objects:
       - replicas: 3
         partitions: 3
         topicName: platform.rhsm-subscriptions.openshift-metering-tasks
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.subscription-sync
 
     # Creates a database if local mode, or uses RDS in production
     database:
