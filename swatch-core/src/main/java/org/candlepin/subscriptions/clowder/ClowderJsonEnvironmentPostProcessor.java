@@ -71,14 +71,14 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
     String clowderConfigPath = environment.getProperty(CLOWDER_CONFIG_LOCATION_PROPERTY);
     if (StringUtils.hasText(clowderConfigPath)) {
       String clowderResourceLocation = "file:" + clowderConfigPath;
-      ClowderJson clowderJson = getMapper(clowderResourceLocation);
+      ClowderJson clowderJson = loadResource(clowderResourceLocation);
       processJson(environment, clowderJson);
     } else {
       logger.info(CLOWDER_CONFIG_LOCATION_PROPERTY + " undefined. Will not read clowder config.");
     }
   }
 
-  private ClowderJson getMapper(String clowderResourceLocation) {
+  private ClowderJson loadResource(String clowderResourceLocation) {
     try {
       ResourceLoader resourceLoader = new DefaultResourceLoader();
       Resource resource = resourceLoader.getResource(clowderResourceLocation);
