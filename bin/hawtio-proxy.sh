@@ -36,7 +36,7 @@ if [ -z "$(which jq)" ]; then
   exit 1
 fi
 
-hawtio_base_path=/actuator/hawtio
+hawtio_base_path=/hawtio
 pod_json=$(oc get "pod/$pod" -o json)
 
 hawtio_path_override=$(echo "$pod_json" | jq -r '.spec.containers[].env[] | select(.name=="HAWTIO_BASE_PATH") | .value')
@@ -45,9 +45,10 @@ if [ -n "$hawtio_path_override" ]; then
 fi
 
 container_port=8080
-web_port=$(echo "$pod_json" | jq -r '.spec.containers[].ports[] | select(.name=="web") | .containerPort')
-if [ -n "$web_port" ]; then
-  container_port=$web_port
+metrics_port=$(echo "$pod_json" | jq -r '.spec.containers[].ports[] | select(.name=="metrics") |
+.containerPort')
+if [ -n "$metrics_port" ]; then
+  container_port=$metrics_port
 fi
 
 
@@ -76,13 +77,13 @@ http {
         listen $NGINX_PORT;
 
         location $hawtio_base_path {
-            proxy_pass http://localhost:$FORWARD_PORT/actuator/hawtio;
+            proxy_pass http://localhost:$FORWARD_PORT/hawtio;
             proxy_set_header origin "example.cloud.redhat.com";
             proxy_set_header x-rh-identity "$auth";
         }
 
-        location /actuator/jolokia {
-            proxy_pass http://localhost:$FORWARD_PORT/actuator/jolokia;
+        location /jolokia {
+            proxy_pass http://localhost:$FORWARD_PORT/jolokia;
             proxy_set_header origin "example.cloud.redhat.com";
             proxy_set_header x-rh-identity "$auth";
         }
