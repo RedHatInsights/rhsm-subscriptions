@@ -32,7 +32,7 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +51,11 @@ public class FactNormalizer {
   private final Map<String, Set<String>> roleToProductsMap;
 
   public FactNormalizer(
-      ApplicationProperties props, ProductProfileRegistry profileRegistry, ApplicationClock clock) {
+      ApplicationProperties props, TagProfile tagProfile, ApplicationClock clock) {
     this.clock = clock;
     this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
-    this.engProductIdToSwatchProductIdsMap = profileRegistry.getEngProductIdToSwatchProductIdsMap();
-    this.roleToProductsMap = profileRegistry.getRoleToSwatchProductIdsMap();
+    this.engProductIdToSwatchProductIdsMap = tagProfile.getEngProductIdToSwatchProductIdsMap();
+    this.roleToProductsMap = tagProfile.getRoleToTagLookup();
   }
 
   public static boolean isRhelVariant(String product) {

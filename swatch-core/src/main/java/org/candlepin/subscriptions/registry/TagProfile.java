@@ -44,6 +44,7 @@ import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.springframework.util.StringUtils;
 
 /** A base class for tag profiles. This class and its composites are loaded from a YAML profile. */
@@ -64,7 +65,8 @@ public class TagProfile {
   private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
   private Map<String, Set<String>> tagToOfferingProductNamesLookup;
-  private Map<String, Set<String>> roleToTagLookup;
+  @Getter private Map<String, Set<String>> roleToTagLookup;
+  @Getter private Map<String, Set<String>> archToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
   private Map<String, TagMetaData> tagMetaDataToTagLookup;
   private Map<String, List<Measurement.Uom>> tagToUomLookup;
@@ -79,6 +81,7 @@ public class TagProfile {
     offeringProductNameToTagLookup = new HashMap<>();
     tagToOfferingProductNamesLookup = new HashMap<>();
     roleToTagLookup = new HashMap<>();
+    archToTagLookup = new HashMap<>();
     tagMetaDataToTagLookup = new HashMap<>();
     finestGranularityLookup = new HashMap<>();
     tagToUomLookup = new HashMap<>();
@@ -109,6 +112,10 @@ public class TagProfile {
               });
     } else if ("role".equals(mapping.getValueType())) {
       roleToTagLookup
+          .computeIfAbsent(mapping.getValue(), k -> new HashSet<>())
+          .addAll(mapping.getTags());
+    } else if ("arch".equals(mapping.getValueType())) {
+      archToTagLookup
           .computeIfAbsent(mapping.getValue(), k -> new HashSet<>())
           .addAll(mapping.getTags());
     }
@@ -156,6 +163,10 @@ public class TagProfile {
 
   public String tagForOfferingProductName(String offeringProductName) {
     return offeringProductNameToTagLookup.get(offeringProductName);
+  }
+
+  public Granularity granularityByTag(String productId) {
+    return finestGranularityLookup.getOrDefault(productId, Granularity.DAILY);
   }
 
   public Set<Uom> measurementsByTag(String tag) {
@@ -213,6 +224,10 @@ public class TagProfile {
         .collect(Collectors.toSet());
   }
 
+  public Set<String> getTagsByArch(String arch) {
+    return archToTagLookup.getOrDefault(arch, Collections.emptySet());
+  }
+
   /**
    * Find the first instance of tag metadata that matches the specified service type.
    *
@@ -242,5 +257,38 @@ public class TagProfile {
 
   public Set<String> getOfferingProductNamesForTag(String productTag) {
     return tagToOfferingProductNamesLookup.getOrDefault(productTag, Collections.emptySet());
+  }
+
+  /**
+   * Verify that the granularity requested is compatible with the finest granularity supported by
+   * the product. For example, if the requester asks for HOURLY granularity but the product only
+   * supports DAILY granularity, we can't meaningfully fulfill that request.
+   *
+   * @throws IllegalStateException if the granularities are not compatible
+   */
+  public void validateGranularityCompatibility(
+      ProductId productId, Granularity requestedGranularity) {
+    if (!tagSupportsGranularity(productId.toString(), requestedGranularity)) {
+      String msg =
+          String.format(
+              "%s does not support any granularity finer than %s",
+              productId, requestedGranularity.getValue());
+      throw new IllegalStateException(msg);
+    }
+  }
+
+  public Map<Integer, Set<String>> getEngProductIdToSwatchProductIdsMap() {
+    Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap = new HashMap<>();
+    for (TagMapping tag : tagMappings) {
+      if (!"engId".equals(tag.getValueType())) continue;
+
+      Integer engId = Integer.parseInt(tag.getValue());
+
+      if (engProductIdToSwatchProductIdsMap.containsKey(engId)) {
+        throw new IllegalStateException("Duplicate engineering product ID found: " + engId);
+      }
+      engProductIdToSwatchProductIdsMap.put(engId, tag.getTags());
+    }
+    return engProductIdToSwatchProductIdsMap;
   }
 }

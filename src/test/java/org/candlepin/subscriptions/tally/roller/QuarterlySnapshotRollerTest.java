@@ -24,7 +24,7 @@ import java.io.IOException;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ public class QuarterlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
-  @Autowired private ProductProfileRegistry registry;
+  @Autowired private TagProfile tagProfile;
 
   private ApplicationClock clock;
 
@@ -55,7 +55,7 @@ public class QuarterlySnapshotRollerTest {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
-            repository, new QuarterlySnapshotRoller(repository, clock, registry));
+            repository, new QuarterlySnapshotRoller(repository, clock, tagProfile));
   }
 
   @Test

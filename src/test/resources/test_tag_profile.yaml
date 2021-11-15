@@ -7,79 +7,59 @@
 # "arm64" would get the "RHEL for ARM" tag.  The value is "arm64", the value type is "architecture",
 # and the tag is "RHEL for ARM".
 tagMappings:
-  # RHEL engineering product IDs
-  - value: 68 # Red Hat Enterprise Linux Desktop
+  # RHEL products
+  - value: 1
     valueType: engId
     tags:
       - RHEL
-      - RHEL for x86
-      - RHEL Desktop
-  - value: 69 # Red Hat Enterprise Linux Server
+  - value: 2
     valueType: engId
     tags:
       - RHEL
-      - RHEL for x86
-      - RHEL Server
-  - value: 71 # Red Hat Enterprise Linux Workstation
+  - value: 3
     valueType: engId
     tags:
       - RHEL
-      - RHEL for x86
+  - value: 4
+    valueType: engId
+    tags:
+      - NOT RHEL
+  - value: 5
+    valueType: engId
+    tags:
+      - NOT RHEL
+  - value: 6
+    valueType: engId
+    tags:
+      - NOT RHEL
+  - value: 9
+    valueType: engId
+    tags:
+      - RHEL
       - RHEL Workstation
-  - value: 72 # Red Hat Enterprise Linux for IBM z Systems
+  - value: 10
     valueType: engId
     tags:
       - RHEL
-      - RHEL for IBM z
-  - value: 74 # Red Hat Enterprise Linux for Power, big endian
+      - RHEL Server
+  - value: 13
     valueType: engId
     tags:
-      - RHEL
-      - RHEL for IBM Power
-  - value: 76 # Red Hat Enterprise Linux for Scientific Computing
+        - OpenShift Container Platform
+  - value: 6789
     valueType: engId
     tags:
-      - RHEL
-      - RHEL for x86
-      - RHEL Compute Node
-  - value: 279 # Red Hat Enterprise Linux for Power, little endian
-    valueType: engId
-    tags:
-      - RHEL
-      - RHEL for IBM Power
-  - value: 419 # Red Hat Enterprise Linux for ARM 64
-    valueType: engId
-    tags:
-      - RHEL
-      - RHEL for ARM
-  - value: 420 # Red Hat Enterprise Linux for Power 9
-    valueType: engId
-    tags:
-      - RHEL
-      - RHEL for IBM Power
-  - value: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
-    valueType: engId
-    tags:
-      - RHEL
-      - RHEL for x86
+        - RHEL for x86
 
-  # Satellite engineering product IDs
-  - value: 250 # Red Hat Satellite
+  # Test Specific products
+  - value: 2000
     valueType: engId
     tags:
-      - Satellite
-      - Satellite Server
-  - value: 269 # Red Hat Satellite Capsule
+      - OTHER PRODUCT
+  - value: 999
     valueType: engId
     tags:
-      - Satellite
-      - Satellite Capsule
-
-  # OpenShift engineering product IDs
-  - value: 290 # Red Hat OpenShift Container Platform
-    valueType: engId
-    tags:
-      - OpenShift Container Platform
+      - OpenShift Hourly
 
   # System Purpose roles
   - value: ocp
@@ -90,10 +70,6 @@ tagMappings:
     valueType: role
     tags:
       - OpenShift-dedicated-metrics
-  - value: rhosak
-    valueType: role
-    tags:
-      - rhosak
   - value: Red Hat Enterprise Linux Server
     valueType: role
     tags:
@@ -104,27 +80,18 @@ tagMappings:
     tags:
       - RHEL
       - RHEL Workstation
-  - value: Red Hat Enterprise Linux Compute Node
-    valueType: role
-    tags:
-      - RHEL
-      - RHEL Compute Node
 
-  # Offering Product Names
-  - value: OpenShift Dedicated
-    valueType: productName
+  # Satellite Products
+  - value: 250 # Red Hat Satellite
+    valueType: engId
     tags:
-      - OpenShift-dedicated-metrics
-
-  - value: OpenShift Container Platform
-    valueType: productName
+      - Satellite
+      - Satellite Server
+  - value: 269 # Red Hat Satellite Capsule
+    valueType: engId
     tags:
-      - OpenShift-metrics
-
-  - value: OpenShift Streams for Apache Kafka
-    valueType: productName
-    tags:
-      - rhosak
+      - Satellite
+      - Satellite Capsule
 
   # System Architecture
   - value: aarch64
@@ -227,11 +194,6 @@ tagMetaData:
   - tags:
       - RHEL
       - RHEL for x86
-      - RHEL for ARM
-      - RHEL for IBM Power
-      - RHEL for IBM z
-      - RHEL Compute Node
-      - RHEL Server
       - RHEL Desktop
       - RHEL Workstation
     finestGranularity: DAILY
@@ -242,6 +204,12 @@ tagMetaData:
     finestGranularity: DAILY
   - tags:
       - OpenShift Container Platform
+    finestGranularity: DAILY
+  - tags:
+      - OpenShift Hourly
+    finestGranularity: HOURLY
+  - tags:
+      - OtherProducts
     finestGranularity: DAILY
   - tags:
       - OpenShift-metrics
