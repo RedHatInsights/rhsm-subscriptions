@@ -13,6 +13,20 @@ KAFKA_BOOTSTRAP_PORT: ${clowder.kafka.brokers[0].port:9092}
 
 SERVER_PORT: ${clowder.publicPort:8000}
 
+# Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+# only provides a path starting with a leading slash.  I have elected to set the default to do the
+# same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+# Security since the path now becomes (assuming management.base-path is "/") "//metrics".  Browser
+# requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+# and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+# applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+
+# Accordingly, I've put in a custom rule in the security config to grant access to "/metrics"
+
+METRICS_PROMETHEUS_PATH: ${clowder.metricsPath:/metrics}
+METRICS_BASE_PATH: /
+METRICS_SERVER_PORT: ${clowder.metricsPort:9000}
+
 JMX_ENABLED: true
 JDBC_BATCH_SIZE: 100
 KAFKA_MESSAGE_THREADS: 1
@@ -46,6 +60,8 @@ server:
   port: ${SERVER_PORT}
 
 management:
+  server:
+    port: ${METRICS_SERVER_PORT}
   endpoints:
     web:
       exposure:
@@ -55,6 +71,9 @@ management:
           - info
           - jolokia
           - prometheus
+      path-mapping:
+        prometheus: ${METRICS_PROMETHEUS_PATH}
+      base-path: ${METRICS_BASE_PATH}
   endpoint:
     shutdown:
       enabled: true
