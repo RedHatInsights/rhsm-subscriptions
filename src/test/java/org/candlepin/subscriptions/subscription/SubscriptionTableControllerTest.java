@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_METRICS;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,6 +82,15 @@ class SubscriptionTableControllerTest {
   private static final SubCapSpec RH00604F5 =
       SubCapSpec.offering(
           "RH00604F5", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+  private static final SubCapSpec RH0180192_SOCKETS =
+      SubCapSpec.offering(
+          "RH0180192", "RHEL Server", 2, null, 2, null, ServiceLevel.STANDARD, Usage.PRODUCTION);
+  private static final SubCapSpec RH0180193_CORES =
+      SubCapSpec.offering(
+          "RH0180193", "RHEL Server", null, 2, null, 2, ServiceLevel.STANDARD, Usage.PRODUCTION);
+  private static final SubCapSpec RH0180194_SOCKETS_AND_CORES =
+      SubCapSpec.offering(
+          "RH0180194", "RHEL Server", 2, 2, 2, 2, ServiceLevel.STANDARD, Usage.PRODUCTION);
 
   private enum Org {
     STANDARD("711497", "477931");
@@ -126,7 +136,7 @@ class SubscriptionTableControllerTest {
         givenCapacities(Org.STANDARD, productId, RH0180191.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anyString(), any(), any(), any(), any()))
+            any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -143,8 +153,8 @@ class SubscriptionTableControllerTest {
     assertCapacities(8, 0, Uom.SOCKETS, actualItem);
     assertSubscription(expectedSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
-    assertEquals(expectedSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 
   @Test
@@ -162,7 +172,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anyString(), any(), any(), any(), any()))
+            any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -182,10 +192,10 @@ class SubscriptionTableControllerTest {
         9, actualItem.getQuantity(), "Item should contain the sum of all subs' quantities");
     assertCapacities(18, 0, Uom.SOCKETS, actualItem);
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
     assertEquals(
         expectedOlderSub.end,
-        actualItem.getUpcomingEventDate(),
+        actualItem.getNextEventDate(),
         "Wrong upcoming event date. Given two or more subs, the even take should be the subscription enddate closest to now.");
 
     SkuCapacitySubscription actualSub = actualItem.getSubscriptions().get(0);
@@ -210,7 +220,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub),
             RH00604F5.withSub(expectedOlderSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anyString(), any(), any(), any(), any()))
+            any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
@@ -234,9 +244,8 @@ class SubscriptionTableControllerTest {
     assertCapacities(10, 10, Uom.SOCKETS, actualItem);
     assertSubscription(expectedOlderSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
-    assertEquals(
-        expectedOlderSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedOlderSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
 
     actualItem = actual.getData().get(1);
     assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
@@ -247,9 +256,8 @@ class SubscriptionTableControllerTest {
     assertCapacities(8, 0, Uom.SOCKETS, actualItem);
     assertSubscription(expectedNewerSub, actualItem.getSubscriptions().get(0));
     assertEquals(
-        SubscriptionEventType.END, actualItem.getUpcomingEventType(), "Wrong upcoming event type");
-    assertEquals(
-        expectedNewerSub.end, actualItem.getUpcomingEventDate(), "Wrong upcoming event date");
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedNewerSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 
   @Test
@@ -257,7 +265,7 @@ class SubscriptionTableControllerTest {
     // Given an org with no active subs,
     ProductId productId = RHEL_SERVER;
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anyString(), any(), any(), any(), any()))
+            any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     // When requesting a SKU capacity report for an eng product,
@@ -288,6 +296,7 @@ class SubscriptionTableControllerTest {
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
             any(),
+            any(),
             any()))
         .thenReturn(givenCapacities);
 
@@ -310,7 +319,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any()))
+            any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedSLA =
@@ -352,7 +361,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), any(), any(), eq(Usage.PRODUCTION), any(), any()))
+            any(), any(), any(), eq(Usage.PRODUCTION), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedUsage =
@@ -381,6 +390,88 @@ class SubscriptionTableControllerTest {
   }
 
   @Test
+  void testCountReturnedInMetaIgnoresOffsetAndLimit() {
+
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(
+            Org.STANDARD,
+            RHEL_SERVER,
+            RH0180191.withSub(Sub.sub("1236", "1237", 5, 6, 6)),
+            RH00604F5.withSub(Sub.sub("1234", "1235", 4, 5, 7)),
+            SubCapSpec.offering(
+                    "RH00604F6", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                .withSub(Sub.sub("1237", "1235", 4, 5, 7)),
+            SubCapSpec.offering(
+                    "RH00604F7", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                .withSub(Sub.sub("1238", "1235", 4, 5, 7)),
+            SubCapSpec.offering(
+                    "RH0060192", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                .withSub(Sub.sub("1239", "1235", 4, 5, 7)));
+
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    SkuCapacityReport reportWithOffsetAndLimit =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_SERVER, 0, 2, null, null, null, SkuCapacityReportSort.SKU, null);
+    assertEquals(2, reportWithOffsetAndLimit.getData().size());
+    assertEquals(5, reportWithOffsetAndLimit.getMeta().getCount());
+  }
+
+  @Test
+  void testShouldUseUomQueryParam() {
+    ProductId productId = RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    Sub expectedMuchOlderSub = Sub.sub("1238", "1237", 5, 24, 6);
+    List<SubscriptionCapacityView> capacitiesWithCores =
+        givenCapacities(
+            Org.STANDARD,
+            productId,
+            RH0180193_CORES.withSub(expectedNewerSub),
+            RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub));
+
+    List<SubscriptionCapacityView> capacitiesWithSockets =
+        givenCapacities(
+            Org.STANDARD,
+            productId,
+            RH0180192_SOCKETS.withSub(expectedOlderSub),
+            RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub));
+
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), eq(Uom.CORES)))
+        .thenReturn(capacitiesWithCores);
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), eq(Uom.SOCKETS)))
+        .thenReturn(capacitiesWithSockets);
+
+    SkuCapacityReport reportForMatchingCoresUom =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_SERVER,
+            null,
+            null,
+            ServiceLevelType.STANDARD,
+            null,
+            Uom.CORES,
+            SkuCapacityReportSort.SKU,
+            null);
+    assertEquals(2, reportForMatchingCoresUom.getData().size());
+
+    SkuCapacityReport reportForMatchingSocketsUom =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_SERVER,
+            null,
+            null,
+            ServiceLevelType.STANDARD,
+            null,
+            Uom.SOCKETS,
+            SkuCapacityReportSort.SKU,
+            null);
+    assertEquals(2, reportForMatchingSocketsUom.getData().size());
+  }
+
+  @Test
   void testShouldThrowExceptionOnBadOffset() {
     SubscriptionsException e =
         assertThrows(
@@ -396,6 +487,32 @@ class SubscriptionTableControllerTest {
                     SkuCapacityReportSort.SKU,
                     null));
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+  }
+
+  @Test
+  void testShouldPopulateAnnualSubscriptionType() {
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Collections.emptyList());
+
+    SkuCapacityReport report =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_SERVER, null, null, null, null, Uom.CORES, SkuCapacityReportSort.SKU, null);
+
+    assertEquals(SubscriptionType.ANNUAL, report.getMeta().getSubscriptionType());
+  }
+
+  @Test
+  void testShouldPopulateOnDemandSubscriptionType() {
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(Collections.emptyList());
+
+    SkuCapacityReport report =
+        subscriptionTableController.capacityReportBySku(
+            OPENSHIFT_METRICS, null, null, null, null, Uom.CORES, SkuCapacityReportSort.SKU, null);
+
+    assertEquals(SubscriptionType.ON_DEMAND, report.getMeta().getSubscriptionType());
   }
 
   private static void assertCapacities(
@@ -534,16 +651,20 @@ class SubscriptionTableControllerTest {
           .accountNumber(org.accountNumber)
           .beginDate(sub.start)
           .endDate(sub.end)
-          .physicalCores(physicalCores * sub.quantity)
-          .physicalSockets(physicalSockets * sub.quantity)
-          .virtualSockets(virtualSockets * sub.quantity)
-          .virtualCores(virtualCores * sub.quantity)
+          .physicalCores(totalCapacity(physicalCores, sub.quantity))
+          .physicalSockets(totalCapacity(physicalSockets, sub.quantity))
+          .virtualSockets(totalCapacity(virtualSockets, sub.quantity))
+          .virtualCores(totalCapacity(virtualCores, sub.quantity))
           .hasUnlimitedGuestSockets(hashUnlimitedGuestSockets)
           .sku(sku)
           .serviceLevel(serviceLevel)
           .usage(usage)
           .productName(productName)
           .build();
+    }
+
+    private static Integer totalCapacity(Integer capacity, long quantity) {
+      return capacity == null ? null : capacity * (int) quantity;
     }
   }
 }

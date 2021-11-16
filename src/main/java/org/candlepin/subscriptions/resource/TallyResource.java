@@ -21,18 +21,25 @@
 package org.candlepin.subscriptions.resource;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
@@ -44,22 +51,35 @@ import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportDataMeta;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 /** Tally API implementation. */
 @Component
+@Slf4j
 public class TallyResource implements TallyApi {
 
+  private static final Map<ReportCategory, Set<HardwareMeasurementType>> CATEGORY_MAP =
+      Map.of(
+          ReportCategory.PHYSICAL, Set.of(HardwareMeasurementType.PHYSICAL),
+          ReportCategory.VIRTUAL,
+              Set.of(HardwareMeasurementType.VIRTUAL, HardwareMeasurementType.HYPERVISOR),
+          ReportCategory.CLOUD, new HashSet<>(HardwareMeasurementType.getCloudProviderTypes()));
   private final TallySnapshotRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
@@ -67,6 +87,7 @@ public class TallyResource implements TallyApi {
 
   @Context private UriInfo uriInfo;
 
+  @Autowired
   public TallyResource(
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
@@ -78,28 +99,186 @@ public class TallyResource implements TallyApi {
     this.productProfileRegistry = productProfileRegistry;
   }
 
-  @SuppressWarnings("linelength")
   @Override
   @ReportingAccessRequired
-  public TallyReport getTallyReport(
+  public TallyReportData getTallyReportData(
       ProductId productId,
-      @NotNull GranularityType granularityType,
-      @NotNull OffsetDateTime beginning,
-      @NotNull OffsetDateTime ending,
-      Integer offset,
-      @Min(1) Integer limit,
+      MetricId metricId,
+      GranularityType granularityType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      ReportCategory category,
       ServiceLevelType sla,
       UsageType usageType,
-      Boolean useRunningTotalsFormat) {
+      Integer offset,
+      Integer limit) {
+    ReportCriteria reportCriteria =
+        extractReportCriteria(
+            productId,
+            metricId,
+            granularityType,
+            beginning,
+            ending,
+            category,
+            sla,
+            usageType,
+            offset,
+            limit);
+
+    Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
+        repository
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+                reportCriteria.getAccountNumber(),
+                reportCriteria.getProductId(),
+                reportCriteria.getGranularity(),
+                reportCriteria.getServiceLevel(),
+                reportCriteria.getUsage(),
+                reportCriteria.getBeginning(),
+                reportCriteria.getEnding(),
+                reportCriteria.getPageable());
+
+    Uom uom = Uom.fromValue(metricId.toString());
+
+    List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
+        snapshotPage.stream().collect(Collectors.toList());
+
+    List<TallyReportDataPoint> snaps =
+        snapshots.stream()
+            .map(snapshot -> dataPointFromSnapshot(uom, category, snapshot))
+            .collect(Collectors.toList());
+
+    TallyReportData report = new TallyReportData();
+    report.setData(snaps);
+    report.setMeta(new TallyReportDataMeta());
+    report.getMeta().setGranularity(reportCriteria.getGranularity().asOpenApiEnum());
+    report.getMeta().setProduct(productId);
+    report.getMeta().setMetricId(metricId.toString());
+    report.getMeta().setServiceLevel(sla);
+    report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
+
+    // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
+    // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
+    // NOTE: In order to avoid incorrect aggregations, if there is not exactly a full month (e.g.
+    // custom API usage), we'll log a warning and omit totalMonthly if the range doesn't match
+    // expected UI usage, or if paging is requested.
+    // NOTE: the UI's precision for end of month is less than the backends. By truncating to
+    // seconds, we relax the comparison.
+    if (clock.startOfMonth(reportCriteria.getBeginning()).equals(reportCriteria.getBeginning())
+        && clock
+            .endOfMonth(reportCriteria.getBeginning())
+            .truncatedTo(ChronoUnit.SECONDS)
+            .equals(reportCriteria.getEnding().truncatedTo(ChronoUnit.SECONDS))
+        && reportCriteria.getPageable() == null) {
+      // gather monthly totals for the month
+      TallyReportDataPoint totalMonthly =
+          report.getData().stream()
+              .collect(
+                  () ->
+                      new TallyReportDataPoint()
+                          .value(0.0) // set value to avoid NPE
+                          .hasData(false), // indicate in API there is no data
+                  this::combineDataPointsForTotal,
+                  this::combineDataPointsForTotal);
+      report.getMeta().setTotalMonthly(totalMonthly);
+    } else {
+      log.warn(
+          "Tally API called for a range more or less than a full month. Not populating totalMonthly");
+    }
+
+    // Only set page links if we are paging (not filling).
+    if (reportCriteria.getPageable() != null) {
+      report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
+    }
+
+    // Fill the report gaps if no paging was requested.
+    if (reportCriteria.getPageable() == null) {
+      ReportFiller<TallyReportDataPoint> reportFiller =
+          ReportFillerFactory.getDataPointReportFiller(clock, reportCriteria.getGranularity());
+      report.setData(reportFiller.fillGaps(report.getData(), beginning, ending, false));
+    }
+
+    // Set the count last since the report may have gotten filled.
+    report.getMeta().setCount(report.getData().size());
+    report
+        .getMeta()
+        .setHasCloudigradeData(
+            snapshots.stream().anyMatch(snapshot -> hasCloudigradeData(snapshot, uom)));
+    report
+        .getMeta()
+        .setHasCloudigradeMismatch(
+            snapshots.stream().anyMatch(snapshot -> hasCloudigradeMismatch(snapshot, uom)));
+
+    return report;
+  }
+
+  private void combineDataPointsForTotal(
+      TallyReportDataPoint result, TallyReportDataPoint newDataPoint) {
+    if (!Boolean.TRUE.equals(newDataPoint.getHasData())) {
+      return;
+    }
+    if (newDataPoint
+        .getDate()
+        .isAfter(Optional.ofNullable(result.getDate()).orElse(OffsetDateTime.MIN))) {
+      result.setDate(newDataPoint.getDate());
+    }
+    result.setHasData(true);
+    result.setValue(result.getValue() + newDataPoint.getValue());
+  }
+
+  // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545
+  @SuppressWarnings("java:S5738")
+  private boolean hasCloudigradeData(
+      org.candlepin.subscriptions.db.model.TallySnapshot tallySnapshot, Uom uom) {
+    if (tallySnapshot.getTallyMeasurements().isEmpty()) {
+      HardwareMeasurement hardwareMeasurement =
+          tallySnapshot.getHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE);
+      return hardwareMeasurement != null && extractLegacyValue(hardwareMeasurement, uom) > 0.0;
+    }
+    Double measurement = tallySnapshot.getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, uom);
+    return measurement != null && measurement > 0.0;
+  }
+
+  // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545
+  @SuppressWarnings("java:S5738")
+  private boolean hasCloudigradeMismatch(
+      org.candlepin.subscriptions.db.model.TallySnapshot tallySnapshot, Uom uom) {
+    if (tallySnapshot.getTallyMeasurements().isEmpty()) {
+      HardwareMeasurement cloudigradeMeasurement =
+          tallySnapshot.getHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE);
+      HardwareMeasurement hbiMeasurement =
+          tallySnapshot.getHardwareMeasurement(HardwareMeasurementType.AWS);
+      return cloudigradeMeasurement != null
+          && (hbiMeasurement == null
+              || extractLegacyValue(cloudigradeMeasurement, uom)
+                  != extractLegacyValue(hbiMeasurement, uom));
+    }
+    Double cloudigradeMeasurement =
+        tallySnapshot.getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, uom);
+    Double hbiMeasurement = tallySnapshot.getMeasurement(HardwareMeasurementType.AWS, uom);
+    return cloudigradeMeasurement != null
+        && !Objects.equals(cloudigradeMeasurement, hbiMeasurement);
+  }
+
+  /** Validate and extract report criteria */
+  @SuppressWarnings("java:S107")
+  private ReportCriteria extractReportCriteria(
+      ProductId productId,
+      MetricId metricId,
+      GranularityType granularityType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usageType,
+      Integer offset,
+      Integer limit) {
     // When limit and offset are not specified, we will fill the report with dummy
     // records from beginning to ending dates. Otherwise we page as usual.
     Pageable pageable = null;
-    boolean fill = limit == null && offset == null;
-    if (!fill) {
+    if (limit != null || offset != null) {
       pageable = ResourceUtils.getPageable(offset, limit);
     }
 
-    String accountNumber = ResourceUtils.getAccountNumber();
     ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
     Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
@@ -115,18 +294,115 @@ public class TallyResource implements TallyApi {
       MDC.put("INVALID_GRANULARITY", Boolean.TRUE.toString());
       throw new BadRequestException(e.getMessage());
     }
+    return ReportCriteria.builder()
+        .accountNumber(ResourceUtils.getAccountNumber())
+        .productId(productId.toString())
+        .metricId(Optional.ofNullable(metricId).map(MetricId::toString).orElse(null))
+        .granularity(granularityFromValue)
+        .reportCategory(category)
+        .serviceLevel(serviceLevel)
+        .usage(effectiveUsage)
+        .pageable(pageable)
+        .beginning(beginning)
+        .ending(ending)
+        .build();
+  }
+
+  private TallyReportDataPoint dataPointFromSnapshot(
+      Uom uom,
+      ReportCategory category,
+      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+    double value;
+    if (snapshot.getTallyMeasurements().isEmpty()) {
+      value = extractLegacyValue(uom, category, snapshot);
+    } else {
+      value = extractValue(uom, category, snapshot);
+    }
+    return new TallyReportDataPoint().date(snapshot.getSnapshotDate()).value(value).hasData(true);
+  }
+
+  // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545
+  @SuppressWarnings("java:S5738")
+  private double extractLegacyValue(
+      Uom uom,
+      ReportCategory category,
+      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
+    return contributingTypes.stream()
+        .map(snapshot::getHardwareMeasurement)
+        .filter(Objects::nonNull)
+        .mapToDouble(m -> extractLegacyValue(m, uom))
+        .sum();
+  }
+
+  private double extractLegacyValue(HardwareMeasurement hardwareMeasurement, Uom uom) {
+    switch (uom) {
+      case CORES:
+        return hardwareMeasurement.getCores();
+      case SOCKETS:
+        return hardwareMeasurement.getSockets();
+      default:
+        throw new IllegalArgumentException(uom + " cannot be extracted from HardwareMeasurement");
+    }
+  }
+
+  private double extractValue(
+      Uom uom,
+      ReportCategory category,
+      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
+    return contributingTypes.stream()
+        .mapToDouble(type -> Optional.ofNullable(snapshot.getMeasurement(type, uom)).orElse(0.0))
+        .sum();
+  }
+
+  private Set<HardwareMeasurementType> getContributingTypes(ReportCategory category) {
+    Set<HardwareMeasurementType> contributingTypes;
+    if (category == null) {
+      contributingTypes = Set.of(HardwareMeasurementType.TOTAL);
+    } else {
+      contributingTypes = CATEGORY_MAP.get(category);
+    }
+    return contributingTypes;
+  }
+
+  @SuppressWarnings("linelength")
+  @Override
+  @ReportingAccessRequired
+  public TallyReport getTallyReport(
+      ProductId productId,
+      @NotNull GranularityType granularityType,
+      @NotNull OffsetDateTime beginning,
+      @NotNull OffsetDateTime ending,
+      Integer offset,
+      @Min(1) Integer limit,
+      ServiceLevelType sla,
+      UsageType usageType,
+      Boolean useRunningTotalsFormat) {
+    ReportCriteria reportCriteria =
+        extractReportCriteria(
+            productId,
+            null,
+            granularityType,
+            beginning,
+            ending,
+            null,
+            sla,
+            usageType,
+            offset,
+            limit);
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
         repository
             .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                accountNumber,
-                productId.toString(),
-                granularityFromValue,
-                serviceLevel,
-                effectiveUsage,
-                beginning,
-                ending,
-                pageable);
+                reportCriteria.getAccountNumber(),
+                reportCriteria.getProductId(),
+                reportCriteria.getGranularity(),
+                reportCriteria.getServiceLevel(),
+                reportCriteria.getUsage(),
+                reportCriteria.getBeginning(),
+                reportCriteria.getEnding(),
+                reportCriteria.getPageable());
 
     List<TallySnapshot> snaps =
         snapshotPage.stream()
@@ -136,10 +412,10 @@ public class TallyResource implements TallyApi {
     TallyReport report = new TallyReport();
     report.setData(snaps);
     report.setMeta(new TallyReportMeta());
-    report.getMeta().setGranularity(granularityFromValue.asOpenApiEnum());
+    report.getMeta().setGranularity(reportCriteria.getGranularity().asOpenApiEnum());
     report.getMeta().setProduct(productId);
     report.getMeta().setServiceLevel(sla);
-    report.getMeta().setUsage(usageType == null ? null : effectiveUsage.asOpenApiEnum());
+    report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
     report.getMeta().setTotalCoreHours(getTotalCoreHours(report));
     report.getMeta().setTotalInstanceHours(getTotalInstanceHours(report));
 
@@ -148,14 +424,16 @@ public class TallyResource implements TallyApi {
     }
 
     // Only set page links if we are paging (not filling).
-    if (pageable != null) {
+    if (reportCriteria.getPageable() != null) {
       report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
     }
 
     // Fill the report gaps if no paging was requested.
-    if (fill) {
-      ReportFiller reportFiller = ReportFillerFactory.getInstance(clock, granularityFromValue);
-      reportFiller.fillGaps(report, beginning, ending, useRunningTotalsFormat);
+    if (reportCriteria.getPageable() == null) {
+      ReportFiller<TallySnapshot> reportFiller =
+          ReportFillerFactory.getInstance(clock, reportCriteria.getGranularity());
+      report.setData(
+          reportFiller.fillGaps(report.getData(), beginning, ending, useRunningTotalsFormat));
     }
 
     // Set the count last since the report may have gotten filled.

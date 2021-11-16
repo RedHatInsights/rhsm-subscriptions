@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +40,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
@@ -54,12 +56,15 @@ public class TagProfile {
   @Getter @Setter private List<TagMapping> tagMappings;
   @Getter @Setter private List<TagMetric> tagMetrics;
   @Getter @Setter private List<TagMetaData> tagMetaData;
+  @Getter private Set<String> serviceTypes;
 
   private Map<String, Set<String>> tagToEngProductsLookup;
   private Map<ProductUom, String> productUomToMetricIdLookup;
   @Getter private Set<String> tagsWithPrometheusEnabledLookup;
   private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
+  private Map<String, Set<String>> tagToOfferingProductNamesLookup;
+  private Map<String, Set<String>> roleToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
   private Map<String, TagMetaData> tagMetaDataToTagLookup;
   private Map<String, List<Measurement.Uom>> tagToUomLookup;
@@ -72,9 +77,12 @@ public class TagProfile {
     tagsWithPrometheusEnabledLookup = new HashSet<>();
     measurementsByTagLookup = new HashMap<>();
     offeringProductNameToTagLookup = new HashMap<>();
+    tagToOfferingProductNamesLookup = new HashMap<>();
+    roleToTagLookup = new HashMap<>();
     tagMetaDataToTagLookup = new HashMap<>();
     finestGranularityLookup = new HashMap<>();
     tagToUomLookup = new HashMap<>();
+    serviceTypes = new HashSet<>();
     tagMappings.forEach(this::handleTagMapping);
     tagMetrics.forEach(this::handleTagMetric);
     tagMetaData.forEach(this::handleTagMetaData);
@@ -90,7 +98,19 @@ public class TagProfile {
                       .computeIfAbsent(tag, k -> new HashSet<>())
                       .add(mapping.getValue()));
     } else if ("productName".equals(mapping.getValueType())) {
-      mapping.getTags().forEach(tag -> offeringProductNameToTagLookup.put(mapping.getValue(), tag));
+      mapping
+          .getTags()
+          .forEach(
+              tag -> {
+                offeringProductNameToTagLookup.put(mapping.getValue(), tag);
+                tagToOfferingProductNamesLookup
+                    .computeIfAbsent(tag, k -> new HashSet<>())
+                    .add(mapping.getValue());
+              });
+    } else if ("role".equals(mapping.getValueType())) {
+      roleToTagLookup
+          .computeIfAbsent(mapping.getValue(), k -> new HashSet<>())
+          .addAll(mapping.getTags());
     }
   }
 
@@ -106,6 +126,9 @@ public class TagProfile {
   }
 
   private void handleTagMetaData(TagMetaData tagMetaData) {
+    if (StringUtils.hasText(tagMetaData.getServiceType())) {
+      serviceTypes.add(tagMetaData.getServiceType());
+    }
     tagMetaData
         .getTags()
         .forEach(
@@ -174,5 +197,50 @@ public class TagProfile {
           String.format("Metrics gathering for %s is not currently supported!", productTag));
     }
     return measurementsByTag(productTag);
+  }
+
+  public Set<String> getTagsByRole(Role role) {
+    if (Objects.isNull(role)) {
+      return Collections.emptySet();
+    }
+    return roleToTagLookup.getOrDefault(role.value(), Collections.emptySet());
+  }
+
+  public Set<String> getTagsByEngProduct(String engProduct) {
+    return tagToEngProductsLookup.entrySet().stream()
+        .filter(e -> e.getValue().contains(engProduct))
+        .map(Entry::getKey)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Find the first instance of tag metadata that matches the specified service type.
+   *
+   * @param serviceType the service type to match.
+   * @return Optional service type string.
+   */
+  public Optional<TagMetaData> getTagMetaDataByServiceType(String serviceType) {
+    if (!StringUtils.hasText(serviceType)) {
+      return Optional.empty();
+    }
+    return getTagMetaData().stream()
+        .filter(meta -> serviceType.equals(meta.getServiceType()))
+        .findFirst();
+  }
+
+  public Set<String> getTagsForServiceType(String serviceType) {
+    if (!StringUtils.hasText(serviceType)) {
+      return Collections.emptySet();
+    }
+    Set<String> tags = new HashSet<>();
+    getTagMetaData().stream()
+        .filter(meta -> serviceType.equals(meta.getServiceType()))
+        .map(TagMetaData::getTags)
+        .forEach(tags::addAll);
+    return tags;
+  }
+
+  public Set<String> getOfferingProductNamesForTag(String productTag) {
+    return tagToOfferingProductNamesLookup.getOrDefault(productTag, Collections.emptySet());
   }
 }

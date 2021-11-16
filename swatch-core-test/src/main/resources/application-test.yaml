@@ -24,6 +24,11 @@ rhsm-subscriptions:
       kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: true
+  product:
+    use-stub: true
+    tasks:
+      topic: platform.rhsm-subscriptions.offering-sync
+      kafka-group-id: offering-worker
 logging:
   level:
     org:

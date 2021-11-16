@@ -20,18 +20,9 @@
  */
 package org.candlepin.subscriptions.product;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
+import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -49,11 +40,13 @@ import org.slf4j.LoggerFactory;
  * products into an Offering. The upstream product data are put into this intermediate structure
  * which can then be "merged down" into its ultimate Offering form.
  */
-/* package-protected */ class UpstreamProductData {
+/* package-protected */
+@ToString
+class UpstreamProductData {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UpstreamProductData.class);
   private static final String MSG_TEMPLATE =
-      "sku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
+      "offeringSku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
 
   /** List of opProd attribute codes used in the making of an Offering. */
@@ -68,7 +61,7 @@ import org.slf4j.LoggerFactory;
     SERVICE_TYPE,
     PRODUCT_FAMILY,
     USAGE,
-    /** Name of Offering comes from opProd description field, not the PRODUCT_NAME attribute. */
+    PRODUCT_NAME,
     X_DESCRIPTION,
     /** Role originates from opProd roles field, not an attribute. */
     X_ROLE;
@@ -101,7 +94,7 @@ import org.slf4j.LoggerFactory;
    *     not found.
    */
   public static Optional<Offering> offeringFromUpstream(String sku, ProductService productService) {
-    LOGGER.debug("Retrieving product tree for offering sku=\"{}\"", sku);
+    LOGGER.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
 
     try {
       return productService
@@ -113,7 +106,7 @@ import org.slf4j.LoggerFactory;
     } catch (ApiException e) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
-          "Unable to retrieve upstream offering sku=\"" + sku + "\"",
+          "Unable to retrieve upstream offeringSku=\"" + sku + "\"",
           e);
     }
   }
@@ -136,7 +129,7 @@ import org.slf4j.LoggerFactory;
 
     // For each child, merge its unconflicting information into the parent.
     children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
-
+    LOGGER.debug("Offering from tree: {}", offer);
     return offer;
   }
 
@@ -144,7 +137,7 @@ import org.slf4j.LoggerFactory;
     if (!conflicts.isEmpty()) {
       String conflictItems = String.join(System.lineSeparator(), conflicts);
       LOGGER.info(
-          "Encountered conflicting attribute values when pulling offering sku={} from upstream:\n{}",
+          "Encountered conflicting attribute values when pulling offeringSku=\"{}\" from upstream:\n{}",
           sku,
           conflictItems);
     }
@@ -155,7 +148,8 @@ import org.slf4j.LoggerFactory;
     offering.setProductIds(Set.copyOf(engOids));
     offering.setRole(attrs.get(Attr.X_ROLE));
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
-    offering.setProductName(attrs.get(Attr.X_DESCRIPTION));
+    offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
+    offering.setDescription(attrs.get(Attr.X_DESCRIPTION));
 
     calcCapacityForOffering(offering);
 
@@ -174,20 +168,21 @@ import org.slf4j.LoggerFactory;
     https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.8dadhnye8ysf
     */
     var serviceType = attrs.get(Attr.SERVICE_TYPE);
-    if (serviceType != null) {
-      var level = ServiceLevel.fromString(serviceType);
-      if (level == ServiceLevel.EMPTY) {
-        LOGGER.warn("Offering sku=\"{}\" has unsupported SERVICE_TYPE=\"{}\"", sku, serviceType);
-      }
-      offering.setServiceLevel(level);
+    var level = ServiceLevel.fromString(serviceType);
+    offering.setServiceLevel(level);
+    // If the string-based serviceType had a value, but the ServiceLevel result is still empty,
+    // then warn about the unsupported value.
+    if (serviceType != null && level == ServiceLevel.EMPTY) {
+      LOGGER.warn("offeringSku=\"{}\" has unsupported SERVICE_TYPE=\"{}\"", sku, serviceType);
     }
+
     var usageVal = attrs.get(Attr.USAGE);
-    if (usageVal != null) {
-      var usage = Usage.fromString(usageVal);
-      if (usage == Usage.EMPTY) {
-        LOGGER.warn("Offering sku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
-      }
-      offering.setUsage(usage);
+    var usage = Usage.fromString(usageVal);
+    offering.setUsage(usage);
+    // If the string-based usageVal had a value, but the Usage result is still empty, then warn
+    // about the unsupported value.
+    if (usageVal != null && usage == Usage.EMPTY) {
+      LOGGER.warn("offeringSku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
     }
 
     return offering;
@@ -216,15 +211,14 @@ import org.slf4j.LoggerFactory;
         Optional<UpstreamProductData> derived =
             productService.getTree(derivedSku).map(UpstreamProductData::createFromTree);
         if (derived.isEmpty()) {
-          LOGGER.warn(
-              "No tree found for derivedSku=\"{}\" of offering sku=\"{}\"", derivedSku, sku);
+          LOGGER.warn("No tree found for derivedSku=\"{}\" of offeringSku=\"{}\"", derivedSku, sku);
         } else {
           merge(derived.get());
         }
       } catch (ApiException e) {
         throw new ExternalServiceException(
             ErrorCode.REQUEST_PROCESSING_ERROR,
-            "Unable to retrieve derivedSku=\"" + derivedSku + "\" for offering sku=\"" + sku + "\"",
+            "Unable to retrieve derivedSku=\"" + derivedSku + "\" for offeringSku=\"" + sku + "\"",
             e);
       }
     }
@@ -239,7 +233,7 @@ import org.slf4j.LoggerFactory;
     to fetch engOIDs for derived SKUs.
     */
     Set<String> allSkus = allSkus();
-    LOGGER.debug("Retrieving engOids for skus=\"{}\" of offering sku=\"{}\"", allSkus, sku);
+    LOGGER.debug("Retrieving engOids for skus=\"{}\" of offeringSku=\"{}\"", allSkus, sku);
     try {
       Map<String, List<EngineeringProduct>> engProds =
           productService.getEngineeringProductsForSkus(allSkus);
@@ -247,7 +241,7 @@ import org.slf4j.LoggerFactory;
     } catch (ApiException e) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
-          "Unable to retrieve engOids of skus=\"" + allSkus + "\" for offering sku=" + sku,
+          "Unable to retrieve engOids of skus=\"" + allSkus + "\" for offeringSku=\"" + sku + "\"",
           e);
     }
 
@@ -282,11 +276,21 @@ import org.slf4j.LoggerFactory;
 
     Integer sockets = nullOrInteger(attrs.get(Attr.SOCKET_LIMIT));
 
-    offering.setPhysicalCores(cores);
-    offering.setPhysicalSockets(sockets);
+    /*
+    There are no SKUs today (2021-10-27) that provide both physical capacity and virtual capacity
+    at the same time. It is one or the other.
 
-    // If there is a derived SKU, then virtual cores and sockets match the physical values.
-    if (attrs.get(Attr.DERIVED_SKU) != null) {
+    If there is no derived SKU, the set the physical capacities. Otherwise, set the virtual
+    capacities. Whenever there is a derived SKU, there are only engProds/content in the
+    derived/derived-children SKUs.
+
+    See https://issues.redhat.com/browse/ENT-4301?focusedCommentId=19210665 for details.
+    */
+
+    if (attrs.get(Attr.DERIVED_SKU) == null) {
+      offering.setPhysicalCores(cores);
+      offering.setPhysicalSockets(sockets);
+    } else {
       offering.setVirtualCores(cores);
       offering.setVirtualSockets(sockets);
     }
@@ -342,7 +346,6 @@ import org.slf4j.LoggerFactory;
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
       conflicts.add(msg);
     }
-
     return old;
   }
 

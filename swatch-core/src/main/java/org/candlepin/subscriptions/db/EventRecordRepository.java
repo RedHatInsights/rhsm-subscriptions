@@ -25,6 +25,8 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * DB repository for Event records.
@@ -52,9 +54,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   Stream<EventRecord>
       findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
           String accountNumber, OffsetDateTime begin, OffsetDateTime end);
-
-  boolean existsByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThan(
-      String accountNumber, OffsetDateTime begin, OffsetDateTime end);
 
   /**
    * Fetch a stream of events for a given account, event type and event source for a given time
@@ -87,4 +86,45 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
    * @param cutoffDate Dates BEFORE this timestamp get deleted
    */
   void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
+
+  /**
+   * Check if any Events exist for the specified account and service type during the specified
+   * range.
+   *
+   * @param accountNumber
+   * @param serviceType
+   * @param begin
+   * @param end
+   * @return true if at least 1 event exists, false otherwise.
+   */
+  @Query(
+      nativeQuery = true,
+      value =
+          "select exists(select 1 from events where account_number=:accountNumber and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp)")
+  boolean existsByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
+      @Param("accountNumber") String accountNumber,
+      @Param("serviceType") String serviceType,
+      @Param("begin") OffsetDateTime begin,
+      @Param("end") OffsetDateTime end);
+
+  /**
+   * Find all the events based on the account number and service type that exist during the
+   * specified range.
+   *
+   * @param accountNumber
+   * @param serviceType
+   * @param begin
+   * @param end
+   * @return a stream of Event objects matching the specified criteria.
+   */
+  @Query(
+      nativeQuery = true,
+      value =
+          "select * from events where account_number=:accountNumber and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp")
+  Stream<EventRecord>
+      findByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+          @Param("accountNumber") String accountNumber,
+          @Param("serviceType") String serviceType,
+          @Param("begin") OffsetDateTime begin,
+          @Param("end") OffsetDateTime end);
 }

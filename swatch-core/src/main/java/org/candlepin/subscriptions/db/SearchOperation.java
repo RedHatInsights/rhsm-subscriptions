@@ -34,5 +34,6 @@ public enum SearchOperation {
   IN,
   NOT_IN,
   AFTER_OR_ON,
-  BEFORE_OR_ON
+  BEFORE_OR_ON,
+  IS_NOT_NULL
 }

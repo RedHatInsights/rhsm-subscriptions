@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
+import org.candlepin.subscriptions.inventory.client.model.NetworkInterface;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -412,29 +413,19 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testInsightsIdIsNormalized() {
-    String uuid = UUID.randomUUID().toString();
+  void testCanonicalFactsUuidIsNormalizedWithHyphens() {
     String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
+    String uuid = "ca85ccb82d384317a5d14dc05a6ea1e9";
+    String systemUuid = "961B0D0151A511CB97AF8FC366E1A390";
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
     consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
-
-    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertEquals("40819041673b443b98765b0a1c2cc1b1", conduitFacts.getInsightsId());
-  }
-
-  @Test
-  void testInsightsIdIsNormalizedWithHyphens() {
-    String uuid = UUID.randomUUID().toString();
-    String insightsId = "40819041673b443b98765b0a1c2cc1b1\n";
-    Consumer consumer = new Consumer();
-    consumer.setUuid(uuid);
-    consumer.getFacts().put(InventoryController.INSIGHTS_ID, insightsId);
-
-    when(inventoryServiceProperties.isAddUuidHyphens()).thenReturn(true);
+    consumer.getFacts().put(InventoryController.DMI_SYSTEM_UUID, systemUuid);
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals("40819041-673b-443b-9876-5b0a1c2cc1b1", conduitFacts.getInsightsId());
+    assertEquals("ca85ccb8-2d38-4317-a5d1-4dc05a6ea1e9", conduitFacts.getSubscriptionManagerId());
+    assertEquals("961B0D01-51A5-11CB-97AF-8FC366E1A390", conduitFacts.getBiosUuid());
   }
 
   @Test
@@ -666,7 +657,7 @@ class InventoryControllerTest {
     Consumer consumer = new Consumer();
     consumer.setOrgId("123");
     consumer.setUuid(uuid.toString());
-    consumer.getFacts().put("openshift.cluster_id", "JustAnotherCluster");
+    consumer.getFacts().put("openshift.cluster_uuid", "JustAnotherCluster");
     consumer.setAccountNumber("account");
 
     ConduitFacts expected = new ConduitFacts();
@@ -679,6 +670,72 @@ class InventoryControllerTest {
         .thenReturn(pageOf(consumer));
 
     controller.updateInventoryForOrg("123");
+    verify(inventoryService).scheduleHostUpdate(expected);
+    verify(inventoryService, times(1)).flushHostUpdates();
+  }
+
+  @Test
+  void testAdditionalFactsMapping() {
+    Consumer consumer = new Consumer();
+    // Operating System
+    consumer.getFacts().put("distribution.name", "Red Hat Enterprise Linux Workstation");
+    consumer.getFacts().put("distribution.version", "6.3");
+
+    var expectedNIC1 = new NetworkInterface();
+    expectedNIC1.setName("virbr0");
+    expectedNIC1.setIpv4Addresses(List.of("192.168.122.1", "ipv4ListTest"));
+    expectedNIC1.setMacAddress("CO:FF:E0:OO:PP:D8");
+
+    var expectedNIC2 = new NetworkInterface();
+    expectedNIC2.setName("eth0");
+    expectedNIC2.setIpv6Addresses(List.of("ipv6Test", "fe80::f2de:f1ff:fe9e:ccdd"));
+    expectedNIC2.setMacAddress("CA:FE:D1:9E:CC:DD");
+
+    var loNIC = new NetworkInterface();
+    loNIC.setName("lo");
+    loNIC.setIpv4Addresses(List.of("127.0.0.1"));
+    loNIC.setMacAddress("00:00:00:00:00:00");
+
+    // Consumer responsible for providing rhsm facts
+    consumer.getFacts().put("net.interface.lo.ipv4_address", "127.0.0.1");
+    consumer.getFacts().put("net.interface.virbr0.ipv4_address", "192.168.122.1");
+    consumer
+        .getFacts()
+        .put("net.interface.virbr0.ipv4_address_list", "192.168.122.1, ipv4ListTest");
+    consumer.getFacts().put("net.interface.virbr0.mac_address", "CO:FF:E0:OO:PP:D8");
+    consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::f2de:f1ff:fe9e:ccdd");
+    consumer.getFacts().put("net.interface.eth0.ipv6_address.global", "ipv6Test");
+    consumer.getFacts().put("net.interface.eth0.mac_address", "CA:FE:D1:9E:CC:DD");
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals("Red Hat Enterprise Linux Workstation", conduitFacts.getOsName());
+    assertEquals("6.3", conduitFacts.getOsVersion());
+    assertEquals(
+        List.of(expectedNIC1, expectedNIC2, loNIC).size(),
+        conduitFacts.getNetworkInterfaces().size());
+    assertThat(
+        conduitFacts.getNetworkInterfaces(),
+        Matchers.containsInAnyOrder(expectedNIC1, expectedNIC2, loNIC));
+  }
+
+  @Test
+  void testEmptyUuidNormalizedToNull() throws ApiException, MissingAccountNumberException {
+    Consumer consumer = new Consumer();
+    UUID uuid = UUID.randomUUID();
+    consumer.setUuid(uuid.toString());
+    consumer.setOrgId("org123");
+    consumer.getFacts().put(InventoryController.INSIGHTS_ID, "");
+    consumer.setAccountNumber("account123");
+
+    ConduitFacts expected = new ConduitFacts();
+    expected.setOrgId("org123");
+    expected.setSubscriptionManagerId(uuid.toString());
+    expected.setAccountNumber("account123");
+
+    when(rhsmService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString()))
+        .thenReturn(pageOf(consumer));
+
+    controller.updateInventoryForOrg("org123");
     verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
   }

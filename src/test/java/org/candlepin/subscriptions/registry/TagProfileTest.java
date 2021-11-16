@@ -35,12 +35,23 @@ import java.util.Set;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** A class to test the tag profile contents. */
 class TagProfileTest {
+
+  private static final String ENG_PROD_69 = "69";
+
+  private static final String RHEL_TAG = "RHEL";
+  private static final String RHEL_DESKTOP_TAG = "RHEL for Desktop";
+  private static final String OPENSHIFT_DEDICATED_TAG = "OpenShift-dedicated-metrics";
+  public static final String OPENSHIFT_TAG = "OpenShift-metrics";
+
+  private static final String OPENSHIFT_CLUSTER_ST = "OpenShift Cluster";
+  private static final String KAFKA_CLUSTER_ST = "Kafka Cluster";
 
   private TagProfile tagProfile;
 
@@ -50,10 +61,23 @@ class TagProfileTest {
         TagMapping.builder()
             .value("69")
             .valueType("engId")
-            .tags(Set.of("RHEL", "RHEL for Desktop"))
+            .tags(Set.of(RHEL_TAG, RHEL_DESKTOP_TAG))
             .build();
     TagMapping tagMapping2 =
         TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of("RHEL for x86")).build();
+    TagMapping tagMapping3 =
+        TagMapping.builder()
+            .valueType("productName")
+            .tags(Set.of(RHEL_DESKTOP_TAG))
+            .value("RHEL Desktop")
+            .build();
+
+    TagMapping openshiftRoleMapping =
+        TagMapping.builder()
+            .tags(Set.of(OPENSHIFT_DEDICATED_TAG))
+            .valueType("role")
+            .value("osd")
+            .build();
 
     Map<String, String> params = new HashMap<>();
     params.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_cores:max:5m");
@@ -65,30 +89,40 @@ class TagProfileTest {
         TagMetric.builder()
             .tag("OpenShift-metrics")
             .uom(Uom.CORES)
-            .metricId("Cores")
+            .metricId("m_cores")
             .queryParams(params)
             .build());
     tagMetrics.add(
         TagMetric.builder()
             .tag("OpenShift-metrics")
             .uom(Uom.INSTANCE_HOURS)
-            .metricId("Cores")
+            .metricId("m_ihours")
             .queryParams(params)
             .build());
 
-    TagMetaData tagMetaData =
+    TagMetaData openshiftClusterMetaData =
         TagMetaData.builder()
-            .tags(Set.of("OpenShift-metrics", "OpenShift-dedicated-metrics"))
-            .serviceType("OpenShift Cluster")
+            .tags(Set.of(OPENSHIFT_TAG, OPENSHIFT_DEDICATED_TAG))
+            .serviceType(OPENSHIFT_CLUSTER_ST)
             .finestGranularity(Granularity.HOURLY)
             .defaultSla(ServiceLevel.PREMIUM)
             .defaultUsage(Usage.PRODUCTION)
             .build();
+
+    TagMetaData kafkaClusterMetaData =
+        TagMetaData.builder()
+            .tags(Set.of("kafka"))
+            .serviceType(KAFKA_CLUSTER_ST)
+            .finestGranularity(Granularity.HOURLY)
+            .defaultSla(ServiceLevel.PREMIUM)
+            .defaultUsage(Usage.PRODUCTION)
+            .build();
+
     tagProfile =
         TagProfile.builder()
-            .tagMappings(List.of(tagMapping1, tagMapping2))
+            .tagMappings(List.of(tagMapping1, tagMapping2, tagMapping3, openshiftRoleMapping))
             .tagMetrics(tagMetrics)
-            .tagMetaData(List.of(tagMetaData))
+            .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData))
             .build();
 
     // Manually invoke @PostConstruct so that the class is properly initialized.
@@ -161,5 +195,44 @@ class TagProfileTest {
     assertThrows(
         UnsupportedOperationException.class,
         () -> tagProfile.getSupportedMetricsForProduct("NOT_FOUND"));
+  }
+
+  @Test
+  void serviceTypesGetInitialized() {
+    assertEquals(Set.of(OPENSHIFT_CLUSTER_ST, KAFKA_CLUSTER_ST), tagProfile.getServiceTypes());
+  }
+
+  @Test
+  void getTagMetaDataByServiceType() {
+    Optional<TagMetaData> kafkaMetaData = tagProfile.getTagMetaDataByServiceType(KAFKA_CLUSTER_ST);
+    assertTrue(kafkaMetaData.isPresent());
+    assertEquals(KAFKA_CLUSTER_ST, kafkaMetaData.get().getServiceType());
+    assertTrue(tagProfile.getTagMetaDataByServiceType("UNKNOWN").isEmpty());
+  }
+
+  @Test
+  void getTagsByEngProduct() {
+    assertEquals(Set.of(RHEL_TAG, RHEL_DESKTOP_TAG), tagProfile.getTagsByEngProduct(ENG_PROD_69));
+    assertTrue(tagProfile.getTagsByEngProduct("11").isEmpty());
+  }
+
+  @Test
+  void getTagsByRole() {
+    assertEquals(Set.of(OPENSHIFT_DEDICATED_TAG), tagProfile.getTagsByRole(Role.OSD));
+    assertTrue(tagProfile.getTagsByRole(Role.OCP).isEmpty());
+  }
+
+  @Test
+  void getTagsForServiceType() {
+    assertEquals(
+        Set.of(OPENSHIFT_TAG, OPENSHIFT_DEDICATED_TAG),
+        tagProfile.getTagsForServiceType(OPENSHIFT_CLUSTER_ST));
+  }
+
+  @Test
+  void lookupProductNamesByTag() {
+    Set<String> products = tagProfile.getOfferingProductNamesForTag(RHEL_DESKTOP_TAG);
+    assertEquals(1, products.size());
+    assertTrue(products.contains("RHEL Desktop"));
   }
 }

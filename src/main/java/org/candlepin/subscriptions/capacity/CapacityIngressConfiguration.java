@@ -35,7 +35,8 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("capacity-ingress")
 @Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
-@ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
+@ComponentScan(
+    basePackages = {"org.candlepin.subscriptions.capacity", "org.candlepin.subscriptions.product"})
 public class CapacityIngressConfiguration {
   /* Intentionally empty */
 }

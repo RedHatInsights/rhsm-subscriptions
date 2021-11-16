@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Arrays;
 import java.util.Collections;
 import javax.ws.rs.core.UriInfo;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportLinks;
+import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.jboss.resteasy.specimpl.ResteasyUriBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,7 @@ class PageLinkCreatorTest {
   void testNoResultsOffsets() {
     Pageable pageable = PageRequest.of(0, 50);
     Page<TallySnapshot> page = new PageImpl<>(Collections.emptyList(), pageable, 0);
-    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    PageLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
     assertEquals("/?offset=0", links.getFirst());
     assertEquals("/?offset=0", links.getLast());
     assertNull(links.getPrevious());
@@ -67,7 +67,7 @@ class PageLinkCreatorTest {
             Arrays.asList(new TallySnapshot(), new TallySnapshot(), new TallySnapshot()),
             pageable,
             3);
-    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    PageLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
     assertEquals("/?offset=0", links.getFirst());
     assertEquals("/?offset=2", links.getLast());
     assertNull(links.getPrevious());
@@ -82,7 +82,7 @@ class PageLinkCreatorTest {
             Arrays.asList(new TallySnapshot(), new TallySnapshot(), new TallySnapshot()),
             pageable,
             3);
-    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    PageLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
     assertEquals("/?offset=0", links.getFirst());
     assertEquals("/?offset=2", links.getLast());
     assertEquals("/?offset=1", links.getPrevious());
@@ -97,7 +97,7 @@ class PageLinkCreatorTest {
             Arrays.asList(new TallySnapshot(), new TallySnapshot(), new TallySnapshot()),
             pageable,
             3);
-    TallyReportLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
+    PageLinks links = new PageLinkCreator().getPaginationLinks(uriInfo, page);
     assertEquals("/?offset=0", links.getFirst());
     assertEquals("/?offset=2", links.getLast());
     assertEquals("/?offset=0", links.getPrevious());

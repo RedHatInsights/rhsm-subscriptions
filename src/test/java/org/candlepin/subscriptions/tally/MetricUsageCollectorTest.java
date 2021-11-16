@@ -38,9 +38,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.AccountRepository;
-import org.candlepin.subscriptions.db.model.Account;
-import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
@@ -53,11 +52,13 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.ProductProfile;
-import org.candlepin.subscriptions.registry.SubscriptionWatchProduct;
-import org.candlepin.subscriptions.registry.SyspurposeRole;
+import org.candlepin.subscriptions.registry.TagMapping;
+import org.candlepin.subscriptions.registry.TagMetaData;
+import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,7 +72,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MetricUsageCollectorTest {
   MetricUsageCollector metricUsageCollector;
 
-  @Mock AccountRepository accountRepo;
+  @Mock AccountServiceInventoryRepository accountRepo;
 
   @Mock EventController eventController;
 
@@ -81,21 +82,60 @@ class MetricUsageCollectorTest {
   static final String RHEL_SERVER_SWATCH_PRODUCT_ID = "RHEL_SERVER";
   static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL_WORKSTATION";
   static final String RHEL = "RHEL";
+  static final String OSD_PRODUCT_ID = "OpenShift-dedicated-metrics";
+
+  static final String OSD_METRIC_ID = "OSD-METRIC-ID";
 
   @BeforeEach
   void setup() {
-    Set<SubscriptionWatchProduct> products =
-        Set.of(new SubscriptionWatchProduct("1234", Set.of(RHEL)));
 
-    ProductProfile profile = new ProductProfile("RHELProfile", products, Granularity.DAILY);
-    profile.setSyspurposeRoles(
-        Set.of(
-            new SyspurposeRole(Role.RED_HAT_ENTERPRISE_LINUX_SERVER.value(), Set.of("RHEL_SERVER")),
-            new SyspurposeRole(
-                Role.RED_HAT_ENTERPRISE_LINUX_WORKSTATION.value(), Set.of("RHEL_WORKSTATION"))));
-    profile.setServiceType(SERVICE_TYPE);
-    profile.setDefaultUsage(Usage.PRODUCTION);
-    profile.setDefaultSla(ServiceLevel.PREMIUM);
+    TagProfile profile =
+        TagProfile.builder()
+            .tagMappings(
+                List.of(
+                    TagMapping.builder()
+                        .value("1234")
+                        .valueType("engId")
+                        .tags(Set.of("RHEL"))
+                        .build(),
+                    TagMapping.builder()
+                        .value("Red Hat Enterprise Linux Server")
+                        .valueType("productName")
+                        .tags(Set.of("RHEL_SERVER"))
+                        .build(),
+                    TagMapping.builder()
+                        .value("Red Hat Enterprise Linux Workstation")
+                        .valueType("productName")
+                        .tags(Set.of("RHEL_WORKSTATION"))
+                        .build(),
+                    TagMapping.builder()
+                        .value("osd")
+                        .valueType("role")
+                        .tags(Set.of(OSD_PRODUCT_ID))
+                        .build()))
+            .tagMetaData(
+                List.of(
+                    TagMetaData.builder()
+                        .tags(
+                            Set.of(
+                                RHEL,
+                                RHEL_SERVER_SWATCH_PRODUCT_ID,
+                                RHEL_WORKSTATION_SWATCH_PRODUCT_ID,
+                                OSD_PRODUCT_ID))
+                        .serviceType(SERVICE_TYPE)
+                        .defaultUsage(Usage.PRODUCTION)
+                        .defaultSla(ServiceLevel.PREMIUM)
+                        .build()))
+            .tagMetrics(
+                List.of(
+                    TagMetric.builder()
+                        .tag(OSD_PRODUCT_ID)
+                        .metricId(OSD_METRIC_ID)
+                        .uom(Uom.CORES)
+                        .build()))
+            .build();
+    profile.initLookups();
+
     metricUsageCollector = new MetricUsageCollector(profile, accountRepo, eventController, clock);
   }
 
@@ -109,12 +149,12 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement));
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
 
-    metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
-    Host instance = account.getServiceInstances().get(event.getInstanceId());
+    metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+    Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
     assertNotNull(instance);
   }
 
@@ -129,11 +169,11 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement));
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
@@ -157,12 +197,20 @@ class MetricUsageCollectorTest {
             .withHardwareType(hardwareType)
             .withCloudProvider(Event.CloudProvider.__EMPTY__)
             .withInstanceId(UUID.randomUUID().toString());
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
+  }
+
+  @NotNull
+  private AccountServiceInventory createTestAccountServiceInventory() {
+    AccountServiceInventory accountServiceInventory = new AccountServiceInventory();
+    accountServiceInventory.setAccountNumber("account123");
+    accountServiceInventory.setServiceType(SERVICE_TYPE);
+    return accountServiceInventory;
   }
 
   @ParameterizedTest
@@ -176,11 +224,11 @@ class MetricUsageCollectorTest {
             .withHardwareType(Event.HardwareType.CLOUD)
             .withCloudProvider(cloudProvider)
             .withInstanceId(UUID.randomUUID().toString());
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
   }
 
@@ -196,12 +244,12 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM);
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
-    Host instance = account.getServiceInstances().get(event.getInstanceId());
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+    Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
     assertNotNull(instance);
     Set<HostTallyBucket> expected = new HashSet<>();
     Set.of(Usage._ANY, Usage.PRODUCTION)
@@ -235,11 +283,11 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM);
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(RHEL, ServiceLevel._ANY, Usage.PRODUCTION);
@@ -264,11 +312,11 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
@@ -287,23 +335,24 @@ class MetricUsageCollectorTest {
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
+            .withEventType("snapshot_" + OSD_METRIC_ID)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
-            .withRole(Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
+            .withRole(Role.OSD);
 
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
 
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
 
     UsageCalculation.Key serverKey =
-        new UsageCalculation.Key(RHEL_SERVER_SWATCH_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY);
+        new UsageCalculation.Key(OSD_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY);
     assertTrue(accountUsageCalculation.containsCalculation(serverKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -332,12 +381,12 @@ class MetricUsageCollectorTest {
             .withUsage(Event.Usage.PRODUCTION)
             .withProductIds(List.of("1234"));
 
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any())).thenReturn(Stream.of(event));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
 
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
 
     UsageCalculation.Key engIdKey =
@@ -375,12 +424,11 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event, event));
     AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
+        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
@@ -416,13 +464,13 @@ class MetricUsageCollectorTest {
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(instanceHoursMeasurement))
             .withUsage(Event.Usage.PRODUCTION);
-    Account account = new Account();
-    account.setAccountNumber("account123");
-    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event, event, instanceHoursEvent, instanceHoursEvent));
 
-    metricUsageCollector.collectHour(account, OffsetDateTime.MIN);
-    Host instance = account.getServiceInstances().values().stream().findFirst().orElseThrow();
+    metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+    Host instance =
+        accountServiceInventory.getServiceInstances().values().stream().findFirst().orElseThrow();
     assertEquals(Double.valueOf(84.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
     assertEquals(
         Double.valueOf(86.0), instance.getMonthlyTotal("2021-02", Measurement.Uom.INSTANCE_HOURS));
@@ -441,32 +489,33 @@ class MetricUsageCollectorTest {
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-    Account account = new Account();
-    account.setAccountNumber("account123");
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
 
     OffsetDateTime instanceDate = eventDate.minusDays(1);
     Host activeInstance = new Host();
     activeInstance.setInstanceId(instanceId);
     activeInstance.setInstanceType(SERVICE_TYPE);
     activeInstance.setLastSeen(instanceDate);
-    account.getServiceInstances().put(instanceId, activeInstance);
+    accountServiceInventory.getServiceInstances().put(instanceId, activeInstance);
 
     String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
-    when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+    when(accountRepo.findById(any())).thenReturn(Optional.of(accountServiceInventory));
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenAnswer(
             m -> {
-              OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
-              OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
+              OffsetDateTime begin = m.getArgument(2, OffsetDateTime.class);
+              OffsetDateTime end = m.getArgument(3, OffsetDateTime.class);
               if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
                 return Stream.of(event);
               }
               return Stream.of();
             });
-    when(eventController.hasEventsInTimeRange(any(), any(), any())).thenReturn(true);
+    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(true);
 
     metricUsageCollector.collect(
-        "account123", new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+        SERVICE_TYPE,
+        "account123",
+        new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
   }
@@ -484,15 +533,14 @@ class MetricUsageCollectorTest {
             .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
-    Account account = new Account();
-    account.setAccountNumber("account123");
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
 
     OffsetDateTime instanceDate = eventDate.minusDays(1);
     Host activeInstance = new Host();
     activeInstance.setInstanceId(instanceId);
     activeInstance.setInstanceType(SERVICE_TYPE);
     activeInstance.setLastSeen(instanceDate);
-    account.getServiceInstances().put(instanceId, activeInstance);
+    accountServiceInventory.getServiceInstances().put(instanceId, activeInstance);
 
     String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
     Host staleInstance = new Host();
@@ -500,23 +548,25 @@ class MetricUsageCollectorTest {
     staleInstance.setInstanceType(SERVICE_TYPE);
     staleInstance.setInstanceId(UUID.randomUUID().toString());
     staleInstance.setLastSeen(instanceDate);
-    account.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
+    accountServiceInventory.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
 
-    when(accountRepo.findById(any())).thenReturn(Optional.of(account));
-    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+    when(accountRepo.findById(any())).thenReturn(Optional.of(accountServiceInventory));
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenAnswer(
             m -> {
-              OffsetDateTime begin = m.getArgument(1, OffsetDateTime.class);
-              OffsetDateTime end = m.getArgument(2, OffsetDateTime.class);
+              OffsetDateTime begin = m.getArgument(2, OffsetDateTime.class);
+              OffsetDateTime end = m.getArgument(3, OffsetDateTime.class);
               if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
                 return Stream.of(event);
               }
               return Stream.of();
             });
-    when(eventController.hasEventsInTimeRange(any(), any(), any())).thenReturn(true);
+    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(true);
 
     metricUsageCollector.collect(
-        "account123", new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+        SERVICE_TYPE,
+        "account123",
+        new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
     assertNull(staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
@@ -526,7 +576,8 @@ class MetricUsageCollectorTest {
   void collectionThrowsExceptionWhenDateRangeIsNotRounded() {
     DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
     assertThrows(
-        IllegalArgumentException.class, () -> metricUsageCollector.collect("account123", range));
+        IllegalArgumentException.class,
+        () -> metricUsageCollector.collect(SERVICE_TYPE, "account123", range));
   }
 
   @Test
@@ -536,8 +587,7 @@ class MetricUsageCollectorTest {
     OffsetDateTime eventDate = clock.startOfCurrentHour();
     double expectedCoresMeasurement = 150.0;
 
-    Account account = new Account();
-    account.setAccountNumber(accountNumber);
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
 
     OffsetDateTime instanceDate = eventDate.minusDays(1);
     Host activeInstance = new Host();
@@ -546,7 +596,7 @@ class MetricUsageCollectorTest {
     activeInstance.setLastSeen(instanceDate);
     activeInstance.setMeasurement(Uom.CORES, 122.5);
     activeInstance.setMeasurement(Uom.INSTANCE_HOURS, 50.0);
-    account.getServiceInstances().put(instanceId, activeInstance);
+    accountServiceInventory.getServiceInstances().put(instanceId, activeInstance);
 
     Measurement coresMeasurement =
         new Measurement().withUom(Uom.CORES).withValue(expectedCoresMeasurement);
@@ -559,10 +609,10 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(coresMeasurement))
             .withUsage(Event.Usage.PRODUCTION);
 
-    when(eventController.fetchEventsInTimeRange(any(), any(), any()))
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(coresEvent));
 
-    metricUsageCollector.collectHour(account, eventDate);
+    metricUsageCollector.collectHour(accountServiceInventory, eventDate);
     // Cores measurement should be present and updated to the new expected value from the event.
     assertEquals(
         Double.valueOf(expectedCoresMeasurement), activeInstance.getMeasurement(Uom.CORES));
@@ -572,8 +622,9 @@ class MetricUsageCollectorTest {
 
   @Test
   void testAccountRepoNotTouchedIfNoEventsExist() {
-    when(eventController.hasEventsInTimeRange(any(), any(), any())).thenReturn(false);
+    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(false);
     metricUsageCollector.collect(
+        SERVICE_TYPE,
         "account123",
         new DateRange(
             clock.startOfCurrentHour().minusHours(1), clock.startOfCurrentHour().plusHours(1)));

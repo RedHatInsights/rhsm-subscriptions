@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +35,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
@@ -45,6 +48,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -72,6 +76,7 @@ class HostRepositoryTest {
   private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
 
   @Autowired private HostRepository repo;
+  @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
 
   private Map<String, Host> existingHostsByInventoryId;
 
@@ -120,15 +125,37 @@ class HostRepositoryTest {
     addBucketToHost(host9, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
     addBucketToHost(host10, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
 
-    persistHosts(host1, host2, host3, host4, host5, host6, host7, host8, host9, host10);
+    existingHostsByInventoryId =
+        persistHosts(host1, host2, host3, host4, host5, host6, host7, host8, host9, host10).stream()
+            .collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
   }
 
-  private void persistHosts(Host... hosts) {
+  @Transactional
+  @AfterAll
+  void cleanup() {
+    accountServiceInventoryRepository.deleteAll();
+  }
+
+  private List<Host> persistHosts(Host... hosts) {
     List<Host> toSave = Arrays.asList(hosts);
-    toSave.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
-    existingHostsByInventoryId =
-        repo.saveAll(toSave).stream().collect(Collectors.toMap(Host::getInventoryId, host -> host));
-    repo.flush();
+    toSave.stream()
+        .filter(h -> h.getDisplayName() == null)
+        .forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
+    List<Host> results = new ArrayList<>();
+    Arrays.stream(hosts)
+        .forEach(
+            host -> {
+              AccountServiceInventory accountServiceInventory =
+                  accountServiceInventoryRepository
+                      .findById(new AccountServiceInventoryId(host.getAccountNumber(), "HBI_HOST"))
+                      .orElse(new AccountServiceInventory(host.getAccountNumber(), "HBI_HOST"));
+              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+              accountServiceInventory =
+                  accountServiceInventoryRepository.save(accountServiceInventory);
+              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
+            });
+    accountServiceInventoryRepository.flush();
+    return results;
   }
 
   @Test
@@ -170,7 +197,7 @@ class HostRepositoryTest {
         expCores,
         expMeasurementType);
 
-    repo.saveAndFlush(host);
+    persistHosts(host);
 
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
@@ -219,7 +246,7 @@ class HostRepositoryTest {
     host.setMeasurement(Measurement.Uom.CORES, 4.0);
     host.addToMonthlyTotal(
         OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 5.0);
-    repo.saveAndFlush(host);
+    host = persistHosts(host).get(0);
 
     Optional<Host> result = repo.findById(host.getId());
     assertTrue(result.isPresent());
@@ -258,7 +285,7 @@ class HostRepositoryTest {
         4,
         2,
         HardwareMeasurementType.PHYSICAL);
-    repo.saveAndFlush(host);
+    host = persistHosts(host).get(0);
 
     Optional<Host> result = repo.findById(host.getId());
     assertTrue(result.isPresent());
@@ -285,7 +312,7 @@ class HostRepositoryTest {
     toUpdate.addToMonthlyTotal(
         OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 4.0);
     toUpdate.clearMonthlyTotal(OffsetDateTime.parse("2021-01-02T00:00:00Z"));
-    repo.saveAndFlush(toUpdate);
+    persistHosts(toUpdate);
 
     Optional<Host> updateResult = repo.findById(toUpdate.getId());
     assertTrue(updateResult.isPresent());
@@ -410,8 +437,7 @@ class HostRepositoryTest {
 
     List<Host> toSave = Arrays.asList(hypervisor, guest, unmappedGuest);
     toSave.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
-    repo.saveAll(toSave);
-    repo.flush();
+    persistHosts(toSave.toArray(new Host[] {}));
 
     Page<Host> guests = repo.getHostsByHypervisor(account, uuid, PageRequest.of(0, 10));
     assertEquals(1, guests.getTotalElements());
@@ -617,8 +643,7 @@ class HostRepositoryTest {
             new Host("INV3", "HOST3", "my_acct2", "another_org", "sub3_id"));
 
     toPersist.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
-    repo.saveAll(toPersist);
-    repo.flush();
+    persistHosts(toPersist.toArray(new Host[] {}));
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
@@ -719,8 +744,7 @@ class HostRepositoryTest {
         HardwareMeasurementType.PHYSICAL);
 
     List<Host> toPersist = Collections.singletonList(host);
-    repo.saveAll(toPersist);
-    repo.flush();
+    persistHosts(toPersist.toArray(new Host[] {}));
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
@@ -777,8 +801,7 @@ class HostRepositoryTest {
         HardwareMeasurementType.PHYSICAL);
 
     List<Host> toPersist = Arrays.asList(coreHost, socketHost);
-    repo.saveAll(toPersist);
-    repo.flush();
+    persistHosts(toPersist.toArray(new Host[] {}));
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
@@ -834,8 +857,7 @@ class HostRepositoryTest {
         HardwareMeasurementType.PHYSICAL);
 
     List<Host> toPersist = Arrays.asList(coreHost, socketHost);
-    repo.saveAll(toPersist);
-    repo.flush();
+    persistHosts(toPersist.toArray(new Host[] {}));
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
@@ -882,8 +904,7 @@ class HostRepositoryTest {
     addBucketToHost(host2, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
     List<Host> toPersist = Arrays.asList(host0, host1, host2);
-    repo.saveAll(toPersist);
-    repo.flush();
+    persistHosts(toPersist.toArray(new Host[] {}));
 
     int sockets = 4;
     int cores = 2;

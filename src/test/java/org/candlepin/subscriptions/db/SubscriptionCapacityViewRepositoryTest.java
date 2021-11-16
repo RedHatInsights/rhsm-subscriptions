@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -363,7 +364,6 @@ class SubscriptionCapacityViewRepositoryTest {
                         .value(NOWISH.plusDays(1))
                         .build()))
             .build();
-    List<SubscriptionCapacityView> all = repository.findAll();
     List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(2, found.size());
   }
@@ -412,7 +412,6 @@ class SubscriptionCapacityViewRepositoryTest {
                         .value(FAR_FUTURE.plusYears(1))
                         .build()))
             .build();
-    List<SubscriptionCapacityView> all = repository.findAll();
     List<SubscriptionCapacityView> found = repository.findAll(specification);
     assertEquals(2, found.size());
   }
@@ -451,7 +450,6 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
 
-    List<SubscriptionCapacityView> all = repository.findAll();
     SubscriptionCapacityViewSpecification specification =
         SubscriptionCapacityViewSpecification.builder()
             .criteria(
@@ -493,6 +491,194 @@ class SubscriptionCapacityViewRepositoryTest {
     assertEquals(premium.getServiceLevel(), found.get(0).getServiceLevel());
   }
 
+  @Test
+  void shouldMatchCapacityWithCoresIfSpecified() {
+    SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    sockets.setSubscriptionId("sockets");
+    sockets.setPhysicalSockets(10);
+    sockets.setVirtualSockets(10);
+    sockets.setPhysicalCores(null);
+    sockets.setVirtualCores(null);
+
+    SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    cores.setSubscriptionId("cores");
+    cores.setPhysicalCores(10);
+    cores.setVirtualCores(10);
+    cores.setPhysicalSockets(null);
+    cores.setVirtualSockets(null);
+
+    SubscriptionCapacity socketsAndCores =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    socketsAndCores.setSubscriptionId("socketsAndCores");
+    socketsAndCores.setPhysicalCores(10);
+    socketsAndCores.setVirtualCores(null);
+    socketsAndCores.setPhysicalSockets(10);
+    socketsAndCores.setVirtualSockets(10);
+
+    subscriptionRepository.saveAllAndFlush(
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                sockets.getSku(),
+                sockets.getSubscriptionId(),
+                sockets.getBeginDate(),
+                sockets.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                cores.getSku(),
+                cores.getSubscriptionId(),
+                cores.getBeginDate(),
+                cores.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                socketsAndCores.getSku(),
+                socketsAndCores.getSubscriptionId(),
+                socketsAndCores.getBeginDate(),
+                socketsAndCores.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(sockets, cores, socketsAndCores));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            sockets.getSku(),
+            Integer.parseInt(sockets.getProductId()),
+            null,
+            sockets.getUsage(),
+            "role1"));
+    SubscriptionCapacityViewSpecification specification =
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key(SubscriptionCapacityView_.physicalCores.getName())
+                        .operation(SearchOperation.IS_NOT_NULL)
+                        .build()))
+            .build();
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    assertEquals(2, found.size());
+    found.forEach(
+        subscriptionCapacityView -> {
+          assertNotNull(subscriptionCapacityView.getPhysicalCores());
+          assertNotNull(subscriptionCapacityView.getVirtualCores());
+        });
+  }
+
+  @Test
+  void shouldMatchCapacityWithSocketsIfSpecified() {
+    SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    sockets.setSubscriptionId("sockets");
+    sockets.setPhysicalSockets(10);
+    sockets.setVirtualSockets(10);
+    sockets.setPhysicalCores(null);
+    sockets.setVirtualCores(null);
+
+    SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    cores.setSubscriptionId("cores");
+    cores.setPhysicalCores(10);
+    cores.setVirtualCores(10);
+    cores.setPhysicalSockets(null);
+    cores.setVirtualSockets(null);
+
+    SubscriptionCapacity socketsAndCores =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    socketsAndCores.setSubscriptionId("socketsAndCores");
+    socketsAndCores.setPhysicalCores(10);
+    socketsAndCores.setVirtualCores(10);
+    socketsAndCores.setPhysicalSockets(10);
+    socketsAndCores.setVirtualSockets(null);
+
+    subscriptionRepository.saveAllAndFlush(
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                sockets.getSku(),
+                sockets.getSubscriptionId(),
+                sockets.getBeginDate(),
+                sockets.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                cores.getSku(),
+                cores.getSubscriptionId(),
+                cores.getBeginDate(),
+                cores.getEndDate()),
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                socketsAndCores.getSku(),
+                socketsAndCores.getSubscriptionId(),
+                socketsAndCores.getBeginDate(),
+                socketsAndCores.getEndDate())));
+    subscriptionCapacityRepository.saveAll(List.of(sockets, cores, socketsAndCores));
+    offeringRepository.saveAndFlush(
+        createOffering(
+            sockets.getSku(),
+            Integer.parseInt(sockets.getProductId()),
+            null,
+            sockets.getUsage(),
+            "role1"));
+    SubscriptionCapacityViewSpecification specification =
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key(SubscriptionCapacityView_.physicalSockets.getName())
+                        .operation(SearchOperation.IS_NOT_NULL)
+                        .build()))
+            .build();
+
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    assertEquals(2, found.size());
+    found.forEach(
+        subscriptionCapacityView -> {
+          assertNotNull(subscriptionCapacityView.getPhysicalSockets());
+          assertNotNull(subscriptionCapacityView.getVirtualSockets());
+        });
+  }
+
+  @Transactional
+  @Test
+  void shouldSetNameFromOfferingDescription() {
+    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    standard.setSubscriptionId("12346");
+    standard.setServiceLevel(ServiceLevel.STANDARD);
+    subscriptionRepository.saveAllAndFlush(
+        List.of(
+            createSubscription(
+                OWNER_ID,
+                ACCOUNT_NUMBER,
+                standard.getSku(),
+                standard.getSubscriptionId(),
+                standard.getBeginDate(),
+                standard.getEndDate())));
+    subscriptionCapacityRepository.save(standard);
+    Offering offering =
+        createOffering(
+            standard.getSku(),
+            Integer.parseInt(standard.getProductId()),
+            standard.getServiceLevel(),
+            standard.getUsage(),
+            "role1");
+    offeringRepository.saveAndFlush(offering);
+
+    SubscriptionCapacityViewSpecification specification =
+        SubscriptionCapacityViewSpecification.builder()
+            .criteria(
+                List.of(
+                    SearchCriteria.builder()
+                        .key(SubscriptionCapacityView_.sku.getName())
+                        .operation(SearchOperation.EQUAL)
+                        .value(standard.getSku())
+                        .build()))
+            .build();
+
+    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    assertEquals(1, found.size());
+    assertEquals(offering.getDescription(), found.get(0).getProductName());
+  }
+
   private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
     capacity.setAccountNumber(ACCOUNT_NUMBER);
@@ -520,7 +706,8 @@ class SubscriptionCapacityViewRepositoryTest {
     o.setServiceLevel(sla);
     o.setUsage(usage);
     o.setRole(role);
-    o.setProductName("Description of sku");
+    o.setProductName("Sku: " + sku);
+    o.setDescription("Description of: " + sku);
     return o;
   }
 

@@ -37,4 +37,6 @@ public class ProductProfileProperties {
    * filesystem
    */
   private Duration productProfileListCacheTtl = Duration.ofMinutes(5);
+
+  private boolean strictProfileLoadingMode = true;
 }

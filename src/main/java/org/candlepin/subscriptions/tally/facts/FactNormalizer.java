@@ -206,7 +206,26 @@ public class FactNormalizer {
       normalizedFacts.setCores(
           hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
     }
+    if ("x86_64".equals(hostFacts.getSystemProfileArch())
+        && HardwareMeasurementType.VIRTUAL
+            .toString()
+            .equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType())) {
+      var effectiveCores = calculateVirtualCPU(hostFacts);
+      normalizedFacts.setCores(effectiveCores);
+      hostFacts.setCores(effectiveCores); // <-- workaround to prevent rhsm from overwriting logic
+    }
     getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
+  }
+
+  private Integer calculateVirtualCPU(InventoryHostFacts virtualFacts) {
+    //  For x86, guests: if we know the number of threads per core and its greater than one,
+    //  then we divide the number of cores by that number.
+    //  Otherwise we divide by two.
+    int cpu =
+        virtualFacts.getSystemProfileCoresPerSocket() * virtualFacts.getSystemProfileSockets();
+
+    var threadsPerCore = 2.0;
+    return (int) Math.ceil(cpu / threadsPerCore);
   }
 
   private void getProductsFromProductIds(

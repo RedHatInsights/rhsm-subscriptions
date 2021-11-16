@@ -212,14 +212,6 @@ public class CombiningRollupSnapshotStrategy {
     }
   }
 
-  private Set<String> getSwatchProductIds(
-      Map<OffsetDateTime, AccountUsageCalculation> accountCalcs) {
-    return accountCalcs.values().stream()
-        .map(AccountUsageCalculation::getProducts)
-        .flatMap(Set::stream)
-        .collect(Collectors.toSet());
-  }
-
   @SuppressWarnings("indentation")
   protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(
       Collection<String> accounts,

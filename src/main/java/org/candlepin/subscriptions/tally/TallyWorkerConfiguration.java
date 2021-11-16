@@ -24,19 +24,18 @@ import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConf
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
-import org.candlepin.subscriptions.db.AccountRepository;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
-import org.candlepin.subscriptions.registry.ProductProfile;
 import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
@@ -156,17 +155,13 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
-  @Qualifier("OpenShiftMetricsUsageCollector")
-  public MetricUsageCollector openShiftMetricsUsageCollector(
-      ProductProfileRegistry registry,
-      AccountRepository accountRepo,
+  public MetricUsageCollector metricUsageCollector(
+      TagProfile tagProfile,
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock) {
-    Optional<ProductProfile> profile = registry.getProfileByName("OpenShiftMetrics");
-    if (profile.isEmpty()) {
-      throw new IllegalStateException("Could not find product profile for OpenShiftMetrics!");
-    }
-    return new MetricUsageCollector(profile.get(), accountRepo, eventController, clock);
+    return new MetricUsageCollector(
+        tagProfile, accountServiceInventoryRepository, eventController, clock);
   }
 
   @Bean

@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.exception.mapper;
 import static org.candlepin.subscriptions.security.SecurityConfig.*;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.Response.Status.Family;
 import javax.ws.rs.ext.ExceptionMapper;
 import org.candlepin.subscriptions.exception.ExceptionUtil;
 import org.candlepin.subscriptions.utilization.api.model.Error;
@@ -58,6 +60,10 @@ public abstract class BaseExceptionMapper<T extends Throwable> implements Except
     if (AccessDeniedException.class.isAssignableFrom(exClass)
         || AuthenticationException.class.isAssignableFrom(exClass)) {
       log.error(SECURITY_STACKTRACE, "{}", messageBuf, exception);
+    } else if (Status.fromStatusCode(Integer.parseInt(error.getStatus())).getFamily()
+        == Family.CLIENT_ERROR) {
+      // if it's a 4xx error, log at warn level to prevent log noise
+      log.warn("{}", messageBuf);
     } else {
       log.error("{}", messageBuf, exception);
     }

@@ -25,10 +25,12 @@ import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 import java.time.OffsetDateTime;
 import java.util.*;
 import javax.validation.constraints.Min;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,16 +38,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
   private final ApplicationClock clock;
+  private final TagProfile tagProfile;
 
   @Autowired
   SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
+      TagProfile tagProfile,
       ApplicationClock clock) {
     this.subscriptionCapacityViewRepository = subscriptionCapacityViewRepository;
+    this.tagProfile = tagProfile;
     this.clock = clock;
   }
 
@@ -53,7 +59,7 @@ public class SubscriptionTableController {
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
-      ServiceLevelType sla,
+      ServiceLevelType serviceLevel,
       UsageType usage,
       Uom uom,
       SkuCapacityReportSort sort,
@@ -69,9 +75,24 @@ public class SubscriptionTableController {
 
     OffsetDateTime reportEnd = clock.now();
     OffsetDateTime reportStart = clock.now();
-    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(sla);
+    ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
 
+    log.info(
+        "Finding all subscription capacities for "
+            + "owner={}, "
+            + "productId={}, "
+            + "Service Level={}, "
+            + "Usage={} "
+            + "between={} and {}"
+            + "and uom={}",
+        getOwnerId(),
+        productId,
+        sanitizedServiceLevel,
+        sanitizedUsage,
+        reportStart,
+        reportEnd,
+        uom);
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
             getOwnerId(),
@@ -79,7 +100,8 @@ public class SubscriptionTableController {
             sanitizedServiceLevel,
             sanitizedUsage,
             reportStart,
-            reportEnd);
+            reportEnd,
+            uom);
 
     Map<String, SkuCapacity> inventories = new HashMap<>();
     for (SubscriptionCapacityView subscriptionCapacityView : capacities) {
@@ -93,6 +115,7 @@ public class SubscriptionTableController {
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
+    int reportItemCount = reportItems.size();
     // The pagination and sorting of capacities is done in memory and can cause performance
     // issues
     // As an improvement this should be pushed lower into the Repository layer
@@ -100,12 +123,17 @@ public class SubscriptionTableController {
     reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);
 
+    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
+    SubscriptionType subscriptionType =
+        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
+
     return new SkuCapacityReport()
         .data(reportItems)
         .meta(
-            new HostReportMeta()
-                .count(reportItems.size())
-                .serviceLevel(sla)
+            new SkuCapacityReportMeta()
+                .subscriptionType(subscriptionType)
+                .count(reportItemCount)
+                .serviceLevel(serviceLevel)
                 .usage(usage)
                 .uom(uom)
                 .product(productId));
@@ -155,14 +183,14 @@ public class SubscriptionTableController {
       SkuCapacity skuCapacity,
       OffsetDateTime now) {
 
-    OffsetDateTime nearestEventDate = skuCapacity.getUpcomingEventDate();
+    OffsetDateTime nearestEventDate = skuCapacity.getNextEventDate();
     OffsetDateTime subEnd = subscriptionCapacityView.getEndDate();
     if (subEnd != null
         && now.isBefore(subEnd)
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
-      skuCapacity.setUpcomingEventDate(nearestEventDate);
-      skuCapacity.setUpcomingEventType(SubscriptionEventType.END);
+      skuCapacity.setNextEventDate(nearestEventDate);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
   }
 
@@ -179,6 +207,10 @@ public class SubscriptionTableController {
 
   public void addTotalCapacity(
       SubscriptionCapacityView subscriptionCapacityView, SkuCapacity skuCapacity) {
+    log.debug(
+        "Calculating total capacity using sku capacity {} and subscription capacity view {}",
+        skuCapacity,
+        subscriptionCapacityView);
 
     var physicalSockets = subscriptionCapacityView.getPhysicalSockets();
     var physicalCores = subscriptionCapacityView.getPhysicalCores();
@@ -222,7 +254,7 @@ public class SubscriptionTableController {
             case SKU:
               diff = left.getSku().compareTo(right.getSku());
               break;
-            case SLA:
+            case SERVICE_LEVEL:
               diff = left.getServiceLevel().compareTo(right.getServiceLevel());
               break;
             case USAGE:
@@ -231,11 +263,11 @@ public class SubscriptionTableController {
             case QUANTITY:
               diff = left.getQuantity().compareTo(right.getQuantity());
               break;
-            case NEXT_EVENT:
-              diff = left.getUpcomingEventDate().compareTo(right.getUpcomingEventDate());
+            case NEXT_EVENT_DATE:
+              diff = left.getNextEventDate().compareTo(right.getNextEventDate());
               break;
             case NEXT_EVENT_TYPE:
-              diff = left.getUpcomingEventType().compareTo(right.getUpcomingEventType());
+              diff = left.getNextEventType().compareTo(right.getNextEventType());
               break;
           }
           // If the two items are sorted by some other field than SKU and are equal, then break the

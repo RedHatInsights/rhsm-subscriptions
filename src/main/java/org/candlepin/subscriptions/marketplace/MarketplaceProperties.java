@@ -61,4 +61,7 @@ public class MarketplaceProperties extends HttpClientProperties {
 
   /** Allows manually submitting marketplace tally summary. */
   private boolean isManualMarketplaceSubmissionEnabled;
+
+  /** Log message marker for amendment not enabled/supported. */
+  private String amendmentNotSupportedMarker;
 }

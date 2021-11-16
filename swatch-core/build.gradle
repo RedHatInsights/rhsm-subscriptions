@@ -5,8 +5,7 @@ plugins {
 
 dependencies {
     implementation project(":api") // for util methods in ResourceUtils
-    implementation project(":rbac-client") // for security integration w/ rbac
-    implementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+    implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "javax.validation:validation-api"
     implementation "org.springframework.boot:spring-boot-starter"
@@ -19,6 +18,7 @@ dependencies {
     implementation "org.springframework.kafka:spring-kafka"
     implementation "io.micrometer:micrometer-core"
     implementation "io.hawt:hawtio-springboot"
+    implementation "com.jayway.jsonpath:json-path"
     implementation("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
@@ -27,6 +27,8 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
     implementation project(":kafka-schema")
+
+    testImplementation project(":swatch-core-test")
 }
 
 jsonSchema2Pojo {
