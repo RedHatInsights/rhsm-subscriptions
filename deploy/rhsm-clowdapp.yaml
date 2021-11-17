@@ -221,7 +221,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -402,7 +401,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -586,7 +584,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -772,7 +769,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -954,7 +950,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${CONDUIT_IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1103,7 +1098,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1307,7 +1301,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1437,7 +1430,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1555,7 +1547,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1673,7 +1664,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1793,7 +1783,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1913,7 +1902,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
