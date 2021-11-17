@@ -375,16 +375,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -558,16 +553,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -921,16 +911,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -1072,16 +1057,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -2024,6 +2004,7 @@ objects:
   metadata:
     name: rhsm-subscriptions-config
   data:
+
     ssl.properties: |-
       # force client cert auth for ingress endpoints
       server.port=8443
