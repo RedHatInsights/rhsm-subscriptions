@@ -1296,7 +1296,7 @@ objects:
     jobs:
       - name: metrics-cron
         schedule: ${METERING_SCHEDULE}
-        activeDeadlineSeconds: 1800
+        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1425,7 +1425,7 @@ objects:
 
       - name: cron-tally
         schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
+        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
@@ -1542,7 +1542,7 @@ objects:
 
       - name: hourly-tally
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
+        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
