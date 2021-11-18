@@ -34,6 +34,7 @@ config/
 .settings
 /**/bin/*
 !bin/hawtio-proxy.sh
+!bin/build-images.sh
 !bin/insert-mock-hosts
 .vscode
 .editorconfig
