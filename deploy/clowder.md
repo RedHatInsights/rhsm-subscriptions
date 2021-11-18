@@ -167,15 +167,13 @@ but here are some essentials:
 * Create an account on `quay.io` and create an image repository for each
   component (Currently, one for rhsm-subscriptions and one for
   swatch-system-conduit).  Use `podman login` or `docker login` so that you
-  can build and push your test images there.  For example,
+  can build and push your test images there.
 
-  ```
-  $ podman login quay.io
-  $ podman build . -t quay.io/awood/rhsm
-  $ podman build . -f swatch-system-conduit/Dockerfile -t quay.io/awood/swatch-system-conduit
-  $ podman push quay.io/awood/rhsm
-  $ podman push quay.io/awood/swatch-system-conduit
-  ```
+* You can do the builds with the script in bin/build-images.sh.
+
+  By default, bonfire/clowder use the first 7 characters of the git hash as the
+  image tag.  Note that currently Clowder has an enforced image pull policy of
+  "IfNotPresent" so using a static tag (even "latest") is not a workable option.
 
 * In order to turn on sidecar support in an ephemeral environment:
   `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
@@ -199,10 +197,11 @@ but here are some essentials:
   `~/.config/bonfire/config.yaml`. (If you do this, the `-p` arguments to
   `bonfire` are redundant)
 
-  If you don't specify the repo and tag with the `-i`
-  argument, `bonfire` is going to use what's defined in the ClowdApp which is
-  going to be the latest production image that's been pushed to the official
-  repo.
+  If you don't specify the tag to use with `-i` bonfire is going to use the
+  first 7 characters of the git hash for HEAD.  If you don't specify the repo
+  with the `-p` argument, `bonfire` is going to use what's defined in the
+  ClowdApp which is going to be the production image that's been pushed to the
+  official repo.
 
   The `--no-remove-resources=all` argument is extremely important. Without it,
   bonfire will process the template and will **not** include our resource
