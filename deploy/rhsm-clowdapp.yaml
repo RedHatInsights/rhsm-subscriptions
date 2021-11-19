@@ -38,16 +38,6 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
-  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
-    value: 128Mi
-  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
-    value: 256Mi
-  - name: SPLUNK_FORWARDER_CPU_REQUEST
-    value: 50m
-  - name: SPLUNK_FORWARDER_CPU_LIMIT
-    value: 100m
   - name: CLOUDIGRADE_ENABLED
     value: 'false'
   - name: CLOUDIGRADE_HOST
@@ -424,9 +414,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: logs
               emptyDir:
             - name: pinhead
@@ -602,9 +589,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -787,9 +771,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -960,9 +941,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -1106,9 +1084,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -1288,8 +1263,6 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: ingress
@@ -1299,12 +1272,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: ingress
