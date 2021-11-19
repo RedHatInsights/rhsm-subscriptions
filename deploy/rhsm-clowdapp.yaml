@@ -155,6 +155,8 @@ parameters:
   - name: DEV_MODE
     value: 'false'
 
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
   - name: SPLUNK_SOURCE
     value: 'rhsm-subscription-hec'
   - name: SPLUNK_SOURCE_TYPE
@@ -245,6 +247,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -446,6 +450,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -650,6 +656,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -861,6 +869,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -1064,6 +1074,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -1232,6 +1244,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -1456,6 +1470,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -1614,6 +1630,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -1760,6 +1778,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -1906,6 +1926,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -2054,6 +2076,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:
@@ -2202,6 +2226,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
               valueFrom:
                 fieldRef:

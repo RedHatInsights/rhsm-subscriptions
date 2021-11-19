@@ -6,6 +6,7 @@ plugins {
 dependencies {
 
     implementation "com.splunk.logging:splunk-library-javalogging:1.11.0"
+    implementation "org.codehaus.janino:janino:3.1.6"
 
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac

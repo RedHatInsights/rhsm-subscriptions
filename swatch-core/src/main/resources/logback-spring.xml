@@ -40,29 +40,33 @@
         <appender-ref ref="SplunkAppender" />
     </root>
 
-    <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
-        <url>${SPLUNK_HEC_URL}</url>
-        <token>${SPLUNK_HEC_TOKEN}</token>
-        <source>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</source>
-        <sourcetype>${SPLUNK_SOURCE_TYPE}</sourcetype>
-        <host>${SPLUNKMETA_host:-${LOGNAME}@${HOSTNAME}}</host>
-        <messageFormat>${SPLUNK_MESSAGE_FORMAT}</messageFormat>
-        <middleware>HttpEventCollectorResendMiddleware</middleware>
-        <connectTimeout>${SPLUNK_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>
-        <terminationTimeout>${SPLUNK_HEC_TERMINATION_TIMEOUT:-2000}</terminationTimeout>
-        <batch_size_count>${SPLUNK_HEC_BATCH_SIZE:-10}</batch_size_count>
-        <eventHeaderSerializer>org.candlepin.subscriptions.logback.RhsmSplunkHecEventHeaderSerializer</eventHeaderSerializer>
-        <layout class="ch.qos.logback.classic.PatternLayout">
-            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
-        </layout>
-    </appender>
+    <if condition='property("ENABLE_SPLUNK_HEC").equals("true")'>
+        <then>
+            <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
+                <url>${SPLUNK_HEC_URL}</url>
+                <token>${SPLUNK_HEC_TOKEN}</token>
+                <source>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</source>
+                <sourcetype>${SPLUNK_SOURCE_TYPE}</sourcetype>
+                <host>${SPLUNKMETA_host:-${LOGNAME}@${HOSTNAME}}</host>
+                <messageFormat>${SPLUNK_MESSAGE_FORMAT}</messageFormat>
+                <middleware>HttpEventCollectorResendMiddleware</middleware>
+                <connectTimeout>${SPLUNK_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>
+                <terminationTimeout>${SPLUNK_HEC_TERMINATION_TIMEOUT:-2000}</terminationTimeout>
+                <batch_size_count>${SPLUNK_HEC_BATCH_SIZE:-10}</batch_size_count>
+                <eventHeaderSerializer>org.candlepin.subscriptions.logback.RhsmSplunkHecEventHeaderSerializer</eventHeaderSerializer>
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
+                </layout>
+            </appender>
 
-    <logger name="splunk.logger" additivity="false" level="INFO">
-        <appender-ref ref="http"/>
-    </logger>
+            <logger name="splunk.logger" additivity="false" level="INFO">
+                <appender-ref ref="http"/>
+            </logger>
 
-    <root level="INFO">
-        <appender-ref ref="http"/>
-    </root>
+            <root level="INFO">
+                <appender-ref ref="http"/>
+            </root>
+        </then>
+    </if>
 
 </configuration>
