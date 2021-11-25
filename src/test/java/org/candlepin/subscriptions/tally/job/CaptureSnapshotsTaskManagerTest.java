@@ -72,7 +72,7 @@ class CaptureSnapshotsTaskManagerTest {
     String account = "12345";
     manager.updateAccountSnapshots(account);
 
-    verify(queue).enqueue(eq(createDescriptor(account)));
+    verify(queue).enqueue(createDescriptor(account));
   }
 
   @Test
@@ -82,7 +82,7 @@ class CaptureSnapshotsTaskManagerTest {
 
     manager.updateSnapshotsForAllAccounts();
 
-    verify(queue, times(1)).enqueue(eq(createDescriptor(expectedAccounts)));
+    verify(queue, times(1)).enqueue(createDescriptor(expectedAccounts));
   }
 
   @Test
@@ -93,8 +93,8 @@ class CaptureSnapshotsTaskManagerTest {
     manager.updateSnapshotsForAllAccounts();
 
     // NOTE: Partition size is defined in test.properties
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a1", "a2")));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a3", "a4")));
   }
 
   @Test
@@ -105,9 +105,9 @@ class CaptureSnapshotsTaskManagerTest {
     manager.updateSnapshotsForAllAccounts();
 
     // NOTE: Partition size is defined in test.properties
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5"))));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a1", "a2")));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a3", "a4")));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a5")));
   }
 
   @Test
@@ -117,14 +117,14 @@ class CaptureSnapshotsTaskManagerTest {
 
     doThrow(new RuntimeException("Forced!"))
         .when(queue)
-        .enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+        .enqueue(createDescriptor(Arrays.asList("a3", "a4")));
 
     manager.updateSnapshotsForAllAccounts();
 
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a1", "a2"))));
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a3", "a4"))));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a1", "a2")));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a3", "a4")));
     // Even though a3,a4 throws exception, a5,a6 should be enqueued.
-    verify(queue, times(1)).enqueue(eq(createDescriptor(Arrays.asList("a5", "a6"))));
+    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a5", "a6")));
   }
 
   @Test
@@ -176,8 +176,8 @@ class CaptureSnapshotsTaskManagerTest {
                       // 2019-05-24T12:35Z truncated to top of the hour - 4 hours prometheus latency
                       // - 1 hour
                       // tally latency - 1 hour metric range
-                      .setSingleValuedArg("startDateTime", "2019-05-24T06:00:00Z")
-                      .setSingleValuedArg("endDateTime", "2019-05-24T07:00:00Z")
+                      .setSingleValuedArg("startDateTime", "2019-05-24T05:00:00Z")
+                      .setSingleValuedArg("endDateTime", "2019-05-24T06:00:00Z")
                       .build());
         });
   }
