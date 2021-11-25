@@ -56,7 +56,7 @@ parameters:
   - name: SPLUNK_FORWARDER_CPU_LIMIT
     value: 100m
   - name: HOURLY_TALLY_OFFSET
-    value: 60m
+    value: 120m
   - name: TOKEN_REFRESHER_IMAGE
     value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
   - name: TOKEN_REFRESHER_CPU_REQUEST
@@ -110,8 +110,6 @@ objects:
                       value: ${KAFKA_BOOTSTRAP_HOST}
                     - name: OPENSHIFT_METERING_RANGE
                       value: ${OPENSHIFT_METERING_RANGE}
-                    - name: HOURLY_TALLY_OFFSET
-                      value: ${HOURLY_TALLY_OFFSET}
                     - name: DATABASE_HOST
                       valueFrom:
                         secretKeyRef:
@@ -392,6 +390,8 @@ objects:
                       value: ${LOGGING_LEVEL}
                     - name: KAFKA_BOOTSTRAP_HOST
                       value: ${KAFKA_BOOTSTRAP_HOST}
+                    - name: HOURLY_TALLY_OFFSET
+                      value: ${HOURLY_TALLY_OFFSET}
                     - name: DATABASE_HOST
                       valueFrom:
                         secretKeyRef:
