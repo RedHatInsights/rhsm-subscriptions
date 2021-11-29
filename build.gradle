@@ -345,7 +345,7 @@ project(":api") {
         compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
         compile "io.swagger:swagger-annotations"
         compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.1"
+        compile "org.openapitools:jackson-databind-nullable:0.2.2"
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
