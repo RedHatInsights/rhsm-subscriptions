@@ -60,7 +60,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
       throws IOException, ServletException {
 
     Error error = RestAccessDeniedHandler.buildError(accessDeniedException);
-    log.error(
+    log.warn(
         SECURITY_STACKTRACE, "{}: {}", error.getTitle(), error.getDetail(), accessDeniedException);
 
     Response r = ExceptionUtil.toResponse(error);
