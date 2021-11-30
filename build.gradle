@@ -133,7 +133,7 @@ jar {
 }
 
 bootJar {
-    mainClassName = "org.candlepin.subscriptions.BootApplication"
+    mainClass = "org.candlepin.subscriptions.BootApplication"
 }
 
 springBoot {

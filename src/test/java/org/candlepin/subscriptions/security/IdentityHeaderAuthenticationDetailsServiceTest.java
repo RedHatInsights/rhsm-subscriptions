@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.security;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -80,7 +80,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     assertEquals(
         Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
         userDetails.getAuthorities());
-    verifyZeroInteractions(rbacApi);
+    verifyNoInteractions(rbacApi);
   }
 
   @Test
@@ -90,7 +90,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     assertEquals(
         Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
         userDetails.getAuthorities());
-    verifyZeroInteractions(rbacApi);
+    verifyNoInteractions(rbacApi);
   }
 
   @Test

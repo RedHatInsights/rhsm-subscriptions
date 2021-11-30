@@ -62,7 +62,7 @@ class PoolIngressControllerTest {
     CandlepinPool pool = createTestPool("12345");
     controller.updateCapacityFromPools("org", Collections.singletonList(pool));
 
-    verifyZeroInteractions(mapper);
+    verifyNoInteractions(mapper);
     verify(subscriptionCapacityRepository).saveAll(Collections.emptyList());
   }
 
