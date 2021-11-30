@@ -28,7 +28,7 @@ plugins {
 
 ext {
     swagger_annotations_version = "1.6.3"
-    swagger_ui_version = "4.1.0"
+    swagger_ui_version = "4.1.2"
     resteasy_version = "3.6.3.Final"
     spring_boot_version = "2.5.6"
     jboss_jaxrs_api_version = "2.0.2.Final"
@@ -133,7 +133,7 @@ jar {
 }
 
 bootJar {
-    mainClassName = "org.candlepin.subscriptions.BootApplication"
+    mainClass = "org.candlepin.subscriptions.BootApplication"
 }
 
 springBoot {
@@ -345,7 +345,7 @@ project(":api") {
         compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
         compile "io.swagger:swagger-annotations"
         compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.1"
+        compile "org.openapitools:jackson-databind-nullable:0.2.2"
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
