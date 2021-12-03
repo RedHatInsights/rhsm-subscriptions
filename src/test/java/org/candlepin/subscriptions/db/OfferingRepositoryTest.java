@@ -53,6 +53,7 @@ class OfferingRepositoryTest {
     offering.setPhysicalSockets(1);
     offering.setProductFamily("test");
     offering.setProductName("test");
+    offering.setDescription("test sku");
     repository.save(offering);
     final Offering actual = repository.getOne("testsku");
     assertEquals(offering, actual);

@@ -63,11 +63,19 @@ public class Offering implements Serializable {
   /**
    * Customer-facing name for the offering.
    *
-   * <p>E.g. Red Hat Enterprise Linux Server with Smart Management + Satellite, Standard (Physical
-   * or Virtual Nodes)
+   * <p>E.g. Red Hat Enterprise Linux Server
    */
   @Column(name = "product_name")
   private String productName;
+
+  /**
+   * Customer-facing description for the offering.
+   *
+   * <p>E.g. Red Hat Enterprise Linux Server with Smart Management + Satellite, Standard (Physical
+   * or Virtual Nodes)
+   */
+  @Column(name = "description")
+  private String description;
 
   /**
    * Category for the offering.

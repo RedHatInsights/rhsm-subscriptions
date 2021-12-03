@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +35,7 @@ import javax.validation.constraints.NotNull;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
@@ -69,6 +71,7 @@ import org.springframework.stereotype.Component;
 
 /** Tally API implementation. */
 @Component
+@Slf4j
 public class TallyResource implements TallyApi {
 
   private static final Map<ReportCategory, Set<HardwareMeasurementType>> CATEGORY_MAP =
@@ -153,22 +156,34 @@ public class TallyResource implements TallyApi {
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
 
-    Page<org.candlepin.subscriptions.db.model.TallySnapshot> monthlySnaps =
-        repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                reportCriteria.getAccountNumber(),
-                reportCriteria.getProductId(),
-                Granularity.MONTHLY,
-                reportCriteria.getServiceLevel(),
-                reportCriteria.getUsage(),
-                reportCriteria.getBeginning(),
-                reportCriteria.getEnding(),
-                reportCriteria.getPageable());
-
-    // there should be only one monthly retrieved, but just in case, we'll pick the last
-    monthlySnaps.stream()
-        .map(snapshot -> dataPointFromSnapshot(uom, category, snapshot))
-        .forEachOrdered(report.getMeta()::setTotalMonthly);
+    // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
+    // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
+    // NOTE: In order to avoid incorrect aggregations, if there is not exactly a full month (e.g.
+    // custom API usage), we'll log a warning and omit totalMonthly if the range doesn't match
+    // expected UI usage, or if paging is requested.
+    // NOTE: the UI's precision for end of month is less than the backends. By truncating to
+    // seconds, we relax the comparison.
+    if (clock.startOfMonth(reportCriteria.getBeginning()).equals(reportCriteria.getBeginning())
+        && clock
+            .endOfMonth(reportCriteria.getBeginning())
+            .truncatedTo(ChronoUnit.SECONDS)
+            .equals(reportCriteria.getEnding().truncatedTo(ChronoUnit.SECONDS))
+        && reportCriteria.getPageable() == null) {
+      // gather monthly totals for the month
+      TallyReportDataPoint totalMonthly =
+          report.getData().stream()
+              .collect(
+                  () ->
+                      new TallyReportDataPoint()
+                          .value(0.0) // set value to avoid NPE
+                          .hasData(false), // indicate in API there is no data
+                  this::combineDataPointsForTotal,
+                  this::combineDataPointsForTotal);
+      report.getMeta().setTotalMonthly(totalMonthly);
+    } else {
+      log.warn(
+          "Tally API called for a range more or less than a full month. Not populating totalMonthly");
+    }
 
     // Only set page links if we are paging (not filling).
     if (reportCriteria.getPageable() != null) {
@@ -194,6 +209,20 @@ public class TallyResource implements TallyApi {
             snapshots.stream().anyMatch(snapshot -> hasCloudigradeMismatch(snapshot, uom)));
 
     return report;
+  }
+
+  private void combineDataPointsForTotal(
+      TallyReportDataPoint result, TallyReportDataPoint newDataPoint) {
+    if (!Boolean.TRUE.equals(newDataPoint.getHasData())) {
+      return;
+    }
+    if (newDataPoint
+        .getDate()
+        .isAfter(Optional.ofNullable(result.getDate()).orElse(OffsetDateTime.MIN))) {
+      result.setDate(newDataPoint.getDate());
+    }
+    result.setHasData(true);
+    result.setValue(result.getValue() + newDataPoint.getValue());
   }
 
   // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545

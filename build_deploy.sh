@@ -2,10 +2,7 @@
 
 set -exv
 
-IMAGE="quay.io/cloudservices/rhsm-subscriptions"
-SERVICES="
-swatch-system-conduit
-"
+source cicd_common.sh
 IMAGE_TAG=$(git rev-parse --short=7 HEAD)
 SMOKE_TEST_TAG="latest"
 
@@ -17,18 +14,13 @@ fi
 DOCKER_CONF="$PWD/.docker"
 mkdir -p "$DOCKER_CONF"
 docker --config="$DOCKER_CONF" login -u="$QUAY_USER" -p="$QUAY_TOKEN" quay.io
-docker --config="$DOCKER_CONF" build --no-cache -t "${IMAGE}:${IMAGE_TAG}" .
-docker --config="$DOCKER_CONF" push "${IMAGE}:${IMAGE_TAG}"
-docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:${SMOKE_TEST_TAG}"
-docker --config="$DOCKER_CONF" push "${IMAGE}:${SMOKE_TEST_TAG}"
-docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:qa"
-docker --config="$DOCKER_CONF" push "${IMAGE}:qa"
 for service in $SERVICES; do
-  SERVICE_IMAGE="quay.io/cloudservices/$service"
-  docker --config="$DOCKER_CONF" build --no-cache -t "${SERVICE_IMAGE}:${IMAGE_TAG}" . -f $service/Dockerfile
-  docker --config="$DOCKER_CONF" push "${SERVICE_IMAGE}:${IMAGE_TAG}"
-  docker --config="$DOCKER_CONF" tag "${SERVICE_IMAGE}:${IMAGE_TAG}" "${SERVICE_IMAGE}:${SMOKE_TEST_TAG}"
-  docker --config="$DOCKER_CONF" push "${SERVICE_IMAGE}:${SMOKE_TEST_TAG}"
-  docker --config="$DOCKER_CONF" tag "${SERVICE_IMAGE}:${IMAGE_TAG}" "${SERVICE_IMAGE}:qa"
-  docker --config="$DOCKER_CONF" push "${SERVICE_IMAGE}:qa"
+  IMAGE="quay.io/cloudservices/$service"
+  DOCKERFILE=$(get_dockerfile $service)
+  docker --config="$DOCKER_CONF" build --no-cache -t "${IMAGE}:${IMAGE_TAG}" . -f $(get_dockerfile $service)
+  docker --config="$DOCKER_CONF" push "${IMAGE}:${IMAGE_TAG}"
+  docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:${SMOKE_TEST_TAG}"
+  docker --config="$DOCKER_CONF" push "${IMAGE}:${SMOKE_TEST_TAG}"
+  docker --config="$DOCKER_CONF" tag "${IMAGE}:${IMAGE_TAG}" "${IMAGE}:qa"
+  docker --config="$DOCKER_CONF" push "${IMAGE}:qa"
 done

@@ -26,24 +26,20 @@ import static org.mockito.Mockito.*;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.ProductProfile;
 import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -63,17 +59,12 @@ class MarketplaceSubscriptionIdProviderTest {
 
   @MockBean private ProductProfileRegistry profileRegistry;
 
-  @Mock private ProductProfile mockProfile;
+  @MockBean private TagProfile mockProfile;
 
   @Autowired private MarketplaceSubscriptionIdProvider idProvider;
 
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
-
-  @BeforeEach
-  void setUp() {
-    when(profileRegistry.findProfileForSwatchProductId(anyString())).thenReturn(mockProfile);
-  }
 
   @Test
   void doesNotAllowReservedValuesInKey() {
@@ -97,18 +88,14 @@ class MarketplaceSubscriptionIdProviderTest {
     s.setMarketplaceSubscriptionId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    Map<String, Set<String>> roleMap = new HashMap<>();
-    Set<String> ocpRoles = Set.of("ocp");
-    roleMap.put(String.valueOf(1), ocpRoles);
-
-    when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
-    when(repo
-            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-                eq("1000"),
-                eq(key),
-                eq(ocpRoles),
-                any(OffsetDateTime.class),
-                any(OffsetDateTime.class)))
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
+    when(repo.findByAccountAndProductNameAndServiceLevel(
+            eq("1000"),
+            eq(key),
+            eq(productNames),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class)))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
 
@@ -126,18 +113,14 @@ class MarketplaceSubscriptionIdProviderTest {
     s.setMarketplaceSubscriptionId("abc");
     List<Subscription> result = Collections.singletonList(s);
 
-    Map<String, Set<String>> roleMap = new HashMap<>();
-    Set<String> ocpRoles = Set.of("ocp");
-    roleMap.put(String.valueOf(1), ocpRoles);
-
-    when(mockProfile.getRolesBySwatchProduct()).thenReturn(roleMap);
-    when(repo
-            .findSubscriptionByAccountAndUsageKeyAndStartDateAndEndDateAndMarketplaceSubscriptionId(
-                eq("1000"),
-                eq(key),
-                eq(ocpRoles),
-                any(OffsetDateTime.class),
-                any(OffsetDateTime.class)))
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(anyString())).thenReturn(productNames);
+    when(repo.findByAccountAndProductNameAndServiceLevel(
+            eq("1000"),
+            eq(key),
+            eq(productNames),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class)))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
 
