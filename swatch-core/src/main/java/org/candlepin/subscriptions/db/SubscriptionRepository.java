@@ -59,7 +59,7 @@ public interface SubscriptionRepository
 
   @Query(
       "SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND "
-          + "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE "
+          + "s.sku in (SELECT DISTINCT o.sku FROM Offering o WHERE "
           + ":#{#key.sla} = o.serviceLevel AND "
           + "o.productName IN :#{#productNames}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND "
           + "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> '' "

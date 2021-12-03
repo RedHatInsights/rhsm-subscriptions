@@ -88,7 +88,7 @@ class SubscriptionRepositoryTest {
     offeringRepo.saveAndFlush(o2);
 
     UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-    Set<String> productNames = Set.of("Test SKU 2");
+    Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
             "1000", key, productNames, NOW, NOW);
