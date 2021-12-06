@@ -24,7 +24,7 @@ import java.io.IOException;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ public class MonthlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
-  @Autowired private ProductProfileRegistry registry;
+  @Autowired private TagProfile tagProfile;
 
   private ApplicationClock clock;
 
@@ -55,7 +55,7 @@ public class MonthlySnapshotRollerTest {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
-            repository, new MonthlySnapshotRoller(repository, clock, registry));
+            repository, new MonthlySnapshotRoller(repository, clock, tagProfile));
   }
 
   @SuppressWarnings("indentation")

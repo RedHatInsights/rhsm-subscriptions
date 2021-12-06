@@ -47,6 +47,7 @@ class TagProfileTest {
 
   private static final String RHEL_TAG = "RHEL";
   private static final String RHEL_DESKTOP_TAG = "RHEL for Desktop";
+  private static final String RHEL_x86 = "RHEL for x86";
   private static final String OPENSHIFT_DEDICATED_TAG = "OpenShift-dedicated-metrics";
   public static final String OPENSHIFT_TAG = "OpenShift-metrics";
 
@@ -64,7 +65,7 @@ class TagProfileTest {
             .tags(Set.of(RHEL_TAG, RHEL_DESKTOP_TAG))
             .build();
     TagMapping tagMapping2 =
-        TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of("RHEL for x86")).build();
+        TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of(RHEL_x86)).build();
     TagMapping tagMapping3 =
         TagMapping.builder()
             .valueType("productName")
@@ -220,6 +221,12 @@ class TagProfileTest {
   void getTagsByRole() {
     assertEquals(Set.of(OPENSHIFT_DEDICATED_TAG), tagProfile.getTagsByRole(Role.OSD));
     assertTrue(tagProfile.getTagsByRole(Role.OCP).isEmpty());
+  }
+
+  @Test
+  void getTagByArch() {
+    assertEquals(Set.of(RHEL_x86), tagProfile.getTagsByArch("x86_64"));
+    assertTrue(tagProfile.getTagsByArch(null).isEmpty());
   }
 
   @Test

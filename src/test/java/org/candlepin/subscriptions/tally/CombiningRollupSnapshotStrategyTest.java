@@ -43,7 +43,6 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
@@ -61,8 +60,6 @@ class CombiningRollupSnapshotStrategyTest {
   private static final String OPEN_SHIFT_HOURLY = "OpenShift Hourly";
 
   @Autowired CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
-
-  @Autowired ProductProfileRegistry registry;
 
   @Autowired TagProfile tagProfile;
 
