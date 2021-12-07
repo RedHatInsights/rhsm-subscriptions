@@ -75,8 +75,8 @@ objects:
             deploymentconfig: rhsm-subscriptions-capacity-ingress
             prometheus: rhsm
           annotations:
-            prometheus.io/path: /actuator/prometheus
-            prometheus.io/port: '8080'
+            prometheus.io/path: /metrics
+            prometheus.io/port: '9000'
             prometheus.io/scrape: 'true'
         spec:
           initContainers:
@@ -238,8 +238,8 @@ objects:
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /actuator/health
-                  port: 8080
+                  path: /health
+                  port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90
                 periodSeconds: 20
@@ -248,8 +248,8 @@ objects:
               readinessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /actuator/health
-                  port: 8080
+                  path: /metrics
+                  port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90
                 periodSeconds: 20
@@ -267,6 +267,9 @@ objects:
                   protocol: TCP
                 - containerPort: 8080
                   protocol: TCP
+                - containerPort: 9000
+                  protocol: TCP
+                  name: metrics-port
               volumeMounts:
                 - name: config
                   mountPath: /config
@@ -360,9 +363,9 @@ objects:
         prometheus: rhsm
     spec:
       ports:
-        - port: 8080
-          name: "8080"
+        - port: 9000
+          name: "9000"
           protocol: TCP
-          targetPort: 8080
+          targetPort: metrics-port
       selector:
         deploymentconfig: rhsm-subscriptions-capacity-ingress

@@ -182,6 +182,19 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
         .permitAll()
         .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
         .permitAll()
+
+        /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+         * only provides a path starting with a leading slash.  I have elected to set the default
+         * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+         * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
+         * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+         * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+         * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+         * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
+         */
+
+        .antMatchers("/metrics")
+        .permitAll()
         .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
         .access("@optInChecker.checkAccess(authentication)")
         .anyRequest()

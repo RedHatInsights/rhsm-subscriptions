@@ -5,7 +5,7 @@ metadata:
   name: rhsm
 parameters:
   - name: HAWTIO_BASE_PATH
-    value: /app/rhsm-metrics/actuator/hawtio
+    value: /hawtio
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '48000'
   - name: LOGGING_LEVEL_ROOT
@@ -33,11 +33,11 @@ parameters:
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
-    value: 1700Mi
+    value: 1400Mi
   - name: CPU_REQUEST
-    value: 450m
+    value: 350m
   - name: CPU_LIMIT
-    value: 1800m
+    value: 1500m
   - name: SPLUNK_FORWARDER_IMAGE
     value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
   - name: SPLUNK_FORWARDER_MEMORY_REQUEST
@@ -136,7 +136,7 @@ parameters:
   - name: SUBSCRIPTION_SYNC_SCHEDULE
     value: 0 10 * * *
   - name: METERING_SCHEDULE
-    value: 0 * * * *
+    value: '@hourly'
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
 
@@ -200,6 +200,9 @@ objects:
       - replicas: 3
         partitions: 3
         topicName: platform.rhsm-subscriptions.openshift-metering-tasks
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.subscription-sync
 
     # Creates a database if local mode, or uses RDS in production
     database:
@@ -218,7 +221,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -348,8 +350,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -358,8 +360,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -373,16 +375,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -399,7 +396,6 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -532,8 +528,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -542,8 +538,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -557,16 +553,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -583,7 +574,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -723,8 +713,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -733,8 +723,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -769,7 +759,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -897,8 +886,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -907,8 +896,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -922,16 +911,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -951,7 +935,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${CONDUIT_IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1049,8 +1032,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1059,8 +1042,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1074,16 +1057,11 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
@@ -1100,7 +1078,6 @@ objects:
         minReplicas: 1
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1242,8 +1219,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1252,8 +1229,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1299,12 +1276,11 @@ objects:
     jobs:
       - name: metrics-cron
         schedule: ${METERING_SCHEDULE}
-        activeDeadlineSeconds: 1800
+        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1393,8 +1369,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1403,8 +1379,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1429,12 +1405,11 @@ objects:
 
       - name: cron-tally
         schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
+        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1514,8 +1489,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1524,8 +1499,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1547,12 +1522,11 @@ objects:
 
       - name: hourly-tally
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
+        activeDeadlineSeconds: 4200
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1632,8 +1606,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1642,8 +1616,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1670,7 +1644,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1752,8 +1725,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1762,8 +1735,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1790,7 +1763,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1872,8 +1844,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1882,8 +1854,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -1910,7 +1882,6 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - /usr/local/s2i/run
@@ -1992,8 +1963,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -2002,8 +1973,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /actuator/health
-              port: 8000
+              path: /health
+              port: 9000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -2033,6 +2004,7 @@ objects:
   metadata:
     name: rhsm-subscriptions-config
   data:
+
     ssl.properties: |-
       # force client cert auth for ingress endpoints
       server.port=8443
@@ -2045,6 +2017,4 @@ objects:
       server.ssl.trust-store=${TRUSTSTORE}
       server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
 
-      # put /actuator calls on 8000
-      management.server.port=8000
       management.server.ssl.enabled=false
