@@ -33,7 +33,6 @@ import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
@@ -56,8 +55,6 @@ class MarketplaceSubscriptionIdProviderTest {
   @MockBean private SubscriptionSyncController syncController;
 
   @MockBean private MarketplaceSubscriptionCollector collector;
-
-  @MockBean private ProductProfileRegistry profileRegistry;
 
   @MockBean private TagProfile mockProfile;
 

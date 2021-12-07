@@ -47,8 +47,7 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.registry.ProductProfileProperties;
-import org.candlepin.subscriptions.registry.ProductProfileRegistrySource;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
@@ -60,9 +59,12 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.FileSystemResourceLoader;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.StringUtils;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
@@ -78,14 +80,12 @@ public class FactNormalizerTest {
 
   @BeforeAll
   public void setup() throws IOException {
-    ProductProfileProperties props = new ProductProfileProperties();
-    props.setProductProfileRegistryResourceLocation("classpath:test_product_profile_registry.yaml");
-
-    ProductProfileRegistrySource registrySource = new ProductProfileRegistrySource(props, clock);
-    registrySource.setResourceLoader(new FileSystemResourceLoader());
-    registrySource.init();
-
-    normalizer = new FactNormalizer(new ApplicationProperties(), registrySource.getValue(), clock);
+    ResourceLoader resourceLoader = new DefaultResourceLoader();
+    Yaml parser = new Yaml(new Constructor(TagProfile.class));
+    TagProfile tagProfile =
+        parser.load(resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
+    tagProfile.initLookups();
+    normalizer = new FactNormalizer(new ApplicationProperties(), tagProfile, clock);
   }
 
   @Test

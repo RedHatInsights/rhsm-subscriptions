@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.registry;
 
 import java.io.IOException;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -33,12 +32,6 @@ import org.yaml.snakeyaml.constructor.Constructor;
 @Configuration
 @ComponentScan(basePackages = "org.candlepin.subscriptions.registry")
 public class RegistryConfiguration {
-
-  @Bean
-  public ProductProfileRegistrySource productProfileRegistrySource(
-      ProductProfileProperties productProfileProperties, ApplicationClock applicationClock) {
-    return new ProductProfileRegistrySource(productProfileProperties, applicationClock);
-  }
 
   @Bean
   public TagProfile tagProfile(ResourceLoader resourceLoader) throws IOException {

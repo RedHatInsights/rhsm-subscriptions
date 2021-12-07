@@ -34,7 +34,7 @@ import org.candlepin.subscriptions.cloudigrade.api.model.UsageCount;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -46,14 +46,14 @@ public class CloudigradeAccountUsageCollector {
   private static final Logger log = LoggerFactory.getLogger(CloudigradeAccountUsageCollector.class);
 
   private final CloudigradeService cloudigradeService;
-  private final Map<String, String> archToProductMap;
+  private final Map<String, Set<String>> archToProductMap;
   private final Map<String, Set<String>> roleToProductsMap;
 
   public CloudigradeAccountUsageCollector(
-      CloudigradeService cloudigradeService, ProductProfileRegistry productRegistry) {
+      CloudigradeService cloudigradeService, TagProfile tagProfile) {
     this.cloudigradeService = cloudigradeService;
-    this.roleToProductsMap = productRegistry.getRoleToSwatchProductIdsMap();
-    this.archToProductMap = productRegistry.getArchToSwatchProductIdsMap();
+    this.roleToProductsMap = tagProfile.getRoleToTagLookup();
+    this.archToProductMap = tagProfile.getArchToTagLookup();
   }
 
   /**
@@ -109,7 +109,7 @@ public class CloudigradeAccountUsageCollector {
 
   private UsageCalculation.Key extractKey(
       UsageCount usageCount,
-      Map<String, String> archToProductMap,
+      Map<String, Set<String>> archToProductMap,
       Map<String, Set<String>> roleToProductsMap) {
     String productId = extractProductId(usageCount, archToProductMap, roleToProductsMap);
     ServiceLevel sla = ServiceLevel.fromString(usageCount.getSla());
@@ -123,7 +123,7 @@ public class CloudigradeAccountUsageCollector {
 
   private String extractProductId(
       UsageCount usageCount,
-      Map<String, String> archToProductMap,
+      Map<String, Set<String>> archToProductMap,
       Map<String, Set<String>> roleToProductsMap) {
     String role = usageCount.getRole();
     String arch = usageCount.getArch();
@@ -140,7 +140,8 @@ public class CloudigradeAccountUsageCollector {
       }
       return mapped.get();
     } else if ("_ANY".equals(role)) {
-      Optional<String> mapped = Optional.ofNullable(archToProductMap.get(arch));
+      Optional<String> mapped =
+          archToProductMap.getOrDefault(arch, Collections.emptySet()).stream().findFirst();
 
       if (!mapped.isPresent()) {
         throw new IllegalArgumentException("No mapping for arch: " + arch);

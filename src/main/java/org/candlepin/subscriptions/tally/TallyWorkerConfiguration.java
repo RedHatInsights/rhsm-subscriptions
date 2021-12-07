@@ -34,7 +34,6 @@ import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -98,10 +97,8 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public FactNormalizer factNormalizer(
-      ApplicationProperties applicationProperties,
-      ProductProfileRegistry profileRegistry,
-      ApplicationClock clock) {
-    return new FactNormalizer(applicationProperties, profileRegistry, clock);
+      ApplicationProperties applicationProperties, TagProfile tagProfile, ApplicationClock clock) {
+    return new FactNormalizer(applicationProperties, tagProfile, clock);
   }
 
   @Bean(name = "collectorRetryTemplate")
@@ -133,13 +130,13 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean(name = "applicableProducts")
-  public Set<String> applicableProducts(ProductProfileRegistry profileRegistry) {
+  public Set<String> applicableProducts(TagProfile tagProfile) {
     Set<String> products = new HashSet<>();
     Map<Integer, Set<String>> productToProductIds =
-        profileRegistry.getEngProductIdToSwatchProductIdsMap();
+        tagProfile.getEngProductIdToSwatchProductIdsMap();
     productToProductIds.values().forEach(products::addAll);
 
-    Map<String, Set<String>> roleToProducts = profileRegistry.getRoleToSwatchProductIdsMap();
+    Map<String, Set<String>> roleToProducts = tagProfile.getRoleToTagLookup();
     roleToProducts.values().forEach(products::addAll);
     return products;
   }
