@@ -169,7 +169,7 @@ but here are some essentials:
   swatch-system-conduit).  Use `podman login` or `docker login` so that you
   can build and push your test images there.
 
-* You can do the builds with the script in bin/build-images.sh.
+* You can do the builds with the script in `bin/build-images.sh`.
 
   By default, bonfire/clowder use the first 7 characters of the git hash as the
   image tag.  Note that currently Clowder has an enforced image pull policy of
