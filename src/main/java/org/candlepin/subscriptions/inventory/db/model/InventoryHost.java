@@ -57,6 +57,7 @@ import lombok.Setter;
             @ColumnResult(name = "system_profile_cores_per_socket"),
             @ColumnResult(name = "system_profile_sockets"),
             @ColumnResult(name = "system_profile_arch"),
+            @ColumnResult(name = "is_marketplace"),
             @ColumnResult(name = "qpc_products"),
             @ColumnResult(name = "qpc_product_ids"),
             @ColumnResult(name = "system_profile_product_ids"),
@@ -86,7 +87,7 @@ import lombok.Setter;
  * First step -> update queries with the following structure (h.facts ->> rhsm ->> new field as new field,)
  * check insights-host-inventory/blob/master/swagger/system_profile.spec.yaml for queries on HBI Database.
  * Second step: Add new field as a ColumnResult
- * Third step : update inventory host facts contstructor for new column
+ * Third step : update inventory host facts constructor with new column
  */
 @NamedNativeQuery(
     name = "InventoryHost.getFacts",
@@ -113,7 +114,8 @@ import lombok.Setter;
             + "h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket, "
             + "h.system_profile_facts->>'number_of_sockets' as system_profile_sockets, "
             + "h.system_profile_facts->>'cloud_provider' as cloud_provider, "
-            + "h.system_profile_facts->>'arch' as system_profile_arch,"
+            + "h.system_profile_facts->>'arch' as system_profile_arch, "
+            + "h.system_profile_facts->>'is_marketplace' as is_marketplace, "
             + "h.canonical_facts->>'subscription_manager_id' as subscription_manager_id, "
             + "h.canonical_facts->>'insights_id' as insights_id, "
             + "rhsm_products.products, "

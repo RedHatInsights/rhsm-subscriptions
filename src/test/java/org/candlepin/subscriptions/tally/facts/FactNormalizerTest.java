@@ -640,6 +640,15 @@ public class FactNormalizerTest {
     assertEquals(HostHardwareType.VIRTUALIZED, normalizedFacts.getHardwareType());
   }
 
+  @Test
+  void testCalculationOfMarketplaceMeasurements() {
+    InventoryHostFacts facts = createRhsmHost(List.of(1), 7, 1, null, clock.now());
+    facts.setMarketplace(true);
+    NormalizedFacts normalizedFacts = normalizer.normalize(facts, Collections.emptyMap());
+    assertEquals(0, normalizedFacts.getCores());
+    assertEquals(0, normalizedFacts.getSockets());
+  }
+
   private void assertClassification(
       NormalizedFacts check, boolean isHypervisor, boolean isHypervisorUnknown, boolean isVirtual) {
     assertEquals(isHypervisor, check.isHypervisor());
