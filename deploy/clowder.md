@@ -9,7 +9,9 @@
   paste in the contents, replace `$(pwd)` with the directory where your
   subscription-watch checkout is
 
-  You can override parameters as shown below, or alternatively with the bonfire `-p` argument during the deploy step.  The parameters in the example below are useful for development environments.
+  You can override parameters as shown below, or alternatively with the bonfire
+  `-p` argument during the deploy step.  The parameters in the example below are
+  useful for development environments.
 
   ```
   bonfire config write-default
@@ -178,7 +180,8 @@ but here are some essentials:
 * In order to turn on sidecar support in an ephemeral environment:
   `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
 
-* When you deploy with bonfire during development, you'll want to specify the image and image tag you want to use like so:
+* When you deploy with bonfire during development, you'll want to specify the
+  image and image tag you want to use like so:
 
   ```
   `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all
@@ -223,13 +226,21 @@ but here are some essentials:
 
 # Special Notes
 ## capacity-allowlist ConfigMap
-The capacity-ingress pod relies on a ConfigMap, called `capacity-allowlist`, found in GitLab.  The most straightforward way to get this config map is to manually add it via command line.  Make sure you're in the appropriate namespace using the `oc project` command, and then you can deploy the ConfigMap to that namespace using the following command:
+The capacity-ingress pod relies on a ConfigMap, called `capacity-allowlist`,
+found in GitLab.  The most straightforward way to get this config map is to
+manually add it via command line.  Make sure you're in the appropriate namespace
+using the `oc project` command, and then you can deploy the ConfigMap to that
+namespace using the following command:
 
-```bash
+```
 curl https://gitlab.cee.redhat.com/rhsm/swatch-product-allowlist/-/raw/main/templates/capacity-allowlist.yml | oc process -f - | oc apply -f -
 ```
 ## bonfire "deploy" command and namespace reservation
-If you use `bonfire deploy` without already having a namespace reserved, it will reserve the namespace for you **BUT** if the app doesn't start up in the default amount of time, bonfire will take down/give up the namespace it reserved to begin with.  To get around this, you can manually reserve the namespace, then pass `-n <NAMESPACE>` as an argument when running `bonfire deploy`.
+If you use `bonfire deploy` without already having a namespace reserved, it will
+reserve the namespace for you **BUT** if the app doesn't start up in the default
+amount of time, bonfire will take down/give up the namespace it reserved to
+begin with.  To get around this, you can manually reserve the namespace, then
+pass `-n <NAMESPACE>` as an argument when running `bonfire deploy`.
 
 # TL;DR Quickstart Steps
 1. Start bonfire virtual environment
