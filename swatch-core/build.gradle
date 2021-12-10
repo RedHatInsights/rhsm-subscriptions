@@ -4,10 +4,6 @@ plugins {
 }
 
 dependencies {
-
-    implementation "com.splunk.logging:splunk-library-javalogging:1.11.0"
-    implementation "org.codehaus.janino:janino:3.1.6"
-
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation "org.hibernate.validator:hibernate-validator"
@@ -23,6 +19,8 @@ dependencies {
     implementation "io.micrometer:micrometer-core"
     implementation "io.hawt:hawtio-springboot"
     implementation "com.jayway.jsonpath:json-path"
+    implementation "com.splunk.logging:splunk-library-javalogging"
+    implementation "org.codehaus.janino:janino"
     implementation("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
