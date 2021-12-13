@@ -25,6 +25,12 @@ import com.splunk.logging.HttpEventCollectorEventInfo;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Customized EventHeaderSerializer for setting additional splunk event information that's not
+ * currently supported by default via logback xml config by splunk javalogging library. Refer to
+ * https://github.com/splunk/splunk-library-javalogging/blob/873187d16d0fd66e54adb0f0edf45ad5d195c94c/src/test/resources/logback_template.xml
+ * for event information that can be configured via the logback xml file.
+ */
 public class RhsmSplunkHecEventHeaderSerializer implements EventHeaderSerializer {
   @Override
   public Map<String, Object> serializeEventHeader(
@@ -32,7 +38,12 @@ public class RhsmSplunkHecEventHeaderSerializer implements EventHeaderSerializer
 
     var fields = (Map<String, Object>) metadata.getOrDefault("fields", new HashMap<>());
 
-    // This could use improvement
+    // TODO
+    /*
+     * We should find a more elegant implementation for this, but the loading of this class happens
+     * at a point in the startup lifecycle where putting it into a @Bean configurable via
+     * application properties wasn't a straightforward solution.
+     */
     fields.put("namespace", System.getenv("SPLUNKMETA_namespace"));
 
     return metadata;

@@ -22,14 +22,25 @@ package org.candlepin.subscriptions.logback;
 
 import com.splunk.logging.HttpEventCollectorErrorHandler;
 
+/**
+ * This is an example/placeholder class to illustrate customized error handling. Retrying of failed
+ * requests to splunk is handled by HttpEventCollectorResendMiddleware, and the middleware is
+ * configured in the logback configuration file.
+ */
 public class RhsmSplunkHecUtil {
   private RhsmSplunkHecUtil() {
     // No instances allowed
   }
 
+  /**
+   * Soley printing the stacktrace isn't the ideal behavior for production environments. Leaving
+   * this here though because the avenue we're going to pursue for error handling is going to
+   * probably be configuring an alert in Splunk if X amount of time passes where it doesn't receive
+   * any HEC log messages. When that alert triggers, we can then check the container and reference
+   * this stack trace to help troubleshoot.
+   */
   public static void reportHttpEventCollectorError() {
-    // We may want to do a little something more here besides just printing a stacktrace.  E.g.
-    // email someone or throw an alert or something
+
     HttpEventCollectorErrorHandler.onError((events, e) -> e.printStackTrace());
   }
 }

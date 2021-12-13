@@ -40,8 +40,18 @@
         <appender-ref ref="SplunkAppender" />
     </root>
 
+    <!--
+      The Janino library is responsible for parsing and evaluating logback conditionals.  When we
+      start using HEC exclusively for logging, we can remove the flag, conditional, and janin library.
+      http://logback.qos.ch/manual/configuration.html#conditional
+    -->
     <if condition='property("ENABLE_SPLUNK_HEC").equals("true")'>
         <then>
+         <!--
+          "During substitution, properties are looked up in the local scope first, in the context
+           scope second, in the system properties scope third, and in the OS environment fourth and
+           last." source: http://logback.qos.ch/manual/configuration.html#scopes
+         -->
             <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
                 <url>${SPLUNK_HEC_URL}</url>
                 <token>${SPLUNK_HEC_TOKEN}</token>
