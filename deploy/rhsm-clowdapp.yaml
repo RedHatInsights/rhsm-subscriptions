@@ -38,16 +38,6 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:8f72cfb
-  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
-    value: 128Mi
-  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
-    value: 256Mi
-  - name: SPLUNK_FORWARDER_CPU_REQUEST
-    value: 50m
-  - name: SPLUNK_FORWARDER_CPU_LIMIT
-    value: 100m
   - name: CLOUDIGRADE_ENABLED
     value: 'false'
   - name: CLOUDIGRADE_HOST
@@ -165,6 +155,23 @@ parameters:
   - name: DEV_MODE
     value: 'false'
 
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
+  - name: SPLUNK_SOURCE
+    value: 'rhsm-subscription-hec'
+  - name: SPLUNK_SOURCE_TYPE
+    value: 'springboot_server'
+  - name: SPLUNK_MESSAGE_FORMAT
+    value: 'text'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: SPLUNK_HEC_BATCH_SIZE
+    value: '1'
+  - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
@@ -240,6 +247,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: api
             # turn off built-in jolokia, so that the spring boot jolokia actuator will work
@@ -380,9 +418,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -415,6 +450,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: worker,kafka-queue
             - name: AB_JOLOKIA_OFF
@@ -558,9 +624,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -593,6 +656,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: marketplace,kafka-queue
             - name: AB_JOLOKIA_OFF
@@ -743,9 +837,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -778,6 +869,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: openshift-metering-worker,kafka-queue
              # turn off built-in jolokia, so that the spring boot jolokia actuator will work
@@ -916,9 +1038,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -955,6 +1074,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: kafka-queue
             # turn off built-in jolokia, so that the spring boot jolokia actuator will work
@@ -1062,9 +1212,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: pinhead
@@ -1097,6 +1244,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: capacity-ingress
             - name: JAVA_OPTIONS
@@ -1244,8 +1422,6 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           volumeMounts:
-            - name: config
-              mountPath: /config
             - name: logs
               mountPath: /logs
             - name: ingress
@@ -1255,12 +1431,6 @@ objects:
             - name: pinhead
               mountPath: /pinhead
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
-            - name: splunk
-              secret:
-                secretName: splunk
             - name: logs
               emptyDir:
             - name: ingress
@@ -1300,6 +1470,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: metering-job,kafka-queue
             - name: JAVA_MAX_MEM_RATIO
@@ -1429,6 +1630,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: capture-snapshots,kafka-queue
             - name: JAVA_MAX_MEM_RATIO
@@ -1546,6 +1778,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: capture-hourly-snapshots,kafka-queue
             - name: JAVA_MAX_MEM_RATIO
@@ -1663,6 +1926,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: purge-snapshots,kafka-queue
             - name: JAVA_MAX_MEM_RATIO
@@ -1782,6 +2076,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: subscription-sync,kafka-queue
             - name: JAVA_MAX_MEM_RATIO
@@ -1901,6 +2226,37 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: offering-sync,kafka-queue
             - name: JAVA_MAX_MEM_RATIO
