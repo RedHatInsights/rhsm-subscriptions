@@ -31,6 +31,7 @@ import java.util.Map;
  * https://github.com/splunk/splunk-library-javalogging/blob/873187d16d0fd66e54adb0f0edf45ad5d195c94c/src/test/resources/logback_template.xml
  * for event information that can be configured via the logback xml file.
  */
+@SuppressWarnings("java:S1135")
 public class RhsmSplunkHecEventHeaderSerializer implements EventHeaderSerializer {
   @Override
   public Map<String, Object> serializeEventHeader(
