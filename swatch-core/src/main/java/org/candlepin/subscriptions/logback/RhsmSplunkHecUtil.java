@@ -23,11 +23,13 @@ package org.candlepin.subscriptions.logback;
 import com.splunk.logging.HttpEventCollectorErrorHandler;
 
 public class RhsmSplunkHecUtil {
+  private RhsmSplunkHecUtil() {
+    // No instances allowed
+  }
+
   public static void reportHttpEventCollectorError() {
-    HttpEventCollectorErrorHandler.onError(
-        (events, e) -> {
-          // TODO
-          e.printStackTrace();
-        });
+    // We may want to do a little something more here besides just printing a stacktrace.  E.g.
+    // email someone or throw an alert or something
+    HttpEventCollectorErrorHandler.onError((events, e) -> e.printStackTrace());
   }
 }

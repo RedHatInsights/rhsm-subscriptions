@@ -32,7 +32,7 @@ public class RhsmSplunkHecEventHeaderSerializer implements EventHeaderSerializer
 
     var fields = (Map<String, Object>) metadata.getOrDefault("fields", new HashMap<>());
 
-    // TODO this better
+    // This could use improvement
     fields.put("namespace", System.getenv("SPLUNKMETA_namespace"));
 
     return metadata;
