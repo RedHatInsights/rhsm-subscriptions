@@ -20,12 +20,14 @@
  */
 package org.candlepin.subscriptions.product;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
@@ -37,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Update {@link Offering}s from product service responses. */
 @Component
@@ -54,6 +57,7 @@ public class OfferingSyncController {
   private final Timer syncTimer;
   private final Timer enqueueAllTimer;
   private final KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
+  private final ObjectMapper objectMapper;
   private final String offeringSyncTopic;
 
   @Autowired
@@ -64,6 +68,7 @@ public class OfferingSyncController {
       CapacityReconciliationController capacityReconciliationController,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate,
+      ObjectMapper objectMapper,
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties) {
     this.offeringRepository = offeringRepository;
     this.productAllowlist = productAllowlist;
@@ -72,6 +77,7 @@ public class OfferingSyncController {
     this.syncTimer = meterRegistry.timer("swatch_offering_sync");
     this.enqueueAllTimer = meterRegistry.timer("swatch_offering_sync_enqueue_all");
     this.offeringSyncKafkaTemplate = offeringSyncKafkaTemplate;
+    this.objectMapper = objectMapper;
     this.offeringSyncTopic = taskQueueProperties.getTopic();
   }
 
@@ -170,5 +176,24 @@ public class OfferingSyncController {
 
   private void enqueueOfferingSyncTask(String sku) {
     offeringSyncKafkaTemplate.send(offeringSyncTopic, new OfferingSyncTask(sku));
+  }
+
+  @Transactional
+  public Stream<String> saveOfferings(
+      String offeringsJson, String derivedSkuDataJsonArray, String engProdJsonArray) {
+    JsonProductDataSource productDataSource =
+        new JsonProductDataSource(
+            objectMapper, offeringsJson, derivedSkuDataJsonArray, engProdJsonArray);
+    productDataSource
+        .getTopLevelSkus()
+        .map(sku -> UpstreamProductData.offeringFromUpstream(sku, productDataSource))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .forEach(offeringRepository::save);
+    return productDataSource.getTopLevelSkus();
+  }
+
+  public void deleteOffering(String sku) {
+    offeringRepository.deleteById(sku);
   }
 }

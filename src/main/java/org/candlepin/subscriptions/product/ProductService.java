@@ -32,7 +32,7 @@ import org.springframework.stereotype.Component;
 
 /** Retrieves product information. */
 @Component
-public class ProductService {
+public class ProductService implements ProductDataSource {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProductService.class);
 
@@ -50,6 +50,7 @@ public class ProductService {
    * @return An optional containing the product tree, or an empty if the pro
    * @throws ApiException if fails to make API call
    */
+  @Override
   public Optional<RESTProductTree> getTree(String sku) throws ApiException {
     LOGGER.debug("Retrieving product tree for sku={}", sku);
     Optional<RESTProductTree> skuTree =
@@ -71,6 +72,7 @@ public class ProductService {
     return getEngineeringProductsForSkus(skus).get(sku);
   }
 
+  @Override
   public Map<String, List<EngineeringProduct>> getEngineeringProductsForSkus(
       Collection<String> skus) throws ApiException {
     String skusQuery = String.join(",", skus);

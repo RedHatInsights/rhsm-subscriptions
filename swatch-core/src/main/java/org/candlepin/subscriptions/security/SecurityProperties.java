@@ -31,6 +31,20 @@ public class SecurityProperties {
   private boolean devMode = false;
 
   /**
+   * Whether to allow manual subscription/offering edits.
+   *
+   * <p>For development/testing only.
+   */
+  private boolean isManualSubscriptionEditingEnabled = false;
+
+  /**
+   * Whether to allow manual event edits.
+   *
+   * <p>For development/testing only.
+   */
+  private boolean isManualEventEditingEnabled = false;
+
+  /**
    * Expected domain suffix for origin or referer headers.
    *
    * @see AntiCsrfFilter

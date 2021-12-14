@@ -110,6 +110,7 @@ allprojects {
         testCompileOnly "org.projectlombok:lombok"
         testAnnotationProcessor "org.projectlombok:lombok"
         annotationProcessor('org.hibernate:hibernate-jpamodelgen')
+        annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
         testCompile "org.springframework.boot:spring-boot-starter-test"
         testCompile "org.springframework:spring-test"
@@ -168,7 +169,6 @@ dependencies {
     implementation project(':swatch-core')
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor('org.hibernate:hibernate-jpamodelgen')
-    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
     // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
     // code changes
     compile('org.springframework.boot:spring-boot-devtools')

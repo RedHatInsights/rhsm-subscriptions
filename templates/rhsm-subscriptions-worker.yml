@@ -79,6 +79,8 @@ parameters:
     value: 1s
   - name: USER_BACK_OFF_MULTIPLIER
     value: '2'
+  - name: DEVTEST_EVENT_EDITING_ENABLED
+    value: 'false'
 
 objects:
   - apiVersion: v1

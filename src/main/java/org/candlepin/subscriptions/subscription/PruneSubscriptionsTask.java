@@ -18,21 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.subscription;
 
-import java.util.List;
-import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
-import org.springframework.data.jpa.repository.JpaRepository;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-/** Repository for subscription-provided product capacities. */
-public interface SubscriptionCapacityRepository
-    extends JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
-        CustomizedSubscriptionCapacityRepository {
-
-  List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
-      String ownerId, List<String> subscriptionIds);
-
-  Stream<SubscriptionCapacity> findByKeyOwnerId(String ownerId);
+/** Task message for pruning unlisted subscriptions for an org. */
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
+@ToString
+@EqualsAndHashCode
+public class PruneSubscriptionsTask {
+  private String orgId;
 }

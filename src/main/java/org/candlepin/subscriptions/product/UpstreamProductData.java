@@ -89,19 +89,20 @@ class UpstreamProductData {
    * Create an {@link Offering} based on product service data from upstream.
    *
    * @param sku the identifier of the marketing operational product
-   * @param productService the upstream product service
+   * @param productDataSource the upstream product service
    * @return An Offering with information filled by an upstream service, or empty if the product was
    *     not found.
    */
-  public static Optional<Offering> offeringFromUpstream(String sku, ProductService productService) {
+  public static Optional<Offering> offeringFromUpstream(
+      String sku, ProductDataSource productDataSource) {
     LOGGER.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
 
     try {
-      return productService
+      return productDataSource
           .getTree(sku)
           .map(UpstreamProductData::createFromTree)
-          .map(mid -> mid.fetchAndAddDerivedTreeIfExists(productService))
-          .map(mid -> mid.fetchAndAddEngProdsIfExist(productService))
+          .map(mid -> mid.fetchAndAddDerivedTreeIfExists(productDataSource))
+          .map(mid -> mid.fetchAndAddEngProdsIfExist(productDataSource))
           .map(UpstreamProductData::toOffering);
     } catch (ApiException e) {
       throw new ExternalServiceException(
@@ -111,7 +112,15 @@ class UpstreamProductData {
     }
   }
 
-  private static UpstreamProductData createFromTree(RESTProductTree skuTree) {
+  public static String findSku(RESTProductTree skuTree) {
+    List<OperationalProduct> products = skuTree.getProducts();
+    if (products == null || products.isEmpty()) {
+      throw new IllegalArgumentException("SKU data doesn't have any products!");
+    }
+    return products.get(0).getSku();
+  }
+
+  public static UpstreamProductData createFromTree(RESTProductTree skuTree) {
     var products = skuTree.getProducts();
 
     // Product trees returned by the product service always list the parent product first.
@@ -199,17 +208,17 @@ class UpstreamProductData {
    * present offerings to the user. See:
    * https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.3aq1apsnbb0o
    *
-   * @param productService the upstream service to fetch the derived product from
+   * @param productDataSource the upstream datasource to fetch the derived product from
    * @return this UpstreamProductData (not the derived product), for chaining.
    */
-  private UpstreamProductData fetchAndAddDerivedTreeIfExists(ProductService productService) {
+  private UpstreamProductData fetchAndAddDerivedTreeIfExists(ProductDataSource productDataSource) {
     String derivedSku = attrs.get(Attr.DERIVED_SKU);
     if (derivedSku != null) {
       try {
         // derived SKUs are marketing SKUs, so need to get its service SKUs too and add
         // the SKUs to the list of children so the engOids are fetched.
         Optional<UpstreamProductData> derived =
-            productService.getTree(derivedSku).map(UpstreamProductData::createFromTree);
+            productDataSource.getTree(derivedSku).map(UpstreamProductData::createFromTree);
         if (derived.isEmpty()) {
           LOGGER.warn("No tree found for derivedSku=\"{}\" of offeringSku=\"{}\"", derivedSku, sku);
         } else {
@@ -225,7 +234,7 @@ class UpstreamProductData {
     return this;
   }
 
-  private UpstreamProductData fetchAndAddEngProdsIfExist(ProductService productService) {
+  private UpstreamProductData fetchAndAddEngProdsIfExist(ProductDataSource productDataSource) {
     /*
     Engineering Product OIDs need be fetched for all SKUs, including derived SKUs. For *most*
     VDC SKUs like RH00001 and its child SVCRH00001, neither of them will have associated engOIDs.
@@ -236,7 +245,7 @@ class UpstreamProductData {
     LOGGER.debug("Retrieving engOids for skus=\"{}\" of offeringSku=\"{}\"", allSkus, sku);
     try {
       Map<String, List<EngineeringProduct>> engProds =
-          productService.getEngineeringProductsForSkus(allSkus);
+          productDataSource.getEngineeringProductsForSkus(allSkus);
       addEngProds(engProds);
     } catch (ApiException e) {
       throw new ExternalServiceException(

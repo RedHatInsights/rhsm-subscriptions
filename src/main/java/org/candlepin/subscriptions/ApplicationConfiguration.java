@@ -113,6 +113,13 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
+  @Qualifier
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-prune.tasks")
+  TaskQueueProperties pruneSubscriptionTasks() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
   @Qualifier("reconcileCapacityTasks")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.capacity.tasks")
   TaskQueueProperties reconcileCapacityQueueProperties() {
