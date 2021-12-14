@@ -1430,7 +1430,12 @@ objects:
               mountPath: /capacity-allowlist
             - name: pinhead
               mountPath: /pinhead
+            - name: config
+              mountPath: /config
           volumes:
+            - name: config
+              configMap:
+                name: rhsm-subscriptions-config
             - name: logs
               emptyDir:
             - name: ingress
