@@ -11,7 +11,7 @@ fi
 
 # Exit script if a podman command fails
 trap exit ERR
-podman build . -t quay.io/$quay_account/rhsm:$tag --label "git-commit=${commit}"
+podman build . -t quay.io/$quay_user/rhsm:$tag --label "git-commit=${commit}"
 podman build . -f swatch-system-conduit/Dockerfile -t quay.io/$quay_user/swatch-system-conduit:$tag --label "git-commit=${commit}"
 podman push quay.io/$quay_user/rhsm:$tag
 podman push quay.io/$quay_user/swatch-system-conduit:$tag
