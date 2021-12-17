@@ -18,21 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.product;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Map;
+import java.util.Optional;
+import org.candlepin.subscriptions.product.api.model.EngineeringProduct;
+import org.candlepin.subscriptions.product.api.model.RESTProductTree;
 
-/** Repository for subscription-provided product capacities. */
-public interface SubscriptionCapacityRepository
-    extends JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
-        CustomizedSubscriptionCapacityRepository {
+/** Abstraction to allow product data to be pulled from API or provided directly. */
+public interface ProductDataSource {
 
-  List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
-      String ownerId, List<String> subscriptionIds);
+  Optional<RESTProductTree> getTree(String sku) throws ApiException;
 
-  Stream<SubscriptionCapacity> findByKeyOwnerId(String ownerId);
+  Map<String, List<EngineeringProduct>> getEngineeringProductsForSkus(Collection<String> skus)
+      throws ApiException;
 }

@@ -29,7 +29,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -39,6 +42,10 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.product.api.model.EngineeringProductMap;
+import org.candlepin.subscriptions.product.api.model.OperationalProduct;
+import org.candlepin.subscriptions.product.api.model.RESTProductTree;
+import org.candlepin.subscriptions.product.api.model.SkuEngProduct;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -215,5 +222,20 @@ class OfferingSyncControllerTest {
     // Then no SKUs are synced.
     assertEquals(0, numEnqueued, "Nothing should be synced when no allowlist exists.");
     verify(offeringSyncKafkaTemplate, never()).send(anyString(), any(OfferingSyncTask.class));
+  }
+
+  @Test
+  void testSaveOffering() throws JsonProcessingException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    RESTProductTree product =
+        new RESTProductTree().addProductsItem(new OperationalProduct().sku("sku").roles(List.of()));
+    RESTProductTree[] offerings = new RESTProductTree[] {product};
+    EngineeringProductMap engProductMap =
+        new EngineeringProductMap().addEntriesItem(new SkuEngProduct().sku("sku"));
+    EngineeringProductMap[] engProds = new EngineeringProductMap[] {engProductMap};
+    String offeringsJson = objectMapper.writeValueAsString(offerings);
+    String engProdJson = objectMapper.writeValueAsString(engProds);
+    subject.saveOfferings(offeringsJson, offeringsJson, engProdJson);
+    verify(repo).save(any());
   }
 }

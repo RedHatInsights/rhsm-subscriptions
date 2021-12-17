@@ -141,6 +141,8 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 ### Environment Variables
 
 * `DEV_MODE`: disable anti-CSRF, account filtering, and RBAC role check
+* `DEVTEST_SUBSCRIPTION_EDITING_ENABLED`: allow subscription/offering edits via JMX.
+* `DEVTEST_EVENT_EDITING_ENABLED`: allow event edits via JMX.
 * `PRETTY_PRINT_JSON`: configure Jackson to indent outputted JSON
 * `APP_NAME`: application name for URLs (default: rhsm-subscriptions)
 * `PATH_PREFIX`: path prefix in the URLs (default: api)

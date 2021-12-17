@@ -88,6 +88,10 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
+  subscription-prune:
+    tasks:
+      topic: platform.rhsm-subscriptions.subscription-prune
+      kafka-group-id: subscription-prune-worker
   capacity:
     tasks:
       topic: platform.rhsm-subscriptions.capacity-reconcile

@@ -28,6 +28,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -260,6 +262,30 @@ class SubscriptionSyncControllerTest {
 
     verify(subscriptionsKafkaTemplate, times(9))
         .send(anyString(), any(SyncSubscriptionsTask.class));
+  }
+
+  @Test
+  void shouldSaveSubscriptionToDatabaseAndReconcile() throws JsonProcessingException {
+    ObjectMapper mapper = new ObjectMapper();
+    var subscription = createDto("123", 1);
+    String subscriptionsJson =
+        mapper.writeValueAsString(
+            new org.candlepin.subscriptions.subscription.api.model.Subscription[] {subscription});
+    subscriptionSyncController.saveSubscriptions(subscriptionsJson, true);
+    verify(subscriptionRepository).save(any());
+    verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
+  }
+
+  @Test
+  void shouldSaveSubscriptionToDatabaseWithoutReconcile() throws JsonProcessingException {
+    ObjectMapper mapper = new ObjectMapper();
+    var subscription = createDto("123", 1);
+    String subscriptionsJson =
+        mapper.writeValueAsString(
+            new org.candlepin.subscriptions.subscription.api.model.Subscription[] {subscription});
+    subscriptionSyncController.saveSubscriptions(subscriptionsJson, false);
+    verify(subscriptionRepository).save(any());
+    verifyNoInteractions(capacityReconciliationController);
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

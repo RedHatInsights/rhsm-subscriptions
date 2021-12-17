@@ -20,40 +20,74 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jmx.JmxException;
 
 @ExtendWith(MockitoExtension.class)
 class SubscriptionJmxBeanTest {
 
   @Mock private SubscriptionSyncController subscriptionSyncController;
+  @Mock private SubscriptionPruneController subscriptionPruneController;
 
   private SubscriptionJmxBean subject;
+  private SecurityProperties properties;
 
   @BeforeEach
   void setup() {
-    subject = new SubscriptionJmxBean(subscriptionSyncController);
+    properties = new SecurityProperties();
+    subject =
+        new SubscriptionJmxBean(
+            subscriptionSyncController, subscriptionPruneController, properties);
   }
 
   @Test
   void syncAllSubscriptionsTest() {
     subject.syncAllSubscriptions();
-    Mockito.verify(subscriptionSyncController).syncAllSubscriptionsForAllOrgs();
+    verify(subscriptionSyncController).syncAllSubscriptionsForAllOrgs();
+  }
+
+  @Test
+  void saveSubscriptionsNotEnabled() {
+    assertThrows(JmxException.class, () -> subject.saveSubscriptions("[]", false));
+  }
+
+  @Test
+  void saveSubscriptionsDevMode() {
+    properties.setDevMode(true);
+    subject.saveSubscriptions("foo", true);
+    verify(subscriptionSyncController).saveSubscriptions("foo", true);
+  }
+
+  @Test
+  void saveSubscriptionsManualSubsEditingEnabled() {
+    properties.setManualSubscriptionEditingEnabled(true);
+    subject.saveSubscriptions("foo", true);
+    verify(subscriptionSyncController).saveSubscriptions("foo", true);
+  }
+
+  @Test
+  void pruneUnlistedSubscriptionsTest() {
+    subject.pruneUnlistedSubscriptions();
+    verify(subscriptionPruneController).pruneAllUnlistedSubscriptions();
   }
 
   @Test
   void syncSubscriptionForOrgTest() {
     subject.syncSubscriptionsForOrg("123");
-    Mockito.verify(subscriptionSyncController).syncAllSubcriptionsForOrg("123");
+    verify(subscriptionSyncController).syncAllSubcriptionsForOrg("123");
   }
 
   @Test
   void syncSubscriptionTest() {
     subject.syncSubscription("testid");
-    Mockito.verify(subscriptionSyncController).syncSubscription("testid");
+    verify(subscriptionSyncController).syncSubscription("testid");
   }
 }
