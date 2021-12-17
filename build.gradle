@@ -36,6 +36,11 @@ ext {
     kafka_avro_serializer_version = "7.0.1"
     avro_version = "1.11.0"
     webjars_locator_version = "0.42"
+    hawtio_springboot_version = "2.14.2"
+    guava_version = "31.0.1-jre"
+    janino_version = "3.1.6"
+    splunk_library_javalogging_version = "1.11.0"
+
     generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
 }
 
@@ -74,8 +79,10 @@ allprojects {
             }
             dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
             dependency "org.apache.avro:avro:$avro_version"
-            dependency "io.hawt:hawtio-springboot:2.14.2"
-            dependency "com.google.guava:guava:31.0.1-jre"
+            dependency "io.hawt:hawtio-springboot:$hawtio_springboot_version"
+            dependency "com.google.guava:guava:$guava_version"
+            dependency "com.splunk.logging:splunk-library-javalogging:$splunk_library_javalogging_version"
+            dependency "org.codehaus.janino:janino:$janino_version"
         }
     }
 
@@ -89,6 +96,9 @@ allprojects {
     repositories {
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
+        maven{
+            url 'https://splunk.jfrog.io/splunk/ext-releases-local'
+        }
     }
 
     test {

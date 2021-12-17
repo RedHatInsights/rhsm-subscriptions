@@ -69,15 +69,10 @@ public class MeteringJob implements Runnable {
       int range = metricProperties.getRangeInMinutes();
       OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
       // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
-      // time
-      // is
-      // 6:00:00,
-      // taking the last of that hour would give the range an extra hour (6:59:59.999999)
-      // which is
-      // not what we want. We subtract to break the even boundary before finding the last
-      // minute.
-      // We need to do this because our queries are date inclusive (greater/less than OR
-      // equal to).
+      // time is 6:00:00, taking the last of that hour would give the range an extra hour
+      // (6:59:59.999999) which is not what we want. We subtract to break the even boundary before
+      // finding the last minute. We need to do this because our queries are date inclusive
+      // (greater/less than OR equal to).
       OffsetDateTime endDate =
           clock.endOfHour(
               startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
