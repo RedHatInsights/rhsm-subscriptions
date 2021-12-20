@@ -36,7 +36,7 @@ ext {
     kafka_avro_serializer_version = "7.0.1"
     avro_version = "1.11.0"
     webjars_locator_version = "0.42"
-    hawtio_springboot_version = "2.14.2"
+    hawtio_springboot_version = "2.14.3"
     guava_version = "31.0.1-jre"
     janino_version = "3.1.6"
     splunk_library_javalogging_version = "1.11.0"
