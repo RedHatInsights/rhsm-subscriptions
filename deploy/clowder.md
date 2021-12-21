@@ -95,8 +95,7 @@ requirements are going to be **steep**.
   docker pull quay.io/cloudservices/rhsm-subscriptions:latest
   ```
 
-* Manually create the host-inventory-db-readonly secret.  You can pull values
-  out of vault.devshift.net
+* Manually create missing secrets.  You can pull values out of vault.devshift.net
 
 ### Development and Deployment
 #### Prepare your shell
