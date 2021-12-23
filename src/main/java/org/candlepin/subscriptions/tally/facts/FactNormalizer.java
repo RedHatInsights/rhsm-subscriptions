@@ -78,6 +78,7 @@ public class FactNormalizer {
     normalizeRhsmFacts(normalizedFacts, hostFacts);
     normalizeQpcFacts(normalizedFacts, hostFacts);
     normalizeSocketCount(normalizedFacts, hostFacts);
+    normalizeMarketplace(normalizedFacts, hostFacts);
     normalizeConflictingOrMissingRhelVariants(normalizedFacts);
     pruneProducts(normalizedFacts);
     normalizeUnits(normalizedFacts, hostFacts);
@@ -215,6 +216,20 @@ public class FactNormalizer {
       hostFacts.setCores(effectiveCores); // <-- workaround to prevent rhsm from overwriting logic
     }
     getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
+  }
+
+  private void normalizeMarketplace(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    if (!hostFacts.isMarketplace()) {
+      return;
+    }
+
+    if (hostFacts.getCores() != 0 || normalizedFacts.getCores() != 0) {
+      normalizedFacts.setCores(0);
+    }
+
+    if (hostFacts.getSockets() != 0 || normalizedFacts.getSockets() != 0) {
+      normalizedFacts.setSockets(0);
+    }
   }
 
   private Integer calculateVirtualCPU(InventoryHostFacts virtualFacts) {
