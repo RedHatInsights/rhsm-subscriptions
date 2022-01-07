@@ -26,7 +26,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -54,6 +62,7 @@ import org.springframework.util.StringUtils;
 /** Controller used to interact with the Inventory service. */
 @Component
 public class InventoryController {
+
   private static final Logger log = LoggerFactory.getLogger(InventoryController.class);
 
   private static final BigDecimal KIBIBYTES_PER_GIBIBYTE = BigDecimal.valueOf(1048576);
@@ -291,16 +300,10 @@ public class InventoryController {
             entry -> entry.getKey().startsWith(MAC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX))
         .forEach(
             entry -> {
-              List<String> macs = Arrays.asList(entry.getValue().split(COMMA_REGEX));
-              macAddresses.addAll(
-                  macs.stream()
-                      .filter(
-                          mac ->
-                              mac != null
-                                  && !mac.equalsIgnoreCase(NONE)
-                                  && !mac.equalsIgnoreCase(UNKNOWN)
-                                  && !isTruncated(entry.getKey(), mac))
-                      .collect(Collectors.toList()));
+              var macString = entry.getValue();
+              var macFact = entry.getKey();
+              var splitMacs = filterMacs(macString, macFact);
+              macAddresses.addAll(splitMacs);
             });
 
     if (!macAddresses.isEmpty()) {
@@ -319,20 +322,39 @@ public class InventoryController {
                     && StringUtils.hasLength(entry.getValue()))
         .forEach(
             entry -> {
-              List<String> items = Arrays.asList(entry.getValue().split(COMMA_REGEX));
-              ipAddresses.addAll(
-                  items.stream()
-                      .filter(
-                          addr ->
-                              StringUtils.hasLength(addr)
-                                  && !addr.equalsIgnoreCase(UNKNOWN)
-                                  && !isTruncated(entry.getKey(), addr))
-                      .collect(Collectors.toList()));
+              var addrString = entry.getValue();
+              var addrFact = entry.getKey();
+              var splitAddrs = filterIps(addrString, addrFact);
+              ipAddresses.addAll(splitAddrs);
             });
 
     if (!ipAddresses.isEmpty()) {
       facts.setIpAddresses(new ArrayList<>(ipAddresses));
     }
+  }
+
+  protected List<String> filterIps(String s, String factKey) {
+    Predicate<String> ipTests =
+        addr ->
+            StringUtils.hasLength(addr)
+                && !addr.equalsIgnoreCase(UNKNOWN)
+                && !isTruncated(addr, factKey);
+    return filterCommaDelimitedList(s, ipTests);
+  }
+
+  protected List<String> filterMacs(String s, String factKey) {
+    Predicate<String> macTests =
+        mac ->
+            mac != null
+                && !mac.equalsIgnoreCase(NONE)
+                && !mac.equalsIgnoreCase(UNKNOWN)
+                && !isTruncated(mac, factKey);
+    return filterCommaDelimitedList(s, macTests);
+  }
+
+  protected List<String> filterCommaDelimitedList(String s, Predicate<String> predicate) {
+    List<String> items = Arrays.asList(s.split(COMMA_REGEX));
+    return items.stream().filter(predicate).collect(Collectors.toList());
   }
 
   private List<NetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
@@ -357,25 +379,27 @@ public class InventoryController {
   private void mapInterfaceIps(
       NetworkInterface networkInterface, Map<String, String> facts, String suffix) {
     String prefix = MAC_PREFIX + networkInterface.getName() + suffix;
-    String[] ipList;
 
     if (suffix.equalsIgnoreCase(".ipv4") && facts.containsKey(prefix + "_address_list")) {
-      ipList = facts.get(prefix + "_address_list").split(COMMA_REGEX);
-      for (String ip : ipList) networkInterface.addIpv4AddressesItem(ip);
+      var fact = prefix + "_address_list";
+      var ipList = filterIps(facts.get(fact), fact);
+      ipList.forEach(networkInterface::addIpv4AddressesItem);
     } else if (facts.containsKey(prefix + "_address")) {
       networkInterface.addIpv4AddressesItem(facts.get(prefix + "_address"));
     }
 
     if (facts.containsKey(prefix + "_address.global_list")) {
-      ipList = facts.get(prefix + "_address.global_list").split(COMMA_REGEX);
-      for (String ip : ipList) networkInterface.addIpv6AddressesItem(ip);
+      var fact = prefix + "_address.global_list";
+      var ipList = filterIps(facts.get(fact), fact);
+      ipList.forEach(networkInterface::addIpv6AddressesItem);
     } else if (facts.containsKey(prefix + "_address.global")) {
       networkInterface.addIpv6AddressesItem(facts.get(prefix + "_address.global"));
     }
 
     if (facts.containsKey(prefix + "_address.link_list")) {
-      ipList = facts.get(prefix + "_address.link_list").split(COMMA_REGEX);
-      for (String ip : ipList) networkInterface.addIpv6AddressesItem(ip);
+      var fact = prefix + "_address.link_list";
+      var ipList = filterIps(facts.get(fact), fact);
+      ipList.forEach(networkInterface::addIpv6AddressesItem);
     } else if (facts.containsKey(prefix + "_address.link")) {
       networkInterface.addIpv6AddressesItem(facts.get(prefix + "_address.link"));
     }
@@ -490,8 +514,7 @@ public class InventoryController {
     }
 
     // Peek at the first consumer.  If it is missing an account number, that means they all are.
-    // Abort
-    // and return an empty stream.  No sense in wasting time looping through everything.
+    // Abort and return an empty stream.  No sense in wasting time looping through everything.
     try {
       if (!StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
         throw new MissingAccountNumberException();
@@ -540,7 +563,7 @@ public class InventoryController {
     return String.format("%s: %s: %s", x.getPropertyPath(), x.getMessage(), x.getInvalidValue());
   }
 
-  private boolean isTruncated(String factKey, String toCheck) {
+  private boolean isTruncated(String toCheck, String factKey) {
     if (toCheck != null && toCheck.endsWith("...")) {
       log.info("Consumer fact value was truncated. Skipping value: {}:{}", factKey, toCheck);
       return true;

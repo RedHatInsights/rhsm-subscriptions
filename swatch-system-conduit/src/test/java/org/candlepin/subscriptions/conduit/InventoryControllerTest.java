@@ -22,11 +22,26 @@ package org.candlepin.subscriptions.conduit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.BDDMockito.*;
+import static org.mockito.BDDMockito.any;
+import static org.mockito.BDDMockito.anyString;
+import static org.mockito.BDDMockito.eq;
+import static org.mockito.BDDMockito.never;
+import static org.mockito.BDDMockito.nullable;
+import static org.mockito.BDDMockito.times;
+import static org.mockito.BDDMockito.verify;
+import static org.mockito.BDDMockito.verifyNoInteractions;
+import static org.mockito.BDDMockito.verifyNoMoreInteractions;
+import static org.mockito.BDDMockito.when;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
@@ -374,6 +389,51 @@ class InventoryControllerTest {
     assertThat(
         conduitFacts.getMacAddresses(),
         Matchers.containsInAnyOrder("52:54:00:4a:fe:cd", "52:54:00:b5:f9:c0"));
+  }
+
+  @Test
+  void testTruncatedIpV4AddressIsIgnoredForNics() {
+    String factPrefix = "net.interface.virbr0.";
+
+    String truncatedIpFact = "192.168.0.1,192.168.0.2,192.168.0.3,192...";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(factPrefix + "mac_address", "CO:FF:E0:OO:PP:D8");
+    consumer.getFacts().put(factPrefix + "ipv4_address_list", truncatedIpFact);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
+    var nic = conduitFacts.getNetworkInterfaces().get(0);
+    assertThat(
+        nic.getIpv4Addresses(),
+        Matchers.containsInAnyOrder("192.168.0.1", "192.168.0.2", "192.168.0.3"));
+    assertEquals(3, nic.getIpv4Addresses().size());
+  }
+
+  @Test
+  void testTruncatedIpV6AddressIsIgnoredForNics() {
+    String factPrefix = "net.interface.virbr0.";
+
+    String truncatedIpFact = "fe80::2323:912a:177a:d8e6, 0088::99aa:bbcc:ddee:ff33, fd...";
+    String truncatedIpFact2 = "::1,ab...";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(factPrefix + "mac_address", "CO:FF:E0:OO:PP:D8");
+    consumer.getFacts().put(factPrefix + "ipv6_address.global_list", truncatedIpFact);
+    consumer.getFacts().put(factPrefix + "ipv6_address.link_list", truncatedIpFact2);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
+    var nic = conduitFacts.getNetworkInterfaces().get(0);
+    assertThat(
+        nic.getIpv6Addresses(),
+        Matchers.containsInAnyOrder(
+            "fe80::2323:912a:177a:d8e6", "0088::99aa:bbcc:ddee:ff33", "::1"));
+    assertEquals(3, nic.getIpv6Addresses().size());
   }
 
   @Test
