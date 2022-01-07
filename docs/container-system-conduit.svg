@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="1166px" preserveAspectRatio="none" style="width:933px;height:1166px;" version="1.1" viewBox="0 0 933 1166" width="933px" zoomAndPan="magnify"><defs/><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacing" textLength="689" x="115.5" y="16.708">Container diagram for Subscription watch System conduit (aka. rhsm-conduit)</text><!--MD5=[0124883ede9501bc1a470c8ae7e8c246]
+cluster crc--><rect fill="#FFFFFF" height="981" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="383" x="544" y="27.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="176" x="647.5" y="44.8047">console.redhat.com</text><!--MD5=[ddc169ff648df74bef6a69cb47282d0f]
+cluster system_conduit--><rect fill="#FFFFFF" height="525" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="335" x="568" y="72.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="319" x="576" y="89.8047">System conduit (aka. rhsm-conduit)</text><text fill="#444444" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="55" x="708" y="104.7168">[System]</text><!--MD5=[c867817e8b5f61483179d5ca8fb53fa7]
+cluster rhit--><rect fill="#FFFFFF" height="329" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="513" x="7" y="658.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="93" x="217" y="675.8047">Red Hat IT</text><!--MD5=[cb002c46bf8fa7e97d9355aed489180a]
+entity hbi_in--><path d="M569.5,726.4531 L862.5,726.4531 C867.5,726.4531 867.5,747.75 867.5,747.75 C867.5,747.75 867.5,769.0469 862.5,769.0469 L569.5,769.0469 C564.5,769.0469 564.5,747.75 564.5,747.75 C564.5,747.75 564.5,726.4531 569.5,726.4531 " fill="#B3B3B3" style="stroke:#A6A6A6;stroke-width:1.5;"/><path d="M862.5,726.4531 C857.5,726.4531 857.5,747.75 857.5,747.75 C857.5,769.0469 862.5,769.0469 862.5,769.0469 " fill="none" style="stroke:#A6A6A6;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="283" x="569.5" y="746.3047">platform.inventory.host-ingress</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="89" x="666.5" y="761.2168">[Kafka Queue]</text><!--MD5=[d06ba427be2a9a158a7e4ee41d3716f9]
+entity hbi--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="219" x="606.5" y="888.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="193" x="619.5" y="913.8047">Host Based Inventory</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="718" y="930.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="195" x="620.5" y="946.8701">Central datastore for system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="99" x="664.5" y="963.167">information for</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="142" x="645" y="979.4639">console.redhat.com.</text><!--MD5=[b6b449cab904071407b2971ee1bf123f]
+entity conduit_job--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="215" x="613.5" y="123.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="192" x="625" y="148.8047">Conduit Sync CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="668.5" y="163.7168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="723" y="179.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="187" x="627.5" y="195.8389">CronJob for syncing system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="34" x="704" y="212.1357">data.</text><!--MD5=[69405efc80d513a27989253f96b164bb]
+entity conduit_tasks--><path d="M589,321.9531 L853,321.9531 C858,321.9531 858,343.25 858,343.25 C858,343.25 858,364.5469 853,364.5469 L589,364.5469 C584,364.5469 584,343.25 584,343.25 C584,343.25 584,321.9531 589,321.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M853,321.9531 C848,321.9531 848,343.25 848,343.25 C848,364.5469 853,364.5469 853,364.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="254" x="589" y="341.8047">platform.rhsm-conduit.tasks</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="675" y="356.7168">[Kafka Topic]</text><!--MD5=[7d4694871b77da9979acad36b9729e69]
+entity conduit_worker--><rect fill="#438DD5" height="120.1094" style="stroke:#3C7FC0;stroke-width:1.5;" width="210" x="611" y="461.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="140" x="643" y="486.8047">System Conduit</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="67" x="682.5" y="505.4297">Worker</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="663.5" y="520.3418">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="718" y="536.167"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="182" x="625" y="552.4639">Worker for syncing system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="34" x="699" y="568.7607">data.</text><!--MD5=[5715ae0769e3e013ecc67090814a27e3]
+entity rhsm_api--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="214" x="290" y="695.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="136" x="329" y="720.8047">RHSM Feed API</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="399" y="737.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="186" x="304" y="753.8701">API that provides access to</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="141" x="324.5" y="770.167">candlepin consumer</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="57" x="368.5" y="786.4639">records.</text><!--MD5=[4b8a5b7a9602b8f761f73e441053affb]
+entity candlepin--><rect fill="#999999" height="87.5156" style="stroke:#8A8A8A;stroke-width:1.5;" width="231" x="23.5" y="703.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="154" x="62" y="728.8047">Hosted Candlepin</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="141" y="745.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="190" x="44" y="761.8701">Candlepin instance backing</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="211" x="33.5" y="778.167">subscription.rhsm.redhat.com.</text><!--MD5=[30c6f76973b9d7b694f21de150f9e700]
+entity candlepin_db--><path d="M139.5,919.9531 C139.5,909.9531 242,909.9531 242,909.9531 C242,909.9531 344.5,909.9531 344.5,919.9531 L344.5,961.5469 C344.5,971.5469 242,971.5469 242,971.5469 C242,971.5469 139.5,971.5469 139.5,961.5469 L139.5,919.9531 " fill="#B3B3B3" style="stroke:#A6A6A6;stroke-width:1.5;"/><path d="M139.5,919.9531 C139.5,929.9531 242,929.9531 242,929.9531 C242,929.9531 344.5,929.9531 344.5,919.9531 " fill="none" style="stroke:#A6A6A6;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="185" x="149.5" y="948.8047">Hosted Candlepin DB</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="93" x="195.5" y="963.7168">[Relational DB]</text><!--MD5=[92848cbaf65985a669855153c5362c37]
+entity customer--><rect fill="#686868" height="86.625" style="stroke:#8A8A8A;stroke-width:1.5;" width="183" x="47.5" y="299.9531"/><image height="48" width="48" x="115" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAB6ElEQVR4Xu2YLY+EMBCG9+dWr0aj0Wg0Go1Go0+j8Xdv2uTCvv1gpt0ebHKPuhDaeW4605Z9mJvx4AdXUyTUdd08z+u6flmWZRnHsWkafk9DptAwDPu+f0eAYtu2PEaGWuj5fCIZrBAC2eLBAnRCsEkkxmeaJp7iDJ2QMDdHsLg8SxKFEJaAo8lAXnmuOFIhTMpxxKATebo4UiFknuNo4OniSIXQyRxEA3YsnjGCVEjVXD7yLUAqxBGUyPv/Y4W2beMgGuS7kVQIBycH0fD+oi5pezQETxdHKmQKGk1eQEYldK+jw5GxPfZ9z7Mk0Qnhf1W1m3w//EUn5BDmSZsbR44QQLBEqrBHqOrmSKaQAxdnLArCrxZcM7A7ZKs4ioRq8LFC+NpC3WCBJsvpVw5edm9iEXFuyNfxXAgSwfrFQ1c0iNda8AdejvUgnktOtJQQxmcfFzGglc5WVCj7oDgFqU18boeFSs52CUh8LE8BIVQDT1ABrB0HtgSEYlX5doJnCwv9TXocKCaKbnwhdDKPq4lf3SwU3HLq4V/+WYhHVMa/3b4IlfyikAduCkcBc7mQ3/z/Qq/cTuikhkzB12Ae/mcJC9U+Vo8Ej1gWAtgbeGgFsAMHr50BIWOLCbezvhpBFUdY6EJuJ/QDW0XoMX60zZ0AAAAASUVORK5CYII=" y="309.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="163" x="57.5" y="372.8047">Red Hat Customer</text><!--MD5=[963dd200d5c740cb245718e53e460719]
+entity customer_system--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="30.5" y="469.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="159" x="59.5" y="494.8047">Customer System</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="141" y="511.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="193" x="44.5" y="527.8701">Customer system or service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="187" x="43.5" y="544.167">instance (e.g. RHEL or OSD</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="105" y="560.4639">instance).</text><!--MD5=[a8c74bfa251a82fa1e7eec4bfe7e9a35]
+link conduit_job to conduit_tasks--><path d="M721,225.1031 C721,254.0031 721,289.4131 721,313.7331 " fill="none" id="conduit_job-to-conduit_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="721,321.8431,724,313.8431,718,313.8431,721,321.8431" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="722" y="267.0918">Produces to</text><!--MD5=[367e862f8b043617c1f022bfabb42cca]
+reverse link conduit_tasks to conduit_worker--><path d="M720.18,373.3231 C719.51,397.1931 718.52,431.8731 717.68,461.6231 " fill="none" id="conduit_tasks-backto-conduit_worker" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="720.42,365.0431,717.1927,372.9542,723.1903,373.1255,720.42,365.0431" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="109" x="719" y="429.0918">Consumes from</text><!--MD5=[5c76953dcf260b4d02fe3f9bfff45349]
+link conduit_worker to rhsm_api--><path d="M611,541.3831 C561.09,554.5931 503.45,576.8531 462,613.9531 C439.95,633.6931 424.59,662.5731 414.36,688.3831 " fill="none" id="conduit_worker-to-rhsm_api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="411.48,695.9331,417.1355,689.5288,411.5299,687.3893,411.48,695.9331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="463" y="633.0918">Reads from</text><!--MD5=[8c019ed6891ca9c15fb67c2a89a098fd]
+link conduit_worker to hbi_in--><path d="M716,582.1031 C716,625.9531 716,683.8331 716,718.0531 " fill="none" id="conduit_worker-to-hbi_in" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="716,726.2231,719,718.2231,713,718.2231,716,726.2231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="717" y="633.0918">Produces to</text><!--MD5=[72bf4ccdf6c1bbd1140465afecbe06d9]
+reverse link hbi_in to hbi--><path d="M716,777.9331 C716,807.2631 716,853.2331 716,888.7231 " fill="none" id="hbi_in-backto-hbi" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="716,769.7531,713,777.7531,719,777.7531,716,769.7531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="717" y="849.0918">Reads from</text><!--MD5=[393b9e37c8a184dfb2e992c8d7e3f708]
+link customer to customer_system--><path d="M139,387.1831 C139,409.5431 139,437.2831 139,461.6931 " fill="none" id="customer-to-customer_system" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="139,469.8231,142,461.8231,136,461.8231,139,469.8231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="112" x="140" y="429.0918">Provisions/Uses</text><!--MD5=[b240b6d720668d6f48a76f8efb68a4ea]
+link customer_system to candlepin--><path d="M139,574.0631 C139,610.4331 139,659.1231 139,695.5531 " fill="none" id="customer_system-to-candlepin" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="139,703.6031,142,695.6031,136,695.6031,139,703.6031" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="175" y="626.0918">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="145" x="140" y="640.0605">[subscription-manager]</text><!--MD5=[713dad89ad84f7707a1b837d71b61867]
+link candlepin to candlepin_db--><path d="M162.37,792.2931 C180.29,825.5131 204.75,870.8731 221.82,902.5231 " fill="none" id="candlepin-to-candlepin_db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="225.77,909.8531,224.6115,901.388,219.331,904.2371,225.77,909.8531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="111" x="198" y="842.0918">Reads from and</text><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64" x="223.5" y="856.0605">writes to</text><!--MD5=[eeb9544ef8b62464fc220a815710ed49]
+link rhsm_api to candlepin_db--><path d="M364.87,800.1631 C352.23,819.1731 337.13,840.5731 322,858.9531 C309.25,874.4431 294.03,890.3831 280.31,903.9831 " fill="none" id="rhsm_api-to-candlepin_db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="274.53,909.6531,282.3392,906.1866,278.1342,901.9065,274.53,909.6531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="345" y="849.0918">Reads from</text><rect fill="#FFFFFF" height="128.0781" rx="5" ry="5" style="stroke:#FFFFFF;stroke-width:1.0;" width="144" x="767" y="1021.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="59" x="773" y="1041.9482">Legend</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="836" y="1041.9482"/><rect fill="#08427B" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="773" y="1045.25"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="49" x="777" y="1058.2451">person</text><rect fill="#1168BD" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="773" y="1061.5469"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="50" x="777" y="1074.542">system</text><rect fill="#438DD5" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="773" y="1077.8438"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="777" y="1090.8389">container</text><rect fill="#686868" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="773" y="1094.1406"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="777" y="1107.1357">external person</text><rect fill="#999999" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="773" y="1110.4375"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="109" x="777" y="1123.4326">external system</text><rect fill="#B3B3B3" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="773" y="1126.7344"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="777" y="1139.7295">external container</text><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1028.9531" y2="1028.9531"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1045.25" y2="1045.25"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1061.5469" y2="1061.5469"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1077.8438" y2="1077.8438"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1094.1406" y2="1094.1406"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1110.4375" y2="1110.4375"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1126.7344" y2="1126.7344"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="905" y1="1143.0313" y2="1143.0313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="773" x2="773" y1="1028.9531" y2="1143.0313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="905" x2="905" y1="1028.9531" y2="1143.0313"/><!--MD5=[34ef38647f2f92bfd73b066df8c6bd1a]
+@startuml
+!include <C4/C4_Container>
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch System conduit (aka. rhsm-conduit)
+
+Person_Ext(customer, "Red Hat Customer")
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
+
+Boundary(crc, console.redhat.com) {
+  System_Boundary(system_conduit, "System conduit (aka. rhsm-conduit)") {
+    Container(conduit_job, "Conduit Sync CronJob", "Java, Container", "CronJob for syncing system data.")
+    ContainerQueue(conduit_tasks, "platform.rhsm-conduit.tasks", "Kafka Topic")
+    Container(conduit_worker, "System Conduit Worker", "Java, Container", "Worker for syncing system data.")
+  }
+  ContainerQueue_Ext(hbi_in, "platform.inventory.host-ingress", "Kafka Queue")
+  System_Ext(hbi, "Host Based Inventory", "Central datastore for system information for console.redhat.com.")
+}
+
+Boundary(rhit, "Red Hat IT") {
+  System_Ext(rhsm_api, "RHSM Feed API", "API that provides access to candlepin consumer records.")
+  System_Ext(candlepin, "Hosted Candlepin", "Candlepin instance backing subscription.rhsm.redhat.com.")
+  ContainerDb_Ext(candlepin_db, "Hosted Candlepin DB", "Relational DB")
+}
+
+' system conduit process
+Rel(conduit_job, conduit_tasks, "Produces to")
+Rel_Back(conduit_tasks, conduit_worker, "Consumes from")
+Rel(conduit_worker, rhsm_api, "Reads from")
+Rel(conduit_worker, hbi_in, "Produces to")
+Rel_Back(hbi_in, hbi, "Reads from")
+
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, candlepin, "Reports to", "subscription-manager")
+Rel(candlepin, candlepin_db, "Reads from and writes to")
+Rel(rhsm_api, candlepin_db, "Reads from")
+
+@enduml
+
+@startuml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam LegendBorderColor transparent
+skinparam LegendBackgroundColor transparent
+skinparam LegendFontColor #FFFFFF
+
+skinparam shadowing<<legendArea>> false
+skinparam rectangle<<legendArea>> {
+    backgroundcolor #00000000
+    bordercolor #00000000
+}
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam queue {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam actor {
+    StereotypeFontSize 12
+    shadowing false
+    style awesome
+}
+
+skinparam person {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam package {
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontStyle plain
+    BackgroundColor transparent
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontColor #444444
+    BorderColor #444444
+    BackgroundColor transparent
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam database<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam queue<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam actor<<person>> {
+    StereotypeFontColor #08427B
+    FontColor #08427B
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam person<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+
+
+skinparam rectangle<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam database<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_person>> {
+    StereotypeFontColor #686868
+    FontColor #686868
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam person<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+
+
+skinparam rectangle<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam database<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam queue<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam actor<<system>> {
+    StereotypeFontColor #1168BD
+    FontColor #1168BD
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam person<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+
+
+skinparam rectangle<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam database<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_system>> {
+    StereotypeFontColor #999999
+    FontColor #999999
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam person<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+
+
+
+
+
+sprite $person [48x48/16] {
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000025788300000000005886410000000000000
+000000000007DFFFFFFD9643347BFFFFFFFB400000000000
+0000000004EFFFFFFFFFFFFFFFFFFFFFFFFFFB1000000000
+000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFD200000000
+00000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE10000000
+0000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB0000000
+000000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5000000
+000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD000000
+000009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF200000
+00000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF600000
+00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF800000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00000EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF700000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+0000008FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD3000000
+000000014555555555555555555555555555555300000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+}
+
+sprite $person2 [48x48/16] {
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000002578888300000000005888864100000000000
+0000000007DFFFFFFFFD9643347BFFFFFFFFFB4000000000
+00000004EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB10000000
+0000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD2000000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+00003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+0000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF50000
+0003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD0000
+0009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+0009FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFF2000
+0003FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFD0000
+0000BFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFF50000
+00003FFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFB00000
+000006FFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFE100000
+0000007FFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFD2000000
+00000004EFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFB10000000
+0000000007DF8FFFFFFFFFFFFFFFFFFFFFF8FB4000000000
+000000000002578888888888888888888864100000000000
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam database<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam queue<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam rectangle<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam database<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam queue<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+hide stereotype
+legend right
+|<color:#000000>**Legend**</color> |
+|<#08427B> person |
+|<#1168BD> system |
+|<#438DD5> container |
+|<#686868> external person |
+|<#999999> external system |
+|<#B3B3B3> external container |
+endlegend
+
+title Container diagram for Subscription watch System conduit (aka. rhsm-conduit)
+
+rectangle "<$person>\n==Red Hat Customer" <<external_person>> as customer 
+rectangle "==Customer System\n\n Customer system or service instance (e.g. RHEL or OSD instance)." <<external_system>> as customer_system 
+
+rectangle "==console.redhat.com" <<boundary>> as crc  {
+rectangle "==System conduit (aka. rhsm-conduit)\n<size:12>[System]</size>" <<boundary>> as system_conduit  {
+    rectangle "==Conduit Sync CronJob\n//<size:12>[Java, Container]</size>//\n\n CronJob for syncing system data." <<container>> as conduit_job
+    queue "==platform.rhsm-conduit.tasks\n//<size:12>[Kafka Topic]</size>//" <<container>> as conduit_tasks
+    rectangle "==System Conduit Worker\n//<size:12>[Java, Container]</size>//\n\n Worker for syncing system data." <<container>> as conduit_worker
+  }
+  queue "==platform.inventory.host-ingress\n//<size:12>[Kafka Queue]</size>//" <<external_container>> as hbi_in
+  rectangle "==Host Based Inventory\n\n Central datastore for system information for console.redhat.com." <<external_system>> as hbi 
+}
+
+rectangle "==Red Hat IT" <<boundary>> as rhit  {
+  rectangle "==RHSM Feed API\n\n API that provides access to candlepin consumer records." <<external_system>> as rhsm_api 
+  rectangle "==Hosted Candlepin\n\n Candlepin instance backing subscription.rhsm.redhat.com." <<external_system>> as candlepin 
+  database "==Hosted Candlepin DB\n//<size:12>[Relational DB]</size>//" <<external_container>> as candlepin_db
+}
+
+conduit_job - ->> conduit_tasks : **Produces to**
+conduit_tasks <<- - conduit_worker : **Consumes from**
+conduit_worker - ->> rhsm_api : **Reads from**
+conduit_worker - ->> hbi_in : **Produces to**
+hbi_in <<- - hbi : **Reads from**
+
+customer - ->> customer_system : **Provisions/Uses**
+customer_system - ->> candlepin : **Reports to**\n//<size:12>[subscription-manager]</size>//
+candlepin - ->> candlepin_db : **Reads from and writes to**
+rhsm_api - ->> candlepin_db : **Reads from**
+
+@enduml
+
+PlantUML version 1.2021.00(Sun Jan 10 10:25:05 UTC 2021)
+(LGPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: ANSI_X3.4-1968
+Language: en
+Country: US
+--></g></svg>

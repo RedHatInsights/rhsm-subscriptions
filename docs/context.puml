@@ -1,0 +1,48 @@
+@startuml
+!include <C4/C4_Context>
+
+LAYOUT_WITH_LEGEND()
+
+title System Context diagram for Subscription watch
+
+Person(customer, "Red Hat Customer")
+
+Boundary(swatch, "Susbscription watch") {
+  System(ui, "Subscription watch UI", "Customer facing views of the usage and capacity data.")
+  System(api, "Subscription watch API", "Customer facing API.")
+  System(metrics_ingress, "Metrics Ingress", "Services that sync system/instance telemetry data into Subscription watch.")
+  System(cloudigrade, "Cloudigrade (aka. Cloudmeter)", "Service that provides precise RHEL instance lifetime data.")
+  System(tally, "Tally", "Service that tallies system usage based on telemetry data from various sources.")
+  System(subscription_sync, "Subscription Sync", "Service that syncs subscription/offering data from RH IT services.")
+  System(billing_producers, "Billing Producers", "Services that notify billing services of hourly usage.")
+}
+
+System(system_conduit, "System Conduit (aka. rhsm-conduit)", " Service that syncs system data from Hosted Candlepin to HBI.")
+
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
+System_Ext(observatorium, "Observatorium", "Prometheus/Thanos based service for RH product telemetry.")
+System_Ext(candlepin, "Hosted Candlepin", "Entitlement/Registration service (subscription.rhsm.redhat.com).")
+System_Ext(cloud_provider, "Cloud Provider Telemetry", "Telemetry collected by cloud providers.")
+System_Ext(hbi, "Host Based Inventory", "Central datastore for system information for console.redhat.com.")
+System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
+System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
+System_Ext(billing_services, "Billing Services", "Services responsible for billing the customer for PAYG usage.")
+
+Rel(customer, ui, "Uses")
+Rel(customer, api, "Uses")
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, candlepin, "Reports to", "subscription-manager")
+Rel(customer_system, observatorium, "Reports to", "Prometheus")
+Rel(customer_system, hbi, "Reports to", "insights-client")
+Rel(system_conduit, hbi, "Reports to")
+Rel_Neighbor(system_conduit, candlepin, "Syncs from")
+Rel_Neighbor(ui, api, "Uses")
+Rel(customer_system, cloud_provider, "Reports to")
+Rel_Back(observatorium, metrics_ingress, "Syncs from")
+Rel_Back(hbi, tally, "Reads from")
+Rel_Back(cloud_provider, cloudigrade, "Reads from")
+Rel_Neighbor(tally, cloudigrade, "Reads from")
+Rel_Back(rhit_subscriptions, subscription_sync, "Syncs from")
+Rel_Back(rhit_product, subscription_sync, "Syncs from")
+Rel(billing_producers, billing_services, "Reports to")
+@enduml

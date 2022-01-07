@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="1203px" preserveAspectRatio="none" style="width:788px;height:1203px;" version="1.1" viewBox="0 0 788 1203" width="788px" zoomAndPan="magnify"><defs/><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacing" textLength="508" x="133.75" y="16.708">Container diagram for Subscription watch Metrics Ingress</text><!--MD5=[0124883ede9501bc1a470c8ae7e8c246]
+cluster crc--><rect fill="#FFFFFF" height="870.5" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="542" x="240.5" y="175.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="176" x="423.5" y="192.8047">console.redhat.com</text><!--MD5=[7caab35c4647cf5b8739bb77d77dd26f]
+cluster swatch--><rect fill="#FFFFFF" height="801.5" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="494" x="264.5" y="220.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="170" x="426.5" y="237.8047">Subscription watch</text><!--MD5=[ff39684ade066e55d9c6aca271c3c34e]
+cluster metrics_ingress--><rect fill="#FFFFFF" height="541.5" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="446" x="288.5" y="265.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="140" x="441.5" y="282.8047">Metrics Ingress</text><text fill="#444444" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="55" x="484" y="297.7168">[System]</text><!--MD5=[7468467f3b6b392f1d176d828c753b77]
+entity db--><path d="M356.5,906.4531 C356.5,896.4531 452.5,896.4531 452.5,896.4531 C452.5,896.4531 548.5,896.4531 548.5,906.4531 L548.5,996.9375 C548.5,1006.9375 452.5,1006.9375 452.5,1006.9375 C452.5,1006.9375 356.5,1006.9375 356.5,996.9375 L356.5,906.4531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M356.5,906.4531 C356.5,916.4531 452.5,916.4531 452.5,916.4531 C452.5,916.4531 548.5,916.4531 548.5,906.4531 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="83" x="411" y="935.3047">Database</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="127" x="389" y="950.2168">[Postgres Database]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="454.5" y="966.042"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="164" x="370.5" y="982.3389">Stores subscription and</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="388.5" y="998.6357">usage information.</text><!--MD5=[1341199ee5ef369cf145bbdec318326f]
+entity metrics_job--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="176" x="423.5" y="316.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="156" x="433.5" y="341.8047">Metering CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="459" y="356.7168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="513.5" y="372.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="139" x="442" y="388.8389">CronJobs for metrics</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="57" x="483" y="405.1357">syncing.</text><!--MD5=[a8f5cb5fbd4625a12372833f6af9cfe4]
+entity metrics_tasks--><path d="M309.5,524.9531 L713.5,524.9531 C718.5,524.9531 718.5,546.25 718.5,546.25 C718.5,546.25 718.5,567.5469 713.5,567.5469 L309.5,567.5469 C304.5,567.5469 304.5,546.25 304.5,546.25 C304.5,546.25 304.5,524.9531 309.5,524.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M713.5,524.9531 C708.5,524.9531 708.5,546.25 708.5,546.25 C708.5,567.5469 713.5,567.5469 713.5,567.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="394" x="309.5" y="544.8047">platform.rhsm-subscriptions.metering-tasks</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="465.5" y="559.7168">[Kafka Topic]</text><!--MD5=[3c4616fe19ebd15f788c670c26185ae9]
+entity metrics_worker--><rect fill="#438DD5" height="117.7813" style="stroke:#3C7FC0;stroke-width:1.5;" width="180" x="362.5" y="673.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="153" x="376" y="698.3047">Metering Worker</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="400" y="713.2168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="454.5" y="729.042"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="139" x="383" y="745.3389">Worker that handles</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="156" x="372.5" y="761.6357">gathering metrics from</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="89" x="408" y="777.9326">Prometheus.</text><!--MD5=[92848cbaf65985a669855153c5362c37]
+entity customer--><rect fill="#686868" height="86.625" style="stroke:#8A8A8A;stroke-width:1.5;" width="183" x="24" y="27.9531"/><image height="48" width="48" x="91.5" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAB6ElEQVR4Xu2YLY+EMBCG9+dWr0aj0Wg0Go1Go0+j8Xdv2uTCvv1gpt0ebHKPuhDaeW4605Z9mJvx4AdXUyTUdd08z+u6flmWZRnHsWkafk9DptAwDPu+f0eAYtu2PEaGWuj5fCIZrBAC2eLBAnRCsEkkxmeaJp7iDJ2QMDdHsLg8SxKFEJaAo8lAXnmuOFIhTMpxxKATebo4UiFknuNo4OniSIXQyRxEA3YsnjGCVEjVXD7yLUAqxBGUyPv/Y4W2beMgGuS7kVQIBycH0fD+oi5pezQETxdHKmQKGk1eQEYldK+jw5GxPfZ9z7Mk0Qnhf1W1m3w//EUn5BDmSZsbR44QQLBEqrBHqOrmSKaQAxdnLArCrxZcM7A7ZKs4ioRq8LFC+NpC3WCBJsvpVw5edm9iEXFuyNfxXAgSwfrFQ1c0iNda8AdejvUgnktOtJQQxmcfFzGglc5WVCj7oDgFqU18boeFSs52CUh8LE8BIVQDT1ABrB0HtgSEYlX5doJnCwv9TXocKCaKbnwhdDKPq4lf3SwU3HLq4V/+WYhHVMa/3b4IlfyikAduCkcBc7mQ3/z/Qq/cTuikhkzB12Ae/mcJC9U+Vo8Ej1gWAtgbeGgFsAMHr50BIWOLCbezvhpBFUdY6EJuJ/QDW0XoMX60zZ0AAAAASUVORK5CYII=" y="37.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="163" x="34" y="100.8047">Red Hat Customer</text><!--MD5=[963dd200d5c740cb245718e53e460719]
+entity customer_system--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="7" y="315.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="159" x="36" y="340.3047">Customer System</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="117.5" y="357.0732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="193" x="21" y="373.3701">Customer system or service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="187" x="20" y="389.667">instance (e.g. RHEL or OSD</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="81.5" y="405.9639">instance).</text><!--MD5=[e3c0f9bbcd14425bcf01961b0ee2cf90]
+entity observatorium--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="7" y="494.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="132" x="49.5" y="519.3047">Observatorium</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="117.5" y="536.0732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="189" x="21" y="552.3701">Prometheus/Thanos based</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="153" x="37" y="568.667">service for RH product</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="69" x="81" y="584.9639">telemetry.</text><!--MD5=[393b9e37c8a184dfb2e992c8d7e3f708]
+link customer to customer_system--><path d="M115.5,115.2031 C115.5,165.7531 115.5,250.1831 115.5,307.0631 " fill="none" id="customer-to-customer_system" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="115.5,315.2431,118.5,307.2431,112.5,307.2431,115.5,315.2431" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="112" x="116.5" y="157.0918">Provisions/Uses</text><!--MD5=[97f192d3c4e6565688195c0d1a06b51f]
+link customer_system to observatorium--><path d="M115.5,419.6531 C115.5,440.4731 115.5,464.6631 115.5,486.2431 " fill="none" id="customer_system-to-observatorium" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="115.5,494.3731,118.5,486.3731,112.5,486.3731,115.5,494.3731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="116.5" y="461.5918">Reports to</text><!--MD5=[6d7a1d82c87f621f85a2173e58129230]
+link metrics_job to metrics_tasks--><path d="M511.5,418.2331 C511.5,449.9631 511.5,489.9831 511.5,516.5731 " fill="none" id="metrics_job-to-metrics_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="511.5,524.7131,514.5,516.7131,508.5,516.7131,511.5,524.7131" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="512.5" y="461.5918">Produces to</text><!--MD5=[0edd20d02ab2f53ef548ce07c4b4b9e3]
+reverse link metrics_tasks to metrics_worker--><path d="M502.31,576.1131 C494.02,601.9631 481.58,640.7631 471.2,673.1231 " fill="none" id="metrics_tasks-backto-metrics_worker" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="504.85,568.2031,499.5495,574.9042,505.2627,576.7372,504.85,568.2031" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="109" x="484.5" y="640.5918">Consumes from</text><!--MD5=[5940423814f1856ea4256769a0a3c2b8]
+reverse link observatorium to metrics_worker--><path d="M216.02,602.3331 C262.49,627.7131 317.26,657.6131 362.38,682.2531 " fill="none" id="observatorium-backto-metrics_worker" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="208.93,598.4631,214.5148,604.9292,217.3894,599.6627,208.93,598.4631" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="77" x="284.5" y="640.5918">Syncs from</text><!--MD5=[28a84851cf648dfd2980c459b4344f26]
+link metrics_worker to db--><path d="M452.5,791.6031 C452.5,821.4531 452.5,857.8331 452.5,888.2431 " fill="none" id="metrics_worker-to-db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="452.5,896.2431,455.5,888.2431,449.5,888.2431,452.5,896.2431" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="111" x="453.5" y="835.5918">Reads from and</text><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64" x="479" y="849.5605">writes to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="39" x="491.5" y="863.5293">[JDBC]</text><rect fill="#FFFFFF" height="128.0781" rx="5" ry="5" style="stroke:#FFFFFF;stroke-width:1.0;" width="144" x="622.5" y="1059.4531"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="59" x="628.5" y="1079.4482">Legend</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="691.5" y="1079.4482"/><rect fill="#08427B" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="628.5" y="1082.75"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="49" x="632.5" y="1095.7451">person</text><rect fill="#1168BD" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="628.5" y="1099.0469"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="50" x="632.5" y="1112.042">system</text><rect fill="#438DD5" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="628.5" y="1115.3438"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="632.5" y="1128.3389">container</text><rect fill="#686868" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="628.5" y="1131.6406"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="632.5" y="1144.6357">external person</text><rect fill="#999999" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="628.5" y="1147.9375"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="109" x="632.5" y="1160.9326">external system</text><rect fill="#B3B3B3" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="628.5" y="1164.2344"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="632.5" y="1177.2295">external container</text><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1066.4531" y2="1066.4531"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1082.75" y2="1082.75"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1099.0469" y2="1099.0469"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1115.3438" y2="1115.3438"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1131.6406" y2="1131.6406"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1147.9375" y2="1147.9375"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1164.2344" y2="1164.2344"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="760.5" y1="1180.5313" y2="1180.5313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="628.5" x2="628.5" y1="1066.4531" y2="1180.5313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="760.5" x2="760.5" y1="1066.4531" y2="1180.5313"/><!--MD5=[1e1ac516d8c26a1eb7be9cafe9745731]
+@startuml
+!include <C4/C4_Container>
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch Metrics Ingress
+
+Person_Ext(customer, "Red Hat Customer")
+
+Boundary(crc, console.redhat.com) {
+  Boundary(swatch, "Subscription watch") {
+    System_Boundary(metrics_ingress, "Metrics Ingress") {
+      Container(metrics_job, "Metering CronJob", "Java, Container", "CronJobs for metrics syncing.")
+      ContainerQueue(metrics_tasks, "platform.rhsm-subscriptions.metering-tasks", "Kafka Topic")
+      Container(metrics_worker, "Metering Worker", "Java, Container", "Worker that handles gathering metrics from Prometheus.")
+    }
+    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+  }
+}
+
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
+System_Ext(observatorium, "Observatorium", "Prometheus/Thanos based service for RH product telemetry.")
+
+
+' external dataflows
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, observatorium, "Reports to")
+
+' metering dataflow
+Rel(metrics_job, metrics_tasks, "Produces to")
+Rel_Back(metrics_tasks, metrics_worker, "Consumes from")
+Rel_Back(observatorium, metrics_worker, "Syncs from")
+Rel(metrics_worker, db, "Reads from and writes to", "JDBC")
+@enduml
+
+@startuml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam LegendBorderColor transparent
+skinparam LegendBackgroundColor transparent
+skinparam LegendFontColor #FFFFFF
+
+skinparam shadowing<<legendArea>> false
+skinparam rectangle<<legendArea>> {
+    backgroundcolor #00000000
+    bordercolor #00000000
+}
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam queue {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam actor {
+    StereotypeFontSize 12
+    shadowing false
+    style awesome
+}
+
+skinparam person {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam package {
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontStyle plain
+    BackgroundColor transparent
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontColor #444444
+    BorderColor #444444
+    BackgroundColor transparent
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam database<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam queue<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam actor<<person>> {
+    StereotypeFontColor #08427B
+    FontColor #08427B
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam person<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+
+
+skinparam rectangle<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam database<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_person>> {
+    StereotypeFontColor #686868
+    FontColor #686868
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam person<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+
+
+skinparam rectangle<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam database<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam queue<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam actor<<system>> {
+    StereotypeFontColor #1168BD
+    FontColor #1168BD
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam person<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+
+
+skinparam rectangle<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam database<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_system>> {
+    StereotypeFontColor #999999
+    FontColor #999999
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam person<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+
+
+
+
+
+sprite $person [48x48/16] {
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000025788300000000005886410000000000000
+000000000007DFFFFFFD9643347BFFFFFFFB400000000000
+0000000004EFFFFFFFFFFFFFFFFFFFFFFFFFFB1000000000
+000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFD200000000
+00000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE10000000
+0000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB0000000
+000000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5000000
+000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD000000
+000009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF200000
+00000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF600000
+00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF800000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00000EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF700000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+0000008FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD3000000
+000000014555555555555555555555555555555300000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+}
+
+sprite $person2 [48x48/16] {
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000002578888300000000005888864100000000000
+0000000007DFFFFFFFFD9643347BFFFFFFFFFB4000000000
+00000004EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB10000000
+0000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD2000000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+00003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+0000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF50000
+0003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD0000
+0009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+0009FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFF2000
+0003FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFD0000
+0000BFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFF50000
+00003FFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFB00000
+000006FFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFE100000
+0000007FFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFD2000000
+00000004EFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFB10000000
+0000000007DF8FFFFFFFFFFFFFFFFFFFFFF8FB4000000000
+000000000002578888888888888888888864100000000000
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam database<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam queue<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam rectangle<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam database<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam queue<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+hide stereotype
+legend right
+|<color:#000000>**Legend**</color> |
+|<#08427B> person |
+|<#1168BD> system |
+|<#438DD5> container |
+|<#686868> external person |
+|<#999999> external system |
+|<#B3B3B3> external container |
+endlegend
+
+title Container diagram for Subscription watch Metrics Ingress
+
+rectangle "<$person>\n==Red Hat Customer" <<external_person>> as customer 
+
+rectangle "==console.redhat.com" <<boundary>> as crc  {
+  rectangle "==Subscription watch" <<boundary>> as swatch  {
+rectangle "==Metrics Ingress\n<size:12>[System]</size>" <<boundary>> as metrics_ingress  {
+      rectangle "==Metering CronJob\n//<size:12>[Java, Container]</size>//\n\n CronJobs for metrics syncing." <<container>> as metrics_job
+      queue "==platform.rhsm-subscriptions.metering-tasks\n//<size:12>[Kafka Topic]</size>//" <<container>> as metrics_tasks
+      rectangle "==Metering Worker\n//<size:12>[Java, Container]</size>//\n\n Worker that handles gathering metrics from Prometheus." <<container>> as metrics_worker
+    }
+    database "==Database\n//<size:12>[Postgres Database]</size>//\n\n Stores subscription and usage information." <<container>> as db
+  }
+}
+
+rectangle "==Customer System\n\n Customer system or service instance (e.g. RHEL or OSD instance)." <<external_system>> as customer_system 
+rectangle "==Observatorium\n\n Prometheus/Thanos based service for RH product telemetry." <<external_system>> as observatorium 
+
+
+customer - ->> customer_system : **Provisions/Uses**
+customer_system - ->> observatorium : **Reports to**
+
+metrics_job - ->> metrics_tasks : **Produces to**
+metrics_tasks <<- - metrics_worker : **Consumes from**
+observatorium <<- - metrics_worker : **Syncs from**
+metrics_worker - ->> db : **Reads from and writes to**\n//<size:12>[JDBC]</size>//
+@enduml
+
+PlantUML version 1.2021.00(Sun Jan 10 10:25:05 UTC 2021)
+(LGPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: ANSI_X3.4-1968
+Language: en
+Country: US
+--></g></svg>

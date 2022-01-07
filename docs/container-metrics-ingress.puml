@@ -1,0 +1,34 @@
+@startuml
+!include <C4/C4_Container>
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch Metrics Ingress
+
+Person_Ext(customer, "Red Hat Customer")
+
+Boundary(crc, console.redhat.com) {
+  Boundary(swatch, "Subscription watch") {
+    System_Boundary(metrics_ingress, "Metrics Ingress") {
+      Container(metrics_job, "Metering CronJob", "Java, Container", "CronJobs for metrics syncing.")
+      ContainerQueue(metrics_tasks, "platform.rhsm-subscriptions.metering-tasks", "Kafka Topic")
+      Container(metrics_worker, "Metering Worker", "Java, Container", "Worker that handles gathering metrics from Prometheus.")
+    }
+    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+  }
+}
+
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
+System_Ext(observatorium, "Observatorium", "Prometheus/Thanos based service for RH product telemetry.")
+
+
+' external dataflows
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, observatorium, "Reports to")
+
+' metering dataflow
+Rel(metrics_job, metrics_tasks, "Produces to")
+Rel_Back(metrics_tasks, metrics_worker, "Consumes from")
+Rel_Back(observatorium, metrics_worker, "Syncs from")
+Rel(metrics_worker, db, "Reads from and writes to", "JDBC")
+@enduml
