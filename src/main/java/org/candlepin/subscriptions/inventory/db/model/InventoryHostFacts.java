@@ -45,6 +45,7 @@ public class InventoryHostFacts {
   private Integer systemProfileCoresPerSocket;
   private Integer systemProfileSockets;
   private String systemProfileArch;
+  private boolean isMarketplace;
   private boolean isVirtual;
   private String hypervisorUuid;
   private String satelliteHypervisorUuid;
@@ -88,6 +89,7 @@ public class InventoryHostFacts {
       String systemProfileCores,
       String systemProfileSockets,
       String systemProfileArch,
+      String isMarketplace,
       String qpcProducts,
       String qpcProductIds,
       String systemProfileProductIds,
@@ -122,6 +124,7 @@ public class InventoryHostFacts {
     this.systemProfileCoresPerSocket = asInt(systemProfileCores);
     this.systemProfileSockets = asInt(systemProfileSockets);
     this.systemProfileArch = systemProfileArch;
+    this.isMarketplace = asBoolean(isMarketplace);
     this.systemProfileProductIds = asStringSet(systemProfileProductIds);
     this.syspurposeRole = syspurposeRole;
     this.syspurposeSla = syspurposeSla;

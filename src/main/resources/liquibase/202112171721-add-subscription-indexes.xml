@@ -1,0 +1,21 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202112171721-1"  author="khowell">
+    <comment>Add indexes to subscription table</comment>
+    <createIndex tableName="subscription" indexName="subscription_sku_idx">
+      <column name="sku"/>
+    </createIndex>
+    <createIndex tableName="subscription" indexName="subscription_account_number_sku_idx">
+      <column name="account_number"/>
+      <column name="sku"/>
+    </createIndex>
+    <createIndex tableName="subscription" indexName="subscription_owner_id_idx">
+      <column name="owner_id"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>

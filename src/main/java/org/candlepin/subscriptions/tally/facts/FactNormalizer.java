@@ -32,7 +32,7 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +51,11 @@ public class FactNormalizer {
   private final Map<String, Set<String>> roleToProductsMap;
 
   public FactNormalizer(
-      ApplicationProperties props, ProductProfileRegistry profileRegistry, ApplicationClock clock) {
+      ApplicationProperties props, TagProfile tagProfile, ApplicationClock clock) {
     this.clock = clock;
     this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
-    this.engProductIdToSwatchProductIdsMap = profileRegistry.getEngProductIdToSwatchProductIdsMap();
-    this.roleToProductsMap = profileRegistry.getRoleToSwatchProductIdsMap();
+    this.engProductIdToSwatchProductIdsMap = tagProfile.getEngProductIdToSwatchProductIdsMap();
+    this.roleToProductsMap = tagProfile.getRoleToTagLookup();
   }
 
   public static boolean isRhelVariant(String product) {
@@ -78,6 +78,7 @@ public class FactNormalizer {
     normalizeRhsmFacts(normalizedFacts, hostFacts);
     normalizeQpcFacts(normalizedFacts, hostFacts);
     normalizeSocketCount(normalizedFacts, hostFacts);
+    normalizeMarketplace(normalizedFacts, hostFacts);
     normalizeConflictingOrMissingRhelVariants(normalizedFacts);
     pruneProducts(normalizedFacts);
     normalizeUnits(normalizedFacts, hostFacts);
@@ -215,6 +216,20 @@ public class FactNormalizer {
       hostFacts.setCores(effectiveCores); // <-- workaround to prevent rhsm from overwriting logic
     }
     getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
+  }
+
+  private void normalizeMarketplace(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    if (!hostFacts.isMarketplace()) {
+      return;
+    }
+
+    if (hostFacts.getCores() != 0 || normalizedFacts.getCores() != 0) {
+      normalizedFacts.setCores(0);
+    }
+
+    if (hostFacts.getSockets() != 0 || normalizedFacts.getSockets() != 0) {
+      normalizedFacts.setSockets(0);
+    }
   }
 
   private Integer calculateVirtualCPU(InventoryHostFacts virtualFacts) {

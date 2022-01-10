@@ -146,7 +146,7 @@ class KafkaEnabledInventoryServiceTest {
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
     service.sendHostUpdate(Arrays.asList());
 
-    verifyZeroInteractions(producer);
+    verifyNoInteractions(producer);
   }
 
   @Test

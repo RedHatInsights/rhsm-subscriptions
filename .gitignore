@@ -34,9 +34,18 @@ config/
 .settings
 /**/bin/*
 !bin/hawtio-proxy.sh
+!bin/build-images.sh
 !bin/insert-mock-hosts
 .vscode
 .editorconfig
 
 .run/
 .env
+
+deploy/secrets.yaml
+
+#created when running pr_check.sh locally
+.bonfire_venv/
+.cicd_bootstrap.sh
+.podman/
+bonfire/

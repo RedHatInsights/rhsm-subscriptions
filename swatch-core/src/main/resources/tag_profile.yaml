@@ -7,6 +7,74 @@
 # "arm64" would get the "RHEL for ARM" tag.  The value is "arm64", the value type is "architecture",
 # and the tag is "RHEL for ARM".
 tagMappings:
+  # RHEL engineering product IDs
+  - value: 68 # Red Hat Enterprise Linux Desktop
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for x86
+      - RHEL Desktop
+  - value: 69 # Red Hat Enterprise Linux Server
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for x86
+      - RHEL Server
+  - value: 71 # Red Hat Enterprise Linux Workstation
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for x86
+      - RHEL Workstation
+  - value: 72 # Red Hat Enterprise Linux for IBM z Systems
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for IBM z
+  - value: 74 # Red Hat Enterprise Linux for Power, big endian
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for IBM Power
+  - value: 76 # Red Hat Enterprise Linux for Scientific Computing
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for x86
+      - RHEL Compute Node
+  - value: 279 # Red Hat Enterprise Linux for Power, little endian
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for IBM Power
+  - value: 419 # Red Hat Enterprise Linux for ARM 64
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for ARM
+  - value: 420 # Red Hat Enterprise Linux for Power 9
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for IBM Power
+  - value: 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
+    valueType: engId
+    tags:
+      - RHEL
+      - RHEL for x86
+
+  # Satellite engineering product IDs
+  - value: 250 # Red Hat Satellite
+    valueType: engId
+    tags:
+      - Satellite
+      - Satellite Server
+  - value: 269 # Red Hat Satellite Capsule
+    valueType: engId
+    tags:
+      - Satellite
+      - Satellite Capsule
+
   # OpenShift engineering product IDs
   - value: 290 # Red Hat OpenShift Container Platform
     valueType: engId
@@ -26,6 +94,21 @@ tagMappings:
     valueType: role
     tags:
       - rhosak
+  - value: Red Hat Enterprise Linux Server
+    valueType: role
+    tags:
+      - RHEL
+      - RHEL Server
+  - value: Red Hat Enterprise Linux Workstation
+    valueType: role
+    tags:
+      - RHEL
+      - RHEL Workstation
+  - value: Red Hat Enterprise Linux Compute Node
+    valueType: role
+    tags:
+      - RHEL
+      - RHEL Compute Node
 
   # Offering Product Names
   - value: OpenShift Dedicated
@@ -42,6 +125,42 @@ tagMappings:
     valueType: productName
     tags:
       - rhosak
+
+  # System Architecture
+  - value: aarch64
+    valueType: arch
+    tags:
+      - RHEL for ARM
+
+  - value: arm64
+    valueType: arch
+    tags:
+      - RHEL for ARM
+
+  - value: i386
+    valueType: arch
+    tags:
+      - RHEL for x86
+
+  - value: ppc64
+    valueType: arch
+    tags:
+      - RHEL for IBM Power
+
+  - value: ppc64le
+    valueType: arch
+    tags:
+      - RHEL for IBM Power
+
+  - value: s390x
+    valueType: arch
+    tags:
+      - RHEL for IBM z
+
+  - value: x86_64
+    valueType: arch
+    tags:
+      - RHEL for x86
 
 # Individual tags can be measured in different ways.  The tagMetrics section defines these
 # measurements.  A tag will, at minimum, have a "uom" attribute (unit of measure) that defines the
@@ -105,6 +224,22 @@ tagMetrics:
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata
 # can also be applied here in a key-value fashion.
 tagMetaData:
+  - tags:
+      - RHEL
+      - RHEL for x86
+      - RHEL for ARM
+      - RHEL for IBM Power
+      - RHEL for IBM z
+      - RHEL Compute Node
+      - RHEL Server
+      - RHEL Desktop
+      - RHEL Workstation
+    finestGranularity: DAILY
+  - tags:
+      - Satellite
+      - Satellite Server
+      - Satellite Capsule
+    finestGranularity: DAILY
   - tags:
       - OpenShift Container Platform
     finestGranularity: DAILY

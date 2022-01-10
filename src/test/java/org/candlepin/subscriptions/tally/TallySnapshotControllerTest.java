@@ -87,14 +87,14 @@ class TallySnapshotControllerTest {
   void testCloudigradeAccountUsageCollectorDisabled() {
     props.setCloudigradeEnabled(false);
     controller.produceSnapshotsForAccount(ACCOUNT);
-    verifyZeroInteractions(cloudigradeCollector);
+    verifyNoInteractions(cloudigradeCollector);
   }
 
   @Test
   void testBatchesLargerThanConfigIgnored() {
     controller.produceSnapshotsForAccounts(
         Collections.nCopies(props.getAccountBatchSize() + 1, "foo"));
-    verifyZeroInteractions(cloudigradeCollector);
-    verifyZeroInteractions(inventoryCollector);
+    verifyNoInteractions(cloudigradeCollector);
+    verifyNoInteractions(inventoryCollector);
   }
 }

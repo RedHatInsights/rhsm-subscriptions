@@ -34,8 +34,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.ProductProfile;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -53,7 +52,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 /** Capacity API implementation. */
 @Component
@@ -61,7 +59,7 @@ public class CapacityResource implements CapacityApi {
   private final SubscriptionCapacityRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
-  private final ProductProfileRegistry productProfileRegistry;
+  private final TagProfile tagProfile;
 
   @Context UriInfo uriInfo;
 
@@ -69,11 +67,11 @@ public class CapacityResource implements CapacityApi {
       SubscriptionCapacityRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      ProductProfileRegistry productProfileRegistry) {
+      TagProfile tagProfile) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
-    this.productProfileRegistry = productProfileRegistry;
+    this.tagProfile = tagProfile;
   }
 
   @Override
@@ -157,7 +155,7 @@ public class CapacityResource implements CapacityApi {
      * false impression that we have capacity information at that fine of a granularity.  This decision is
      * on of personal judgment and it may be appropriate to reverse it at a later date. */
     try {
-      productProfileRegistry.validateGranularityCompatibility(productId, granularity);
+      tagProfile.validateGranularityCompatibility(productId, granularity);
     } catch (IllegalStateException e) {
       throw new BadRequestException(e.getMessage());
     }
@@ -190,21 +188,6 @@ public class CapacityResource implements CapacityApi {
     int offset = pageable.getPageNumber() * pageable.getPageSize();
     int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
     return capacities.subList(offset, lastIndex);
-  }
-
-  /**
-   * Verify that the granularity requested is compatible with the finest granularity supported by
-   * the product. For example, if the requester asks for HOURLY granularity but the product only
-   * supports DAILY granularity, we can't meaningfully fulfill that request.
-   */
-  protected void validateGranularityCompatibility(
-      ProductId productId, Granularity requestedGranularity) {
-    ProductProfile productProfile = productProfileRegistry.findProfileForSwatchProductId(productId);
-    String msg =
-        String.format(
-            "%s does not support any granularity finer than %s",
-            productId.toString(), productProfile.getFinestGranularity());
-    Assert.isTrue(productProfile.supportsGranularity(requestedGranularity), msg);
   }
 
   protected CapacitySnapshot createCapacitySnapshot(

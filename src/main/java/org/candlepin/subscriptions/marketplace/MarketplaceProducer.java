@@ -136,6 +136,7 @@ public class MarketplaceProducer {
             batchId,
             status,
             response.getMessage());
+        log.debug("Marketplace response: {}", response);
         rejectedCounter.increment();
       } else {
         acceptedCounter.increment();
