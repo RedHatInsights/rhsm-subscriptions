@@ -126,8 +126,8 @@ hawtio:
 rhsm-subscriptions:
   security:
     dev-mode: ${DEV_MODE}
-    is-manual-subscription-editing-enabled: ${DEVTEST_SUBSCRIPTION_EDITING_ENABLED}
-    is-manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
+    manual-subscription-editing-enabled: ${DEVTEST_SUBSCRIPTION_EDITING_ENABLED}
+    manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
   package_uri_mappings:
     # this mapping required here because it is used by our SecurityConfig, which is shared
     org.candlepin.subscriptions.resteasy: ${PATH_PREFIX}/${APP_NAME}/v1

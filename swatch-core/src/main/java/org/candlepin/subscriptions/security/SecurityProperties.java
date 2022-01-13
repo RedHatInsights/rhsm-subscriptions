@@ -35,14 +35,14 @@ public class SecurityProperties {
    *
    * <p>For development/testing only.
    */
-  private boolean isManualSubscriptionEditingEnabled = false;
+  private boolean manualSubscriptionEditingEnabled = false;
 
   /**
    * Whether to allow manual event edits.
    *
    * <p>For development/testing only.
    */
-  private boolean isManualEventEditingEnabled = false;
+  private boolean manualEventEditingEnabled = false;
 
   /**
    * Expected domain suffix for origin or referer headers.
