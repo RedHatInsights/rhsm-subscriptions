@@ -21,15 +21,14 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -69,6 +68,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
  * </ol>
  */
 @Configuration
+@Import(RbacConfiguration.class)
 public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Autowired protected ObjectMapper mapper;
@@ -97,22 +97,6 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
       @Qualifier("identityHeaderAuthenticationDetailsService")
           IdentityHeaderAuthenticationDetailsService detailsService) {
     return new IdentityHeaderAuthenticationProvider(detailsService);
-  }
-
-  @Bean
-  public RbacService rbacService() {
-    return new RbacService();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
-  public RbacProperties rbacServiceProperties() {
-    return new RbacProperties();
-  }
-
-  @Bean
-  public RbacApiFactory rbacApiFactory(RbacProperties props) {
-    return new RbacApiFactory(props);
   }
 
   // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
