@@ -69,12 +69,12 @@ if __name__ == '__main__':
         event_type, account, instance, timestamp, expiration, role, sla, uom, value, service_type
     """)
     parser.add_argument('--host', default='localhost', help='Jolokia host')
-    parser.add_argument('--port', default='8080', help='Jolokia port')
+    parser.add_argument('--port', default='9000', help='Jolokia port')
     parser.add_argument('--file', help='Path to CSV file', required=True)
     parser.add_argument('--dry-run', action='store_true', help="Only collect the events from the file and do not send.")
 
     args = parser.parse_args()
-    jolokia_url = "http://{host}:{port}/actuator/hawtio/jolokia/".format(host = args.host, port = args.port)
+    jolokia_url = "http://{host}:{port}/hawtio/jolokia/".format(host = args.host, port = args.port)
     resp = import_events(jolokia_url, args.file, args.dry_run)
     if hasattr(resp, 'status_code') and resp.status_code == 200:
         resp_data = jsonpickle.decode(resp.text)
