@@ -233,8 +233,9 @@ objects:
                 cpu: ${CPU_LIMIT}
                 memory: ${MEMORY_LIMIT}
             ports:
-              - containerPort: 8080
+              - containerPort: 8000
                 protocol: TCP
+                name: web
               - containerPort: 9000
                 protocol: TCP
                 name: metrics-port
@@ -293,10 +294,14 @@ objects:
       prometheus: rhsm
   spec:
     ports:
+      - port: 8000
+        name: "8000"
+        protocol: TCP
+        targetPort: web
       - port: 8080
         name: "8080"
         protocol: TCP
-        targetPort: 8080
+        targetPort: web
       - port: 9000
         name: "9000"
         protocol: TCP
