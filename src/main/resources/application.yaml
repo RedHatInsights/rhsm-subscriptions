@@ -23,7 +23,7 @@ spring:
       - marketplace
       - kafka-queue
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST:localhost}:${KAFKA_BOOTSTRAP_PORT:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
     listener:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)
@@ -88,6 +88,10 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.subscription-sync
       kafka-group-id: subscription-worker
+  subscription-prune:
+    tasks:
+      topic: platform.rhsm-subscriptions.subscription-prune
+      kafka-group-id: subscription-prune-worker
   capacity:
     tasks:
       topic: platform.rhsm-subscriptions.capacity-reconcile

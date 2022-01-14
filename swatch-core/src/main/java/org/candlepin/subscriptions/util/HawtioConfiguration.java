@@ -43,10 +43,9 @@ import org.springframework.util.StringUtils;
  *
  * <p>This enables us to deploy the console behind a reverse proxy with a different prefix.
  *
- * <p>For example, if hawtio is deployed at /actuator/hawtio, and the reverse proxy configuration
- * results in a browser URL of /rhsm-subscriptions/actuator/hawtio, then setting
- * `rhsm-subscriptions.hawtioBasePath` to /rhsm-subscriptions/actuator/hawtio forces the frontend to
- * return the proper URLs for JavaScript/CSS.
+ * <p>For example, if hawtio is deployed at /hawtio, and the reverse proxy configuration results in
+ * a browser URL of /rhsm-subscriptions/hawtio, then setting `rhsm-subscriptions.hawtioBasePath` to
+ * /rhsm-subscriptions/hawtio forces the frontend to return the proper URLs for JavaScript/CSS.
  */
 @Configuration
 @ConditionalOnManagementPort(ManagementPortType.SAME)

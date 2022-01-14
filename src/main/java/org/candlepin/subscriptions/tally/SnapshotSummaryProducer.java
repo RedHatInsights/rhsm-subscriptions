@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -50,6 +51,23 @@ public class SnapshotSummaryProducer {
       @Qualifier("marketplaceTasks") TaskQueueProperties props) {
     this.tallySummaryTopic = props.getTopic();
     this.tallySummaryKafkaTemplate = tallySummaryKafkaTemplate;
+  }
+
+  public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
+    AtomicInteger totalTallies = new AtomicInteger();
+    newAndUpdatedSnapshots.forEach(
+        (account, snapshots) ->
+            snapshots.stream()
+                .map(snapshot -> createTallySummary(account, List.of(snapshot)))
+                .forEach(
+                    summary -> {
+                      if (validateTallySummary(summary)) {
+                        tallySummaryKafkaTemplate.send(tallySummaryTopic, summary);
+                        totalTallies.getAndIncrement();
+                      }
+                    }));
+
+    log.info("Produced {} TallySummary messages", totalTallies);
   }
 
   private TallySummary createTallySummary(
@@ -96,18 +114,27 @@ public class SnapshotSummaryProducer {
         .collect(Collectors.toList());
   }
 
-  public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
-    AtomicInteger totalTallies = new AtomicInteger();
-    newAndUpdatedSnapshots.forEach(
-        (account, snapshots) ->
-            snapshots.stream()
-                .map(snapshot -> createTallySummary(account, List.of(snapshot)))
-                .forEach(
-                    summary -> {
-                      tallySummaryKafkaTemplate.send(tallySummaryTopic, summary);
-                      totalTallies.getAndIncrement();
-                    }));
+  /**
+   * Validates a TallySummary to make sure that it has all the information required by the
+   * marketplace API. Any issues will be logged.
+   *
+   * @param summary the summary to validate.
+   * @return true if the TallySummary is valid, false otherwise.
+   */
+  private boolean validateTallySummary(TallySummary summary) {
+    // Marketplace requires at least one measurement be included in the Event
+    Optional<org.candlepin.subscriptions.json.TallySnapshot> invalidDueToMeasurements =
+        summary.getTallySnapshots().stream()
+            .filter(snap -> snap.getTallyMeasurements().isEmpty())
+            .findFirst();
+    if (invalidDueToMeasurements.isPresent()) {
+      log.warn(
+          "One or more tally summary snapshots did not have measurements. "
+              + "No usage will be sent to marketplace for this summary.\n{}",
+          summary);
+      return false;
+    }
 
-    log.info("Produced {} TallySummary messages", totalTallies);
+    return true;
   }
 }

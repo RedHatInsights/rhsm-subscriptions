@@ -115,7 +115,7 @@ class InventoryControllerTest {
 
     controller.updateInventoryForOrg("org123");
 
-    verifyZeroInteractions(taskManager);
+    verifyNoInteractions(taskManager);
   }
 
   private OrgInventory pageOf(Consumer... consumers) {

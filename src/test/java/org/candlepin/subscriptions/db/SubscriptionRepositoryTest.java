@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,7 +87,7 @@ class SubscriptionRepositoryTest {
     offeringRepo.saveAndFlush(o2);
 
     UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
-    Set<String> productNames = Set.of("Test SKU 2");
+    Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
             "1000", key, productNames, NOW, NOW);
@@ -169,8 +168,6 @@ class SubscriptionRepositoryTest {
 
     var result = subscriptionRepo.findBySku("MCT3718", Pageable.ofSize(5));
     assertEquals(5, result.stream().count());
-    assertThat(result.getContent().get(0).getSubscriptionId())
-        .isLessThan(result.getContent().get(1).getSubscriptionId());
   }
 
   private Offering createOffering(

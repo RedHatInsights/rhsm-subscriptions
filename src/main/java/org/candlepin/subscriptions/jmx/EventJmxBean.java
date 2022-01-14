@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jmx.JmxException;
@@ -46,14 +47,20 @@ import org.springframework.stereotype.Component;
 @Component
 @ManagedResource
 public class EventJmxBean {
+
   private static final Logger log = LoggerFactory.getLogger(EventJmxBean.class);
+  public static final String FEATURE_NOT_ENABLED_MESSSAGE =
+      "This feature is not currently enabled.";
 
   private final EventController eventController;
   private final ObjectMapper objectMapper;
+  private final SecurityProperties properties;
 
-  public EventJmxBean(EventController eventController, ObjectMapper objectMapper) {
+  public EventJmxBean(
+      EventController eventController, ObjectMapper objectMapper, SecurityProperties properties) {
     this.eventController = eventController;
     this.objectMapper = objectMapper;
+    this.properties = properties;
   }
 
   @Transactional
@@ -87,9 +94,12 @@ public class EventJmxBean {
     }
   }
 
-  @ManagedOperation(description = "Delete an event")
+  @ManagedOperation(description = "Delete an event. Supported only in dev-mode.")
   @ManagedOperationParameter(name = "eventId", description = "Event UUID")
   public String deleteEvent(String eventId) {
+    if (!properties.isDevMode() && !properties.isManualEventEditingEnabled()) {
+      throw new JmxException(FEATURE_NOT_ENABLED_MESSSAGE);
+    }
     try {
       eventController.deleteEvent(UUID.fromString(eventId));
       return String.format("Successfully deleted Event with ID: %s", eventId);
@@ -102,6 +112,9 @@ public class EventJmxBean {
   @ManagedOperation(description = "Save an event. Supported only in dev-mode.")
   @ManagedOperationParameter(name = "json", description = "Event JSON")
   public String saveEvent(String json) throws JmxException {
+    if (!properties.isDevMode() && !properties.isManualEventEditingEnabled()) {
+      throw new JmxException(FEATURE_NOT_ENABLED_MESSSAGE);
+    }
     Event event;
     try {
       event = eventController.saveEvent(objectMapper.readValue(json, Event.class));
@@ -123,6 +136,9 @@ public class EventJmxBean {
       name = "jsonListOfEvents",
       description = "Event list specified as JSON")
   public String saveEvents(String jsonListOfEvents) throws JmxException {
+    if (!properties.isDevMode() && !properties.isManualEventEditingEnabled()) {
+      throw new JmxException(FEATURE_NOT_ENABLED_MESSSAGE);
+    }
     List<Event> saved;
     try {
       saved =

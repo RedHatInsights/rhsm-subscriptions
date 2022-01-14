@@ -128,6 +128,8 @@ components:
         - metricId
         - value
       properties:
+        chargeId:  # NOTE: metricId is used in the request, but becomes chargeId in the response
+          type: string
         metricId:
           type: string
         value:
@@ -151,6 +153,8 @@ components:
           type: string
         batchId:
           type: string
+        payload:
+          $ref: "#/components/schemas/UsageEvent"
 
   securitySchemes:
     accessToken:

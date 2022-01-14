@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.springframework.data.domain.Page;
@@ -36,20 +37,6 @@ import org.springframework.data.repository.query.Param;
 public interface SubscriptionRepository
     extends JpaRepository<Subscription, Subscription.SubscriptionCompoundId> {
 
-  /**
-   * Object a set of subscriptions
-   *
-   * @param ownerId the ownerId of the subscriptions
-   * @param subscriptionIds the list of subscriptionIds to filter on
-   * @return a list of subscriptions with the specified ownerId and a subscriptionId from the
-   *     provided list
-   */
-  @Query(
-      "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
-          + "AND s.ownerId = :ownerId AND s.subscriptionId IN :subscriptionIds")
-  List<Subscription> findActiveByOwnerIdAndSubscriptionIdIn(
-      @Param("ownerId") String ownerId, @Param("subscriptionIds") List<String> subscriptionIds);
-
   @Query(
       "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
           + "AND s.subscriptionId = :subscriptionId")
@@ -59,7 +46,7 @@ public interface SubscriptionRepository
 
   @Query(
       "SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND "
-          + "s.sku = ALL (SELECT DISTINCT o.sku FROM Offering o WHERE "
+          + "s.sku in (SELECT DISTINCT o.sku FROM Offering o WHERE "
           + ":#{#key.sla} = o.serviceLevel AND "
           + "o.productName IN :#{#productNames}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND "
           + "s.marketplaceSubscriptionId IS NOT NULL AND s.marketplaceSubscriptionId <> '' "
@@ -70,4 +57,8 @@ public interface SubscriptionRepository
       @Param("productNames") Set<String> productNames,
       @Param("rangeStart") OffsetDateTime rangeStart,
       @Param("rangeEnd") OffsetDateTime rangeEnd);
+
+  Stream<Subscription> findByOwnerId(String ownerId);
+
+  void deleteBySubscriptionId(String subscriptionId);
 }

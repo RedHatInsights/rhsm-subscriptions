@@ -36,7 +36,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
@@ -55,13 +55,13 @@ public abstract class BaseSnapshotRoller {
 
   protected TallySnapshotRepository tallyRepo;
   protected ApplicationClock clock;
-  protected final ProductProfileRegistry productProfileRegistry;
+  protected final TagProfile tagProfile;
 
   protected BaseSnapshotRoller(
-      TallySnapshotRepository tallyRepo, ApplicationClock clock, ProductProfileRegistry registry) {
+      TallySnapshotRepository tallyRepo, ApplicationClock clock, TagProfile tagProfile) {
     this.tallyRepo = tallyRepo;
     this.clock = clock;
-    this.productProfileRegistry = registry;
+    this.tagProfile = tagProfile;
   }
 
   /**
@@ -161,9 +161,7 @@ public abstract class BaseSnapshotRoller {
 
       for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
         boolean isGranularitySupported =
-            productProfileRegistry
-                .findProfileForSwatchProductId(usageKey.getProductId())
-                .supportsGranularity(targetGranularity);
+            tagProfile.tagSupportsGranularity(usageKey.getProductId(), targetGranularity);
 
         if (isGranularitySupported) {
           TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
@@ -203,11 +201,7 @@ public abstract class BaseSnapshotRoller {
       Stream<String> prodStream = calc.getProducts().stream();
       Set<String> matchingProds =
           prodStream
-              .filter(
-                  p ->
-                      productProfileRegistry
-                          .findProfileForSwatchProductId(p)
-                          .supportsGranularity(granularity))
+              .filter(p -> tagProfile.tagSupportsGranularity(p, granularity))
               .collect(Collectors.toSet());
       prods.addAll(matchingProds);
     }
@@ -232,9 +226,7 @@ public abstract class BaseSnapshotRoller {
   }
 
   private Granularity getFinestGranularity(TallySnapshot snap) {
-    return productProfileRegistry
-        .findProfileForSwatchProductId(snap.getProductId())
-        .getFinestGranularity();
+    return tagProfile.granularityByTag(snap.getProductId());
   }
 
   private boolean updateTotals(
