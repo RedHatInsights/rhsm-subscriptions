@@ -11,8 +11,9 @@ Subscription watch can be thought of as several services that provide related fu
 * [API/UI](#apiui)
 * [billing usage notification](#billing-producers)
 
-![Context diagram for Subscription watch](context.svg)
+Also, see [networking diagrams](#networking-diagrams) to understand how requests are routed.
 
+![Context diagram for Subscription watch](context.svg)
 
 ## System conduit
 
@@ -49,3 +50,13 @@ Customer facing views of the usage and capacity data.
 Services that notify billing services of hourly usage.
 
 ![Container diagram for Billing Producers](container-billing.svg)
+
+## Networking diagrams
+
+### Customer-facing API
+
+![Networking diagram for customer API](networking-public-api.svg)
+
+### Internal API
+
+![Networking diagram for internal APIs](networking-jolokia-api.svg)

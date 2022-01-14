@@ -1,0 +1,36 @@
+@startuml
+
+title Customer API Dataflow
+
+autoactivate on
+participant Browser
+
+box cloud.redhat.com
+participant 3scale
+participant service as "rhsm-subscriptions API k8s Service\n\
+(e.g. rhsm-subscriptions.rhsm-prod.svc.cluster.local)"
+participant api as "rhsm-subscriptions API Deployment Pod"
+participant rbac as "console.redhat.com RBAC Service\n\
+(e.g. rbac.rbac-prod.svc.cluster.local)"
+end box
+
+note across: Example endpoint:\n\
+https://console.redhat.com/api/rhsm-subscriptions/v1/tally/products/RHEL
+
+Browser -> 3scale: https\n\
+(port 443)
+
+3scale -> service: http w/ x-rh-identity header\n\
+(port 8000)
+
+service -> api: http w/ x-rh-identity header \n\
+(port 8000)
+
+api -> rbac: authorization check\n\
+(port 8080)
+
+return permissions JSON
+
+api --> Browser: Response JSON
+
+@enduml
