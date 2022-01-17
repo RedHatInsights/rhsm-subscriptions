@@ -15,9 +15,9 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: RBAC_HOST
+  - name: RHSM_RBAC_HOST
     required: true
-  - name: RBAC_PORT
+  - name: RHSM_RBAC_PORT
     value: '8080'
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
@@ -154,10 +154,10 @@ objects:
                   value: ${LOGGING_LEVEL}
                 - name: KAFKA_BOOTSTRAP_HOST
                   value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: RBAC_HOST
-                  value: ${RBAC_HOST}
-                - name: RBAC_PORT
-                  value: ${RBAC_PORT}
+                - name: RHSM_RBAC_HOST
+                  value: ${RHSM_RBAC_HOST}
+                - name: RHSM_RBAC_PORT
+                  value: ${RHSM_RBAC_PORT}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
