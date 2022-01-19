@@ -27,5 +27,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** Defines all operations for interacting with the AccountServiceInventory aggregate */
 public interface AccountServiceInventoryRepository
     extends JpaRepository<AccountServiceInventory, AccountServiceInventoryId> {
-  /* intentionally empty */
+
+  void deleteByIdAccountNumber(String accountNumber);
 }

@@ -127,4 +127,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
           @Param("serviceType") String serviceType,
           @Param("begin") OffsetDateTime begin,
           @Param("end") OffsetDateTime end);
+
+  void deleteByAccountNumber(String accountNumber);
 }
