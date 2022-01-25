@@ -53,11 +53,4 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
     registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
     registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
   }
-
-  @Override
-  public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry
-        .addResourceHandler("/api-docs/openapi.*")
-        .addResourceLocations("classpath:openapi.yaml", "classpath:openapi.json");
-  }
 }
