@@ -256,6 +256,8 @@ objects:
                       key: keystore_password
                 - name: RHSM_KEYSTORE
                   value: /pinhead/keystore.jks
+                - name: DEVTEST_EVENT_EDITING_ENABLED
+                  value: ${DEVTEST_EVENT_EDITING_ENABLED}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
