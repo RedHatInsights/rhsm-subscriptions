@@ -301,8 +301,9 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
               ports:
-                - containerPort: 8080
+                - containerPort: 8000
                   protocol: TCP
+                  name: web
                 - containerPort: 9000
                   protocol: TCP
                   name: metrics-port

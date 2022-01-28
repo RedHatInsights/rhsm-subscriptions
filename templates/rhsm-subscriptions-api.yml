@@ -15,9 +15,9 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: RBAC_HOST
+  - name: RHSM_RBAC_HOST
     required: true
-  - name: RBAC_PORT
+  - name: RHSM_RBAC_PORT
     value: '8080'
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
@@ -154,10 +154,10 @@ objects:
                   value: ${LOGGING_LEVEL}
                 - name: KAFKA_BOOTSTRAP_HOST
                   value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: RBAC_HOST
-                  value: ${RBAC_HOST}
-                - name: RBAC_PORT
-                  value: ${RBAC_PORT}
+                - name: RHSM_RBAC_HOST
+                  value: ${RHSM_RBAC_HOST}
+                - name: RHSM_RBAC_PORT
+                  value: ${RHSM_RBAC_PORT}
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
@@ -235,8 +235,9 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
               ports:
-                - containerPort: 8080
+                - containerPort: 8000
                   protocol: TCP
+                  name: web
                 - containerPort: 9000
                   protocol: TCP
                   name: metrics-port
@@ -298,10 +299,14 @@ objects:
         prometheus: rhsm
     spec:
       ports:
+        - port: 8000
+          name: "8000"
+          protocol: TCP
+          targetPort: web
         - port: 8080
           name: "8080"
           protocol: TCP
-          targetPort: 8080
+          targetPort: web
         - port: 9000
           name: "9000"
           protocol: TCP

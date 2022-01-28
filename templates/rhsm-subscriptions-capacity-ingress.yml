@@ -267,8 +267,10 @@ objects:
               ports:
                 - containerPort: 8443
                   protocol: TCP
-                - containerPort: 8080
+                  name: web-secure
+                - containerPort: 8000
                   protocol: TCP
+                  name: web
                 - containerPort: 9000
                   protocol: TCP
                   name: metrics-port
@@ -342,7 +344,7 @@ objects:
       ports:
         - port: 8443
           protocol: TCP
-          targetPort: 8443
+          targetPort: web-secure
       selector:
         deploymentconfig: rhsm-subscriptions-capacity-ingress
 
