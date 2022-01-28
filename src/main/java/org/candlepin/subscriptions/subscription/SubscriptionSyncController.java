@@ -20,10 +20,13 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,6 +64,7 @@ public class SubscriptionSyncController {
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
   private String syncSubscriptionsTopic;
+  private final ObjectMapper objectMapper;
   private final ProductWhitelist productWhitelist;
 
   @Autowired
@@ -75,6 +79,7 @@ public class SubscriptionSyncController {
       MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
       ProductWhitelist productWhitelist,
+      ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
@@ -86,6 +91,7 @@ public class SubscriptionSyncController {
     this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
     this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
     this.productWhitelist = productWhitelist;
+    this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
   }
@@ -284,5 +290,27 @@ public class SubscriptionSyncController {
                     ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
                     "Sku not present on subscription with id " + subscription.getId(),
                     null));
+  }
+
+  public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
+    try {
+      Subscription[] subscriptions =
+          objectMapper.readValue(subscriptionsJson, Subscription[].class);
+      Arrays.stream(subscriptions)
+          .map(this::convertDto)
+          .forEach(
+              subscription -> {
+                subscriptionRepository.save(subscription);
+                if (reconcileCapacity) {
+                  capacityReconciliationController.reconcileCapacityForSubscription(subscription);
+                }
+              });
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
+    }
+  }
+
+  public void deleteSubscription(String subscriptionId) {
+    subscriptionRepository.deleteBySubscriptionId(subscriptionId);
   }
 }

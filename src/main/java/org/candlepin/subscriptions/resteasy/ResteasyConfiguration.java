@@ -26,7 +26,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -52,12 +51,5 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
   public void addViewControllers(ViewControllerRegistry registry) {
     registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
     registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
-  }
-
-  @Override
-  public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry
-        .addResourceHandler("/api-docs/openapi.*")
-        .addResourceLocations("classpath:openapi.yaml", "classpath:openapi.json");
   }
 }

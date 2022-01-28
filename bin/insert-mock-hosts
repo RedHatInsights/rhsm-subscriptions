@@ -14,6 +14,10 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
                   skip_buckets=False, is_hbi=False):
+
+    account = account_number or "account123"
+    _create_account_service(account, 'HBI_HOST')
+
     host_id = uuid.uuid4()
     inventory_id=inventory_id or uuid.uuid4()
     insights_id=insights_id or uuid.uuid4()
@@ -22,13 +26,13 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
     if is_hbi:
         host_fields = {
             'id': inventory_id,
-            'account': account_number or 'account123',
+            'account': account,
             'display_name': display_name or insights_id,
             'created_on': last_seen or '1993-03-26',
             'modified_on': last_seen or '1993-03-26',
             'facts': json.dumps({
                 'rhsm': {
-                    'orgId': f'org_{account_number or "account123"}',
+                    'orgId': f'org_{account}',
                     'VM_HOST_UUID': str(hypervisor_uuid) if hypervisor_uuid else None,
                     'IS_VIRTUAL': is_guest,
                 },
@@ -53,7 +57,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'instance_id': inventory_id,
             'inventory_id': inventory_id,
             'insights_id': insights_id,
-            'account_number': account_number or 'account123',
+            'account_number': account,
             'org_id': org_id or 'org123',
             'display_name': display_name or insights_id,
             'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
@@ -110,6 +114,13 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
   for next_sla in sla_vals:
     for next_usage in usage_vals:
       _generate_insert("host_tally_buckets", sla=next_sla, usage=next_usage, **bucket_fields)
+
+
+def _create_account_service(account, service_type):
+  fields = ','.join(['account_number', 'service_type'])
+  values = ','.join(db_repr(value) for value in [account, service_type])
+  output.write(f'insert into account_services ({fields}) values ({values}) ON CONFLICT ON CONSTRAINT account_services_pkey DO NOTHING;\n')
+
 
 parser = argparse.ArgumentParser(description='Insert mock hosts into the a local DB')
 parser.add_argument('--db-host',

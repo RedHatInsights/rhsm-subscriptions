@@ -68,7 +68,7 @@ class TallyRetentionControllerTest {
   void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
     controller.cleanStaleSnapshotsForAccount("123456");
-    verifyZeroInteractions(repository);
+    verifyNoInteractions(repository);
   }
 
   @Test

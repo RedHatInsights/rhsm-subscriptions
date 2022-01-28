@@ -1,0 +1,73 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: rhsm-subscriptions
+  template: rhsm-subscriptions
+metadata:
+  annotations:
+    description: Subscription Watch ClowdEnv
+  name: rhsm-subscriptions
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+# Custom Resource defined as part of the Clowder API
+  kind: ClowdEnvironment
+  metadata:
+    name: env-rhsm
+  spec:
+    targetNamespace: rhsm
+
+    # Providers all your app to consume configuration
+    # data automatically based on your request
+    providers:
+
+      # provides a k8s service on port 8000
+      web:
+        port: 8000
+        privatePort: 8080
+        mode: operator
+
+      # provides a prometheus metrics port on 9000
+      metrics:
+        port: 9000
+        mode: operator
+        path: "/metrics"
+
+      # Creates a kafka pod in the targetNamespace
+      kafka:
+        namespace: default
+        clusterName: minikube-cluster
+        mode: local
+
+      # Clowder supports postgres 10 and 12. Specify the name
+      # and other details in the clowdapp
+      db:
+        image: registry.redhat.io/rhel8/postgresql-12:1-36
+        mode: local
+
+      logging:
+        mode: none
+
+    # Deploys a local minio pod for object storage
+      objectStore:
+        mode: minio
+        port: 9000
+
+    # Deploys a local redis pod
+      inMemoryDb:
+        mode: redis
+
+    # Set up a local Unleash server
+      featureFlags:
+        mode: local
+
+      pullSecrets:
+        - name: quay-cloudservices-pull
+          namespace: rhsm
+    resourceDefaults:
+      limits:
+        cpu: "500m"
+        memory: "8192Mi"
+      requests:
+        cpu: "300m"
+        memory: "1024Mi"

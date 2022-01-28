@@ -26,11 +26,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.Set;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.security.SecurityProperties;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -43,6 +46,15 @@ class OfferingJmxBeanTest {
   @Mock OfferingSyncController offeringSync;
 
   @Mock CapacityReconciliationController capacityReconciliationController;
+
+  OfferingJmxBean subject;
+  SecurityProperties properties;
+
+  @BeforeEach
+  void setup() {
+    properties = new SecurityProperties();
+    subject = new OfferingJmxBean(offeringSync, capacityReconciliationController, properties);
+  }
 
   @Test
   void testSyncOffering() {
@@ -60,7 +72,6 @@ class OfferingJmxBeanTest {
     expected.setServiceLevel(ServiceLevel.PREMIUM);
 
     when(offeringSync.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
-    OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
     // When syncing the offering,
     String actualMessage = subject.syncOffering(sku);
@@ -75,6 +86,29 @@ class OfferingJmxBeanTest {
   }
 
   @Test
+  void testSaveThrowsErrorIfNotEnabled() {
+    assertThrows(JmxException.class, () -> subject.saveOfferings("[]", "[]", "[]", true));
+  }
+
+  @Test
+  void testSaveUsingDevMode() {
+    properties.setDevMode(true);
+    when(offeringSync.saveOfferings(any(), any(), any())).thenReturn(Stream.of("sku"));
+    subject.saveOfferings("[]", "[]", "[]", true);
+    verify(offeringSync).saveOfferings("[]", "[]", "[]");
+    verify(capacityReconciliationController).enqueueReconcileCapacityForOffering("sku");
+  }
+
+  @Test
+  void testSaveUsingManualSubscriptionEditingMode() {
+    properties.setManualSubscriptionEditingEnabled(true);
+    when(offeringSync.saveOfferings(any(), any(), any())).thenReturn(Stream.of("sku"));
+    subject.saveOfferings("[]", "[]", "[]", true);
+    verify(offeringSync).saveOfferings("[]", "[]", "[]");
+    verify(capacityReconciliationController).enqueueReconcileCapacityForOffering("sku");
+  }
+
+  @Test
   void testSyncOfferingWithServiceException() {
     // Given there are connection issues with the upstream product service,
     when(offeringSync.syncOffering(anyString()))
@@ -83,7 +117,6 @@ class OfferingJmxBeanTest {
                 ErrorCode.REQUEST_PROCESSING_ERROR,
                 "Unable to retrieve upstream offeringSku=\"BOGUS\"",
                 new ApiException("Badness")));
-    OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
     // When syncing the offering, then a JmxException is thrown.
     assertThrows(JmxException.class, () -> subject.syncOffering("BOGUS"));
@@ -92,7 +125,6 @@ class OfferingJmxBeanTest {
   @Test
   void testSyncAllOfferings() {
     when(offeringSync.syncAllOfferings()).thenReturn(2);
-    OfferingJmxBean subject = new OfferingJmxBean(offeringSync, capacityReconciliationController);
 
     // When requesting all offerings to be synced via the JMX bean interface,
     String message = subject.syncAllOfferings();

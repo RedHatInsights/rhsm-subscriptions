@@ -10,7 +10,7 @@ metadata:
 
 parameters:
   - name: HAWTIO_BASE_PATH
-    value: /app/rhsm-conduit/actuator/hawtio
+    value: /app/rhsm-conduit/hawtio
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: RHSM_URL
@@ -79,8 +79,8 @@ objects:
           deploymentconfig: rhsm-conduit
           prometheus: rhsm
         annotations:
-          prometheus.io/path: /actuator/prometheus
-          prometheus.io/port: '8080'
+          prometheus.io/path: /metrics
+          prometheus.io/port: '9000'
           prometheus.io/scrape: 'true'
       spec:
         initContainers:
@@ -208,8 +208,8 @@ objects:
             livenessProbe:
               failureThreshold: 3
               httpGet:
-                path: /actuator/health
-                port: 8080
+                path: /health
+                port: 9000
                 scheme: HTTP
               initialDelaySeconds: 45
               periodSeconds: 20
@@ -218,8 +218,8 @@ objects:
             readinessProbe:
               failureThreshold: 3
               httpGet:
-                path: /actuator/health
-                port: 8080
+                path: /health
+                port: 9000
                 scheme: HTTP
               initialDelaySeconds: 45
               periodSeconds: 20
@@ -233,8 +233,12 @@ objects:
                 cpu: ${CPU_LIMIT}
                 memory: ${MEMORY_LIMIT}
             ports:
-              - containerPort: 8080
+              - containerPort: 8000
                 protocol: TCP
+                name: web
+              - containerPort: 9000
+                protocol: TCP
+                name: metrics-port
             volumeMounts:
               - name: pinhead
                 mountPath: /pinhead
@@ -290,10 +294,18 @@ objects:
       prometheus: rhsm
   spec:
     ports:
+      - port: 8000
+        name: "8000"
+        protocol: TCP
+        targetPort: web
       - port: 8080
         name: "8080"
         protocol: TCP
-        targetPort: 8080
+        targetPort: web
+      - port: 9000
+        name: "9000"
+        protocol: TCP
+        targetPort: metrics-port
     selector:
       deploymentconfig: rhsm-conduit
 

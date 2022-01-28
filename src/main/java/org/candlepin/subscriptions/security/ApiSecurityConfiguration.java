@@ -21,15 +21,14 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -69,6 +68,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
  * </ol>
  */
 @Configuration
+@Import(RbacConfiguration.class)
 public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Autowired protected ObjectMapper mapper;
@@ -97,22 +97,6 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
       @Qualifier("identityHeaderAuthenticationDetailsService")
           IdentityHeaderAuthenticationDetailsService detailsService) {
     return new IdentityHeaderAuthenticationProvider(detailsService);
-  }
-
-  @Bean
-  public RbacService rbacService() {
-    return new RbacService();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
-  public RbacProperties rbacServiceProperties() {
-    return new RbacProperties();
-  }
-
-  @Bean
-  public RbacApiFactory rbacApiFactory(RbacProperties props) {
-    return new RbacApiFactory(props);
   }
 
   // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
@@ -181,6 +165,19 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
         .antMatchers(String.format("/%s/ingress/**", apiPath))
         .permitAll()
         .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
+        .permitAll()
+
+        /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+         * only provides a path starting with a leading slash.  I have elected to set the default
+         * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+         * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
+         * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+         * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+         * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+         * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
+         */
+
+        .antMatchers("/metrics")
         .permitAll()
         .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
         .access("@optInChecker.checkAccess(authentication)")

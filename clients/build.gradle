@@ -102,7 +102,7 @@ project(":clients:rhsm-client") {
     }
 
     dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.31.0"
+        testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
     }
 }
 
@@ -167,7 +167,7 @@ configure(subprojects) {
         compile "org.slf4j:slf4j-api"
         compile "io.swagger:swagger-annotations"
         compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.1"
+        compile "org.openapitools:jackson-databind-nullable:0.2.2"
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

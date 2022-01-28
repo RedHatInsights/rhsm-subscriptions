@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.product;
 
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.security.SecurityProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
@@ -37,14 +40,17 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class OfferingJmxBean {
   private final OfferingSyncController offeringSync;
-
   private final CapacityReconciliationController capacityReconciliationController;
+  private final SecurityProperties properties;
 
+  @Autowired
   public OfferingJmxBean(
       OfferingSyncController offeringSync,
-      CapacityReconciliationController capacityReconciliationController) {
+      CapacityReconciliationController capacityReconciliationController,
+      SecurityProperties properties) {
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
+    this.properties = properties;
   }
 
   @ManagedOperation(description = "Sync an offering from the upstream source.")
@@ -87,5 +93,55 @@ public class OfferingJmxBean {
       log.error("Error reconciling offering", e);
       throw new JmxException("Error reconciling offering. See log for details.");
     }
+  }
+
+  @ManagedOperation(
+      description =
+          "Save offerings manually, ignoring allowlist. Supported only in dev-mode. Locally, you can insert all")
+  @ManagedOperationParameter(
+      name = "offeringsJsonArray",
+      description =
+          "JSON array containing offerings to save. (Objects are the same as seen in product-stub-data 'tree-' files).")
+  @ManagedOperationParameter(
+      name = "derivedSkuJsonArray",
+      description =
+          "JSON array containing derived SKU tree. (Objects are the same as seen in product-stub-data 'tree-' files).")
+  @ManagedOperationParameter(
+      name = "engProdJsonArray",
+      description =
+          "JSON array of endProd mappings. (Objects are the same as seen in product-stub-data 'engprods-' files)")
+  @ManagedOperationParameter(
+      name = "reconcileCapacity",
+      description = "Invoke reconciliation logic to create capacity?")
+  public void saveOfferings(
+      String offeringsJsonArray,
+      String derivedSkuJsonArray,
+      String engProdJsonArray,
+      boolean reconcileCapacity) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException("This feature is not currently enabled.");
+    }
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Save of new offerings triggered over JMX by {}", principal);
+      Stream<String> skus =
+          offeringSync.saveOfferings(offeringsJsonArray, derivedSkuJsonArray, engProdJsonArray);
+      if (reconcileCapacity) {
+        skus.forEach(capacityReconciliationController::enqueueReconcileCapacityForOffering);
+      }
+    } catch (Exception e) {
+      log.error("Error saving offerings", e);
+      throw new JmxException("Error saving offerings. See log for details.");
+    }
+  }
+
+  @ManagedOperation(description = "Delete an offering manually. Supported only in dev-mode.")
+  public void deleteOffering(String sku) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException("This feature is not currently enabled.");
+    }
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Delete of subscription triggered over JMX by {}", principal);
+    offeringSync.deleteOffering(sku);
   }
 }

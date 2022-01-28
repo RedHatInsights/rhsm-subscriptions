@@ -23,38 +23,32 @@ package org.candlepin.subscriptions.capacity;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.candlepin.subscriptions.registry.ProductProfileProperties;
-import org.candlepin.subscriptions.registry.ProductProfileRegistrySource;
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.core.io.FileSystemResourceLoader;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.ResourceLoader;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CapacityProductExtractorTest {
 
   private CapacityProductExtractor extractor;
-  private ApplicationClock clock = new ApplicationClock(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
   @BeforeAll
   void setup() throws IOException {
-    ProductProfileProperties props = new ProductProfileProperties();
-    props.setProductProfileRegistryResourceLocation("classpath:test_product_profile_registry.yaml");
-
-    ProductProfileRegistrySource source = new ProductProfileRegistrySource(props, clock);
-    source.setResourceLoader(new FileSystemResourceLoader());
-    source.init();
-
-    extractor = new CapacityProductExtractor(source.getValue());
+    ResourceLoader resourceLoader = new DefaultResourceLoader();
+    Yaml parser = new Yaml(new Constructor(TagProfile.class));
+    TagProfile tagProfile =
+        parser.load(resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
+    extractor = new CapacityProductExtractor(tagProfile);
   }
 
   @Test

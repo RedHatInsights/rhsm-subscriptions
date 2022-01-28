@@ -10,7 +10,7 @@ metadata:
 
 parameters:
   - name: HAWTIO_BASE_PATH
-    value: /app/rhsm-subscriptions/actuator/hawtio
+    value: /app/rhsm-subscriptions/hawtio
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '48000'
   - name: LOGGING_LEVEL_ROOT
@@ -79,6 +79,8 @@ parameters:
     value: 1s
   - name: USER_BACK_OFF_MULTIPLIER
     value: '2'
+  - name: DEVTEST_EVENT_EDITING_ENABLED
+    value: 'false'
 
 objects:
   - apiVersion: v1
@@ -97,8 +99,8 @@ objects:
             deploymentconfig: rhsm-subscriptions-worker
             prometheus: rhsm
           annotations:
-            prometheus.io/path: /actuator/prometheus
-            prometheus.io/port: '8080'
+            prometheus.io/path: /metrics
+            prometheus.io/port: '9000'
             prometheus.io/scrape: 'true'
         spec:
           initContainers:
@@ -254,11 +256,13 @@ objects:
                       key: keystore_password
                 - name: RHSM_KEYSTORE
                   value: /pinhead/keystore.jks
+                - name: DEVTEST_EVENT_EDITING_ENABLED
+                  value: ${DEVTEST_EVENT_EDITING_ENABLED}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /actuator/health
-                  port: 8080
+                  path: /health
+                  port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90
                 periodSeconds: 20
@@ -272,8 +276,12 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
               ports:
-                - containerPort: 8080
+                - containerPort: 8000
                   protocol: TCP
+                  name: web
+                - containerPort: 9000
+                  protocol: TCP
+                  name: metrics-port
               volumeMounts:
                 - name: config
                   mountPath: /config
@@ -334,9 +342,9 @@ objects:
         prometheus: rhsm
     spec:
       ports:
-        - port: 8080
-          name: "8080"
+        - port: 9000
+          name: "9000"
           protocol: TCP
-          targetPort: 8080
+          targetPort: 9000
       selector:
         deploymentconfig: rhsm-subscriptions-worker

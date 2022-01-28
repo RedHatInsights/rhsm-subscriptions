@@ -49,6 +49,15 @@ public class SubscriptionWorkerConfiguration {
   }
 
   @Bean
+  ConsumerFactory<String, PruneSubscriptionsTask> pruneSubscriptionsConsumerFactory(
+      KafkaProperties kafkaProperties) {
+    return new DefaultKafkaConsumerFactory<>(
+        kafkaProperties.buildConsumerProperties(),
+        new StringDeserializer(),
+        new JsonDeserializer<>(PruneSubscriptionsTask.class));
+  }
+
+  @Bean
   ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>
       subscriptionSyncListenerContainerFactory(
           ConsumerFactory<String, SyncSubscriptionsTask> consumerFactory,
@@ -56,6 +65,27 @@ public class SubscriptionWorkerConfiguration {
           KafkaConsumerRegistry registry) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>();
+    factory.setConsumerFactory(consumerFactory);
+    // Concurrency should be set to the number of partitions for the target topic.
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    return factory;
+  }
+
+  @Bean
+  ConcurrentKafkaListenerContainerFactory<String, PruneSubscriptionsTask>
+      subscriptionPruneListenerContainerFactory(
+          ConsumerFactory<String, PruneSubscriptionsTask> consumerFactory,
+          KafkaProperties kafkaProperties,
+          KafkaConsumerRegistry registry) {
+
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, PruneSubscriptionsTask>();
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());

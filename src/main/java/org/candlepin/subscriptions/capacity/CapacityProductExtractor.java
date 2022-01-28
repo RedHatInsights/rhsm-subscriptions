@@ -28,7 +28,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.registry.ProductProfileRegistry;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -43,9 +43,8 @@ public class CapacityProductExtractor {
   private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
   private final Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap;
 
-  public CapacityProductExtractor(ProductProfileRegistry productProfileRegistry) {
-    this.engProductIdToSwatchProductIdsMap =
-        productProfileRegistry.getEngProductIdToSwatchProductIdsMap();
+  public CapacityProductExtractor(TagProfile tagProfile) {
+    this.engProductIdToSwatchProductIdsMap = tagProfile.getEngProductIdToSwatchProductIdsMap();
   }
 
   public Set<String> getProducts(Collection<String> productIds) {
