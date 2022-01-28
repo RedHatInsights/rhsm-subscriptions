@@ -1,5 +1,8 @@
 @startuml
 
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
 title Customer API Dataflow
 
 autoactivate on

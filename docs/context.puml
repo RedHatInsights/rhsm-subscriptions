@@ -1,6 +1,9 @@
 @startuml
 !include <C4/C4_Context>
 
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
 LAYOUT_WITH_LEGEND()
 
 title System Context diagram for Subscription watch
