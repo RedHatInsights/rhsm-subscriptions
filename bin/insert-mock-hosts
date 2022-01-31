@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import uuid
-import os
 import json
+import os
 import subprocess
 import sys
+import uuid
 
 output = sys.stdout
 
@@ -16,13 +16,13 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   skip_buckets=False, is_hbi=False):
 
     account = account_number or "account123"
-    _create_account_service(account, 'HBI_HOST')
-
     host_id = uuid.uuid4()
     inventory_id=inventory_id or uuid.uuid4()
     insights_id=insights_id or uuid.uuid4()
+
     if not is_guest:
         hypervisor_uuid = None
+
     if is_hbi:
         host_fields = {
             'id': inventory_id,
@@ -52,6 +52,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'reporter': 'rhsm-conduit',
         }
     else:
+        _create_account_service(account, 'HBI_HOST')
         host_fields = {
             'id': host_id,
             'instance_id': inventory_id,
