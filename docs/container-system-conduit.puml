@@ -1,0 +1,42 @@
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch System conduit (aka. rhsm-conduit)
+
+Person_Ext(customer, "Red Hat Customer")
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
+
+Boundary(crc, console.redhat.com) {
+  System_Boundary(system_conduit, "System conduit (aka. rhsm-conduit)") {
+    Container(conduit_job, "Conduit Sync CronJob", "Java, Container", "CronJob for syncing system data.")
+    ContainerQueue(conduit_tasks, "platform.rhsm-conduit.tasks", "Kafka Topic")
+    Container(conduit_worker, "System Conduit Worker", "Java, Container", "Worker for syncing system data.")
+  }
+  ContainerQueue_Ext(hbi_in, "platform.inventory.host-ingress", "Kafka Queue")
+  System_Ext(hbi, "Host Based Inventory", "Central datastore for system information for console.redhat.com.")
+}
+
+Boundary(rhit, "Red Hat IT") {
+  System_Ext(rhsm_api, "RHSM Feed API", "API that provides access to candlepin consumer records.")
+  System_Ext(candlepin, "Hosted Candlepin", "Candlepin instance backing subscription.rhsm.redhat.com.")
+  ContainerDb_Ext(candlepin_db, "Hosted Candlepin DB", "Relational DB")
+}
+
+' system conduit process
+Rel(conduit_job, conduit_tasks, "Produces to")
+Rel_Back(conduit_tasks, conduit_worker, "Consumes from")
+Rel(conduit_worker, rhsm_api, "Reads from")
+Rel(conduit_worker, hbi_in, "Produces to")
+Rel_Back(hbi_in, hbi, "Reads from")
+
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, candlepin, "Reports to", "subscription-manager")
+Rel(candlepin, candlepin_db, "Reads from and writes to")
+Rel(rhsm_api, candlepin_db, "Reads from")
+
+@enduml

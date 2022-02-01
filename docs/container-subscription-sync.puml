@@ -1,0 +1,41 @@
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch Subscription Sync
+
+Boundary(crc, console.redhat.com) {
+  Boundary(swatch, "Subscription watch") {
+    System_Boundary(subscription_sync, "Subscription Sync") {
+      Container(subscription_sync_job, "Subscription Sync CronJob", "Java, Container", "CronJob for syncing subscription data.")
+      Container(offering_sync_job, "Offering Sync CronJob", "Java, Container", "CronJob for syncing offering data.")
+      Container(capacity_ingress, "Capacity Ingress", "Java, Container", "Syncs subscription data from backoffice services.")
+      ContainerQueue(offering_sync_tasks, "platform.rhsm-subscriptions.offering-sync", "Kafka Topic")
+      ContainerQueue(capacity_reconcile_tasks, "platform.rhsm-subscriptions.capacity-reconcile", "Kafka Topic")
+      ContainerQueue(subscription_sync_tasks, "platform.rhsm-subscriptions.subscription-sync", "Kafka Topic")
+    }
+    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+  }
+}
+
+Boundary(rhit, "Red Hat IT") {
+  System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
+  System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
+}
+
+' capacity ingress process
+Rel(subscription_sync_job, subscription_sync_tasks, "Produces to")
+Rel(subscription_sync_job, capacity_reconcile_tasks, "Produces to")
+Rel(offering_sync_job, offering_sync_tasks, "Produces to")
+Rel(offering_sync_job, capacity_reconcile_tasks, "Produces to")
+Rel_Back(subscription_sync_tasks, capacity_ingress, "Consumes from")
+Rel_Back(capacity_reconcile_tasks, capacity_ingress, "Consumes from")
+Rel_Back(offering_sync_tasks, capacity_ingress, "Consumes from")
+Rel(capacity_ingress, db, "Reads from and writes to", "JDBC")
+Rel(capacity_ingress, rhit_subscriptions, "Reads from", "JSON/HTTPS")
+Rel(capacity_ingress, rhit_product, "Reads from", "JSON/HTTPS")
+@enduml

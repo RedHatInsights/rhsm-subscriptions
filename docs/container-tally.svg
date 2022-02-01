@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="1335px" preserveAspectRatio="none" style="width:1806px;height:1335px;background:#FEFEFE;" version="1.1" viewBox="0 0 1806 1335" width="1806px" zoomAndPan="magnify"><defs/><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacing" textLength="418" x="687.75" y="16.708">Container diagram for Subscription watch Tally</text><!--MD5=[0124883ede9501bc1a470c8ae7e8c246]
+cluster crc--><rect fill="#FFFFFF" height="1002.5" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="1461" x="339.5" y="175.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="176" x="982" y="192.8047">console.redhat.com</text><!--MD5=[7caab35c4647cf5b8739bb77d77dd26f]
+cluster swatch--><rect fill="#FFFFFF" height="909" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="1086" x="690.5" y="220.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="170" x="1148.5" y="237.8047">Subscription watch</text><!--MD5=[0d6060f5dbf6e74ce4f73ea9864d407c]
+cluster tally--><rect fill="#FFFFFF" height="579" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="716" x="1036.5" y="265.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="39" x="1375" y="282.8047">Tally</text><text fill="#444444" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="55" x="1367" y="297.7168">[System]</text><!--MD5=[dc0f737ecaedbdeeaa509fc0c73ea79c]
+cluster hbi--><rect fill="#999999" height="196" style="stroke:#8A8A8A;stroke-width:1.5;" width="287" x="371.5" y="950.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="193" x="418.5" y="967.3047">Host Based Inventory</text><!--MD5=[b2dcba7dbba64c6095b699991379b237]
+entity cloudigrade--><rect fill="#438DD5" height="150.375" style="stroke:#3C7FC0;stroke-width:1.5;" width="214" x="713.5" y="703.4531"/><a href="https://github.com/cloudigrade/cloudigrade/" target="_top" title="https://github.com/cloudigrade/cloudigrade/" xlink:actuate="onRequest" xlink:href="https://github.com/cloudigrade/cloudigrade/" xlink:show="new" xlink:title="https://github.com/cloudigrade/cloudigrade/" xlink:type="simple"><text fill="#0000FF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" text-decoration="underline" textLength="104" x="768.5" y="728.3047">Cloudigrade</text></a><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="122" x="759.5" y="743.2168">[Python, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="822.5" y="759.042"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="186" x="727.5" y="775.3389">(aka. Cloudmeter) Provides</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="189" x="724" y="791.6357">precise accounting of RHEL</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="190" x="723.5" y="807.9326">system lifetimes running on</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="177" x="730" y="824.2295">cloud providers (Currently</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="40" x="800.5" y="840.5264">AWS).</text><!--MD5=[7468467f3b6b392f1d176d828c753b77]
+entity db--><path d="M1275.5,1013.9531 C1275.5,1003.9531 1371.5,1003.9531 1371.5,1003.9531 C1371.5,1003.9531 1467.5,1003.9531 1467.5,1013.9531 L1467.5,1104.4375 C1467.5,1114.4375 1371.5,1114.4375 1371.5,1114.4375 C1371.5,1114.4375 1275.5,1114.4375 1275.5,1104.4375 L1275.5,1013.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M1275.5,1013.9531 C1275.5,1023.9531 1371.5,1023.9531 1371.5,1023.9531 C1371.5,1023.9531 1467.5,1023.9531 1467.5,1013.9531 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="83" x="1330" y="1042.8047">Database</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="127" x="1308" y="1057.7168">[Postgres Database]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1373.5" y="1073.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="164" x="1289.5" y="1089.8389">Stores subscription and</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="1307.5" y="1106.1357">usage information.</text><!--MD5=[f60a401639baa7714393c452bed38dd2]
+entity tally_summaries--><path d="M711.5,525.9531 L1015.5,525.9531 C1020.5,525.9531 1020.5,547.25 1020.5,547.25 C1020.5,547.25 1020.5,568.5469 1015.5,568.5469 L711.5,568.5469 C706.5,568.5469 706.5,547.25 706.5,547.25 C706.5,547.25 706.5,525.9531 711.5,525.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M1015.5,525.9531 C1010.5,525.9531 1010.5,547.25 1010.5,547.25 C1010.5,568.5469 1015.5,568.5469 1015.5,568.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="294" x="711.5" y="545.8047">platform.rhsm-subscriptions.tally</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="817.5" y="560.7168">[Kafka Topic]</text><!--MD5=[960e27574f376a84c704aaf0d858c8ca]
+entity tally_job--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="218" x="1289.5" y="316.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="115" x="1341" y="341.8047">Tally CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="1346" y="356.7168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1400.5" y="372.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="194" x="1303.5" y="388.8389">CronJob for daily (non-PAYG)</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="90" x="1353.5" y="405.1357">usage tallies.</text><!--MD5=[e594a2abc1d654ca9bc794df413cd2d3]
+entity tally_purge_job--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="194" x="1542.5" y="316.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="174" x="1552.5" y="341.8047">Tally Purge CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="1587" y="356.7168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1641.5" y="372.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="151" x="1564" y="388.8389">Removes old (outside</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="144" x="1567.5" y="405.1357">retenion policy) data.</text><!--MD5=[302473d26b77a7fc31dccbf5a75ca557]
+entity tally_hourly_job--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="202" x="1052.5" y="316.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="177" x="1065" y="341.8047">Tally Hourly CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="1101" y="356.7168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1155.5" y="372.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="174" x="1066.5" y="388.8389">CronJob for hourly (PAYG)</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="90" x="1108.5" y="405.1357">usage tallies.</text><!--MD5=[4e83352f4313df4ecd34ac0b62e5adb0]
+entity tally_worker--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="207" x="1053" y="727.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="112" x="1100.5" y="752.8047">Tally Worker</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="111" x="1101" y="767.7168">[Kafka Consumer]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1158.5" y="783.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="179" x="1067" y="799.8389">Summarizes usage based</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="151" x="1081" y="816.1357">on telemetry sources.</text><!--MD5=[630340617ec62f03e71287c3113d26fa]
+entity tally_tasks--><path d="M1061,525.9531 L1378,525.9531 C1383,525.9531 1383,547.25 1383,547.25 C1383,547.25 1383,568.5469 1378,568.5469 L1061,568.5469 C1056,568.5469 1056,547.25 1056,547.25 C1056,547.25 1056,525.9531 1061,525.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M1378,525.9531 C1373,525.9531 1373,547.25 1373,547.25 C1373,568.5469 1378,568.5469 1378,568.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="307" x="1061" y="545.8047">platform.rhsm-subscriptions.tasks</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="1173.5" y="560.7168">[Kafka Topic]</text><!--MD5=[88565586e0e582dddc4e59022fff8bf8]
+entity hbi_db--><path d="M415,1005.4531 C415,995.4531 524.5,995.4531 524.5,995.4531 C524.5,995.4531 634,995.4531 634,1005.4531 L634,1112.2344 C634,1122.2344 524.5,1122.2344 524.5,1122.2344 C524.5,1122.2344 415,1122.2344 415,1112.2344 L415,1005.4531 " fill="#B3B3B3" style="stroke:#A6A6A6;stroke-width:1.5;"/><path d="M415,1005.4531 C415,1015.4531 524.5,1015.4531 524.5,1015.4531 C524.5,1015.4531 634,1015.4531 634,1005.4531 " fill="none" style="stroke:#A6A6A6;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="119" x="465" y="1034.3047">HBI Database</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="63" x="493" y="1049.2168">[Postgres]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="526.5" y="1065.042"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="195" x="429" y="1081.3389">Central datastore for system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="99" x="473" y="1097.6357">information for</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="142" x="453.5" y="1113.9326">console.redhat.com.</text><!--MD5=[92848cbaf65985a669855153c5362c37]
+entity customer--><rect fill="#686868" height="86.625" style="stroke:#8A8A8A;stroke-width:1.5;" width="183" x="24" y="27.9531"/><image height="48" width="48" x="91.5" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAB6ElEQVR4Xu2YLY+EMBCG9+dWr0aj0Wg0Go1Go0+j8Xdv2uTCvv1gpt0ebHKPuhDaeW4605Z9mJvx4AdXUyTUdd08z+u6flmWZRnHsWkafk9DptAwDPu+f0eAYtu2PEaGWuj5fCIZrBAC2eLBAnRCsEkkxmeaJp7iDJ2QMDdHsLg8SxKFEJaAo8lAXnmuOFIhTMpxxKATebo4UiFknuNo4OniSIXQyRxEA3YsnjGCVEjVXD7yLUAqxBGUyPv/Y4W2beMgGuS7kVQIBycH0fD+oi5pezQETxdHKmQKGk1eQEYldK+jw5GxPfZ9z7Mk0Qnhf1W1m3w//EUn5BDmSZsbR44QQLBEqrBHqOrmSKaQAxdnLArCrxZcM7A7ZKs4ioRq8LFC+NpC3WCBJsvpVw5edm9iEXFuyNfxXAgSwfrFQ1c0iNda8AdejvUgnktOtJQQxmcfFzGglc5WVCj7oDgFqU18boeFSs52CUh8LE8BIVQDT1ABrB0HtgSEYlX5doJnCwv9TXocKCaKbnwhdDKPq4lf3SwU3HLq4V/+WYhHVMa/3b4IlfyikAduCkcBc7mQ3/z/Qq/cTuikhkzB12Ae/mcJC9U+Vo8Ej1gWAtgbeGgFsAMHr50BIWOLCbezvhpBFUdY6EJuJ/QDW0XoMX60zZ0AAAAASUVORK5CYII=" y="37.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="163" x="34" y="100.8047">Red Hat Customer</text><!--MD5=[963dd200d5c740cb245718e53e460719]
+entity customer_system--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="7" y="315.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="159" x="36" y="340.3047">Customer System</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="117.5" y="357.0732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="193" x="21" y="373.3701">Customer system or service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="187" x="20" y="389.667">instance (e.g. RHEL or OSD</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="81.5" y="405.9639">instance).</text><!--MD5=[da2096ad6c531b186fcd59aa307489d4]
+entity cloud_provider--><rect fill="#999999" height="106.1406" style="stroke:#8A8A8A;stroke-width:1.5;" width="184" x="139.5" y="494.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="130" x="163.5" y="519.3047">Cloud Provider</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="90" x="186.5" y="537.9297">Telemetry</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="233.5" y="554.6982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="156" x="153.5" y="570.9951">Telemetry collected by</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="110" x="176.5" y="587.292">cloud providers.</text><!--MD5=[393b9e37c8a184dfb2e992c8d7e3f708]
+link customer to customer_system--><path d="M115.5,115.2031 C115.5,165.7531 115.5,250.1831 115.5,307.0631 " fill="none" id="customer-to-customer_system" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="115.5,315.2431,118.5,307.2431,112.5,307.2431,115.5,315.2431" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="112" x="116.5" y="157.0918">Provisions/Uses</text><!--MD5=[8c18ae11f604b9cd6f5c4391e3571a2c]
+link customer_system to hbi--><path d="M109.83,419.7231 C106.18,467.4431 104.81,540.0631 121.5,600.4531 C152.35,712.0731 216.0875,825.5406 272.4888,911.5519 C300.6894,954.5575 327.0559,990.6991 346.5605,1016.3136 C356.3127,1029.1209 364.3495,1039.2964 370.0422,1046.3822 C370.398,1046.8251 370.7447,1047.2559 371.082,1047.6745 " fill="none" id="customer_system-to-hbi" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="371.082,1047.6745,368.3983,1039.5629,363.7264,1043.3277,371.082,1047.6745" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="147.5" y="656.5918">Reports to</text><!--MD5=[c33059cc5a86bb90993456b21b1d6209]
+link customer_system to cloud_provider--><path d="M148.74,419.4631 C162.57,440.6831 178.72,465.4631 193.06,487.4731 " fill="none" id="customer_system-to-cloud_provider" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="197.45,494.2031,195.6117,485.8592,190.5786,489.1254,197.45,494.2031" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="178.5" y="461.5918">Reports to</text><!--MD5=[6dcdea7a4957475c5dcdd3389af981a7]
+reverse link cloud_provider to cloudigrade--><path d="M331.06,587.1631 C437.16,628.4131 604.52,693.4831 713.41,735.8131 " fill="none" id="cloud_provider-backto-cloudigrade" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="323.53,584.2331,329.8987,589.9287,332.0734,584.3367,323.53,584.2331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="544.5" y="656.5918">Reads from</text><!--MD5=[925963155183c8abedd82834b9c3fd05]
+link tally_job to tally_tasks--><path d="M1348.64,418.0331 C1315.36,451.1231 1272.93,493.3231 1245.97,520.1231 " fill="none" id="tally_job-to-tally_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1240.13,525.9331,1247.9215,522.427,1243.6949,518.1684,1240.13,525.9331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="1314.5" y="461.5918">Produces to</text><!--MD5=[161335b85bea83dcb18f8eaed5d7851b]
+link tally_hourly_job to tally_tasks--><path d="M1171.88,418.0331 C1183.9,450.4331 1199.15,491.5531 1209.11,518.4231 " fill="none" id="tally_hourly_job-to-tally_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1211.89,525.9331,1211.9311,517.3892,1206.3031,519.4689,1211.89,525.9331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="1188.5" y="461.5918">Produces to</text><!--MD5=[dd3fc71bcd6114041bdeaeea4732e562]
+reverse link tally_tasks to tally_worker--><path d="M1207.12,576.7631 C1200.64,592.3831 1192.93,612.2431 1187.5,630.4531 C1177.95,662.4431 1170.2,699.1931 1164.84,727.9431 " fill="none" id="tally_tasks-backto-tally_worker" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1210.39,569.0231,1204.5131,575.2249,1210.0401,577.56,1210.39,569.0231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="109" x="1188.5" y="656.5918">Consumes from</text><!--MD5=[fe16767a461da4c4e85807f5a65f81e5]
+link tally_worker to db--><path d="M1194.94,829.2431 C1231.31,876.3531 1285.97,947.1631 1324.83,997.4931 " fill="none" id="tally_worker-to-db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1329.72,1003.8331,1327.2059,995.6674,1322.4566,999.3339,1329.72,1003.8331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="111" x="1264.5" y="895.5918">Reads from and</text><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64" x="1290" y="909.5605">writes to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="39" x="1302.5" y="923.5293">[JDBC]</text><!--MD5=[1a362a9e54b2ca8eec48a3f7260eb3bf]
+link tally_worker to hbi_db--><path d="M1096.09,828.9731 C1081.59,838.6031 1065.61,847.5331 1049.5,853.4531 C923.73,899.7031 873.96,833.7931 749.5,883.4531 C689.98,907.2031 633.05,951.6431 591.35,989.7231 " fill="none" id="tally_worker-to-hbi_db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="585.31,995.2931,593.2246,992.0745,589.1567,987.664,585.31,995.2931" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="750.5" y="902.5918">Reads from</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="39" x="771" y="916.5605">[JDBC]</text><!--MD5=[64af30d7759ca71e19ccc8263bf6ce14]
+link tally_worker to cloudigrade--><path d="M1052.86,778.4531 C1015.78,778.4531 973.78,778.4531 935.78,778.4531 " fill="none" id="tally_worker-to-cloudigrade" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="927.74,778.4531,935.74,781.4531,935.74,775.4531,927.74,778.4531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="72" x="954.25" y="758.5918">Read from</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="81" x="949.75" y="772.5605">[JSON/HTTPS]</text><!--MD5=[92c870f168b3c7345a3b099a1f11badc]
+reverse link tally_summaries to tally_worker--><path d="M896.17,573.9931 C943.63,611.0831 1032.55,680.5831 1093.13,727.9231 " fill="none" id="tally_summaries-backto-tally_worker" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="889.76,568.9731,894.2205,576.2604,897.9123,571.5306,889.76,568.9731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="1019.5" y="656.5918">Produces to</text><!--MD5=[eee10808a111bf220a3ad731f16713eb]
+link tally_purge_job to db--><path d="M1620.23,418.0431 C1572.34,541.2331 1448.06,860.9731 1395.52,996.1631 " fill="none" id="tally_purge_job-to-db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1392.62,1003.6331,1398.3156,997.2644,1392.7236,995.0897,1392.62,1003.6331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="111" x="1536.5" y="642.5918">Reads from and</text><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64" x="1562" y="656.5605">writes to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="39" x="1574.5" y="670.5293">[JDBC]</text><rect fill="#FEFEFE" height="128.0781" rx="5" ry="5" style="stroke:#FEFEFE;stroke-width:1.0;" width="144" x="1640.5" y="1191.4531"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="59" x="1646.5" y="1211.4482">Legend</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1709.5" y="1211.4482"/><rect fill="#08427B" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1646.5" y="1214.75"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="49" x="1650.5" y="1227.7451">person</text><rect fill="#1168BD" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1646.5" y="1231.0469"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="50" x="1650.5" y="1244.042">system</text><rect fill="#438DD5" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1646.5" y="1247.3438"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="1650.5" y="1260.3389">container</text><rect fill="#686868" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1646.5" y="1263.6406"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="1650.5" y="1276.6357">external person</text><rect fill="#999999" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1646.5" y="1279.9375"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="109" x="1650.5" y="1292.9326">external system</text><rect fill="#B3B3B3" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1646.5" y="1296.2344"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="1650.5" y="1309.2295">external container</text><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1198.4531" y2="1198.4531"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1214.75" y2="1214.75"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1231.0469" y2="1231.0469"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1247.3438" y2="1247.3438"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1263.6406" y2="1263.6406"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1279.9375" y2="1279.9375"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1296.2344" y2="1296.2344"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1778.5" y1="1312.5313" y2="1312.5313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1646.5" x2="1646.5" y1="1198.4531" y2="1312.5313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1778.5" x2="1778.5" y1="1198.4531" y2="1312.5313"/><!--MD5=[d4baf80c0ccddc33d17f36f0ae79e937]
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch Tally
+
+Person_Ext(customer, "Red Hat Customer")
+
+Boundary(crc, console.redhat.com) {
+  Boundary(swatch, "Subscription watch") {
+    System(cloudigrade, "Cloudigrade (aka. Cloudmeter)", "Service that provides precise RHEL instance lifetime data.")
+    System_Boundary(tally, "Tally") {
+      Container(tally_job, "Tally CronJob", "Java, Container", "CronJob for daily (non-PAYG) usage tallies.")
+      Container(tally_purge_job, "Tally Purge CronJob", "Java, Container", "Removes old (outside retenion policy) data.")
+      Container(tally_hourly_job, "Tally Hourly CronJob", "Java, Container", "CronJob for hourly (PAYG) usage tallies.")
+      Container(tally_worker, "Tally Worker", "Kafka Consumer", "Summarizes usage based on telemetry sources.")
+      Container(cloudigrade, "[[https://github.com/cloudigrade/cloudigrade/ Cloudigrade]]", "Python, Container", "(aka. Cloudmeter) Provides precise accounting of RHEL system lifetimes running on cloud providers (Currently AWS).")
+      ContainerQueue(tally_tasks, "platform.rhsm-subscriptions.tasks", "Kafka Topic")
+    }
+    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+    ContainerQueue(tally_summaries, "platform.rhsm-subscriptions.tally", "Kafka Topic")
+  }
+  System_Ext(hbi, "Host Based Inventory") {
+  	ContainerDb_Ext(hbi_db, "HBI Database", "Postgres", "Central datastore for system information for console.redhat.com.")
+  }
+}
+
+System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
+System_Ext(cloud_provider, "Cloud Provider Telemetry", "Telemetry collected by cloud providers.")
+
+' external dataflows
+Rel(customer, customer_system, "Provisions/Uses")
+Rel(customer_system, hbi, "Reports to")
+Rel(customer_system, cloud_provider, "Reports to")
+Rel_Back(cloud_provider, cloudigrade, "Reads from")
+
+' tally process
+Rel(tally_job, tally_tasks, "Produces to")
+Rel(tally_hourly_job, tally_tasks, "Produces to")
+Rel_Back(tally_tasks, tally_worker, "Consumes from")
+Rel(tally_worker, db, "Reads from and writes to", "JDBC")
+Rel(tally_worker, hbi_db, "Reads from", "JDBC")
+Rel_Neighbor(tally_worker, cloudigrade, "Read from", "JSON/HTTPS")
+Rel_Back(tally_summaries, tally_worker, "Produces to")
+Rel(tally_purge_job, db, "Reads from and writes to", "JDBC")
+@enduml
+
+@startuml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam LegendBorderColor transparent
+skinparam LegendBackgroundColor transparent
+skinparam LegendFontColor #FFFFFF
+
+skinparam shadowing<<legendArea>> false
+skinparam rectangle<<legendArea>> {
+    backgroundcolor #00000000
+    bordercolor #00000000
+}
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam queue {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam actor {
+    StereotypeFontSize 12
+    shadowing false
+    style awesome
+}
+
+skinparam person {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam package {
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontStyle plain
+    BackgroundColor transparent
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontColor #444444
+    BorderColor #444444
+    BackgroundColor transparent
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam database<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam queue<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam actor<<person>> {
+    StereotypeFontColor #08427B
+    FontColor #08427B
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam person<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+
+
+skinparam rectangle<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam database<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_person>> {
+    StereotypeFontColor #686868
+    FontColor #686868
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam person<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+
+
+skinparam rectangle<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam database<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam queue<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam actor<<system>> {
+    StereotypeFontColor #1168BD
+    FontColor #1168BD
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam person<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+
+
+skinparam rectangle<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam database<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_system>> {
+    StereotypeFontColor #999999
+    FontColor #999999
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam person<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+
+
+
+
+
+sprite $person [48x48/16] {
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000025788300000000005886410000000000000
+000000000007DFFFFFFD9643347BFFFFFFFB400000000000
+0000000004EFFFFFFFFFFFFFFFFFFFFFFFFFFB1000000000
+000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFD200000000
+00000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE10000000
+0000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB0000000
+000000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5000000
+000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD000000
+000009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF200000
+00000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF600000
+00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF800000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00000EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF700000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+0000008FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD3000000
+000000014555555555555555555555555555555300000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+}
+
+sprite $person2 [48x48/16] {
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000002578888300000000005888864100000000000
+0000000007DFFFFFFFFD9643347BFFFFFFFFFB4000000000
+00000004EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB10000000
+0000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD2000000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+00003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+0000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF50000
+0003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD0000
+0009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+0009FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFF2000
+0003FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFD0000
+0000BFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFF50000
+00003FFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFB00000
+000006FFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFE100000
+0000007FFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFD2000000
+00000004EFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFB10000000
+0000000007DF8FFFFFFFFFFFFFFFFFFFFFF8FB4000000000
+000000000002578888888888888888888864100000000000
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam database<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam queue<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam rectangle<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam database<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam queue<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam backgroundColor #FEFEFE
+
+hide stereotype
+legend right
+|<color:#000000>**Legend**</color> |
+|<#08427B> person |
+|<#1168BD> system |
+|<#438DD5> container |
+|<#686868> external person |
+|<#999999> external system |
+|<#B3B3B3> external container |
+endlegend
+
+title Container diagram for Subscription watch Tally
+
+rectangle "<$person>\n==Red Hat Customer" <<external_person>> as customer 
+
+rectangle "==console.redhat.com" <<boundary>> as crc  {
+  rectangle "==Subscription watch" <<boundary>> as swatch  {
+    rectangle "==Cloudigrade (aka. Cloudmeter)\n\n Service that provides precise RHEL instance lifetime data." <<system>> as cloudigrade 
+rectangle "==Tally\n<size:12>[System]</size>" <<boundary>> as tally  {
+      rectangle "==Tally CronJob\n//<size:12>[Java, Container]</size>//\n\n CronJob for daily (non-PAYG) usage tallies." <<container>> as tally_job
+      rectangle "==Tally Purge CronJob\n//<size:12>[Java, Container]</size>//\n\n Removes old (outside retenion policy) data." <<container>> as tally_purge_job
+      rectangle "==Tally Hourly CronJob\n//<size:12>[Java, Container]</size>//\n\n CronJob for hourly (PAYG) usage tallies." <<container>> as tally_hourly_job
+      rectangle "==Tally Worker\n//<size:12>[Kafka Consumer]</size>//\n\n Summarizes usage based on telemetry sources." <<container>> as tally_worker
+      rectangle "==[[https://github.com/cloudigrade/cloudigrade/ Cloudigrade]]\n//<size:12>[Python, Container]</size>//\n\n (aka. Cloudmeter) Provides precise accounting of RHEL system lifetimes running on cloud providers (Currently AWS)." <<container>> as cloudigrade
+      queue "==platform.rhsm-subscriptions.tasks\n//<size:12>[Kafka Topic]</size>//" <<container>> as tally_tasks
+    }
+    database "==Database\n//<size:12>[Postgres Database]</size>//\n\n Stores subscription and usage information." <<container>> as db
+    queue "==platform.rhsm-subscriptions.tally\n//<size:12>[Kafka Topic]</size>//" <<container>> as tally_summaries
+  }
+  rectangle "==Host Based Inventory" <<external_system>> as hbi  {
+  	database "==HBI Database\n//<size:12>[Postgres]</size>//\n\n Central datastore for system information for console.redhat.com." <<external_container>> as hbi_db
+  }
+}
+
+rectangle "==Customer System\n\n Customer system or service instance (e.g. RHEL or OSD instance)." <<external_system>> as customer_system 
+rectangle "==Cloud Provider Telemetry\n\n Telemetry collected by cloud providers." <<external_system>> as cloud_provider 
+
+customer - ->> customer_system : **Provisions/Uses**
+customer_system - ->> hbi : **Reports to**
+customer_system - ->> cloud_provider : **Reports to**
+cloud_provider <<- - cloudigrade : **Reads from**
+
+tally_job - ->> tally_tasks : **Produces to**
+tally_hourly_job - ->> tally_tasks : **Produces to**
+tally_tasks <<- - tally_worker : **Consumes from**
+tally_worker - ->> db : **Reads from and writes to**\n//<size:12>[JDBC]</size>//
+tally_worker - ->> hbi_db : **Reads from**\n//<size:12>[JDBC]</size>//
+tally_worker ->> cloudigrade : **Read from**\n//<size:12>[JSON/HTTPS]</size>//
+tally_summaries <<- - tally_worker : **Produces to**
+tally_purge_job - ->> db : **Reads from and writes to**\n//<size:12>[JDBC]</size>//
+@enduml
+
+PlantUML version 1.2021.00(Sun Jan 10 10:25:05 UTC 2021)
+(LGPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: ANSI_X3.4-1968
+Language: en
+Country: US
+--></g></svg>
