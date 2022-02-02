@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: lburnett-fruit-service
+
+parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: ENV_NAME # naming convention is env-$BONFIRE_APP_NAME (from bonfire config yaml file)
+    value: env-lburnett-service-demo
+  - name: IMAGE
+    value: quay.io/lburnett/rhsm
+  - name: IMAGE_TAG # bonfire takes precedence and pulls latest unless the bonfire -i flag is used
+    value: service_demo
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: lburnett-service-demo
+  spec:
+    envName: ${ENV_NAME}
+#    dependencies:
+#      - host-inventory
+
+#    kafkaTopics:
+#      - replicas: 3
+#        partitions: 3
+#        topicName: platform.rhsm-subscriptions.lburnett-fruit-service
+
+#    database:
+#      name: lburnett-fruit-service-db
+#      version: 12
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments:
+      - name: lburnett-fruit-service
+        minReplicas: 1
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: pinhead
+              mountPath: /pinhead
+          volumes:
+            - name: logs
+              emptyDir:
+            - name: pinhead
+              secret:
+                secretName: pinhead
