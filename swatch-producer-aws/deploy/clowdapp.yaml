@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: swatch-producer-aws
+
+parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: ENV_NAME # naming convention is env-$BONFIRE_APP_NAME (from bonfire config yaml file)
+    value: env-swatch-producer-aws
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-producer-aws
+  - name: IMAGE_TAG # bonfire takes precedence and pulls latest unless the bonfire -i flag is used
+    value: latest
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-producer-aws
+  spec:
+    envName: ${ENV_NAME}
+#    dependencies:
+#      - host-inventory
+
+    kafkaTopics:
+      - replicas: 1
+        partitions: 1
+        topicName: platform.rhsm-subscriptions.tally
+
+    database:
+      name: billing-provider-aws-db
+      version: 12
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments:
+      - name: billing-provider-aws
+        minReplicas: 1
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/live
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/ready
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 300
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: pinhead
+              mountPath: /pinhead
+          volumes:
+            - name: logs
+              emptyDir:
+            - name: pinhead
+              secret:
+                secretName: pinhead

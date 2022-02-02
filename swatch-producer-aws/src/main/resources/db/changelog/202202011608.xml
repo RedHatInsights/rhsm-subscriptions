@@ -1,0 +1,23 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+  <changeSet author="lburnett" id="202202011607">
+    <createTable tableName="fruit">
+      <column name="id" type="VARCHAR(36)">
+        <constraints primaryKey="true" />
+      </column>
+      <column name="name" type="varchar(255)">
+        <constraints nullable="false" />
+      </column>
+      <column name="color" type="varchar(255)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+  <changeSet author="lburnett" id="202202011609">
+    <insert tableName="fruit">
+      <column name="id" value="14b5f7a5-3a04-43c6-ac37-b856bba69492" />
+      <column name="name" value="banana" />
+      <column name="color" value="yellow" />
+    </insert>
+  </changeSet>
+</databaseChangeLog>
