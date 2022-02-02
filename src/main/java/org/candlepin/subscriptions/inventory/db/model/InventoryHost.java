@@ -49,8 +49,6 @@ import lombok.Setter;
             @ColumnResult(name = "account"),
             @ColumnResult(name = "display_name"),
             @ColumnResult(name = "org_id"),
-            @ColumnResult(name = "cores"),
-            @ColumnResult(name = "sockets"),
             @ColumnResult(name = "products"),
             @ColumnResult(name = "sync_timestamp"),
             @ColumnResult(name = "system_profile_infrastructure_type"),
@@ -94,8 +92,6 @@ import lombok.Setter;
     query =
         "select h.id as inventory_id, h.modified_on, h.account, h.display_name, "
             + "h.facts->'rhsm'->>'orgId' as org_id, "
-            + "h.facts->'rhsm'->>'CPU_CORES' as cores, "
-            + "h.facts->'rhsm'->>'CPU_SOCKETS' as sockets, "
             + "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, "
             + "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, "
             + "h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid, "
