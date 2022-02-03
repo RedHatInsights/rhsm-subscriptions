@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.util;
 
-import io.hawt.springboot.HawtioManagementConfiguration;
+import io.hawt.springboot.HawtioEndpoint;
 import io.hawt.web.filters.BaseTagHrefFilter;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -31,11 +31,12 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.actuate.autoconfigure.web.server.ConditionalOnManagementPort;
-import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
+import org.springframework.boot.actuate.autoconfigure.jolokia.JolokiaEndpointAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.util.StringUtils;
 
 /**
@@ -47,11 +48,12 @@ import org.springframework.util.StringUtils;
  * a browser URL of /rhsm-subscriptions/hawtio, then setting `rhsm-subscriptions.hawtioBasePath` to
  * /rhsm-subscriptions/hawtio forces the frontend to return the proper URLs for JavaScript/CSS.
  */
-@Configuration
-@ConditionalOnManagementPort(ManagementPortType.SAME)
-@AutoConfigureAfter(HawtioManagementConfiguration.class)
+@ManagementContextConfiguration
+@AutoConfigureAfter(JolokiaEndpointAutoConfiguration.class)
+@ConditionalOnBean(HawtioEndpoint.class)
 public class HawtioConfiguration {
   @Autowired
+  @DependsOn("baseTagHrefFilter")
   public void modifyBaseTagHrefFilter(
       @Qualifier("baseTagHrefFilter") FilterRegistrationBean<BaseTagHrefFilter> filter,
       ServletContext servletContext,

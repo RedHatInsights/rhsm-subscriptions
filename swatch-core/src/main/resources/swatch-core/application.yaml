@@ -81,6 +81,12 @@ management:
       enabled: true
     prometheus:
       enabled: true
+    # The liveness and readiness probes are enabled automatically when Spring Boot detects
+    # kubernetes environment variables.  This setting just enables them always so that we see them
+    # when running in a local deployment.
+    health:
+      probes:
+        enabled: true
 
 spring:
   jmx:
