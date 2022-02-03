@@ -1,4 +1,19 @@
-# build image & push to quay
+# WIP status
+
+* [x] Sample quarkus app running locally
+* [x] Connect quarkus app to local db
+* [x] Create clowdapp template that includes db
+* [x] sample service deploys to EE and connects to ephemeral db
+* [x] update service to read from clowder cdconfig file using [clowder-quarkus-config-source](https://github.com/RedHatInsights/clowder-quarkus-config-source)
+* [ ] update sample service to consume/produce messages onto kafka topic
+* [ ] how to view messages on ephemeral environment topics
+* [ ] introduce kafka as a clowdapp dependency and make it work
+* [ ] introduce swatch initdb container so the app connects to the swatch database.  add a resource/service/entity to test
+
+
+
+
+## build image & push to quay
 
 ```bash
 QUAY_USER=lburnett
@@ -12,11 +27,11 @@ docker -build --no-cache -t "${IMAGE}:${IMAGE_TAG}" .
 docker -push "${IMAGE}:${IMAGE_TAG}"
 ```
 
-# login to openshift
+## login to openshift
 `oc login --token=Passw0rd --server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443`
 
 
-# setup Virtual Environment
+## setup Virtual Environment
 ```bash
 VENV_DIR=~/bonfire_venv
 mkdir -p $VENV_DIR
@@ -26,7 +41,7 @@ pip install crc-bonfire
 pip install --upgrade crc-bonfire
 ```
 
-# configure ~/.config/bonfire/config.yaml
+## configure ~/.config/bonfire/config.yaml
 ```yaml
 appsFile:
   host: gitlab
@@ -42,7 +57,7 @@ apps:
       path: /deploy/clowdapp.yaml
 ```
 
-# deploy container with bonfire
+## deploy container with bonfire
 ```bash
 IMAGE=quay.io/lburnett/rhsm
 IMAGE_TAG=quarkus_poc
@@ -59,12 +74,12 @@ bonfire deploy -n $NAMESPACE \
 
 ```
 
-# port-forward the deployed container
+## port-forward the deployed container
 note: i have the namespace hardcoded here...replace with the namespace you reserved
 `oc port-forward $(oc -n ephemeral-itjulc get -o name pod | grep fruit) 8000`
 
 
-# test rest endpoint
+## test rest endpoint
 note: example uses httpie
 ```bash
 ➜ demo (lburnett/sample_service) ✗ http :8000/fruits/apple
