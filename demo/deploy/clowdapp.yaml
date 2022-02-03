@@ -37,9 +37,9 @@ objects:
 #        partitions: 3
 #        topicName: platform.rhsm-subscriptions.lburnett-fruit-service
 
-#    database:
-#      name: lburnett-fruit-service-db
-#      version: 12
+    database:
+      name: lburnett-fruit-service-db
+      version: 12
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
