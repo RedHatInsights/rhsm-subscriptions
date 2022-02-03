@@ -4,7 +4,7 @@
 QUAY_USER=lburnett
 QUAY_TOKEN=Passw0rd
 IMAGE=quay.io/lburnett/rhsm
-IMAGE_TAG=service_demo
+IMAGE_TAG=quarkus_poc
 
 docker login -u="$QUAY_USER" -p="$QUAY_TOKEN" quay.io
 
@@ -34,7 +34,7 @@ appsFile:
   path: bonfire_configs/ephemeral_apps.yaml
 
 apps:
-- name: lburnett-service-demo # BONFIRE_APP_NAME
+- name: lburnettquarkus # BONFIRE_APP_NAME
   components:
     - name: service_demo # BONFIRE_COMPONENT_NAME
       host: local
@@ -45,10 +45,10 @@ apps:
 # deploy container with bonfire
 ```bash
 IMAGE=quay.io/lburnett/rhsm
-IMAGE_TAG=service_demo
-BONFIRE_APP_NAME=lburnett-service-demo
+IMAGE_TAG=quarkus_poc
+BONFIRE_APP_NAME=lburnettquarkus
 BONFIRE_COMPONENT_NAME=service_demo
-NAMESPACE=$(bonfire namespace reserve)
+NAMESPACE=$(bonfire namespace reserve -d 12h)
 
 echo $NAMESPACE
 
@@ -67,22 +67,11 @@ note: i have the namespace hardcoded here...replace with the namespace you reser
 # test rest endpoint
 note: example uses httpie
 ```bash
-➜ demo (lburnett/sample_service) ✗ http :8000/api/rhsm-subscriptions/v1/fruits
-HTTP/1.1 200
-Connection: keep-alive
-Content-Type: application/json
-Date: Wed, 02 Feb 2022 22:36:00 GMT
-Keep-Alive: timeout=60
-Transfer-Encoding: chunked
+➜ demo (lburnett/sample_service) ✗ http :8000/fruits/apple
+HTTP/1.1 200 OK
+Content-Type: text/plain;charset=UTF-8
+content-length: 11
 
-{
-    "data": [
-        {
-            "color": "yellow",
-            "id": "14b5f7a5-3a04-43c6-ac37-b856bba69492",
-            "name": "banana"
-        }
-    ]
-}
+hello apple
 
 ```
