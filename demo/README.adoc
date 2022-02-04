@@ -5,13 +5,10 @@
 * [x] Create clowdapp template that includes db
 * [x] sample service deploys to EE and connects to ephemeral db
 * [x] update service to read from clowder cdconfig file using [clowder-quarkus-config-source](https://github.com/RedHatInsights/clowder-quarkus-config-source)
-* [ ] update sample service to consume/produce messages onto kafka topic
+* [x] update sample service to consume/produce messages onto kafka topic
 * [ ] how to view messages on ephemeral environment topics
 * [ ] introduce kafka as a clowdapp dependency and make it work
 * [ ] introduce swatch initdb container so the app connects to the swatch database.  add a resource/service/entity to test
-
-
-
 
 ## build image & push to quay
 
