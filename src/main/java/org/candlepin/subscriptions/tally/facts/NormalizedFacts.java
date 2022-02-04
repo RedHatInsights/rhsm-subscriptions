@@ -53,6 +53,7 @@ public class NormalizedFacts {
   private boolean isVirtual;
   private boolean isHypervisor;
   private boolean isHypervisorUnknown;
+  private boolean isMarketplace;
   private HostHardwareType hardwareType;
   private HardwareMeasurementType cloudProviderType;
 

@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.tally.collector;
 import static org.candlepin.subscriptions.tally.collector.Assertions.*;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
 
+import java.util.LinkedList;
+import java.util.List;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -102,6 +104,30 @@ public class DefaultProductUsageCollectorTest {
     assertTotalsCalculation(calc, 1, 12, 1);
     assertHardwareMeasurementTotals(calc, HardwareMeasurementType.AWS, 1, 12, 1);
     assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS);
+  }
+
+  @Test
+  void testCountsForMarketplaceInstances() {
+    // Marketplace instance zeros should be ignored from the overall total
+    List<NormalizedFacts> conditions = new LinkedList<>();
+    NormalizedFacts marketFacts = cloudMachineFacts(HardwareMeasurementType.AWS, 1, 0);
+    marketFacts.setMarketplace(true);
+    conditions.add(marketFacts);
+
+    NormalizedFacts physicalNonHypervisor = physicalNonHypervisor(1, 0);
+    physicalNonHypervisor.setMarketplace(true);
+    conditions.add(physicalNonHypervisor);
+
+    NormalizedFacts virtual = guestFacts(5, 0, false);
+    virtual.setMarketplace(true);
+    conditions.add(virtual);
+
+    UsageCalculation calc = new UsageCalculation(createUsageKey());
+
+    for (NormalizedFacts current : conditions) {
+      collector.collect(calc, current);
+    }
+    assertTotalsCalculation(calc, 0, 0, 3);
   }
 
   private UsageCalculation.Key createUsageKey() {
