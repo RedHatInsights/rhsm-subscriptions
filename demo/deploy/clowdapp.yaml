@@ -32,10 +32,10 @@ objects:
 #    dependencies:
 #      - host-inventory
 
-#    kafkaTopics:
-#      - replicas: 3
-#        partitions: 3
-#        topicName: platform.rhsm-subscriptions.lburnett-fruit-service
+    kafkaTopics:
+      - replicas: 1
+        partitions: 1
+        topicName: fruit-salad-requests
 
     database:
       name: lburnett-fruit-service-db
