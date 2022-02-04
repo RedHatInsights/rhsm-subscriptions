@@ -1,4 +1,4 @@
-package org.acme.entity;
+package com.redhat.swatch.entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

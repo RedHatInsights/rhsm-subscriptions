@@ -1,4 +1,4 @@
-package org.acme.resource;
+package com.redhat.swatch.resource;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -8,7 +8,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import org.acme.service.FruitService;
+import com.redhat.swatch.service.FruitService;
 
 @Path("/fruits")
 public class FruitResource {

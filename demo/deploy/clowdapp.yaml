@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: lburnett-fruit-service
+  name: swatch-billing-provider-aws
 
 parameters:
   - name: IMAGE_PULL_SECRET
@@ -26,7 +26,7 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
-    name: lburnettquarkus
+    name: swatch-billing-provider-aws
   spec:
     envName: ${ENV_NAME}
 #    dependencies:
@@ -35,17 +35,17 @@ objects:
     kafkaTopics:
       - replicas: 1
         partitions: 1
-        topicName: fruit-salad-requests
+        topicName: platform.rhsm-subscriptions.tally
 
     database:
-      name: lburnett-fruit-service-db
+      name: billing-provider-aws-db
       version: 12
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
 
     deployments:
-      - name: lburnett-fruit-service
+      - name: billing-provider-aws
         minReplicas: 1
         webServices:
           public:
@@ -58,8 +58,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /health
-              port: 9000
+              path: /q/health/live
+              port: 8000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
@@ -68,8 +68,8 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /health
-              port: 9000
+              path: /q/health/ready
+              port: 8000
               scheme: HTTP
             initialDelaySeconds: 300
             periodSeconds: 20
