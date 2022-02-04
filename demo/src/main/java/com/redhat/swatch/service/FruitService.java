@@ -1,14 +1,16 @@
-package org.acme.service;
+package com.redhat.swatch.service;
 
+import com.redhat.swatch.entity.Fruit;
 import java.util.List;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
-import org.acme.entity.Fruit;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 @ApplicationScoped
 public class FruitService {
+
+  private static final String EGRESS_CHANNEL = "egress";
 
   public String getFruit(String name) {
 
@@ -36,10 +38,10 @@ public class FruitService {
     return fruit;
   }
 
-  @Channel("fruit-salad-requests")
+  @Channel(EGRESS_CHANNEL)
   Emitter<String> fruitSaladRequestEmitter;
 
-    public String createFruitSaladRequest() {
+  public String createFruitSaladRequest() {
     var fruit = createFruit("purple");
     fruitSaladRequestEmitter.send(fruit.toString());
     return fruit.toString();
