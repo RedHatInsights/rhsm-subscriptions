@@ -27,7 +27,7 @@ public class FruitResource {
   @Produces(MediaType.APPLICATION_JSON)
   @Transactional
   public String insertFruits() {
-    fruitService.saveExampleFruits();
+    fruitService.createFruitSaladRequest();
     return "done";
   }
 }

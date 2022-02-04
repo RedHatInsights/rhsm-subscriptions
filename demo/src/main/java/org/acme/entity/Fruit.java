@@ -4,8 +4,10 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import lombok.ToString;
 
 
+@ToString
 @Entity
 public class Fruit extends PanacheEntityBase {
 
@@ -13,11 +15,10 @@ public class Fruit extends PanacheEntityBase {
   @Column(length = 36)
   public String id;
 
-
-  @Column(length = 255)
+  @Column
   public String name;
 
-  @Column(length = 255)
+  @Column
   public String color;
 
   public static Fruit findByName(String name) {
