@@ -82,6 +82,7 @@ public class FactNormalizer {
     normalizeConflictingOrMissingRhelVariants(normalizedFacts);
     pruneProducts(normalizedFacts);
     normalizeUnits(normalizedFacts, hostFacts);
+    defaultNullFacts(normalizedFacts, hostFacts);
     return normalizedFacts;
   }
 
@@ -213,7 +214,6 @@ public class FactNormalizer {
             .equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType())) {
       var effectiveCores = calculateVirtualCPU(hostFacts);
       normalizedFacts.setCores(effectiveCores);
-      hostFacts.setCores(effectiveCores); // <-- workaround to prevent rhsm from overwriting logic
     }
     getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
   }
@@ -223,12 +223,21 @@ public class FactNormalizer {
       return;
     }
 
-    if (hostFacts.getCores() != 0 || normalizedFacts.getCores() != 0) {
+    if (normalizedFacts.getCores() != 0) {
       normalizedFacts.setCores(0);
     }
 
-    if (hostFacts.getSockets() != 0 || normalizedFacts.getSockets() != 0) {
+    if (normalizedFacts.getSockets() != 0) {
       normalizedFacts.setSockets(0);
+    }
+  }
+
+  private void defaultNullFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    if (normalizedFacts.getCores() == null) {
+      normalizedFacts.setCores(hostFacts.getSystemProfileCoresPerSocket());
+    }
+    if (normalizedFacts.getSockets() == null) {
+      normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
     }
   }
 
@@ -276,12 +285,7 @@ public class FactNormalizer {
       getProductsFromProductIds(normalizedFacts, hostFacts.getProducts());
 
       // Check for cores and sockets. If not included, default to 0.
-      if (normalizedFacts.getCores() == null || hostFacts.getCores() != 0) {
-        normalizedFacts.setCores(hostFacts.getCores());
-      }
-      if (normalizedFacts.getSockets() == null || hostFacts.getSockets() != 0) {
-        normalizedFacts.setSockets(hostFacts.getSockets());
-      }
+
       normalizedFacts.setOwner(hostFacts.getOrgId());
       handleRole(normalizedFacts, hostFacts.getSyspurposeRole());
       handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());

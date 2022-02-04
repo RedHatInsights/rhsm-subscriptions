@@ -1,0 +1,29 @@
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch API/UI
+
+Person(customer, "Red Hat Customer")
+
+Boundary(crc, console.redhat.com) {
+  Boundary(swatch, "Subscription watch") {
+    System_Boundary(ui, "Subscription watch API/UI") {
+      Container(api, "API Application", "Java, Container", "Provides views of subscription utilization via [[https://github.com/RedHatInsights/rhsm-subscriptions/blob/main/api/rhsm-subscriptions-api-spec.yaml REST API]].")
+      Container(curiosity, "[[https://github.com/RedHatInsights/curiosity-frontend Curiosity Frontend]]", "JavaScript, React", "Provides customer-facing views of subscription utilization.")
+    }
+    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+  }
+  System_Ext(rbac, "RBAC Service", "console.redhat.com RBAC service")
+}
+
+' frontend dataflow
+Rel(customer, curiosity, "Uses", "HTTPS")
+Rel(curiosity, api, "Uses", "JSON/HTTPS")
+Rel(api, rbac, "Checks authorization", "JSON/HTTPS")
+Rel(api, db, "Reads from and writes to", "JDBC")
+@enduml

@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="1016px" preserveAspectRatio="none" style="width:2010px;height:1016px;background:#FEFEFE;" version="1.1" viewBox="0 0 2010 1016" width="2010px" zoomAndPan="magnify"><defs/><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacing" textLength="531" x="733" y="16.708">Container diagram for Subscription watch Subscription Sync</text><!--MD5=[0124883ede9501bc1a470c8ae7e8c246]
+cluster crc--><rect fill="#FFFFFF" height="831" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="1468" x="7" y="27.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="176" x="653" y="44.8047">console.redhat.com</text><!--MD5=[7caab35c4647cf5b8739bb77d77dd26f]
+cluster swatch--><rect fill="#FFFFFF" height="762" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="1420" x="31" y="72.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="170" x="656" y="89.8047">Subscription watch</text><!--MD5=[36653627d19e5f2c8b42fc35f2864e85]
+cluster subscription_sync--><rect fill="#FFFFFF" height="481" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="1372" x="55" y="117.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="158" x="662" y="134.8047">Subscription Sync</text><text fill="#444444" font-family="sans-serif" font-size="12" lengthAdjust="spacing" textLength="55" x="713.5" y="149.7168">[System]</text><!--MD5=[c867817e8b5f61483179d5ca8fb53fa7]
+cluster rhit--><rect fill="#FFFFFF" height="159" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="505" x="1499" y="673.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="93" x="1705" y="690.8047">Red Hat IT</text><!--MD5=[7468467f3b6b392f1d176d828c753b77]
+entity db--><path d="M1097,718.9531 C1097,708.9531 1193,708.9531 1193,708.9531 C1193,708.9531 1289,708.9531 1289,718.9531 L1289,809.4375 C1289,819.4375 1193,819.4375 1193,819.4375 C1193,819.4375 1097,819.4375 1097,809.4375 L1097,718.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M1097,718.9531 C1097,728.9531 1193,728.9531 1193,728.9531 C1193,728.9531 1289,728.9531 1289,718.9531 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="83" x="1151.5" y="747.8047">Database</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="127" x="1129.5" y="762.7168">[Postgres Database]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1195" y="778.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="164" x="1111" y="794.8389">Stores subscription and</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="128" x="1129" y="811.1357">usage information.</text><!--MD5=[4914caa2bee696e85d45e04e0da1e416]
+entity subscription_sync_job--><rect fill="#438DD5" height="120.1094" style="stroke:#3C7FC0;stroke-width:1.5;" width="184" x="778" y="168.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="158" x="788" y="193.8047">Subscription Sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="70" x="835" y="212.4297">CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="817.5" y="227.3418">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="872" y="243.167"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="133" x="803.5" y="259.4639">CronJob for syncing</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="123" x="808.5" y="275.7607">subscription data.</text><!--MD5=[98b94b248ef6689524ca80f7ac7fe4aa]
+entity offering_sync_job--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="217" x="417.5" y="178.4531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="197" x="427.5" y="203.3047">Offering Sync CronJob</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="473.5" y="218.2168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="528" y="234.042"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="189" x="431.5" y="250.3389">CronJob for syncing offering</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="34" x="509" y="266.6357">data.</text><!--MD5=[371c4e1b702a781b856aa50d9993d891]
+entity capacity_ingress--><rect fill="#438DD5" height="101.4844" style="stroke:#3C7FC0;stroke-width:1.5;" width="192" x="1097" y="481.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="148" x="1119" y="506.8047">Capacity Ingress</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="105" x="1140.5" y="521.7168">[Java, Container]</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1195" y="537.542"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="164" x="1111" y="553.8389">Syncs subscription data</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="170" x="1108" y="570.1357">from backoffice services.</text><!--MD5=[92d01d9226f32332c7ce315801cc6a0a]
+entity offering_sync_tasks--><path d="M76,363.9531 L462,363.9531 C467,363.9531 467,385.25 467,385.25 C467,385.25 467,406.5469 462,406.5469 L76,406.5469 C71,406.5469 71,385.25 71,385.25 C71,385.25 71,363.9531 76,363.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M462,363.9531 C457,363.9531 457,385.25 457,385.25 C457,406.5469 462,406.5469 462,406.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="376" x="76" y="383.8047">platform.rhsm-subscriptions.offering-sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="223" y="398.7168">[Kafka Topic]</text><!--MD5=[4ad14584c6a8ca1b60305af35568458d]
+entity capacity_reconcile_tasks--><path d="M507,363.9531 L935,363.9531 C940,363.9531 940,385.25 940,385.25 C940,385.25 940,406.5469 935,406.5469 L507,406.5469 C502,406.5469 502,385.25 502,385.25 C502,385.25 502,363.9531 507,363.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M935,363.9531 C930,363.9531 930,385.25 930,385.25 C930,406.5469 935,406.5469 935,406.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="418" x="507" y="383.8047">platform.rhsm-subscriptions.capacity-reconcile</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="675" y="398.7168">[Kafka Topic]</text><!--MD5=[e8483a59961b9f3336c6da8f6f3a5380]
+entity subscription_sync_tasks--><path d="M980.5,363.9531 L1405.5,363.9531 C1410.5,363.9531 1410.5,385.25 1410.5,385.25 C1410.5,385.25 1410.5,406.5469 1405.5,406.5469 L980.5,406.5469 C975.5,406.5469 975.5,385.25 975.5,385.25 C975.5,385.25 975.5,363.9531 980.5,363.9531 " fill="#438DD5" style="stroke:#3C7FC0;stroke-width:1.5;"/><path d="M1405.5,363.9531 C1400.5,363.9531 1400.5,385.25 1400.5,385.25 C1400.5,406.5469 1405.5,406.5469 1405.5,406.5469 " fill="none" style="stroke:#3C7FC0;stroke-width:1.5;"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="415" x="980.5" y="383.8047">platform.rhsm-subscriptions.subscription-sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="82" x="1147" y="398.7168">[Kafka Topic]</text><!--MD5=[600d21c278eeca45fc6f6120f858365e]
+entity rhit_subscriptions--><rect fill="#999999" height="106.1406" style="stroke:#8A8A8A;stroke-width:1.5;" width="220" x="1515" y="710.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="163" x="1540.5" y="735.8047">RH IT Subscription</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="65" x="1592.5" y="754.4297">Service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1627" y="771.1982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="196" x="1529" y="787.4951">The internal RH Subscription</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="25" x="1612.5" y="803.792">API.</text><!--MD5=[697d7f91951ba90b0223e3e00e3647d3]
+entity rhit_product--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="1770.5" y="711.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="195" x="1781.5" y="736.8047">RH IT Product Service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1881" y="753.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="189" x="1784.5" y="769.8701">The internal RH Product API</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="161" x="1796.5" y="786.167">which contains Offering</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="1841.5" y="802.4639">definitions.</text><!--MD5=[bb91b695c091c36e26c37549dc2b914a]
+link subscription_sync_job to subscription_sync_tasks--><path d="M962.13,274.0231 C1020.71,302.0431 1094.34,337.2631 1142.48,360.2831 " fill="none" id="subscription_sync_job-to-subscription_sync_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1149.98,363.8731,1144.0474,357.7246,1141.4674,363.1416,1149.98,363.8731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="1080" y="331.0918">Produces to</text><!--MD5=[43f6ef7ac2e9a0e857304e2ae22f3d73]
+link subscription_sync_job to capacity_reconcile_tasks--><path d="M812.82,289.2431 C790.11,312.7931 765.13,338.6931 746.96,357.5331 " fill="none" id="subscription_sync_job-to-capacity_reconcile_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="741.08,363.6331,748.7945,359.9607,744.4775,355.7937,741.08,363.6331" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="783" y="331.0918">Produces to</text><!--MD5=[6957aaed5ab043d5c73c66054a48d331]
+link offering_sync_job to offering_sync_tasks--><path d="M443.62,279.4731 C399.03,306.2831 345.88,338.2331 310.03,359.7831 " fill="none" id="offering_sync_job-to-offering_sync_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="303.1,363.9531,311.5011,362.3968,308.4062,357.2566,303.1,363.9531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="375" y="331.0918">Produces to</text><!--MD5=[9c2b094583f63cfb6aa34c81b351e4cc]
+link offering_sync_job to capacity_reconcile_tasks--><path d="M588.5,279.4731 C621.92,305.9531 661.66,337.4331 688.84,358.9731 " fill="none" id="offering_sync_job-to-capacity_reconcile_tasks" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="695.13,363.9531,690.7142,356.6387,686.9935,361.3458,695.13,363.9531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="85" x="653" y="331.0918">Produces to</text><!--MD5=[1b646b00d46ab86ccc7948b88bd5fad9]
+reverse link subscription_sync_tasks to capacity_ingress--><path d="M1193,415.4831 C1193,434.4731 1193,459.7931 1193,481.9231 " fill="none" id="subscription_sync_tasks-backto-capacity_ingress" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1193,407.2231,1190,415.2231,1196,415.2231,1193,407.2231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="109" x="1194" y="449.0918">Consumes from</text><!--MD5=[28ea2f326e5494e19d6b8465077038bf]
+reverse link capacity_reconcile_tasks to capacity_ingress--><path d="M795.85,409.4431 C877.26,434.4531 1007.65,474.5131 1096.66,501.8531 " fill="none" id="capacity_reconcile_tasks-backto-capacity_ingress" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="788.12,407.0731,794.8922,412.2825,796.6477,406.5451,788.12,407.0731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="109" x="929" y="449.0918">Consumes from</text><!--MD5=[d376e45bba7bcf26f737e215d0e93964]
+reverse link offering_sync_tasks to capacity_ingress--><path d="M408,408.2631 C597.64,438.0231 932.6,490.5931 1096.8,516.3531 " fill="none" id="offering_sync_tasks-backto-capacity_ingress" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="399.92,406.9931,407.3566,411.2,408.289,405.2729,399.92,406.9931" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="109" x="676" y="449.0918">Consumes from</text><!--MD5=[478d4d955ddcb7de9c38a9e16de06cc1]
+link capacity_ingress to db--><path d="M1193,582.9731 C1193,617.3931 1193,663.5431 1193,700.4931 " fill="none" id="capacity_ingress-to-db" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1193,708.7131,1196,700.7131,1190,700.7131,1193,708.7131" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="111" x="1194" y="627.0918">Reads from and</text><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64" x="1219.5" y="641.0605">writes to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="39" x="1232" y="655.0293">[JDBC]</text><!--MD5=[94031a52203aa61c6ebf05c0ec3b9805]
+link capacity_ingress to rhit_subscriptions--><path d="M1289.23,554.7631 C1338.57,567.9931 1398.52,587.7331 1448,614.9531 C1491.78,639.0331 1534.92,674.7831 1567.65,705.1131 " fill="none" id="capacity_ingress-to-rhit_subscriptions" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1573.63,710.7131,1569.8312,703.0601,1565.7357,707.445,1573.63,710.7131" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="1512.5" y="634.0918">Reads from</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="81" x="1512" y="648.0605">[JSON/HTTPS]</text><!--MD5=[b3ef03525e6309d8c083a8f017364f5c]
+link capacity_ingress to rhit_product--><path d="M1289.17,541.1331 C1405.12,553.6831 1603.11,585.8231 1753,665.9531 C1774.22,677.2931 1795.59,692.1531 1814.56,706.8231 " fill="none" id="capacity_ingress-to-rhit_product" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1820.89,711.7831,1816.4375,704.491,1812.7406,709.2167,1820.89,711.7831" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="1726.5" y="634.0918">Reads from</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="81" x="1726" y="648.0605">[JSON/HTTPS]</text><rect fill="#FEFEFE" height="128.0781" rx="5" ry="5" style="stroke:#FEFEFE;stroke-width:1.0;" width="144" x="1844" y="871.9531"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="59" x="1850" y="891.9482">Legend</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1913" y="891.9482"/><rect fill="#08427B" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1850" y="895.25"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="49" x="1854" y="908.2451">person</text><rect fill="#1168BD" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1850" y="911.5469"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="50" x="1854" y="924.542">system</text><rect fill="#438DD5" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1850" y="927.8438"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="65" x="1854" y="940.8389">container</text><rect fill="#686868" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1850" y="944.1406"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="1854" y="957.1357">external person</text><rect fill="#999999" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1850" y="960.4375"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="109" x="1854" y="973.4326">external system</text><rect fill="#B3B3B3" height="16.2969" style="stroke:none;stroke-width:1.0;" width="132" x="1850" y="976.7344"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="124" x="1854" y="989.7295">external container</text><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="878.9531" y2="878.9531"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="895.25" y2="895.25"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="911.5469" y2="911.5469"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="927.8438" y2="927.8438"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="944.1406" y2="944.1406"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="960.4375" y2="960.4375"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="976.7344" y2="976.7344"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1982" y1="993.0313" y2="993.0313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1850" x2="1850" y1="878.9531" y2="993.0313"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1982" x2="1982" y1="878.9531" y2="993.0313"/><!--MD5=[bc3def6815712dd15446ee0eef81e809]
+@startuml
+!include <C4/C4_Container>
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+LAYOUT_WITH_LEGEND()
+
+title Container diagram for Subscription watch Subscription Sync
+
+Boundary(crc, console.redhat.com) {
+  Boundary(swatch, "Subscription watch") {
+    System_Boundary(subscription_sync, "Subscription Sync") {
+      Container(subscription_sync_job, "Subscription Sync CronJob", "Java, Container", "CronJob for syncing subscription data.")
+      Container(offering_sync_job, "Offering Sync CronJob", "Java, Container", "CronJob for syncing offering data.")
+      Container(capacity_ingress, "Capacity Ingress", "Java, Container", "Syncs subscription data from backoffice services.")
+      ContainerQueue(offering_sync_tasks, "platform.rhsm-subscriptions.offering-sync", "Kafka Topic")
+      ContainerQueue(capacity_reconcile_tasks, "platform.rhsm-subscriptions.capacity-reconcile", "Kafka Topic")
+      ContainerQueue(subscription_sync_tasks, "platform.rhsm-subscriptions.subscription-sync", "Kafka Topic")
+    }
+    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+  }
+}
+
+Boundary(rhit, "Red Hat IT") {
+  System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
+  System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
+}
+
+' capacity ingress process
+Rel(subscription_sync_job, subscription_sync_tasks, "Produces to")
+Rel(subscription_sync_job, capacity_reconcile_tasks, "Produces to")
+Rel(offering_sync_job, offering_sync_tasks, "Produces to")
+Rel(offering_sync_job, capacity_reconcile_tasks, "Produces to")
+Rel_Back(subscription_sync_tasks, capacity_ingress, "Consumes from")
+Rel_Back(capacity_reconcile_tasks, capacity_ingress, "Consumes from")
+Rel_Back(offering_sync_tasks, capacity_ingress, "Consumes from")
+Rel(capacity_ingress, db, "Reads from and writes to", "JDBC")
+Rel(capacity_ingress, rhit_subscriptions, "Reads from", "JSON/HTTPS")
+Rel(capacity_ingress, rhit_product, "Reads from", "JSON/HTTPS")
+@enduml
+
+@startuml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam defaultTextAlignment center
+
+skinparam wrapWidth 200
+skinparam maxMessageSize 150
+
+skinparam LegendBorderColor transparent
+skinparam LegendBackgroundColor transparent
+skinparam LegendFontColor #FFFFFF
+
+skinparam shadowing<<legendArea>> false
+skinparam rectangle<<legendArea>> {
+    backgroundcolor #00000000
+    bordercolor #00000000
+}
+
+skinparam rectangle {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam database {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam queue {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam arrow {
+    Color #666666
+    FontColor #666666
+    FontSize 12
+}
+
+skinparam actor {
+    StereotypeFontSize 12
+    shadowing false
+    style awesome
+}
+
+skinparam person {
+    StereotypeFontSize 12
+    shadowing false
+}
+
+skinparam package {
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontStyle plain
+    BackgroundColor transparent
+}
+
+skinparam rectangle<<boundary>> {
+    Shadowing false
+    StereotypeFontSize 6
+    StereotypeFontColor transparent
+    FontColor #444444
+    BorderColor #444444
+    BackgroundColor transparent
+    BorderStyle dashed
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam database<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam queue<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam actor<<person>> {
+    StereotypeFontColor #08427B
+    FontColor #08427B
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam person<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+
+
+skinparam rectangle<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam database<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_person>> {
+    StereotypeFontColor #686868
+    FontColor #686868
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam person<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+
+
+skinparam rectangle<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam database<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam queue<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam actor<<system>> {
+    StereotypeFontColor #1168BD
+    FontColor #1168BD
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam person<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+
+
+skinparam rectangle<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam database<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_system>> {
+    StereotypeFontColor #999999
+    FontColor #999999
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam person<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+
+
+
+
+
+sprite $person [48x48/16] {
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+000000000000025788300000000005886410000000000000
+000000000007DFFFFFFD9643347BFFFFFFFB400000000000
+0000000004EFFFFFFFFFFFFFFFFFFFFFFFFFFB1000000000
+000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFD200000000
+00000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE10000000
+0000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB0000000
+000000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5000000
+000003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD000000
+000009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF200000
+00000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF600000
+00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF800000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+00001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA00000
+00000EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF700000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+0000008FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD3000000
+000000014555555555555555555555555555555300000000
+000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000
+}
+
+sprite $person2 [48x48/16] {
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000002578888300000000005888864100000000000
+0000000007DFFFFFFFFD9643347BFFFFFFFFFB4000000000
+00000004EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB10000000
+0000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD2000000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+00003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+0000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF50000
+0003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD0000
+0009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+0009FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFF2000
+0003FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFD0000
+0000BFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFF50000
+00003FFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFB00000
+000006FFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFE100000
+0000007FFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFD2000000
+00000004EFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFB10000000
+0000000007DF8FFFFFFFFFFFFFFFFFFFFFF8FB4000000000
+000000000002578888888888888888888864100000000000
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam rectangle<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam database<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam queue<<container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #438DD5
+    BorderColor #3C7FC0
+}
+
+skinparam rectangle<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam database<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+skinparam queue<<external_container>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #B3B3B3
+    BorderColor #A6A6A6
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+skinparam backgroundColor #FEFEFE
+
+hide stereotype
+legend right
+|<color:#000000>**Legend**</color> |
+|<#08427B> person |
+|<#1168BD> system |
+|<#438DD5> container |
+|<#686868> external person |
+|<#999999> external system |
+|<#B3B3B3> external container |
+endlegend
+
+title Container diagram for Subscription watch Subscription Sync
+
+rectangle "==console.redhat.com" <<boundary>> as crc  {
+  rectangle "==Subscription watch" <<boundary>> as swatch  {
+rectangle "==Subscription Sync\n<size:12>[System]</size>" <<boundary>> as subscription_sync  {
+      rectangle "==Subscription Sync CronJob\n//<size:12>[Java, Container]</size>//\n\n CronJob for syncing subscription data." <<container>> as subscription_sync_job
+      rectangle "==Offering Sync CronJob\n//<size:12>[Java, Container]</size>//\n\n CronJob for syncing offering data." <<container>> as offering_sync_job
+      rectangle "==Capacity Ingress\n//<size:12>[Java, Container]</size>//\n\n Syncs subscription data from backoffice services." <<container>> as capacity_ingress
+      queue "==platform.rhsm-subscriptions.offering-sync\n//<size:12>[Kafka Topic]</size>//" <<container>> as offering_sync_tasks
+      queue "==platform.rhsm-subscriptions.capacity-reconcile\n//<size:12>[Kafka Topic]</size>//" <<container>> as capacity_reconcile_tasks
+      queue "==platform.rhsm-subscriptions.subscription-sync\n//<size:12>[Kafka Topic]</size>//" <<container>> as subscription_sync_tasks
+    }
+    database "==Database\n//<size:12>[Postgres Database]</size>//\n\n Stores subscription and usage information." <<container>> as db
+  }
+}
+
+rectangle "==Red Hat IT" <<boundary>> as rhit  {
+  rectangle "==RH IT Subscription Service\n\n The internal RH Subscription API." <<external_system>> as rhit_subscriptions 
+  rectangle "==RH IT Product Service\n\n The internal RH Product API which contains Offering definitions." <<external_system>> as rhit_product 
+}
+
+subscription_sync_job - ->> subscription_sync_tasks : **Produces to**
+subscription_sync_job - ->> capacity_reconcile_tasks : **Produces to**
+offering_sync_job - ->> offering_sync_tasks : **Produces to**
+offering_sync_job - ->> capacity_reconcile_tasks : **Produces to**
+subscription_sync_tasks <<- - capacity_ingress : **Consumes from**
+capacity_reconcile_tasks <<- - capacity_ingress : **Consumes from**
+offering_sync_tasks <<- - capacity_ingress : **Consumes from**
+capacity_ingress - ->> db : **Reads from and writes to**\n//<size:12>[JDBC]</size>//
+capacity_ingress - ->> rhit_subscriptions : **Reads from**\n//<size:12>[JSON/HTTPS]</size>//
+capacity_ingress - ->> rhit_product : **Reads from**\n//<size:12>[JSON/HTTPS]</size>//
+@enduml
+
+PlantUML version 1.2021.00(Sun Jan 10 10:25:05 UTC 2021)
+(LGPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: ANSI_X3.4-1968
+Language: en
+Country: US
+--></g></svg>

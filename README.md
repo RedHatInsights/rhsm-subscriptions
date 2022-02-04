@@ -1,6 +1,78 @@
-# Local Deployment
+# Subscription watch
 
-## Prerequisites
+Subscription watch tracks usage and capacity at an account-level.
+Account-level reporting means that subscriptions are not directly associated to machines,
+containers, or service instances.
+
+![Context diagram for Subscription watch](docs/context.svg)
+
+Subscription watch can be thought of as several services that provide related functionality:
+
+<details>
+<summary>system conduit</summary>
+Service that syncs system data from Hosted Candlepin into HBI.
+
+![Container diagram for system conduit](docs/container-system-conduit.svg)
+</details>
+
+<details>
+<summary>metrics ingress</summary>
+Services that sync system/instance telemetry data into Subscription watch.
+
+![Container diagram for Metrics Ingress](docs/container-metrics-ingress.svg)
+</details>
+
+<details>
+<summary>tally</summary>
+Service that tallies system usage based on telemetry data from various sources.
+
+![Container diagram for Tally](docs/container-tally.svg)
+</details>
+
+<details>
+<summary>subscription sync</summary>
+Service that syncs subscription/offering data from RH IT services.
+
+![Container diagram for Subscription Sync](docs/container-subscription-sync.svg)
+</details>
+
+<details>
+<summary>API/UI</summary>
+Customer facing views of the usage and capacity data.
+
+![Container diagram for API/UI](docs/container-ui.svg)
+</details>
+
+<details>
+<summary>billing usage notification</summary>
+Services that notify billing services of hourly usage.
+
+![Container diagram for Billing Producers](docs/container-billing.svg)
+</details>
+
+Networking diagrams show how requests are routed:
+
+<details>
+<summary>Customer-facing API</summary>
+
+![Networking diagram for customer API](docs/networking-public-api.svg)
+</details>
+
+<details>
+<summary>Admin/Internal API</summary>
+
+![Networking diagram for internal APIs](docs/networking-jolokia-api.svg)
+</details>
+
+## Deployment
+
+There are currently 3 different ways to deploy the components, with running them locally as the 
+preferred development workflow.
+
+<details>
+<summary>Local Development</summary>
+
+### Prerequisites
 
 First, ensure you have podman-compose, podman and java 11 installed:
 
@@ -16,7 +88,7 @@ Ensure the checkout has the HBI submodule initialized:
 git submodule update --init --recursive
 ```
 
-## Dependent services
+### Dependent services
 
 *NOTE*: To run any of the following commands using docker, 
 
@@ -54,10 +126,24 @@ manually start containers for the services you wish to deploy locally.
 
 If you prefer to use local postgresql service, you can use `init_dbs.sh`.
 
-## Build and Run rhsm-subscriptions
+### Kafka
+
+`podman-compose` deploys a kafka instance w/ a UI at http://localhost:3030
+
+Two environment variables can be used to manipulate the offsets of the kafka
+consumers:
+
+- `KAFKA_SEEK_OVERRIDE_END` when set to `true` seeks to the very end
+- `KAFKA_SEEK_OVERRIDE_TIMESTAMP` when set to an OffsetDateTime, seeks the
+  queue to this position.
+
+These changes are permanent, committed the next time the kafka consumer is detected
+as idle.
+
+### Build and Run rhsm-subscriptions
 
 ```
-./gradlew bootRun
+./gradlew :bootRun
 ```
 
 Spring Boot [defines many properties](https://docs.spring.io/spring-boot/docs/2.3.4.RELEASE/reference/htmlsingle/#common-application-properties)
@@ -70,10 +156,10 @@ We also define a number of service-specific properties (see [Environment Variabl
 For example, the `server.port` (or `SERVER_PORT` env var) property changes the listening port:
 
 ```
-SERVER_PORT=9090 ./gradlew bootRun
+SERVER_PORT=9090 ./gradlew :bootRun
 ```
 
-## Profiles
+### Profiles
 
 We have a number of profiles. Each profile activates a subset of components in the codebase.
 
@@ -101,7 +187,7 @@ Each profile has a `@Configuration` class that controls which components get act
 
 If no profiles are specified, the default profiles list in `application.yaml` is applied.
 
-## Deployment Notes
+### Deployment Notes
 
 RHSM Subscriptions is meant to be deployed under the context path "/". The
 location of app specific resources are then controlled by the
@@ -114,9 +200,14 @@ can vary based on an environment variable given to the pod.
 
 ### Static Endpoints
 
-* /actuator/health - A Spring Actuator that we use as OKD
+These are served on port 9000. When running locally, you can access them via
+http://localhost:9000.
+
+* /jolokia - REST access to JMX beans via Jolokia
+* /hawtio - Admin UI interface to JMX beans and more
+* /health - A Spring Actuator that we use as k8s
   liveness/readiness probe.
-* /actuator/info - An actuator that reads the information from
+* /info - An actuator that reads the information from
   `META-INF/build-info.properties` and reports it. The response includes
   things like the version number.
 
@@ -193,7 +284,10 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `CLOUDIGRADE_PORT`: cloudigrade service port
 * `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
 
-### Clowder
+</details>
+
+<details>
+<summary>Clowder</summary>
 
 Clowder exposes the services it provides in an Openshift config map.  This config map appears 
 in the container as a JSON file located by default at the path defined by `ACG_CONFIG` environment
@@ -246,7 +340,10 @@ E.g.
 $ ACG_CONFIG=$(pwd)/swatch-core/src/test/resources/test-clowder-config.json ./gradlew bootRun
 ```
 
-## Deploy to Openshift
+</details>
+
+<details>
+<summary>Deploy to Openshift via Templates</summary>
 
 Prerequisite secrets:
 
@@ -268,7 +365,9 @@ oc process -f templates/rhsm-subscriptions-scheduler.yml | oc create -f -
 oc process -f templates/rhsm-subscriptions-worker.yml | oc create -f -
 ```
 
-## Release Notes
+</details>
+
+## Release Process
 
 You can perform a release using `./gradlew release` **on the develop
 branch**. This command will invoke a
@@ -284,21 +383,7 @@ doing semantic versioning, simply accept the defaults.
 The plugin will create the tag and bump the version. You just need to
 push with `git push --follow-tags origin develop main`.
 
-## Kafka
-
-`podman-compose` deploys a kafka instance w/ a UI at http://localhost:3030
-
-Two environment variables can be used to manipulate the offsets of the kafka
-consumers:
-
-- `KAFKA_SEEK_OVERRIDE_END` when set to `true` seeks to the very end
-- `KAFKA_SEEK_OVERRIDE_TIMESTAMP` when set to an OffsetDateTime, seeks the
-  queue to this position.
-
-These changes are permanent, committed the next time the kafka consumer is detected
-as idle.
-
-## Dashboard
+## Grafana Dashboards
 
 See App-SRE documentation on updating dashboards for more info.
 
@@ -323,5 +408,9 @@ EOF
 Possibly useful, to extract the JSON from the k8s configmap file:
 
 ```
-oc convert -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml -o go-template --template='{{ index .data "subscription-watch.json" }}' > subscription-watch.json
+oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --confirm
 ```
+
+## License
+
+Subscription watch components are licensed GPLv3 (see LICENSE for more details).

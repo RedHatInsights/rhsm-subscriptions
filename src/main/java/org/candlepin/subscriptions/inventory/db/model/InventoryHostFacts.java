@@ -37,8 +37,6 @@ public class InventoryHostFacts {
   private String account;
   private String displayName;
   private String orgId;
-  private Integer cores;
-  private Integer sockets;
   private String syncTimestamp;
   private Set<String> products;
   private String systemProfileInfrastructureType;
@@ -81,8 +79,6 @@ public class InventoryHostFacts {
       String account,
       String displayName,
       String orgId,
-      String cores,
-      String sockets,
       String products,
       String syncTimestamp,
       String systemProfileInfrastructureType,
@@ -114,8 +110,6 @@ public class InventoryHostFacts {
     this.account = account;
     this.displayName = displayName;
     this.orgId = orgId;
-    this.cores = asInt(cores);
-    this.sockets = asInt(sockets);
     this.products = asStringSet(products);
     this.qpcProducts = asStringSet(qpcProducts);
     this.qpcProductIds = asStringSet(qpcProductIds);
@@ -142,14 +136,6 @@ public class InventoryHostFacts {
     this.billingModel = billingModel;
     this.cloudProvider = cloudProvider;
     this.staleTimestamp = staleTimestamp;
-  }
-
-  public Integer getCores() {
-    return cores == null ? 0 : cores;
-  }
-
-  public Integer getSockets() {
-    return sockets == null ? 0 : sockets;
   }
 
   public void setProducts(String products) {

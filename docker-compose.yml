@@ -21,7 +21,12 @@ services:
       - "3030:3030"
       - "9092:9092"
       - "29092:29092"
+    expose:
+      - "9092"
   inventory:
     build:
       context: insights-host-inventory
       dockerfile: dev.dockerfile
+    environment:
+      - INVENTORY_DB_HOST=db
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
