@@ -1,0 +1,100 @@
+openapi: 3.0.2
+info:
+  title: SWatch Billing Provider - AWS
+  version: 1.0.0
+  description: ''
+  contact:
+    url: 'https://github.com/RedHatInsights/rhsm-subscriptions'
+paths:
+  /fruits:
+    summary: Path used to manage the list of fruits.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `Fruit` entities.  This path contains
+      a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Fruit'
+          description: Successful response - returns an array of `Fruit` entities.
+      operationId: getFruits
+      summary: List All Fruits
+      description: Gets a list of all `Fruit` entities.
+    post:
+      requestBody:
+        description: A new `Fruit` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Fruit'
+        required: true
+      responses:
+        '201':
+          description: Successful response.
+      operationId: createFruit
+      summary: Create a Fruit
+      description: Creates a new instance of a `Fruit`.
+  '/fruits/{fruitId}':
+    summary: Path used to manage a single Fruit.
+    description: >-
+      The REST endpoint/path used to get, update, and delete single instances of an `Fruit`.  This path
+      contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks,
+      respectively.
+    get:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fruit'
+          description: Successful response - returns a single `Fruit`.
+      operationId: getFruit
+      summary: Get a Fruit
+      description: Gets the details of a single instance of a `Fruit`.
+    put:
+      requestBody:
+        description: Updated `Fruit` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Fruit'
+        required: true
+      responses:
+        '202':
+          description: Successful response.
+      operationId: updateFruit
+      summary: Update a Fruit
+      description: Updates an existing `Fruit`.
+    delete:
+      responses:
+        '204':
+          description: Successful response.
+      operationId: deleteFruit
+      summary: Delete a Fruit
+      description: Deletes an existing `Fruit`.
+    parameters:
+      -
+        name: fruitId
+        description: A unique identifier for a `Fruit`.
+        schema:
+          type: string
+        in: path
+        required: true
+components:
+  schemas:
+    Fruit:
+      title: Root Type for Fruit
+      description: ''
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+      example:
+        name: apple
+        color: red

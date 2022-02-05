@@ -12,11 +12,9 @@ public class FruitService {
 
   private static final String EGRESS_CHANNEL = "egress";
 
-  public String getFruit(String name) {
+  public Fruit getFruit(String name) {
 
-    Fruit.findByName(name);
-
-    return "hello " + name;
+    return Fruit.findByName(name);
   }
 
   public void saveFruitToDatabase() {
