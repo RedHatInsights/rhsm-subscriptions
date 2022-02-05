@@ -11,7 +11,7 @@ IMAGE=quay.io/lburnett/rhsm
 IMAGE_TAG=quarkus_poc
 BONFIRE_APP_NAME=lburnettquarkus
 BONFIRE_COMPONENT_NAME=service_demo
-NAMESPACE=$(bonfire namespace reserve -d 12h)
+NAMESPACE=ephemeral-8mcqk7
 
 bonfire deploy -n $NAMESPACE \
 --no-remove-resources $BONFIRE_COMPONENT_NAME \
