@@ -6,14 +6,18 @@
 * [x] sample service deploys to EE and connects to ephemeral db
 * [x] update service to read from clowder cdconfig file using [clowder-quarkus-config-source](https://github.com/RedHatInsights/clowder-quarkus-config-source)
 * [x] update sample service to consume/produce messages onto kafka topic
-* [ ] how to view messages on ephemeral environment topics
-* [ ] introduce kafka as a clowdapp dependency and make it work
+* [ ] how to view messages on ephemeral environment topics (maybe deploy helper container with kafka cat?)
+* [x] introduce kafka as a clowdapp dependency and make it work
 * [ ] introduce swatch initdb container so the app connects to the swatch database.  add a resource/service/entity to test
+* [ ] set up test profile so unit tests can run with standalone kafka and h2 instances (ie we can unit test without needing database/kafka as a dependency)
+* [x] use openapi-generator and openapi spec to generate example rest endpoints
+* [ ] figure out how logging works & configure logging config. lombok's @Slf4j wasn't printing to the console, been using system out for now
 
 ## build image & push to quay
 
 ```bash
 QUAY_USER=lburnett
+#this is a fake password
 QUAY_TOKEN=Passw0rd
 IMAGE=quay.io/lburnett/rhsm
 IMAGE_TAG=quarkus_poc
