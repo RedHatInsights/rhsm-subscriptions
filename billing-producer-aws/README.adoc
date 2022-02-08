@@ -12,6 +12,8 @@
 * [ ] set up test profile so unit tests can run with standalone kafka and h2 instances (ie we can unit test without needing database/kafka as a dependency)
 * [x] use openapi-generator and openapi spec to generate example rest endpoints
 * [ ] figure out how logging works & configure logging config. lombok's @Slf4j wasn't printing to the console, been using system out for now
+* [ ] figure out what modifications (if any) need to be done to our top level pr_check & build scripts
+* [ ] create quay repo
 
 ## build image & push to quay
 
