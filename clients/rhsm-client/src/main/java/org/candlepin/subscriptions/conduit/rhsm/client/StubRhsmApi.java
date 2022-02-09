@@ -59,6 +59,8 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.getFacts().put("virt.is_guest", "True");
     consumer1.getFacts().put("ocm.units", "Sockets");
     consumer1.getFacts().put("ocm.billing_model", "standard");
+    consumer1.getFacts().put("distribution.name", "Red Hat Enterprise Linux Workstation");
+    consumer1.getFacts().put("distribution.version", "6.3");
     InstalledProducts product = new InstalledProducts();
     product.setProductId("72");
     consumer1.getInstalledProducts().add(product);

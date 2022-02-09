@@ -120,7 +120,7 @@ public abstract class InventoryService {
   private SystemProfile createSystemProfile(ConduitFacts facts) {
     SystemProfile systemProfile = new SystemProfile();
     if (facts.getOsName() != null) {
-      systemProfile.setOperatingSystem(operatingSystemName(facts.getOsName()));
+      systemProfile.setOperatingSystem(operatingSystem(facts));
     }
     systemProfile.setOsRelease(facts.getOsVersion());
     systemProfile.setArch(facts.getArchitecture());
@@ -169,6 +169,14 @@ public abstract class InventoryService {
     return rhsmFactMap;
   }
 
+  private SystemProfileOperatingSystem operatingSystem(ConduitFacts facts) {
+    var operatingSystem = operatingSystemName(facts.getOsName());
+    if (facts.getOsVersion() != null) {
+      setOperatingSystemVersion(operatingSystem, facts.getOsVersion());
+    }
+    return operatingSystem;
+  }
+
   private SystemProfileOperatingSystem operatingSystemName(String operatingSystemName) {
     if (!operatingSystemName.toLowerCase().contains("red hat enterprise linux")) {
       return null;
@@ -176,6 +184,19 @@ public abstract class InventoryService {
     var operatingSystems = new SystemProfileOperatingSystem();
     operatingSystems.setName(SystemProfileOperatingSystem.NameEnum.RHEL);
     return operatingSystems;
+  }
+
+  private void setOperatingSystemVersion(
+      SystemProfileOperatingSystem operatingSystem, String operatingSystemVersion) {
+    var versions = operatingSystemVersion.split("\\.");
+    if (versions.length == 2) {
+      operatingSystem.setMajor(Integer.parseInt(versions[0]));
+      operatingSystem.setMinor(Integer.parseInt(versions[1]));
+    } else {
+      log.warn(
+          "Invalid OperatingSystemVersion: found \"{}\" but should be in format \"major.minor\"",
+          operatingSystemVersion);
+    }
   }
 
   private void addFact(Map<String, Object> factMap, String key, String value) {
