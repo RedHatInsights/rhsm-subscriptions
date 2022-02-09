@@ -117,6 +117,8 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals("6.3", message.getData().getSystemProfile().getOsRelease());
     assertEquals(
         "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().getValue());
+    assertEquals(6, message.getData().getSystemProfile().getOperatingSystem().getMajor());
+    assertEquals(3, message.getData().getSystemProfile().getOperatingSystem().getMinor());
   }
 
   @Test
