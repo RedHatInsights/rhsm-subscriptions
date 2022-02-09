@@ -86,7 +86,7 @@ class HostTest {
     host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 2.0);
     host.clearMonthlyTotals(
         OffsetDateTime.parse("2021-01-01T00:00:00Z"), OffsetDateTime.parse("2021-02-01T00:00:00Z"));
-    assertTrue(host.getMonthlyTotals().isEmpty());
+    assertTrue(host.getMonthlyTotals().values().stream().allMatch(v -> v == 0));
   }
 
   @Test

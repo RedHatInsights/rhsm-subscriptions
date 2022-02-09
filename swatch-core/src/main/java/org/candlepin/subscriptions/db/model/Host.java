@@ -263,7 +263,12 @@ public class Host implements Serializable {
   public void clearMonthlyTotal(OffsetDateTime timestamp) {
     String monthIdentifier = InstanceMonthlyTotalKey.formatMonthId(timestamp);
     Set<InstanceMonthlyTotalKey> keys = monthlyTotals.keySet();
-    keys.removeIf(key -> Objects.equals(key.getMonth(), monthIdentifier));
+    // ENT-4622 here we set the value to 0, rather than clear, because clearing can cause delete
+    // and re-insert to be issued whenever flushing happens. Attempting to insert equivalent rows
+    // in two different concurrent transactions may cause constraint violations.
+    keys.stream()
+        .filter(key -> Objects.equals(key.getMonth(), monthIdentifier))
+        .forEach(key -> monthlyTotals.put(key, 0.0));
   }
 
   public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
