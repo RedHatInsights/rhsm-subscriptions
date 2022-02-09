@@ -35,28 +35,18 @@ public class InventoryHostFactTestHelper {
     throw new IllegalStateException("Utility class; should never be instantiated!");
   }
 
-  public static InventoryHostFacts createHypervisor(
-      String account, String orgId, Integer product, int cores, int sockets) {
+  public static InventoryHostFacts createHypervisor(String account, String orgId, Integer product) {
     InventoryHostFacts baseFacts = createBaseHost(account, orgId);
     if (product != null) {
       baseFacts.setProducts(product.toString());
     }
-    baseFacts.setCores(cores);
-    baseFacts.setSockets(sockets);
     return baseFacts;
   }
 
   public static InventoryHostFacts createGuest(
-      String hypervisorUUID,
-      String account,
-      String orgId,
-      Integer product,
-      int cores,
-      int sockets) {
+      String hypervisorUUID, String account, String orgId, Integer product) {
     InventoryHostFacts baseFacts = createBaseHost(account, orgId);
     baseFacts.setProducts(product.toString());
-    baseFacts.setCores(cores);
-    baseFacts.setSockets(sockets);
     baseFacts.setHypervisorUuid(hypervisorUUID);
     baseFacts.setGuestId(UUID.randomUUID().toString());
     baseFacts.setVirtual(true);
@@ -67,32 +57,22 @@ public class InventoryHostFactTestHelper {
       String account,
       String orgId,
       List<Integer> products,
-      Integer cores,
-      Integer sockets,
       String syspurposeRole,
       OffsetDateTime syncTimestamp) {
     return createRhsmHost(
         account,
         orgId,
         StringUtils.collectionToCommaDelimitedString(products),
-        cores,
-        sockets,
         syspurposeRole,
         syncTimestamp);
   }
 
   public static InventoryHostFacts createRhsmHost(
-      List<Integer> products,
-      Integer cores,
-      Integer sockets,
-      String syspurposeRole,
-      OffsetDateTime syncTimestamp) {
+      List<Integer> products, String syspurposeRole, OffsetDateTime syncTimestamp) {
     return createRhsmHost(
         "Account",
         "test_org",
         StringUtils.collectionToCommaDelimitedString(products),
-        cores,
-        sockets,
         syspurposeRole,
         syncTimestamp);
   }
@@ -101,19 +81,10 @@ public class InventoryHostFactTestHelper {
       String account,
       String orgId,
       String products,
-      Integer cores,
-      Integer sockets,
       String syspurposeRole,
       OffsetDateTime syncTimeStamp) {
     return createRhsmHost(
-        account,
-        orgId,
-        products,
-        ServiceLevel.EMPTY,
-        cores,
-        sockets,
-        syspurposeRole,
-        syncTimeStamp);
+        account, orgId, products, ServiceLevel.EMPTY, syspurposeRole, syncTimeStamp);
   }
 
   public static InventoryHostFacts createRhsmHost(
@@ -121,13 +92,11 @@ public class InventoryHostFactTestHelper {
       String orgId,
       String products,
       ServiceLevel sla,
-      Integer cores,
-      Integer sockets,
       String syspurposeRole,
       OffsetDateTime syncTimeStamp) {
 
     return createRhsmHost(
-        account, orgId, products, sla, Usage.EMPTY, cores, sockets, syspurposeRole, syncTimeStamp);
+        account, orgId, products, sla, Usage.EMPTY, syspurposeRole, syncTimeStamp);
   }
 
   public static InventoryHostFacts createRhsmHost(
@@ -136,15 +105,11 @@ public class InventoryHostFactTestHelper {
       String products,
       ServiceLevel sla,
       Usage usage,
-      Integer cores,
-      Integer sockets,
       String syspurposeRole,
       OffsetDateTime syncTimeStamp) {
 
     InventoryHostFacts baseFacts = createBaseHost(account, orgId);
     baseFacts.setProducts(products);
-    baseFacts.setCores(cores);
-    baseFacts.setSockets(sockets);
     baseFacts.setSyspurposeRole(syspurposeRole);
     baseFacts.setSyspurposeSla(sla.getValue());
     baseFacts.setSyspurposeUsage(usage.getValue());

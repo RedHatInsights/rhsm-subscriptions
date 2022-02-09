@@ -6,15 +6,15 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:5.3.1"
+        classpath "org.openapitools:openapi-generator-gradle-plugin:5.4.0"
         classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.1"
-        classpath "de.undercouch:gradle-download-task:4.1.2"
+        classpath "de.undercouch:gradle-download-task:5.0.1"
     }
 }
 
 plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "com.diffplug.spotless" version "6.2.0"
+    id "com.diffplug.spotless" version "6.2.1"
     id "jacoco"
     id "org.sonarqube" version "3.3"
     id "org.springframework.boot" version "2.6.3"
@@ -28,7 +28,7 @@ plugins {
 
 ext {
     swagger_annotations_version = "1.6.4"
-    swagger_ui_version = "4.2.1"
+    swagger_ui_version = "4.4.1"
     resteasy_version = "3.6.3.Final"
     spring_boot_version = "2.6.3"
     jboss_jaxrs_api_version = "2.0.2.Final"
