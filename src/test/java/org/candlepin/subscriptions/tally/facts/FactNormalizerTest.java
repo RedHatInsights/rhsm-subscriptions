@@ -669,6 +669,7 @@ public class FactNormalizerTest {
     facts.setSystemProfileCoresPerSocket(7);
     facts.setSystemProfileSockets(1);
     NormalizedFacts normalizedFacts = normalizer.normalize(facts, Collections.emptyMap());
+    assertTrue(normalizedFacts.isMarketplace());
     assertEquals(0, normalizedFacts.getCores());
     assertEquals(0, normalizedFacts.getSockets());
   }

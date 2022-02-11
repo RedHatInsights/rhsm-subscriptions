@@ -47,7 +47,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
 
     // Cloud provider hosts only account for a single socket.
     if (normalizedFacts.getCloudProviderType() != null) {
-      appliedSockets = 1;
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       prodCalc.addCloudProvider(
           normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
       return Optional.of(
@@ -61,7 +61,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       // If the hypervisor is unknown for a guest, we consider it as having a
       // unique hypervisor instance contributing to the hypervisor counts.
       // Since the guest is unmapped, we only contribute a single socket.
-      appliedSockets = 1;
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
       return Optional.of(
           createBucket(
@@ -70,6 +70,9 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
     // Accumulate for physical systems.
     else if (!normalizedFacts.isVirtual()) {
       // Physical system so increment the physical system counts.
+      if (normalizedFacts.isMarketplace()) {
+        appliedSockets = 0;
+      }
       prodCalc.addPhysical(appliedCores, appliedSockets, 1);
       return Optional.of(
           createBucket(

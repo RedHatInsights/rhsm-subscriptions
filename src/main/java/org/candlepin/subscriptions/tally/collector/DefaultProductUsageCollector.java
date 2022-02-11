@@ -38,18 +38,22 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
     HardwareMeasurementType appliedType = null;
     // Cloud provider hosts only account for a single socket.
     if (normalizedFacts.getCloudProviderType() != null) {
-      appliedSockets = 1;
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       appliedType = normalizedFacts.getCloudProviderType();
       prodCalc.addCloudProvider(
           normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
     }
     // Accumulate for physical systems.
     else if (!normalizedFacts.isVirtual()) {
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : appliedSockets;
       appliedType = HardwareMeasurementType.PHYSICAL;
       prodCalc.addPhysical(appliedCores, appliedSockets, 1);
     }
     // Any other system is considered virtual
     else {
+      if (normalizedFacts.isMarketplace()) {
+        appliedSockets = 0;
+      }
       appliedType = HardwareMeasurementType.VIRTUAL;
       prodCalc.addToTotal(appliedCores, appliedSockets, 1);
     }
