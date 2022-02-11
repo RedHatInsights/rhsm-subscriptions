@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.autoconfigure.web.server.ManagementServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -73,6 +74,7 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Autowired protected ObjectMapper mapper;
   @Autowired protected SecurityProperties secProps;
+  @Autowired protected ManagementServerProperties actuatorProps;
   @Autowired protected RbacProperties rbacProperties;
   @Autowired protected ConfigurableEnvironment env;
   @Autowired protected RbacService rbacService;
@@ -163,6 +165,12 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
         .permitAll()
         // ingress security uses server settings (require ssl cert auth), so permit all here
         .antMatchers(String.format("/%s/ingress/**", apiPath))
+        .permitAll()
+        // Allow access to the Spring Actuator "root" which displays the available endpoints
+        .requestMatchers(
+            request ->
+                request.getServerPort() == actuatorProps.getPort()
+                    && request.getContextPath().equals(actuatorProps.getBasePath()))
         .permitAll()
         .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
         .permitAll()
