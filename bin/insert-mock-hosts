@@ -13,12 +13,11 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
-                  skip_buckets=False, is_hbi=False):
-
+                  skip_buckets=False, is_hbi=False, is_marketplace=False):
     account = account_number or "account123"
     host_id = uuid.uuid4()
-    inventory_id=inventory_id or uuid.uuid4()
-    insights_id=insights_id or uuid.uuid4()
+    inventory_id = inventory_id or uuid.uuid4()
+    insights_id = insights_id or uuid.uuid4()
 
     if not is_guest:
         hypervisor_uuid = None
@@ -47,6 +46,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 'cores_per_socket': cores // sockets,
                 'number_of_sockets': sockets,
                 'cloud_provider': cloud_provider,
+                'is_marketplace': is_marketplace,
             }),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
@@ -98,29 +98,32 @@ def _generate_insert(table, **host_fields):
     values = ','.join(db_repr(value) for value in values)
     output.write(f'insert into {table}({fields}) values ({values});\n')
 
-def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None, sockets=None):
-  sla = sla or 'Premium'
-  usage = usage or 'Production'
-  bucket_fields = {
-    'host_id': host_id,
-    'product_id': product or 'RHEL',
-    'as_hypervisor': as_hypervisor,
-    'measurement_type': measurement_type,
-    'cores': cores,
-    'sockets': sockets,
-  }
 
-  sla_vals = ["_ANY", sla]
-  usage_vals = ["_ANY", usage]
-  for next_sla in sla_vals:
-    for next_usage in usage_vals:
-      _generate_insert("host_tally_buckets", sla=next_sla, usage=next_usage, **bucket_fields)
+def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None,
+                      sockets=None):
+    sla = sla or 'Premium'
+    usage = usage or 'Production'
+    bucket_fields = {
+        'host_id': host_id,
+        'product_id': product or 'RHEL',
+        'as_hypervisor': as_hypervisor,
+        'measurement_type': measurement_type,
+        'cores': cores,
+        'sockets': sockets,
+    }
+
+    sla_vals = ["_ANY", sla]
+    usage_vals = ["_ANY", usage]
+    for next_sla in sla_vals:
+        for next_usage in usage_vals:
+            _generate_insert("host_tally_buckets", sla=next_sla, usage=next_usage, **bucket_fields)
 
 
 def _create_account_service(account, service_type):
-  fields = ','.join(['account_number', 'service_type'])
-  values = ','.join(db_repr(value) for value in [account, service_type])
-  output.write(f'insert into account_services ({fields}) values ({values}) ON CONFLICT ON CONSTRAINT account_services_pkey DO NOTHING;\n')
+    fields = ','.join(['account_number', 'service_type'])
+    values = ','.join(db_repr(value) for value in [account, service_type])
+    output.write(
+        f'insert into account_services ({fields}) values ({values}) ON CONFLICT ON CONSTRAINT account_services_pkey DO NOTHING;\n')
 
 
 parser = argparse.ArgumentParser(description='Insert mock hosts into the a local DB')
@@ -178,6 +181,8 @@ parser.add_argument('--opt-in', action='store_true',
                     help='Opt in this account')
 parser.add_argument('--clear', action='store_true',
                     help='Clear data in the hosts table and related tables')
+parser.add_argument('--marketplace', action='store_true', dest='is_marketplace',
+                    help='Set a system as a Marketplace instance')
 
 args = parser.parse_args()
 if args.is_hbi:
@@ -191,7 +196,7 @@ os.environ['PGPASSWORD'] = args.db_password or default_password
 
 psql = None
 if not args.output_sql:
-    psql = subprocess.Popen('psql', stdin=subprocess.PIPE, shell=True, text=True)
+    psql = subprocess.Popen('psql', stdin=subprocess.PIPE, shell=True, encoding='utf-8')
     output = psql.stdin
 
 output.write('begin;')
@@ -207,39 +212,49 @@ for i in range(args.num_accounts):
         account = args.account
     if args.opt_in:
         _generate_insert('account_config',
-            account_number=account,
-            sync_enabled=True,
-            reporting_enabled=True,
-            opt_in_type='API',
-            created='2021-01-01',
-            updated='2021-01-01'
-        )
+                         account_number=account,
+                         sync_enabled=True,
+                         reporting_enabled=True,
+                         opt_in_type='API',
+                         created='2021-01-01',
+                         updated='2021-01-01'
+                         )
 
     product = args.product or "RHEL"
 
     for i in range(args.num_aws):
         generate_host(account_number=account, hardware_type='VIRTUAL', measurement_type='CLOUD',
-                    product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hbi=args.is_hbi,
-                    cloud_provider='AWS')
+                      product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
+                      is_hbi=args.is_hbi,
+                      cloud_provider='AWS', is_marketplace=args.is_marketplace)
 
     for i in range(args.num_physical):
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
-                    product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hbi=args.is_hbi)
+                      product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
+                      is_hbi=args.is_hbi,
+                      is_marketplace=args.is_marketplace)
 
     hypervisor = None
     for i in range(args.num_hypervisors):
-        hypervisor = generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='VIRTUAL', product=args.product,
-                                sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True, is_hbi=args.is_hbi)
+        hypervisor = generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='VIRTUAL',
+                                   product=args.product,
+                                   sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
+                                   is_hypervisor=True, is_hbi=args.is_hbi,
+                                   is_marketplace=args.is_marketplace)
         # create a physical entry for the host as well.
-        generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL', product=args.product,
-                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True, is_hbi=args.is_hbi)
+        generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
+                      product=args.product,
+                      sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
+                      is_hbi=args.is_hbi,
+                      is_marketplace=args.is_marketplace)
 
     create_unmapped = args.unmapped_guests
     for i in range(args.num_guests):
         if args.hypervisor_id:
             hypervisor_uuid = args.hypervisor_id
         elif hypervisor is not None:
-            hypervisor_uuid = hypervisor.get('subscription_manager_id') or json.loads(hypervisor['canonical_facts'])['subscription_manager_id']
+            hypervisor_uuid = hypervisor.get('subscription_manager_id') or json.loads(hypervisor['canonical_facts'])[
+                'subscription_manager_id']
             # If we are associating the guests with a created hypervisor host, don't allow it to be unmapped
             # since it was considered as reported.
             create_unmapped = False
@@ -248,9 +263,10 @@ for i in range(args.num_accounts):
 
         skip_buckets = "RHEL" in product.upper()
         generate_host(account_number=account, hardware_type='VIRTUALIZED', is_guest=True,
-                    product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
-                    cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
-                    skip_buckets=skip_buckets, is_hbi=args.is_hbi)
+                      product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
+                      cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
+                      skip_buckets=skip_buckets, is_hbi=args.is_hbi,
+                      is_marketplace=args.is_marketplace)
 
 output.write('commit;')
 

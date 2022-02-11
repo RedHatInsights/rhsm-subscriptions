@@ -223,6 +223,7 @@ public class FactNormalizer {
       return;
     }
 
+    normalizedFacts.setMarketplace(hostFacts.isMarketplace());
     if (normalizedFacts.getCores() != 0) {
       normalizedFacts.setCores(0);
     }
