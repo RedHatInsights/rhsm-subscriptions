@@ -686,7 +686,7 @@ class SubscriptionCapacityViewRepositoryTest {
     capacity.setSubscriptionId(SUBSCRIPTION_ID);
     capacity.setBeginDate(begin);
     capacity.setEndDate(end);
-    capacity.setHasUnlimitedGuestSockets(false);
+    capacity.setHasUnlimitedUsage(false);
     capacity.setOwnerId(OWNER_ID);
     capacity.setPhysicalSockets(4);
     capacity.setVirtualSockets(20);

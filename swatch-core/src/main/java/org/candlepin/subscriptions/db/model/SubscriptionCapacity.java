@@ -54,8 +54,8 @@ public class SubscriptionCapacity implements Serializable {
 
   // Lombok would name the getter "isHasUnlimitedGuestSockets"
   @Getter(AccessLevel.NONE)
-  @Column(name = "has_unlimited_guest_sockets")
-  private boolean hasUnlimitedGuestSockets;
+  @Column(name = "has_unlimited_usage")
+  private Boolean hasUnlimitedUsage;
 
   @Column(name = "begin_date")
   private OffsetDateTime beginDate;
@@ -100,8 +100,8 @@ public class SubscriptionCapacity implements Serializable {
     key.setOwnerId(ownerId);
   }
 
-  public boolean getHasUnlimitedGuestSockets() {
-    return hasUnlimitedGuestSockets;
+  public Boolean getHasUnlimitedUsage() {
+    return hasUnlimitedUsage;
   }
 
   public static SubscriptionCapacity from(
@@ -123,6 +123,7 @@ public class SubscriptionCapacity implements Serializable {
         .virtualSockets(totalCapacity(offering.getVirtualSockets(), subscription.getQuantity()))
         .virtualCores(totalCapacity(offering.getVirtualCores(), subscription.getQuantity()))
         .physicalCores(totalCapacity(offering.getPhysicalCores(), subscription.getQuantity()))
+        .hasUnlimitedUsage(offering.getHasUnlimitedUsage())
         .build();
   }
 

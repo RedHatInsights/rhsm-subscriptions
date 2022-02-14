@@ -1,0 +1,21 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202202041415-1"  author="kflahert">
+    <comment>Add has_unlimited_usage column to offering table</comment>
+    <addColumn tableName="offering">
+      <column name="has_unlimited_usage" type="BOOLEAN" />
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202202041415-2"  author="kflahert">
+    <comment>Rename has_unlimited_guest_sockets column to has_unlimited_usage in subscription_capacity table</comment>
+    <renameColumn  newColumnName="has_unlimited_usage"
+                   oldColumnName="has_unlimited_guest_sockets"
+                   tableName="subscription_capacity"/>
+  </changeSet>
+
+</databaseChangeLog>

@@ -148,6 +148,7 @@ class OfferingSyncControllerTest {
             408, 290, 473, 479, 240, 603, 604, 185, 546, 608, 69, 70, 610));
     persisted.setServiceLevel(ServiceLevel.PREMIUM);
     persisted.setUsage(Usage.EMPTY);
+    persisted.setHasUnlimitedUsage(false);
 
     when(repo.findById(anyString())).thenReturn(Optional.of(persisted));
 

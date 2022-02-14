@@ -79,7 +79,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("ownerId", capacity.getOwnerId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
-    assertFalse(capacity.getHasUnlimitedGuestSockets());
+    assertFalse(capacity.getHasUnlimitedUsage());
   }
 
   @Test
@@ -104,7 +104,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("ownerId", capacity.getOwnerId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
-    assertFalse(capacity.getHasUnlimitedGuestSockets());
+    assertFalse(capacity.getHasUnlimitedUsage());
   }
 
   @Test
@@ -129,7 +129,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("ownerId", capacity.getOwnerId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
-    assertFalse(capacity.getHasUnlimitedGuestSockets());
+    assertFalse(capacity.getHasUnlimitedUsage());
   }
 
   @Test
@@ -154,7 +154,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("ownerId", capacity.getOwnerId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
-    assertFalse(capacity.getHasUnlimitedGuestSockets());
+    assertFalse(capacity.getHasUnlimitedUsage());
   }
 
   @Test
@@ -374,7 +374,7 @@ class SubscriptionCapacityRepositoryTest {
     capacity.setSubscriptionId("subscription");
     capacity.setBeginDate(begin);
     capacity.setEndDate(end);
-    capacity.setHasUnlimitedGuestSockets(false);
+    capacity.setHasUnlimitedUsage(false);
     capacity.setOwnerId("ownerId");
     capacity.setPhysicalSockets(4);
     capacity.setVirtualSockets(20);

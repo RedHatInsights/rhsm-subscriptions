@@ -1,0 +1,28 @@
+{
+  "products": [
+    {
+      "sku": "MW00210MO",
+      "description": "Red Hat OpenShift Container Platform, Premium (1 vCPU, Monthly, On-Demand, Billing)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "CORES",
+          "value": "Unlimited"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Standard"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Red Hat OpenShift Container Platform, Premium (1 vCPU, Monthly, On-Demand, Billing)"
+        }
+      ],
+      "roles": []
+    }
+  ]
+}

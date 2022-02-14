@@ -1753,6 +1753,9 @@ components:
           description: "The combined (physical and virtual) capacity for the offering."
           type: integer
           format: int32
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
         uom:
           description: "The unit-of-measure for the capacity."
           $ref: "#/components/schemas/Uom"

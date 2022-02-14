@@ -134,4 +134,13 @@ public class Offering implements Serializable {
   /** Syspurpose Usage for the offering */
   @Column(name = "usage")
   private Usage usage;
+
+  // Lombok would name the getter "isHasUnlimitedGuestSockets"
+  @Getter(AccessLevel.NONE)
+  @Column(name = "has_unlimited_usage")
+  private Boolean hasUnlimitedUsage;
+
+  public Boolean getHasUnlimitedUsage() {
+    return hasUnlimitedUsage;
+  }
 }
