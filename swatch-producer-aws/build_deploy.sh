@@ -1,0 +1,1 @@
+./mvnw package -DskipTests && docker build -f src/main/docker/Dockerfile.jvm -t quay.io/lburnett/rhsm:02142022 . && docker push quay.io/lburnett/rhsm:02142022 && ./deploy/bonfire_deploy.sh

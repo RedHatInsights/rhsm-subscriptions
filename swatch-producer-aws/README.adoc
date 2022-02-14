@@ -7,6 +7,7 @@ QUAY_USER=lburnett
 QUAY_TOKEN=Passw0rd
 IMAGE=quay.io/lburnett/rhsm
 IMAGE_TAG=quarkus_poc
+OC_TOKEN=Passw0rd
 
 docker login -u="$QUAY_USER" -p="$QUAY_TOKEN" quay.io
 
@@ -15,7 +16,7 @@ docker -push "${IMAGE}:${IMAGE_TAG}"
 ```
 
 ## login to openshift
-`oc login --token=Passw0rd --server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443`
+`oc login --token=${OC_TOKEN} --server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443`
 
 
 ## setup Virtual Environment
@@ -36,9 +37,9 @@ appsFile:
   path: bonfire_configs/ephemeral_apps.yaml
 
 apps:
-- name: lburnettquarkus # BONFIRE_APP_NAME
+- name: swatch-producer-aws # BONFIRE_APP_NAME
   components:
-    - name: service_demo # BONFIRE_COMPONENT_NAME
+    - name: swatch-producer-aws # BONFIRE_COMPONENT_NAME
       host: local
       repo: /home/lburnett/code/rhsm-subscriptions/demo
       path: /deploy/clowdapp.yaml
@@ -48,8 +49,8 @@ apps:
 ```bash
 IMAGE=quay.io/lburnett/rhsm
 IMAGE_TAG=quarkus_poc
-BONFIRE_APP_NAME=lburnettquarkus
-BONFIRE_COMPONENT_NAME=service_demo
+BONFIRE_APP_NAME=swatch-producer-aws
+BONFIRE_COMPONENT_NAME=swatch-producer-aws
 NAMESPACE=$(bonfire namespace reserve -d 12h)
 
 echo $NAMESPACE

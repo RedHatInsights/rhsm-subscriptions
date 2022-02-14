@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: swatch-billing-provider-aws
+  name: swatch-producer-aws
 
 parameters:
   - name: IMAGE_PULL_SECRET
@@ -16,7 +16,7 @@ parameters:
   - name: CPU_LIMIT
     value: 1500m
   - name: ENV_NAME # naming convention is env-$BONFIRE_APP_NAME (from bonfire config yaml file)
-    value: env-lburnettquarkus
+    value: env-swatch-producer-aws
   - name: IMAGE
     value: quay.io/lburnett/rhsm
   - name: IMAGE_TAG # bonfire takes precedence and pulls latest unless the bonfire -i flag is used
@@ -26,7 +26,7 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
-    name: swatch-billing-provider-aws
+    name: swatch-producer-aws
   spec:
     envName: ${ENV_NAME}
 #    dependencies:

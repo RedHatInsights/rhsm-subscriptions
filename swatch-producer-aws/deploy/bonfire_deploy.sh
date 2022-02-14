@@ -8,10 +8,10 @@ python3 -m venv $VENV_DIR
 pip install --upgrade crc-bonfire
 
 IMAGE=quay.io/lburnett/rhsm
-IMAGE_TAG=quarkus_poc
-BONFIRE_APP_NAME=lburnettquarkus
-BONFIRE_COMPONENT_NAME=service_demo
-NAMESPACE=ephemeral-8mcqk7
+IMAGE_TAG=02142022
+BONFIRE_APP_NAME=swatch-producer-aws
+BONFIRE_COMPONENT_NAME=swatch-producer-aws
+NAMESPACE=ephemeral-w9ysl9
 
 bonfire deploy -n $NAMESPACE \
 --no-remove-resources $BONFIRE_COMPONENT_NAME \

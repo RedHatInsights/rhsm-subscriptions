@@ -1,0 +1,29 @@
+{
+  "kind": "List",
+  "apiVersion": "v1",
+  "metadata": {},
+  "items": [
+    {
+      "apiVersion": "cloud.redhat.com/v1alpha1",
+      "kind": "ClowdJobInvocation",
+      "metadata": {
+        "name": "iqe-8576d1fc"
+      },
+      "spec": {
+        "appName": "rhsm-subscriptions",
+        "testing": {
+          "iqe": {
+            "debug": false,
+            "dynaconfEnvName": "clowder_smoke",
+            "filter": "",
+            "imageTag": "",
+            "marker": "",
+            "requirements": [],
+            "requirementsPriority": [],
+            "testImportance": []
+          }
+        }
+      }
+    }
+  ]
+}
