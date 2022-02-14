@@ -149,8 +149,6 @@ public abstract class InventoryService {
     Map<String, Object> rhsmFactMap = new HashMap<>();
     rhsmFactMap.put("orgId", conduitFacts.getOrgId());
 
-    addFact(rhsmFactMap, "CPU_SOCKETS", conduitFacts.getCpuSockets());
-    addFact(rhsmFactMap, "CPU_CORES", conduitFacts.getCpuCores());
     addFact(rhsmFactMap, "MEMORY", conduitFacts.getMemory());
     addFact(rhsmFactMap, "ARCHITECTURE", conduitFacts.getArchitecture());
     addFact(rhsmFactMap, "IS_VIRTUAL", conduitFacts.getIsVirtual());
