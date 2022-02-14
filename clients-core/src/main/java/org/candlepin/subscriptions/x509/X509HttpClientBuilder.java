@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.conduit.rhsm.client;
+package org.candlepin.subscriptions.x509;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -30,42 +30,20 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.jboss.logging.Logger;
-import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFactory;
-import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
-import org.jboss.resteasy.spi.ResteasyProviderFactory;
-import org.springframework.beans.factory.FactoryBean;
 
-/** Extends the generated ApiClient class to allow for X509 Client Certificate authentication */
-public class X509ApiClientFactory implements FactoryBean<ApiClient> {
-  private final X509ApiClientFactoryConfiguration x509Config;
+/**
+ * Constructs and Apache HttpClient configured to use the keystore and truststore set in the
+ * X509ClientConfiguration object sent into the constructor.
+ */
+public class X509HttpClientBuilder {
+  private final X509ClientConfiguration x509Config;
 
-  public X509ApiClientFactory(X509ApiClientFactoryConfiguration x509Config) {
+  public X509HttpClientBuilder(X509ClientConfiguration x509Config) {
     this.x509Config = x509Config;
   }
 
-  @Override
-  public ApiClient getObject() throws Exception {
-    ApiClient client = Configuration.getDefaultApiClient();
-    client.setHttpClient(buildHttpClient(x509Config, client));
-    return client;
-  }
-
-  @Override
-  public Class<?> getObjectType() {
-    return ApiClient.class;
-  }
-
-  private Client buildHttpClient(X509ApiClientFactoryConfiguration x509Config, ApiClient client)
-      throws GeneralSecurityException {
+  public HttpClientBuilder createHttpClientBuilderForTls() throws GeneralSecurityException {
     HttpClientBuilder apacheBuilder = HttpClientBuilder.create();
     apacheBuilder.setSSLHostnameVerifier(x509Config.getHostnameVerifier());
 
@@ -99,32 +77,6 @@ public class X509ApiClientFactory implements FactoryBean<ApiClient> {
       throw new GeneralSecurityException("Failed to init SSLContext", e);
     }
 
-    RequestConfig cookieConfig =
-        RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
-    apacheBuilder.setDefaultRequestConfig(cookieConfig);
-    // Bump the max connections so that our task processors do not
-    // block waiting to connect to RHSM.
-
-    // note that these are essentially the same, since we're only hitting a single hostname
-    apacheBuilder.setMaxConnPerRoute(x509Config.getMaxConnections());
-    apacheBuilder.setMaxConnTotal(x509Config.getMaxConnections());
-    HttpClient httpClient = apacheBuilder.build();
-
-    // We've now constructed a basic Apache HttpClient.  Now we wire that in to RestEasy.  There is
-    // a
-    // lot of overlap in the names and in the classes across Apache's http-components, Resteasy, and
-    // the JAX-RS API.
-
-    ClientHttpEngine engine = ApacheHttpClient4EngineFactory.create(httpClient);
-
-    ClientConfiguration clientConfig =
-        new ClientConfiguration(ResteasyProviderFactory.getInstance());
-    clientConfig.register(client.getJSON());
-    if (client.isDebugging()) {
-      clientConfig.register(Logger.class);
-    }
-    ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
-
-    return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
+    return apacheBuilder;
   }
 }

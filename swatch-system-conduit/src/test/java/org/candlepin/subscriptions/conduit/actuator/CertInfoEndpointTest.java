@@ -47,9 +47,7 @@ class CertInfoEndpointTest {
   @Test
   void loadStoreInfo() throws Exception {
     CertInfoEndpoint endpoint = new CertInfoEndpoint(config);
-    Map<String, Map<String, String>> infoMap =
-        endpoint.loadStoreInfo(
-            config.getKeystoreStream(), config.getKeystorePassword().toCharArray());
+    Map<String, Map<String, String>> infoMap = endpoint.keystoreInfo();
 
     assertThat(infoMap, Matchers.hasKey("client"));
 

@@ -1,0 +1,15 @@
+plugins {
+    id 'java'
+
+}
+
+dependencies {
+    implementation "org.jboss.resteasy:resteasy-client"
+    testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
+}
+
+description = 'SWATCH core library for generated clients'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}

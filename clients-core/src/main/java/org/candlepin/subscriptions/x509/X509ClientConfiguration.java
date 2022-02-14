@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.conduit.rhsm.client;
+package org.candlepin.subscriptions.x509;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -30,18 +30,16 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.springframework.util.StringUtils;
 
 /** Class to hold values used to build the ApiClient instance wrapped in an SSLContext. */
 @Getter
 @Setter
 @ToString(onlyExplicitlyIncluded = true)
-public class X509ApiClientFactoryConfiguration {
+public class X509ClientConfiguration {
   @ToString.Include private String keystoreFile;
   @ToString.Include private String truststoreFile;
   private String keystorePassword;
   private String truststorePassword;
-  private int maxConnections = 100;
 
   /**
    * -- SETTER -- Allow setting the HostnameVerifier implementation. NoopHostnameVerifier could be
@@ -74,6 +72,6 @@ public class X509ApiClientFactoryConfiguration {
   }
 
   public boolean usesDefaultTruststore() {
-    return !StringUtils.hasText(getTruststoreFile());
+    return getTruststoreFile() == null || getTruststoreFile().isBlank();
   }
 }

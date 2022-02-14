@@ -1,5 +1,6 @@
 rootProject.name = 'rhsm-subscriptions'
 include ':api'
+include ':clients-core'
 include ':clients'
 include ':clients:cloudigrade-client'
 include ':clients:insights-inventory-client'

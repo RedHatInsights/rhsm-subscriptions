@@ -26,17 +26,19 @@ import javax.net.ssl.HostnameVerifier;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.x509.X509ClientConfiguration;
 
 /** Class to hold values used to build the ApiClient instance wrapped in an SSLContext for RHSM. */
 @Getter
 @Setter
 public class RhsmApiProperties {
   @Setter(AccessLevel.NONE)
-  private X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+  private X509ClientConfiguration x509Config = new X509ClientConfiguration();
 
   private boolean useStub;
   private String url;
   private int requestBatchSize = 100;
+  private int maxConnections = 100;
 
   public String getKeystorePassword() {
     return x509Config.getKeystorePassword();
@@ -88,9 +90,5 @@ public class RhsmApiProperties {
 
   public boolean usesClientAuth() {
     return x509Config.usesClientAuth();
-  }
-
-  public void setMaxConnections(int maxConnections) {
-    x509Config.setMaxConnections(maxConnections);
   }
 }

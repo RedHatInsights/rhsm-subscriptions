@@ -44,6 +44,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-devtools'
 
     implementation project(":swatch-core")
+    implementation project(":clients-core")
 
     //  NOTE(khowell): we use inventory API spec to get easy access to the Host schema.
     implementation project(":clients:insights-inventory-client")

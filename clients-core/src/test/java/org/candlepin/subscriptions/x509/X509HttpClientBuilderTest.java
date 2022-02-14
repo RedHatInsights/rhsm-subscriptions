@@ -18,11 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.conduit.rhsm.client;
+package org.candlepin.subscriptions.x509;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -30,17 +31,21 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import javax.net.ssl.SSLException;
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.core.GenericType;
-import org.hamcrest.core.IsInstanceOf;
+import javax.net.ssl.SSLHandshakeException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ResourceUtils;
 
-class X509ApiClientFactoryTest {
+class X509HttpClientBuilderTest {
   public static final String STORE_PASSWORD = "password";
 
   private WireMockServer server;
@@ -63,21 +68,22 @@ class X509ApiClientFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+    X509ClientConfiguration x509Config = new X509ClientConfiguration();
     x509Config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
     x509Config.setKeystorePassword(STORE_PASSWORD);
 
-    X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-    ApiClient client = factory.getObject();
+    HttpClientBuilder clientBuilder =
+        new X509HttpClientBuilder(x509Config).createHttpClientBuilderForTls();
 
-    client.setBasePath(server.baseUrl());
-    ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(client));
+    HttpClient httpClient = clientBuilder.build();
+
+    SSLHandshakeException e =
+        assertThrows(SSLHandshakeException.class, () -> invokeHello(httpClient));
     // We should get a handshake exception since the Wiremock server is using a cert signed by a
     // self-signed CA that isn't in the default Java truststore.  We actually would like to test
-    // that
-    // a certificate signed by a legitimate CA gets accepted, but that would require us to have a
-    // legitimate server certificate and key for the Wiremock server to use.
-    assertThat(e.getCause(), IsInstanceOf.instanceOf(SSLException.class));
+    // that a certificate signed by a legitimate CA gets accepted, but that would require us to have
+    // a legitimate server certificate and key for the Wiremock server to use.
+    assertThat(e.getMessage(), Matchers.containsString("unable to find valid certification path"));
   }
 
   @Test
@@ -86,18 +92,18 @@ class X509ApiClientFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+    X509ClientConfiguration x509Config = new X509ClientConfiguration();
     x509Config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
     x509Config.setKeystorePassword(STORE_PASSWORD);
 
     x509Config.setTruststoreFile(ResourceUtils.getFile("classpath:test-ca.jks").getPath());
     x509Config.setTruststorePassword(STORE_PASSWORD);
 
-    X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-    ApiClient client = factory.getObject();
+    HttpClientBuilder clientBuilder =
+        new X509HttpClientBuilder(x509Config).createHttpClientBuilderForTls();
 
-    client.setBasePath(server.baseUrl());
-    assertEquals("Hello World", invokeHello(client));
+    HttpClient httpClient = clientBuilder.build();
+    assertEquals("Hello World", invokeHello(httpClient));
   }
 
   @Test
@@ -106,35 +112,30 @@ class X509ApiClientFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
+    X509ClientConfiguration x509Config = new X509ClientConfiguration();
     x509Config.setTruststoreFile(ResourceUtils.getFile("classpath:test-ca.jks").getPath());
     x509Config.setTruststorePassword(STORE_PASSWORD);
 
-    X509ApiClientFactory factory = new X509ApiClientFactory(x509Config);
-    ApiClient client = factory.getObject();
+    HttpClientBuilder clientBuilder =
+        new X509HttpClientBuilder(x509Config).createHttpClientBuilderForTls();
 
-    client.setBasePath(server.baseUrl());
-    Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));
+    HttpClient httpClient = clientBuilder.build();
     // NOTE: openjdk behavior changed w/ https://bugs.openjdk.java.net/browse/JDK-8263435
     // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
     // Using IOException (superclass of both) makes the test less brittle
-    assertThat(e.getCause(), instanceOf(IOException.class));
+    Exception e = assertThrows(IOException.class, () -> invokeHello(httpClient));
+    assertThat(e.getMessage(), Matchers.containsString("bad_certificate"));
   }
 
-  /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
-  private String invokeHello(ApiClient client) throws ApiException {
-    return client.<String>invokeAPI(
-        "/hello",
-        "GET",
-        new ArrayList<>(),
-        new Object(),
-        new HashMap<>(),
-        new HashMap<>(),
-        new HashMap<>(),
-        "text/plain",
-        "text/plain",
-        new String[] {},
-        new GenericType<String>() {});
+  private String invokeHello(HttpClient client) throws IOException {
+    HttpUriRequest req =
+        RequestBuilder.get(server.url("/hello"))
+            .addHeader(HttpHeaders.CONTENT_TYPE, "text/plain")
+            .build();
+
+    HttpResponse resp = client.execute(req);
+    HttpEntity entity = resp.getEntity();
+    return EntityUtils.toString(entity);
   }
 
   private WireMockConfiguration buildWireMockConfig() throws FileNotFoundException {

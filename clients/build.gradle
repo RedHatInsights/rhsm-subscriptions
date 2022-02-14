@@ -102,6 +102,7 @@ project(":clients:rhsm-client") {
     }
 
     dependencies {
+        implementation project(':clients-core')
         testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
     }
 }
@@ -156,6 +157,8 @@ configure(subprojects) {
     }
 
     dependencies {
+        compile project(":clients-core")
+
         compile "org.jboss.resteasy:resteasy-client"
         compile "org.jboss.resteasy:resteasy-multipart-provider"
 

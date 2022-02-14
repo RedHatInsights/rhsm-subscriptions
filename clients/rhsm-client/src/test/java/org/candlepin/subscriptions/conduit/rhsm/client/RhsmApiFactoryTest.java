@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -37,13 +39,14 @@ import javax.ws.rs.core.GenericType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.ResourceUtils;
 
 class RhsmApiFactoryTest {
   public static final String STORE_PASSWORD = "password";
 
   private WireMockServer server;
   private RhsmApiProperties config;
-  private X509ApiClientFactory x509Factory;
+  private RhsmX509ApiFactory x509Factory;
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -84,7 +87,7 @@ class RhsmApiFactoryTest {
     config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
     config.setKeystorePassword(STORE_PASSWORD);
 
-    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststoreFile(ResourceUtils.getFile("classpath:test-ca.jks").getPath());
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
