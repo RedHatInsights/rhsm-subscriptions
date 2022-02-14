@@ -108,7 +108,8 @@ public class CandlepinPoolCapacityMapper {
                   && capacity.getPhysicalCores() == null
                   && capacity.getVirtualCores() == null
                   && capacity.getVirtualSockets() == null
-                  && !capacity.getHasUnlimitedGuestSockets()) {
+                  && (capacity.getHasUnlimitedUsage() == null
+                      || !capacity.getHasUnlimitedUsage())) {
 
                 log.warn(
                     "SKU {} appears to not provide any capacity. Bad SKU definition?",

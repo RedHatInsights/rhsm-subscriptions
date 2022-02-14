@@ -298,4 +298,21 @@ class CapacityResourceTest {
     long expected = ChronoUnit.WEEKS.between(begin, end) + 1;
     assertEquals(expected, actual.size());
   }
+
+  @Test
+  void testShouldCalculateCapacityWithUnlimitedUsage() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setHasUnlimitedUsage(true);
+    capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+        .thenReturn(Arrays.asList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
 }

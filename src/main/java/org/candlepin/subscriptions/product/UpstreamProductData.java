@@ -48,6 +48,7 @@ class UpstreamProductData {
   private static final String MSG_TEMPLATE =
       "offeringSku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
+  private static final String UNLIMITED_CORES_OR_SOCKETS = "Unlimited";
 
   /** List of opProd attribute codes used in the making of an Offering. */
   // Non-standard attribute codes are prefixed by "X_". They are not actually attribute codes
@@ -303,13 +304,27 @@ class UpstreamProductData {
       offering.setVirtualCores(cores);
       offering.setVirtualSockets(sockets);
     }
+    var hasUnlimitedCores =
+        Optional.ofNullable(attrs.get(Attr.CORES))
+            .map(UpstreamProductData::hasUnlimitedUsage)
+            .orElse(false);
+    var hasUnlimitedSockets =
+        Optional.ofNullable(attrs.get(Attr.SOCKET_LIMIT))
+            .map(UpstreamProductData::hasUnlimitedUsage)
+            .orElse(false);
+    offering.setHasUnlimitedUsage(hasUnlimitedCores || hasUnlimitedSockets);
   }
 
-  private static Integer nullOrInteger(String v) {
-    if (v == null) {
+  private static Integer nullOrInteger(String capacity) {
+    if (capacity == null || hasUnlimitedUsage(capacity)) {
       return null;
+    } else {
+      return Integer.valueOf(capacity);
     }
-    return Integer.valueOf(v);
+  }
+
+  private static boolean hasUnlimitedUsage(String capacity) {
+    return UNLIMITED_CORES_OR_SOCKETS.equalsIgnoreCase(capacity);
   }
 
   private static UpstreamProductData createFromProduct(OperationalProduct product) {

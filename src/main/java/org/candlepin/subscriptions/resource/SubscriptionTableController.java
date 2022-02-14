@@ -236,8 +236,12 @@ public class SubscriptionTableController {
       }
     }
 
+    boolean hasInfiniteQuantity =
+        Optional.ofNullable(subscriptionCapacityView.getHasUnlimitedUsage()).orElse(false);
+
     skuCapacity.setTotalCapacity(
         skuCapacity.getPhysicalCapacity() + skuCapacity.getVirtualCapacity());
+    skuCapacity.setHasInfiniteQuantity(hasInfiniteQuantity);
   }
 
   private static void sortCapacities(
