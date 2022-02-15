@@ -569,7 +569,7 @@ class MetricUsageCollectorTest {
         new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
-    assertNull(staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+    assertEquals(0.0, staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
   }
 
   @Test
