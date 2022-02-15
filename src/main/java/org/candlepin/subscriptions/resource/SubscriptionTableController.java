@@ -273,6 +273,12 @@ public class SubscriptionTableController {
             case NEXT_EVENT_TYPE:
               diff = left.getNextEventType().compareTo(right.getNextEventType());
               break;
+            case TOTAL_CAPACITY:
+              diff = left.getTotalCapacity().compareTo(right.getTotalCapacity());
+              break;
+            case PRODUCT_NAME:
+              diff = left.getProductName().compareTo(right.getProductName());
+              break;
           }
           // If the two items are sorted by some other field than SKU and are equal, then break the
           // tie by sorting by SKU. No two SKUs in the list are equal.

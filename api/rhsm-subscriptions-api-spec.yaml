@@ -1769,6 +1769,8 @@ components:
         - next_event_date
         - next_event_type
         - quantity
+        - total_capacity
+        - product_name
 
     SkuCapacityReport:
       properties:
