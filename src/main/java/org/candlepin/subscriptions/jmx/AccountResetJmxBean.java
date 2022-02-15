@@ -61,7 +61,11 @@ public class AccountResetJmxBean {
 
     log.info("Received request to delete all data associated with account {}", accountNumber);
 
-    accountResetService.deleteDataForAccount(accountNumber);
+    try {
+      accountResetService.deleteDataForAccount(accountNumber);
+    } catch (Exception e) {
+      throw new JmxException("Unable to delete data for account " + accountNumber, e);
+    }
 
     var successMessage = "Finished deleting data associated with account " + accountNumber;
 

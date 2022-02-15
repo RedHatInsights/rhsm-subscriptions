@@ -163,8 +163,7 @@ parameters:
   - name: DEV_MODE
     value: 'false'
   - name: ENABLE_ACCOUNT_RESET
-    value: 'true'
-
+    value: 'false'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
