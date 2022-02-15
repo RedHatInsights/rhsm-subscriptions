@@ -38,16 +38,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.util.StringUtils;
 
 /** Provides access to Host database entities. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface HostRepository
-    extends Repository<Host, UUID>, JpaSpecificationExecutor<Host>, TagProfileLookup {
+    extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host>, TagProfileLookup {
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
@@ -179,4 +179,6 @@ public interface HostRepository
   List<Host> findByAccountNumber(String accountNumber);
 
   Optional<Host> findById(UUID id);
+
+  void deleteByAccountNumber(String accountNumber);
 }

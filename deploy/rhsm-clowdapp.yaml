@@ -162,7 +162,8 @@ parameters:
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
-
+  - name: ENABLE_ACCOUNT_RESET
+    value: 'false'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
@@ -597,6 +598,8 @@ objects:
               value: /pinhead/keystore.jks
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: ENABLE_ACCOUNT_RESET
+              value: ${ENABLE_ACCOUNT_RESET}
           livenessProbe:
             failureThreshold: 3
             httpGet:

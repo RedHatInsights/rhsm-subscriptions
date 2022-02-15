@@ -135,6 +135,14 @@ allprojects {
         testRuntime "org.junit.jupiter:junit-jupiter-engine"
         testRuntime "ch.qos.logback:logback-classic"
     }
+
+    sourceSets {
+      main.java.srcDirs+=generatedMetamodels
+    }
+
+  compileJava {
+      options.annotationProcessorGeneratedSourcesDirectory = file(generatedMetamodels)
+  }
 }
 
 // Disable the default jar; otherwise we end up with two different jars in the final image
