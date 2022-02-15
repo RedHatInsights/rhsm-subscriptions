@@ -18,9 +18,9 @@ parameters:
   - name: ENV_NAME # naming convention is env-$BONFIRE_APP_NAME (from bonfire config yaml file)
     value: env-swatch-producer-aws
   - name: IMAGE
-    value: quay.io/lburnett/rhsm
+    value: quay.io/cloudservices/swatch-producer-aws
   - name: IMAGE_TAG # bonfire takes precedence and pulls latest unless the bonfire -i flag is used
-    value: service_demo
+    value: latest
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1

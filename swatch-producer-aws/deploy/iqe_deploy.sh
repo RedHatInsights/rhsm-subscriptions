@@ -7,7 +7,7 @@ python3 -m venv $VENV_DIR
 . $VENV_DIR/bin/activate
 pip install --upgrade crc-bonfire
 
-IMAGE=quay.io/lburnett/rhsm
+IMAGE=quay.io/cloudservices/swatch-producer-aws
 IMAGE_TAG=02142022
 BONFIRE_APP_NAME=swatch-producer-aws
 BONFIRE_COMPONENT_NAME=swatch-producer-aws

@@ -1,7 +1,8 @@
 
-## build image & push to quay
+== build image & push to quay
 
-```bash
+[source,bash]
+----
 QUAY_USER=lburnett
 #this is a fake password
 QUAY_TOKEN=Passw0rd
@@ -13,24 +14,30 @@ docker login -u="$QUAY_USER" -p="$QUAY_TOKEN" quay.io
 
 docker -build --no-cache -t "${IMAGE}:${IMAGE_TAG}" .
 docker -push "${IMAGE}:${IMAGE_TAG}"
-```
+----
 
-## login to openshift
-`oc login --token=${OC_TOKEN} --server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443`
+== login to openshift
+[source,bash]
+----
+oc login --token=${OC_TOKEN} --server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443
+----
 
+== setup Virtual Environment
 
-## setup Virtual Environment
-```bash
+[source,bash]
+----
 VENV_DIR=~/bonfire_venv
 mkdir -p $VENV_DIR
 python3 -m venv $VENV_DIR
-. $VENV_DIR/bin/activate
+= . $VENV_DIR/bin/activate
 pip install crc-bonfire
 pip install --upgrade crc-bonfire
-```
+----
 
-## configure ~/.config/bonfire/config.yaml
-```yaml
+== configure ~/.config/bonfire/config.yaml
+
+[source,yaml]
+----
 appsFile:
   host: gitlab
   repo: insights-platform/cicd-common
@@ -43,10 +50,15 @@ apps:
       host: local
       repo: /home/lburnett/code/rhsm-subscriptions/demo
       path: /deploy/clowdapp.yaml
-```
+    - parameters:
+        REPLICAS: 1
+        swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
+----
 
-## deploy container with bonfire
-```bash
+== deploy container with bonfire
+
+[source,bash]
+----
 IMAGE=quay.io/lburnett/rhsm
 IMAGE_TAG=quarkus_poc
 BONFIRE_APP_NAME=swatch-producer-aws
@@ -60,21 +72,27 @@ bonfire deploy -n $NAMESPACE \
 -p $BONFIRE_COMPONENT_NAME/IMAGE=$IMAGE \
 -i $IMAGE=$IMAGE_TAG $BONFIRE_APP_NAME
 
-```
+----
 
-## port-forward the deployed container
+== port-forward the deployed container
 note: i have the namespace hardcoded here...replace with the namespace you reserved
-`oc port-forward $(oc -n ephemeral-itjulc get -o name pod | grep fruit) 8000`
+[source,bash]
+----
+oc port-forward $(oc -n ephemeral-itjulc get -o name pod | grep fruit) 8000
+----
 
 
-## test rest endpoint
+== test rest endpoint
 note: example uses httpie
-```bash
-➜ demo (lburnett/sample_service) ✗ http :8000/fruits/apple
+
+[source,bash]
+----
+http :8000/fruits/apple
+
 HTTP/1.1 200 OK
 Content-Type: text/plain;charset=UTF-8
 content-length: 11
 
 hello apple
 
-```
+----
