@@ -23,24 +23,25 @@ package org.candlepin.subscriptions.conduit.actuator;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.google.common.io.Resources;
+import java.io.FileNotFoundException;
 import java.util.Map;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.ResourceUtils;
 
 class CertInfoEndpointTest {
-  public static final String STORE_PASSWORD = "password";
+  public static final char[] STORE_PASSWORD = "password".toCharArray();
 
   private RhsmApiProperties config;
 
   @BeforeEach
-  private void setUp() {
+  private void setUp() throws FileNotFoundException {
     config = new RhsmApiProperties();
-    config.setKeystoreFile(Resources.getResource("client.jks").getPath());
+    config.setKeystore(ResourceUtils.getFile("classpath:client.jks"));
     config.setKeystorePassword(STORE_PASSWORD);
-    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
   }
 

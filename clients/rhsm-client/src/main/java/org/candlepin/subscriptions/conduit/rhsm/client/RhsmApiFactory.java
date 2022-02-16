@@ -20,17 +20,17 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.candlepin.subscriptions.http.HttpClient;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
  * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending
  * on properties.
  */
+@Slf4j
 public class RhsmApiFactory implements FactoryBean<RhsmApi> {
-  private static Logger log = LoggerFactory.getLogger(RhsmApiFactory.class);
 
   private final RhsmApiProperties properties;
 
@@ -40,26 +40,17 @@ public class RhsmApiFactory implements FactoryBean<RhsmApi> {
 
   @Override
   public RhsmApi getObject() throws Exception {
+    log.info("RHSM client config: {}", properties);
+
     if (properties.isUseStub()) {
-      log.info("Using stub RHSM client");
       return new StubRhsmApi();
     }
 
-    ApiClient client;
-    if (properties.usesClientAuth()) {
-      log.info("RHSM client configured with client-cert auth");
-      client = new RhsmX509ApiFactory(properties).getObject();
-    } else {
-      log.info("RHSM client configured without client-cert auth");
-      client = new ApiClient();
-    }
-    if (properties.getUrl() != null) {
-      log.info("RHSM URL: {}", properties.getUrl());
-      client.setBasePath(properties.getUrl());
-      client.addDefaultHeader("cp-lookup-permissions", "false");
-    } else {
-      log.warn("RHSM URL not set...");
-    }
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    client.setBasePath(properties.getUrl());
+    client.addDefaultHeader("cp-lookup-permissions", "false");
     return new RhsmApi(client);
   }
 

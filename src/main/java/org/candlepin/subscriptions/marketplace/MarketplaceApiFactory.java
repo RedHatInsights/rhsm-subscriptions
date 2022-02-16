@@ -20,37 +20,34 @@
  */
 package org.candlepin.subscriptions.marketplace;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 /** Factory that produces marketplace API clients. */
+@Slf4j
 public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
 
-  private static Logger log = LoggerFactory.getLogger(MarketplaceApiFactory.class);
+  private final MarketplaceProperties properties;
 
-  private final MarketplaceProperties serviceProperties;
-
-  public MarketplaceApiFactory(MarketplaceProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public MarketplaceApiFactory(MarketplaceProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public MarketplaceApi getObject() throws Exception {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("Marketplace service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
-    } else {
-      log.warn("Marketplace service URL not set...");
+    log.info("Marketplace client config: {}", properties);
+
+    if (properties.isUseStub()) {
+      throw new UnsupportedOperationException("Marketplace stub not implemented");
     }
 
-    return new MarketplaceApi(apiClient);
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    client.setBasePath(properties.getUrl());
+    return new MarketplaceApi(client);
   }
 
   @Override

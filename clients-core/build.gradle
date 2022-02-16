@@ -5,6 +5,8 @@ plugins {
 
 dependencies {
     implementation "org.jboss.resteasy:resteasy-client"
+    implementation "org.springframework:spring-beans"
+    implementation "org.slf4j:slf4j-api"
     testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
 }
 

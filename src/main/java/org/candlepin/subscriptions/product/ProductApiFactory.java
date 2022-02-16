@@ -20,40 +20,35 @@
  */
 package org.candlepin.subscriptions.product;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.product.api.resources.ProductApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
 /** Factory for creating ProductApi clients for the Product Service. */
+@Slf4j
 public class ProductApiFactory implements FactoryBean<ProductApi> {
-  private static final Logger log = LoggerFactory.getLogger(ProductApiFactory.class);
 
-  private final HttpClientProperties serviceProperties;
+  private final HttpClientProperties properties;
 
-  public ProductApiFactory(HttpClientProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public ProductApiFactory(HttpClientProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public ProductApi getObject() throws Exception {
-    if (serviceProperties.isUseStub()) {
-      log.info("Using {}", StubProductApi.class.getName());
+    log.info("Product client config: {}", properties);
+
+    if (properties.isUseStub()) {
       return new StubProductApi();
     }
-    final ApiClient apiClient = Configuration.getDefaultApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("Product service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
-    } else {
-      log.warn("Product service URL not set...");
-    }
-    return new ProductApi(apiClient);
+
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    client.setBasePath(properties.getUrl());
+    return new ProductApi(client);
   }
 
   @Override

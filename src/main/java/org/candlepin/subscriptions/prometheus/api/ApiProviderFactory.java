@@ -20,49 +20,36 @@
  */
 package org.candlepin.subscriptions.prometheus.api;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.prometheus.ApiClient;
-import org.candlepin.subscriptions.prometheus.auth.HttpBearerAuth;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.candlepin.subscriptions.prometheus.Configuration;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.util.StringUtils;
 
 /** Factory that produces prometheus query API clients using configuration. */
+@Slf4j
 public class ApiProviderFactory implements FactoryBean<ApiProvider> {
 
-  private static Logger log = LoggerFactory.getLogger(ApiProviderFactory.class);
-
-  private final HttpClientProperties clientProperties;
+  private final HttpClientProperties properties;
 
   public ApiProviderFactory(HttpClientProperties properties) {
-    this.clientProperties = properties;
+    this.properties = properties;
   }
 
   @Override
   public ApiProvider getObject() throws Exception {
-    if (clientProperties.isUseStub()) {
-      log.info("Using prometheus client stub.");
+    log.info("Prometheus client config: {}", properties);
+
+    if (properties.isUseStub()) {
       return new StubApiProvider();
     }
 
-    ApiClient apiClient = new ApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(clientProperties, apiClient.getJSON(), apiClient.isDebugging()));
-
-    if (StringUtils.hasText(clientProperties.getToken())) {
-      HttpBearerAuth auth = (HttpBearerAuth) apiClient.getAuthentication("bearerAuth");
-      auth.setBearerToken(clientProperties.getToken());
-    }
-
-    if (StringUtils.hasText(clientProperties.getUrl())) {
-      log.info("Prometheus API URL: {}", clientProperties.getUrl());
-      apiClient.setBasePath(clientProperties.getUrl());
-    } else {
-      log.warn("Prometheus API URL not set...");
-    }
-    return new ApiProviderImpl(apiClient);
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    client.setBasePath(properties.getUrl());
+    return new ApiProviderImpl(client);
   }
 
   @Override

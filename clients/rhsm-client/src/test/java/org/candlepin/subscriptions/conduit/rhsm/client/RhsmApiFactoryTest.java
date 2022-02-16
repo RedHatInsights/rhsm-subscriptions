@@ -31,6 +31,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.google.common.io.Resources;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import javax.net.ssl.SSLHandshakeException;
@@ -42,11 +43,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.util.ResourceUtils;
 
 class RhsmApiFactoryTest {
-  public static final String STORE_PASSWORD = "password";
+  public static final char[] STORE_PASSWORD = "password".toCharArray();
 
   private WireMockServer server;
   private RhsmApiProperties config;
-  private RhsmX509ApiFactory x509Factory;
+  private RhsmApiFactory apiFactory;
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -84,10 +85,10 @@ class RhsmApiFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
+    config.setKeystore(new File(server.getOptions().httpsSettings().keyStorePath()));
     config.setKeystorePassword(STORE_PASSWORD);
 
-    config.setTruststoreFile(ResourceUtils.getFile("classpath:test-ca.jks").getPath());
+    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
@@ -103,7 +104,7 @@ class RhsmApiFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
@@ -137,9 +138,9 @@ class RhsmApiFactoryTest {
         .dynamicHttpsPort()
         .dynamicPort()
         .keystorePath(keystorePath)
-        .keystorePassword(STORE_PASSWORD)
+        .keystorePassword(new String(STORE_PASSWORD))
         .needClientAuth(true)
         .trustStorePath(truststorePath)
-        .trustStorePassword(STORE_PASSWORD);
+        .trustStorePassword(new String(STORE_PASSWORD));
   }
 }

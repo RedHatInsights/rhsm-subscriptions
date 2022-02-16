@@ -18,60 +18,72 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.x509;
+package org.candlepin.subscriptions.http;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import javax.net.ssl.HostnameVerifier;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import lombok.ToString;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 
-/** Class to hold values used to build the ApiClient instance wrapped in an SSLContext. */
-@Getter
-@Setter
-@ToString(onlyExplicitlyIncluded = true)
-public class X509ClientConfiguration {
-  @ToString.Include private String keystoreFile;
-  @ToString.Include private String truststoreFile;
-  private String keystorePassword;
-  private String truststorePassword;
+/** HTTP service client configuration. */
+@Data
+@ToString
+public class HttpClientProperties {
+
+  /** Use a stub of the service. */
+  private boolean useStub;
+
+  /** The URL of the service. */
+  private String url;
+
+  /**
+   * The auth token required to connect. This should be passed as part of the Authentication header.
+   *
+   * <p>"Authentication: bearer &lt;token&gt;"
+   */
+  @ToString.Exclude private String token;
+
+  /** Maximum number of simultaneous connections to the service. */
+  private int maxConnections = 100;
 
   /**
    * -- SETTER -- Allow setting the HostnameVerifier implementation. NoopHostnameVerifier could be
    * used in testing, for example
    */
-  private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
+  @ToString.Exclude private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
+
+  /** Certificate authenticate file path */
+  private File keystore;
+
+  /** Certificate authenticate file password */
+  @ToString.Exclude private char[] keystorePassword;
+
+  /** Truststore file path */
+  private File truststore;
+
+  /** Truststore file password */
+  @ToString.Exclude private char[] truststorePassword;
 
   public InputStream getKeystoreStream() throws IOException {
-    if (keystoreFile == null) {
+    if (keystore == null) {
       throw new IllegalStateException("No keystore file has been set");
     }
-    return readStream(keystoreFile);
+    return readStream(keystore);
   }
 
   public InputStream getTruststoreStream() throws IOException {
-    if (truststoreFile == null) {
+    if (truststore == null) {
       throw new IllegalStateException("No truststore file has been set");
     }
-    return readStream(truststoreFile);
+    return readStream(truststore);
   }
 
-  private InputStream readStream(String path) throws IOException {
-    return new ByteArrayInputStream(Files.readAllBytes(Paths.get(path)));
-  }
-
-  public boolean usesClientAuth() {
-    return (getKeystoreFile() != null
-        && !getKeystoreFile().isEmpty()
-        && getKeystorePassword() != null);
-  }
-
-  public boolean usesDefaultTruststore() {
-    return getTruststoreFile() == null || getTruststoreFile().isBlank();
+  private InputStream readStream(File file) throws IOException {
+    return new ByteArrayInputStream(Files.readAllBytes(file.toPath()));
   }
 }

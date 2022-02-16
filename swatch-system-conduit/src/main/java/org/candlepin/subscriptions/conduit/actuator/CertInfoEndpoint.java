@@ -25,7 +25,7 @@ import java.security.GeneralSecurityException;
 import java.util.Map;
 import org.candlepin.subscriptions.actuator.CertInfoInquisitor;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
-import org.candlepin.subscriptions.x509.X509ClientConfiguration;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
@@ -48,11 +48,11 @@ public class CertInfoEndpoint {
 
   @ReadOperation
   public Map<String, Map<String, String>> keystoreInfo() throws IllegalStateException {
-    X509ClientConfiguration x509Config = rhsmApiProperties.getX509Config();
+    HttpClientProperties config = rhsmApiProperties;
 
     try {
       return CertInfoInquisitor.loadStoreInfo(
-          x509Config.getKeystoreStream(), x509Config.getKeystorePassword().toCharArray());
+          config.getKeystoreStream(), config.getKeystorePassword());
     } catch (IOException | GeneralSecurityException e) {
       log.error(CERT_LOAD_ERR, e);
     }
@@ -61,11 +61,11 @@ public class CertInfoEndpoint {
 
   @ReadOperation
   public Map<String, Map<String, String>> truststoreInfo() throws IllegalStateException {
-    X509ClientConfiguration x509Config = rhsmApiProperties.getX509Config();
+    HttpClientProperties config = rhsmApiProperties;
 
     try {
       return CertInfoInquisitor.loadStoreInfo(
-          x509Config.getTruststoreStream(), x509Config.getTruststorePassword().toCharArray());
+          config.getTruststoreStream(), config.getTruststorePassword());
     } catch (IOException | GeneralSecurityException e) {
       log.error(CERT_LOAD_ERR, e);
     }
