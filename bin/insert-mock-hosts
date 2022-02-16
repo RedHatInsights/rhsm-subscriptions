@@ -13,7 +13,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
-                  skip_buckets=False, is_hbi=False, is_marketplace=False):
+                  skip_buckets=False, is_hbi=False, is_marketplace=False, host_type=None):
     account = account_number or "account123"
     host_id = uuid.uuid4()
     inventory_id = inventory_id or uuid.uuid4()
@@ -47,6 +47,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 'number_of_sockets': sockets,
                 'cloud_provider': cloud_provider,
                 'is_marketplace': is_marketplace,
+                'host_type' : host_type
             }),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
@@ -183,6 +184,9 @@ parser.add_argument('--clear', action='store_true',
                     help='Clear data in the hosts table and related tables')
 parser.add_argument('--marketplace', action='store_true', dest='is_marketplace',
                     help='Set a system as a Marketplace instance')
+parser.add_argument('--host-type',
+                    default=None,
+                    help='Set host type of the system to be inserted')
 
 args = parser.parse_args()
 if args.is_hbi:
@@ -226,13 +230,14 @@ for i in range(args.num_accounts):
         generate_host(account_number=account, hardware_type='VIRTUAL', measurement_type='CLOUD',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi,
-                      cloud_provider='AWS', is_marketplace=args.is_marketplace)
+                      cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type)
 
     for i in range(args.num_physical):
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi,
-                      is_marketplace=args.is_marketplace)
+                      is_marketplace=args.is_marketplace,
+                      host_type=args.host_type)
 
     hypervisor = None
     for i in range(args.num_hypervisors):
@@ -240,13 +245,15 @@ for i in range(args.num_accounts):
                                    product=args.product,
                                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                                    is_hypervisor=True, is_hbi=args.is_hbi,
-                                   is_marketplace=args.is_marketplace)
+                                   is_marketplace=args.is_marketplace,
+                                   host_type=args.host_type)
         # create a physical entry for the host as well.
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product,
                       sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
                       is_hbi=args.is_hbi,
-                      is_marketplace=args.is_marketplace)
+                      is_marketplace=args.is_marketplace,
+                      host_type=args.host_type)
 
     create_unmapped = args.unmapped_guests
     for i in range(args.num_guests):
@@ -266,7 +273,7 @@ for i in range(args.num_accounts):
                       product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
                       cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
                       skip_buckets=skip_buckets, is_hbi=args.is_hbi,
-                      is_marketplace=args.is_marketplace)
+                      is_marketplace=args.is_marketplace, host_type=args.host_type)
 
 output.write('commit;')
 
