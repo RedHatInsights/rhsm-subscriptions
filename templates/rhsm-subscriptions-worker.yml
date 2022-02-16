@@ -285,8 +285,6 @@ objects:
                   protocol: TCP
                   name: metrics-port
               volumeMounts:
-                - name: config
-                  mountPath: /config
                 - name: logs
                   mountPath: /logs
                 - name: pinhead
@@ -317,9 +315,6 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
