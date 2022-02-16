@@ -171,8 +171,7 @@ class UpstreamProductData {
     Note 2: ServiceLevel does not represent all values of SERVICE_TYPE seen in prod, which includes:
     Basic, Dev-Professional, Layered, Premium, RHX Basic, Self-Support, Standard.
 
-    Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY, as done in
-    org.candlepin.subscriptions.capacity.CandlepinPoolCapacityMapper.
+    Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY.
 
     For discussions on this topic, see:
     https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.8dadhnye8ysf
