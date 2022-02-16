@@ -83,16 +83,31 @@ oc port-forward $(oc -n ephemeral-itjulc get -o name pod | grep fruit) 8000
 
 
 == test rest endpoint
-note: example uses httpie
 
 [source,bash]
 ----
-http :8000/fruits/apple
-
-HTTP/1.1 200 OK
-Content-Type: text/plain;charset=UTF-8
-content-length: 11
-
-hello apple
+curl --request POST \
+  --url http://localhost:8000/tally-summary \
+  --header 'content-type: application/json' \
+  --data '{
+  "account_number": "string",
+  "tally_snapshots": [
+    {
+      "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "snapshot_date": "2022-02-16T15:44:16.793Z",
+      "product_id": "string",
+      "sla": "",
+      "usage": "Development/Test",
+      "granularity": "Daily",
+      "tally_measurements": [
+        {
+          "hardware_measurement_type": "string",
+          "uom": "Cores",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}'
 
 ----
