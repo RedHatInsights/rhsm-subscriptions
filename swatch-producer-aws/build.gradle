@@ -31,32 +31,27 @@ dependencies {
     implementation 'io.quarkus:quarkus-arc'
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
-    implementation 'io.quarkus:quarkus-smallrye-openapi:2.7.0.Final'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'com.redhat.cloud.common:clowder-quarkus-config-source:0.5.3'
-    implementation 'io.quarkus:quarkus-liquibase:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-hibernate-orm-panache:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-resteasy:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-arc:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-agroal:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-jdbc-postgresql:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-smallrye-health:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-rest-client-jackson:2.7.0.Final'
-    implementation 'io.quarkus:quarkus-rest-client:2.7.0.Final'
+    implementation 'io.quarkus:quarkus-liquibase'
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-agroal'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-rest-client-jackson'
+    implementation 'io.quarkus:quarkus-rest-client'
     implementation 'io.quarkiverse.logging.logback:quarkus-logging-logback:0.10.0'
     implementation 'com.splunk.logging:splunk-library-javalogging:1.8.0'
-    testImplementation 'io.quarkus:quarkus-junit5:2.7.0.Final'
-    testImplementation 'io.rest-assured:rest-assured:4.4.0'
+    testImplementation 'io.quarkus:quarkus-junit5'
     compileOnly 'org.projectlombok:lombok:1.18.22'
 }
 
 group = 'com.redhat.swatch'
 version = '1.0.0-SNAPSHOT'
 description = 'swatch-producer-aws'
-
-//Defaulting to target because one of the dependencies builds to target instead of ${buildDir}, so
-// changing this here at least outputs everything to the same directory
-//project.buildDir = 'target'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -86,47 +81,6 @@ openApiGenerate {
             interfaceOnly        : "true",
             useSwaggerAnnotations: "false"
     ]
-
 }
-
-task printSourceSetInformation() {
-    doLast {
-        sourceSets.each { srcSet ->
-            println "[" + srcSet.name + "]"
-            print "-->Source directories: " + srcSet.allJava.srcDirs + "\n"
-            print "-->Output directories: " + srcSet.output.classesDirs.files + "\n"
-            println ""
-        }
-    }
-}
-//
-//sourceSets {
-//    openApiGeneratedSources {
-//        compileClasspath += sourceSets.main.output
-//        runtimeClasspath += sourceSets.main.output
-//        java {
-//            srcDirs = ["${buildDir}/generated/src/gen/java"]
-//        }
-//    }
-//}
-
-//sourceSets {
-//    main {
-//        java {
-//            srcDir "${buildDir}/generated/src/gen/java"
-//        }
-//    }
-//}
-
-//quarkus {
-//    sourceSets {
-//        main {
-//            java {
-//                srcDir "${buildDir}/generated/src/gen/java"
-//            }
-//        }
-//    }
-//}
-//
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
