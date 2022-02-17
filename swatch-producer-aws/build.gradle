@@ -54,16 +54,20 @@ group = 'com.redhat.swatch'
 version = '1.0.0-SNAPSHOT'
 description = 'swatch-producer-aws'
 
+//Defaulting to target because one of the dependencies builds to target instead of ${buildDir}, so
+// changing this here at least outputs everything to the same directory
+//project.buildDir = 'target'
+
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 }
 
+compileJava.dependsOn tasks.openApiGenerate
 compileJava {
     options.encoding = 'UTF-8'
     options.compilerArgs << '-parameters'
 }
-compileJava.dependsOn tasks.openApiGenerate
 
 compileTestJava {
     options.encoding = 'UTF-8'
@@ -73,13 +77,56 @@ openApiGenerate {
     generatorName = "jaxrs-spec"
     inputSpec = "${projectDir}/src/main/resources/openapi.yaml".toString()
     outputDir = "${buildDir}/generated".toString()
-    apiPackage = "com.redhat.swatch.openapi"
-    modelPackage = "com.redhat.swatch.openapi"
+    apiPackage = "com.redhat.swatch.openapi.resource"
+    modelPackage = "com.redhat.swatch.openapi.model"
+    invokerPackage = "com.redhat.swatch.openapi"
+    groupId = "com.redhat.swatch"
     configOptions = [
-            sourceFolder : "src/gen/java",
-            interfaceOnly: "true",
+            sourceFolder         : "src/gen/java",
+            interfaceOnly        : "true",
             useSwaggerAnnotations: "false"
     ]
+
 }
 
-sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
+task printSourceSetInformation() {
+    doLast {
+        sourceSets.each { srcSet ->
+            println "[" + srcSet.name + "]"
+            print "-->Source directories: " + srcSet.allJava.srcDirs + "\n"
+            print "-->Output directories: " + srcSet.output.classesDirs.files + "\n"
+            println ""
+        }
+    }
+}
+//
+//sourceSets {
+//    openApiGeneratedSources {
+//        compileClasspath += sourceSets.main.output
+//        runtimeClasspath += sourceSets.main.output
+//        java {
+//            srcDirs = ["${buildDir}/generated/src/gen/java"]
+//        }
+//    }
+//}
+
+//sourceSets {
+//    main {
+//        java {
+//            srcDir "${buildDir}/generated/src/gen/java"
+//        }
+//    }
+//}
+
+//quarkus {
+//    sourceSets {
+//        main {
+//            java {
+//                srcDir "${buildDir}/generated/src/gen/java"
+//            }
+//        }
+//    }
+//}
+//
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
