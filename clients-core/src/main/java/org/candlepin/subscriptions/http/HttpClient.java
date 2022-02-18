@@ -24,8 +24,10 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -47,9 +49,19 @@ import org.jboss.resteasy.spi.ResteasyProviderFactory;
 /** Utility class for customizing HTTP clients used by API clients. */
 @Slf4j
 public class HttpClient {
-
   private HttpClient() {
     throw new IllegalStateException("Utility class; should never be instantiated!");
+  }
+
+  /**
+   * Customize the creation of the HTTP client the API will be using. Delegates to {@link
+   * HttpClient#buildHttpClient(HttpClientProperties, Object, boolean)}
+   *
+   * @param serviceProperties client configuration properties
+   * @return Client with customized connection settings
+   */
+  public static Client buildHttpClient(HttpClientProperties serviceProperties) {
+    return HttpClient.buildHttpClient(serviceProperties, null, false);
   }
 
   /**
@@ -66,8 +78,7 @@ public class HttpClient {
 
     apacheBuilder.setSSLHostnameVerifier(serviceProperties.getHostnameVerifier());
 
-    // Bump the max connections so that we don't block on multiple async requests
-    // to the service.
+    // Bump the max connections so that we don't block on multiple async requests to the service.
     apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
     apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
     apacheBuilder.setConnectionTimeToLive(
@@ -88,7 +99,8 @@ public class HttpClient {
     }
     ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
 
-    // setup cookie handling
+    // Ignore cookies. Not ignoring them results in error messages in the logs due to mismatches
+    // in domains.
     RequestConfig cookieConfig =
         RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
     apacheBuilder.setDefaultRequestConfig(cookieConfig);
@@ -97,36 +109,33 @@ public class HttpClient {
   }
 
   private static SSLContext getSslContext(HttpClientProperties serviceProperties) {
-    final File keyStoreFile = serviceProperties.getKeystore();
-    final File trustStoreFile = serviceProperties.getTruststore();
-    final char[] keyStorePassword;
-    final char[] trustStorePassword;
-    if (serviceProperties.getKeystorePassword() == null) {
-      keyStorePassword = "".toCharArray();
-    } else {
-      keyStorePassword = serviceProperties.getKeystorePassword();
-    }
-    if (serviceProperties.getTruststorePassword() == null) {
-      trustStorePassword = "".toCharArray();
-    } else {
-      trustStorePassword = serviceProperties.getTruststorePassword();
-    }
-
     try {
       KeyManager[] keyManagers = null;
       TrustManager[] trustManagers = null;
-      final KeyManagerFactory kmf =
+
+      KeyManagerFactory kmf =
           KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-      final TrustManagerFactory tmf =
+      TrustManagerFactory tmf =
           TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-      if (keyStoreFile != null && keyStoreFile.exists() && keyStoreFile.canRead()) {
-        kmf.init(loadKeyStore(keyStoreFile, keyStorePassword), keyStorePassword);
+
+      char[] emptyPass = "".toCharArray();
+
+      if (serviceProperties.usesClientAuth()) {
+        var keystoreFile = serviceProperties.getKeystore();
+        var keystorePass =
+            Objects.requireNonNullElse(serviceProperties.getKeystorePassword(), emptyPass);
+        kmf.init(loadKeyStore(keystoreFile, keystorePass), keystorePass);
         keyManagers = kmf.getKeyManagers();
       }
-      if (trustStoreFile != null && trustStoreFile.exists() && trustStoreFile.canRead()) {
-        tmf.init(loadKeyStore(trustStoreFile, trustStorePassword));
+
+      if (serviceProperties.providesTruststore()) {
+        var truststoreFile = serviceProperties.getTruststore();
+        var truststorePass =
+            Objects.requireNonNullElse(serviceProperties.getTruststorePassword(), emptyPass);
+        tmf.init(loadKeyStore(truststoreFile, truststorePass));
         trustManagers = tmf.getTrustManagers();
       }
+
       final SSLContext ctx = SSLContext.getInstance("TLSv1.2");
       ctx.init(keyManagers, trustManagers, null);
       return ctx;
@@ -136,16 +145,13 @@ public class HttpClient {
   }
 
   private static KeyStore loadKeyStore(File keyStoreFile, char[] keyStorePassword) {
-    try (final BufferedInputStream bufferedInputStream =
-        new BufferedInputStream(new FileInputStream(keyStoreFile))) {
+    try (final InputStream stream = new BufferedInputStream(new FileInputStream(keyStoreFile))) {
       final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
-      store.load(bufferedInputStream, keyStorePassword);
+      store.load(stream, keyStorePassword);
       return store;
     } catch (IOException | GeneralSecurityException e) {
-      throw new IllegalStateException(
-          String.format(
-              "Keystore file %s could not be accessed! %s",
-              keyStoreFile.getAbsolutePath(), e.getMessage()));
+      var message = String.format("Error loading Keystore file %s", keyStoreFile.getAbsolutePath());
+      throw new IllegalStateException(message, e);
     }
   }
 }
