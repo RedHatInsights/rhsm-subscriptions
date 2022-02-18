@@ -40,9 +40,8 @@ public class AccountApiFactory extends AbstractFactoryBean<AccountApi> {
   @Nonnull
   @Override
   protected AccountApi createInstance() {
-    log.info("Subscription client config: {}", properties);
-
     if (properties.isUseStub()) {
+      log.info("Using stub account API client");
       return new StubAccountApi();
     }
 

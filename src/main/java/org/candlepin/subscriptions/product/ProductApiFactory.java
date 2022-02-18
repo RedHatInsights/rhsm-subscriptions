@@ -38,9 +38,8 @@ public class ProductApiFactory implements FactoryBean<ProductApi> {
 
   @Override
   public ProductApi getObject() throws Exception {
-    log.info("Product client config: {}", properties);
-
     if (properties.isUseStub()) {
+      log.info("Using stub product client");
       return new StubProductApi();
     }
 

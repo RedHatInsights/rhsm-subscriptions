@@ -38,9 +38,8 @@ public class ConcurrentApiFactory implements FactoryBean<ConcurrentApi> {
 
   @Override
   public ConcurrentApi getObject() throws Exception {
-    log.info("Cloudigrade client config: {}", properties);
-
     if (properties.isUseStub()) {
+      log.info("Using stub cloudigrade API client");
       return new StubConcurrentApi();
     }
 

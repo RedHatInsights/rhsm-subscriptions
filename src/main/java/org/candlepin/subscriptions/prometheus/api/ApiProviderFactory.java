@@ -39,9 +39,8 @@ public class ApiProviderFactory implements FactoryBean<ApiProvider> {
 
   @Override
   public ApiProvider getObject() throws Exception {
-    log.info("Prometheus client config: {}", properties);
-
     if (properties.isUseStub()) {
+      log.info("Using stub prometheus query API client");
       return new StubApiProvider();
     }
 

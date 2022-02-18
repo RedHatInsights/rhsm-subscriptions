@@ -37,8 +37,6 @@ public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
 
   @Override
   public MarketplaceApi getObject() throws Exception {
-    log.info("Marketplace client config: {}", properties);
-
     if (properties.isUseStub()) {
       throw new UnsupportedOperationException("Marketplace stub not implemented");
     }

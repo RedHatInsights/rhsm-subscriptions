@@ -39,11 +39,7 @@ public class SearchApiFactory implements FactoryBean<SearchApi> {
   @Override
   public SearchApi getObject() throws Exception {
     if (properties.isUseStub()) {
-      log.info("Using stub subscription client");
-    }
-    log.info("Subscription client config: {}", properties);
-
-    if (properties.isUseStub()) {
+      log.info("Using stub search client");
       return new StubSearchApi();
     }
 

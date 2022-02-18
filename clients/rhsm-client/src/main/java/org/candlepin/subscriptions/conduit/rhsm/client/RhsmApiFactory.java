@@ -40,9 +40,8 @@ public class RhsmApiFactory implements FactoryBean<RhsmApi> {
 
   @Override
   public RhsmApi getObject() throws Exception {
-    log.info("RHSM client config: {}", properties);
-
     if (properties.isUseStub()) {
+      log.info("Using stub RHSM API client");
       return new StubRhsmApi();
     }
 
