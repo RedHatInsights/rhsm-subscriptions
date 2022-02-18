@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.time.Duration;
 import javax.net.ssl.HostnameVerifier;
 import lombok.Data;
 import lombok.ToString;
@@ -50,6 +51,9 @@ public class HttpClientProperties {
 
   /** Maximum number of simultaneous connections to the service. */
   private int maxConnections = 100;
+
+  /** Max time to keep a connection open */
+  private Duration connectionTtl = Duration.ofMinutes(5);
 
   /**
    * -- SETTER -- Allow setting the HostnameVerifier implementation. NoopHostnameVerifier could be

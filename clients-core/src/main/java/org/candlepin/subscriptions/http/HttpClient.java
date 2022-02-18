@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -69,6 +70,8 @@ public class HttpClient {
     // to the service.
     apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
     apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
+    apacheBuilder.setConnectionTimeToLive(
+        serviceProperties.getConnectionTtl().getSeconds(), TimeUnit.SECONDS);
     apacheBuilder.setSSLContext(getSslContext(serviceProperties));
 
     org.apache.http.client.HttpClient httpClient = apacheBuilder.build();
