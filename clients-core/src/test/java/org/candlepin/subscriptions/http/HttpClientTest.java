@@ -24,6 +24,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -114,7 +115,7 @@ class HttpClientTest {
     // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
     // Using IOException (superclass of both) makes the test less brittle
     ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(httpClient));
-    assertThat(e.getCause().getMessage(), Matchers.containsString("bad_certificate"));
+    assertThat(e.getCause(), instanceOf(IOException.class));
   }
 
   private String invokeHello(Client client) throws IOException {

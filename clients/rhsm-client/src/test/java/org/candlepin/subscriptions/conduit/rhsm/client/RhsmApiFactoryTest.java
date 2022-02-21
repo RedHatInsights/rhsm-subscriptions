@@ -23,8 +23,8 @@ package org.candlepin.subscriptions.conduit.rhsm.client;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -32,9 +32,9 @@ import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.google.common.io.Resources;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import javax.net.ssl.SSLHandshakeException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.GenericType;
 import org.junit.jupiter.api.AfterEach;
@@ -111,8 +111,12 @@ class RhsmApiFactoryTest {
     ApiClient client = factory.getObject().getApiClient();
 
     client.setBasePath(server.baseUrl());
-    Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));
-    assertThat(e.getCause(), instanceOf(SSLHandshakeException.class));
+
+    // NOTE: openjdk behavior changed w/ https://bugs.openjdk.java.net/browse/JDK-8263435
+    // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
+    // Using IOException (superclass of both) makes the test less brittle
+    ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(client));
+    assertThat(e.getCause(), instanceOf(IOException.class));
   }
 
   /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
