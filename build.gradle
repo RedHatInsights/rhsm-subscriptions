@@ -14,7 +14,7 @@ buildscript {
 
 plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "com.diffplug.spotless" version "6.2.2"
+    id "com.diffplug.spotless" version "6.3.0"
     id "jacoco"
     id "org.sonarqube" version "3.3"
     id "org.springframework.boot" version "2.6.3"
@@ -135,6 +135,14 @@ allprojects {
         testRuntime "org.junit.jupiter:junit-jupiter-engine"
         testRuntime "ch.qos.logback:logback-classic"
     }
+
+    sourceSets {
+      main.java.srcDirs+=generatedMetamodels
+    }
+
+  compileJava {
+      options.annotationProcessorGeneratedSourcesDirectory = file(generatedMetamodels)
+  }
 }
 
 // Disable the default jar; otherwise we end up with two different jars in the final image

@@ -50,6 +50,7 @@ class UpstreamProductDataTest {
     expected.setDescription("Red Hat OpenShift Container Platform (Hourly)");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
     expected.setUsage(Usage.EMPTY);
+    expected.setHasUnlimitedUsage(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -71,6 +72,7 @@ class UpstreamProductDataTest {
     expected.setDescription("Red Hat OpenShift Dedicated on Customer Cloud Subscription (Hourly)");
     expected.setServiceLevel(ServiceLevel.PREMIUM);
     expected.setUsage(Usage.EMPTY);
+    expected.setHasUnlimitedUsage(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -117,6 +119,7 @@ class UpstreamProductDataTest {
     expected.setServiceLevel(ServiceLevel.PREMIUM);
     // (Usage ends up coming from derived SKU RH00618F5)
     expected.setUsage(Usage.PRODUCTION);
+    expected.setHasUnlimitedUsage(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -148,6 +151,7 @@ class UpstreamProductDataTest {
             + "(Up to 4 guests) with Smart Management");
     expected.setServiceLevel(ServiceLevel.STANDARD);
     expected.setUsage(Usage.PRODUCTION);
+    expected.setHasUnlimitedUsage(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -176,6 +180,7 @@ class UpstreamProductDataTest {
     expected.setDescription("Red Hat Enterprise Linux Developer Workstation, Enterprise");
     expected.setServiceLevel(ServiceLevel.EMPTY); // Because Dev-Enterprise isn't a ServiceLevel yet
     expected.setUsage(Usage.DEVELOPMENT_TEST);
+    expected.setHasUnlimitedUsage(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -194,5 +199,29 @@ class UpstreamProductDataTest {
 
     // Then there is no resulting offering.
     assertTrue(actual.isEmpty(), "When a sku doesn't exist upstream, return an empty Optional.");
+  }
+
+  @Test
+  void testOfferingFromUpstreamOpenShiftUnlimitedCores() {
+    // Given an Openshift SKU that has unlimited cores,
+    var sku = "MW00210MO";
+
+    // When getting the upstream offering,
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
+
+    // Then hasUnlimitedUsage should be true
+    assertEquals(true, actual.getHasUnlimitedUsage());
+  }
+
+  @Test
+  void testOfferingFromUpstreamOpenShiftUnlimitedSocketLimit() {
+    // Given an Openshift SKU that has unlimited cores,
+    var sku = "MW00210M1";
+
+    // When getting the upstream offering,
+    var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
+
+    // Then hasUnlimitedUsage should be true
+    assertEquals(true, actual.getHasUnlimitedUsage());
   }
 }

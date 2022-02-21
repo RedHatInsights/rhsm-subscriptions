@@ -47,7 +47,7 @@ import org.hibernate.annotations.Subselect;
         + "sc.end_date, \n"
         + "sc.begin_date, \n"
         + "sc.account_number, \n"
-        + "sc.has_unlimited_guest_sockets, \n"
+        + "sc.has_unlimited_usage, \n"
         + "s.quantity, \n"
         + "s.subscription_number, \n"
         + "o.description as product_name \n"
@@ -104,8 +104,8 @@ public class SubscriptionCapacityView {
   @Column(name = "account_number")
   private String accountNumber;
 
-  @Column(name = "has_unlimited_guest_sockets")
-  private boolean hasUnlimitedGuestSockets;
+  @Column(name = "has_unlimited_usage")
+  private Boolean hasUnlimitedUsage;
 
   public Integer getPhysicalSockets() {
     return Objects.isNull(physicalSockets) ? 0 : physicalSockets;

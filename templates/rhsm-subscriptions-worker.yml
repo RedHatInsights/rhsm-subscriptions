@@ -81,6 +81,8 @@ parameters:
     value: '2'
   - name: DEVTEST_EVENT_EDITING_ENABLED
     value: 'false'
+  - name: ENABLE_ACCOUNT_RESET
+    value: 'false'
 
 objects:
   - apiVersion: v1
@@ -283,8 +285,6 @@ objects:
                   protocol: TCP
                   name: metrics-port
               volumeMounts:
-                - name: config
-                  mountPath: /config
                 - name: logs
                   mountPath: /logs
                 - name: pinhead
@@ -315,9 +315,6 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk

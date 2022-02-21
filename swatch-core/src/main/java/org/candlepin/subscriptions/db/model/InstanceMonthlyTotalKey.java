@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -41,9 +42,11 @@ public class InstanceMonthlyTotalKey implements Serializable {
       DateTimeFormatter.ofPattern("uuuu-MM");
 
   /** month in YYYY-MM format */
+  @Column(nullable = false) // ENT-4622 needed to avoid recreating collections
   private String month;
 
-  @Enumerated(EnumType.STRING)
+  @Enumerated(EnumType.STRING) // ENT-4622 needed to avoid recreating collections
+  @Column(nullable = false)
   private Measurement.Uom uom;
 
   public static String formatMonthId(OffsetDateTime reference) {

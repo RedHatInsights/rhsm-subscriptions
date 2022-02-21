@@ -45,6 +45,7 @@ HAWTIO_BASE_PATH:
 DEV_MODE: false
 DEVTEST_SUBSCRIPTION_EDITING_ENABLED: false
 DEVTEST_EVENT_EDITING_ENABLED: false
+ENABLE_ACCOUNT_RESET: false
 PATH_PREFIX: api
 APP_NAME: rhsm-subscriptions
 
@@ -134,6 +135,7 @@ rhsm-subscriptions:
     dev-mode: ${DEV_MODE}
     manual-subscription-editing-enabled: ${DEVTEST_SUBSCRIPTION_EDITING_ENABLED}
     manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
+    reset-account-enabled: ${ENABLE_ACCOUNT_RESET}
   package_uri_mappings:
     # this mapping required here because it is used by our SecurityConfig, which is shared
     org.candlepin.subscriptions.resteasy: ${PATH_PREFIX}/${APP_NAME}/v1

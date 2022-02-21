@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
@@ -78,19 +79,46 @@ class SubscriptionTableControllerTest {
 
   private static final SubCapSpec RH0180191 =
       SubCapSpec.offering(
-          "RH0180191", "RHEL Server", 2, 0, 0, 0, ServiceLevel.STANDARD, Usage.PRODUCTION);
+          "RH0180191", "RHEL Server", 2, 0, 0, 0, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
   private static final SubCapSpec RH00604F5 =
       SubCapSpec.offering(
-          "RH00604F5", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+          "RH00604F5", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION, false);
   private static final SubCapSpec RH0180192_SOCKETS =
       SubCapSpec.offering(
-          "RH0180192", "RHEL Server", 2, null, 2, null, ServiceLevel.STANDARD, Usage.PRODUCTION);
+          "RH0180192",
+          "RHEL Server",
+          2,
+          null,
+          2,
+          null,
+          ServiceLevel.STANDARD,
+          Usage.PRODUCTION,
+          false);
   private static final SubCapSpec RH0180193_CORES =
       SubCapSpec.offering(
-          "RH0180193", "RHEL Server", null, 2, null, 2, ServiceLevel.STANDARD, Usage.PRODUCTION);
+          "RH0180193",
+          "RHEL Server",
+          null,
+          2,
+          null,
+          2,
+          ServiceLevel.STANDARD,
+          Usage.PRODUCTION,
+          false);
   private static final SubCapSpec RH0180194_SOCKETS_AND_CORES =
       SubCapSpec.offering(
-          "RH0180194", "RHEL Server", 2, 2, 2, 2, ServiceLevel.STANDARD, Usage.PRODUCTION);
+          "RH0180194", "RHEL Server", 2, 2, 2, 2, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
+  private static final SubCapSpec RH0180195_UNLIMITED_USAGE =
+      SubCapSpec.offering(
+          "RH0180192",
+          "RHEL Server",
+          null,
+          null,
+          null,
+          null,
+          ServiceLevel.STANDARD,
+          Usage.PRODUCTION,
+          true);
 
   private enum Org {
     STANDARD("711497", "477931");
@@ -399,13 +427,37 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(Sub.sub("1236", "1237", 5, 6, 6)),
             RH00604F5.withSub(Sub.sub("1234", "1235", 4, 5, 7)),
             SubCapSpec.offering(
-                    "RH00604F6", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                    "RH00604F6",
+                    "RHEL Server",
+                    2,
+                    0,
+                    2,
+                    0,
+                    ServiceLevel.PREMIUM,
+                    Usage.PRODUCTION,
+                    false)
                 .withSub(Sub.sub("1237", "1235", 4, 5, 7)),
             SubCapSpec.offering(
-                    "RH00604F7", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                    "RH00604F7",
+                    "RHEL Server",
+                    2,
+                    0,
+                    2,
+                    0,
+                    ServiceLevel.PREMIUM,
+                    Usage.PRODUCTION,
+                    false)
                 .withSub(Sub.sub("1238", "1235", 4, 5, 7)),
             SubCapSpec.offering(
-                    "RH0060192", "RHEL Server", 2, 0, 2, 0, ServiceLevel.PREMIUM, Usage.PRODUCTION)
+                    "RH0060192",
+                    "RHEL Server",
+                    2,
+                    0,
+                    2,
+                    0,
+                    ServiceLevel.PREMIUM,
+                    Usage.PRODUCTION,
+                    false)
                 .withSub(Sub.sub("1239", "1235", 4, 5, 7)));
 
     when(subscriptionCapacityViewRepository.findAllBy(
@@ -515,6 +567,31 @@ class SubscriptionTableControllerTest {
     assertEquals(SubscriptionType.ON_DEMAND, report.getMeta().getSubscriptionType());
   }
 
+  @Test
+  void testGetSkuCapacityReportUnlimitedQuantity() {
+    // Given an org with one active sub with a quantity of 4 and has an eng product with unlimited
+    // usage.
+    ProductId productId = RHEL_SERVER;
+    Sub expectedSub = Sub.sub("1234", "1235", 4);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(Org.STANDARD, productId, RH0180195_UNLIMITED_USAGE.withSub(expectedSub));
+
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null);
+
+    // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
+    // should be true.
+    assertEquals(1, actual.getData().size(), "Wrong number of items returned");
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+  }
+
   private static void assertCapacities(
       int expectedPhysCap, int expectedVirtCap, Uom expectedUom, SkuCapacity actual) {
     assertEquals(expectedUom, actual.getUom(), "Wrong UOM");
@@ -573,7 +650,7 @@ class SubscriptionTableControllerTest {
     private final Integer virtualCores;
     private final ServiceLevel serviceLevel;
     private final Usage usage;
-    private final boolean hashUnlimitedGuestSockets = false;
+    private final boolean hasUnlimitedUsage;
 
     private SubCapSpec(
         String sku,
@@ -584,6 +661,7 @@ class SubscriptionTableControllerTest {
         Integer virtualCores,
         ServiceLevel serviceLevel,
         Usage usage,
+        boolean hasUnlimitedUsage,
         Sub sub) {
       this.sku = sku;
       this.productName = productName;
@@ -593,6 +671,7 @@ class SubscriptionTableControllerTest {
       this.virtualCores = virtualCores;
       this.serviceLevel = serviceLevel;
       this.usage = usage;
+      this.hasUnlimitedUsage = hasUnlimitedUsage;
       this.sub = sub;
     }
 
@@ -609,7 +688,8 @@ class SubscriptionTableControllerTest {
         Integer virtualSockets,
         Integer virtualCores,
         ServiceLevel serviceLevel,
-        Usage usage) {
+        Usage usage,
+        Boolean hasUnlimitedUsage) {
       return new SubCapSpec(
           sku,
           productName,
@@ -619,6 +699,7 @@ class SubscriptionTableControllerTest {
           virtualCores,
           serviceLevel,
           usage,
+          hasUnlimitedUsage,
           null);
     }
 
@@ -635,6 +716,7 @@ class SubscriptionTableControllerTest {
           virtualCores,
           serviceLevel,
           usage,
+          hasUnlimitedUsage,
           sub);
     }
 
@@ -655,7 +737,7 @@ class SubscriptionTableControllerTest {
           .physicalSockets(totalCapacity(physicalSockets, sub.quantity))
           .virtualSockets(totalCapacity(virtualSockets, sub.quantity))
           .virtualCores(totalCapacity(virtualCores, sub.quantity))
-          .hasUnlimitedGuestSockets(hashUnlimitedGuestSockets)
+          .hasUnlimitedUsage(hasUnlimitedUsage)
           .sku(sku)
           .serviceLevel(serviceLevel)
           .usage(usage)

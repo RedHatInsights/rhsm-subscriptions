@@ -656,40 +656,6 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       tags:
         - hosts
-  /ingress/candlepin_pools/{org_id}:
-    description: "Integration endpoint for updating an account's subscription capacity from
-      Candlepin pool data. (Internal-only API)"
-    parameters:
-      - name: org_id
-        in: path
-        required: true
-        schema:
-          type: string
-        description: "The org ID of the pool data"
-    post:
-      summary: "Update an account's subscription capacity from Candlepin pool data. (Internal-only API)"
-      operationId: updateCapacityFromCandlepinPools
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/CandlepinPool'
-      responses:
-        '204':
-          description: 'Subscription capacity for the account updated successfully.'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/ResourceNotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      tags:
-        - ingress
   /instances/products/{product_id}:
     parameters:
       - name: product_id
@@ -1753,6 +1719,9 @@ components:
           description: "The combined (physical and virtual) capacity for the offering."
           type: integer
           format: int32
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
         uom:
           description: "The unit-of-measure for the capacity."
           $ref: "#/components/schemas/Uom"
@@ -1766,6 +1735,8 @@ components:
         - next_event_date
         - next_event_type
         - quantity
+        - total_capacity
+        - product_name
 
     SkuCapacityReport:
       properties:
@@ -1800,4 +1771,3 @@ components:
 
 security:
   - 3ScaleIdentity: []
-

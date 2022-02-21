@@ -90,6 +90,8 @@ git submodule update --init --recursive
 
 ### Dependent services
 
+NOTE: in order to deploy insights-inventory (not always useful), you'll need to login to quay.io first.
+
 *NOTE*: To run any of the following commands using docker, 
 
 replace podman-compose with

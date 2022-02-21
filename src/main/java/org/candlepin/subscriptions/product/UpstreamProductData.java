@@ -48,6 +48,7 @@ class UpstreamProductData {
   private static final String MSG_TEMPLATE =
       "offeringSku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
+  private static final String UNLIMITED_CORES_OR_SOCKETS = "Unlimited";
 
   /** List of opProd attribute codes used in the making of an Offering. */
   // Non-standard attribute codes are prefixed by "X_". They are not actually attribute codes
@@ -170,8 +171,7 @@ class UpstreamProductData {
     Note 2: ServiceLevel does not represent all values of SERVICE_TYPE seen in prod, which includes:
     Basic, Dev-Professional, Layered, Premium, RHX Basic, Self-Support, Standard.
 
-    Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY, as done in
-    org.candlepin.subscriptions.capacity.CandlepinPoolCapacityMapper.
+    Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY.
 
     For discussions on this topic, see:
     https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.8dadhnye8ysf
@@ -303,13 +303,27 @@ class UpstreamProductData {
       offering.setVirtualCores(cores);
       offering.setVirtualSockets(sockets);
     }
+    var hasUnlimitedCores =
+        Optional.ofNullable(attrs.get(Attr.CORES))
+            .map(UpstreamProductData::hasUnlimitedUsage)
+            .orElse(false);
+    var hasUnlimitedSockets =
+        Optional.ofNullable(attrs.get(Attr.SOCKET_LIMIT))
+            .map(UpstreamProductData::hasUnlimitedUsage)
+            .orElse(false);
+    offering.setHasUnlimitedUsage(hasUnlimitedCores || hasUnlimitedSockets);
   }
 
-  private static Integer nullOrInteger(String v) {
-    if (v == null) {
+  private static Integer nullOrInteger(String capacity) {
+    if (capacity == null || hasUnlimitedUsage(capacity)) {
       return null;
+    } else {
+      return Integer.valueOf(capacity);
     }
-    return Integer.valueOf(v);
+  }
+
+  private static boolean hasUnlimitedUsage(String capacity) {
+    return UNLIMITED_CORES_OR_SOCKETS.equalsIgnoreCase(capacity);
   }
 
   private static UpstreamProductData createFromProduct(OperationalProduct product) {
