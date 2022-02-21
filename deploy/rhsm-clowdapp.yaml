@@ -392,6 +392,8 @@ objects:
               value: /pinhead/keystore.jks
             - name: RHSM_RBAC_USE_STUB
               value: ${RHSM_RBAC_USE_STUB}
+            - name: DEV_MODE
+              value: ${DEV_MODE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
