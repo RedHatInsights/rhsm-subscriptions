@@ -260,6 +260,8 @@ objects:
                   value: /pinhead/keystore.jks
                 - name: DEVTEST_EVENT_EDITING_ENABLED
                   value: ${DEVTEST_EVENT_EDITING_ENABLED}
+                - name: ENABLE_ACCOUNT_RESET
+                  value: ${ENABLE_ACCOUNT_RESET}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
