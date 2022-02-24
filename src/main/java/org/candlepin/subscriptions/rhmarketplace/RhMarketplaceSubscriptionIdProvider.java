@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -42,14 +42,14 @@ import org.springframework.util.Assert;
 /**
  * Class responsible for searching Swatch database for subscriptionIds corresponding to usage keys
  * and if none is found, delegates fetching the subscriptionId to the {@link
- * MarketplaceSubscriptionCollector}.
+ * RhMarketplaceSubscriptionCollector}.
  */
 @Component
-public class MarketplaceSubscriptionIdProvider {
+public class RhMarketplaceSubscriptionIdProvider {
   private static final Logger log =
-      LoggerFactory.getLogger(MarketplaceSubscriptionIdProvider.class);
+      LoggerFactory.getLogger(RhMarketplaceSubscriptionIdProvider.class);
 
-  private final MarketplaceSubscriptionCollector collector;
+  private final RhMarketplaceSubscriptionCollector collector;
   private final SubscriptionRepository subscriptionRepo;
   private final SubscriptionSyncController syncController;
   private final TagProfile tagProfile;
@@ -57,8 +57,8 @@ public class MarketplaceSubscriptionIdProvider {
   private final Counter ambiguousSubscriptionCounter;
 
   @Autowired
-  public MarketplaceSubscriptionIdProvider(
-      MarketplaceSubscriptionCollector collector,
+  public RhMarketplaceSubscriptionIdProvider(
+      RhMarketplaceSubscriptionCollector collector,
       SubscriptionRepository subscriptionRepo,
       SubscriptionSyncController syncController,
       TagProfile tagProfile,
@@ -93,7 +93,7 @@ public class MarketplaceSubscriptionIdProvider {
         fetchSubscriptions(accountNumber, usageKey, productNames, rangeStart, rangeEnd);
 
     if (result.isEmpty()) {
-      /* If we are missing the subscription, call out to the MarketplaceSubscriptionCollector
+      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
       to fetch from Marketplace.  Sync all those subscriptions. Query again. */
       log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId);
       var subscriptions = collector.requestSubscriptions(orgId);

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,19 +32,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jmx.JmxException;
 
 @ExtendWith(MockitoExtension.class)
-class MarketplaceJmxBeanTest {
+class RhMarketplaceJmxBeanTest {
 
-  @Mock MarketplaceService service;
-  @Mock MarketplaceProducer producer;
+  @Mock RhMarketplaceService service;
+  @Mock RhMarketplaceProducer producer;
   @Mock ObjectMapper objMapper;
-  @Mock MarketplacePayloadMapper payloadMapper;
+  @Mock RhMarketplacePayloadMapper payloadMapper;
 
   @Test
   void testSubmitTallySummaryEnablement() throws Exception {
     SecurityProperties appProps = new SecurityProperties();
-    MarketplaceProperties mktProps = new MarketplaceProperties();
-    MarketplaceJmxBean bean =
-        new MarketplaceJmxBean(appProps, mktProps, service, producer, objMapper, payloadMapper);
+    RhMarketplaceProperties mktProps = new RhMarketplaceProperties();
+    RhMarketplaceJmxBean bean =
+        new RhMarketplaceJmxBean(appProps, mktProps, service, producer, objMapper, payloadMapper);
 
     assertTrue(!appProps.isDevMode() && !mktProps.isManualMarketplaceSubmissionEnabled());
     assertThrows(JmxException.class, () -> bean.submitTallySummary(""));

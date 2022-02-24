@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -47,18 +47,18 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"marketplace", "test"})
-class MarketplaceSubscriptionIdProviderTest {
+@ActiveProfiles({"rh-marketplace", "test"})
+class RhMarketplaceSubscriptionIdProviderTest {
 
   @MockBean private SubscriptionRepository repo;
 
   @MockBean private SubscriptionSyncController syncController;
 
-  @MockBean private MarketplaceSubscriptionCollector collector;
+  @MockBean private RhMarketplaceSubscriptionCollector collector;
 
   @MockBean private TagProfile mockProfile;
 
-  @Autowired private MarketplaceSubscriptionIdProvider idProvider;
+  @Autowired private RhMarketplaceSubscriptionIdProvider idProvider;
 
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);

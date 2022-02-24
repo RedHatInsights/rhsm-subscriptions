@@ -18,43 +18,43 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import org.candlepin.subscriptions.http.HttpClient;
-import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
+import org.candlepin.subscriptions.rhmarketplace.api.resources.RhMarketplaceApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
-/** Factory that produces marketplace API clients. */
-public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
+/** Factory that produces Red Hat marketplace API clients. */
+public class RhMarketplaceApiFactory implements FactoryBean<RhMarketplaceApi> {
 
-  private static Logger log = LoggerFactory.getLogger(MarketplaceApiFactory.class);
+  private static Logger log = LoggerFactory.getLogger(RhMarketplaceApiFactory.class);
 
-  private final MarketplaceProperties serviceProperties;
+  private final RhMarketplaceProperties serviceProperties;
 
-  public MarketplaceApiFactory(MarketplaceProperties serviceProperties) {
+  public RhMarketplaceApiFactory(RhMarketplaceProperties serviceProperties) {
     this.serviceProperties = serviceProperties;
   }
 
   @Override
-  public MarketplaceApi getObject() throws Exception {
+  public RhMarketplaceApi getObject() throws Exception {
     ApiClient apiClient = new ApiClient();
     apiClient.setHttpClient(
         HttpClient.buildHttpClient(
             serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
     if (serviceProperties.getUrl() != null) {
-      log.info("Marketplace service URL: {}", serviceProperties.getUrl());
+      log.info("RH Marketplace service URL: {}", serviceProperties.getUrl());
       apiClient.setBasePath(serviceProperties.getUrl());
     } else {
-      log.warn("Marketplace service URL not set...");
+      log.warn("RH Marketplace service URL not set...");
     }
 
-    return new MarketplaceApi(apiClient);
+    return new RhMarketplaceApi(apiClient);
   }
 
   @Override
   public Class<?> getObjectType() {
-    return MarketplaceApi.class;
+    return RhMarketplaceApi.class;
   }
 }

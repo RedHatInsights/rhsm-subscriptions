@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -27,55 +27,55 @@ import static org.mockito.Mockito.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.marketplace.api.model.BatchStatus;
-import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
+import org.candlepin.subscriptions.rhmarketplace.api.model.BatchStatus;
+import org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
-class MarketplaceProducerTest {
+class RhMarketplaceProducerTest {
 
   @Test
   void testMarketplaceProducerRetry() throws Exception {
     RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
-    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    RhMarketplaceService rhMarketplaceService = mock(RhMarketplaceService.class);
     MeterRegistry registry = new SimpleMeterRegistry();
-    MarketplaceProducer marketplaceProducer =
-        new MarketplaceProducer(
-            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
-    var rejectedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.rejected");
+    RhMarketplaceProducer rhMarketplaceProducer =
+        new RhMarketplaceProducer(
+            rhMarketplaceService, retryTemplate, registry, new RhMarketplaceProperties());
+    var rejectedCounter = registry.counter("rhsm-subscriptions.rh-marketplace.batch.rejected");
 
-    when(marketplaceService.submitUsageEvents(any())).thenThrow(SubscriptionsException.class);
+    when(rhMarketplaceService.submitUsageEvents(any())).thenThrow(SubscriptionsException.class);
 
     var usageRequest = new UsageRequest();
 
-    marketplaceProducer.submitUsageRequest(usageRequest);
+    rhMarketplaceProducer.submitUsageRequest(usageRequest);
 
-    verify(marketplaceService, times(2)).submitUsageEvents(any());
+    verify(rhMarketplaceService, times(2)).submitUsageEvents(any());
     assertEquals(1.0, rejectedCounter.count());
   }
 
   @Test
   void testMarketplaceProducerRecordsSuccessfulBatch() throws ApiException {
     RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
-    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    RhMarketplaceService rhMarketplaceService = mock(RhMarketplaceService.class);
     MeterRegistry registry = new SimpleMeterRegistry();
-    MarketplaceProducer marketplaceProducer =
-        new MarketplaceProducer(
-            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
-    var acceptedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.accepted");
+    RhMarketplaceProducer rhMarketplaceProducer =
+        new RhMarketplaceProducer(
+            rhMarketplaceService, retryTemplate, registry, new RhMarketplaceProperties());
+    var acceptedCounter = registry.counter("rhsm-subscriptions.rh-marketplace.batch.accepted");
 
-    when(marketplaceService.submitUsageEvents(any()))
+    when(rhMarketplaceService.submitUsageEvents(any()))
         .thenReturn(
             new StatusResponse()
                 .status("inprogress")
                 .addDataItem(new BatchStatus().batchId("foo")));
-    when(marketplaceService.getUsageBatchStatus("foo"))
+    when(rhMarketplaceService.getUsageBatchStatus("foo"))
         .thenReturn(new StatusResponse().status("accepted"));
 
     var usageRequest = new UsageRequest();
-    marketplaceProducer.submitUsageRequest(usageRequest);
+    rhMarketplaceProducer.submitUsageRequest(usageRequest);
 
     assertEquals(1.0, acceptedCounter.count());
   }
@@ -83,48 +83,48 @@ class MarketplaceProducerTest {
   @Test
   void testMarketplaceProducerRecordsUnverifiedBatch() throws ApiException {
     RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
-    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    RhMarketplaceService rhMarketplaceService = mock(RhMarketplaceService.class);
     MeterRegistry registry = new SimpleMeterRegistry();
-    MarketplaceProducer marketplaceProducer =
-        new MarketplaceProducer(
-            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
-    var unverifiedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.unverified");
+    RhMarketplaceProducer rhMarketplaceProducer =
+        new RhMarketplaceProducer(
+            rhMarketplaceService, retryTemplate, registry, new RhMarketplaceProperties());
+    var unverifiedCounter = registry.counter("rhsm-subscriptions.rh-marketplace.batch.unverified");
 
-    when(marketplaceService.submitUsageEvents(any()))
+    when(rhMarketplaceService.submitUsageEvents(any()))
         .thenReturn(
             new StatusResponse()
                 .status("inprogress")
                 .addDataItem(new BatchStatus().batchId("foo")));
-    when(marketplaceService.getUsageBatchStatus("foo"))
+    when(rhMarketplaceService.getUsageBatchStatus("foo"))
         .thenReturn(new StatusResponse().status("inprogress"));
 
     var usageRequest = new UsageRequest();
-    marketplaceProducer.submitUsageRequest(usageRequest);
+    rhMarketplaceProducer.submitUsageRequest(usageRequest);
 
-    verify(marketplaceService, times(2)).getUsageBatchStatus("foo");
+    verify(rhMarketplaceService, times(2)).getUsageBatchStatus("foo");
     assertEquals(1.0, unverifiedCounter.count());
   }
 
   @Test
   void testMarketplaceProducerRecordsRejectedBatch() throws ApiException {
     RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
-    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    RhMarketplaceService rhMarketplaceService = mock(RhMarketplaceService.class);
     MeterRegistry registry = new SimpleMeterRegistry();
-    MarketplaceProducer marketplaceProducer =
-        new MarketplaceProducer(
-            marketplaceService, retryTemplate, registry, new MarketplaceProperties());
-    var rejectedCounter = registry.counter("rhsm-subscriptions.marketplace.batch.rejected");
+    RhMarketplaceProducer rhMarketplaceProducer =
+        new RhMarketplaceProducer(
+            rhMarketplaceService, retryTemplate, registry, new RhMarketplaceProperties());
+    var rejectedCounter = registry.counter("rhsm-subscriptions.rh-marketplace.batch.rejected");
 
-    when(marketplaceService.submitUsageEvents(any()))
+    when(rhMarketplaceService.submitUsageEvents(any()))
         .thenReturn(
             new StatusResponse()
                 .status("inprogress")
                 .addDataItem(new BatchStatus().batchId("foo")));
-    when(marketplaceService.getUsageBatchStatus("foo"))
+    when(rhMarketplaceService.getUsageBatchStatus("foo"))
         .thenReturn(new StatusResponse().status("failed"));
 
     var usageRequest = new UsageRequest();
-    marketplaceProducer.submitUsageRequest(usageRequest);
+    rhMarketplaceProducer.submitUsageRequest(usageRequest);
 
     assertEquals(1.0, rejectedCounter.count());
   }
@@ -132,13 +132,13 @@ class MarketplaceProducerTest {
   @Test
   void testMarketplaceSkipsVerificationIfAmendmentRejected() throws ApiException {
     RetryTemplate retryTemplate = new RetryTemplateBuilder().maxAttempts(2).noBackoff().build();
-    MarketplaceService marketplaceService = mock(MarketplaceService.class);
+    RhMarketplaceService rhMarketplaceService = mock(RhMarketplaceService.class);
     MeterRegistry registry = new SimpleMeterRegistry();
-    var properties = new MarketplaceProperties();
+    var properties = new RhMarketplaceProperties();
     properties.setAmendmentNotSupportedMarker("(amendments) is not available");
-    MarketplaceProducer marketplaceProducer =
-        new MarketplaceProducer(marketplaceService, retryTemplate, registry, properties);
-    when(marketplaceService.submitUsageEvents(any()))
+    RhMarketplaceProducer rhMarketplaceProducer =
+        new RhMarketplaceProducer(rhMarketplaceService, retryTemplate, registry, properties);
+    when(rhMarketplaceService.submitUsageEvents(any()))
         .thenReturn(
             new StatusResponse()
                 .status("failed")
@@ -149,9 +149,9 @@ class MarketplaceProducerTest {
                             "Requested feature (amendments) is not available on this environment")));
 
     var usageRequest = new UsageRequest();
-    marketplaceProducer.submitUsageRequest(usageRequest);
+    rhMarketplaceProducer.submitUsageRequest(usageRequest);
 
-    verify(marketplaceService, times(1)).submitUsageEvents(any());
-    verifyNoMoreInteractions(marketplaceService);
+    verify(rhMarketplaceService, times(1)).submitUsageEvents(any());
+    verifyNoMoreInteractions(rhMarketplaceService);
   }
 }

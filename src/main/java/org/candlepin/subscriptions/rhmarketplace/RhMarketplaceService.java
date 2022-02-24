@@ -18,31 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.marketplace.api.model.AuthGrantType;
-import org.candlepin.subscriptions.marketplace.api.model.AuthResponse;
-import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
-import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
-import org.candlepin.subscriptions.marketplace.auth.HttpBearerAuth;
+import org.candlepin.subscriptions.rhmarketplace.api.model.AuthGrantType;
+import org.candlepin.subscriptions.rhmarketplace.api.model.AuthResponse;
+import org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
+import org.candlepin.subscriptions.rhmarketplace.api.resources.RhMarketplaceApi;
+import org.candlepin.subscriptions.rhmarketplace.auth.HttpBearerAuth;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Encapsulates auth-related aspects of interacting with the Marketplace API. */
 @Component
-public class MarketplaceService {
+public class RhMarketplaceService {
 
-  private final MarketplaceApi api;
+  private final RhMarketplaceApi api;
   private final String apiKey;
   private final long tokenRefreshPeriodMs;
   private String accessToken;
   private long tokenRefreshCutoff;
 
   @Autowired
-  public MarketplaceService(MarketplaceProperties properties, MarketplaceApi api) {
+  public RhMarketplaceService(RhMarketplaceProperties properties, RhMarketplaceApi api) {
     this.api = api;
     this.apiKey = properties.getApiKey();
     this.tokenRefreshPeriodMs = properties.getTokenRefreshPeriod().toMillis() / 1000;
@@ -68,13 +68,13 @@ public class MarketplaceService {
     }
   }
 
-  @Timed("rhsm-subscriptions.marketplace.usage.request")
+  @Timed("rhsm-subscriptions.rh-marketplace.usage.request")
   public StatusResponse submitUsageEvents(UsageRequest usageRequest) throws ApiException {
     ensureAccessToken();
     return api.submitUsageEvents(usageRequest);
   }
 
-  @Timed("rhsm-subscriptions.marketplace.usage.batch-check")
+  @Timed("rhsm-subscriptions.rh-marketplace.usage.batch-check")
   public StatusResponse getUsageBatchStatus(String batchId) throws ApiException {
     ensureAccessToken();
     return api.getUsageBatchStatus(batchId);

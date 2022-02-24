@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.*;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
@@ -42,9 +42,9 @@ import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
-import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
@@ -59,21 +59,21 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class MarketplacePayloadMapperTest {
+class RhMarketplacePayloadMapperTest {
 
   @Mock TagProfile tagProfile;
-  @Mock MarketplaceProperties marketplaceProperties;
-  @Mock MarketplaceSubscriptionIdProvider mockProvider;
+  @Mock RhMarketplaceProperties rhMarketplaceProperties;
+  @Mock RhMarketplaceSubscriptionIdProvider mockProvider;
 
   @Mock AccountService accountService;
 
-  @InjectMocks MarketplacePayloadMapper marketplacePayloadMapper;
+  @InjectMocks RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
 
   @BeforeEach
   void init() {
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
-        .when(marketplaceProperties.getEligibleSwatchProductIds())
+        .when(rhMarketplaceProperties.getEligibleSwatchProductIds())
         .thenReturn(List.of(OPENSHIFT_METRICS.toString(), OPENSHIFT_DEDICATED_METRICS.toString()));
     lenient()
         .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_METRICS.toString(), Uom.CORES))
@@ -81,7 +81,7 @@ class MarketplacePayloadMapperTest {
 
     lenient()
         .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
-        .thenReturn(MarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
+        .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
@@ -101,7 +101,8 @@ class MarketplacePayloadMapperTest {
             .withSla(Sla.PREMIUM)
             .withGranularity(HOURLY);
 
-    var actual = marketplacePayloadMapper.produceUsageMeasurements(snapshot, productId.toString());
+    var actual =
+        rhMarketplacePayloadMapper.produceUsageMeasurements(snapshot, productId.toString());
 
     assertEquals(expected, actual);
   }
@@ -131,7 +132,7 @@ class MarketplacePayloadMapperTest {
     UsageMeasurement divideByFourMeasurement =
         new UsageMeasurement()
             .value(value / 4)
-            .metricId(MarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
+            .metricId(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
     Arguments physical =
         Arguments.of(
@@ -176,7 +177,7 @@ class MarketplacePayloadMapperTest {
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
   @MethodSource("generateIsSnapshotPaygEligibleData")
   void testIsSnapshotPAYGEligible(TallySnapshot snapshot, boolean isEligible) {
-    boolean actual = marketplacePayloadMapper.isSnapshotPAYGEligible(snapshot);
+    boolean actual = rhMarketplacePayloadMapper.isSnapshotPAYGEligible(snapshot);
     assertEquals(isEligible, actual);
   }
 
@@ -292,7 +293,7 @@ class MarketplacePayloadMapperTest {
                 .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
                 .measuredUsage(List.of(usageMeasurement)));
 
-    List<UsageEvent> actual = marketplacePayloadMapper.produceUsageEvents(summary);
+    List<UsageEvent> actual = rhMarketplacePayloadMapper.produceUsageEvents(summary);
 
     assertEquals(1, actual.size());
     assertEquals(expected.get(0).getEventId(), actual.get(0).getEventId());

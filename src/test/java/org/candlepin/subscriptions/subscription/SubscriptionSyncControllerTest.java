@@ -334,7 +334,7 @@ class SubscriptionSyncControllerTest {
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-        .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+        .marketplaceSubscriptionId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
         .build();
   }
 

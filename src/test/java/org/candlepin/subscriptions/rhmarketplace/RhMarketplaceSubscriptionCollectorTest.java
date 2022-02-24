@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.ParameterizedTest.*;
@@ -42,7 +42,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
-class MarketplaceSubscriptionCollectorTest {
+class RhMarketplaceSubscriptionCollectorTest {
 
   private static final Subscription SUB_WITH_IBMMARKETPLACE =
       new Subscription()
@@ -54,7 +54,7 @@ class MarketplaceSubscriptionCollectorTest {
                       .accountID("account-ID-04072021-1841")));
 
   @Mock SubscriptionService subscriptionService;
-  @InjectMocks MarketplaceSubscriptionCollector marketplaceSubscriptionCollector;
+  @InjectMocks RhMarketplaceSubscriptionCollector rhMarketplaceSubscriptionCollector;
 
   @BeforeEach
   void setUp() {
@@ -69,7 +69,7 @@ class MarketplaceSubscriptionCollectorTest {
 
     assertEquals(
         List.of(SUB_WITH_IBMMARKETPLACE),
-        marketplaceSubscriptionCollector.requestSubscriptions("org123"));
+        rhMarketplaceSubscriptionCollector.requestSubscriptions("org123"));
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
@@ -77,7 +77,7 @@ class MarketplaceSubscriptionCollectorTest {
   void testFilterNonApplicableSubscriptions(List<Subscription> input, List<Subscription> expected) {
 
     assertEquals(
-        expected, marketplaceSubscriptionCollector.filterNonApplicableSubscriptions(input));
+        expected, rhMarketplaceSubscriptionCollector.filterNonApplicableSubscriptions(input));
   }
 
   static Stream<Arguments> generateMockSubscriptionPayloads() {

@@ -15,7 +15,7 @@ Boundary(crc, console.redhat.com) {
     System(tally, "Tally", "System that tallies system usage based on telemetry.")
     ContainerQueue(tally_summaries, "platform.rhsm-subscriptions.tally", "Kafka Topic")
     System_Boundary(billing_producers, "Billing Producers") {
-      Container(marketplace_worker, "RH Marketplace Worker", "Java, Container", "Notifies RH Marketplace of hourly usage.")
+      Container(rh_marketplace_worker, "RH Marketplace Worker", "Java, Container", "Notifies RH Marketplace of hourly usage.")
     }
   }
 }
@@ -25,9 +25,9 @@ System_Ext(rh_marketplace, "marketplace.redhat.com", "Service responsible for bi
 ' tally process
 Rel(tally, tally_summaries, "Produces to")
 
-' marketplace notification
-Rel_Back(tally_summaries, marketplace_worker, "Consumes from")
-Rel(marketplace_worker, rh_marketplace, "Notifies", "JSON/HTTPS")
+' RH marketplace notification
+Rel_Back(tally_summaries, rh_marketplace_worker, "Consumes from")
+Rel(rh_marketplace_worker, rh_marketplace, "Notifies", "JSON/HTTPS")
 
 Rel(customer, rh_marketplace, "Uses", "HTTPS")
 @enduml
