@@ -2,15 +2,15 @@ apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   app: rhsm-subscriptions
-  template: marketplace-worker
+  template: swatch-billing-provider-rh-marketplace
 metadata:
   annotations:
-    description: Components that handle submitting usage info to Marketplace.
-  name: marketplace-worker
+    description: Components that handle submitting usage info to Red Hat Marketplace.
+  name: swatch-billing-provider-rh-marketplace
 
 parameters:
   - name: HAWTIO_BASE_PATH
-    value: /app/rhsm-marketplace/hawtio
+    value: /app/rhsm-rh-marketplace/hawtio
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '48000'
   - name: LOGGING_LEVEL_ROOT
@@ -53,21 +53,21 @@ parameters:
     value: 50m
   - name: SPLUNK_FORWARDER_CPU_LIMIT
     value: 100m
-  - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
+  - name: RH_MARKETPLACE_TOKEN_REFRESH_PERIOD
     value: 1m
-  - name: MARKETPLACE_MAX_ATTEMPTS
+  - name: RH_MARKETPLACE_MAX_ATTEMPTS
     value: '10'
-  - name: MARKETPLACE_BACK_OFF_MAX_INTERVAL
+  - name: RH_MARKETPLACE_BACK_OFF_MAX_INTERVAL
     value: 64s
-  - name: MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+  - name: RH_MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
     value: 1s
-  - name: MARKETPLACE_BACK_OFF_MULTIPLIER
+  - name: RH_MARKETPLACE_BACK_OFF_MULTIPLIER
     value: '2'
-  - name: MARKETPLACE_VERIFY_BATCHES
+  - name: RH_MARKETPLACE_VERIFY_BATCHES
     value: 'true'
-  - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
+  - name: RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED
     value: 'false'
-  - name: MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
+  - name: RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
     value: '(amendments) is not available'
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
@@ -100,17 +100,17 @@ objects:
   - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
     metadata:
-      name: marketplace-worker
+      name: swatch-billing-provider-rh-marketplace
     spec:
       replicas: ${{REPLICAS}}
       selector:
-        deploymentconfig: marketplace-worker
+        deploymentconfig: swatch-billing-provider-rh-marketplace
       strategy:
         type: Recreate
       template:
         metadata:
           labels:
-            deploymentconfig: marketplace-worker
+            deploymentconfig: swatch-billing-provider-rh-marketplace
             prometheus: rhsm
           annotations:
             prometheus.io/path: /metrics
@@ -161,7 +161,7 @@ objects:
                   memory: ${MEMORY_LIMIT}
           containers:
             - image: ${IMAGE}:${IMAGE_TAG}
-              name: marketplace-worker
+              name: swatch-billing-provider-rh-marketplace
               env:
                 # turn off built-in jolokia, so that the spring boot jolokia actuator will work
                 - name: AB_JOLOKIA_OFF
@@ -173,7 +173,7 @@ objects:
                 - name: LOG_FILE
                   value: /logs/server.log
                 - name: SPRING_PROFILES_ACTIVE
-                  value: marketplace,kafka-queue
+                  value: rh-marketplace,kafka-queue
                 - name: JAVA_MAX_MEM_RATIO
                   value: '85'
                 - name: GC_MAX_METASPACE_SIZE
@@ -221,32 +221,32 @@ objects:
                   value: ${DATABASE_CONNECTION_TIMEOUT_MS}
                 - name: DATABASE_MAX_POOL_SIZE
                   value: ${DATABASE_MAX_POOL_SIZE}
-                - name: MARKETPLACE_API_KEY
+                - name: RH_MARKETPLACE_API_KEY
                   valueFrom:
                     secretKeyRef:
-                      name: marketplace
+                      name: rh-marketplace
                       key: key
-                - name: MARKETPLACE_URL
+                - name: RH_MARKETPLACE_URL
                   valueFrom:
                     secretKeyRef:
-                      name: marketplace
+                      name: rh-marketplace
                       key: url
-                - name: MARKETPLACE_TOKEN_REFRESH_PERIOD
-                  value: ${MARKETPLACE_TOKEN_REFRESH_PERIOD}
-                - name: MARKETPLACE_MAX_ATTEMPTS
-                  value: ${MARKETPLACE_MAX_ATTEMPTS}
-                - name: MARKETPLACE_BACK_OFF_MAX_INTERVAL
-                  value: ${MARKETPLACE_BACK_OFF_MAX_INTERVAL}
-                - name: MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
-                  value: ${MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
-                - name: MARKETPLACE_BACK_OFF_MULTIPLIER
-                  value: ${MARKETPLACE_BACK_OFF_MULTIPLIER}
-                - name: MARKETPLACE_VERIFY_BATCHES
-                  value: ${MARKETPLACE_VERIFY_BATCHES}
-                - name: MARKETPLACE_MANUAL_SUBMISSION_ENABLED
-                  value: ${MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
-                - name: MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
-                  value: ${MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER}
+                - name: RH_MARKETPLACE_TOKEN_REFRESH_PERIOD
+                  value: ${RH_MARKETPLACE_TOKEN_REFRESH_PERIOD}
+                - name: RH_MARKETPLACE_MAX_ATTEMPTS
+                  value: ${RH_MARKETPLACE_MAX_ATTEMPTS}
+                - name: RH_MARKETPLACE_BACK_OFF_MAX_INTERVAL
+                  value: ${RH_MARKETPLACE_BACK_OFF_MAX_INTERVAL}
+                - name: RH_MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+                  value: ${RH_MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
+                - name: RH_MARKETPLACE_BACK_OFF_MULTIPLIER
+                  value: ${RH_MARKETPLACE_BACK_OFF_MULTIPLIER}
+                - name: RH_MARKETPLACE_VERIFY_BATCHES
+                  value: ${RH_MARKETPLACE_VERIFY_BATCHES}
+                - name: RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED
+                  value: ${RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
+                - name: RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
+                  value: ${RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER}
                 - name: SUBSCRIPTION_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
@@ -357,7 +357,7 @@ objects:
   - apiVersion: v1
     kind: Service
     metadata:
-      name: marketplace-worker-monitoring
+      name: swatch-billing-provider-rh-marketplace
       labels:
         prometheus: rhsm
     spec:
@@ -367,4 +367,4 @@ objects:
           protocol: TCP
           targetPort: metrics-port
       selector:
-        deploymentconfig: marketplace-worker
+        deploymentconfig: swatch-billing-provider-rh-marketplace

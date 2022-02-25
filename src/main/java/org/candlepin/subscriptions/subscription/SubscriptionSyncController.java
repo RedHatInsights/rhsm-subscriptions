@@ -143,7 +143,8 @@ public class SubscriptionSyncController {
                   .quantity(subscription.getQuantity())
                   .startDate(OffsetDateTime.now())
                   .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-                  .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+                  .marketplaceSubscriptionId(
+                      SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
                   .subscriptionNumber(subscription.getSubscriptionNumber())
                   .build();
           subscriptionRepository.save(newSub);
@@ -266,7 +267,7 @@ public class SubscriptionSyncController {
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-        .marketplaceSubscriptionId(SubscriptionDtoUtil.extractMarketplaceId(subscription))
+        .marketplaceSubscriptionId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
         .build();
   }
 

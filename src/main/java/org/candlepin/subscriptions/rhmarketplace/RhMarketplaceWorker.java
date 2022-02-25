@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
@@ -33,20 +33,20 @@ import org.springframework.stereotype.Service;
 
 /** Worker that maps tally summaries and submits them to Marketplace. */
 @Service
-public class MarketplaceWorker extends SeekableKafkaConsumer {
+public class RhMarketplaceWorker extends SeekableKafkaConsumer {
 
-  private final MarketplaceProducer producer;
-  private final MarketplacePayloadMapper marketplacePayloadMapper;
+  private final RhMarketplaceProducer producer;
+  private final RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
 
   @Autowired
-  public MarketplaceWorker(
-      @Qualifier("marketplaceTasks") TaskQueueProperties taskQueueProperties,
-      MarketplaceProducer producer,
-      MarketplacePayloadMapper marketplacePayloadMapper,
+  public RhMarketplaceWorker(
+      @Qualifier("rhMarketplaceTasks") TaskQueueProperties taskQueueProperties,
+      RhMarketplaceProducer producer,
+      RhMarketplacePayloadMapper rhMarketplacePayloadMapper,
       KafkaConsumerRegistry kafkaConsumerRegistry) {
     super(taskQueueProperties, kafkaConsumerRegistry);
     this.producer = producer;
-    this.marketplacePayloadMapper = marketplacePayloadMapper;
+    this.rhMarketplacePayloadMapper = rhMarketplacePayloadMapper;
   }
 
   @Timed("rhsm-subscriptions.marketplace.tally-summary")
@@ -55,7 +55,7 @@ public class MarketplaceWorker extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "kafkaTallySummaryListenerContainerFactory")
   public void receive(TallySummary tallySummary) {
-    Optional.ofNullable(marketplacePayloadMapper.createUsageRequest(tallySummary))
+    Optional.ofNullable(rhMarketplacePayloadMapper.createUsageRequest(tallySummary))
         .filter(s -> !s.getData().isEmpty())
         .ifPresent(producer::submitUsageRequest);
   }

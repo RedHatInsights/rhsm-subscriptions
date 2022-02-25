@@ -18,13 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,51 +34,51 @@ import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
 
-/** Exposes admin functions for Marketplace integration. */
+/** Exposes admin functions for RH Marketplace integration. */
 @Component
 @ManagedResource
 // must log, then throw because the exception is passed to client and not logged.
 @SuppressWarnings("java:S2139")
-public class MarketplaceJmxBean {
+public class RhMarketplaceJmxBean {
 
-  private static final Logger log = LoggerFactory.getLogger(MarketplaceJmxBean.class);
+  private static final Logger log = LoggerFactory.getLogger(RhMarketplaceJmxBean.class);
   public static final String USAGE_SUBMISSION_ERROR_MESSAGE = "Error submitting usage info via JMX";
 
   private final SecurityProperties properties;
-  private final MarketplaceProperties mktProperties;
-  private final MarketplaceService marketplaceService;
-  private final MarketplaceProducer marketplaceProducer;
+  private final RhMarketplaceProperties mktProperties;
+  private final RhMarketplaceService rhMarketplaceService;
+  private final RhMarketplaceProducer rhMarketplaceProducer;
   private final ObjectMapper mapper;
-  private final MarketplacePayloadMapper marketplacePayloadMapper;
+  private final RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
 
-  MarketplaceJmxBean(
+  RhMarketplaceJmxBean(
       SecurityProperties properties,
-      MarketplaceProperties mktProperties,
-      MarketplaceService marketplaceService,
-      MarketplaceProducer marketplaceProducer,
+      RhMarketplaceProperties mktProperties,
+      RhMarketplaceService rhMarketplaceService,
+      RhMarketplaceProducer rhMarketplaceProducer,
       ObjectMapper mapper,
-      MarketplacePayloadMapper marketplacePayloadMapper) {
+      RhMarketplacePayloadMapper rhMarketplacePayloadMapper) {
 
     this.properties = properties;
     this.mktProperties = mktProperties;
-    this.marketplaceService = marketplaceService;
-    this.marketplaceProducer = marketplaceProducer;
+    this.rhMarketplaceService = rhMarketplaceService;
+    this.rhMarketplaceProducer = rhMarketplaceProducer;
     this.mapper = mapper;
-    this.marketplacePayloadMapper = marketplacePayloadMapper;
+    this.rhMarketplacePayloadMapper = rhMarketplacePayloadMapper;
   }
 
   @ManagedOperation(description = "Force a refresh of the access token")
   public void refreshAccessToken() throws ApiException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Marketplace access token forcibly refreshed by {}", principal);
-    marketplaceService.forceRefreshAccessToken();
+    log.info("RH Marketplace access token forcibly refreshed by {}", principal);
+    rhMarketplaceService.forceRefreshAccessToken();
   }
 
   @ManagedOperation(
       description =
           "Submit tally summary JSON to be converted to a usage event and send to"
               + " RHM as a UsageRequest (available when enabled "
-              + "via MarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
+              + "via RhMarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
   @ManagedOperationParameter(
       name = "tallySummaryJson",
       description =
@@ -91,12 +91,12 @@ public class MarketplaceJmxBean {
     }
 
     TallySummary tallySummary = mapper.readValue(tallySummaryJson, TallySummary.class);
-    UsageRequest usageRequest = marketplacePayloadMapper.createUsageRequest(tallySummary);
+    UsageRequest usageRequest = rhMarketplacePayloadMapper.createUsageRequest(tallySummary);
 
     log.info("usageRequest to be sent: {}", usageRequest);
 
     try {
-      marketplaceProducer.submitUsageRequest(usageRequest);
+      rhMarketplaceProducer.submitUsageRequest(usageRequest);
     } catch (Exception e) {
       log.error(USAGE_SUBMISSION_ERROR_MESSAGE, e);
       throw new JmxException(USAGE_SUBMISSION_ERROR_MESSAGE, e);
@@ -106,7 +106,7 @@ public class MarketplaceJmxBean {
   @ManagedOperation(
       description =
           "Submit usage JSON to RHM (available when enabled "
-              + "via MarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
+              + "via RhMarketplaceProperties.isManualMarketplaceSubmissionEnabled or in dev-mode)")
   @ManagedOperationParameter(
       name = "usageJson",
       description =
@@ -123,7 +123,7 @@ public class MarketplaceJmxBean {
     log.info("usageRequest to be sent: {}", usageRequest);
 
     try {
-      marketplaceProducer.submitUsageRequest(usageRequest);
+      rhMarketplaceProducer.submitUsageRequest(usageRequest);
     } catch (Exception e) {
       log.error(USAGE_SUBMISSION_ERROR_MESSAGE, e);
       throw new JmxException(USAGE_SUBMISSION_ERROR_MESSAGE, e);
@@ -132,6 +132,6 @@ public class MarketplaceJmxBean {
 
   @ManagedOperation(description = "Fetch a usage event status")
   public String getUsageEventStatus(String batchId) throws ApiException {
-    return marketplaceService.getUsageBatchStatus(batchId).toString();
+    return rhMarketplaceService.getUsageBatchStatus(batchId).toString();
   }
 }

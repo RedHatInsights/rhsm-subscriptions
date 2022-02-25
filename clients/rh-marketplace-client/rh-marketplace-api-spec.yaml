@@ -2,8 +2,8 @@
 # a portion of the Marketplace API.
 openapi: 3.0.2
 info:
-  title: marketplace-api
-  description: Third-party specification for Marketplace API, see https://marketplace.redhat.com/en-us/documentation/api-reference
+  title: rh-marketplace-api
+  description: Third-party specification for Red Hat Marketplace API, see https://marketplace.redhat.com/en-us/documentation/api-reference
   version: 1.0.0
 
 paths:
@@ -11,7 +11,7 @@ paths:
     post:
       operationId: getAccessToken
       tags:
-        - marketplace
+        - rh_marketplace
       requestBody:
         required: true
         content:
@@ -34,7 +34,7 @@ paths:
     post:
       operationId: submitUsageEvents
       tags:
-        - marketplace
+        - rh_marketplace
       security:
         - accessToken: []
       requestBody:
@@ -60,7 +60,7 @@ paths:
     get:
       operationId: getUsageBatchStatus
       tags:
-        - marketplace
+        - rh_marketplace
       security:
         - accessToken: []
       responses:

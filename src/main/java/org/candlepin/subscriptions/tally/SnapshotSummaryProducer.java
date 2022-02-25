@@ -48,7 +48,7 @@ public class SnapshotSummaryProducer {
   @Autowired
   protected SnapshotSummaryProducer(
       KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
-      @Qualifier("marketplaceTasks") TaskQueueProperties props) {
+      @Qualifier("rhMarketplaceTasks") TaskQueueProperties props) {
     this.tallySummaryTopic = props.getTopic();
     this.tallySummaryKafkaTemplate = tallySummaryKafkaTemplate;
   }
@@ -115,14 +115,14 @@ public class SnapshotSummaryProducer {
   }
 
   /**
-   * Validates a TallySummary to make sure that it has all the information required by the
+   * Validates a TallySummary to make sure that it has all the information required by the RH
    * marketplace API. Any issues will be logged.
    *
    * @param summary the summary to validate.
    * @return true if the TallySummary is valid, false otherwise.
    */
   private boolean validateTallySummary(TallySummary summary) {
-    // Marketplace requires at least one measurement be included in the Event
+    // RH Marketplace requires at least one measurement be included in the Event
     Optional<org.candlepin.subscriptions.json.TallySnapshot> invalidDueToMeasurements =
         summary.getTallySnapshots().stream()
             .filter(snap -> snap.getTallyMeasurements().isEmpty())
@@ -130,7 +130,7 @@ public class SnapshotSummaryProducer {
     if (invalidDueToMeasurements.isPresent()) {
       log.warn(
           "One or more tally summary snapshots did not have measurements. "
-              + "No usage will be sent to marketplace for this summary.\n{}",
+              + "No usage will be sent to RH marketplace for this summary.\n{}",
           summary);
       return false;
     }

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -39,13 +39,13 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
 /** Configuration for the Marketplace integration worker. */
-@Profile("marketplace")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.marketplace")
+@Profile("rh-marketplace")
+@ComponentScan(basePackages = "org.candlepin.subscriptions.rhmarketplace")
 @Import(SubscriptionServiceConfiguration.class)
-public class MarketplaceWorkerConfiguration {
+public class RhMarketplaceWorkerConfiguration {
   @Bean
-  @Qualifier("marketplaceRetryTemplate")
-  public RetryTemplate marketplaceRetryTemplate(MarketplaceProperties properties) {
+  @Qualifier("rhMarketplaceRetryTemplate")
+  public RetryTemplate marketplaceRetryTemplate(RhMarketplaceProperties properties) {
     return new RetryTemplateBuilder()
         .maxAttempts(properties.getMaxAttempts())
         .exponentialBackoff(
@@ -95,11 +95,11 @@ public class MarketplaceWorkerConfiguration {
    * Build the BeanFactory implementation ourselves since the docs say "Implementations are not
    * supposed to rely on annotation-driven injection or other reflective facilities."
    *
-   * @param properties containing the MarketplaceProperties needed by the factory
-   * @return a configured MarketplaceApiFactory
+   * @param properties containing the RhMarketplaceProperties needed by the factory
+   * @return a configured RhMarketplaceApiFactory
    */
   @Bean
-  public MarketplaceApiFactory marketplaceApiFactory(MarketplaceProperties properties) {
-    return new MarketplaceApiFactory(properties);
+  public RhMarketplaceApiFactory marketplaceApiFactory(RhMarketplaceProperties properties) {
+    return new RhMarketplaceApiFactory(properties);
   }
 }

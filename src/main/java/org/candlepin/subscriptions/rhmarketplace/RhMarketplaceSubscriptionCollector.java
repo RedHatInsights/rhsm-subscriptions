@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import java.util.List;
 import java.util.Objects;
@@ -33,13 +33,13 @@ import org.springframework.util.StringUtils;
  * Class responsible for communicating with the Marketplace API and fetching the subscription ID.
  */
 @Component
-public class MarketplaceSubscriptionCollector {
+public class RhMarketplaceSubscriptionCollector {
 
   private static final String IBMMARKETPLACE = "ibmmarketplace";
   private final SubscriptionService subscriptionService;
 
   @Autowired
-  public MarketplaceSubscriptionCollector(SubscriptionService subscriptionService) {
+  public RhMarketplaceSubscriptionCollector(SubscriptionService subscriptionService) {
     this.subscriptionService = subscriptionService;
   }
 
