@@ -37,12 +37,12 @@ project(":clients:insights-inventory-client") {
     }
 }
 
-project(":clients:marketplace-client") {
+project(":clients:rh-marketplace-client") {
     apply plugin: "org.openapi.generator"
 
     ext {
-        api_spec_path = "${projectDir}/marketplace-api-spec.yaml"
-        config_file = "${projectDir}/marketplace-client-config.json"
+        api_spec_path = "${projectDir}/rh-marketplace-api-spec.yaml"
+        config_file = "${projectDir}/rh-marketplace-client-config.json"
     }
 
     dependencies {

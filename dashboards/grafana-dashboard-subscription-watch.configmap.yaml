@@ -2714,7 +2714,7 @@ data:
           },
           "id": 74,
           "panels": [],
-          "title": "Marketplace Integration",
+          "title": "Red Hat Marketplace Integration",
           "type": "row"
         },
         {
@@ -2993,7 +2993,7 @@ data:
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "Marketplace Task Lag",
+          "title": "RH Marketplace Task Lag",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -3113,7 +3113,7 @@ data:
           "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "sum(increase(rhsm_subscriptions_marketplace_batch_accepted_total[$__range]))",
+              "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_accepted_total[$__range]))",
               "format": "time_series",
               "instant": true,
               "interval": "",
@@ -3122,20 +3122,20 @@ data:
               "refId": "A"
             },
             {
-              "expr": "sum(increase(rhsm_subscriptions_marketplace_batch_rejected_total[$__range]))",
+              "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_rejected_total[$__range]))",
               "instant": true,
               "interval": "",
               "legendFormat": "rejected",
               "refId": "B"
             },
             {
-              "expr": "sum(increase(rhsm_subscriptions_marketplace_batch_unverified_total[$__range]))",
+              "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_unverified_total[$__range]))",
               "interval": "",
               "legendFormat": "unverified",
               "refId": "C"
             }
           ],
-          "title": "Marketplace Batch Stats",
+          "title": "Red Hat Marketplace Batch Stats",
           "type": "stat"
         }
       ],

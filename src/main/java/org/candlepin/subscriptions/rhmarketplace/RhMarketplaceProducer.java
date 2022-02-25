@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.marketplace.api.model.BatchStatus;
-import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
-import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
+import org.candlepin.subscriptions.rhmarketplace.api.model.BatchStatus;
+import org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,34 +48,36 @@ import org.springframework.util.StringUtils;
  * Component that is responsible for emitting usage info to Marketplace, including handling retries.
  */
 @Service
-public class MarketplaceProducer {
+public class RhMarketplaceProducer {
 
-  private static final Logger log = LoggerFactory.getLogger(MarketplaceProducer.class);
+  private static final Logger log = LoggerFactory.getLogger(RhMarketplaceProducer.class);
   public static final String ACCEPTED_STATUS = "accepted";
   public static final String IN_PROGRESS_STATUS = "inprogress";
   public static final String FAILED_STATUS = "failed";
   private static final List<String> SUCCESSFUL_SUBMISSION_STATUSES =
       List.of(ACCEPTED_STATUS, IN_PROGRESS_STATUS);
 
-  private final MarketplaceService marketplaceService;
+  private final RhMarketplaceService rhMarketplaceService;
   private final RetryTemplate retryTemplate;
   private final Counter acceptedCounter;
   private final Counter unverifiedCounter;
   private final Counter rejectedCounter;
-  private final MarketplaceProperties properties;
+  private final RhMarketplaceProperties properties;
 
   @Autowired
-  MarketplaceProducer(
-      MarketplaceService marketplaceService,
-      @Qualifier("marketplaceRetryTemplate") RetryTemplate retryTemplate,
+  RhMarketplaceProducer(
+      RhMarketplaceService rhMarketplaceService,
+      @Qualifier("rhMarketplaceRetryTemplate") RetryTemplate retryTemplate,
       MeterRegistry meterRegistry,
-      MarketplaceProperties properties) {
-    this.marketplaceService = marketplaceService;
+      RhMarketplaceProperties properties) {
+    this.rhMarketplaceService = rhMarketplaceService;
     this.retryTemplate = retryTemplate;
-    this.acceptedCounter = meterRegistry.counter("rhsm-subscriptions.marketplace.batch.accepted");
+    this.acceptedCounter =
+        meterRegistry.counter("rhsm-subscriptions.rh-marketplace.batch.accepted");
     this.unverifiedCounter =
-        meterRegistry.counter("rhsm-subscriptions.marketplace.batch.unverified");
-    this.rejectedCounter = meterRegistry.counter("rhsm-subscriptions.marketplace.batch.rejected");
+        meterRegistry.counter("rhsm-subscriptions.rh-marketplace.batch.unverified");
+    this.rejectedCounter =
+        meterRegistry.counter("rhsm-subscriptions.rh-marketplace.batch.rejected");
     this.properties = properties;
   }
 
@@ -125,18 +127,18 @@ public class MarketplaceProducer {
 
   private String verifyBatchId(String batchId) {
     try {
-      StatusResponse response = marketplaceService.getUsageBatchStatus(batchId);
+      StatusResponse response = rhMarketplaceService.getUsageBatchStatus(batchId);
       String status = Objects.requireNonNull(response.getStatus());
       if (IN_PROGRESS_STATUS.equals(status)) {
         // throw an exception so that retry logic re-checks the batch
-        throw new MarketplaceUsageSubmissionException(response);
+        throw new RhMarketplaceUsageSubmissionException(response);
       } else if (!ACCEPTED_STATUS.equals(status)) {
         log.error(
-            "Marketplace rejected batch {} with status {} and message {}",
+            "RH Marketplace rejected batch {} with status {} and message {}",
             batchId,
             status,
             response.getMessage());
-        log.debug("Marketplace response: {}", response);
+        log.debug("RH Marketplace response: {}", response);
         rejectedCounter.increment();
       } else {
         acceptedCounter.increment();
@@ -153,10 +155,10 @@ public class MarketplaceProducer {
 
   private StatusResponse tryRequest(UsageRequest usageRequest) {
     try {
-      StatusResponse status = marketplaceService.submitUsageEvents(usageRequest);
-      log.debug("Marketplace response: {}", status);
+      StatusResponse status = rhMarketplaceService.submitUsageEvents(usageRequest);
+      log.debug("RH Marketplace response: {}", status);
       if (!isSuccessfulResponse(status)) {
-        throw new MarketplaceUsageSubmissionException(status);
+        throw new RhMarketplaceUsageSubmissionException(status);
       }
       if (status.getData() != null) {
         status
@@ -164,7 +166,7 @@ public class MarketplaceProducer {
             .forEach(
                 batchStatus ->
                     log.info(
-                        "Marketplace Batch: {} for Tally Snapshot IDs: {}",
+                        "RH Marketplace Batch: {} for Tally Snapshot IDs: {}",
                         batchStatus.getBatchId(),
                         usageRequest.getData().stream()
                             .map(UsageEvent::getEventId)

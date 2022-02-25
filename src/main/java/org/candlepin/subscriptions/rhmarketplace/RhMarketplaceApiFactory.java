@@ -18,25 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
-import org.candlepin.subscriptions.marketplace.api.resources.MarketplaceApi;
+import org.candlepin.subscriptions.rhmarketplace.api.resources.RhMarketplaceApi;
 import org.springframework.beans.factory.FactoryBean;
 
-/** Factory that produces marketplace API clients. */
+/** Factory that produces Red Hat marketplace API clients. */
 @Slf4j
-public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
+public class RhMarketplaceApiFactory implements FactoryBean<RhMarketplaceApi> {
+  private final RhMarketplaceProperties properties;
 
-  private final MarketplaceProperties properties;
-
-  public MarketplaceApiFactory(MarketplaceProperties properties) {
+  public RhMarketplaceApiFactory(RhMarketplaceProperties properties) {
     this.properties = properties;
   }
 
   @Override
-  public MarketplaceApi getObject() throws Exception {
+  public RhMarketplaceApi getObject() throws Exception {
     if (properties.isUseStub()) {
       throw new UnsupportedOperationException("Marketplace stub not implemented");
     }
@@ -45,11 +44,11 @@ public class MarketplaceApiFactory implements FactoryBean<MarketplaceApi> {
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
     client.setBasePath(properties.getUrl());
-    return new MarketplaceApi(client);
+    return new RhMarketplaceApi(client);
   }
 
   @Override
   public Class<?> getObjectType() {
-    return MarketplaceApi.class;
+    return RhMarketplaceApi.class;
   }
 }

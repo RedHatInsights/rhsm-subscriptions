@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -32,12 +32,11 @@ import org.springframework.stereotype.Component;
 
 /** Properties for the Marketplace integration. */
 @Component
-@ConfigurationProperties(prefix = "rhsm-subscriptions.marketplace")
+@ConfigurationProperties(prefix = "rhsm-subscriptions.rh-marketplace")
 @Data
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class MarketplaceProperties extends HttpClientProperties {
-
+public class RhMarketplaceProperties extends HttpClientProperties {
   /** Marketplace API key (from https://marketplace.redhat.com/en-us/account/service-ids) */
   @ToString.Exclude private String apiKey;
 

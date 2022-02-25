@@ -18,17 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.candlepin.subscriptions.marketplace.api.model.StatusResponse;
+import org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse;
 
 /** Exception for any issue submitting usage to Marketplace. */
 @Getter
 @ToString
-public class MarketplaceUsageSubmissionException extends RuntimeException {
-  public MarketplaceUsageSubmissionException(StatusResponse status) {
+public class RhMarketplaceUsageSubmissionException extends RuntimeException {
+  public RhMarketplaceUsageSubmissionException(StatusResponse status) {
     super(extractMessage(status));
   }
 

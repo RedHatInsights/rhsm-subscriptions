@@ -22,16 +22,16 @@ package org.candlepin.subscriptions.deployment;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
+import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"marketplace", "kafka-queue", "test"})
-class MarketplaceWorkerDeploymentTest {
-  @Autowired MarketplaceWorkerConfiguration configuration;
+@ActiveProfiles({"rh-marketplace", "kafka-queue", "test"})
+class RhMarketplaceWorkerDeploymentTest {
+  @Autowired RhMarketplaceWorkerConfiguration configuration;
 
   @Test
   void testDeployment() {

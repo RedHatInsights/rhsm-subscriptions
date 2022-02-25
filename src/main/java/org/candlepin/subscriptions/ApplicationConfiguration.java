@@ -35,12 +35,12 @@ import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.marketplace.MarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
 import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
 import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
+import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.security.SecurityConfig;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
@@ -75,7 +75,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   PurgeSnapshotsConfiguration.class,
   LiquibaseUpdateOnlyConfiguration.class,
   TallyWorkerConfiguration.class,
-  MarketplaceWorkerConfiguration.class,
+  RhMarketplaceWorkerConfiguration.class,
   SubscriptionWorkerConfiguration.class,
   SubscriptionSyncConfiguration.class,
   CapacityReconciliationWorkerConfiguration.class,
@@ -88,7 +88,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   MeteringConfiguration.class,
   SubscriptionServiceConfiguration.class,
   UserServiceClientConfiguration.class,
-  // NOTE(khowell): actually not needed in marketplace worker
+  // NOTE(khowell): actually not needed in RH marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
   UtilConfiguration.class,
 })
@@ -99,8 +99,8 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  @Qualifier("marketplaceTasks")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.marketplace-tasks")
+  @Qualifier("rhMarketplaceTasks")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.rh-marketplace-tasks")
   TaskQueueProperties tallySummaryQueueProperties() {
     return new TaskQueueProperties();
   }

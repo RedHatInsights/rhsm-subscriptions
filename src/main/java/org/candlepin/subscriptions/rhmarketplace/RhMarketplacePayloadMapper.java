@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.marketplace;
+package org.candlepin.subscriptions.rhmarketplace;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -34,10 +34,10 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.marketplace.api.model.UsageEvent;
-import org.candlepin.subscriptions.marketplace.api.model.UsageMeasurement;
-import org.candlepin.subscriptions.marketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
+import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.user.AccountService;
 import org.slf4j.Logger;
@@ -47,26 +47,26 @@ import org.springframework.stereotype.Service;
 
 /** Maps TallySummary to payload contents to be sent to RHM apis */
 @Service
-public class MarketplacePayloadMapper {
-  private static final Logger log = LoggerFactory.getLogger(MarketplacePayloadMapper.class);
+public class RhMarketplacePayloadMapper {
+  private static final Logger log = LoggerFactory.getLogger(RhMarketplacePayloadMapper.class);
 
   public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR =
       "redhat.com:openshift_dedicated:4cpu_hour";
 
   private final AccountService accountService;
-  private final MarketplaceProperties marketplaceProperties;
-  private final MarketplaceSubscriptionIdProvider idProvider;
+  private final RhMarketplaceProperties rhMarketplaceProperties;
+  private final RhMarketplaceSubscriptionIdProvider idProvider;
   private final TagProfile tagProfile;
 
   @Autowired
-  public MarketplacePayloadMapper(
+  public RhMarketplacePayloadMapper(
       TagProfile tagProfile,
       AccountService accountService,
-      MarketplaceSubscriptionIdProvider idProvider,
-      MarketplaceProperties marketplaceProperties) {
+      RhMarketplaceSubscriptionIdProvider idProvider,
+      RhMarketplaceProperties rhMarketplaceProperties) {
     this.tagProfile = tagProfile;
     this.accountService = accountService;
-    this.marketplaceProperties = marketplaceProperties;
+    this.rhMarketplaceProperties = rhMarketplaceProperties;
     this.idProvider = idProvider;
   }
 
@@ -100,7 +100,7 @@ public class MarketplacePayloadMapper {
   protected boolean isSnapshotPAYGEligible(TallySnapshot snapshot) {
     String productId = snapshot.getProductId();
 
-    var applicableProducts = marketplaceProperties.getEligibleSwatchProductIds();
+    var applicableProducts = rhMarketplaceProperties.getEligibleSwatchProductIds();
     boolean isApplicableProduct = applicableProducts.contains(productId);
 
     boolean isHourlyGranularity =

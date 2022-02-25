@@ -1,7 +1,0 @@
-{
-  "modelPackage": "org.candlepin.subscriptions.marketplace.api.model",
-  "apiPackage": "org.candlepin.subscriptions.marketplace.api.resources",
-  "invokerPackage": "org.candlepin.subscriptions.marketplace",
-  "groupId": "org.candlepin",
-  "artifactId": "marketplace-client"
-}
