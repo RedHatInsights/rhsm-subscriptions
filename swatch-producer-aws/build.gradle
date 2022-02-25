@@ -76,7 +76,11 @@ compileTestJava {
 
 test {
     useJUnitPlatform()
-    environment "DOCKER_HOST", "unix:///run/user/1000/podman/podman.sock"
+    if (System.getenv("DOCKER_HOST") == null) {
+        String UID = 'id -u'.execute().text.strip()
+        environment "DOCKER_HOST", "unix:///run/user/$UID/podman/podman.sock"
+    }
+    System.out.println "DOCKER_HOST: ${environment.DOCKER_HOST}"
     environment "TESTCONTAINERS_RYUK_DISABLED", "true"
 }
 
