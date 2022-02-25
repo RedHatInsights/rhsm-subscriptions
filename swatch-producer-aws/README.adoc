@@ -111,3 +111,10 @@ curl --request POST \
 }'
 
 ----
+
+== Install Testcontainers podman dependencies
+[source,bash]
+----
+dnf install -y podman-docker
+
+----
