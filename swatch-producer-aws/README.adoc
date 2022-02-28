@@ -112,9 +112,9 @@ curl --request POST \
 
 ----
 
-== Install Testcontainers podman dependencies
+== For running tests with Testcontainers you must first start podman service
 [source,bash]
 ----
-dnf install -y podman-docker
+podman system service -t 360
 
 ----
