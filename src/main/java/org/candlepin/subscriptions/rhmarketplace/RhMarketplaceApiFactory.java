@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.rhmarketplace.api.resources.RhMarketplaceApi;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory that produces Red Hat marketplace API clients. */
 @Slf4j
@@ -43,7 +44,15 @@ public class RhMarketplaceApiFactory implements FactoryBean<RhMarketplaceApi> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("RH marketplace service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("RH marketplace URL not set...");
+    }
+
     return new RhMarketplaceApi(client);
   }
 

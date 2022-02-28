@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.product.api.resources.ProductApi;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory for creating ProductApi clients for the Product Service. */
 @Slf4j
@@ -46,7 +47,15 @@ public class ProductApiFactory implements FactoryBean<ProductApi> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Product service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("Product service URL not set...");
+    }
+
     return new ProductApi(client);
   }
 

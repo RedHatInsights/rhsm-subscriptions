@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory bean for AccountApi. */
 @Slf4j
@@ -48,7 +49,15 @@ public class AccountApiFactory extends AbstractFactoryBean<AccountApi> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("User service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("User service URL not set...");
+    }
+
     return new AccountApi(client);
   }
 

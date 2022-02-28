@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /**
  * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending
@@ -48,7 +49,15 @@ public class RhsmApiFactory implements FactoryBean<RhsmApi> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("RHSM service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("RHSM service URL not set...");
+    }
+
     client.addDefaultHeader("cp-lookup-permissions", "false");
     return new RhsmApi(client);
   }

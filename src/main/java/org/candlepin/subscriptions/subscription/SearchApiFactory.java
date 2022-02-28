@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory for creating SearchApi clients for the Subscription Service. */
 @Slf4j
@@ -46,7 +47,14 @@ public class SearchApiFactory implements FactoryBean<SearchApi> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Subscription service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("Subscription service URL not set...");
+    }
+
     return new SearchApi(client);
   }
 

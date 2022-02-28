@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.prometheus.ApiClient;
 import org.candlepin.subscriptions.prometheus.Configuration;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory that produces prometheus query API clients using configuration. */
 @Slf4j
@@ -47,7 +48,15 @@ public class ApiProviderFactory implements FactoryBean<ApiProvider> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Prometheus API service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("Prometheus API service URL not set...");
+    }
+
     return new ApiProviderImpl(client);
   }
 

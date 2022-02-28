@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory that produces inventory service clients using configuration. */
 @Slf4j
@@ -46,7 +47,15 @@ public class ConcurrentApiFactory implements FactoryBean<ConcurrentApi> {
     ApiClient client = Configuration.getDefaultApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
-    client.setBasePath(properties.getUrl());
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Cloudigrade service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("Cloudigrade URL not set...");
+    }
+
     return new ConcurrentApi(client);
   }
 
