@@ -28,7 +28,7 @@ plugins {
 
 ext {
     swagger_annotations_version = "1.6.5"
-    swagger_ui_version = "4.5.0"
+    swagger_ui_version = "4.5.2"
     resteasy_version = "3.6.3.Final"
     spring_boot_version = "2.6.4"
     jboss_jaxrs_api_version = "2.0.2.Final"
