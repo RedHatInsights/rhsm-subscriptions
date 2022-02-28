@@ -111,3 +111,10 @@ curl --request POST \
 }'
 
 ----
+
+== For running tests with Testcontainers you must first start podman service
+[source,bash]
+----
+systemctl --user enable --now podman.socket
+
+----

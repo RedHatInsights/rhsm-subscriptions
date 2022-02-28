@@ -47,6 +47,12 @@ dependencies {
     implementation 'com.splunk.logging:splunk-library-javalogging:1.8.0'
     testImplementation 'io.quarkus:quarkus-junit5'
     compileOnly 'org.projectlombok:lombok:1.18.22'
+    testImplementation "org.junit.jupiter:junit-jupiter:5.8.1"
+    testImplementation "org.testcontainers:testcontainers:1.16.3"
+    testImplementation "org.testcontainers:junit-jupiter:1.16.3"
+    testImplementation "org.testcontainers:postgresql:1.16.3"
+    testImplementation "org.testcontainers:kafka:1.16.3"
+
 }
 
 group = 'com.redhat.swatch'
@@ -66,6 +72,16 @@ compileJava {
 
 compileTestJava {
     options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+    if (System.getenv("DOCKER_HOST") == null) {
+        String UID = 'id -u'.execute().text.strip()
+        environment "DOCKER_HOST", "unix:///run/user/$UID/podman/podman.sock"
+    }
+    System.out.println "DOCKER_HOST: ${environment.DOCKER_HOST}"
+    environment "TESTCONTAINERS_RYUK_DISABLED", "true"
 }
 
 openApiGenerate {
