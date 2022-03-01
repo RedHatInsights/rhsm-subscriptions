@@ -20,30 +20,34 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.MatcherAssert.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.google.common.io.Resources;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import javax.net.ssl.SSLHandshakeException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.GenericType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.ResourceUtils;
 
 class RhsmApiFactoryTest {
-  public static final String STORE_PASSWORD = "password";
+  public static final char[] STORE_PASSWORD = "password".toCharArray();
 
   private WireMockServer server;
   private RhsmApiProperties config;
-  private X509ApiClientFactory x509Factory;
+  private RhsmApiFactory apiFactory;
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -81,10 +85,10 @@ class RhsmApiFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setKeystoreFile(server.getOptions().httpsSettings().keyStorePath());
+    config.setKeystore(new File(server.getOptions().httpsSettings().keyStorePath()));
     config.setKeystorePassword(STORE_PASSWORD);
 
-    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
@@ -100,15 +104,19 @@ class RhsmApiFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setTruststoreFile(Resources.getResource("test-ca.jks").getPath());
+    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
     ApiClient client = factory.getObject().getApiClient();
 
     client.setBasePath(server.baseUrl());
-    Exception e = assertThrows(ProcessingException.class, () -> invokeHello(client));
-    assertThat(e.getCause(), instanceOf(SSLHandshakeException.class));
+
+    // NOTE: openjdk behavior changed w/ https://bugs.openjdk.java.net/browse/JDK-8263435
+    // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
+    // Using IOException (superclass of both) makes the test less brittle
+    ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(client));
+    assertThat(e.getCause(), instanceOf(IOException.class));
   }
 
   /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
@@ -134,9 +142,9 @@ class RhsmApiFactoryTest {
         .dynamicHttpsPort()
         .dynamicPort()
         .keystorePath(keystorePath)
-        .keystorePassword(STORE_PASSWORD)
+        .keystorePassword(new String(STORE_PASSWORD))
         .needClientAuth(true)
         .trustStorePath(truststorePath)
-        .trustStorePassword(STORE_PASSWORD);
+        .trustStorePassword(new String(STORE_PASSWORD));
   }
 }

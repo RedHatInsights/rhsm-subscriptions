@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.inventory.client.resources.HostsApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory that produces inventory service clients using configuration. */
 public class HostsApiFactory implements FactoryBean<HostsApi> {
@@ -45,9 +46,11 @@ public class HostsApiFactory implements FactoryBean<HostsApi> {
       return new StubHostsApi();
     }
     ApiClient apiClient = Configuration.getDefaultApiClient();
-    if (serviceProperties.getUrl() != null) {
-      log.info("Host inventory service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
+
+    var url = serviceProperties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Host inventory service URL: {}", url);
+      apiClient.setBasePath(url);
     } else {
       log.warn("Host inventory service URL not set...");
     }

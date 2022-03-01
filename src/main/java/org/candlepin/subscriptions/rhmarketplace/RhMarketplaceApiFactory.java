@@ -20,37 +20,40 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.rhmarketplace.api.resources.RhMarketplaceApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory that produces Red Hat marketplace API clients. */
+@Slf4j
 public class RhMarketplaceApiFactory implements FactoryBean<RhMarketplaceApi> {
+  private final RhMarketplaceProperties properties;
 
-  private static Logger log = LoggerFactory.getLogger(RhMarketplaceApiFactory.class);
-
-  private final RhMarketplaceProperties serviceProperties;
-
-  public RhMarketplaceApiFactory(RhMarketplaceProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public RhMarketplaceApiFactory(RhMarketplaceProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public RhMarketplaceApi getObject() throws Exception {
-    ApiClient apiClient = new ApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("RH Marketplace service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
-    } else {
-      log.warn("RH Marketplace service URL not set...");
+    if (properties.isUseStub()) {
+      throw new UnsupportedOperationException("Marketplace stub not implemented");
     }
 
-    return new RhMarketplaceApi(apiClient);
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("RH marketplace service URL: {}", url);
+      client.setBasePath(url);
+    } else {
+      log.warn("RH marketplace URL not set...");
+    }
+
+    return new RhMarketplaceApi(client);
   }
 
   @Override

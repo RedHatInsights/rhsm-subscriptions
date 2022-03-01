@@ -20,77 +20,15 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
-import java.io.IOException;
-import java.io.InputStream;
-import javax.net.ssl.HostnameVerifier;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 
 /** Class to hold values used to build the ApiClient instance wrapped in an SSLContext for RHSM. */
-@Getter
-@Setter
-public class RhsmApiProperties {
-  @Setter(AccessLevel.NONE)
-  private X509ApiClientFactoryConfiguration x509Config = new X509ApiClientFactoryConfiguration();
-
-  private boolean useStub;
-  private String url;
+@Data
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class RhsmApiProperties extends HttpClientProperties {
   private int requestBatchSize = 100;
-
-  public String getKeystorePassword() {
-    return x509Config.getKeystorePassword();
-  }
-
-  public void setKeystorePassword(String keystorePassword) {
-    x509Config.setKeystorePassword(keystorePassword);
-  }
-
-  public String getTruststorePassword() {
-    return x509Config.getTruststorePassword();
-  }
-
-  public void setTruststorePassword(String truststorePassword) {
-    x509Config.setTruststorePassword(truststorePassword);
-  }
-
-  public String getKeystoreFile() {
-    return x509Config.getKeystoreFile();
-  }
-
-  public void setKeystoreFile(String keystoreFile) {
-    x509Config.setKeystoreFile(keystoreFile);
-  }
-
-  public String getTruststoreFile() {
-    return x509Config.getTruststoreFile();
-  }
-
-  public void setTruststoreFile(String truststoreFile) {
-    x509Config.setTruststoreFile(truststoreFile);
-  }
-
-  public InputStream getKeystoreStream() throws IOException {
-    return x509Config.getKeystoreStream();
-  }
-
-  public InputStream getTruststoreStream() throws IOException {
-    return x509Config.getTruststoreStream();
-  }
-
-  public HostnameVerifier getHostnameVerifier() {
-    return x509Config.getHostnameVerifier();
-  }
-
-  public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
-    x509Config.setHostnameVerifier(hostnameVerifier);
-  }
-
-  public boolean usesClientAuth() {
-    return x509Config.usesClientAuth();
-  }
-
-  public void setMaxConnections(int maxConnections) {
-    x509Config.setMaxConnections(maxConnections);
-  }
 }
