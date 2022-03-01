@@ -37,7 +37,7 @@ ext {
     avro_version = "1.11.0"
     webjars_locator_version = "0.45"
     hawtio_springboot_version = "2.14.5"
-    guava_version = "31.0.1-jre"
+    guava_version = "31.1-jre"
     janino_version = "3.1.6"
     splunk_library_javalogging_version = "1.11.4"
 
