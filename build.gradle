@@ -18,7 +18,7 @@ plugins {
     id "jacoco"
     id "org.sonarqube" version "3.3"
     id "org.springframework.boot" version "2.6.4"
-    id "net.researchgate.release" version "2.8.1"
+    id "nebula.release" version "15.3.1"
     id "GitProperties"
     id 'com.adarshr.test-logger' version '3.0.0'
     // Only applied for the rhsm-subscriptions-kafka sub project; applied below.
@@ -167,19 +167,6 @@ springBoot {
                     'gitHash': "${project.git.hash ?: ''}",
             ]
         }
-    }
-}
-
-release {
-    // Use single quotes so the variables aren't interpreted in the build file itself!
-    tagTemplate = '${name}-${version}'
-    preTagCommitMessage = '[Subscriptions Release] - pre tag commit: '
-    tagCommitMessage = '[Subscriptions Release] - creating tag: '
-    newVersionCommitMessage = '[Subscriptions Release] - version bump: '
-    pushReleaseVersionBranch = 'main'
-    git {
-        requireBranch = /develop|hotfix.*|release/
-        pushToRemote = false
     }
 }
 
