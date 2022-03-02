@@ -154,3 +154,14 @@ properties:
       - Cores
       - Sockets
     required: false
+  billing_provider:
+    description: Billing provider of the service.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - red hat
+      - aws
+      - gcp
+      - azure
+      - oracle
+    required: false

@@ -158,6 +158,7 @@ public class PrometheusMeteringController {
               //       are NOT engineering or swatch product IDs. They map to the roles in the
               //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
               String role = labels.get("product");
+              String billingProvider = labels.get("billing_provider");
 
               // For the openshift metrics, we expect our results to be a 'matrix'
               // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -184,6 +185,7 @@ public class PrometheusMeteringController {
                         eventDate,
                         eventTermDate,
                         tagMetaData.get().getServiceType(),
+                        billingProvider,
                         tagMetric.get().getUom(),
                         value);
                 events.putIfAbsent(EventKey.fromEvent(event), event);
@@ -232,6 +234,7 @@ public class PrometheusMeteringController {
       OffsetDateTime measuredDate,
       OffsetDateTime expired,
       String serviceType,
+      String billingProvider,
       Uom metric,
       BigDecimal value) {
     EventKey lookupKey =
@@ -256,6 +259,7 @@ public class PrometheusMeteringController {
         measuredDate,
         expired,
         serviceType,
+        billingProvider,
         metric,
         value.doubleValue());
     return event;
