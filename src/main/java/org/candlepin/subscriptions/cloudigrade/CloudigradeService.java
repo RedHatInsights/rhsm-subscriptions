@@ -29,20 +29,31 @@ import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeader;
 import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeaderIdentity;
 import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeaderIdentityUser;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
+import org.candlepin.subscriptions.cloudigrade.internal.api.model.UserResponse;
+import org.candlepin.subscriptions.cloudigrade.internal.api.resources.UsersApi;
 import org.springframework.stereotype.Component;
 
-/** Wrapper for cloudigrade concurrent API which handles header generation */
+/** Wrapper for cloudigrade APIs (both internal and external) which handles header generation */
 @Component
 public class CloudigradeService {
 
-  private final ConcurrentApi api;
-  private final ObjectMapper objectMapper;
-  Base64.Encoder b64Encoder;
+  private final ConcurrentApi concurrentApi;
 
-  public CloudigradeService(ConcurrentApi api, ObjectMapper objectMapper) {
-    this.api = api;
+  private final ObjectMapper objectMapper;
+  private final UsersApi usersApi;
+  private final CloudigradeServiceProperties internalProperties;
+  private final Base64.Encoder b64Encoder;
+
+  public CloudigradeService(
+      ConcurrentApi concurrentApiApi,
+      UsersApi usersApi,
+      CloudigradeServiceProperties internalProperties,
+      ObjectMapper objectMapper) {
+    this.concurrentApi = concurrentApiApi;
+    this.usersApi = usersApi;
     this.objectMapper = objectMapper;
-    b64Encoder = Base64.getEncoder();
+    this.internalProperties = internalProperties;
+    this.b64Encoder = Base64.getEncoder();
   }
 
   public ConcurrencyReport listDailyConcurrentUsages(
@@ -56,9 +67,24 @@ public class CloudigradeService {
     try {
       String headerString =
           b64Encoder.encodeToString(objectMapper.writeValueAsBytes(identityHeader));
-      return api.listDailyConcurrentUsages(headerString, limit, offset, startDate, endDate);
+      return concurrentApi.listDailyConcurrentUsages(
+          headerString, limit, offset, startDate, endDate);
     } catch (JsonProcessingException e) {
       throw new ApiException(e);
     }
+  }
+
+  public UserResponse listCloudigradeUser(String accountNumber)
+      throws org.candlepin.subscriptions.cloudigrade.internal.ApiException {
+    /* The Cloudigrade "username" is actually the same as the account number that we need to send
+     * in over the x-rh-cloudigrade-account-number header */
+    return usersApi.listCloudigradeUser(
+        internalProperties.getPresharedKey(), accountNumber, accountNumber);
+  }
+
+  public boolean cloudigradeUserExists(String accountNumber)
+      throws org.candlepin.subscriptions.cloudigrade.internal.ApiException {
+    var response = listCloudigradeUser(accountNumber);
+    return response.getData() != null && !response.getData().isEmpty();
   }
 }

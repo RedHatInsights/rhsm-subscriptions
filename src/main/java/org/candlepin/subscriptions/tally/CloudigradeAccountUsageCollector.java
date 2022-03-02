@@ -67,10 +67,12 @@ public class CloudigradeAccountUsageCollector {
   @Timed("rhsm-subscriptions.snapshots.cloudigrade")
   public void enrichUsageWithCloudigradeData(
       Map<String, AccountUsageCalculation> accountCalcs, Collection<String> accounts)
-      throws IOException, ApiException {
+      throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
 
     for (String account : accounts) {
-      enrichUsageWithCloudigradeData(accountCalcs, account);
+      if (cloudigradeService.cloudigradeUserExists(account)) {
+        enrichUsageWithCloudigradeData(accountCalcs, account);
+      }
     }
   }
 

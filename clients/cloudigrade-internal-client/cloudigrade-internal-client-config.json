@@ -1,0 +1,7 @@
+{
+  "modelPackage": "org.candlepin.subscriptions.cloudigrade.internal.api.model",
+  "apiPackage": "org.candlepin.subscriptions.cloudigrade.internal.api.resources",
+  "invokerPackage": "org.candlepin.subscriptions.cloudigrade.internal",
+  "groupId": "org.candlepin",
+  "artifactId": "cloudigrade-internal-client"
+}
