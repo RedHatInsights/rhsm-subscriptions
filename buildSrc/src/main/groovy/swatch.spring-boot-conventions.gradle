@@ -1,0 +1,63 @@
+// gradle config common to any swatch component implemented as a spring boot app
+plugins {
+    id  "GitProperties"
+    id  "swatch.java-conventions"
+    id  "swatch.spring-boot-dependencies-conventions"
+    id  "org.springframework.boot"
+}
+
+dependencies {
+    // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
+    // code changes
+    implementation "org.springframework.boot:spring-boot-devtools"
+    // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
+    // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
+    implementation("org.jboss.resteasy:resteasy-spring-boot-starter") {
+        exclude group: "org.springframework.boot"
+    }
+    compile "org.springframework.boot:spring-boot-starter-security"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile "org.springframework.boot:spring-boot-starter-aop"
+    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.retry:spring-retry"
+    compile "org.springframework:spring-context-support"
+    compile "io.micrometer:micrometer-registry-prometheus"
+    compile "io.hawt:hawtio-springboot"
+    runtime "org.jolokia:jolokia-core"
+    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
+        exclude group: "org.hibernate" // exclude older hibernate validator
+    }
+    compile "org.webjars:swagger-ui"
+    compile "org.webjars:webjars-locator"
+    compile "org.hibernate.validator:hibernate-validator"
+    compile "org.yaml:snakeyaml"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+    testCompile "org.springframework:spring-test"
+}
+
+// Disable the default jar; otherwise we end up with two different jars in the final image
+// See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
+tasks.jar {
+    enabled = false
+}
+
+tasks.bootJar {
+    mainClass.set "org.candlepin.subscriptions.BootApplication"
+}
+
+springBoot {
+    buildInfo {
+        properties {
+            // Leave time empty: The default value is the instant at which the project is built. A
+            // side-effect is the task will never be up-to-date. As a result, builds will take longer.  See
+            // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
+            time = null
+            additional = [
+                "gitDescription": "${project.git.description ?: ''}",
+                "gitHash": "${project.git.hash ?: ''}",
+            ]
+        }
+    }
+}

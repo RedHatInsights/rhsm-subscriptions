@@ -1,3 +1,7 @@
+buildscript {
+    apply from: "dependencies.gradle"
+}
+
 rootProject.name = 'rhsm-subscriptions'
 include ':api'
 include ':clients'
@@ -14,3 +18,4 @@ include ':kafka-schema'
 include ':swatch-core'
 include ':swatch-core-test'
 include ':swatch-system-conduit'
+include ':swatch-producer-aws'

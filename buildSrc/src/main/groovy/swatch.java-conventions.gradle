@@ -1,0 +1,78 @@
+// gradle config common to all swatch java projects
+plugins {
+    id "java"
+    id "jacoco"
+    id "com.diffplug.spotless"
+}
+
+ext {
+    generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = "http://packages.confluent.io/maven/"
+    }
+    maven {
+        url = "https://splunk.jfrog.io/splunk/ext-releases-local"
+    }
+}
+
+dependencies {
+    compileOnly libraries["lombok"]
+    annotationProcessor libraries["lombok"]
+    testCompileOnly libraries["lombok"]
+    testAnnotationProcessor libraries["lombok"]
+
+    // common testing deps, junit + mockito + hamcrest
+    testCompile "org.junit.jupiter:junit-jupiter-api"
+    testCompile "org.junit.jupiter:junit-jupiter-params"
+    testCompile "org.mockito:mockito-core"
+    testCompile "org.mockito:mockito-junit-jupiter"
+    testCompile "org.hamcrest:hamcrest"
+    testRuntime "org.junit.jupiter:junit-jupiter-engine"
+}
+
+spotless {
+    java {
+        targetExclude '**/build/**' // exclude generated code
+        enforceCheck false // allows build task to be successful, even if there is a code style violation
+        googleJavaFormat()
+        licenseHeaderFile "${rootDir}/config/codestyle/HEADER.txt" //lets you specify code that you don't want to violate rules or be reformatted
+        toggleOffOn()
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+    if (System.getenv("DOCKER_HOST") == null) {
+        String UID = 'id -u'.execute().text.strip()
+        environment "DOCKER_HOST", "unix:///run/user/$UID/podman/podman.sock"
+    }
+    environment "TESTCONTAINERS_RYUK_DISABLED", "true"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
+}
+
+sourceSets {
+    main.java.srcDirs += generatedMetamodels
+}

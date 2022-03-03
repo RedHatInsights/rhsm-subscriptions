@@ -1,19 +1,11 @@
 plugins {
-    id 'java'
+    id 'swatch.java-conventions'
     id 'io.quarkus'
-    id 'org.openapi.generator' version '5.3.0'
-}
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-    maven {
-        url = uri('https://splunk.jfrog.io/splunk/ext-releases-local')
-    }
+    id 'org.openapi.generator'
 }
 
 dependencies {
-    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation enforcedPlatform(libraries["quarkus-bom"])
     implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-resteasy'
@@ -32,7 +24,7 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
-    implementation 'com.redhat.cloud.common:clowder-quarkus-config-source:0.5.3'
+    implementation libraries["clowder-quarkus-config-source"]
     implementation 'io.quarkus:quarkus-liquibase'
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
     implementation 'io.quarkus:quarkus-resteasy'
@@ -43,46 +35,22 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-rest-client-jackson'
     implementation 'io.quarkus:quarkus-rest-client'
-    implementation 'io.quarkiverse.logging.logback:quarkus-logging-logback:0.10.0'
-    implementation 'com.splunk.logging:splunk-library-javalogging:1.8.0'
+    implementation libraries["quarkus-logging-logback"]
+    implementation libraries["splunk-library-javalogging"]
     testImplementation 'io.quarkus:quarkus-junit5'
-    compileOnly 'org.projectlombok:lombok:1.18.22'
-    testImplementation "org.junit.jupiter:junit-jupiter:5.8.1"
-    testImplementation "org.testcontainers:testcontainers:1.16.3"
-    testImplementation "org.testcontainers:junit-jupiter:1.16.3"
-    testImplementation "org.testcontainers:postgresql:1.16.3"
-    testImplementation "org.testcontainers:kafka:1.16.3"
+    compileOnly libraries["lombok"]
+    testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["org.testcontainers:testcontainers"]
+    testImplementation libraries["org.testcontainers:junit-jupiter"]
+    testImplementation libraries["org.testcontainers:postgresql"]
+    testImplementation libraries["org.testcontainers:kafka"]
 
 }
 
 group = 'com.redhat.swatch'
-version = '1.0.0-SNAPSHOT'
 description = 'swatch-producer-aws'
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
 compileJava.dependsOn tasks.openApiGenerate
-compileJava {
-    options.encoding = 'UTF-8'
-    options.compilerArgs << '-parameters'
-}
-
-compileTestJava {
-    options.encoding = 'UTF-8'
-}
-
-test {
-    useJUnitPlatform()
-    if (System.getenv("DOCKER_HOST") == null) {
-        String UID = 'id -u'.execute().text.strip()
-        environment "DOCKER_HOST", "unix:///run/user/$UID/podman/podman.sock"
-    }
-    System.out.println "DOCKER_HOST: ${environment.DOCKER_HOST}"
-    environment "TESTCONTAINERS_RYUK_DISABLED", "true"
-}
 
 openApiGenerate {
     generatorName = "jaxrs-spec"
