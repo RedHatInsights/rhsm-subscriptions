@@ -72,4 +72,17 @@ public class SubscriptionDtoUtil {
     }
     return (StringUtils.hasText(subId)) ? subId : null;
   }
+
+  public static String populateBillingProvider(Subscription subscription) {
+    String billingProvider = null;
+
+    boolean hasRef =
+        subscription.getExternalReferences() != null
+            && subscription.getExternalReferences().containsKey(IBMMARKETPLACE);
+
+    if (hasRef) {
+      billingProvider = "red hat";
+    }
+    return billingProvider;
+  }
 }

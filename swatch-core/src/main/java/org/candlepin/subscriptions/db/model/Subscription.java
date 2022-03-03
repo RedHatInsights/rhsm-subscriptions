@@ -61,11 +61,14 @@ public class Subscription {
   @Column(name = "end_date")
   private OffsetDateTime endDate;
 
-  @Column(name = "marketplace_subscription_id")
-  private String marketplaceSubscriptionId;
+  @Column(name = "billing_provider_id")
+  private String billingProviderId;
 
   @Column(name = "account_number")
   private String accountNumber;
+
+  @Column(name = "billing_provider")
+  private String billingProvider;
 
   /** Composite ID class for Subscription entities. */
   @EqualsAndHashCode

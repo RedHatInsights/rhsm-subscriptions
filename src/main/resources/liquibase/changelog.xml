@@ -53,5 +53,6 @@
     <include file="liquibase/202110211314-add-description-column-to-offering.xml" />
     <include file="liquibase/202112171721-add-subscription-indexes.xml" />
     <include file="liquibase/202202041415-add-unlimited-usage-column-to-offering-table.xml" />
+    <include file="liquibase/202202211433-add-billing-provider-column-to-subscription-table.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

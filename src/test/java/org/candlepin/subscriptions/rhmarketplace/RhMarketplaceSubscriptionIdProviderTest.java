@@ -82,7 +82,7 @@ class RhMarketplaceSubscriptionIdProviderTest {
     Subscription s = new Subscription();
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
-    s.setMarketplaceSubscriptionId("xyz");
+    s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
     Set<String> productNames = Set.of("OpenShift Container Platform");
@@ -107,7 +107,7 @@ class RhMarketplaceSubscriptionIdProviderTest {
     Subscription s = new Subscription();
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
-    s.setMarketplaceSubscriptionId("abc");
+    s.setBillingProviderId("abc");
     List<Subscription> result = Collections.singletonList(s);
 
     Set<String> productNames = Set.of("OpenShift Container Platform");

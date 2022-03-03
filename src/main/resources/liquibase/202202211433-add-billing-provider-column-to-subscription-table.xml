@@ -1,0 +1,21 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202202211433-1"  author="ksynvrit">
+        <comment>Add billing_provider column to subscription table</comment>
+        <addColumn tableName="subscription">
+            <column name="billing_provider" type="VARCHAR(255)" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202202211433-2"  author="ksynvrit">
+        <comment>Rename marketplace_subscription_id column to billing_provider_id in subscription table</comment>
+        <renameColumn  newColumnName="billing_provider_id"
+                       oldColumnName="marketplace_subscription_id"
+                       tableName="subscription"/>
+    </changeSet>
+
+</databaseChangeLog>
