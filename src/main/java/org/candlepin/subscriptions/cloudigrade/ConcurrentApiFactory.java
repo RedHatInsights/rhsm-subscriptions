@@ -20,41 +20,43 @@
  */
 package org.candlepin.subscriptions.cloudigrade;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory that produces inventory service clients using configuration. */
+@Slf4j
 public class ConcurrentApiFactory implements FactoryBean<ConcurrentApi> {
 
-  private static Logger log = LoggerFactory.getLogger(ConcurrentApiFactory.class);
+  private final HttpClientProperties properties;
 
-  private final HttpClientProperties serviceProperties;
-
-  public ConcurrentApiFactory(HttpClientProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public ConcurrentApiFactory(HttpClientProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public ConcurrentApi getObject() throws Exception {
-    if (serviceProperties.isUseStub()) {
-      log.info("Using stub cloudigrade client");
+    if (properties.isUseStub()) {
+      log.info("Using stub cloudigrade API client");
       return new StubConcurrentApi();
     }
-    ApiClient apiClient = Configuration.getDefaultApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("Cloudigrade service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
+
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Cloudigrade service URL: {}", url);
+      client.setBasePath(url);
     } else {
-      log.warn("Cloudigrade service URL not set...");
+      log.warn("Cloudigrade URL not set...");
     }
-    return new ConcurrentApi(apiClient);
+
+    return new ConcurrentApi(client);
   }
 
   @Override

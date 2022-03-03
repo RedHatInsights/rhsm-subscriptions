@@ -21,15 +21,15 @@
 package org.candlepin.subscriptions.rbac;
 
 import java.util.List;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.ToString;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
 /** RBAC-specific properties */
-@Getter
-@Setter
+@Data
 @EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class RbacProperties extends HttpClientProperties {
 
   /** The list of permissions to return when using the stub */

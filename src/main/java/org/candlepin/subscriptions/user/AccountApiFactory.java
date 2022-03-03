@@ -21,42 +21,44 @@
 package org.candlepin.subscriptions.user;
 
 import javax.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory bean for AccountApi. */
+@Slf4j
 public class AccountApiFactory extends AbstractFactoryBean<AccountApi> {
 
-  private static final Logger log = LoggerFactory.getLogger(AccountApiFactory.class);
+  private final HttpClientProperties properties;
 
-  private final HttpClientProperties serviceProperties;
-
-  public AccountApiFactory(HttpClientProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public AccountApiFactory(HttpClientProperties properties) {
+    this.properties = properties;
   }
 
   @Nonnull
   @Override
   protected AccountApi createInstance() {
-    if (serviceProperties.isUseStub()) {
-      log.info("Using stub user client");
+    if (properties.isUseStub()) {
+      log.info("Using stub account API client");
       return new StubAccountApi();
     }
-    ApiClient apiClient = Configuration.getDefaultApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("User service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
+
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("User service URL: {}", url);
+      client.setBasePath(url);
     } else {
       log.warn("User service URL not set...");
     }
-    return new AccountApi(apiClient);
+
+    return new AccountApi(client);
   }
 
   @Override

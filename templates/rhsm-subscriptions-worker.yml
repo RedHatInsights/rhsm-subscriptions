@@ -260,6 +260,8 @@ objects:
                   value: /pinhead/keystore.jks
                 - name: DEVTEST_EVENT_EDITING_ENABLED
                   value: ${DEVTEST_EVENT_EDITING_ENABLED}
+                - name: ENABLE_ACCOUNT_RESET
+                  value: ${ENABLE_ACCOUNT_RESET}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
@@ -285,8 +287,6 @@ objects:
                   protocol: TCP
                   name: metrics-port
               volumeMounts:
-                - name: config
-                  mountPath: /config
                 - name: logs
                   mountPath: /logs
                 - name: pinhead
@@ -317,9 +317,6 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk

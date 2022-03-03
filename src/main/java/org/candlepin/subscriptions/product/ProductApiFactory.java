@@ -20,40 +20,43 @@
  */
 package org.candlepin.subscriptions.product;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.product.api.resources.ProductApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory for creating ProductApi clients for the Product Service. */
+@Slf4j
 public class ProductApiFactory implements FactoryBean<ProductApi> {
-  private static final Logger log = LoggerFactory.getLogger(ProductApiFactory.class);
 
-  private final HttpClientProperties serviceProperties;
+  private final HttpClientProperties properties;
 
-  public ProductApiFactory(HttpClientProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public ProductApiFactory(HttpClientProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public ProductApi getObject() throws Exception {
-    if (serviceProperties.isUseStub()) {
-      log.info("Using {}", StubProductApi.class.getName());
+    if (properties.isUseStub()) {
+      log.info("Using stub product client");
       return new StubProductApi();
     }
-    final ApiClient apiClient = Configuration.getDefaultApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("Product service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
+
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Product service URL: {}", url);
+      client.setBasePath(url);
     } else {
       log.warn("Product service URL not set...");
     }
-    return new ProductApi(apiClient);
+
+    return new ProductApi(client);
   }
 
   @Override

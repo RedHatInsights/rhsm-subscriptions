@@ -1,0 +1,7 @@
+{
+  "modelPackage": "org.candlepin.subscriptions.rhmarketplace.api.model",
+  "apiPackage": "org.candlepin.subscriptions.rhmarketplace.api.resources",
+  "invokerPackage": "org.candlepin.subscriptions.rhmarketplace",
+  "groupId": "org.candlepin",
+  "artifactId": "rh-marketplace-client"
+}

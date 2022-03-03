@@ -37,12 +37,12 @@ project(":clients:insights-inventory-client") {
     }
 }
 
-project(":clients:marketplace-client") {
+project(":clients:rh-marketplace-client") {
     apply plugin: "org.openapi.generator"
 
     ext {
-        api_spec_path = "${projectDir}/marketplace-api-spec.yaml"
-        config_file = "${projectDir}/marketplace-client-config.json"
+        api_spec_path = "${projectDir}/rh-marketplace-api-spec.yaml"
+        config_file = "${projectDir}/rh-marketplace-client-config.json"
     }
 
     dependencies {
@@ -102,6 +102,7 @@ project(":clients:rhsm-client") {
     }
 
     dependencies {
+        implementation project(':clients-core')
         testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
     }
 }
@@ -156,6 +157,8 @@ configure(subprojects) {
     }
 
     dependencies {
+        compile project(":clients-core")
+
         compile "org.jboss.resteasy:resteasy-client"
         compile "org.jboss.resteasy:resteasy-multipart-provider"
 

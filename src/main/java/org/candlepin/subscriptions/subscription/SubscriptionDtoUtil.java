@@ -31,7 +31,7 @@ import org.springframework.util.StringUtils;
 
 /** Utility class to assist in pulling nested data out of the Subscription DTO. */
 public class SubscriptionDtoUtil {
-  public static final String MARKETPLACE = "ibmmarketplace";
+  public static final String IBMMARKETPLACE = "ibmmarketplace";
 
   private SubscriptionDtoUtil() {
     // Utility methods only
@@ -62,14 +62,26 @@ public class SubscriptionDtoUtil {
         "Could not find top level SKU for subscription " + subscription);
   }
 
-  public static String extractMarketplaceId(Subscription subscription) {
+  public static String extractRhMarketplaceId(Subscription subscription) {
     Map<String, ExternalReference> externalRefs = subscription.getExternalReferences();
     String subId = null;
     if (externalRefs != null && !externalRefs.isEmpty()) {
-      ExternalReference marketplace =
-          externalRefs.getOrDefault(MARKETPLACE, new ExternalReference());
-      subId = marketplace.getSubscriptionID();
+      ExternalReference rhMarketplace =
+          externalRefs.getOrDefault(IBMMARKETPLACE, new ExternalReference());
+      subId = rhMarketplace.getSubscriptionID();
     }
     return (StringUtils.hasText(subId)) ? subId : null;
+  }
+
+  public static String populateBillingProvider(Subscription subscription) {
+    boolean hasRef =
+        subscription.getExternalReferences() != null
+            && subscription.getExternalReferences().containsKey(IBMMARKETPLACE);
+    String billingProvider = null;
+
+    if (hasRef) {
+      billingProvider = "RH_Marketplace";
+    }
+    return billingProvider;
   }
 }

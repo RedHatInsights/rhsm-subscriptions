@@ -725,7 +725,7 @@ class SubscriptionCapacityViewRepositoryTest {
       OffsetDateTime endDate) {
 
     Subscription subscription = new Subscription();
-    subscription.setMarketplaceSubscriptionId("bananas");
+    subscription.setBillingProviderId("bananas");
     subscription.setSubscriptionId(subId);
     subscription.setOwnerId(orgId);
     subscription.setAccountNumber(accountNumber);
@@ -734,6 +734,7 @@ class SubscriptionCapacityViewRepositoryTest {
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);
     subscription.setSubscriptionNumber(subId + "1");
+    subscription.setBillingProvider("Test_Marketplace");
 
     return subscription;
   }

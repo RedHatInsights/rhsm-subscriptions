@@ -7,7 +7,7 @@ repositories {
 
 dependencies {
     implementation gradleApi()
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.3.1.201904271842-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.0.0.202111291000-r'
 }
 
 gradlePlugin {
