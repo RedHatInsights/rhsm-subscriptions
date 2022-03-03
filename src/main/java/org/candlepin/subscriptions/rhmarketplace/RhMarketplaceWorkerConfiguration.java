@@ -90,16 +90,4 @@ public class RhMarketplaceWorkerConfiguration {
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
   }
-
-  /**
-   * Build the BeanFactory implementation ourselves since the docs say "Implementations are not
-   * supposed to rely on annotation-driven injection or other reflective facilities."
-   *
-   * @param properties containing the RhMarketplaceProperties needed by the factory
-   * @return a configured RhMarketplaceApiFactory
-   */
-  @Bean
-  public RhMarketplaceApiFactory marketplaceApiFactory(RhMarketplaceProperties properties) {
-    return new RhMarketplaceApiFactory(properties);
-  }
 }
