@@ -61,4 +61,6 @@ public interface SubscriptionRepository
   Stream<Subscription> findByOwnerId(String ownerId);
 
   void deleteBySubscriptionId(String subscriptionId);
+
+  void deleteByAccountNumber(String accountNumber);
 }

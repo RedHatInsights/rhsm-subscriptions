@@ -54,25 +54,6 @@ parameters:
 
 objects:
   - apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: rhsm-subscriptions-config
-    data:
-      ssl.properties: |-
-        # force client cert auth for ingress endpoints
-        server.port=8443
-        server.ssl.client-auth=NEED
-        server.ssl.enabled=true
-
-        server.ssl.key-store=${KEYSTORE}
-        server.ssl.key-store-password=${KEYSTORE_PASSWORD}
-
-        server.ssl.trust-store=${TRUSTSTORE}
-        server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
-
-        management.server.ssl.enabled=false
-
-  - apiVersion: v1
     kind: DeploymentConfig
     metadata:
       name: rhsm-subscriptions-api
@@ -245,8 +226,6 @@ objects:
                   protocol: TCP
                   name: jolokia
               volumeMounts:
-                - name: config
-                  mountPath: /config
                 - name: logs
                   mountPath: /logs
               workingDir: /
@@ -275,9 +254,6 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk

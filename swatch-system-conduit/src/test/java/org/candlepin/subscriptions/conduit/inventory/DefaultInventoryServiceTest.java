@@ -87,8 +87,6 @@ class DefaultInventoryServiceTest {
     DefaultInventoryService inventoryService = new DefaultInventoryService(api, props);
     inventoryService.sendHostUpdate(Collections.singletonList(createFullyPopulatedConduitFacts()));
     Map<String, Object> expectedFactMap = new HashMap<>();
-    expectedFactMap.put("CPU_SOCKETS", 4);
-    expectedFactMap.put("CPU_CORES", 8);
     expectedFactMap.put("MEMORY", 32757752L);
     expectedFactMap.put("ARCHITECTURE", "x86_64");
     expectedFactMap.put("IS_VIRTUAL", true);

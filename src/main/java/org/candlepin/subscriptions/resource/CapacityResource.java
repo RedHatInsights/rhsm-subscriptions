@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.BadRequestException;
@@ -201,6 +202,7 @@ public class CapacityResource implements CapacityApi {
     int cores = 0;
     int physicalCores = 0;
     int hypervisorCores = 0;
+    boolean hasInfiniteQuantity = false;
 
     for (SubscriptionCapacity capacity : matches) {
       if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
@@ -219,6 +221,8 @@ public class CapacityResource implements CapacityApi {
         int capacityVirtCores = sanitize(capacity.getVirtualCores());
         cores += capacityVirtCores;
         hypervisorCores += capacityVirtCores;
+
+        hasInfiniteQuantity = Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
       }
     }
 
@@ -230,7 +234,7 @@ public class CapacityResource implements CapacityApi {
         .cores(cores)
         .physicalCores(physicalCores)
         .hypervisorCores(hypervisorCores)
-        .hasInfiniteQuantity(false);
+        .hasInfiniteQuantity(hasInfiniteQuantity);
   }
 
   private int sanitize(Integer value) {

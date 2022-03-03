@@ -162,7 +162,8 @@ parameters:
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
-
+  - name: ENABLE_ACCOUNT_RESET
+    value: 'false'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
@@ -597,6 +598,8 @@ objects:
               value: /pinhead/keystore.jks
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: ENABLE_ACCOUNT_RESET
+              value: ${ENABLE_ACCOUNT_RESET}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1283,8 +1286,6 @@ objects:
               value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: capacity-ingress
-            - name: JAVA_OPTIONS
-              value: -Dspring.config.additional-location=file:/config/ssl.properties
             - name: SUBSCRIPTION_SYNC_ENABLED
               value: ${SUBSCRIPTION_SYNC_ENABLED}
             - name: AB_JOLOKIA_OFF
@@ -1364,13 +1365,6 @@ objects:
               value: ${INVENTORY_DATABASE_MAX_POOL_SIZE}
             - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
               value: file:/capacity-allowlist/product-allowlist.txt
-            - name: KEYSTORE
-              value: /ingress/keystore.jks
-            - name: KEYSTORE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: tls
-                  key: keystore_password
             - name: PRODUCT_KEYSTORE
               value: /pinhead/keystore.jks
             - name: PRODUCT_KEYSTORE_PASSWORD
@@ -1389,13 +1383,6 @@ objects:
             - name: PRODUCT_URL
               value: ${PRODUCT_URL}
             - name: SUBSCRIPTION_KEYSTORE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: tls
-                  key: keystore_password
-            - name: TRUSTSTORE
-              value: /ingress/truststore.jks
-            - name: TRUSTSTORE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: tls
@@ -1430,23 +1417,13 @@ objects:
           volumeMounts:
             - name: logs
               mountPath: /logs
-            - name: ingress
-              mountPath: /ingress
             - name: capacity-allowlist
               mountPath: /capacity-allowlist
             - name: pinhead
               mountPath: /pinhead
-            - name: config
-              mountPath: /config
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: logs
               emptyDir:
-            - name: ingress
-              secret:
-                secretName: ingress
             - name: capacity-allowlist
               configMap:
                 name: capacity-allowlist
@@ -2365,23 +2342,3 @@ objects:
             - name: capacity-allowlist
               configMap:
                 name: capacity-allowlist
-
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: rhsm-subscriptions-config
-  data:
-
-    ssl.properties: |-
-      # force client cert auth for ingress endpoints
-      server.port=8443
-      server.ssl.client-auth=NEED
-      server.ssl.enabled=true
-
-      server.ssl.key-store=${KEYSTORE}
-      server.ssl.key-store-password=${KEYSTORE_PASSWORD}
-
-      server.ssl.trust-store=${TRUSTSTORE}
-      server.ssl.trust-store-password=${TRUSTSTORE_PASSWORD}
-
-      management.server.ssl.enabled=false

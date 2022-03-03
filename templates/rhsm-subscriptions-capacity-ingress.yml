@@ -132,8 +132,6 @@ objects:
                   value: 'true'
                 - name: LOG_FILE
                   value: /logs/server.log
-                - name: JAVA_OPTIONS
-                  value: -Dspring.config.additional-location=file:/config/ssl.properties
                 - name: SPRING_PROFILES_ACTIVE
                   value: capacity-ingress
                 - name: JAVA_MAX_MEM_RATIO
@@ -201,13 +199,6 @@ objects:
                       key: db.password
                 - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
                   value: file:/capacity-allowlist/product-allowlist.txt
-                - name: KEYSTORE
-                  value: /ingress/keystore.jks
-                - name: KEYSTORE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: tls
-                      key: keystore_password
                 - name: PRODUCT_KEYSTORE
                   value: /service-certs/keystore.jks
                 - name: PRODUCT_KEYSTORE_PASSWORD
@@ -226,13 +217,6 @@ objects:
                 - name: PRODUCT_URL
                   value: ${PRODUCT_URL}
                 - name: SUBSCRIPTION_KEYSTORE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: tls
-                      key: keystore_password
-                - name: TRUSTSTORE
-                  value: /ingress/truststore.jks
-                - name: TRUSTSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: tls
@@ -275,10 +259,6 @@ objects:
                   protocol: TCP
                   name: metrics-port
               volumeMounts:
-                - name: config
-                  mountPath: /config
-                - name: ingress
-                  mountPath: /ingress
                 - name: capacity-allowlist
                   mountPath: /capacity-allowlist
                 - name: logs
@@ -311,12 +291,6 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
-            - name: ingress
-              secret:
-                secretName: ingress
             - name: capacity-allowlist
               configMap:
                 name: capacity-allowlist
@@ -347,17 +321,6 @@ objects:
           targetPort: web-secure
       selector:
         deploymentconfig: rhsm-subscriptions-capacity-ingress
-
-  - apiVersion: v1
-    kind: Route
-    metadata:
-      name: rhsm-subscriptions-capacity-ingress
-    spec:
-      to:
-        kind: Service
-        name: rhsm-subscriptions-capacity-ingress
-      tls:
-        termination: passthrough
 
   - apiVersion: v1
     kind: Service

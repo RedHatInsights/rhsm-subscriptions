@@ -236,8 +236,12 @@ public class SubscriptionTableController {
       }
     }
 
+    boolean hasInfiniteQuantity =
+        Optional.ofNullable(subscriptionCapacityView.getHasUnlimitedUsage()).orElse(false);
+
     skuCapacity.setTotalCapacity(
         skuCapacity.getPhysicalCapacity() + skuCapacity.getVirtualCapacity());
+    skuCapacity.setHasInfiniteQuantity(hasInfiniteQuantity);
   }
 
   private static void sortCapacities(
@@ -268,6 +272,12 @@ public class SubscriptionTableController {
               break;
             case NEXT_EVENT_TYPE:
               diff = left.getNextEventType().compareTo(right.getNextEventType());
+              break;
+            case TOTAL_CAPACITY:
+              diff = left.getTotalCapacity().compareTo(right.getTotalCapacity());
+              break;
+            case PRODUCT_NAME:
+              diff = left.getProductName().compareTo(right.getProductName());
               break;
           }
           // If the two items are sorted by some other field than SKU and are equal, then break the

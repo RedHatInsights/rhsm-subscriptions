@@ -45,6 +45,12 @@ public class SecurityProperties {
   private boolean manualEventEditingEnabled = false;
 
   /**
+   * Whether resetting an account by account number is enabled. Resetting entails clearing tallies,
+   * hosts, and events.
+   */
+  private boolean resetAccountEnabled = false;
+
+  /**
    * Expected domain suffix for origin or referer headers.
    *
    * @see AntiCsrfFilter

@@ -107,8 +107,6 @@ class KafkaEnabledInventoryServiceTest {
 
     Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
     assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
-    assertEquals(expectedFacts.getCpuCores(), (Integer) rhsmFacts.get("CPU_CORES"));
-    assertEquals(expectedFacts.getCpuSockets(), (Integer) rhsmFacts.get("CPU_SOCKETS"));
 
     OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
     assertNotNull(syncDate);

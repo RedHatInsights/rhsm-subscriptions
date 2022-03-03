@@ -10,23 +10,46 @@ services:
       - ./init_dbs.sh:/docker-entrypoint-initdb.d/init_dbs.sh:z
     ports:
       - "5432:5432"
-  kafka:
-    image: docker.io/lensesio/fast-data-dev
-    environment:
-      - ADV_HOST=localhost
-      - SAMPLEDATA=0
-      - RUNNING_SAMPLEDATA=0
-      - RUNTESTS=0
+  zookeeper:
+    image: docker.io/confluentinc/cp-zookeeper
     ports:
-      - "3030:3030"
+      - "2181:2181"
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+  kafka:
+    image: docker.io/confluentinc/cp-kafka
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+    ports:
       - "9092:9092"
       - "29092:29092"
-    expose:
-      - "9092"
-  inventory:
-    build:
-      context: insights-host-inventory
-      dockerfile: dev.dockerfile
+    depends_on:
+      - zookeeper
+  kafka-rest:
+    image: docker.io/confluentinc/cp-kafka-rest
     environment:
+      - KAFKA_REST_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - kafka
+  kafka-topics-ui:
+    image: docker.io/landoop/kafka-topics-ui
+    environment:
+      - KAFKA_REST_PROXY_URL=http://kafka-rest:8082
+      - PROXY=true
+    ports:
+      - "3030:8000"
+    depends_on:
+      - kafka-rest
+  inventory:
+    image: quay.io/cloudservices/insights-inventory
+    environment:
+      - INVENTORY_LOG_LEVEL=DEBUG
       - INVENTORY_DB_HOST=db
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - kafka
+      - db

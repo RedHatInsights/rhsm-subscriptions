@@ -28,6 +28,7 @@
             RHSM_RBAC_USE_STUB: 'true'
             MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
             DEV_MODE: 'true'
+            ENABLE_ACCOUNT_RESET: 'true'
 
   BONFIRE
   ```
@@ -184,7 +185,7 @@ but here are some essentials:
   image and image tag you want to use like so:
 
   ```
-  `bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=all
+  bonfire deploy rhsm-subscriptions -n NAMESPACE --no-remove-resources=rhsm-subscriptions
   -i quay.io/my-repo/my-image=my-tag -p rhsm-subscriptions/IMAGE=quay.io/my-repo/my-image
   -i quay.io/my-repo/my-conduit-image=my-tag -p rhsm-subscriptions/CONDUIT_IMAGE=quay.
   io/my-repo/my-conduit-image

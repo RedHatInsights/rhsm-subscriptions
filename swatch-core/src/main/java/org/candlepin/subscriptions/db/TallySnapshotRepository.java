@@ -61,4 +61,6 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       Granularity granularity,
       OffsetDateTime beginning,
       OffsetDateTime ending);
+
+  void deleteByAccountNumber(String accountNumber);
 }

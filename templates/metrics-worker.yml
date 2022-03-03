@@ -301,8 +301,6 @@ objects:
                   protocol: TCP
                   name: metrics-port
               volumeMounts:
-                - name: config
-                  mountPath: /config
                 - name: logs
                   mountPath: /logs
                 - name: pinhead
@@ -370,9 +368,6 @@ objects:
                   cpu: ${TOKEN_REFRESHER_CPU_LIMIT}
                   memory: ${TOKEN_REFRESHER_MEMORY_LIMIT}
           volumes:
-            - name: config
-              configMap:
-                name: rhsm-subscriptions-config
             - name: splunk
               secret:
                 secretName: splunk
