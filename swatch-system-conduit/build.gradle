@@ -1,21 +1,11 @@
 plugins {
+    id "swatch.spring-boot-conventions"
     id "org.openapi.generator"
-    id "java"
-    id "org.springframework.boot"
 }
 
 ext {
     api_spec_path = "${projectDir}/system-conduit-api-spec.yaml"
     config_file = "${projectDir}/system-conduit-api-config.json"
-}
-
-sourceCompatibility = "11"
-targetCompatibility = "11"
-
-// Disable the default jar; otherwise we end up with two different jars in the final image
-// See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
-jar {
-    enabled = false
 }
 
 openApiGenerate {

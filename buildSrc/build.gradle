@@ -1,13 +1,25 @@
-apply plugin: "java"
-apply plugin: "java-gradle-plugin"
+Implement swatch-producer-aws skeleton buildscript {
+    apply from: "../dependencies.gradle"
+}
+
+plugins {
+    id "groovy-gradle-plugin"
+}
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
     implementation gradleApi()
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.0.0.202111291000-r'
+
+    // add all plugin artifacts to gradle classpath as defined in dependencies.gradle
+    // this makes them available via plugin ID only across *all* projects
+    for (pluginDependency in project.ext.plugins) {
+        implementation pluginDependency
+    }
+    implementation libraries["jgit"]
 }
 
 gradlePlugin {
