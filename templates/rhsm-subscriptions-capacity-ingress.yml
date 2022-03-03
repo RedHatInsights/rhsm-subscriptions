@@ -259,8 +259,6 @@ objects:
                   protocol: TCP
                   name: metrics-port
               volumeMounts:
-                - name: ingress
-                  mountPath: /ingress
                 - name: capacity-allowlist
                   mountPath: /capacity-allowlist
                 - name: logs
@@ -293,9 +291,6 @@ objects:
                   name: splunk
                   subPath: splunk.pem
           volumes:
-            - name: ingress
-              secret:
-                secretName: ingress
             - name: capacity-allowlist
               configMap:
                 name: capacity-allowlist
