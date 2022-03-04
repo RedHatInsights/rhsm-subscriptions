@@ -1,13 +1,13 @@
 plugins {
     id 'java'
-
+    id 'java-library'
 }
 
 dependencies {
-    implementation "org.jboss.resteasy:resteasy-client"
-    implementation "org.springframework:spring-beans"
-    implementation "org.slf4j:slf4j-api"
-    testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
+    api "org.jboss.resteasy:resteasy-client"
+    api "org.springframework:spring-beans"
+    api "org.slf4j:slf4j-api"
+    testImplementation "com.github.tomakehurst:wiremock-jre8:2.32.0"
 }
 
 description = 'SWATCH core library for generated clients'
