@@ -1,0 +1,19 @@
+name: Update environment alias branches on push
+on:
+  push:
+    branches:
+      - 'main'
+jobs:
+  update_stage_alias:
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.git.updateRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/stage',
+              sha: context.payload.after
+            })
