@@ -20,11 +20,7 @@
  */
 package org.candlepin.subscriptions.http;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.Objects;
@@ -45,6 +41,7 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFactory;
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
+import org.springframework.core.io.Resource;
 
 /** Utility class for customizing HTTP clients used by API clients. */
 @Slf4j
@@ -121,18 +118,18 @@ public class HttpClient {
       char[] emptyPass = "".toCharArray();
 
       if (serviceProperties.usesClientAuth()) {
-        var keystoreFile = serviceProperties.getKeystore();
+        var keystoreResource = serviceProperties.getKeystore();
         var keystorePass =
             Objects.requireNonNullElse(serviceProperties.getKeystorePassword(), emptyPass);
-        kmf.init(loadKeyStore(keystoreFile, keystorePass), keystorePass);
+        kmf.init(loadKeyStore(keystoreResource, keystorePass), keystorePass);
         keyManagers = kmf.getKeyManagers();
       }
 
       if (serviceProperties.providesTruststore()) {
-        var truststoreFile = serviceProperties.getTruststore();
+        var truststoreResource = serviceProperties.getTruststore();
         var truststorePass =
             Objects.requireNonNullElse(serviceProperties.getTruststorePassword(), emptyPass);
-        tmf.init(loadKeyStore(truststoreFile, truststorePass));
+        tmf.init(loadKeyStore(truststoreResource, truststorePass));
         trustManagers = tmf.getTrustManagers();
       }
 
@@ -144,13 +141,13 @@ public class HttpClient {
     }
   }
 
-  private static KeyStore loadKeyStore(File keyStoreFile, char[] keyStorePassword) {
-    try (final InputStream stream = new BufferedInputStream(new FileInputStream(keyStoreFile))) {
+  private static KeyStore loadKeyStore(Resource keyStoreResource, char[] keyStorePassword) {
+    try {
       final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
-      store.load(stream, keyStorePassword);
+      store.load(keyStoreResource.getInputStream(), keyStorePassword);
       return store;
     } catch (IOException | GeneralSecurityException e) {
-      var message = String.format("Error loading Keystore file %s", keyStoreFile.getAbsolutePath());
+      var message = String.format("Error loading Keystore resource %s", keyStoreResource);
       throw new IllegalStateException(message, e);
     }
   }

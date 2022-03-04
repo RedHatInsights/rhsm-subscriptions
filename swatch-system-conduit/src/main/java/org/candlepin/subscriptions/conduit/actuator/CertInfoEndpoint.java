@@ -51,8 +51,7 @@ public class CertInfoEndpoint {
     HttpClientProperties config = rhsmApiProperties;
 
     try {
-      return CertInfoInquisitor.loadStoreInfo(
-          config.getKeystoreStream(), config.getKeystorePassword());
+      return CertInfoInquisitor.loadStoreInfo(config.getKeystore(), config.getKeystorePassword());
     } catch (IOException | GeneralSecurityException e) {
       log.error(CERT_LOAD_ERR, e);
     }
@@ -65,7 +64,7 @@ public class CertInfoEndpoint {
 
     try {
       return CertInfoInquisitor.loadStoreInfo(
-          config.getTruststoreStream(), config.getTruststorePassword());
+          config.getTruststore(), config.getTruststorePassword());
     } catch (IOException | GeneralSecurityException e) {
       log.error(CERT_LOAD_ERR, e);
     }
