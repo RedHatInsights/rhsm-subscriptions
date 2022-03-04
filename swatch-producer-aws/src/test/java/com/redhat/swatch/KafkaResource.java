@@ -28,7 +28,10 @@ import org.testcontainers.utility.DockerImageName;
 
 public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
-  static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka"));
+  static KafkaContainer kafka =
+      new KafkaContainer(
+          DockerImageName.parse("quay.io/cloudservices/cp-kafka")
+              .asCompatibleSubstituteFor("confluentinc/cp-kafka"));
 
   @Override
   public Map<String, String> start() {
