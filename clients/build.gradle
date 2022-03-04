@@ -103,7 +103,7 @@ project(":clients:rhsm-client") {
 
     dependencies {
         implementation project(':clients-core')
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
+        testImplementation "com.github.tomakehurst:wiremock-jre8:2.32.0"
     }
 }
 
@@ -127,6 +127,7 @@ project(":clients:user-client") {
 
 configure(subprojects) {
     apply plugin: "org.openapi.generator"
+    apply plugin: "java-library"
 
     openApiValidate {
         inputSpec = api_spec_path
@@ -157,20 +158,20 @@ configure(subprojects) {
     }
 
     dependencies {
-        compile project(":clients-core")
 
-        compile "org.jboss.resteasy:resteasy-client"
-        compile "org.jboss.resteasy:resteasy-multipart-provider"
+        api project(":clients-core")
+        api "org.jboss.resteasy:resteasy-client"
+        api "org.jboss.resteasy:resteasy-multipart-provider"
 
-        compile "com.fasterxml.jackson.core:jackson-annotations"
-        compile "com.fasterxml.jackson.core:jackson-databind"
-        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+        api "com.fasterxml.jackson.core:jackson-annotations"
+        api "com.fasterxml.jackson.core:jackson-databind"
+        api "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
 
-        compile "org.springframework:spring-context"
-        compile "org.slf4j:slf4j-api"
-        compile "io.swagger:swagger-annotations"
-        compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.2"
+        api  "org.springframework:spring-context"
+        api  "org.slf4j:slf4j-api"
+        api  "io.swagger:swagger-annotations"
+        api  "com.google.code.findbugs:jsr305:3.0.2"
+        api "org.openapitools:jackson-databind-nullable:0.2.2"
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

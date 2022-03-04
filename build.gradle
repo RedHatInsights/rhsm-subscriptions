@@ -95,7 +95,7 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven { url "http://packages.confluent.io/maven/" }
+        maven { url "https://packages.confluent.io/maven/" }
         maven{
             url 'https://splunk.jfrog.io/splunk/ext-releases-local'
         }
@@ -122,18 +122,18 @@ allprojects {
         annotationProcessor('org.hibernate:hibernate-jpamodelgen')
         annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-        testCompile "org.springframework.boot:spring-boot-starter-test"
-        testCompile "org.springframework:spring-test"
+        testImplementation "org.springframework.boot:spring-boot-starter-test"
+        testImplementation "org.springframework:spring-test"
 
         // We use JUnit 5 which the spring-boot-starter-test doesn't provide
-        testCompile "org.junit.jupiter:junit-jupiter-api"
-        testCompile "org.junit.jupiter:junit-jupiter-params"
-        testCompile "org.mockito:mockito-core"
-        testCompile "org.mockito:mockito-junit-jupiter"
-        testCompile "org.hamcrest:hamcrest"
+        testImplementation "org.junit.jupiter:junit-jupiter-api"
+        testImplementation "org.junit.jupiter:junit-jupiter-params"
+        testImplementation "org.mockito:mockito-core"
+        testImplementation "org.mockito:mockito-junit-jupiter"
+        testImplementation "org.hamcrest:hamcrest"
 
-        testRuntime "org.junit.jupiter:junit-jupiter-engine"
-        testRuntime "ch.qos.logback:logback-classic"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+        testRuntimeOnly "ch.qos.logback:logback-classic"
     }
 
     sourceSets {
@@ -176,26 +176,26 @@ dependencies {
     annotationProcessor('org.hibernate:hibernate-jpamodelgen')
     // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
     // code changes
-    compile('org.springframework.boot:spring-boot-devtools')
+    implementation('org.springframework.boot:spring-boot-devtools')
 
-    compile project(":api")
-    compile project(":clients:cloudigrade-client")
-    compile project(":clients:insights-inventory-client")
-    compile project(":clients:rh-marketplace-client")
-    compile project(":clients:product-client")
-    compile project(":clients:prometheus-client")
-    compile project(":clients:rbac-client")
-    compile project(":clients:rhsm-client")
-    compile project(":clients:subscription-client")
-    compile project(":clients:user-client")
-    compile project(":kafka-schema")
+    implementation project(":api")
+    implementation project(":clients:cloudigrade-client")
+    implementation project(":clients:insights-inventory-client")
+    implementation project(":clients:rh-marketplace-client")
+    implementation project(":clients:product-client")
+    implementation project(":clients:prometheus-client")
+    implementation project(":clients:rbac-client")
+    implementation project(":clients:rhsm-client")
+    implementation project(":clients:subscription-client")
+    implementation project(":clients:user-client")
+    implementation project(":kafka-schema")
 
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
     // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
-    compile("org.jboss.resteasy:resteasy-spring-boot-starter") {
+    implementation("org.jboss.resteasy:resteasy-spring-boot-starter") {
         exclude group: "org.springframework.boot"
     }
-    compile("io.confluent:kafka-avro-serializer") {
+    implementation("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
         // logback and SLF4J issues a warning if more than one logging implementation is on the classpath.
@@ -203,36 +203,36 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
-    compile "org.springframework.boot:spring-boot-starter-actuator"
-    compile "org.springframework.boot:spring-boot-starter-aop"
-    compile "org.springframework.boot:spring-boot-starter-data-jpa"
-    compile "org.springframework.boot:spring-boot-starter-security"
-    compile "org.springframework.boot:spring-boot-starter-web"
-    compile "org.springframework.retry:spring-retry"
-    compile "org.springframework:spring-context-support"
-    compile "org.springframework.kafka:spring-kafka"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.retry:spring-retry"
+    implementation "org.springframework:spring-context-support"
+    implementation "org.springframework.kafka:spring-kafka"
     // the following dep is necessary to avoid jackson kotlin warnings
-    compile "com.fasterxml.jackson.module:jackson-module-kotlin"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
 
-    compile "io.micrometer:micrometer-registry-prometheus"
-    compile "org.liquibase:liquibase-core"
-    compile "org.webjars:swagger-ui"
-    compile "org.webjars:webjars-locator"
-    compile "org.yaml:snakeyaml"
-    compile "org.postgresql:postgresql"
-    compile "io.hawt:hawtio-springboot"
-    compile "org.hibernate.validator:hibernate-validator"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "org.liquibase:liquibase-core"
+    implementation "org.webjars:swagger-ui"
+    implementation "org.webjars:webjars-locator"
+    implementation "org.yaml:snakeyaml"
+    implementation "org.postgresql:postgresql"
+    implementation "io.hawt:hawtio-springboot"
+    implementation "org.hibernate.validator:hibernate-validator"
 
-    testCompile "org.springframework.security:spring-security-test"
-    testCompile "org.springframework.kafka:spring-kafka-test"
-    testCompile project(':swatch-core-test')
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "org.springframework.kafka:spring-kafka-test"
+    testImplementation project(':swatch-core-test')
 
-    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
+    runtimeOnly("org.jboss.resteasy:resteasy-validator-provider-11") {
         exclude group: 'org.hibernate' // exclude older hibernate validator
     }
 
-    runtime "org.hsqldb:hsqldb"
-    runtime "org.jolokia:jolokia-core"
+    runtimeOnly "org.hsqldb:hsqldb"
+    runtimeOnly "org.jolokia:jolokia-core"
 }
 
 allprojects {
@@ -345,12 +345,12 @@ project(":api") {
     }
 
     dependencies {
-        compile "com.fasterxml.jackson.core:jackson-annotations"
-        compile "javax.validation:validation-api"
-        compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
-        compile "io.swagger:swagger-annotations"
-        compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.2"
+        implementation "com.fasterxml.jackson.core:jackson-annotations"
+        implementation "javax.validation:validation-api"
+        implementation "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
+        implementation "io.swagger:swagger-annotations"
+        implementation "com.google.code.findbugs:jsr305:3.0.2"
+        implementation "org.openapitools:jackson-databind-nullable:0.2.2"
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
@@ -362,7 +362,7 @@ project(":kafka-schema") {
     apply plugin: "com.commercehub.gradle.plugin.avro-base"
 
     dependencies {
-        compile "org.apache.avro:avro"
+        implementation "org.apache.avro:avro"
     }
 
     task generateAvro(type: com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask) {
