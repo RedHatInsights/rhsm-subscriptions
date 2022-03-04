@@ -20,15 +20,14 @@
  */
 package org.candlepin.subscriptions.http;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.InputStream;
 import java.time.Duration;
 import javax.net.ssl.HostnameVerifier;
 import lombok.Data;
 import lombok.ToString;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.springframework.core.io.Resource;
 
 /** HTTP service client configuration. */
 @Data
@@ -61,42 +60,29 @@ public class HttpClientProperties {
   @ToString.Exclude private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
 
   /** Certificate authenticate file path */
-  private File keystore;
+  private Resource keystore;
 
   /** Certificate authenticate file password */
   @ToString.Exclude private char[] keystorePassword;
 
   /** Truststore file path */
-  private File truststore;
+  private Resource truststore;
 
   /** Truststore file password */
   @ToString.Exclude private char[] truststorePassword;
 
-  public ByteArrayInputStream getKeystoreStream() throws IOException {
+  public InputStream getKeystoreStream() throws IOException {
     if (!validFile(keystore)) {
       throw new IllegalStateException("No keystore file has been set");
     }
-    return readStream(keystore);
+    return keystore.getInputStream();
   }
 
-  public ByteArrayInputStream getTruststoreStream() throws IOException {
+  public InputStream getTruststoreStream() throws IOException {
     if (!validFile(truststore)) {
       throw new IllegalStateException("No truststore file has been set");
     }
-    return readStream(truststore);
-  }
-
-  /**
-   * Returns a ByteArrayInputStream of the specified file. The files we're reading aren't massive so
-   * reading them into memory temporarily shouldn't be a big hit. Returning them as
-   * ByteArrayInputStreams also means no one needs to worry about closing them.
-   *
-   * @param file a file to read into a ByteArrayInputStream
-   * @return a ByteArrayInputStream containing the file's contents
-   * @throws IOException if reading fails
-   */
-  private ByteArrayInputStream readStream(File file) throws IOException {
-    return new ByteArrayInputStream(Files.readAllBytes(file.toPath()));
+    return truststore.getInputStream();
   }
 
   public boolean usesClientAuth() {
@@ -113,8 +99,7 @@ public class HttpClientProperties {
     return validFile(truststore);
   }
 
-  private boolean validFile(File f) {
-    // A funny thing to test if a File is a file, but a File can also point to a directory
-    return f != null && f.exists() && f.canRead() && f.isFile();
+  private boolean validFile(Resource r) {
+    return r != null && r.exists() && r.isReadable() && r.isFile();
   }
 }

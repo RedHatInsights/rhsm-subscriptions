@@ -31,7 +31,6 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.google.common.io.Resources;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +39,9 @@ import javax.ws.rs.core.GenericType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.util.ResourceUtils;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 
 class RhsmApiFactoryTest {
   public static final char[] STORE_PASSWORD = "password".toCharArray();
@@ -48,6 +49,7 @@ class RhsmApiFactoryTest {
   private WireMockServer server;
   private RhsmApiProperties config;
   private RhsmApiFactory apiFactory;
+  private ResourceLoader rl = new DefaultResourceLoader();
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -64,6 +66,10 @@ class RhsmApiFactoryTest {
   @BeforeEach
   private void setUp() {
     config = new RhsmApiProperties();
+  }
+
+  private Resource getKeystoreResource(String f) {
+    return rl.getResource("file:" + f);
   }
 
   @Test
@@ -85,10 +91,10 @@ class RhsmApiFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setKeystore(new File(server.getOptions().httpsSettings().keyStorePath()));
+    config.setKeystore(getKeystoreResource(server.getOptions().httpsSettings().keyStorePath()));
     config.setKeystorePassword(STORE_PASSWORD);
 
-    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
+    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
@@ -104,7 +110,7 @@ class RhsmApiFactoryTest {
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
+    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
     config.setTruststorePassword(STORE_PASSWORD);
 
     RhsmApiFactory factory = new RhsmApiFactory(config);

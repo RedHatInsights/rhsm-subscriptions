@@ -35,11 +35,17 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.xml.bind.DatatypeConverter;
+import org.springframework.core.io.Resource;
 
 /** Class to return basic information about an X509 certificate. */
 public class CertInfoInquisitor {
   private CertInfoInquisitor() {
     // Static methods only
+  }
+
+  public static Map<String, Map<String, String>> loadStoreInfo(Resource resource, char[] password)
+      throws GeneralSecurityException, IOException {
+    return CertInfoInquisitor.loadStoreInfo(resource.getInputStream(), password);
   }
 
   public static Map<String, Map<String, String>> loadStoreInfo(InputStream stream, char[] password)

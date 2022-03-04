@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import javax.ws.rs.ProcessingException;
@@ -40,12 +39,16 @@ import javax.ws.rs.core.UriBuilder;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.ResourceUtils;
 
 class HttpClientTest {
   public static final String STORE_PASSWORD = "password";
 
   private WireMockServer server;
+  private ResourceLoader rl = new DefaultResourceLoader();
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -59,6 +62,10 @@ class HttpClientTest {
     }
   }
 
+  private Resource getKeystoreResource(String f) {
+    return rl.getResource("file:" + f);
+  }
+
   @Test
   void testNoCustomTruststoreRequired() throws Exception {
     server = new WireMockServer(buildWireMockConfig());
@@ -66,7 +73,7 @@ class HttpClientTest {
     server.stubFor(stubHelloWorld());
 
     HttpClientProperties x509Config = new HttpClientProperties();
-    x509Config.setKeystore(new File(server.getOptions().httpsSettings().keyStorePath()));
+    x509Config.setKeystore(getKeystoreResource(server.getOptions().httpsSettings().keyStorePath()));
     x509Config.setKeystorePassword(STORE_PASSWORD.toCharArray());
 
     Client httpClient = HttpClient.buildHttpClient(x509Config, null, false);
@@ -88,10 +95,10 @@ class HttpClientTest {
     server.stubFor(stubHelloWorld());
 
     HttpClientProperties x509Config = new HttpClientProperties();
-    x509Config.setKeystore(new File(server.getOptions().httpsSettings().keyStorePath()));
+    x509Config.setKeystore(getKeystoreResource(server.getOptions().httpsSettings().keyStorePath()));
     x509Config.setKeystorePassword(STORE_PASSWORD.toCharArray());
 
-    x509Config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
+    x509Config.setTruststore(rl.getResource("classpath:test-ca.jks"));
     x509Config.setTruststorePassword(STORE_PASSWORD.toCharArray());
 
     Client httpClient = HttpClient.buildHttpClient(x509Config, null, false);
@@ -106,7 +113,7 @@ class HttpClientTest {
     server.stubFor(stubHelloWorld());
 
     HttpClientProperties x509Config = new HttpClientProperties();
-    x509Config.setTruststore(ResourceUtils.getFile("classpath:test-ca.jks"));
+    x509Config.setTruststore(rl.getResource("classpath:test-ca.jks"));
     x509Config.setTruststorePassword(STORE_PASSWORD.toCharArray());
 
     Client httpClient = HttpClient.buildHttpClient(x509Config, null, false);
