@@ -52,6 +52,10 @@ parameters:
     value: 'localhost'
   - name: CLOUDIGRADE_PORT
     value: '8080'
+  - name: CLOUDIGRADE_INTERNAL_HOST
+    value: 'localhost'
+  - name: CLOUDIGRADE_INTERNAL_PORT
+    value: '8080'
   - name: RHSM_URL
     value: https://api.rhsm.qa.redhat.com/v1
 
@@ -575,6 +579,15 @@ objects:
               value: ${CLOUDIGRADE_HOST}
             - name: CLOUDIGRADE_PORT
               value: ${CLOUDIGRADE_PORT}
+            - name: CLOUDIGRADE_INTERNAL_HOST
+              value: ${CLOUDIGRADE_INTERNAL_HOST}
+            - name: CLOUDIGRADE_INTERNAL_PORT
+              value: ${CLOUDIGRADE_INTERNAL_PORT}
+            - name: CLOUDIGRADE_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: cloudigrade-psk
+                  key: psk
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
