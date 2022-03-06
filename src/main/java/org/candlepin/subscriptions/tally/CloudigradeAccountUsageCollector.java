@@ -42,7 +42,6 @@ import org.springframework.stereotype.Component;
 /** Collects the max values from accounts in cloudigrade. */
 @Component
 public class CloudigradeAccountUsageCollector {
-
   private static final Logger log = LoggerFactory.getLogger(CloudigradeAccountUsageCollector.class);
 
   private final CloudigradeService cloudigradeService;
