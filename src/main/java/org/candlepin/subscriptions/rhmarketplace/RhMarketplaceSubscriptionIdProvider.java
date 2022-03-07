@@ -120,7 +120,7 @@ public class RhMarketplaceSubscriptionIdProvider {
           usageKey,
           productNames);
     }
-    return Optional.of(result.get(0).getMarketplaceSubscriptionId());
+    return Optional.of(result.get(0).getBillingProviderId());
   }
 
   protected List<Subscription> fetchSubscriptions(
