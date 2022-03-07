@@ -1,3 +1,0 @@
-databaseChangeLog:
-  - include:
-      file: db/changelog/202202011608.xml

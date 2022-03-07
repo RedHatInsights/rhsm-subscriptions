@@ -53,13 +53,3 @@ services:
     depends_on:
       - kafka
       - db
-  //TODO need to connect this pod to the db pod
-  swatch-producer-aws:
-    image: quay.io/lburnett/rhsm:02162022
-    environment:
-      - QUARKUS_PROFILE=dev
-    ports:
-      - "8000:8000"
-    depends_on:
-      - kafka
-      - db

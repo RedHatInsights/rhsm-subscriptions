@@ -1,17 +1,16 @@
 #!/bin/bash
 
-VENV_DIR=~/bonfire_venv
+python3 -m venv .bonfire_venv
+source .bonfire_venv/bin/activate
 
-mkdir -p $VENV_DIR
-python3 -m venv $VENV_DIR
-. $VENV_DIR/bin/activate
-pip install --upgrade crc-bonfire
+pip install --upgrade pip 'setuptools<58' wheel
+pip install --upgrade 'crc-bonfire>=2.17.2'
 
-IMAGE=quay.io/cloudservices/swatch-producer-aws
-IMAGE_TAG=02142022
-BONFIRE_APP_NAME=swatch-producer-aws
-BONFIRE_COMPONENT_NAME=swatch-producer-aws
-NAMESPACE=ephemeral-w9ysl9
+export NAMESPACE=$(bonfire namespace reserve)
+export BONFIRE_APP_NAME=swatch-producer-aws
+export BONFIRE_COMPONENT_NAME=swatch-producer-aws
+export IMAGE=quay.io/cloudservices/swatch-producer-aws
+export IMAGE_TAG=latest
 
 bonfire deploy -n $NAMESPACE \
 --no-remove-resources $BONFIRE_COMPONENT_NAME \

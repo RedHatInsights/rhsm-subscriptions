@@ -1,9 +1,9 @@
 ---
 openapi: 3.0.2
 info:
-  title: SWatch Billing Provider - AWS
+  title: SWatch Producer AWS
   version: 1.0.0
-  description: ""
+  description: "Provides AWS with billing details based on TallySummary"
   contact:
     url: https://github.com/RedHatInsights/rhsm-subscriptions
 paths:

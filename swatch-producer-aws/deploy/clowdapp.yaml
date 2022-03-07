@@ -29,8 +29,6 @@ objects:
     name: swatch-producer-aws
   spec:
     envName: ${ENV_NAME}
-#    dependencies:
-#      - host-inventory
 
     kafkaTopics:
       - replicas: 1
@@ -38,14 +36,14 @@ objects:
         topicName: platform.rhsm-subscriptions.tally
 
     database:
-      name: billing-provider-aws-db
+      name: db
       version: 12
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
 
     deployments:
-      - name: billing-provider-aws
+      - name: swatch-producer-aws
         minReplicas: 1
         webServices:
           public:
