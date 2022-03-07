@@ -253,6 +253,11 @@ objects:
                   value: ${CLOUDIGRADE_HOST}
                 - name: CLOUDIGRADE_PORT
                   value: ${CLOUDIGRADE_PORT}
+                - name: CLOUDIGRADE_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: cloudigrade-psk
+                      key: psk
                 - name: PROM_URL
                   value: ${PROM_URL}
                 - name: OPENSHIFT_BILLING_MODEL_FILTER

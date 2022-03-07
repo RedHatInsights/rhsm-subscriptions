@@ -20,14 +20,8 @@
  */
 package org.candlepin.subscriptions.cloudigrade;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
-import java.util.Base64;
 import org.candlepin.subscriptions.cloudigrade.api.model.ConcurrencyReport;
-import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeader;
-import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeaderIdentity;
-import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeaderIdentityUser;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
 import org.candlepin.subscriptions.cloudigrade.internal.api.model.UserResponse;
 import org.candlepin.subscriptions.cloudigrade.internal.api.resources.UsersApi;
@@ -39,39 +33,26 @@ public class CloudigradeService {
 
   private final ConcurrentApi concurrentApi;
 
-  private final ObjectMapper objectMapper;
   private final UsersApi usersApi;
   private final CloudigradeServiceProperties internalProperties;
-  private final Base64.Encoder b64Encoder;
+  private final CloudigradeServiceProperties externalProperties;
 
   public CloudigradeService(
       ConcurrentApi concurrentApiApi,
       UsersApi usersApi,
       CloudigradeServiceProperties internalProperties,
-      ObjectMapper objectMapper) {
+      CloudigradeServiceProperties externalProperties) {
     this.concurrentApi = concurrentApiApi;
     this.usersApi = usersApi;
-    this.objectMapper = objectMapper;
     this.internalProperties = internalProperties;
-    this.b64Encoder = Base64.getEncoder();
+    this.externalProperties = externalProperties;
   }
 
   public ConcurrencyReport listDailyConcurrentUsages(
       String accountNumber, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
       throws ApiException {
-    IdentityHeaderIdentityUser user = new IdentityHeaderIdentityUser().isOrgAdmin(true);
-    IdentityHeaderIdentity identity =
-        new IdentityHeaderIdentity().accountNumber(accountNumber).user(user);
-    IdentityHeader identityHeader = new IdentityHeader().identity(identity);
-
-    try {
-      String headerString =
-          b64Encoder.encodeToString(objectMapper.writeValueAsBytes(identityHeader));
-      return concurrentApi.listDailyConcurrentUsages(
-          headerString, limit, offset, startDate, endDate);
-    } catch (JsonProcessingException e) {
-      throw new ApiException(e);
-    }
+    return concurrentApi.listDailyConcurrentUsages(
+        externalProperties.getPresharedKey(), accountNumber, limit, offset, startDate, endDate);
   }
 
   public UserResponse listCloudigradeUser(String accountNumber)

@@ -21,6 +21,7 @@ rhsm-subscriptions:
   cloudigrade:
     url: http://${CLOUDIGRADE_HOST:localhost}:${CLOUDIGRADE_PORT:8080}/api/cloudigrade/v2
     maxConnections: ${CLOUDIGRADE_MAX_CONNECTIONS:100}
+    presharedKey: ${CLOUDIGRADE_PSK:}
     internal:
       url: http://${CLOUDIGRADE_INTERNAL_HOST:localhost}:${CLOUDIGRADE_INTERNAL_PORT:8080}/api/cloudigrade/internal
       presharedKey: ${CLOUDIGRADE_PSK:}
