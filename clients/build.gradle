@@ -36,7 +36,7 @@ project(":clients:insights-inventory-client") {
     }
 }
 
-project(":clients:marketplace-client") {
+project(":clients:rh-marketplace-client") {
     apply plugin: "swatch.java-conventions"
 
     ext {
