@@ -1,4 +1,4 @@
-Implement swatch-producer-aws skeleton project(":clients:cloudigrade-client") {
+project(":clients:cloudigrade-client") {
     ext {
         api_spec_path = "${projectDir}/cloudigrade-api-spec.yaml"
         config_file = "${projectDir}/cloudigrade-client-config.json"
