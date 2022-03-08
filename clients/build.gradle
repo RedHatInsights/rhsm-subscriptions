@@ -98,7 +98,6 @@ project(":clients:rhsm-client") {
     }
 
     dependencies {
-        implementation project(':clients-core')
         testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
     }
 }
@@ -118,6 +117,7 @@ project(":clients:user-client") {
 }
 
 configure(subprojects) {
+    apply plugin: "java-library"
     apply plugin: "swatch.spring-boot-dependencies-conventions"
     apply plugin: "swatch.java-conventions"
     apply plugin: "org.openapi.generator"
@@ -151,6 +151,7 @@ configure(subprojects) {
     }
 
     dependencies {
+        api project(':clients-core')
         implementation "javax.annotation:javax.annotation-api"
         compile "org.jboss.resteasy:resteasy-client"
         compile "org.jboss.resteasy:resteasy-multipart-provider"

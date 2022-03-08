@@ -1,6 +1,7 @@
 plugins {
-    id 'java'
-
+    id 'java-library'
+    id 'swatch.java-conventions'
+    id 'swatch.spring-boot-dependencies-conventions'
 }
 
 dependencies {
@@ -11,7 +12,3 @@ dependencies {
 }
 
 description = 'SWATCH core library for generated clients'
-
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
