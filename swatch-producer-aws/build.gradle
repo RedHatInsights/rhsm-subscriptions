@@ -68,3 +68,11 @@ openApiGenerate {
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
+
+tasks.register('configureQuarkusBuild') {
+  doLast {
+    System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
+  }
+}
+
+quarkusBuild.dependsOn(configureQuarkusBuild)
