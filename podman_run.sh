@@ -1,12 +1,20 @@
-SOCKET=$(mktemp)
-export CONTAINER_HOST=unix://$SOCKET
+if command -v podman; then
+  export SOCKET=$(mktemp)
+  export CONTAINER_HOST=unix://$SOCKET
+  echo Running podman service at $CONTAINER_HOST
+  podman system service -t 360 $CONTAINER_HOST&
+  export PODMAN_PID=$!
+  echo Running command '`'$@'`' via podman
+  export podman_cmd=podman
+else
+  export SOCKET=/var/run/docker.sock
+  export CONTAINER_HOST=unix://$SOCKET
+  podman_cmd=docker
+  echo Podman not available. Running command '`'$@'`' via docker
+fi
 export DOCKER_HOST=$CONTAINER_HOST
-echo Running podman service at $CONTAINER_HOST
-podman system service -t 360 $CONTAINER_HOST&
-PODMAN_PID=$!
-echo Running command '`'$@'`' via podman
 # needs host network and selinux labeling disabled to support testcontainers
-podman run \
+$podman_cmd run \
   --net=host \
   --security-opt label=disable \
   --rm \
@@ -18,8 +26,10 @@ podman run \
   -v $(pwd):/workspace:Z \
   registry.access.redhat.com/ubi8/openjdk-11 \
   "$@"
-RETURN_CODE=$?
-echo Stopping podman service at $CONTAINER_HOST
-kill $PODMAN_PID
-rm -f $SOCKET
+  RETURN_CODE=$?
+if [[ -n "$PODMAN_PID" ]]; then
+  echo Stopping podman service at $CONTAINER_HOST
+  kill $PODMAN_PID
+  rm -f $SOCKET
+fi
 exit $RETURN_CODE
