@@ -55,4 +55,4 @@ libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-jav
 libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:2.6.3"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.5"
 libraries["swagger-ui"] = "org.webjars:swagger-ui:4.5.0"
-libraries["webjars-locator"] = "org.webjars:webjars-locator:0.42"
+libraries["webjars-locator"] = "org.webjars:webjars-locator:0.45"
