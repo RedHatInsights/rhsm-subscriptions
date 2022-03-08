@@ -1,0 +1,78 @@
+plugins {
+    id 'swatch.java-conventions'
+    id 'io.quarkus'
+    id 'org.openapi.generator'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation 'io.quarkus:quarkus-openshift'
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-logging-json'
+    implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-jdbc-h2'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging'
+    implementation 'io.quarkus:quarkus-quartz'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-jacoco'
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
+    implementation 'io.quarkus:quarkus-resteasy-jackson'
+    implementation 'io.quarkus:quarkus-liquibase'
+    implementation 'io.quarkus:quarkus-arc'
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.rest-assured:rest-assured'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation libraries["clowder-quarkus-config-source"]
+    implementation 'io.quarkus:quarkus-liquibase'
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-agroal'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-rest-client-jackson'
+    implementation 'io.quarkus:quarkus-rest-client'
+    implementation libraries["quarkus-logging-logback"]
+    implementation libraries["splunk-library-javalogging"]
+    testImplementation 'io.quarkus:quarkus-junit5'
+    compileOnly libraries["lombok"]
+    testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["org.testcontainers:testcontainers"]
+    testImplementation libraries["org.testcontainers:junit-jupiter"]
+    testImplementation libraries["org.testcontainers:postgresql"]
+    testImplementation libraries["org.testcontainers:kafka"]
+
+}
+
+group = 'com.redhat.swatch'
+description = 'swatch-producer-aws'
+
+compileJava.dependsOn tasks.openApiGenerate
+
+openApiGenerate {
+    generatorName = "jaxrs-spec"
+    inputSpec = "${projectDir}/src/main/resources/openapi.yaml".toString()
+    outputDir = "${buildDir}/generated".toString()
+    apiPackage = "com.redhat.swatch.openapi.resource"
+    modelPackage = "com.redhat.swatch.openapi.model"
+    invokerPackage = "com.redhat.swatch.openapi"
+    groupId = "com.redhat.swatch"
+    configOptions = [
+            sourceFolder         : "src/gen/java",
+            interfaceOnly        : "true",
+            useSwaggerAnnotations: "false"
+    ]
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
+
+tasks.register('configureQuarkusBuild') {
+  doLast {
+    System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
+  }
+}
+
+quarkusBuild.dependsOn(configureQuarkusBuild)

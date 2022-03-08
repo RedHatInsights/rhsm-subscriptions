@@ -1,0 +1,32 @@
+// uses spring dependency-management to apply spring boot dependencies bom and other constraints
+plugins {
+    id "io.spring.dependency-management"
+}
+
+// Define all versions here so that all projects will use the same versions.
+dependencyManagement {
+    imports {
+        // See https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies to
+        // get listings of the contents of this BOM
+        mavenBom libraries["spring-boot-dependencies"]
+    }
+    // adding a library here locks it to a specific version, and allows it to be referenced without
+    // version; this section can also be used to override the spring-boot-dependencies BOM
+    dependencies{
+        dependency libraries["jboss-jaxrs-api_2.1_spec"]
+        dependency libraries["swagger-annotations"]
+        dependency libraries["swagger-ui"]
+        dependency libraries["webjars-locator"]
+        dependency libraries["resteasy-spring-boot-starter"]
+        dependency libraries["resteasy-client"]
+        dependency libraries["resteasy-multipart-provider"]
+        dependency libraries["resteasy-validator-provider-11"]
+        dependency libraries["resteasy-jackson2-provider"]
+        dependency libraries["kafka-avro-serializer"]
+        dependency libraries["avro"]
+        dependency libraries["hawtio-springboot"]
+        dependency libraries["guava"]
+        dependency libraries["splunk-library-javalogging"]
+        dependency libraries["janino"]
+    }
+}

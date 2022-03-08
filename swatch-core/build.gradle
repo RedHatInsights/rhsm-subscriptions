@@ -1,9 +1,13 @@
 plugins {
+    id "swatch.java-conventions"
+    id "swatch.spring-boot-dependencies-conventions"
     id 'java'
     id 'jsonschema2pojo'
 }
 
 dependencies {
+    annotationProcessor "org.hibernate:hibernate-jpamodelgen"
+    implementation project(":kafka-schema")
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation "org.hibernate.validator:hibernate-validator"
@@ -31,6 +35,7 @@ dependencies {
     implementation project(":kafka-schema")
 
     testImplementation project(":swatch-core-test")
+    testCompile "org.springframework:spring-test"
 }
 
 jsonSchema2Pojo {

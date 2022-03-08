@@ -602,6 +602,8 @@ objects:
               value: ${DEV_MODE}
             - name: ENABLE_ACCOUNT_RESET
               value: ${ENABLE_ACCOUNT_RESET}
+            - name: DEV_MODE
+              value: ${DEV_MODE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -815,6 +817,8 @@ objects:
                   key: keystore_password
             - name: RHSM_KEYSTORE
               value: /pinhead/keystore.jks
+            - name: DEV_MODE
+              value: ${DEV_MODE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1016,6 +1020,8 @@ objects:
                   key: keystore_password
             - name: RHSM_KEYSTORE
               value: /pinhead/keystore.jks
+            - name: DEV_MODE
+              value: ${DEV_MODE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1389,6 +1395,8 @@ objects:
                 secretKeyRef:
                   name: tls
                   key: keystore_password
+            - name: DEV_MODE
+              value: ${DEV_MODE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
