@@ -1,6 +1,7 @@
 if command -v podman; then
   export SOCKET=$(mktemp)
   export CONTAINER_HOST=unix://$SOCKET
+  export PODMAN_USERNS=keep-id
   echo Running podman service at $CONTAINER_HOST
   podman system service -t 360 $CONTAINER_HOST&
   export PODMAN_PID=$!
@@ -18,7 +19,7 @@ $podman_cmd run \
   --net=host \
   --security-opt label=disable \
   --rm \
-  --user=root \
+  --user=$UID \
   -e DOCKER_HOST=$CONTAINER_HOST \
   -e GRADLE_USER_HOME=/workspace/.gradle \
   -w /workspace \
