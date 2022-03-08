@@ -65,12 +65,14 @@ public class SubscriptionCapacityViewSpecification
         && criteria.getOperation().equals(SearchOperation.IS_NOT_NULL)) {
       return builder.or(
           builder.isNotNull(expression.get(SubscriptionCapacityView_.VIRTUAL_SOCKETS)),
-          builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_SOCKETS)));
+          builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_SOCKETS)),
+          builder.isTrue(expression.get(SubscriptionCapacityView_.HAS_UNLIMITED_USAGE)));
     } else if (SubscriptionCapacityView_.PHYSICAL_CORES.equals(criteria.getKey())
         && criteria.getOperation().equals(SearchOperation.IS_NOT_NULL)) {
       return builder.or(
           builder.isNotNull(expression.get(SubscriptionCapacityView_.VIRTUAL_CORES)),
-          builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_CORES)));
+          builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_CORES)),
+          builder.isTrue(expression.get(SubscriptionCapacityView_.HAS_UNLIMITED_USAGE)));
     } else if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
       return builder.greaterThanOrEqualTo(
           expression.get(criteria.getKey()), criteria.getValue().toString());
