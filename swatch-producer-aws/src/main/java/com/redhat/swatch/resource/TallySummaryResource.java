@@ -32,7 +32,6 @@ import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// @ReportingAccessRequired
 public class TallySummaryResource implements TallySummaryApi {
 
   private static final Logger log = LoggerFactory.getLogger(TallySummaryResource.class);
