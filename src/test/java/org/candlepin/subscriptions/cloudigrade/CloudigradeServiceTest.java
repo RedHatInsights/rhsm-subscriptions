@@ -35,7 +35,7 @@ import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
-@TestPropertySource(properties="rhsm-subscriptions.cloudigrade.presharedKey=secret")
+@TestPropertySource(properties = "rhsm-subscriptions.cloudigrade.presharedKey=secret")
 class CloudigradeServiceTest {
   @MockBean ConcurrentApi concurrentApi;
 
