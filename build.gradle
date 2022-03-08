@@ -16,8 +16,6 @@ group = "org.candlepin"
 
 dependencies {
     implementation project(':swatch-core')
-    // Generates configuration metadata that IntelliJ can use
-    annotationProcessor('org.hibernate:hibernate-jpamodelgen')
     implementation project(":api")
     implementation project(":clients:cloudigrade-client")
     implementation project(":clients:cloudigrade-internal-client")
@@ -173,6 +171,7 @@ project(":api") {
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
     processResources.dependsOn tasks.generateOpenApiJson
+    processResources.dependsOn tasks.openApiGenerate
 }
 
 project(":kafka-schema") {

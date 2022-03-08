@@ -5,10 +5,6 @@ plugins {
     id "com.diffplug.spotless"
 }
 
-ext {
-    generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
-}
-
 repositories {
     mavenCentral()
     maven {
@@ -72,8 +68,4 @@ jacocoTestReport {
     reports {
         xml.required = true
     }
-}
-
-sourceSets {
-    main.java.srcDirs += generatedMetamodels
 }
