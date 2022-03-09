@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
@@ -42,6 +43,7 @@ class MeteringEventFactoryTest {
     String usage = "Production";
     String role = "ocp";
     String serviceType = "cluster-service-type";
+    String billingProvider = "red hat";
     String metricId = "cluster_metric_id";
     OffsetDateTime expiry = OffsetDateTime.now();
     OffsetDateTime measuredTime = expiry.minusHours(1);
@@ -59,6 +61,7 @@ class MeteringEventFactoryTest {
             measuredTime,
             expiry,
             serviceType,
+            billingProvider,
             uom,
             measuredValue);
 
@@ -91,6 +94,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertNull(event.getSla());
@@ -109,6 +113,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertEquals(Sla.__EMPTY__, event.getSla());
@@ -127,6 +132,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertNull(event.getSla());
@@ -145,6 +151,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertNull(event.getUsage());
@@ -163,6 +170,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertNull(event.getUsage());
@@ -181,6 +189,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertNull(event.getRole());
@@ -199,9 +208,87 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertNull(event.getRole());
+  }
+
+  @Test
+  void testOpenShiftClusterCoresHandlesValidBillingProvider() throws Exception {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-account",
+            "metric-id",
+            "cluster-id",
+            "Premium",
+            "Production",
+            "ocp",
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            "aws",
+            Uom.CORES,
+            12.5);
+    assertEquals(BillingProvider.AWS, event.getBillingProvider());
+  }
+
+  @Test
+  void testOpenShiftClusterCoresHandlesNullBillingProvider() throws Exception {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-account",
+            "metric-id",
+            "cluster-id",
+            "Premium",
+            "Production",
+            "ocp",
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            null,
+            Uom.CORES,
+            12.5);
+    assertNull(event.getBillingProvider());
+  }
+
+  @Test
+  void testOpenShiftClusterCoresBillingProviderSetToEmptyForBillingProviderValueNone()
+      throws Exception {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-account",
+            "metric-id",
+            "cluster-id",
+            "Premium",
+            "Production",
+            "ocp",
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            "",
+            Uom.CORES,
+            12.5);
+    assertEquals(BillingProvider.__EMPTY__, event.getBillingProvider());
+  }
+
+  @Test
+  void testOpenShiftClusterCoresInvalidBillingProviderWillNotBeSetOnEvent() throws Exception {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-account",
+            "metric-id",
+            "cluster-id",
+            "Premium",
+            "Production",
+            "ocp",
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            "invalid provider",
+            Uom.CORES,
+            12.5);
+    assertNull(event.getBillingProvider());
   }
 
   @Test
@@ -217,6 +304,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
+            "red hat",
             Uom.CORES,
             12.5);
     assertEquals("snapshot_metric-id", event.getEventType());

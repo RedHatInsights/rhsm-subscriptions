@@ -1,4 +1,10 @@
 #!/bin/bash
+# NOTE: if you need to debug this file, use DRY_RUN=true to echo docker/podman/oc commands without running them
+
+# before we run common consoledot builds, prepare the binary artifacts for quarkus style builds
+./podman_run.sh ./gradlew assemble
+
+source cicd_common.sh
 
 export APP_NAME="rhsm"  # name of app-sre "application" folder this component lives in
 
@@ -11,15 +17,18 @@ export APP_NAME="rhsm"  # name of app-sre "application" folder this component li
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
 curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
 
-source cicd_common.sh
+# prebuild artifacts for quarkus builds
 for service in $SERVICES; do
   export COMPONENT_NAME="$service"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
   export IMAGE="quay.io/cloudservices/$service"  # the image location on quay
   export DOCKERFILE="$(get_dockerfile $service)"
 
   # Build the image and push to quay
+  APP_ROOT=$(get_approot $service)
   source $CICD_ROOT/build.sh
 done
+
+APP_ROOT=$PWD
 
 # Run the unit tests
 source $APP_ROOT/unit_test.sh

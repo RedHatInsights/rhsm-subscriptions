@@ -22,10 +22,14 @@ package org.candlepin.subscriptions.user;
 
 import java.time.Duration;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
 /** Properties for interacting with the RH IT User service. */
 @Data
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class UserServiceProperties extends HttpClientProperties {
   /** How many attempts before giving up. */
   private Integer maxAttempts;

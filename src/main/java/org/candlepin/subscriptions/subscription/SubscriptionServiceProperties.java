@@ -22,15 +22,15 @@ package org.candlepin.subscriptions.subscription;
 
 import java.time.Duration;
 import java.time.Period;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
 /** Additional properties related to the Subscription Service */
-@Getter
-@Setter
-@ToString
+@Data
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class SubscriptionServiceProperties extends HttpClientProperties {
 
   /**

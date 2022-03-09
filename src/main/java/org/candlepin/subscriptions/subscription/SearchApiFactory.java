@@ -20,40 +20,42 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /** Factory for creating SearchApi clients for the Subscription Service. */
+@Slf4j
 public class SearchApiFactory implements FactoryBean<SearchApi> {
-  private static final Logger log = LoggerFactory.getLogger(SearchApiFactory.class);
 
-  private final HttpClientProperties serviceProperties;
+  private final HttpClientProperties properties;
 
-  public SearchApiFactory(HttpClientProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public SearchApiFactory(HttpClientProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public SearchApi getObject() throws Exception {
-    if (serviceProperties.isUseStub()) {
-      log.info("Using stub subscription client");
+    if (properties.isUseStub()) {
+      log.info("Using stub search client");
       return new StubSearchApi();
     }
-    final ApiClient apiClient = Configuration.getDefaultApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("Subscription service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
+
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("Subscription service URL: {}", url);
+      client.setBasePath(url);
     } else {
       log.warn("Subscription service URL not set...");
     }
-    return new SearchApi(apiClient);
+
+    return new SearchApi(client);
   }
 
   @Override

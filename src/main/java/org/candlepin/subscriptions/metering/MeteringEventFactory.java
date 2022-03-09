@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
@@ -69,6 +70,7 @@ public class MeteringEventFactory {
       OffsetDateTime measuredTime,
       OffsetDateTime expired,
       String serviceType,
+      String billingProvider,
       Uom measuredMetric,
       Double measuredValue) {
     Event event = new Event();
@@ -83,6 +85,7 @@ public class MeteringEventFactory {
         measuredTime,
         expired,
         serviceType,
+        billingProvider,
         measuredMetric,
         measuredValue);
     return event;
@@ -100,6 +103,7 @@ public class MeteringEventFactory {
       OffsetDateTime measuredTime,
       OffsetDateTime expired,
       String serviceType,
+      String billingProvider,
       Uom measuredMetric,
       Double measuredValue) {
     toUpdate
@@ -113,6 +117,7 @@ public class MeteringEventFactory {
         .withDisplayName(Optional.of(instanceId))
         .withSla(getSla(serviceLevel, accountNumber, instanceId))
         .withUsage(getUsage(usage, accountNumber, instanceId))
+        .withBillingProvider(getBillingProvider(billingProvider, accountNumber, instanceId))
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId));
@@ -170,6 +175,24 @@ public class MeteringEventFactory {
       log.warn(
           "Unsupported Role '{}' specified for event. account/cluster: {}/{}",
           role,
+          account,
+          clusterId);
+    }
+    return null;
+  }
+
+  private static BillingProvider getBillingProvider(
+      String billingProvider, String account, String clusterId) {
+    if (billingProvider == null) {
+      return null;
+    }
+
+    try {
+      return BillingProvider.fromValue(StringUtils.trimWhitespace(billingProvider));
+    } catch (IllegalArgumentException e) {
+      log.warn(
+          "Unsupported BillingProvider '{}' specified for event. account/cluster: {}/{}",
+          billingProvider,
           account,
           clusterId);
     }

@@ -20,17 +20,18 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm.client;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.candlepin.subscriptions.http.HttpClient;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /**
  * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending
  * on properties.
  */
+@Slf4j
 public class RhsmApiFactory implements FactoryBean<RhsmApi> {
-  private static Logger log = LoggerFactory.getLogger(RhsmApiFactory.class);
 
   private final RhsmApiProperties properties;
 
@@ -41,25 +42,23 @@ public class RhsmApiFactory implements FactoryBean<RhsmApi> {
   @Override
   public RhsmApi getObject() throws Exception {
     if (properties.isUseStub()) {
-      log.info("Using stub RHSM client");
+      log.info("Using stub RHSM API client");
       return new StubRhsmApi();
     }
 
-    ApiClient client;
-    if (properties.usesClientAuth()) {
-      log.info("RHSM client configured with client-cert auth");
-      client = new X509ApiClientFactory(properties.getX509Config()).getObject();
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("RHSM service URL: {}", url);
+      client.setBasePath(url);
     } else {
-      log.info("RHSM client configured without client-cert auth");
-      client = new ApiClient();
+      log.warn("RHSM service URL not set...");
     }
-    if (properties.getUrl() != null) {
-      log.info("RHSM URL: {}", properties.getUrl());
-      client.setBasePath(properties.getUrl());
-      client.addDefaultHeader("cp-lookup-permissions", "false");
-    } else {
-      log.warn("RHSM URL not set...");
-    }
+
+    client.addDefaultHeader("cp-lookup-permissions", "false");
     return new RhsmApi(client);
   }
 

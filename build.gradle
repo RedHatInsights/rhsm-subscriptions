@@ -1,200 +1,27 @@
 import groovy.json.JsonOutput
 
 buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.openapitools:openapi-generator-gradle-plugin:5.4.0"
-        classpath "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.1"
-        classpath "de.undercouch:gradle-download-task:5.0.1"
-    }
+    // dependabot will parse dependencies.gradle by detecting the `apply from` below
+    apply from: "dependencies.gradle"
 }
 
 plugins {
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "com.diffplug.spotless" version "6.3.0"
-    id "jacoco"
-    id "org.sonarqube" version "3.3"
-    id "org.springframework.boot" version "2.6.3"
-    id "net.researchgate.release" version "2.8.1"
-    id "GitProperties"
-    id 'com.adarshr.test-logger' version '3.0.0'
-    // Only applied for the rhsm-subscriptions-kafka sub project; applied below.
-    id "com.commercehub.gradle.plugin.avro-base" version "0.9.1" apply false
+    id "swatch.spring-boot-conventions"
+    id "org.sonarqube"
+    id "nebula.release"
+    id 'com.adarshr.test-logger'
 }
 
-
-ext {
-    swagger_annotations_version = "1.6.5"
-    swagger_ui_version = "4.5.0"
-    resteasy_version = "3.6.3.Final"
-    spring_boot_version = "2.6.3"
-    jboss_jaxrs_api_version = "2.0.2.Final"
-    resteasy_spring_boot_starter_version = "3.9.1.Final"
-    kafka_avro_serializer_version = "7.0.1"
-    avro_version = "1.11.0"
-    webjars_locator_version = "0.42"
-    hawtio_springboot_version = "2.14.5"
-    guava_version = "31.0.1-jre"
-    janino_version = "3.1.6"
-    splunk_library_javalogging_version = "1.11.4"
-
-    generatedMetamodels = "build/generated/sources/annotationProcessor/java/main/org/candlepin/subscriptions"
-}
-
-allprojects {
-    apply plugin: "java"
-    apply plugin: "io.spring.dependency-management"
-
-    apply plugin: "com.diffplug.spotless"
-    spotless {
-        java {
-            targetExclude '**/build/**' // exclude generated code
-            enforceCheck false //allows build task to be successful, even if there is a code style violation
-            googleJavaFormat()
-            licenseHeaderFile "${rootDir}/config/codestyle/HEADER.txt" //lets you specify code that you don't want to violate rules or be reformatted
-            toggleOffOn()
-        }
-    }
-    // Define all versions here so that all projects will use the same versions.
-    dependencyManagement {
-        imports {
-            // See https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies to
-            // get listings of the contents of this BOM
-            mavenBom "org.springframework.boot:spring-boot-dependencies:$spring_boot_version"
-        }
-        dependencies{
-            dependency "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:$jboss_jaxrs_api_version"
-            dependency "io.swagger:swagger-annotations:$swagger_annotations_version"
-            dependency "org.webjars:swagger-ui:$swagger_ui_version"
-            dependency "org.webjars:webjars-locator:$webjars_locator_version"
-            dependency "org.jboss.resteasy:resteasy-spring-boot-starter:$resteasy_spring_boot_starter_version"
-            dependencySet(group: "org.jboss.resteasy", version: "$resteasy_version") {
-                entry "resteasy-client"
-                entry "resteasy-multipart-provider"
-                entry "resteasy-validator-provider-11"
-                entry "resteasy-jackson2-provider"
-            }
-            dependency "io.confluent:kafka-avro-serializer:$kafka_avro_serializer_version"
-            dependency "org.apache.avro:avro:$avro_version"
-            dependency "io.hawt:hawtio-springboot:$hawtio_springboot_version"
-            dependency "com.google.guava:guava:$guava_version"
-            dependency "com.splunk.logging:splunk-library-javalogging:$splunk_library_javalogging_version"
-            dependency "org.codehaus.janino:janino:$janino_version"
-        }
-    }
-
-    sourceCompatibility = "11"
-    targetCompatibility = "11"
-
-    tasks.withType(JavaCompile) {
-        options.compilerArgs << '-parameters'
-    }
-
-    repositories {
-        mavenCentral()
-        maven { url "http://packages.confluent.io/maven/" }
-        maven{
-            url 'https://splunk.jfrog.io/splunk/ext-releases-local'
-        }
-    }
-
-    test {
-        useJUnitPlatform()
-    }
-
-    jacocoTestReport {
-        reports {
-            xml.enabled true
-        }
-    }
-
-    group = "org.candlepin"
-
-    dependencies {
-        implementation 'javax.annotation:javax.annotation-api:1.3.2'
-        compileOnly "org.projectlombok:lombok"
-        annotationProcessor "org.projectlombok:lombok"
-        testCompileOnly "org.projectlombok:lombok"
-        testAnnotationProcessor "org.projectlombok:lombok"
-        annotationProcessor('org.hibernate:hibernate-jpamodelgen')
-        annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-
-        testCompile "org.springframework.boot:spring-boot-starter-test"
-        testCompile "org.springframework:spring-test"
-
-        // We use JUnit 5 which the spring-boot-starter-test doesn't provide
-        testCompile "org.junit.jupiter:junit-jupiter-api"
-        testCompile "org.junit.jupiter:junit-jupiter-params"
-        testCompile "org.mockito:mockito-core"
-        testCompile "org.mockito:mockito-junit-jupiter"
-        testCompile "org.hamcrest:hamcrest"
-
-        testRuntime "org.junit.jupiter:junit-jupiter-engine"
-        testRuntime "ch.qos.logback:logback-classic"
-    }
-
-    sourceSets {
-      main.java.srcDirs+=generatedMetamodels
-    }
-
-  compileJava {
-      options.annotationProcessorGeneratedSourcesDirectory = file(generatedMetamodels)
-  }
-}
-
-// Disable the default jar; otherwise we end up with two different jars in the final image
-// See https://docs.spring.io/spring-boot/docs/2.5.0/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
-jar {
-    enabled = false
-}
-
-bootJar {
-    mainClass = "org.candlepin.subscriptions.BootApplication"
-}
-
-springBoot {
-    buildInfo {
-        properties {
-            // Leave time empty: The default value is the instant at which the project is built. A
-            // side-effect is the task will never be up-to-date. As a result, builds will take longer.  See
-            // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
-            time = null
-            additional = [
-                    'gitDescription': "${project.git.description ?: ''}",
-                    'gitHash': "${project.git.hash ?: ''}",
-            ]
-        }
-    }
-}
-
-release {
-    // Use single quotes so the variables aren't interpreted in the build file itself!
-    tagTemplate = '${name}-${version}'
-    preTagCommitMessage = '[Subscriptions Release] - pre tag commit: '
-    tagCommitMessage = '[Subscriptions Release] - creating tag: '
-    newVersionCommitMessage = '[Subscriptions Release] - version bump: '
-    pushReleaseVersionBranch = 'main'
-    git {
-        requireBranch = /develop|hotfix.*|release/
-        pushToRemote = false
-    }
-}
+group = "org.candlepin"
 
 dependencies {
     implementation project(':swatch-core')
     // Generates configuration metadata that IntelliJ can use
     annotationProcessor('org.hibernate:hibernate-jpamodelgen')
-    // For the LiveReload feature of spring boot as long as IntelliJ is set to build/make automatically on
-    // code changes
-    compile('org.springframework.boot:spring-boot-devtools')
-
     compile project(":api")
     compile project(":clients:cloudigrade-client")
     compile project(":clients:insights-inventory-client")
-    compile project(":clients:marketplace-client")
+    compile project(":clients:rh-marketplace-client")
     compile project(":clients:product-client")
     compile project(":clients:prometheus-client")
     compile project(":clients:rbac-client")
@@ -203,11 +30,6 @@ dependencies {
     compile project(":clients:user-client")
     compile project(":kafka-schema")
 
-    // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
-    // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
-    compile("org.jboss.resteasy:resteasy-spring-boot-starter") {
-        exclude group: "org.springframework.boot"
-    }
     compile("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
@@ -216,36 +38,19 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
-    compile "org.springframework.boot:spring-boot-starter-actuator"
-    compile "org.springframework.boot:spring-boot-starter-aop"
     compile "org.springframework.boot:spring-boot-starter-data-jpa"
-    compile "org.springframework.boot:spring-boot-starter-security"
-    compile "org.springframework.boot:spring-boot-starter-web"
-    compile "org.springframework.retry:spring-retry"
-    compile "org.springframework:spring-context-support"
     compile "org.springframework.kafka:spring-kafka"
     // the following dep is necessary to avoid jackson kotlin warnings
     compile "com.fasterxml.jackson.module:jackson-module-kotlin"
 
-    compile "io.micrometer:micrometer-registry-prometheus"
     compile "org.liquibase:liquibase-core"
-    compile "org.webjars:swagger-ui"
-    compile "org.webjars:webjars-locator"
-    compile "org.yaml:snakeyaml"
     compile "org.postgresql:postgresql"
-    compile "io.hawt:hawtio-springboot"
-    compile "org.hibernate.validator:hibernate-validator"
 
     testCompile "org.springframework.security:spring-security-test"
     testCompile "org.springframework.kafka:spring-kafka-test"
     testCompile project(':swatch-core-test')
 
-    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
-        exclude group: 'org.hibernate' // exclude older hibernate validator
-    }
-
     runtime "org.hsqldb:hsqldb"
-    runtime "org.jolokia:jolokia-core"
 }
 
 allprojects {
@@ -267,8 +72,10 @@ allprojects {
                 return collectedDeps
             }
             Set allDeps = []
-            def nonTestProjects = allprojects.grep { project -> !project.name.endsWith("-test") }
-            for (Project project : nonTestProjects) {
+            def projects = allprojects
+                    .grep { project -> !project.name.endsWith("-test") }
+                    .grep { project -> 'default' in project.configurations.names }
+            for (Project project : projects) {
                 // see https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_plugin_and_dependency_management
                 // "default" is all artifacts required at runtime
                 for (ResolvedDependency topLevelDependency : project.configurations.default.resolvedConfiguration.firstLevelModuleDependencies) {
@@ -291,19 +98,14 @@ allprojects {
     }
 }
 
-sourceSets {
-    main.java.srcDir generatedMetamodels
-}
-
-compileJava {
-    options.annotationProcessorGeneratedSourcesDirectory = file(generatedMetamodels)
-}
 
 compileJava.dependsOn(processResources)
 project.tasks["sonarqube"].dependsOn "test"
 project.tasks["sonarqube"].dependsOn "jacocoTestReport"
 
 project(":api") {
+    apply plugin: "swatch.java-conventions"
+    apply plugin: "swatch.spring-boot-dependencies-conventions"
     apply plugin: "org.openapi.generator"
 
     ext {
@@ -358,6 +160,7 @@ project(":api") {
     }
 
     dependencies {
+        implementation "javax.annotation:javax.annotation-api"
         compile "com.fasterxml.jackson.core:jackson-annotations"
         compile "javax.validation:validation-api"
         compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
@@ -372,6 +175,8 @@ project(":api") {
 }
 
 project(":kafka-schema") {
+    apply plugin: "swatch.java-conventions"
+    apply plugin: "swatch.spring-boot-dependencies-conventions"
     apply plugin: "com.commercehub.gradle.plugin.avro-base"
 
     dependencies {

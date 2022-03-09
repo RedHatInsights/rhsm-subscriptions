@@ -20,43 +20,45 @@
  */
 package org.candlepin.subscriptions.rbac;
 
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.http.HttpClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.util.StringUtils;
 
 /**
  * Factory that produces inventory service clients using configuration. An AuthApiClient is used to
  * ensure that the identity header is passed on with any request to the RBAC API.
  */
+@Slf4j
 public class RbacApiFactory implements FactoryBean<RbacApi> {
 
-  private static Logger log = LoggerFactory.getLogger(RbacApiFactory.class);
+  private final RbacProperties properties;
 
-  private final RbacProperties serviceProperties;
-
-  public RbacApiFactory(RbacProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public RbacApiFactory(RbacProperties properties) {
+    this.properties = properties;
   }
 
   @Override
   public RbacApi getObject() throws Exception {
-    if (serviceProperties.isUseStub()) {
-      log.info("Using stub RBAC client");
-      return new StubRbacApi(serviceProperties);
+    log.info("RBAC client config: {}", properties);
+
+    if (properties.isUseStub()) {
+      return new StubRbacApi(properties);
     }
-    ApiClient apiClient = new RbacApiClient();
-    apiClient.setHttpClient(
-        HttpClient.buildHttpClient(
-            serviceProperties, apiClient.getJSON(), apiClient.isDebugging()));
-    if (serviceProperties.getUrl() != null) {
-      log.info("RBAC service URL: {}", serviceProperties.getUrl());
-      apiClient.setBasePath(serviceProperties.getUrl());
+
+    ApiClient client = Configuration.getDefaultApiClient();
+    client.setHttpClient(
+        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+
+    var url = properties.getUrl();
+    if (StringUtils.hasText(url)) {
+      log.info("RBAC service URL: {}", url);
+      client.setBasePath(url);
     } else {
       log.warn("RBAC service URL not set...");
     }
 
-    return new RbacApiImpl(apiClient);
+    return new RbacApiImpl(client);
   }
 
   @Override

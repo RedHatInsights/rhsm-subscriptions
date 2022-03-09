@@ -134,6 +134,7 @@ import lombok.Setter;
             + "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile "
             + "where account IN (:accounts)"
             + "   and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')"
+            + "   and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')"
             + "   and (stale_timestamp is null "
             + "   or  (NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)))",
     resultSetMapping = "inventoryHostFactsMapping")

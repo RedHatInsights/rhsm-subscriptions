@@ -21,22 +21,11 @@
 package org.candlepin.subscriptions.conduit.actuator;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.X509Certificate;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.xml.bind.DatatypeConverter;
+import org.candlepin.subscriptions.actuator.CertInfoInquisitor;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
-import org.candlepin.subscriptions.conduit.rhsm.client.X509ApiClientFactoryConfiguration;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
@@ -59,11 +48,10 @@ public class CertInfoEndpoint {
 
   @ReadOperation
   public Map<String, Map<String, String>> keystoreInfo() throws IllegalStateException {
-    X509ApiClientFactoryConfiguration x509Config = rhsmApiProperties.getX509Config();
+    HttpClientProperties config = rhsmApiProperties;
 
     try {
-      return loadStoreInfo(
-          x509Config.getKeystoreStream(), x509Config.getKeystorePassword().toCharArray());
+      return CertInfoInquisitor.loadStoreInfo(config.getKeystore(), config.getKeystorePassword());
     } catch (IOException | GeneralSecurityException e) {
       log.error(CERT_LOAD_ERR, e);
     }
@@ -72,49 +60,14 @@ public class CertInfoEndpoint {
 
   @ReadOperation
   public Map<String, Map<String, String>> truststoreInfo() throws IllegalStateException {
-    X509ApiClientFactoryConfiguration x509Config = rhsmApiProperties.getX509Config();
+    HttpClientProperties config = rhsmApiProperties;
 
     try {
-      return loadStoreInfo(
-          x509Config.getTruststoreStream(), x509Config.getTruststorePassword().toCharArray());
+      return CertInfoInquisitor.loadStoreInfo(
+          config.getTruststore(), config.getTruststorePassword());
     } catch (IOException | GeneralSecurityException e) {
       log.error(CERT_LOAD_ERR, e);
     }
     throw new IllegalStateException(CERT_LOAD_ERR);
-  }
-
-  protected Map<String, Map<String, String>> loadStoreInfo(InputStream stream, char[] password)
-      throws GeneralSecurityException, IOException {
-    KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-    keystore.load(stream, password);
-
-    Map<String, Map<String, String>> ksInfoMap = new HashMap<>();
-
-    Enumeration<String> ksAliases = keystore.aliases();
-
-    while (ksAliases.hasMoreElements()) {
-      // Preserve insertion order
-      Map<String, String> aliasInfo = new LinkedHashMap<>();
-      String alias = ksAliases.nextElement();
-      ksInfoMap.put(alias, aliasInfo);
-
-      X509Certificate certificate = (X509Certificate) keystore.getCertificate(alias);
-      aliasInfo.put("Distinguished Name", certificate.getSubjectDN().toString());
-      aliasInfo.put("Serial Number", certificate.getSerialNumber().toString());
-      aliasInfo.put("SHA-1 Fingerprint", getFingerprint(certificate));
-
-      Instant notAfter = certificate.getNotAfter().toInstant();
-      aliasInfo.put("Not After", DateTimeFormatter.ISO_INSTANT.format(notAfter));
-      aliasInfo.put("Issuer Distinguished Name", certificate.getIssuerDN().toString());
-    }
-
-    return ksInfoMap;
-  }
-
-  protected String getFingerprint(X509Certificate certificate)
-      throws NoSuchAlgorithmException, CertificateEncodingException {
-    MessageDigest md = MessageDigest.getInstance("SHA-1");
-    md.update(certificate.getEncoded());
-    return DatatypeConverter.printHexBinary(md.digest()).toLowerCase();
   }
 }

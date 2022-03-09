@@ -20,7 +20,7 @@ spring:
       - rhsm-conduit
       - worker
       - openshift-metering-worker
-      - marketplace
+      - rh-marketplace
       - kafka-queue
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
@@ -106,8 +106,8 @@ rhsm-subscriptions:
     back-off-max-interval: ${USER_BACK_OFF_MAX_INTERVAL:1m}
     back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${USER_MAX_ATTEMPTS:1}
-  marketplace-tasks:
+  rh-marketplace-tasks:
     topic: platform.rhsm-subscriptions.tally
-    kafka-group-id: marketplace-worker
+    kafka-group-id: rh-marketplace-worker
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

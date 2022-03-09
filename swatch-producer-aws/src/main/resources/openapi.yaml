@@ -1,0 +1,184 @@
+---
+openapi: 3.0.2
+info:
+  title: SWatch Producer AWS
+  version: 1.0.0
+  description: "Provides AWS with billing details based on TallySummary"
+  contact:
+    url: https://github.com/RedHatInsights/rhsm-subscriptions
+paths:
+  /tally-summary:
+    summary: Path used to post data to AWS
+    description: The REST endpoint/path used to send `TallySummary` usage data to
+      AWS.  This path `POST` operation.
+    post:
+      requestBody:
+        description: A given `TallySummary` to have usage data forwarded to AWS.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TallySummary'
+        required: true
+      responses:
+        '200':
+          description: "The request for the account's opt-in configuration was successful."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SampleResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: submitTallySummary
+      summary: Send data based on `TallySummary`
+      description: attempt to submit usage for a specific `TallySummary`
+components:
+  responses:
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ServiceUnavailable:
+      description: "The server is currently unavailable."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+  schemas:
+    TallySummary:
+      title: TallySummary
+      properties:
+        account_number:
+          description: Account identifier for the relevant account.
+          type: string
+        tally_snapshots:
+          description: List of tally snapshots produced in the range.
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                format: uuid
+                type: string
+              snapshot_date:
+                format: date-time
+                type: string
+              product_id:
+                type: string
+              sla:
+                description: Service level for the subject.
+                enum:
+                  - ""
+                  - Premium
+                  - Standard
+                  - Self-Support
+                  - _ANY
+                type: string
+              usage:
+                description: Intended usage for the subject.
+                enum:
+                  - ""
+                  - Production
+                  - Development/Test
+                  - Disaster Recovery
+                  - _ANY
+                type: string
+              granularity:
+                enum:
+                  - Hourly
+                  - Daily
+                  - Weekly
+                  - Monthly
+                  - Quarterly
+                  - Yearly
+                type: string
+              tally_measurements:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    hardware_measurement_type:
+                      type: string
+                    uom:
+                      description: Preferred unit of measure for the subject (for
+                        products with multiple possible UOM).
+                      enum:
+                        - ""
+                        - Cores
+                        - Sockets
+                        - Instance-hours
+                        - Storage-gibibytes
+                        - Transfer-gibibytes
+                      type: string
+                    value:
+                      description: Measurement value.
+                      type: number
+    SampleResponse:
+      required:
+        - meta
+        - data
+      properties:
+        meta:
+          type: object
+          required:
+            - account_number
+            - org_id
+          properties:
+            account_number:
+              type: string
+            org_id:
+              type: string
+        data:
+          type: object
+          required:
+            - submission_successful
+          properties:
+            submission_successful:
+              type: boolean
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string

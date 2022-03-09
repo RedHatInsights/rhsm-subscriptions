@@ -1,9 +1,14 @@
+buildscript {
+    apply from: "dependencies.gradle"
+}
+
 rootProject.name = 'rhsm-subscriptions'
 include ':api'
+include ':clients-core'
 include ':clients'
 include ':clients:cloudigrade-client'
 include ':clients:insights-inventory-client'
-include ':clients:marketplace-client'
+include ':clients:rh-marketplace-client'
 include ':clients:product-client'
 include ':clients:prometheus-client'
 include ':clients:rbac-client'
@@ -14,3 +19,4 @@ include ':kafka-schema'
 include ':swatch-core'
 include ':swatch-core-test'
 include ':swatch-system-conduit'
+include ':swatch-producer-aws'

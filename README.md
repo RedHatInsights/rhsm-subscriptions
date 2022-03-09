@@ -171,8 +171,8 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `capture-snapshots`: Run the tally job and exit
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
 - `liquibase-only`: Run the Liquibase migrations and stop
-- `marketplace`: Run the worker responsible for processing tally summaries and
-  emitting usage to Marketplace.
+- `rh-marketplace`: Run the worker responsible for processing tally summaries and
+  emitting usage to Red Hat Marketplace.
 - `metering-jmx`: Expose the JMX bean to create metering jobs
 - `metering-job`: Create metering jobs and place them on the job queue
 - `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
