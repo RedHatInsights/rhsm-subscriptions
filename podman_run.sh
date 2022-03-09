@@ -2,8 +2,9 @@ if command -v podman; then
   export SOCKET=$(mktemp)
   export CONTAINER_HOST=unix://$SOCKET
   export PODMAN_USERNS=keep-id
+  podman --version
   echo Running podman service at $CONTAINER_HOST
-  podman system service -t 3600 $CONTAINER_HOST&
+  podman system service --time 3600 $CONTAINER_HOST&
   export PODMAN_PID=$!
   echo Running command '`'$@'`' via podman
   export podman_cmd=podman
