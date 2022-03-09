@@ -1,4 +1,4 @@
-if command -v podman; then
+if command -v podman && [[ -z "$USE_DOCKER" ]]; then
   TEMPSOCKET=$(mktemp)
   export SOCKET=$TEMPSOCKET
   export PODMAN_USERNS=keep-id
@@ -16,7 +16,7 @@ else
   export SOCKET=/var/run/docker.sock
   export CONTAINER_HOST=unix://$SOCKET
   podman_cmd=docker
-  echo Podman not available. Running command '`'$@'`' via docker
+  echo Running command '`'$@'`' via docker
 fi
 export DOCKER_HOST=$CONTAINER_HOST
 # needs host network and selinux labeling disabled to support testcontainers

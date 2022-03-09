@@ -20,7 +20,7 @@ for service in $SERVICES; do
   DOCKERFILE=$(get_dockerfile $service)
   if [[ $(basename $DOCKERFILE) = "Dockerfile.jvm" ]]; then
     # quarkus_build
-    ./podman_run.sh ./gradlew :$service:quarkusBuild
+    USE_DOCKER=true ./podman_run.sh ./gradlew :$service:quarkusBuild
     docker --config="$DOCKER_CONF" build --no-cache -t "${IMAGE}:${IMAGE_TAG}" $service -f $service/$(get_dockerfile $service)
   else
     # spring boot build
