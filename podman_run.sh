@@ -1,11 +1,15 @@
 if command -v podman; then
-  export SOCKET=$(mktemp)
-  export CONTAINER_HOST=unix://$SOCKET
+  TEMPSOCKET=$(mktemp)
+  export SOCKET=$TEMPSOCKET
   export PODMAN_USERNS=keep-id
-  podman --version
-  echo Running podman service at $CONTAINER_HOST
-  podman system service --time 3600 $CONTAINER_HOST&
-  export PODMAN_PID=$!
+  version=$(podman --version)
+  # if podman is older than podman 2.x, then the service is not available
+  if [[ ! "$version" == "podman version 1."* ]]; then
+    export CONTAINER_HOST=unix://$SOCKET
+    echo Running podman service at $CONTAINER_HOST
+    podman system service --time 3600 $CONTAINER_HOST&
+    export PODMAN_PID=$!
+  fi
   echo Running command '`'$@'`' via podman
   export podman_cmd=podman
 else
@@ -32,6 +36,8 @@ $podman_cmd run \
 if [[ -n "$PODMAN_PID" ]]; then
   echo Stopping podman service at $CONTAINER_HOST
   kill $PODMAN_PID
-  rm -f $SOCKET
+fi
+if [[ -n "$TEMPSOCKET" ]]; then
+  rm -f $TEMPSOCKET
 fi
 exit $RETURN_CODE
