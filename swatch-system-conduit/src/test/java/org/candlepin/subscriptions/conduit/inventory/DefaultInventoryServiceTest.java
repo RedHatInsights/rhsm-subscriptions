@@ -189,6 +189,24 @@ class DefaultInventoryServiceTest {
     assertEquals(2, resultList.size());
   }
 
+  @Test
+  void noExceptionsWhenOperatingSystemIsNonRhel() throws ApiException {
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setApiHostUpdateBatchSize(1);
+
+    DefaultInventoryService inventoryService = new DefaultInventoryService(api, props);
+    ConduitFacts facts = createFullyPopulatedConduitFacts();
+    facts.setOsName("That other OS");
+    facts.setOsVersion("42.42");
+    inventoryService.sendHostUpdate(Collections.singletonList(facts));
+
+    ArgumentCaptor<List<CreateHostIn>> argument = ArgumentCaptor.forClass(List.class);
+    Mockito.verify(api).apiHostAddHostList(argument.capture());
+
+    List<CreateHostIn> resultList = argument.getValue();
+    assertEquals(1, resultList.size());
+  }
+
   /**
    * Compare two CreateHostIn objects excepting the syncTimestamp fact since times will be slightly
    * different between an expected CreateHostIn that we create for a test and the one actually
