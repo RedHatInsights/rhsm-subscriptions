@@ -24,10 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -41,12 +38,13 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   // method
   @SuppressWarnings({"linelength", "java:S107"})
   Page<TallySnapshot>
-      findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+      findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
           String accountNumber,
           String productId,
           Granularity granularity,
           ServiceLevel serviceLevel,
           Usage usage,
+          BillingProvider billingProvider,
           OffsetDateTime beginning,
           OffsetDateTime ending,
           Pageable pageable);

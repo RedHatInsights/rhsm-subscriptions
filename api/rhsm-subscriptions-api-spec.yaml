@@ -190,6 +190,11 @@ paths:
         schema:
           $ref: '#/components/schemas/UsageType'
         description: "Include only report data matching the specified usage."
+      - name: billing_provider
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingProviderType'
+        description: "Include only report data matching the specified billing provider"
       - name: beginning
         in: query
         required: true
@@ -966,6 +971,9 @@ components:
     UsageType:
       type: string
       enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    BillingProviderType:
+      type: string
+      enum: [ "", Red Hat, Aws, Gcp, Azure, Oracle, _ANY ]
     ProductId:
       type: string
       enum:
@@ -1139,6 +1147,8 @@ components:
               $ref: '#/components/schemas/UsageType'
             granularity:
               $ref: '#/components/schemas/GranularityType'
+            billing_provider:
+              $ref: '#/components/schemas/BillingProviderType'
           required:
             - count
             - product
