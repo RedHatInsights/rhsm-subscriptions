@@ -63,3 +63,7 @@ dependencies {
     runtime "org.jolokia:jolokia-core"
     runtime "org.jboss.resteasy:resteasy-jackson2-provider"
 }
+
+bootJar {
+    mainClass = "org.candlepin.subscriptions.SystemConduitApplication"
+}
