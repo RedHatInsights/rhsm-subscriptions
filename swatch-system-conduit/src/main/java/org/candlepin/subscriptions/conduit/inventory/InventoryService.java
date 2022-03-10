@@ -169,7 +169,7 @@ public abstract class InventoryService {
 
   private SystemProfileOperatingSystem operatingSystem(ConduitFacts facts) {
     var operatingSystem = operatingSystemName(facts.getOsName());
-    if (facts.getOsVersion() != null) {
+    if (operatingSystem != null) { // we set operatingSystem null with non-RHEL
       setOperatingSystemVersion(operatingSystem, facts.getOsVersion());
     }
     return operatingSystem;
