@@ -40,8 +40,6 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
 
   @Override
   public RbacApi getObject() throws Exception {
-    log.info("RBAC client config: {}", properties);
-
     if (properties.isUseStub()) {
       return new StubRbacApi(properties);
     }
