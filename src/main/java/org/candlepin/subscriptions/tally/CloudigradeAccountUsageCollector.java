@@ -69,7 +69,9 @@ public class CloudigradeAccountUsageCollector {
       throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
 
     for (String account : accounts) {
+      log.trace("Cloudigrade checking for user {}", account);
       if (cloudigradeService.cloudigradeUserExists(account)) {
+        log.trace("Cloudigrade found user {}", account);
         enrichUsageWithCloudigradeData(accountCalcs, account);
       }
     }
@@ -77,6 +79,7 @@ public class CloudigradeAccountUsageCollector {
 
   private void enrichUsageWithCloudigradeData(
       Map<String, AccountUsageCalculation> accountCalcs, String account) throws ApiException {
+    log.trace("Fetching cloudigrade data for {}", account);
     ConcurrencyReport cloudigradeUsage =
         cloudigradeService.listDailyConcurrentUsages(account, null, null, null, null);
     accountCalcs.putIfAbsent(account, new AccountUsageCalculation(account));
