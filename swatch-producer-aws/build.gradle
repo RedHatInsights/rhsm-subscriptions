@@ -75,4 +75,5 @@ tasks.register('configureQuarkusBuild') {
   }
 }
 
+quarkusDev.dependsOn(configureQuarkusBuild)
 quarkusBuild.dependsOn(configureQuarkusBuild)
