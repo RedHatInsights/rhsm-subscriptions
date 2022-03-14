@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -60,7 +59,6 @@ public class CloudigradeAccountUsageCollector {
    *
    * @param accountCalcs map of existing account to usage calculations
    * @param accounts list of accounts to enrich calculations for
-   * @throws IOException if role to product mappings or arch to product mappings can't be read
    * @throws ApiException if the cloudigrade service errs
    */
   @Timed("rhsm-subscriptions.snapshots.cloudigrade")
@@ -139,7 +137,7 @@ public class CloudigradeAccountUsageCollector {
               .filter(p -> !p.equals("RHEL"))
               .findFirst();
 
-      if (!mapped.isPresent()) {
+      if (mapped.isEmpty()) {
         throw new IllegalArgumentException("No mapping for role: " + role);
       }
       return mapped.get();
@@ -147,7 +145,7 @@ public class CloudigradeAccountUsageCollector {
       Optional<String> mapped =
           archToProductMap.getOrDefault(arch, Collections.emptySet()).stream().findFirst();
 
-      if (!mapped.isPresent()) {
+      if (mapped.isEmpty()) {
         throw new IllegalArgumentException("No mapping for arch: " + arch);
       }
       return mapped.get();
