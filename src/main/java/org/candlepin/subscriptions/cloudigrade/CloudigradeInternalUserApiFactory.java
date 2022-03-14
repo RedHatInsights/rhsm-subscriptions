@@ -18,30 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package org.candlepin.subscriptions.cloudigrade;
 
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.cloudigrade.internal.ApiClient;
+import org.candlepin.subscriptions.cloudigrade.internal.Configuration;
+import org.candlepin.subscriptions.cloudigrade.internal.api.resources.UsersApi;
 import org.candlepin.subscriptions.http.HttpClient;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
 
-/**
- * Factory that produces inventory service clients using configuration. An AuthApiClient is used to
- * ensure that the identity header is passed on with any request to the RBAC API.
- */
+/** Factory that produces cloudigrade user service clients using configuration. */
 @Slf4j
-public class RbacApiFactory implements FactoryBean<RbacApi> {
+public class CloudigradeInternalUserApiFactory implements FactoryBean<UsersApi> {
 
-  private final RbacProperties properties;
+  private final HttpClientProperties properties;
 
-  public RbacApiFactory(RbacProperties properties) {
+  public CloudigradeInternalUserApiFactory(HttpClientProperties properties) {
     this.properties = properties;
   }
 
   @Override
-  public RbacApi getObject() throws Exception {
+  public UsersApi getObject() throws Exception {
     if (properties.isUseStub()) {
-      return new StubRbacApi(properties);
+      log.info("Using stub cloudigrade internal user API client");
+      return new StubCloudigradeInternalUserApi();
     }
 
     ApiClient client = Configuration.getDefaultApiClient();
@@ -50,17 +52,18 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
 
     var url = properties.getUrl();
     if (StringUtils.hasText(url)) {
-      log.info("RBAC service URL: {}", url);
+      log.info("Cloudigrade internal user service URL: {}", url);
       client.setBasePath(url);
     } else {
-      log.warn("RBAC service URL not set...");
+      log.warn("Cloudigrade internal user service URL not set...");
     }
 
-    return new RbacApiImpl(client);
+    client.setBasePath(properties.getUrl());
+    return new UsersApi(client);
   }
 
   @Override
   public Class<?> getObjectType() {
-    return RbacApi.class;
+    return UsersApi.class;
   }
 }

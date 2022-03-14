@@ -20,6 +20,7 @@ dependencies {
     annotationProcessor('org.hibernate:hibernate-jpamodelgen')
     compile project(":api")
     compile project(":clients:cloudigrade-client")
+    compile project(":clients:cloudigrade-internal-client")
     compile project(":clients:insights-inventory-client")
     compile project(":clients:rh-marketplace-client")
     compile project(":clients:product-client")

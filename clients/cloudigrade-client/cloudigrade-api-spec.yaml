@@ -10,10 +10,16 @@ paths:
   /concurrent/:
     description: "Operations on concurrent usages"
     parameters:
-    - name: x-rh-identity
+    - name: x-rh-cloudigrade-psk
       required: true
       in: header
-      description: "Account identity to query"
+      description: "Cloudigrade pre-shared key for authentication"
+      schema:
+        type: string
+    - name: x-rh-cloudigrade-account-number
+      required: true
+      in: header
+      description: "Cloudigrade account number"
       schema:
         type: string
     - name: limit
@@ -113,22 +119,3 @@ components:
           type: string
         service_type:
           type: string
-    IdentityHeader:
-      required:
-        - identity
-      properties:
-        identity:
-          type: object
-          required:
-            - account_number
-            - user
-          properties:
-            account_number:
-              type: string
-            user:
-              type: object
-              required:
-                - is_org_admin
-              properties:
-                is_org_admin:
-                  type: boolean

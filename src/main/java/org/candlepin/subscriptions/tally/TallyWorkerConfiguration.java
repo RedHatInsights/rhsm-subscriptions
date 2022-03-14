@@ -26,10 +26,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.cloudigrade.ConcurrentApiFactory;
+import org.candlepin.subscriptions.cloudigrade.CloudigradeClientConfiguration;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -43,7 +42,6 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -71,30 +69,17 @@ import org.springframework.retry.support.RetryTemplate;
   TaskConsumerConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
+  CloudigradeClientConfiguration.class,
   JmxBeansConfiguration.class
 })
 @ComponentScan(
     basePackages = {
-      "org.candlepin.subscriptions.cloudigrade",
       "org.candlepin.subscriptions.event",
       "org.candlepin.subscriptions.inventory.db",
       "org.candlepin.subscriptions.jmx",
       "org.candlepin.subscriptions.tally"
     })
 public class TallyWorkerConfiguration {
-  @Bean
-  @Qualifier("cloudigrade")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.cloudigrade")
-  public HttpClientProperties cloudigradeServiceProperties() {
-    return new HttpClientProperties();
-  }
-
-  @Bean
-  public ConcurrentApiFactory concurrentApiFactory(
-      @Qualifier("cloudigrade") HttpClientProperties props) {
-    return new ConcurrentApiFactory(props);
-  }
-
   @Bean
   public FactNormalizer factNormalizer(
       ApplicationProperties applicationProperties, TagProfile tagProfile, ApplicationClock clock) {

@@ -48,10 +48,6 @@ parameters:
     value: 1500m
   - name: CLOUDIGRADE_ENABLED
     value: 'false'
-  - name: CLOUDIGRADE_HOST
-    value: 'localhost'
-  - name: CLOUDIGRADE_PORT
-    value: '8080'
   - name: RHSM_URL
     value: https://api.rhsm.qa.redhat.com/v1
 
@@ -363,10 +359,6 @@ objects:
                   key: password
             - name: CLOUDIGRADE_ENABLED
               value: ${CLOUDIGRADE_ENABLED}
-            - name: CLOUDIGRADE_HOST
-              value: ${CLOUDIGRADE_HOST}
-            - name: CLOUDIGRADE_PORT
-              value: ${CLOUDIGRADE_PORT}
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -571,10 +563,11 @@ objects:
               value: ${INVENTORY_DATABASE_MAX_POOL_SIZE}
             - name: CLOUDIGRADE_ENABLED
               value: ${CLOUDIGRADE_ENABLED}
-            - name: CLOUDIGRADE_HOST
-              value: ${CLOUDIGRADE_HOST}
-            - name: CLOUDIGRADE_PORT
-              value: ${CLOUDIGRADE_PORT}
+            - name: CLOUDIGRADE_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: cloudigrade-psk
+                  key: psk
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -993,10 +986,11 @@ objects:
                   key: password
             - name: CLOUDIGRADE_ENABLED
               value: ${CLOUDIGRADE_ENABLED}
-            - name: CLOUDIGRADE_HOST
-              value: ${CLOUDIGRADE_HOST}
-            - name: CLOUDIGRADE_PORT
-              value: ${CLOUDIGRADE_PORT}
+            - name: CLOUDIGRADE_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: cloudigrade-psk
+                  key: psk
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER

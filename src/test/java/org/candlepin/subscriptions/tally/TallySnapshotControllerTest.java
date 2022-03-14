@@ -24,10 +24,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
 import java.util.Collections;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.cloudigrade.ApiException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,14 +65,14 @@ class TallySnapshotControllerTest {
   }
 
   @Test
-  void testCloudigradeAccountUsageCollectorEnabled() throws IOException, ApiException {
+  void testCloudigradeAccountUsageCollectorEnabled() throws Exception {
     props.setCloudigradeEnabled(true);
     controller.produceSnapshotsForAccount(ACCOUNT);
     verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
   }
 
   @Test
-  void testCloudigradeAccountUsageCollectorExceptionIgnored() throws IOException, ApiException {
+  void testCloudigradeAccountUsageCollectorExceptionIgnored() throws Exception {
     props.setCloudigradeEnabled(true);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)

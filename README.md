@@ -284,7 +284,10 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `CLOUDIGRADE_MAX_ATTEMPTS`: maximum number of attempts to query cloudigrade
 * `CLOUDIGRADE_HOST`: cloudigrade service host
 * `CLOUDIGRADE_PORT`: cloudigrade service port
+* `CLOUDIGRADE_INTERNAL_HOST`: cloudigrade internal services host
+* `CLOUDIGRADE_INTERNAL_PORT`: cloudigrade internal services port
 * `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
+* `CLOUDIGRADE_PSK`: pre-shared key for cloudigrade authentication
 
 </details>
 
