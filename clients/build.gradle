@@ -107,7 +107,7 @@ project(":clients:rhsm-client") {
     }
 
     dependencies {
-        testCompile "com.github.tomakehurst:wiremock-jre8:2.32.0"
+        testImplementation libraries["wiremock-jre8"]
     }
 }
 
@@ -161,19 +161,19 @@ configure(subprojects) {
 
     dependencies {
         api project(':clients-core')
-        implementation "javax.annotation:javax.annotation-api"
-        compile "org.jboss.resteasy:resteasy-client"
-        compile "org.jboss.resteasy:resteasy-multipart-provider"
+        api "javax.annotation:javax.annotation-api"
+        api "org.jboss.resteasy:resteasy-client"
+        api "org.jboss.resteasy:resteasy-multipart-provider"
 
-        compile "com.fasterxml.jackson.core:jackson-annotations"
-        compile "com.fasterxml.jackson.core:jackson-databind"
-        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+        api "com.fasterxml.jackson.core:jackson-annotations"
+        api "com.fasterxml.jackson.core:jackson-databind"
+        api "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
 
-        compile "org.springframework:spring-context"
-        compile "org.slf4j:slf4j-api"
-        compile "io.swagger:swagger-annotations"
-        compile libraries["jsr305"]
-        compile libraries["jackson-databind-nullable"]
+        api "org.springframework:spring-context"
+        api "org.slf4j:slf4j-api"
+        api "io.swagger:swagger-annotations"
+        api libraries["jsr305"]
+        api libraries["jackson-databind-nullable"]
     }
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

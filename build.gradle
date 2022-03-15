@@ -16,22 +16,20 @@ group = "org.candlepin"
 
 dependencies {
     implementation project(':swatch-core')
-    // Generates configuration metadata that IntelliJ can use
-    annotationProcessor('org.hibernate:hibernate-jpamodelgen')
-    compile project(":api")
-    compile project(":clients:cloudigrade-client")
-    compile project(":clients:cloudigrade-internal-client")
-    compile project(":clients:insights-inventory-client")
-    compile project(":clients:rh-marketplace-client")
-    compile project(":clients:product-client")
-    compile project(":clients:prometheus-client")
-    compile project(":clients:rbac-client")
-    compile project(":clients:rhsm-client")
-    compile project(":clients:subscription-client")
-    compile project(":clients:user-client")
-    compile project(":kafka-schema")
+    implementation project(":api")
+    implementation project(":clients:cloudigrade-client")
+    implementation project(":clients:cloudigrade-internal-client")
+    implementation project(":clients:insights-inventory-client")
+    implementation project(":clients:rh-marketplace-client")
+    implementation project(":clients:product-client")
+    implementation project(":clients:prometheus-client")
+    implementation project(":clients:rbac-client")
+    implementation project(":clients:rhsm-client")
+    implementation project(":clients:subscription-client")
+    implementation project(":clients:user-client")
+    implementation project(":kafka-schema")
 
-    compile("io.confluent:kafka-avro-serializer") {
+    implementation("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
         // logback and SLF4J issues a warning if more than one logging implementation is on the classpath.
@@ -39,19 +37,19 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
-    compile "org.springframework.boot:spring-boot-starter-data-jpa"
-    compile "org.springframework.kafka:spring-kafka"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.kafka:spring-kafka"
     // the following dep is necessary to avoid jackson kotlin warnings
-    compile "com.fasterxml.jackson.module:jackson-module-kotlin"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
 
-    compile "org.liquibase:liquibase-core"
-    compile "org.postgresql:postgresql"
+    implementation "org.liquibase:liquibase-core"
+    implementation "org.postgresql:postgresql"
 
-    testCompile "org.springframework.security:spring-security-test"
-    testCompile "org.springframework.kafka:spring-kafka-test"
-    testCompile project(':swatch-core-test')
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "org.springframework.kafka:spring-kafka-test"
+    testImplementation project(':swatch-core-test')
 
-    runtime "org.hsqldb:hsqldb"
+    runtimeOnly "org.hsqldb:hsqldb"
 }
 
 allprojects {
@@ -162,29 +160,30 @@ project(":api") {
 
     dependencies {
         implementation "javax.annotation:javax.annotation-api"
-        compile "com.fasterxml.jackson.core:jackson-annotations"
-        compile "javax.validation:validation-api"
-        compile "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
-        compile "io.swagger:swagger-annotations"
-        compile "com.google.code.findbugs:jsr305:3.0.2"
-        compile "org.openapitools:jackson-databind-nullable:0.2.2"
+        implementation "com.fasterxml.jackson.core:jackson-annotations"
+        implementation "javax.validation:validation-api"
+        implementation "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
+        implementation "io.swagger:swagger-annotations"
+        implementation "com.google.code.findbugs:jsr305:3.0.2"
+        implementation "org.openapitools:jackson-databind-nullable:0.2.2"
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
     processResources.dependsOn tasks.generateOpenApiJson
+    processResources.dependsOn tasks.openApiGenerate
 }
 
 project(":kafka-schema") {
     apply plugin: "swatch.java-conventions"
     apply plugin: "swatch.spring-boot-dependencies-conventions"
-    apply plugin: "com.commercehub.gradle.plugin.avro-base"
+    apply plugin: "com.github.davidmc24.gradle.plugin.avro"
 
     dependencies {
-        compile "org.apache.avro:avro"
+        implementation "org.apache.avro:avro"
     }
 
-    task generateAvro(type: com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask) {
+    task generateAvro(type: com.github.davidmc24.gradle.plugin.avro.GenerateAvroJavaTask) {
         // sub dir needed so that the plugin does not traverse into the build dir (if it exists).
         source("${projectDir}/avro")
         outputDir = file("${buildDir}/generated/avro/src/main/java")

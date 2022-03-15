@@ -35,7 +35,7 @@ dependencies {
     implementation project(":kafka-schema")
 
     testImplementation project(":swatch-core-test")
-    testCompile "org.springframework:spring-test"
+    testImplementation "org.springframework:spring-test"
 }
 
 jsonSchema2Pojo {
