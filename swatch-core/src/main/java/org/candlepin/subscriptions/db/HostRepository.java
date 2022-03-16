@@ -21,9 +21,11 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.validation.constraints.NotNull;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
@@ -128,6 +130,7 @@ public interface HostRepository
       @Param("minSockets") int minSockets,
       String month,
       Uom referenceUom,
+      BillingProvider billingProvider,
       Pageable pageable) {
 
     HostSpecification searchCriteria = new HostSpecification();
@@ -156,6 +159,11 @@ public interface HostRepository
                 new InstanceMonthlyTotalKey(month, effectiveUom),
                 SearchOperation.EQUAL));
       }
+    }
+
+    if (Objects.nonNull(billingProvider)) {
+      searchCriteria.add(
+          new SearchCriteria(Host_.BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
     }
 
     return findAll(searchCriteria, pageable);
