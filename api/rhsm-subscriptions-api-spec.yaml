@@ -41,7 +41,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/VersionInfo"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
   /opt-in:
     description: "Endpoint for opting into subscription watch."
     get:
@@ -74,13 +74,13 @@ paths:
                   account_number: 12345
                   org_id: 1111
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     put:
       summary: "Create/Update an account's opt-in configuration. Account and Org ID are defined by the
                 identity header. If no parameters are specified, all everything will be enabled."
@@ -131,13 +131,13 @@ paths:
                   account_number: 12345
                   org_id: 1111
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     delete:
       summary: "Delete an opt-in config for the associated account/org. The account number and org ID are
                 pulled from the identity header."
@@ -146,14 +146,13 @@ paths:
         '204':
           description: "Successfully deleted the opt-in configuration for the accociated account/org"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
-
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
   /tally/products/{product_id}/{metric_id}:
     description: "Operations on a data set of a given tally report."
     parameters:
@@ -234,16 +233,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/TallyReportData"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - tally
-
   /tally/products/{product_id}:
     description: "Operations for a tally report of a specific account and product."
     parameters:
@@ -365,13 +363,13 @@ paths:
                   service_level: Premium
                   usage: Production
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - tally
   /capacity/products/{product_id}:
@@ -475,13 +473,13 @@ paths:
                   granularity: Daily
                   service_level: Premium
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - capacity
   /hosts/products/{product_id}:
@@ -594,13 +592,13 @@ paths:
                   service_level: Premium
                   usage: Production
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - hosts
   /hosts/{hypervisor_uuid}/guests:
@@ -652,13 +650,13 @@ paths:
                 meta:
                   count: 10
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - hosts
   /instances/products/{product_id}:
@@ -868,41 +866,19 @@ paths:
                 meta:
                   count: 3
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - subscriptions
   /openapi.json:
-    get:
-      description: "Get the OpenAPI spec in JSON format."
-      operationId: getOpenApiJson
-      tags:
-        - root
-      responses:
-        '200':
-          description: "The request to get the OpenAPI JSON was successful."
-          content:
-            application/json:
-              schema:
-                type: string
+    $ref: "../spec/openapi-paths.yaml#/openapi-json"
   /openapi.yaml:
-    get:
-      description: "Get the OpenAPI spec in YAML format."
-      operationId: getOpenApiYaml
-      tags:
-        - root
-      responses:
-        '200':
-          description: "The request to get the OpenAPI YAML was successful."
-          content:
-            application/x-yaml:
-              schema:
-                type: string
+    $ref: "../spec/openapi-paths.yaml#/openapi-yaml"
 
 components:
   securitySchemes:
@@ -929,37 +905,7 @@ components:
         ```
         Encoded (via `base64 -w0`):
         `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
-  responses:
-    InternalServerError:
-      description: "An internal server error has occurred and is not recoverable."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    BadRequest:
-      description: "The server could could not process the current request."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    Forbidden:
-      description: "The request was valid, but the request was refused by the server."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    ResourceNotFound:
-      description: "The requested resource was not found."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    ServiceUnavailable:
-      description: "The server is currently unavailable."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
+
   schemas:
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
@@ -1031,6 +977,12 @@ components:
               type: string
             group:
               type: string
+    MetaCount:
+      required:
+        - count
+      properties:
+        count:
+          type: integer
     OptInConfig:
       required:
         - meta
@@ -1436,12 +1388,7 @@ components:
         links:
           $ref: "#/components/schemas/PageLinks"
         meta:
-          type: object
-          properties:
-            count:
-              type: integer
-          required:
-            - count
+          $ref: "#/components/schemas/MetaCount"
     Host:
       required:
         - display_name
@@ -1642,28 +1589,6 @@ components:
     CandlepinProvidedProduct:
       properties:
         productId:
-          type: string
-    Errors:
-      required:
-        - errors
-      properties:
-        errors:
-          type: array
-          items:
-            $ref: "#/components/schemas/Error"
-    Error:
-      required:
-        - status
-        - code
-        - title
-      properties:
-        status:
-          type: string
-        code:
-          type: string
-        title:
-          type: string
-        detail:
           type: string
 
     SubscriptionType:

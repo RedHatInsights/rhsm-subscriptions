@@ -1,0 +1,26 @@
+openapi-json:
+  get:
+    description: "Get the OpenAPI spec in JSON format."
+    operationId: getOpenApiJson
+    tags:
+      - root
+    responses:
+      '200':
+        description: "The request to get the OpenAPI JSON was successful."
+        content:
+          application/json:
+            schema:
+              type: string
+openapi-yaml:
+  get:
+    description: "Get the OpenAPI spec in YAML format."
+    operationId: getOpenApiYaml
+    tags:
+      - root
+    responses:
+      '200':
+        description: "The request to get the OpenAPI YAML was successful."
+        content:
+          application/x-yaml:
+            schema:
+              type: string
