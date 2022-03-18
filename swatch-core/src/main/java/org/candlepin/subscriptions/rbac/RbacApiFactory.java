@@ -44,7 +44,7 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
       return new StubRbacApi(properties);
     }
 
-    ApiClient client = Configuration.getDefaultApiClient();
+    ApiClient client = new RbacApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
 
