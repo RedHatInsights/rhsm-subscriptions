@@ -19,14 +19,4 @@ dependencies {
     for (pluginDependency in project.ext.plugins) {
         implementation pluginDependency
     }
-    implementation libraries["jgit"]
-}
-
-gradlePlugin {
-    plugins {
-        GitPropertiesPlugin {
-            id = "GitProperties"
-            implementationClass = "GitProperties"
-        }
-    }
 }

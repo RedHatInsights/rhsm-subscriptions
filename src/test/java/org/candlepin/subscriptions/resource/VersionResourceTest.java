@@ -45,8 +45,6 @@ public class VersionResourceTest {
     when(buildProperties.getArtifact()).thenReturn("ARTIFACT");
     when(buildProperties.getName()).thenReturn("NAME");
     when(buildProperties.getGroup()).thenReturn("GROUP");
-    when(buildProperties.get(eq("gitDescription"))).thenReturn("GIT_DESCRIPTION");
-    when(buildProperties.get(eq("gitHash"))).thenReturn("GIT_HASH");
 
     VersionInfo versionInfo = versionResource.getVersion();
     VersionInfoBuild expected = versionInfo.getBuild();
@@ -54,7 +52,5 @@ public class VersionResourceTest {
     assertEquals("ARTIFACT", expected.getArtifact());
     assertEquals("NAME", expected.getName());
     assertEquals("GROUP", expected.getGroup());
-    assertEquals("GIT_DESCRIPTION", expected.getGitDescription());
-    assertEquals("GIT_HASH", expected.getGitHash());
   }
 }
