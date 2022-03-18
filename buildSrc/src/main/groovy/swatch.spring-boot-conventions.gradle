@@ -15,26 +15,26 @@ dependencies {
     implementation("org.jboss.resteasy:resteasy-spring-boot-starter") {
         exclude group: "org.springframework.boot"
     }
-    compile "org.springframework.boot:spring-boot-starter-security"
-    compile "org.springframework.boot:spring-boot-starter-actuator"
-    compile "org.springframework.boot:spring-boot-starter-aop"
-    compile "org.springframework.boot:spring-boot-starter-web"
-    compile "org.springframework.retry:spring-retry"
-    compile "org.springframework:spring-context-support"
-    compile "io.micrometer:micrometer-registry-prometheus"
-    compile "io.hawt:hawtio-springboot"
-    runtime "org.jolokia:jolokia-core"
-    runtime("org.jboss.resteasy:resteasy-validator-provider-11") {
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.retry:spring-retry"
+    implementation "org.springframework:spring-context-support"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "io.hawt:hawtio-springboot"
+    runtimeOnly "org.jolokia:jolokia-core"
+    runtimeOnly("org.jboss.resteasy:resteasy-validator-provider-11") {
         exclude group: "org.hibernate" // exclude older hibernate validator
     }
-    compile "org.webjars:swagger-ui"
-    compile "org.webjars:webjars-locator"
-    compile "org.hibernate.validator:hibernate-validator"
-    compile "org.yaml:snakeyaml"
+    implementation "org.webjars:swagger-ui"
+    implementation "org.webjars:webjars-locator"
+    implementation "org.hibernate.validator:hibernate-validator"
+    implementation "org.yaml:snakeyaml"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    testCompile "org.springframework.boot:spring-boot-starter-test"
-    testCompile "org.springframework:spring-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework:spring-test"
 }
 
 // Disable the default jar; otherwise we end up with two different jars in the final image

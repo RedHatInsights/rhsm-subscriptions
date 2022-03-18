@@ -20,14 +20,10 @@
  */
 package org.candlepin.subscriptions.cloudigrade;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.time.LocalDate;
-import java.util.Base64;
-import org.candlepin.subscriptions.cloudigrade.api.model.IdentityHeader;
 import org.candlepin.subscriptions.cloudigrade.api.resources.ConcurrentApi;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,9 +31,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
+@TestPropertySource(properties = "rhsm-subscriptions.cloudigrade.presharedKey=secret")
 class CloudigradeServiceTest {
   @MockBean ConcurrentApi concurrentApi;
 
@@ -46,18 +44,12 @@ class CloudigradeServiceTest {
   @Autowired ObjectMapper mapper;
 
   @Test
-  void testHeaderEncodesCorrectly() throws ApiException, IOException {
+  void testInjectsCloudigradePsk() throws Exception {
     ArgumentCaptor<String> header = ArgumentCaptor.forClass(String.class);
-    Base64.Decoder b64Decoder = Base64.getDecoder();
 
     cloudigradeService.listDailyConcurrentUsages("foo123", 10, 0, LocalDate.MIN, LocalDate.MAX);
 
     verify(concurrentApi)
-        .listDailyConcurrentUsages(
-            header.capture(), eq(10), eq(0), eq(LocalDate.MIN), eq(LocalDate.MAX));
-    IdentityHeader expected =
-        mapper.readValue(b64Decoder.decode(header.getValue()), IdentityHeader.class);
-    assertEquals("foo123", expected.getIdentity().getAccountNumber());
-    assertTrue(expected.getIdentity().getUser().getIsOrgAdmin());
+        .listDailyConcurrentUsages("secret", "foo123", 10, 0, LocalDate.MIN, LocalDate.MAX);
   }
 }

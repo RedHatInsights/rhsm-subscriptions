@@ -32,7 +32,12 @@ public class StubConcurrentApi extends ConcurrentApi {
 
   @Override
   public ConcurrencyReport listDailyConcurrentUsages(
-      String xRhIdentity, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
+      String psk,
+      String accountNumber,
+      Integer limit,
+      Integer offset,
+      LocalDate startDate,
+      LocalDate endDate)
       throws ApiException {
     return new ConcurrencyReport().links(createLinks()).addDataItem(createData());
   }

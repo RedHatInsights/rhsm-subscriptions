@@ -281,7 +281,7 @@ public class FactNormalizer {
     //       records once a host no longer exists.
     String syncTimestamp = hostFacts.getSyncTimestamp();
     boolean skipRhsmFacts =
-        !syncTimestamp.isEmpty() && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
+        StringUtils.hasText(syncTimestamp) && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
     if (!skipRhsmFacts) {
       getProductsFromProductIds(normalizedFacts, hostFacts.getProducts());
 

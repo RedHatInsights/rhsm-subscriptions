@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -42,7 +41,6 @@ import org.springframework.stereotype.Component;
 /** Collects the max values from accounts in cloudigrade. */
 @Component
 public class CloudigradeAccountUsageCollector {
-
   private static final Logger log = LoggerFactory.getLogger(CloudigradeAccountUsageCollector.class);
 
   private final CloudigradeService cloudigradeService;
@@ -61,21 +59,25 @@ public class CloudigradeAccountUsageCollector {
    *
    * @param accountCalcs map of existing account to usage calculations
    * @param accounts list of accounts to enrich calculations for
-   * @throws IOException if role to product mappings or arch to product mappings can't be read
    * @throws ApiException if the cloudigrade service errs
    */
   @Timed("rhsm-subscriptions.snapshots.cloudigrade")
   public void enrichUsageWithCloudigradeData(
       Map<String, AccountUsageCalculation> accountCalcs, Collection<String> accounts)
-      throws IOException, ApiException {
+      throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
 
     for (String account : accounts) {
-      enrichUsageWithCloudigradeData(accountCalcs, account);
+      log.trace("Cloudigrade checking for user {}", account);
+      if (cloudigradeService.cloudigradeUserExists(account)) {
+        log.trace("Cloudigrade found user {}", account);
+        enrichUsageWithCloudigradeData(accountCalcs, account);
+      }
     }
   }
 
   private void enrichUsageWithCloudigradeData(
       Map<String, AccountUsageCalculation> accountCalcs, String account) throws ApiException {
+    log.trace("Fetching cloudigrade data for {}", account);
     ConcurrencyReport cloudigradeUsage =
         cloudigradeService.listDailyConcurrentUsages(account, null, null, null, null);
     accountCalcs.putIfAbsent(account, new AccountUsageCalculation(account));
@@ -135,7 +137,7 @@ public class CloudigradeAccountUsageCollector {
               .filter(p -> !p.equals("RHEL"))
               .findFirst();
 
-      if (!mapped.isPresent()) {
+      if (mapped.isEmpty()) {
         throw new IllegalArgumentException("No mapping for role: " + role);
       }
       return mapped.get();
@@ -143,7 +145,7 @@ public class CloudigradeAccountUsageCollector {
       Optional<String> mapped =
           archToProductMap.getOrDefault(arch, Collections.emptySet()).stream().findFirst();
 
-      if (!mapped.isPresent()) {
+      if (mapped.isEmpty()) {
         throw new IllegalArgumentException("No mapping for arch: " + arch);
       }
       return mapped.get();
