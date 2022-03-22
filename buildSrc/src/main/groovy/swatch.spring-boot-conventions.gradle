@@ -1,9 +1,8 @@
 // gradle config common to any swatch component implemented as a spring boot app
 plugins {
-    id  "GitProperties"
-    id  "swatch.java-conventions"
-    id  "swatch.spring-boot-dependencies-conventions"
-    id  "org.springframework.boot"
+    id "swatch.java-conventions"
+    id "swatch.spring-boot-dependencies-conventions"
+    id "org.springframework.boot"
 }
 
 dependencies {
@@ -54,10 +53,6 @@ springBoot {
             // side-effect is the task will never be up-to-date. As a result, builds will take longer.  See
             // https://docs.spring.io/spring-boot/docs/2.1.4.RELEASE/gradle-plugin/reference/html/#integrating-with-actuator
             time = null
-            additional = [
-                "gitDescription": "${project.git.description ?: ''}",
-                "gitHash": "${project.git.hash ?: ''}",
-            ]
         }
     }
 }
