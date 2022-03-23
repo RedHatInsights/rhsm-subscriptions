@@ -19,6 +19,10 @@
   cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
   - name: rhsm-subscriptions
     components:
+      - name: capacity-allowlist
+        host: gitlab
+        repo: rhsm/swatch-product-allowlist
+        path: templates/capacity-allowlist.yml
       - name: rhsm-subscriptions
         host: local
         repo: $(pwd)

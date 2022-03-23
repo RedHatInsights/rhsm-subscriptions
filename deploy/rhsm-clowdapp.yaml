@@ -201,6 +201,8 @@ objects:
     envName: ${ENV_NAME}
     dependencies:
       - host-inventory
+    optionalDependencies:
+      - cloudigrade
 
     kafkaTopics:
       - replicas: 3

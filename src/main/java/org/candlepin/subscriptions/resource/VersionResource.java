@@ -44,9 +44,6 @@ public class VersionResource implements VersionApi {
     versionInfoBuild.setName(buildProperties.getName());
     versionInfoBuild.setGroup(buildProperties.getGroup());
 
-    versionInfoBuild.setGitDescription(buildProperties.get("gitDescription"));
-    versionInfoBuild.setGitHash(buildProperties.get("gitHash"));
-
     VersionInfo versionInfo = new VersionInfo();
     versionInfo.setBuild(versionInfoBuild);
     return versionInfo;

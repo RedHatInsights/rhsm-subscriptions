@@ -7,11 +7,11 @@ rhsm-conduit:
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}
     url: ${RHSM_URL:http://localhost:9090}
-    keystore: ${RHSM_KEYSTORE:}
+    keystore: file:${RHSM_KEYSTORE:}
     keystore-password: ${RHSM_KEYSTORE_PASSWORD:changeit}
     request-batch-size: ${RHSM_BATCH_SIZE:1000}
     max-connections: ${RHSM_MAX_CONNECTIONS:100}
-    truststore: ${RHSM_TRUSTSTORE:}
+    truststore: file:${RHSM_TRUSTSTORE:}
     truststore-password: ${RHSM_TRUSTSTORE_PASSWORD:changeit}
   inventory-service:
     use-stub: ${INVENTORY_USE_STUB:true}
