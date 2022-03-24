@@ -7,9 +7,12 @@ ext {
 }
 
 // versions is for things that are released together (deps that happen to be multi-module projects)
-versions["quarkus"] = "2.7.1.Final"
-versions["resteasy"] = "3.6.3.Final"
-versions["testcontainers"] = "1.16.3"
+// NOTE: you must use versions.$name syntax here instead of versions["$name"] for dependendabot to work correctly
+// See https://github.com/dependabot/dependabot-core/blob/1643cfac63878e378f0aa8fc812bf42318df5299/gradle/lib/dependabot/gradle/file_parser.rb#L23-L28
+// Hint: You can use dependabot-script to debug what gets picked up
+versions.quarkus = "2.7.1.Final"
+versions.resteasy = "3.6.3.Final"
+versions.testcontainers = "1.16.3"
 
 // these are the plugin artifact IDs, which can be found on plugins.gradle.org
 // buildSrc/build.gradle adds them to the gradle classpath
