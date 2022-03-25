@@ -170,8 +170,8 @@ project(":api") {
         implementation "javax.validation:validation-api"
         implementation "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
         implementation "io.swagger:swagger-annotations"
-        implementation "com.google.code.findbugs:jsr305:3.0.2"
-        implementation "org.openapitools:jackson-databind-nullable:0.2.2"
+        implementation libraries["jsr305"]
+        implementation libraries["jackson-databind-nullable"]
     }
 
     sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
