@@ -1,7 +1,6 @@
 // gradle config common to all swatch java projects
 plugins {
     id "java"
-    id "jacoco"
     id "com.diffplug.spotless"
 }
 
@@ -62,10 +61,5 @@ test {
     }
     environment "TESTCONTAINERS_RYUK_DISABLED", "true"
     environment "TESTCONTAINERS_CHECKS_DISABLE", "true"
-}
 
-jacocoTestReport {
-    reports {
-        xml.required = true
-    }
 }

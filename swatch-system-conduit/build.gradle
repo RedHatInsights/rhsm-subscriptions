@@ -1,6 +1,7 @@
 plugins {
     id "swatch.spring-boot-conventions"
     id "org.openapi.generator"
+    id "jacoco"
 }
 
 ext {
@@ -62,6 +63,12 @@ dependencies {
     runtimeOnly "org.hsqldb:hsqldb"
     runtimeOnly "org.jolokia:jolokia-core"
     runtimeOnly "org.jboss.resteasy:resteasy-jackson2-provider"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
 }
 
 bootJar {
