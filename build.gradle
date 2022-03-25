@@ -10,6 +10,7 @@ plugins {
     id "org.sonarqube"
     id "nebula.release"
     id 'com.adarshr.test-logger'
+    id 'jacoco'
 }
 
 group = "org.candlepin"
@@ -97,6 +98,11 @@ allprojects {
     }
 }
 
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
 
 compileJava.dependsOn(processResources)
 project.tasks["sonarqube"].dependsOn "test"
