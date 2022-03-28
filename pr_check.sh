@@ -17,6 +17,11 @@ export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to compl
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
 curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
 
+APP_ROOT=$PWD
+
+# Run the unit tests
+source $APP_ROOT/unit_test.sh
+
 # prebuild artifacts for quarkus builds
 for service in $SERVICES; do
   export COMPONENT_NAME="$service-clowdapp"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
@@ -26,15 +31,9 @@ for service in $SERVICES; do
   # Build the image and push to quay
   APP_ROOT=$(get_approot $service)
   source $CICD_ROOT/build.sh
+  # Deploy to an ephemeral namespace for testing
+  source $CICD_ROOT/deploy_ephemeral_env.sh
 done
 
-APP_ROOT=$PWD
-
-# Run the unit tests
-source $APP_ROOT/unit_test.sh
-
-# Deploy to an ephemeral namespace for testing
-source $CICD_ROOT/deploy_ephemeral_env.sh
-
-# Run somke tests with ClowdJobInvocation
+# Run smoke tests with ClowdJobInvocation
 source $CICD_ROOT/cji_smoke_test.sh
