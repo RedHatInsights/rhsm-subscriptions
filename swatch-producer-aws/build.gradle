@@ -40,10 +40,10 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-junit5'
     compileOnly libraries["lombok"]
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["org.testcontainers:testcontainers"]
-    testImplementation libraries["org.testcontainers:junit-jupiter"]
-    testImplementation libraries["org.testcontainers:postgresql"]
-    testImplementation libraries["org.testcontainers:kafka"]
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:kafka'
 
 }
 
