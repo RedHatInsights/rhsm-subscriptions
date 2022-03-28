@@ -19,7 +19,7 @@ curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
 
 # prebuild artifacts for quarkus builds
 for service in $SERVICES; do
-  export COMPONENT_NAME="$service"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
+  export COMPONENT_NAME="$service-clowdapp"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
   export IMAGE="quay.io/cloudservices/$service"  # the image location on quay
   export DOCKERFILE="$(get_dockerfile $service)"
 
