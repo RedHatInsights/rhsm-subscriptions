@@ -23,7 +23,7 @@ dependencies {
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "io.hawt:hawtio-springboot"
     runtimeOnly "org.jolokia:jolokia-core"
-    runtimeOnly("org.jboss.resteasy:resteasy-validator-provider-11") {
+    runtimeOnly("org.jboss.resteasy:resteasy-validator-provider") {
         exclude group: "org.hibernate" // exclude older hibernate validator
     }
     implementation "org.webjars:swagger-ui"
