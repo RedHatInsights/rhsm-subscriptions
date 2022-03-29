@@ -29,12 +29,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurement;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +72,7 @@ public class TallySnapshotRepositoryTest {
             Granularity.DAILY,
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
+            BillingProvider._ANY,
             8888,
             888,
             88,
@@ -87,12 +83,13 @@ public class TallySnapshotRepositoryTest {
 
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 "Bugs",
                 "Bunny",
                 Granularity.DAILY,
                 ServiceLevel.STANDARD,
                 Usage.PRODUCTION,
+                BillingProvider._ANY,
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -115,19 +112,29 @@ public class TallySnapshotRepositoryTest {
   public void testFindByEmptyServiceLevelAndUsage() {
     TallySnapshot t1 =
         createUnpersisted(
-            "A1", "P1", Granularity.DAILY, ServiceLevel.EMPTY, Usage.EMPTY, 1111, 111, 11, NOWISH);
+            "A1",
+            "P1",
+            Granularity.DAILY,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider.EMPTY,
+            1111,
+            111,
+            11,
+            NOWISH);
 
     repository.saveAll(Arrays.asList(t1));
     repository.flush();
 
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 "A1",
                 "P1",
                 Granularity.DAILY,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider.EMPTY,
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -244,6 +251,7 @@ public class TallySnapshotRepositoryTest {
         granularity,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
+        BillingProvider._ANY,
         cores,
         sockets,
         instances,
@@ -256,6 +264,7 @@ public class TallySnapshotRepositoryTest {
       Granularity granularity,
       ServiceLevel serviceLevel,
       Usage usage,
+      BillingProvider billingProvider,
       int cores,
       int sockets,
       int instances,
@@ -267,6 +276,7 @@ public class TallySnapshotRepositoryTest {
     tally.setGranularity(granularity);
     tally.setServiceLevel(serviceLevel);
     tally.setUsage(usage);
+    tally.setBillingProvider(billingProvider);
     tally.setSnapshotDate(date);
     tally.setServiceLevel(serviceLevel);
 

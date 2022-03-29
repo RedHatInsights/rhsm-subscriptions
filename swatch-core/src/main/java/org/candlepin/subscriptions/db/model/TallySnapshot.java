@@ -86,6 +86,10 @@ public class TallySnapshot implements Serializable {
   @Column(name = "usage")
   private Usage usage = Usage._ANY;
 
+  @Builder.Default
+  @Column(name = "billing_provider")
+  private BillingProvider billingProvider = BillingProvider._ANY;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "granularity")
   private Granularity granularity;
@@ -230,12 +234,20 @@ public class TallySnapshot implements Serializable {
         && Objects.equals(accountNumber, that.accountNumber)
         && serviceLevel == that.serviceLevel
         && usage == that.usage
-        && granularity == that.granularity;
+        && granularity == that.granularity
+        && billingProvider == that.billingProvider;
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        snapshotDate, productId, ownerId, accountNumber, serviceLevel, usage, granularity);
+        snapshotDate,
+        productId,
+        ownerId,
+        accountNumber,
+        serviceLevel,
+        usage,
+        granularity,
+        billingProvider);
   }
 }

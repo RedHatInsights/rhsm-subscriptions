@@ -29,12 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurement;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
@@ -75,12 +70,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> currentSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 account,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -101,12 +97,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> currentSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 account,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -124,12 +121,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> updatedSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 account,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -169,12 +167,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> currentSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 "A1",
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -191,12 +190,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> updatedSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 account,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -223,12 +223,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> currentSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 "A1",
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -249,6 +250,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     orig.setAccountNumber("my_account");
     orig.setServiceLevel(ServiceLevel.EMPTY);
     orig.setUsage(Usage.EMPTY);
+    orig.setBillingProvider(BillingProvider._ANY);
     orig.setGranularity(granularity);
     orig.setSnapshotDate(startOfGranularPeriod);
     orig.setProductId(getTestProduct());
@@ -257,6 +259,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     dupe.setAccountNumber("my_account");
     dupe.setServiceLevel(ServiceLevel.EMPTY);
     dupe.setUsage(Usage.EMPTY);
+    dupe.setBillingProvider(BillingProvider._ANY);
     dupe.setGranularity(granularity);
     dupe.setSnapshotDate(startOfGranularPeriod);
     dupe.setProductId(getTestProduct());
@@ -265,12 +268,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> currentSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 account,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))
@@ -285,12 +289,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     List<TallySnapshot> updatedSnaps =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
                 account,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
+                BillingProvider._ANY,
                 startOfGranularPeriod,
                 endOfGranularPeriod,
                 PageRequest.of(0, 100))

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.resource;
 import java.time.OffsetDateTime;
 import lombok.Builder;
 import lombok.Data;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -39,6 +40,7 @@ public class ReportCriteria {
   private Granularity granularity;
   private ServiceLevel serviceLevel;
   private Usage usage;
+  private BillingProvider billingProvider;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private Pageable pageable;
