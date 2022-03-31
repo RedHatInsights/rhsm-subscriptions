@@ -48,6 +48,17 @@ properties:
             - Monthly
             - Quarterly
             - Yearly
+        billing_provider:
+          type: string
+          enum:
+            - ''
+            - Red hat
+            - Aws
+            - Gcp
+            - Azure
+            - Oracle
+            - _ANY
+          required: false
         tally_measurements:
           type: array
           items:

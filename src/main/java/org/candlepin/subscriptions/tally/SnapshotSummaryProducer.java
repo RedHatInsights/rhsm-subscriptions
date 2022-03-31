@@ -92,6 +92,10 @@ public class SnapshotSummaryProducer {
         org.candlepin.subscriptions.json.TallySnapshot.Usage.fromValue(
             tallySnapshot.getUsage().getValue());
 
+    var billingProvider =
+        org.candlepin.subscriptions.json.TallySnapshot.BillingProvider.fromValue(
+            tallySnapshot.getBillingProvider().getValue());
+
     return new org.candlepin.subscriptions.json.TallySnapshot()
         .withGranularity(granularity)
         .withId(tallySnapshot.getId())
@@ -99,6 +103,7 @@ public class SnapshotSummaryProducer {
         .withSnapshotDate(tallySnapshot.getSnapshotDate())
         .withSla(sla)
         .withUsage(usage)
+        .withBillingProvider(billingProvider)
         .withTallyMeasurements(mapMeasurements(tallySnapshot.getTallyMeasurements()));
   }
 
