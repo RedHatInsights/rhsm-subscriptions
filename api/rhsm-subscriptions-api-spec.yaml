@@ -963,12 +963,19 @@ components:
   schemas:
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
+      description: "Describes the significance of each date in the snapshot list. For example if the
+          granularity is set to 'weekly', the dates in the snapshot list will represent the start
+          of a seven day period."
       type: string
       enum: [ Hourly, Daily, Weekly, Monthly, Quarterly, Yearly ]
     ServiceLevelType:
+      description: "Describes the service level that the report was made against. Not set if it
+          wasn't specified as a query parameter."
       type: string
       enum: [ "", Premium, Standard, Self-Support, _ANY ]
     UsageType:
+      description: "Describes the usage that the report was made against. Not set if it wasn't
+          specified as a query parameter."
       type: string
       enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
     BillingProviderType:
@@ -1009,6 +1016,7 @@ components:
         - virtual
         - cloud
     Uom:
+      description: "The unit-of-measure for the capacity."
       type: string
       enum:
         - cores
@@ -1189,17 +1197,10 @@ components:
               $ref: '#/components/schemas/ProductId'
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                specified as a query parameter."
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "Describes the usage that the report was made against. Not set if it wasn't
-                            specified as a query parameter."
             granularity:
               $ref: '#/components/schemas/GranularityType'
-              description: "Describes the significance of each date in the TallySnapshot list. For example if the
-                              granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
-                              seven day period."
           required:
             - count
             - product
@@ -1326,17 +1327,10 @@ components:
               $ref: '#/components/schemas/ProductId'
             granularity:
               $ref: '#/components/schemas/GranularityType'
-              description: "Describes the significance of each date in the CapacitySnapshot list. For example if the
-                granularity is set to 'weekly', the dates in the CapacitySnapshot list will represent the start of a
-                seven day period."
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                specified as a query parameter."
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "Describes the usages that the report was made against. Not set if it wasn't
-               specified as a query parameter."
           required:
             - count
             - product
@@ -1415,13 +1409,8 @@ components:
               $ref: '#/components/schemas/ProductId'
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                    specified as a query parameter."
-              type: string
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "Describes the usages that the report was made against. Not set if it wasn't
-                   specified as a query parameter."
             uom:
               $ref: '#/components/schemas/Uom'
           required:
@@ -1539,10 +1528,6 @@ components:
           $ref: '#/components/schemas/PageLinks'
         meta:
           $ref: '#/components/schemas/InstanceMeta'
-          properties:
-            count:
-              format: int32
-              type: integer
       example:
         data:
           - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
@@ -1673,6 +1658,7 @@ components:
         - Annual
 
     SubscriptionEventType:
+      description: "The most immediate subscription event, such as a subscription beginning or ending."
       type: string
       enum:
         - Subscription Start
@@ -1707,7 +1693,6 @@ components:
           type: string
           format: date-time
         next_event_type:
-          description: "The most immediate subscription event, such as a subscription beginning or ending."
           $ref: "#/components/schemas/SubscriptionEventType"
         quantity:
           description: "The summed subscription quantities across the active subscriptions for the offering."
@@ -1729,7 +1714,6 @@ components:
           description: "Denotes unlimited capacity for the offering when true."
           type: boolean
         uom:
-          description: "The unit-of-measure for the capacity."
           $ref: "#/components/schemas/Uom"
 
     SkuCapacityReportSort:
@@ -1761,11 +1745,8 @@ components:
               $ref: '#/components/schemas/ProductId'
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "The service level that the report was made against. Not set if it wasn't specified as a query parameter."
-              type: string
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "The usage that the report was made against. Not set if it wasn't specified as a query parameter."
             uom:
               $ref: '#/components/schemas/Uom'
             subscription_type:
