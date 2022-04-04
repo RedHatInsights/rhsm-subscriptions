@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
+import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
@@ -122,6 +123,13 @@ public class RhMarketplacePayloadMapper {
     return isSnapshotPAYGEligible;
   }
 
+  protected boolean isSnapshotRHMarketplaceEligible(TallySnapshot snapshot) {
+    return snapshot.getBillingProvider() == null
+        || snapshot.getBillingProvider().equals(BillingProvider.RED_HAT)
+        || snapshot.getBillingProvider().equals(BillingProvider.ANY)
+        || snapshot.getBillingProvider().equals(BillingProvider.__EMPTY__);
+  }
+
   /**
    * UsageRequest objects are made up of a list of UsageEvents.
    *
@@ -138,6 +146,7 @@ public class RhMarketplacePayloadMapper {
 
     var eligibleSnapshots =
         tallySummary.getTallySnapshots().stream()
+            .filter(this::isSnapshotRHMarketplaceEligible)
             .filter(this::isSnapshotPAYGEligible)
             .collect(Collectors.toList());
 

@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -85,6 +86,7 @@ class SnapshotSummaryProducerTest {
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
                 Uom.CORES,
                 20.4)));
     updateMap.put(
@@ -96,6 +98,7 @@ class SnapshotSummaryProducerTest {
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
+                BillingProvider.AWS,
                 Uom.CORES,
                 22.2)));
     producer.produceTallySummaryMessages(updateMap);
@@ -168,6 +171,7 @@ class SnapshotSummaryProducerTest {
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
                 Uom.CORES,
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
@@ -197,6 +201,7 @@ class SnapshotSummaryProducerTest {
       Granularity granularity,
       ServiceLevel sla,
       Usage usage,
+      BillingProvider billingProvider,
       Uom uom,
       double val) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
@@ -210,6 +215,7 @@ class SnapshotSummaryProducerTest {
         .granularity(granularity)
         .serviceLevel(sla)
         .usage(usage)
+        .billingProvider(billingProvider)
         .build();
   }
 }
