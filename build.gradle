@@ -11,6 +11,7 @@ plugins {
     id "nebula.release"
     id 'com.adarshr.test-logger'
     id 'jacoco'
+    id "org.openapi.generator"
 }
 
 group = "org.candlepin"
@@ -108,6 +109,68 @@ compileJava.dependsOn(processResources)
 project.tasks["sonarqube"].dependsOn "test"
 project.tasks["sonarqube"].dependsOn "jacocoTestReport"
 
+/* TODO - The directives below to generate the API classes are duplicates of the
+ * the directives we use for the api module.  We need to DRY this up but that is
+ * going to require a little Gradle-fu that I don't currently possess.
+ */
+ext {
+    api_spec_path = "${projectDir}/src/main/spec/internal-tally-api.yaml"
+}
+
+openApiGenerate {
+    generatorName = "jaxrs-spec"
+    inputSpec = api_spec_path
+    outputDir = "$buildDir/generated"
+    apiPackage = "org.candlepin.subscriptions.tally.admin.api"
+    modelPackage = "org.candlepin.subscriptions.tally.admin.api.model"
+    invokerPackage = "org.candlepin.subscriptions.tally.admin"
+    groupId = "org.candlepin"
+    configOptions = [
+            interfaceOnly: "true",
+            generatePom: "false",
+            dateLibrary: "java8",
+    ]
+}
+
+openApiValidate {
+    inputSpec = api_spec_path
+}
+
+task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "html"
+    inputSpec = api_spec_path
+    outputDir = "$buildDir/docs"
+    generateApiDocumentation = true
+    generateModelDocumentation = true
+    generateModelTests = false
+    generateApiTests = false
+    withXml = false
+}
+
+task generateOpenApiJson(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "openapi"
+    inputSpec = api_spec_path
+    outputDir = "$buildDir/generated/openapijson"
+    generateApiDocumentation = true
+    generateModelDocumentation = true
+    generateModelTests = false
+    generateApiTests = false
+    withXml = false
+}
+
+processResources {
+    from "$buildDir/generated/openapijson/openapi.json"
+    from api_spec_path
+    rename { String fileName ->
+        api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
+    }
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
+compileJava.dependsOn tasks.openApiGenerate
+processResources.dependsOn tasks.generateOpenApiJson
+processResources.dependsOn tasks.openApiGenerate
+
 project(":api") {
     apply plugin: "swatch.java-conventions"
     apply plugin: "swatch.spring-boot-dependencies-conventions"
@@ -174,7 +237,7 @@ project(":api") {
         implementation libraries["jackson-databind-nullable"]
     }
 
-    sourceSets.main.java.srcDirs = ["${buildDir}/generated/src/gen/java"]
+    sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
     processResources.dependsOn tasks.generateOpenApiJson
     processResources.dependsOn tasks.openApiGenerate
