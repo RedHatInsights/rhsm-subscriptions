@@ -32,18 +32,25 @@ import java.lang.annotation.Target;
 import javax.validation.Constraint;
 import javax.validation.Payload;
 
-/** JSR-380 validation for ensuring that a value is in a particular ISO 8601 format. */
-@Target({FIELD, PARAMETER, ANNOTATION_TYPE, TYPE_USE})
+/**
+ * Marks a field as needing UUID validation. The annotation can be used on a String field or on a
+ * String typed collection.
+ *
+ * <pre>
+ * {@literal @}Uuid
+ * private String uuid;
+ *
+ * private List&lt;{@literal @}Uuid String&gt; uuids
+ * </pre>
+ */
+@Target({FIELD, PARAMETER, TYPE_USE, ANNOTATION_TYPE})
 @Retention(RUNTIME)
 @Documented
-@Constraint(validatedBy = {Iso8601Validator.class})
-public @interface Iso8601 {
-  String message() default
-      "The string \"${validatedValue}\" must be in ISO 8601 format similar to " + "{example}.";
+@Constraint(validatedBy = {UuidValidator.class})
+public @interface Uuid {
+  String message() default "Must be a valid UUID";
 
   Class<?>[] groups() default {};
 
   Class<? extends Payload>[] payload() default {};
-
-  Iso8601Format value() default Iso8601Format.ISO_DATE_TIME;
 }

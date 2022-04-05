@@ -3,6 +3,7 @@ plugins {
     id "swatch.spring-boot-dependencies-conventions"
     id 'java'
     id 'jsonschema2pojo'
+    id 'jacoco'
 }
 
 dependencies {
@@ -55,4 +56,10 @@ description = 'SWATCH Core Library'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
 }

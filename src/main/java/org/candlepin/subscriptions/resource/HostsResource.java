@@ -46,7 +46,7 @@ import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
-import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -262,7 +262,7 @@ public class HostsResource implements HostsApi {
 
     return new HypervisorGuestReport()
         .links(links)
-        .meta(new HypervisorGuestReportMeta().count((int) guests.getTotalElements()))
+        .meta(new MetaCount().count((int) guests.getTotalElements()))
         .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
   }
 }
