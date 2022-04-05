@@ -18,33 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package com.redhat.swatch.files;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import lombok.Data;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@Getter
-@NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
+/** Tag metric fields needed by swatch-producer-aws. */
+@Data
+public class TagMetricYaml {
   private String tag;
-  private String metricId;
+  private String uom; // NOTE: we plan to rename uom to metricId in ENT-4336
   private String awsDimension;
-  private Uom uom;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
 }

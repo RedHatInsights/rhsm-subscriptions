@@ -18,33 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package com.redhat.swatch.kafka;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import com.redhat.swatch.openapi.model.TallySummary;
+import io.quarkus.kafka.client.serialization.JsonbDeserializer;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@Getter
-@NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private String awsDimension;
-  private Uom uom;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
+/** Provides quarkus a hint that we want to use JSON-B to deserialize TallySummary objects */
+public class TallySummaryDeserializer extends JsonbDeserializer<TallySummary> {
+
+  public TallySummaryDeserializer() {
+    super(TallySummary.class);
+  }
 }

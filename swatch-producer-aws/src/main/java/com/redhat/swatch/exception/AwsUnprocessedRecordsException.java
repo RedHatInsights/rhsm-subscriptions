@@ -18,33 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package com.redhat.swatch.exception;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@Getter
-@NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private String awsDimension;
-  private Uom uom;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
+public class AwsUnprocessedRecordsException extends AwsProducerException {
+
+  @Getter private final int count;
+
+  public AwsUnprocessedRecordsException(int count) {
+    super(ErrorCode.AWS_UNPROCESSED_RECORDS_ERROR, String.format("count=%d", count));
+    this.count = count;
+  }
+
+  public AwsUnprocessedRecordsException(int count, Exception e) {
+    super(ErrorCode.AWS_UNPROCESSED_RECORDS_ERROR, String.format("count=%d", count), e);
+    this.count = count;
+  }
 }

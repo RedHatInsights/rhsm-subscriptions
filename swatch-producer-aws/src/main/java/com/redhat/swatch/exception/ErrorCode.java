@@ -18,33 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package com.redhat.swatch.exception;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@Getter
-@NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private String awsDimension;
-  private Uom uom;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
+public enum ErrorCode {
+  AWS_UNPROCESSED_RECORDS_ERROR(1000, "Some AWS UsageRecords were not processed"),
+  AWS_DIMENSION_NOT_CONFIGURED(1001, "Aws Dimension not configured"),
+  AWS_REQUEST_ERROR(1002, "AWS request failed"),
+  AWS_MISSING_CREDENTIALS_ERROR(1003, "AWS credentials missing"),
+  AWS_USAGE_CONTEXT_LOOKUP_ERROR(1004, "Error looking up AWS usage context"),
+  AWS_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled.");
+
+  private static final String CODE_PREFIX = "SWATCHAWS";
+
+  @Getter private final String code;
+  @Getter private final String description;
+
+  ErrorCode(int intCode, String description) {
+    this.code = CODE_PREFIX + intCode;
+    this.description = description;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("%s: %s", code, description);
+  }
 }
