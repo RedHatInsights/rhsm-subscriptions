@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -82,10 +83,9 @@ class IdentityHeaderAuthenticationProviderTest {
   @Test
   void validPskPrincipalIsAuthenticated() {
     AuthProperties authProperties = new AuthProperties();
-    String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
     PskClientPrincipal principal = new PskClientPrincipal();
     principal.setPreSharedKey("c9a98753-2092-4617-b226-5c2653330b3d");
-    authProperties.setSwatchPsks(pskEncoded);
+    authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
     IdentityHeaderAuthenticationProvider provider =
         new IdentityHeaderAuthenticationProvider(detailsService, authoritiesMapper, authProperties);
     Authentication authentication = new PreAuthenticatedAuthenticationToken(principal, null, null);
@@ -100,7 +100,7 @@ class IdentityHeaderAuthenticationProviderTest {
     String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
     PskClientPrincipal principal = new PskClientPrincipal();
     principal.setPreSharedKey("e88bc49f-e395-48c0-8665-c87b251c30cf");
-    authProperties.setSwatchPsks(pskEncoded);
+    authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
     IdentityHeaderAuthenticationProvider provider =
         new IdentityHeaderAuthenticationProvider(detailsService, authoritiesMapper, authProperties);
     Authentication authentication = new PreAuthenticatedAuthenticationToken(principal, null, null);
@@ -117,7 +117,7 @@ class IdentityHeaderAuthenticationProviderTest {
     AuthProperties authProperties = new AuthProperties();
     String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
     PskClientPrincipal principal = new PskClientPrincipal();
-    authProperties.setSwatchPsks(pskEncoded);
+    authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
     IdentityHeaderAuthenticationProvider provider =
         new IdentityHeaderAuthenticationProvider(detailsService, authoritiesMapper, authProperties);
     Authentication authentication = new PreAuthenticatedAuthenticationToken(principal, null, null);
