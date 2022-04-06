@@ -18,11 +18,13 @@ properties:
         billing_provider:
           type: string
           enum:
+            - ''
             - red hat
             - aws
             - gcp
             - azure
             - oracle
+            - _ANY
         snapshot_date:
           type: string
           format: date-time
@@ -55,16 +57,6 @@ properties:
             - Monthly
             - Quarterly
             - Yearly
-        billing_provider:
-          type: string
-          enum:
-            - ''
-            - Red hat
-            - Aws
-            - Gcp
-            - Azure
-            - Oracle
-            - _ANY
         tally_measurements:
           type: array
           items:
