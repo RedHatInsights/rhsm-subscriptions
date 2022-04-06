@@ -89,6 +89,12 @@ public class WiremockRunner {
                                 .awsSellerAccountId("unconfigured")
                                 .rhSubscriptionId("rhSubscriptionId")
                                 .subscriptionStartDate(OffsetDateTime.now().minusDays(1))))));
+    // last stub has highest prio, so this effectively short-circuits any request without the header
+    // at 401
+    wireMockServer.stubFor(
+        any(urlMatching("/subscriptions/?.*"))
+            .withHeader("x-rh-swatch-psk", notMatching("dummy"))
+            .willReturn(aResponse().withStatus(401)));
   }
 
   // NOTE: if this gets unwieldy, we can move stubbing to separate classes

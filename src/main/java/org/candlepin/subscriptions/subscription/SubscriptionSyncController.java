@@ -27,9 +27,11 @@ import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -37,22 +39,30 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 /** Update subscriptions from subscription service responses. */
 @Component
 @Slf4j
 public class SubscriptionSyncController {
+
   private SubscriptionRepository subscriptionRepository;
   private OrgConfigRepository orgRepository;
   private OfferingRepository offeringRepository;
@@ -63,6 +73,8 @@ public class SubscriptionSyncController {
   private Timer syncTimer;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
+  private final TagProfile tagProfile;
+  private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
   private final ProductWhitelist productWhitelist;
@@ -80,7 +92,9 @@ public class SubscriptionSyncController {
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
       ProductWhitelist productWhitelist,
       ObjectMapper objectMapper,
-      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
+      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
+      TagProfile tagProfile,
+      AccountService accountService) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
     this.offeringRepository = offeringRepository;
@@ -94,6 +108,8 @@ public class SubscriptionSyncController {
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
+    this.tagProfile = tagProfile;
+    this.accountService = accountService;
   }
 
   @Transactional
@@ -322,5 +338,51 @@ public class SubscriptionSyncController {
   public void forceSyncSubscriptionsForOrg(String orgId) {
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
     subscriptions.forEach(this::syncSubscription);
+  }
+
+  @Transactional
+  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptionsAndSyncIfNeeded(
+      String accountNumber,
+      Optional<String> orgId,
+      Key usageKey,
+      OffsetDateTime rangeStart,
+      OffsetDateTime rangeEnd,
+      BillingProvider billingProvider) {
+    Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
+    Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
+
+    String productId = usageKey.getProductId();
+    Set<String> productNames = tagProfile.getOfferingProductNamesForTag(productId);
+    if (productNames.isEmpty()) {
+      log.warn("No product names configured for tag: {}", productId);
+      return Collections.emptyList();
+    }
+
+    List<org.candlepin.subscriptions.db.model.Subscription> result =
+        subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
+            accountNumber, usageKey, productNames, rangeStart, rangeEnd, billingProvider);
+
+    if (result.isEmpty()) {
+      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
+      to fetch from Marketplace.  Sync all those subscriptions. Query again. */
+      if (orgId.isEmpty()) {
+        orgId = Optional.of(accountService.lookupOrgId(accountNumber));
+      }
+      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
+      forceSyncSubscriptionsForOrg(orgId.get());
+      result =
+          subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
+              accountNumber, usageKey, productNames, rangeStart, rangeEnd, billingProvider);
+    }
+
+    if (result.isEmpty()) {
+      log.error(
+          "No subscription found for account {} with key {} and product names {}",
+          accountNumber,
+          usageKey,
+          productNames);
+    }
+
+    return result;
   }
 }

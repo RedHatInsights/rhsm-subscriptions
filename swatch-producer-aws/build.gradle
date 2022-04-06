@@ -74,7 +74,7 @@ openApiGenerate {
 }
 
 task generateSwatchInternalSubscriptionClient(type: GenerateTask) {
-    inputSpec = "${rootDir}/api/internal-subscription-service-api-spec.yaml"
+    inputSpec = "${rootDir}/src/main/spec/internal-subscriptions-sync-api-spec.yaml"
     outputDir = "${buildDir}/generated-internal-subscription-client"
     generatorName = "java"
     modelPackage = "com.swatch.internal.subscription.api.model"
@@ -83,7 +83,6 @@ task generateSwatchInternalSubscriptionClient(type: GenerateTask) {
     configOptions = [
             generatePom: "false",
             library: "microprofile",
-            java8: "true",
             dateLibrary: "java8",
     ]
     additionalProperties = [
@@ -115,10 +114,6 @@ task wiremock(type: JavaExec) {
     description = "Run mock REST services for this service"
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.redhat.swatch.wiremock.WiremockRunner"
-    jvmArgs = ['-Djava.util.logging.manager=org.jboss.logmanager.LogManager', '-Dorg.slf4j.simpleLogger.defaultLogLevel=debug', '-Dlogging.configuration=file:///home/khowell/logging.properties']
-    systemProperties = [
-        'java.util.logging.manager': 'org.jboss.logmanager.LogManager'
-    ]
 }
 
 quarkusDev.dependsOn(configureQuarkusBuild)

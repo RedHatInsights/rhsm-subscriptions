@@ -40,7 +40,6 @@ paths:
       operationId: forceSyncSubscriptionsForOrg
       tags:
         - internalSubscriptions
-        - internal
       responses:
         '200':
           description: "The request for syncing organization's subscription was successful."
@@ -57,12 +56,75 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/subscriptions/awsUsageContext:
+    description: "Get AWS usage context."
+    parameters:
+      - name: accountNumber
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "Customer's Account Number"
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sla
+        in: query
+        schema:
+          type: string
+      - name: usage
+        in: query
+        schema:
+          type: string
+    get:
+      summary: "Lookup necessary info to submit a usage record to AWS"
+      operationId: getAwsUsageContext
+      responses:
+        '200':
+          description: "Found AWS usage context matching the criteria."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwsUsageContext'
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
   /internal-subscription-sync-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-subscription-sync-openapi.yaml:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
 
 components:
+  schemas:
+    AwsUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
+      properties:
+        rhSubscriptionId:
+          type: string
+        customerId:
+          type: string
+        productCode:
+          type: string
+        awsSellerAccountId:
+          type: string
+        subscriptionStartDate:
+          type: string
+          format: date-time
   securitySchemes:
     PskIdentity:
       type: apiKey

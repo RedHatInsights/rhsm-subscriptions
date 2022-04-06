@@ -18,75 +18,65 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rhmarketplace;
+package org.candlepin.subscriptions.capacity.admin;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
+import javax.ws.rs.NotFoundException;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.candlepin.subscriptions.tally.UsageCalculation.Key;
+import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles({"rh-marketplace", "test"})
-class RhMarketplaceSubscriptionIdProviderTest {
+class InternalSubscriptionResourceTest {
   @Mock SubscriptionSyncController syncController;
 
   @Test
   void incrementsMissingCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    RhMarketplaceSubscriptionIdProvider idProvider =
-        new RhMarketplaceSubscriptionIdProvider(syncController, meterRegistry);
+    InternalSubscriptionResource resource =
+        new InternalSubscriptionResource(meterRegistry, syncController);
     when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
-    Optional<String> subscriptionId =
-        idProvider.findSubscriptionId(
-            "account123",
-            "org123",
-            new Key("productId", ServiceLevel.PREMIUM, Usage.PRODUCTION),
-            OffsetDateTime.MIN,
-            OffsetDateTime.MAX);
-    Counter counter = meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
+    assertThrows(
+        NotFoundException.class,
+        () ->
+            resource.getAwsUsageContext(
+                "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production"));
+    Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
-    assertTrue(subscriptionId.isEmpty());
   }
 
   @Test
   void incrementsAmbiguousCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    RhMarketplaceSubscriptionIdProvider idProvider =
-        new RhMarketplaceSubscriptionIdProvider(syncController, meterRegistry);
+    InternalSubscriptionResource resource =
+        new InternalSubscriptionResource(meterRegistry, syncController);
     Subscription sub1 = new Subscription();
-    sub1.setBillingProviderId("foo");
+    sub1.setBillingProviderId("foo1;foo2;foo3");
     Subscription sub2 = new Subscription();
-    sub2.setBillingProviderId("bar");
+    sub2.setBillingProviderId("bar1;bar2;bar3");
     when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
-    Optional<String> subscriptionId =
-        idProvider.findSubscriptionId(
-            "account123",
-            "org123",
-            new Key("productId", ServiceLevel.PREMIUM, Usage.PRODUCTION),
-            OffsetDateTime.MIN,
-            OffsetDateTime.MAX);
-    Counter counter =
-        meterRegistry.counter("rhsm-subscriptions.marketplace.ambiguous.subscription");
+    AwsUsageContext awsUsageContext =
+        resource.getAwsUsageContext(
+            "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production");
+    Counter counter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     assertEquals(1.0, counter.count());
-    assertEquals("foo", subscriptionId.orElseThrow());
+    assertEquals("foo1", awsUsageContext.getProductCode());
+    assertEquals("foo2", awsUsageContext.getCustomerId());
+    assertEquals("foo3", awsUsageContext.getAwsSellerAccountId());
   }
 }
