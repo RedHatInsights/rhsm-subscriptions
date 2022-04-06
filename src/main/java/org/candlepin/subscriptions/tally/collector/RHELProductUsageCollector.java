@@ -115,6 +115,8 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         currentCalc.getProductId(),
         currentCalc.getSla(),
         currentCalc.getUsage(),
+        currentCalc.getBillingProvider(),
+        currentCalc.getBillingAccountId(),
         asHypervisor,
         appliedCores,
         appliedSockets,

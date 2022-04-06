@@ -32,6 +32,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,18 +42,28 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
 
   // suppress line length and params arguments, can't help either easily b/c this is a spring data
   // method
-  @SuppressWarnings({"linelength", "java:S107"})
-  Page<TallySnapshot>
-      findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
-          String accountNumber,
-          String productId,
-          Granularity granularity,
-          ServiceLevel serviceLevel,
-          Usage usage,
-          BillingProvider billingProvider,
-          OffsetDateTime beginning,
-          OffsetDateTime ending,
-          Pageable pageable);
+
+  @Query(
+      "SELECT t FROM TallySnapshot t where "
+          + "t.accountNumber = :accountNumber and "
+          + "t.productId = :productId and "
+          + "t.granularity = :granularity  and "
+          + "t.serviceLevel = :serviceLevel and "
+          + "t.usage = :usage and "
+          + "t.billingProvider = :billingProvider and "
+          + "t.billingAccountId = :billingAcctId and "
+          + "t.snapshotDate between :beginning and :ending")
+  Page<TallySnapshot> findSnapshot( // NOSONAR
+      @Param("accountNumber") String accountNumber,
+      @Param("productId") String productId,
+      @Param("granularity") Granularity granularity,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("pageable") Pageable pageable);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(

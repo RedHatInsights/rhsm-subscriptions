@@ -79,6 +79,7 @@ class TallySnapshotRepositoryTest {
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             BillingProvider._ANY,
+            "sellerAcct",
             8888,
             888,
             88,
@@ -89,13 +90,14 @@ class TallySnapshotRepositoryTest {
 
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findSnapshot(
                 "Bugs",
                 "Bunny",
                 Granularity.DAILY,
                 ServiceLevel.STANDARD,
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
+                "sellerAcct",
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -124,6 +126,7 @@ class TallySnapshotRepositoryTest {
             ServiceLevel.EMPTY,
             Usage.EMPTY,
             BillingProvider.EMPTY,
+            "sellerAcct",
             1111,
             111,
             11,
@@ -134,13 +137,14 @@ class TallySnapshotRepositoryTest {
 
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
+            .findSnapshot(
                 "A1",
                 "P1",
                 Granularity.DAILY,
                 ServiceLevel.EMPTY,
                 Usage.EMPTY,
                 BillingProvider.EMPTY,
+                "sellerAcct",
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -253,6 +257,7 @@ class TallySnapshotRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider._ANY,
+        "sellerAcct",
         cores,
         sockets,
         instances,
@@ -266,6 +271,7 @@ class TallySnapshotRepositoryTest {
       ServiceLevel serviceLevel,
       Usage usage,
       BillingProvider billingProvider,
+      String billingAcctId,
       int cores,
       int sockets,
       int instances,
@@ -278,6 +284,7 @@ class TallySnapshotRepositoryTest {
     tally.setServiceLevel(serviceLevel);
     tally.setUsage(usage);
     tally.setBillingProvider(billingProvider);
+    tally.setBillingAccountId(billingAcctId);
     tally.setSnapshotDate(date);
     tally.setServiceLevel(serviceLevel);
 

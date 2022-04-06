@@ -39,14 +39,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -125,6 +118,7 @@ class MetricUsageCollectorTest {
                         .serviceType(SERVICE_TYPE)
                         .defaultUsage(Usage.PRODUCTION)
                         .defaultSla(ServiceLevel.PREMIUM)
+                        .defaultProvider(BillingProvider.EMPTY)
                         .build()))
             .tagMetrics(
                 List.of(
@@ -148,7 +142,9 @@ class MetricUsageCollectorTest {
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
-            .withMeasurements(Collections.singletonList(measurement));
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -168,7 +164,9 @@ class MetricUsageCollectorTest {
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
-            .withMeasurements(Collections.singletonList(measurement));
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -176,7 +174,8 @@ class MetricUsageCollectorTest {
         metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
-        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.RED_HAT, "sellerAcct");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -243,7 +242,10 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
-            .withSla(Event.Sla.PREMIUM);
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
+    ;
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -258,15 +260,20 @@ class MetricUsageCollectorTest {
                 Set.of(ServiceLevel._ANY, ServiceLevel.PREMIUM)
                     .forEach(
                         sla -> {
-                          HostBucketKey key = new HostBucketKey();
-                          key.setProductId(RHEL);
-                          key.setSla(sla);
-                          key.setUsage(usage);
-                          key.setAsHypervisor(false);
-                          HostTallyBucket bucket = new HostTallyBucket();
-                          bucket.setKey(key);
-                          bucket.setHost(instance);
-                          expected.add(bucket);
+                          for (BillingProvider billingProvider :
+                              Set.of(BillingProvider._ANY, BillingProvider.RED_HAT)) {
+                            HostBucketKey key = new HostBucketKey();
+                            key.setProductId(RHEL);
+                            key.setSla(sla);
+                            key.setBillingProvider(billingProvider);
+                            key.setBillingAccountId("sellerAcctId");
+                            key.setUsage(usage);
+                            key.setAsHypervisor(false);
+                            HostTallyBucket bucket = new HostTallyBucket();
+                            bucket.setKey(key);
+                            bucket.setHost(instance);
+                            expected.add(bucket);
+                          }
                         }));
     assertEquals(expected, new HashSet<>(instance.getBuckets()));
   }
@@ -282,7 +289,9 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
-            .withSla(Event.Sla.PREMIUM);
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -290,7 +299,8 @@ class MetricUsageCollectorTest {
         metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
-        new UsageCalculation.Key(RHEL, ServiceLevel._ANY, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            RHEL, ServiceLevel._ANY, Usage.PRODUCTION, BillingProvider.RED_HAT, "sellerAcctId");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -311,7 +321,9 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
-            .withUsage(Event.Usage.PRODUCTION);
+            .withUsage(Event.Usage.PRODUCTION)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -319,7 +331,8 @@ class MetricUsageCollectorTest {
         metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
-        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
+        new UsageCalculation.Key(
+            RHEL, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "sellerAcctId");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -341,6 +354,7 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withRole(Role.OSD);
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -352,7 +366,8 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
 
     UsageCalculation.Key serverKey =
-        new UsageCalculation.Key(OSD_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY);
+        new UsageCalculation.Key(
+            OSD_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
     assertTrue(accountUsageCalculation.containsCalculation(serverKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -364,7 +379,11 @@ class MetricUsageCollectorTest {
     // Not defined on the event, should not exist.
     UsageCalculation.Key wsKey =
         new UsageCalculation.Key(
-            RHEL_WORKSTATION_SWATCH_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY);
+            RHEL_WORKSTATION_SWATCH_PRODUCT_ID,
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider._ANY,
+            "sellerAcctId");
     assertFalse(accountUsageCalculation.containsCalculation(wsKey));
   }
 
@@ -379,6 +398,7 @@ class MetricUsageCollectorTest {
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withProductIds(List.of("1234"));
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -390,7 +410,8 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
 
     UsageCalculation.Key engIdKey =
-        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
+        new UsageCalculation.Key(
+            RHEL, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
     assertTrue(accountUsageCalculation.containsCalculation(engIdKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -404,7 +425,12 @@ class MetricUsageCollectorTest {
         .forEach(
             swatchProdId -> {
               UsageCalculation.Key key =
-                  new UsageCalculation.Key(swatchProdId, ServiceLevel.PREMIUM, Usage._ANY);
+                  new UsageCalculation.Key(
+                      swatchProdId,
+                      ServiceLevel.PREMIUM,
+                      Usage._ANY,
+                      BillingProvider._ANY,
+                      "sellerAcctId");
               assertFalse(
                   accountUsageCalculation.containsCalculation(key),
                   "Unexpected calculation: " + swatchProdId);
@@ -423,7 +449,9 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
-            .withUsage(Event.Usage.PRODUCTION);
+            .withUsage(Event.Usage.PRODUCTION)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event, event));
@@ -431,7 +459,8 @@ class MetricUsageCollectorTest {
         metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
-        new UsageCalculation.Key(RHEL, ServiceLevel.PREMIUM, Usage._ANY);
+        new UsageCalculation.Key(
+            RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.RED_HAT, "sellerAcctId");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),

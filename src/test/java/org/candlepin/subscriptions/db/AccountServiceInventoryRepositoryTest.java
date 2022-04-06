@@ -25,13 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Optional;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -122,6 +116,8 @@ class AccountServiceInventoryRepositoryTest {
             "product",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY",
             false,
             4,
             4,

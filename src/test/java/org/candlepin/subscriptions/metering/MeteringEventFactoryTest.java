@@ -262,12 +262,12 @@ class MeteringEventFactoryTest {
             null,
             Uom.CORES,
             12.5);
-    assertNull(event.getBillingProvider());
+    assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isEmpty());
   }
 
   @Test
-  void testBillingProviderSetToEmptyForBillingProviderValueNone() throws Exception {
+  void testBillingProviderEmptyForBillingProviderValueNoneToDefaultRedHat() throws Exception {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
@@ -283,7 +283,7 @@ class MeteringEventFactoryTest {
             null,
             Uom.CORES,
             12.5);
-    assertEquals(BillingProvider.__EMPTY__, event.getBillingProvider());
+    assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 
   @Test
