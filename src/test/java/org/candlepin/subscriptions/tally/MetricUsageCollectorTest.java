@@ -261,17 +261,19 @@ class MetricUsageCollectorTest {
                         sla -> {
                           for (BillingProvider billingProvider :
                               Set.of(BillingProvider._ANY, BillingProvider.RED_HAT)) {
-                            HostBucketKey key = new HostBucketKey();
-                            key.setProductId(RHEL);
-                            key.setSla(sla);
-                            key.setBillingProvider(billingProvider);
-                            key.setBillingAccountId("sellerAcctId");
-                            key.setUsage(usage);
-                            key.setAsHypervisor(false);
-                            HostTallyBucket bucket = new HostTallyBucket();
-                            bucket.setKey(key);
-                            bucket.setHost(instance);
-                            expected.add(bucket);
+                            for (String billingAcctId : Set.of("sellerAcctId", "_ANY")) {
+                              HostBucketKey key = new HostBucketKey();
+                              key.setProductId(RHEL);
+                              key.setSla(sla);
+                              key.setBillingProvider(billingProvider);
+                              key.setBillingAccountId(billingAcctId);
+                              key.setUsage(usage);
+                              key.setAsHypervisor(false);
+                              HostTallyBucket bucket = new HostTallyBucket();
+                              bucket.setKey(key);
+                              bucket.setHost(instance);
+                              expected.add(bucket);
+                            }
                           }
                         }));
     assertEquals(expected, new HashSet<>(instance.getBuckets()));

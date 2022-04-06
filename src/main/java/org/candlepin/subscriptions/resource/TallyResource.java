@@ -146,7 +146,12 @@ public class TallyResource implements TallyApi {
     report.getMeta().setMetricId(metricId.toString());
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
-    report.getMeta().setBillingProvider(billingProviderType);
+    report
+        .getMeta()
+        .setBillingProvider(
+            billingProviderType == null
+                ? null
+                : reportCriteria.getBillingProvider().asOpenApiEnum());
     report.getMeta().setBillingAcountId(billingAcctId);
 
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
@@ -274,10 +279,12 @@ public class TallyResource implements TallyApi {
       pageable = ResourceUtils.getPageable(offset, limit);
     }
 
+    // Sanitize null value as _ANY for optional fields to filter through snapshot table.
     ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
     Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
     BillingProvider providerType = ResourceUtils.sanitizeBillingProvider(billingProviderType);
+    String sanitizedBillingAcctId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
     try {
       /* Throw an error if we are asked to return reports at a finer grain than what is supported by
@@ -299,7 +306,7 @@ public class TallyResource implements TallyApi {
         .serviceLevel(serviceLevel)
         .usage(effectiveUsage)
         .billingProvider(providerType)
-        .billingAccountId(billingAccountId)
+        .billingAccountId(sanitizedBillingAcctId)
         .pageable(pageable)
         .beginning(beginning)
         .ending(ending)
