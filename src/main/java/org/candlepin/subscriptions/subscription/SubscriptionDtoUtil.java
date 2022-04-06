@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -32,6 +33,7 @@ import org.springframework.util.StringUtils;
 /** Utility class to assist in pulling nested data out of the Subscription DTO. */
 public class SubscriptionDtoUtil {
   public static final String IBMMARKETPLACE = "ibmmarketplace";
+  public static final String AWS_MARKETPLACE = "aws";
 
   private SubscriptionDtoUtil() {
     // Utility methods only
@@ -62,27 +64,36 @@ public class SubscriptionDtoUtil {
         "Could not find top level SKU for subscription " + subscription);
   }
 
-  public static String extractRhMarketplaceId(Subscription subscription) {
+  public static String extractBillingProviderId(Subscription subscription) {
     Map<String, ExternalReference> externalRefs = subscription.getExternalReferences();
     String subId = null;
     if (externalRefs != null && !externalRefs.isEmpty()) {
-      ExternalReference rhMarketplace =
-          externalRefs.getOrDefault(IBMMARKETPLACE, new ExternalReference());
-      subId = rhMarketplace.getSubscriptionID();
+      if (externalRefs.containsKey(IBMMARKETPLACE)) {
+        ExternalReference rhMarketplace = externalRefs.get(IBMMARKETPLACE);
+        subId = rhMarketplace.getSubscriptionID();
+      } else if (externalRefs.containsKey(AWS_MARKETPLACE)) {
+        ExternalReference awsMarketPlace = externalRefs.get(AWS_MARKETPLACE);
+        subId =
+            String.format(
+                "%s;%s;%s",
+                awsMarketPlace.getProductCode(),
+                awsMarketPlace.getCustomerID(),
+                awsMarketPlace.getSellerAccount());
+      }
     }
     return (StringUtils.hasText(subId)) ? subId : null;
   }
 
-  public static String populateBillingProvider(Subscription subscription) {
-    String billingProvider = null;
-
-    boolean hasRef =
-        subscription.getExternalReferences() != null
-            && subscription.getExternalReferences().containsKey(IBMMARKETPLACE);
-
-    if (hasRef) {
-      billingProvider = "red hat";
+  public static BillingProvider populateBillingProvider(Subscription subscription) {
+    if (subscription.getExternalReferences() != null) {
+      if (subscription.getExternalReferences().containsKey(IBMMARKETPLACE)) {
+        return BillingProvider.RED_HAT;
+      } else if (subscription.getExternalReferences().containsKey(AWS_MARKETPLACE)) {
+        return BillingProvider.AWS;
+      } else {
+        return null;
+      }
     }
-    return billingProvider;
+    return null;
   }
 }

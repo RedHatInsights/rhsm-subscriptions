@@ -150,3 +150,9 @@ components:
           type: string
         subscriptionID:
           type: string
+        customerID:
+          type: string
+        productCode:
+          type: string
+        sellerAccount:
+          type: string

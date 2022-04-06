@@ -734,7 +734,7 @@ class SubscriptionCapacityViewRepositoryTest {
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);
     subscription.setSubscriptionNumber(subId + "1");
-    subscription.setBillingProvider("Test_Marketplace");
+    subscription.setBillingProvider(BillingProvider.RED_HAT);
 
     return subscription;
   }
