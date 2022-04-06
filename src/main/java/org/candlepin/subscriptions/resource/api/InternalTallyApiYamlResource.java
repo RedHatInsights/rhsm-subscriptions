@@ -18,19 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiJsonApi;
+import org.candlepin.subscriptions.tally.admin.api.InternalTallyOpenapiYamlApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI spec as /openapi.json. */
+/** Serves the OpenAPI yaml for the internal tally API */
 @Component
-public class OpenApiJsonResource implements OpenapiJsonApi {
-  @Autowired OpenApiSpecController controller;
+public class InternalTallyApiYamlResource implements InternalTallyOpenapiYamlApi {
+  @Autowired ApiSpecController controller;
 
   @Override
-  public String getOpenApiJson() {
-    return controller.getOpenApiJson();
+  public String getOpenApiYaml() {
+    return controller.getInternalTallyApiYaml();
   }
 }

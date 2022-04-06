@@ -82,7 +82,7 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
-        "/**/openapi.*", "/**/internalopenapi.*", "/**/version", "/api-docs/**", "/webjars/**"
+        "/**/*openapi.yaml", "/**/*openapi.json", "/**/version", "/api-docs/**", "/webjars/**"
       };
 
   @Override
@@ -196,6 +196,8 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
         .antMatchers("/metrics")
         .permitAll()
+        .antMatchers("/**/internal/**")
+        .access("hasRole('ROLE_INTERNAL')")
         .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
         .access("@optInChecker.checkAccess(authentication)")
         .anyRequest()

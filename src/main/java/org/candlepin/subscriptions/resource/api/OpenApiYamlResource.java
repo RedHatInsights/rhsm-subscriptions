@@ -18,28 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.security.auth.InternalRoleRequired;
-import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.candlepin.subscriptions.utilization.api.resources.InternalSubscriptionsApi;
+import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** Subscriptions Table API implementation. */
+/** Serves the OpenAPI spec as /openapi.yaml. */
 @Component
-public class InternalSubscriptionResource implements InternalSubscriptionsApi {
-
-  private final SubscriptionSyncController subscriptionSyncController;
-  private static final String SUCCESS_STATUS = "Success";
-
-  public InternalSubscriptionResource(SubscriptionSyncController subscriptionSyncController) {
-    this.subscriptionSyncController = subscriptionSyncController;
-  }
+public class OpenApiYamlResource implements OpenapiYamlApi {
+  @Autowired ApiSpecController controller;
 
   @Override
-  @InternalRoleRequired
-  public String forceSyncSubscriptionsForOrg(String orgId) {
-    subscriptionSyncController.forceSyncSubscriptionsForOrg(orgId);
-    return SUCCESS_STATUS;
+  public String getOpenApiYaml() {
+    return controller.getOpenApiYaml();
   }
 }
