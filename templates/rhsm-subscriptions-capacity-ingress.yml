@@ -221,6 +221,11 @@ objects:
                     secretKeyRef:
                       name: tls
                       key: keystore_password
+                - name: SWATCH_PSKS
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: swatch-app-secret
               livenessProbe:
                 failureThreshold: 3
                 httpGet:

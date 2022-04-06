@@ -178,24 +178,44 @@ project(":api") {
 
     ext {
         api_spec_path = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
+        internal_sub_sync_api_spec_path = "${projectDir}/internal-subscriptions-sync-api-spec.yaml"
         config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
     }
 
     openApiGenerate {
-      generatorName = "jaxrs-spec"
-      inputSpec = api_spec_path
-      configFile = config_file
-      outputDir = "$buildDir/generated"
-      configOptions = [
-          interfaceOnly: "true",
-          generatePom: "false",
-          dateLibrary: "java8",
-      ]
+        generatorName = "jaxrs-spec"
+        inputSpec = api_spec_path
+        configFile = config_file
+        outputDir = "$buildDir/generated"
+        configOptions = [
+                interfaceOnly: "true",
+                generatePom: "false",
+                dateLibrary: "java8",
+        ]
     }
 
-    openApiValidate {
+    task generateInternalSubSyncApi(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "jaxrs-spec"
+        inputSpec = internal_sub_sync_api_spec_path
+        configFile = config_file
+        outputDir = "$buildDir/generated"
+        configOptions = [
+                interfaceOnly: "true",
+                generatePom: "false",
+                dateLibrary: "java8",
+                useTags: "true"
+        ]
+    }
+
+    task validateApiSpec(type: org.openapitools.generator.gradle.plugin.tasks.ValidateTask){
         inputSpec = api_spec_path
     }
+
+    task validateInternalSubSyncApiSpec(type: org.openapitools.generator.gradle.plugin.tasks.ValidateTask){
+        inputSpec = internal_sub_sync_api_spec_path
+    }
+
+    task validateSpecs(dependsOn: ['validateApiSpec', 'validateInternalApiSpec'])
 
     task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
         generatorName = "html"
@@ -219,11 +239,45 @@ project(":api") {
         withXml = false
     }
 
+    task generateInternalSubSyncApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "html"
+        inputSpec = internal_sub_sync_api_spec_path
+        outputDir = "$buildDir/docs"
+        generateApiDocumentation = true
+        generateModelDocumentation = true
+        generateModelTests = false
+        generateApiTests = false
+        withXml = false
+    }
+
+    task generateInternalSubSyncOpenApiJson(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "openapi"
+        inputSpec = internal_sub_sync_api_spec_path
+        outputDir = "$buildDir/generated/internalopenapijson"
+        generateApiDocumentation = true
+        generateModelDocumentation = true
+        generateModelTests = false
+        generateApiTests = false
+        withXml = false
+    }
+
     processResources {
-        from "$buildDir/generated/openapijson/openapi.json"
-        from api_spec_path
-        rename { String fileName ->
-            api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
+        with copySpec {
+            from "$buildDir/generated/openapijson/openapi.json"
+            from api_spec_path
+            rename { String fileName ->
+                api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
+            }
+        }
+        with copySpec {
+            //TODO: this makes gradle complain about duplicate files even with the rename. Need to look into fix
+//            from "$buildDir/generated/internalopenapijson/openapi.json"
+//            rename { String fileName -> 'internalsubsyncopenapi.yaml' // rename yaml to internalsubsyncopenapi.yaml
+//            }
+            from internal_sub_sync_api_spec_path
+            rename { String fileName ->
+                internal_sub_sync_api_spec_path.endsWith(fileName) ? 'internalsubsyncopenapi.yaml' : fileName  // rename yaml to internalopenapi.yaml
+            }
         }
     }
 
@@ -239,8 +293,13 @@ project(":api") {
 
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
-    processResources.dependsOn tasks.generateOpenApiJson
+    compileJava.dependsOn tasks.generateInternalSubSyncApi
+    processResources.dependsOn tasks.generateInternalSubSyncApi
     processResources.dependsOn tasks.openApiGenerate
+    processResources.dependsOn tasks.generateOpenApiJson
+    processResources.dependsOn tasks.generateInternalSubSyncOpenApiJson
+
+
 }
 
 project(":kafka-schema") {

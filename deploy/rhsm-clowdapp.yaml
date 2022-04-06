@@ -1393,6 +1393,11 @@ objects:
                   key: keystore_password
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: SWATCH_PSKS
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: swatch-app-secret
           livenessProbe:
             failureThreshold: 3
             httpGet:

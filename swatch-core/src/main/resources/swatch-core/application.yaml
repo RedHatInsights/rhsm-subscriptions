@@ -159,3 +159,5 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.offering-sync
       kafka-group-id: offering-worker
+  auth:
+    swatchPsks: ${SWATCH_PSKS:placeholder}

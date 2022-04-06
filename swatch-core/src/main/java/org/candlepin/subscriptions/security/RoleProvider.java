@@ -32,6 +32,7 @@ public class RoleProvider {
 
   public static final String SWATCH_ADMIN_ROLE = "SUBSCRIPTION_WATCH_ADMIN";
   public static final String SWATCH_REPORT_READER = "SUBSCRIPTION_WATCH_REPORT_READER";
+  public static final String ROLE_INTERNAL = "ROLE_INTERNAL";
 
   private String rulePrefix;
   private boolean devModeEnabled;

@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
+import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfig;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
@@ -131,6 +132,11 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @ConfigurationProperties(prefix = "rhsm-subscriptions.product.tasks")
   TaskQueueProperties offeringSyncQueueProperties() {
     return new TaskQueueProperties();
+  }
+
+  @Bean
+  AuthProperties authProperties() {
+    return new AuthProperties();
   }
 
   @Bean

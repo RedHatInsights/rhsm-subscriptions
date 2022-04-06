@@ -45,6 +45,7 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
   private static final Logger log =
       LoggerFactory.getLogger(IdentityHeaderAuthenticationFilter.class);
   public static final String RH_IDENTITY_HEADER = "x-rh-identity";
+  public static final String RH_PSK_HEADER = "x-rh-swatch-psk";
 
   private final ObjectMapper mapper;
 
@@ -55,19 +56,25 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
   @Override
   protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
     String identityHeader = request.getHeader(RH_IDENTITY_HEADER);
+    String pskHeader = request.getHeader(RH_PSK_HEADER);
 
-    // If the header is missing it will be passed down the chain.
-    if (!StringUtils.hasText(identityHeader)) {
-      log.debug("{} is empty", RH_IDENTITY_HEADER);
-      return null;
+    // Check PSK header first
+    if (StringUtils.hasText(pskHeader)) {
+      return new PskClientPrincipal(pskHeader);
+      // If missing check for Identity header
+    } else if (StringUtils.hasText(identityHeader)) {
+      try {
+        return createPrincipal(Base64.getDecoder().decode(identityHeader));
+      } catch (Exception e) {
+        log.error(SECURITY_STACKTRACE, RH_IDENTITY_HEADER + " was not valid.", e);
+        // Initialize an empty principal. The IdentityHeaderAuthenticationProvider will validate it.
+        return new InsightsUserPrincipal();
+      }
     }
-
-    try {
-      return createPrincipal(Base64.getDecoder().decode(identityHeader));
-    } catch (Exception e) {
-      log.error(SECURITY_STACKTRACE, RH_IDENTITY_HEADER + " was not valid.", e);
-      // Initialize an empty principal. The IdentityHeaderAuthenticationProvider will validate it.
-      return new InsightsUserPrincipal();
+    // If both headers are missing it will be passed down the chain.
+    else {
+      log.debug("{} and {} are empty", RH_IDENTITY_HEADER, RH_PSK_HEADER);
+      return null;
     }
   }
 

@@ -18,47 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.capacity;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Disabled;
+import org.candlepin.subscriptions.security.WithMockPskPrincipal;
+import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"api", "test"})
-class OpenApiSpecControllerTest {
-  @Autowired OpenApiSpecController controller;
+@WithMockPskPrincipal
+@ActiveProfiles({"capacity-ingress", "test"})
+class InternalSubscriptionResourceTest {
+
+  @MockBean SubscriptionSyncController controller;
+
+  @Autowired InternalSubscriptionResource resource;
 
   @Test
-  void testOpenApiJson() {
-    /* Tests that we receive a successful non-empty response */
-    String json = controller.getOpenApiJson();
-    assertNotEquals(0, json.length());
-  }
-
-  @Test
-  void testOpenApiYaml() {
-    /* Tests that we receive a successful non-empty response */
-    String yaml = controller.getOpenApiYaml();
-    assertNotEquals(0, yaml.length());
-  }
-
-  @Test
-  @Disabled("Need to get generation working for InternalOpenApiJson")
-  void testInternalOpenApiJson() {
-    /* Tests that we receive a successful non-empty response */
-    String json = controller.getInternalSubSyncOpenApiJson();
-    assertNotEquals(0, json.length());
-  }
-
-  @Test
-  void testIntenralOpenApiYaml() {
-    /* Tests that we receive a successful non-empty response */
-    String yaml = controller.getInternalSubSyncOpenApiYaml();
-    assertNotEquals(0, yaml.length());
+  void forceSyncForOrgShouldReturnSuccess() {
+    assertEquals("Success", resource.forceSyncSubscriptionsForOrg("123"));
   }
 }

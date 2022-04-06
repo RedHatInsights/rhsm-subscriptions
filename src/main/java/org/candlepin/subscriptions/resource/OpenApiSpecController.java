@@ -41,8 +41,14 @@ public class OpenApiSpecController {
   @Value("classpath:openapi.yaml")
   private Resource openApiYaml;
 
+  @Value("classpath:internalsubsyncopenapi.yaml")
+  private Resource internalOpenApiYaml;
+
   @Value("classpath:openapi.json")
   private Resource openApiJson;
+
+  @Value("classpath:internalsubsyncopenapi.json")
+  private Resource internalOpenApiJson;
 
   private String getResourceAsString(Resource r) {
     try (InputStream is = r.getInputStream()) {
@@ -62,5 +68,13 @@ public class OpenApiSpecController {
 
   public String getOpenApiYaml() {
     return getResourceAsString(openApiYaml);
+  }
+
+  public String getInternalSubSyncOpenApiJson() {
+    return getResourceAsString(internalOpenApiJson);
+  }
+
+  public String getInternalSubSyncOpenApiYaml() {
+    return getResourceAsString(internalOpenApiYaml);
   }
 }
