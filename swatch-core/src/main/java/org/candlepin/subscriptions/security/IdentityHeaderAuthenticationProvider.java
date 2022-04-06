@@ -20,14 +20,13 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.*;
+import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
+import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_PSK_HEADER;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
@@ -62,8 +61,6 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
 
   private Attributes2GrantedAuthoritiesMapper authMapper;
 
-  private final AuthProperties authProps;
-
   private final Map<String, String> pskAppMap;
 
   public IdentityHeaderAuthenticationProvider(
@@ -72,8 +69,25 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
       AuthProperties authProperties) {
     this.userDetailsService = userDetailsService;
     this.authMapper = authMapper;
-    this.authProps = authProperties;
-    this.pskAppMap = createPskAppMap();
+    this.pskAppMap = invertPskAppMap(authProperties.getSwatchPsks());
+  }
+
+  /**
+   * In our Spring configuration, we want something like <code>
+   * rhsm-subscriptions.auth.swatch-psk.user=123</code>. But in the application, we want the reverse
+   * so we can see what application the user's key is issued to.
+   */
+  private Map<String, String> invertPskAppMap(Map<String, String> swatchPsks) {
+    Map<String, String> invertedMap = new HashMap<>(swatchPsks.size());
+
+    for (Map.Entry<String, String> e : swatchPsks.entrySet()) {
+      if (invertedMap.containsKey(e.getValue())) {
+        throw new IllegalStateException(
+            "The same PSK is affiliated with two applications. This is a configuration error");
+      }
+      invertedMap.put(e.getValue(), e.getKey());
+    }
+    return invertedMap;
   }
 
   /**
@@ -147,22 +161,6 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
       throw new PreAuthenticatedCredentialsNotFoundException(
           RH_IDENTITY_HEADER + " is missing required data", e);
     }
-  }
-
-  private Map<String, String> createPskAppMap() {
-    Map<String, String> pskMap = new HashMap<>();
-    if (StringUtils.hasText(authProps.getSwatchPsks())) {
-      var swatchPsks = authProps.getSwatchPsks();
-      if (StringUtils.hasText(swatchPsks)) {
-        try {
-          JSONObject psksJson = new JSONObject(swatchPsks);
-          psksJson.keySet().forEach(appName -> pskMap.put(psksJson.getString(appName), appName));
-        } catch (JSONException e) {
-          log.error("Invalid SWATCH_PSKS property");
-        }
-      }
-    }
-    return pskMap;
   }
 
   @Override

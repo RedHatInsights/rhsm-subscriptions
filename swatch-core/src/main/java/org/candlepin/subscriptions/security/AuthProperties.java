@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import java.util.Collections;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -29,6 +31,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "rhsm-subscriptions.auth")
 public class AuthProperties {
 
-  /** JSON of a Pre Shared Key (PSK) list used in service-to-service auth. */
-  private String swatchPsks;
+  private Map<String, String> swatchPsks = Collections.emptyMap();
 }
