@@ -33,6 +33,7 @@ config/
 .project
 .settings
 /**/bin/*
+!bin/import-events.py
 !bin/hawtio-proxy.sh
 !bin/build-images.sh
 !bin/insert-mock-hosts
