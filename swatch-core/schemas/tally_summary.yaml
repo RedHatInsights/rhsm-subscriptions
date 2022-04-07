@@ -1,10 +1,11 @@
 $schema: http://json-schema.org/draft-07/schema#
 title: TallySummary
+required:
+  - account_number
 properties:
   account_number:
     description: Account identifier for the relevant account.
     type: string
-    required: true
   tally_snapshots:
     description: List of tally snapshots produced in the range.
     type: array
@@ -14,6 +15,16 @@ properties:
         id:
           type: string
           format: uuid
+        billing_provider:
+          type: string
+          enum:
+            - ''
+            - red hat
+            - aws
+            - gcp
+            - azure
+            - oracle
+            - _ANY
         snapshot_date:
           type: string
           format: date-time
@@ -28,7 +39,6 @@ properties:
             - Standard
             - Self-Support
             - _ANY
-          required: false
         usage:
           description: Intended usage for the subject.
           type: string
@@ -38,7 +48,6 @@ properties:
             - Development/Test
             - Disaster Recovery
             - _ANY
-          required: false
         granularity:
           type: string
           enum:
@@ -48,25 +57,16 @@ properties:
             - Monthly
             - Quarterly
             - Yearly
-        billing_provider:
-          type: string
-          enum:
-            - ''
-            - Red hat
-            - Aws
-            - Gcp
-            - Azure
-            - Oracle
-            - _ANY
-          required: false
         tally_measurements:
           type: array
           items:
             type: object
+            required:
+              - hardware_measurement_type
+              - value
             properties:
               hardware_measurement_type:
                 type: string
-                required: true
               uom:
                 description: Preferred unit of measure for the subject (for products with multiple possible UOM).
                 type: string
@@ -77,8 +77,6 @@ properties:
                   - Instance-hours
                   - Storage-gibibytes
                   - Transfer-gibibytes
-                required: false
               value:
                 description: Measurement value.
                 type: number
-                required: true

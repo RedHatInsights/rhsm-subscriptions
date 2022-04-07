@@ -1,0 +1,211 @@
+openapi: "3.0.2"
+info:
+  title: "internal-rhsm-subscriptions-api"
+  description: "REST interface for the internal-rhsm-subscriptions service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
+  version: 1.0.0
+
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /internal/subscriptions/awsUsageContext:
+    description: "Get AWS usage context."
+    parameters:
+      - name: accountNumber
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "Customer's Account Number"
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sla
+        in: query
+        schema:
+          type: string
+      - name: usage
+        in: query
+        schema:
+          type: string
+    get:
+      summary: "Lookup necessary info to submit a usage record to AWS"
+      operationId: getAwsUsageContext
+      responses:
+        '200':
+          description: "Found AWS usage context matching the criteria."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwsUsageContext'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      tags:
+        - internalSubscriptions
+  /internalopenapi.json:
+    get:
+      description: "Get the OpenAPI spec in JSON format."
+      operationId: getOpenApiJson
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI JSON was successful."
+          content:
+            application/json:
+              schema:
+                type: string
+  /internalopenapi.yaml:
+    get:
+      description: "Get the OpenAPI spec in YAML format."
+      operationId: getOpenApiYaml
+      tags:
+        - root
+      responses:
+        '200':
+          description: "The request to get the OpenAPI YAML was successful."
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Base64-encoded psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ```
+        Encoded (via `base64 -w0`):
+        `YzlhOTg3NTMtMjA5Mi00NjE3LWIyMjYtNWMyNjUzMzMwYjNk`
+  responses:
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ServiceUnavailable:
+      description: "The server is currently unavailable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+  schemas:
+    # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
+    VersionInfo:
+      properties:
+        build:
+          type: object
+          properties:
+            version:
+              type: string
+            gitDescription:
+              type: string
+            artifact:
+              type: string
+            name:
+              type: string
+            group:
+              type: string
+            gitHash:
+              type: string
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+    AwsUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
+      properties:
+        rhSubscriptionId:
+          type: string
+        customerId:
+          type: string
+        productCode:
+          type: string
+        awsSellerAccountId:
+          type: string
+        subscriptionStartDate:
+          type: string
+          format: date-time
+
+security:
+  - PskIdentity: []
