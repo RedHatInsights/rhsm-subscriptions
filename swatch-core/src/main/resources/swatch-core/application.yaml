@@ -161,4 +161,4 @@ rhsm-subscriptions:
       kafka-group-id: offering-worker
   auth:
     swatchPsks:
-      source: ${SWATCH_SOURCE_PSK:dummy}
+      self: ${SWATCH_SELF_PSK:dummy}
