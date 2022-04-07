@@ -105,7 +105,6 @@ jacocoTestReport {
     }
 }
 
-compileJava.dependsOn(processResources)
 project.tasks["sonarqube"].dependsOn "test"
 project.tasks["sonarqube"].dependsOn "jacocoTestReport"
 
@@ -114,17 +113,32 @@ project.tasks["sonarqube"].dependsOn "jacocoTestReport"
  * going to require a little Gradle-fu that I don't currently possess.
  */
 ext {
-    api_spec_path = "${projectDir}/src/main/spec/internal-tally-api.yaml"
+    internal_spec_dir = "${projectDir}/src/main/spec"
+
+    tally_api_spec_file = "${internal_spec_dir}/internal-tally-api-spec.yaml"
+    tally_config_file = "${internal_spec_dir}/internal-tally-api-config.json"
+
+    sub_sync_api_spec_file = "${internal_spec_dir}/internal-subscriptions-sync-api-spec.yaml"
+    sub_sync_config_file = "${internal_spec_dir}/internal-subscriptions-sync-api-config.json"
 }
 
-openApiGenerate {
+tasks.register("buildApiTally", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
     generatorName = "jaxrs-spec"
-    inputSpec = api_spec_path
-    outputDir = "$buildDir/generated"
-    apiPackage = "org.candlepin.subscriptions.tally.admin.api"
-    modelPackage = "org.candlepin.subscriptions.tally.admin.api.model"
-    invokerPackage = "org.candlepin.subscriptions.tally.admin"
-    groupId = "org.candlepin"
+    inputSpec = tally_api_spec_file
+    configFile = tally_config_file
+    outputDir = "$buildDir/generated/tally"
+    configOptions = [
+        interfaceOnly: "true",
+        generatePom: "false",
+        dateLibrary: "java8",
+    ]
+}
+
+tasks.register("buildApiSubSync", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "jaxrs-spec"
+    inputSpec = sub_sync_api_spec_file
+    configFile = sub_sync_config_file
+    outputDir = "$buildDir/generated/sub-sync"
     configOptions = [
             interfaceOnly: "true",
             generatePom: "false",
@@ -132,44 +146,80 @@ openApiGenerate {
     ]
 }
 
-openApiValidate {
-    inputSpec = api_spec_path
+tasks.register("apiGenerate") {
+    dependsOn(provider {
+        tasks.findAll { task -> task.name.startsWith('buildApi') }
+    })
 }
 
-task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("validateApiTally", org.openapitools.generator.gradle.plugin.tasks.ValidateTask) {
+    inputSpec = tally_api_spec_file
+}
+
+tasks.register("validateApiSubSync", org.openapitools.generator.gradle.plugin.tasks.ValidateTask) {
+    inputSpec = sub_sync_api_spec_file
+}
+
+tasks.register("apiValidate") {
+    dependsOn(provider {
+        tasks.findAll { task -> task.name.startsWith('validateApi') }
+    })
+}
+
+tasks.register("generateApiDocsTally", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
     generatorName = "html"
-    inputSpec = api_spec_path
-    outputDir = "$buildDir/docs"
-    generateApiDocumentation = true
-    generateModelDocumentation = true
+    inputSpec = tally_api_spec_file
+    outputDir = "$buildDir/internal-tally-docs"
     generateModelTests = false
     generateApiTests = false
-    withXml = false
 }
 
-task generateOpenApiJson(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
-    generatorName = "openapi"
-    inputSpec = api_spec_path
-    outputDir = "$buildDir/generated/openapijson"
-    generateApiDocumentation = true
-    generateModelDocumentation = true
+tasks.register("generateApiDocsSubSync", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "html"
+    inputSpec = sub_sync_api_spec_file
+    outputDir = "$buildDir/internal-subscription-sync-docs"
     generateModelTests = false
     generateApiTests = false
-    withXml = false
+}
+
+tasks.register("generateOpenApiJsonTally", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "openapi"
+    inputSpec = tally_api_spec_file
+    outputDir = "$buildDir/openapijson"
+    generateModelTests = false
+    generateApiTests = false
+    configOptions = [
+        outputFileName: "internal-tally-openapi.json"
+    ]
+}
+
+tasks.register("generateOpenApiJsonSubSync", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "openapi"
+    inputSpec = sub_sync_api_spec_file
+    outputDir = "$buildDir/openapijson"
+    generateModelTests = false
+    generateApiTests = false
+    configOptions = [
+        outputFileName: "internal-subscription-sync-openapi.json"
+    ]
 }
 
 processResources {
-    from "$buildDir/generated/openapijson/openapi.json"
-    from api_spec_path
-    rename { String fileName ->
-        api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
-    }
+    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync
+    from tally_api_spec_file, sub_sync_api_spec_file
 }
 
-sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-compileJava.dependsOn tasks.openApiGenerate
-processResources.dependsOn tasks.generateOpenApiJson
-processResources.dependsOn tasks.openApiGenerate
+sourceSets.main.java.srcDirs += [
+    "${buildDir}/generated/tally/src/gen/java",
+    "${buildDir}/generated/sub-sync/src/gen/java"
+]
+
+compileJava {
+    dependsOn processResources
+    dependsOn(provider {
+        tasks.findAll { task -> task.name.startsWith('buildApi') }
+    })
+}
 
 project(":api") {
     apply plugin: "swatch.java-conventions"
@@ -177,53 +227,48 @@ project(":api") {
     apply plugin: "org.openapi.generator"
 
     ext {
-        api_spec_path = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
+        api_spec_file = "${projectDir}/rhsm-subscriptions-api-spec.yaml"
         config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
     }
 
-    openApiGenerate {
-      generatorName = "jaxrs-spec"
-      inputSpec = api_spec_path
-      configFile = config_file
-      outputDir = "$buildDir/generated"
-      configOptions = [
-          interfaceOnly: "true",
-          generatePom: "false",
-          dateLibrary: "java8",
-      ]
+    tasks.register("apiGenerate", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+        generatorName = "jaxrs-spec"
+        inputSpec = api_spec_file
+        configFile = config_file
+        outputDir = "$buildDir/generated"
+        configOptions = [
+            interfaceOnly: "true",
+            generatePom: "false",
+            dateLibrary: "java8",
+        ]
     }
 
-    openApiValidate {
-        inputSpec = api_spec_path
+    tasks.register("validateApiSpec", org.openapitools.generator.gradle.plugin.tasks.ValidateTask) {
+        inputSpec = api_spec_file
     }
 
-    task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    tasks.register("generateApiDocs", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
         generatorName = "html"
-        inputSpec = api_spec_path
+        inputSpec = api_spec_file
         outputDir = "$buildDir/docs"
-        generateApiDocumentation = true
-        generateModelDocumentation = true
         generateModelTests = false
         generateApiTests = false
-        withXml = false
     }
 
-    task generateOpenApiJson(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    tasks.register("generateOpenApiJson", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
         generatorName = "openapi"
-        inputSpec = api_spec_path
-        outputDir = "$buildDir/generated/openapijson"
-        generateApiDocumentation = true
-        generateModelDocumentation = true
+        inputSpec = api_spec_file
+        outputDir = "$buildDir/openapijson"
         generateModelTests = false
         generateApiTests = false
-        withXml = false
     }
 
     processResources {
-        from "$buildDir/generated/openapijson/openapi.json"
-        from api_spec_path
+        from tasks.generateOpenApiJson
+        from api_spec_file
         rename { String fileName ->
-            api_spec_path.endsWith(fileName) ? 'openapi.yaml' : fileName  // rename yaml to openapi.yaml
+            // rename yaml to openapi.yaml
+            api_spec_file.endsWith(fileName) ? 'openapi.yaml' : fileName
         }
     }
 
@@ -238,9 +283,7 @@ project(":api") {
     }
 
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-    compileJava.dependsOn tasks.openApiGenerate
-    processResources.dependsOn tasks.generateOpenApiJson
-    processResources.dependsOn tasks.openApiGenerate
+    compileJava.dependsOn tasks.apiGenerate
 }
 
 project(":kafka-schema") {

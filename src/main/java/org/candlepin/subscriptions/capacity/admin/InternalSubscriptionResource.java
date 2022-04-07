@@ -18,31 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.capacity.admin;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
+import org.springframework.stereotype.Component;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+/** Subscriptions Table API implementation. */
+@Component
+public class InternalSubscriptionResource implements InternalApi {
 
-@SpringBootTest
-@ActiveProfiles({"api", "test"})
-class OpenApiSpecControllerTest {
-  @Autowired OpenApiSpecController controller;
+  private final SubscriptionSyncController subscriptionSyncController;
+  private static final String SUCCESS_STATUS = "Success";
 
-  @Test
-  void testOpenApiJson() {
-    /* Tests that we receive a successful non-empty response */
-    String json = controller.getOpenApiJson();
-    assertNotEquals(0, json.length());
+  public InternalSubscriptionResource(SubscriptionSyncController subscriptionSyncController) {
+    this.subscriptionSyncController = subscriptionSyncController;
   }
 
-  @Test
-  void testOpenApiYaml() {
-    /* Tests that we receive a successful non-empty response */
-    String yaml = controller.getOpenApiYaml();
-    assertNotEquals(0, yaml.length());
+  @Override
+  public String forceSyncSubscriptionsForOrg(String orgId) {
+    subscriptionSyncController.forceSyncSubscriptionsForOrg(orgId);
+    return SUCCESS_STATUS;
   }
 }

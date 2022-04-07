@@ -18,19 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiJsonApi;
+import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionSyncOpenapiJsonApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI spec as /openapi.json. */
+/** Serves the OpenAPI json for the internal subscription sync API */
 @Component
-public class OpenApiJsonResource implements OpenapiJsonApi {
-  @Autowired OpenApiSpecController controller;
+public class InternalSubscriptionSyncApiJsonResource
+    implements InternalSubscriptionSyncOpenapiJsonApi {
+  @Autowired ApiSpecController controller;
 
   @Override
   public String getOpenApiJson() {
-    return controller.getOpenApiJson();
+    return controller.getInternalSubSyncApiJson();
   }
 }

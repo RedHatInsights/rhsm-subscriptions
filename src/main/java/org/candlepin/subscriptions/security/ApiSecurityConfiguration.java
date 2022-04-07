@@ -78,13 +78,20 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
   @Autowired protected RbacProperties rbacProperties;
   @Autowired protected ConfigurableEnvironment env;
   @Autowired protected RbacService rbacService;
+  @Autowired protected AuthProperties authProperties;
+
+  private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
+      new String[] {
+        "/**/*openapi.yaml", "/**/*openapi.json", "/**/version", "/api-docs/**", "/webjars/**"
+      };
 
   @Override
   public void configure(AuthenticationManagerBuilder auth) {
     // Add our AuthenticationProvider to the Provider Manager's list
     auth.authenticationProvider(
         identityHeaderAuthenticationProvider(
-            identityHeaderAuthenticationDetailsService(secProps, rbacProperties, rbacService)));
+            identityHeaderAuthenticationDetailsService(secProps, rbacProperties, rbacService),
+            authProperties));
   }
 
   @Bean
@@ -97,8 +104,10 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
   @Bean
   public AuthenticationProvider identityHeaderAuthenticationProvider(
       @Qualifier("identityHeaderAuthenticationDetailsService")
-          IdentityHeaderAuthenticationDetailsService detailsService) {
-    return new IdentityHeaderAuthenticationProvider(detailsService);
+          IdentityHeaderAuthenticationDetailsService detailsService,
+      AuthProperties authProperties) {
+    return new IdentityHeaderAuthenticationProvider(
+        detailsService, identityHeaderAuthoritiesMapper(), authProperties);
   }
 
   // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
@@ -161,7 +170,7 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
         .anonymous() // Creates an anonymous user if no header is present at all. Prevents NPEs
         .and()
         .authorizeRequests()
-        .antMatchers("/**/openapi.*", "/**/version", "/api-docs/**", "/webjars/**")
+        .antMatchers(URLS_PERMITTED_WITHOUT_AUTH)
         .permitAll()
         // ingress security uses server settings (require ssl cert auth), so permit all here
         .antMatchers(String.format("/%s/ingress/**", apiPath))
@@ -187,6 +196,8 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
         .antMatchers("/metrics")
         .permitAll()
+        .antMatchers("/**/internal/**")
+        .access("hasRole('ROLE_INTERNAL')")
         .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
         .access("@optInChecker.checkAccess(authentication)")
         .anyRequest()

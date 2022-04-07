@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,12 +37,24 @@ import org.springframework.stereotype.Component;
  * <p>Pulls the spec files from the API jar.
  */
 @Component
-public class OpenApiSpecController {
+public class ApiSpecController {
   @Value("classpath:openapi.yaml")
   private Resource openApiYaml;
 
   @Value("classpath:openapi.json")
   private Resource openApiJson;
+
+  @Value("classpath:internal-subscriptions-sync-api-spec.yaml")
+  private Resource internalSubSyncApiYaml;
+
+  @Value("classpath:internal-subscription-sync-openapi.json")
+  private Resource internalSubSyncApiJson;
+
+  @Value("classpath:internal-tally-api-spec.yaml")
+  private Resource internalTallyApiYaml;
+
+  @Value("classpath:internal-tally-openapi.json")
+  private Resource internalTallyApiJson;
 
   private String getResourceAsString(Resource r) {
     try (InputStream is = r.getInputStream()) {
@@ -62,5 +74,21 @@ public class OpenApiSpecController {
 
   public String getOpenApiYaml() {
     return getResourceAsString(openApiYaml);
+  }
+
+  public String getInternalSubSyncApiYaml() {
+    return getResourceAsString(internalSubSyncApiYaml);
+  }
+
+  public String getInternalSubSyncApiJson() {
+    return getResourceAsString(internalSubSyncApiJson);
+  }
+
+  public String getInternalTallyApiYaml() {
+    return getResourceAsString(internalTallyApiYaml);
+  }
+
+  public String getInternalTallyApiJson() {
+    return getResourceAsString(internalTallyApiJson);
   }
 }

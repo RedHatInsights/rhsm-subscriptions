@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api;
 
 import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 /** Serves the OpenAPI spec as /openapi.yaml. */
 @Component
 public class OpenApiYamlResource implements OpenapiYamlApi {
-  @Autowired OpenApiSpecController controller;
+  @Autowired ApiSpecController controller;
 
   @Override
   public String getOpenApiYaml() {

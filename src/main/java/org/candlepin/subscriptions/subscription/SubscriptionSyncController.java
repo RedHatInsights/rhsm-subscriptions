@@ -315,4 +315,10 @@ public class SubscriptionSyncController {
   public void deleteSubscription(String subscriptionId) {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
   }
+
+  @Transactional
+  public void forceSyncSubscriptionsForOrg(String orgId) {
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
+    subscriptions.forEach(this::syncSubscription);
+  }
 }
