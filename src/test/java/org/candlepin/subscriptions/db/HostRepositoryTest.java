@@ -37,6 +37,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
@@ -47,7 +48,9 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resource.HostsResource;
+import org.candlepin.subscriptions.resource.InstancesResource;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
+import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,6 +65,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -701,6 +705,7 @@ class HostRepositoryTest {
             0,
             "2021-01",
             referenceUom,
+            null,
             page);
 
     assertEquals(2, results.getTotalElements());
@@ -881,6 +886,112 @@ class HostRepositoryTest {
     assertEquals(coreHost.getSubscriptionManagerId(), physical.getSubscriptionManagerId());
     assertEquals(0, physical.getSockets());
     assertEquals(1, physical.getCores());
+  }
+
+  @Transactional
+  @Test
+  void testFilterByBillingModel() {
+    Host host1 = createHost("i1", "a1");
+    host1.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(host1, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host host2 = createHost("i2", "a1");
+    host2.setBillingProvider(BillingProvider.AWS);
+    addBucketToHost(host2, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host host3 = createHost("i3", "a1");
+    addBucketToHost(host3, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    persistHosts(host1, host2, host3);
+
+    HostReportSort sort = HostReportSort.CORES;
+    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
+    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+
+    Page<Host> results =
+        repo.findAllBy(
+            "a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            0,
+            null,
+            null,
+            BillingProvider.AWS,
+            page);
+    assertEquals(1L, results.getTotalElements());
+    assertEquals(BillingProvider.AWS, results.getContent().get(0).getBillingProvider());
+
+    Page<Host> allResults =
+        repo.findAllBy(
+            "a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            0,
+            null,
+            null,
+            null,
+            page);
+    assertEquals(3L, allResults.getTotalElements());
+    Map<String, Host> hostToBill =
+        allResults.stream().collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    assertTrue(
+        hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3")),
+        "Result did not contain expected hosts!");
+    assertEquals(BillingProvider.RED_HAT, hostToBill.get("i1").getBillingProvider());
+    assertEquals(BillingProvider.AWS, hostToBill.get("i2").getBillingProvider());
+    assertNull(hostToBill.get("i3").getBillingProvider());
+  }
+
+  @Transactional
+  @Test
+  void testSortByBillingProvider() {
+    Host host1 = createHost("i1", "a1");
+    host1.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(host1, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host host2 = createHost("i2", "a1");
+    host2.setBillingProvider(BillingProvider.AWS);
+    addBucketToHost(host2, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host host3 = createHost("i3", "a1");
+    addBucketToHost(host3, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host host4 = createHost("i4", "a1");
+    host4.setBillingProvider(BillingProvider.ORACLE);
+    addBucketToHost(host4, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    persistHosts(host1, host2, host3, host4);
+
+    Sort asc =
+        Sort.by(
+            Direction.DESC,
+            InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(InstanceReportSort.BILLING_PROVIDER));
+    Pageable page = PageRequest.of(0, 10, asc);
+
+    Page<Host> results =
+        repo.findAllBy(
+            "a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            0,
+            null,
+            null,
+            null,
+            page);
+    assertEquals(4L, results.getTotalElements());
+    assertNull(results.getContent().get(0).getBillingProvider());
+    assertEquals(BillingProvider.RED_HAT, results.getContent().get(1).getBillingProvider());
+    assertEquals(BillingProvider.ORACLE, results.getContent().get(2).getBillingProvider());
+    assertEquals(BillingProvider.AWS, results.getContent().get(3).getBillingProvider());
   }
 
   @Transactional

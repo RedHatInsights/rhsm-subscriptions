@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.Measurement;
@@ -63,14 +64,17 @@ class InstancesResourceTest {
 
   @Test
   void testShouldPopulateInstanceResponse() {
+    BillingProvider expectedBillingProvider = BillingProvider.AWS;
+
     var host = new Host();
     host.setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     host.setDisplayName("rhv.example.com");
+    host.setBillingProvider(expectedBillingProvider);
     host.setLastSeen(OffsetDateTime.now());
 
     Mockito.when(
             repository.findAllBy(
-                any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any()))
+                any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(host)));
 
     var expectUom = List.of("Instance-hours", "Storage-gibibytes", "Transfer-gibibytes");
@@ -82,6 +86,7 @@ class InstancesResourceTest {
     var data = new InstanceData();
     data.setId(host.getInstanceId());
     data.setDisplayName(host.getDisplayName());
+    data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(host.getLastSeen());
     data.setMeasurements(expectedMeasurement);
 
@@ -91,6 +96,7 @@ class InstancesResourceTest {
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
+    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
 
     var expected = new InstanceResponse();
     expected.setData(List.of(data));
@@ -103,6 +109,7 @@ class InstancesResourceTest {
             null,
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
+            expectedBillingProvider.asOpenApiEnum(),
             null,
             null,
             null,

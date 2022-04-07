@@ -150,6 +150,9 @@ public class Host implements Serializable {
   @Column(name = "instance_type")
   private String instanceType;
 
+  @Column(name = "billing_provider")
+  private BillingProvider billingProvider;
+
   public Host() {}
 
   public Host(

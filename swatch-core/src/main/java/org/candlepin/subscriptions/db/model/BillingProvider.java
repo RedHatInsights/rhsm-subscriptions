@@ -25,6 +25,7 @@ import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 
+/** Billing provider associated with a host. */
 public enum BillingProvider implements StringValueEnum<BillingProviderType> {
   EMPTY("", BillingProviderType.EMPTY),
   RED_HAT("red hat", BillingProviderType.RED_HAT),
@@ -55,6 +56,7 @@ public enum BillingProvider implements StringValueEnum<BillingProviderType> {
     return StringValueEnum.getValueOf(BillingProvider.class, VALUE_ENUM_MAP, value, EMPTY);
   }
 
+  @Override
   public String getValue() {
     return value;
   }
