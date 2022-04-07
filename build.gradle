@@ -207,16 +207,6 @@ tasks.register("generateOpenApiJsonSubSync", org.openapitools.generator.gradle.p
 processResources {
     from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync
     from tally_api_spec_file, sub_sync_api_spec_file
-
-    rename { String fileName ->
-        if (tally_api_spec_file.endsWith(fileName)) {
-            return "internal-tally-openapi.yaml"
-        } else if (sub_sync_api_spec_file.endsWith(fileName)) {
-            return "internal-subscription-sync-openapi.yaml"
-        } else {
-            return fileName
-        }
-    }
 }
 
 sourceSets.main.java.srcDirs += [

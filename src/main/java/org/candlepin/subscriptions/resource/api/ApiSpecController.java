@@ -44,13 +44,13 @@ public class ApiSpecController {
   @Value("classpath:openapi.json")
   private Resource openApiJson;
 
-  @Value("classpath:internal-subscription-sync-openapi.yaml")
+  @Value("classpath:internal-subscriptions-sync-api-spec.yaml")
   private Resource internalSubSyncApiYaml;
 
   @Value("classpath:internal-subscription-sync-openapi.json")
   private Resource internalSubSyncApiJson;
 
-  @Value("classpath:internal-tally-openapi.yaml")
+  @Value("classpath:internal-tally-api-spec.yaml")
   private Resource internalTallyApiYaml;
 
   @Value("classpath:internal-tally-openapi.json")
