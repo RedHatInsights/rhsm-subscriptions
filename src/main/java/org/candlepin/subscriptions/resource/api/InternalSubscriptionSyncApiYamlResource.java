@@ -18,30 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.resource.api;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.candlepin.subscriptions.capacity.admin.InternalSubscriptionResource;
-import org.candlepin.subscriptions.security.WithMockPskPrincipal;
-import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.junit.jupiter.api.Test;
+import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionSyncOpenapiYamlApi;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.stereotype.Component;
 
-@SpringBootTest
-@WithMockPskPrincipal
-@ActiveProfiles({"capacity-ingress", "test"})
-class InternalSubscriptionResourceTest {
+/** Serves the OpenAPI yaml for the internal subscription sync API */
+@Component
+public class InternalSubscriptionSyncApiYamlResource
+    implements InternalSubscriptionSyncOpenapiYamlApi {
+  @Autowired ApiSpecController controller;
 
-  @MockBean SubscriptionSyncController controller;
-
-  @Autowired InternalSubscriptionResource resource;
-
-  @Test
-  void forceSyncForOrgShouldReturnSuccess() {
-    assertEquals("Success", resource.forceSyncSubscriptionsForOrg("123"));
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getInternalSubSyncApiYaml();
   }
 }

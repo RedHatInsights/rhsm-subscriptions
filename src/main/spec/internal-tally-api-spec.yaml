@@ -26,9 +26,9 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internal
-  /openapi.json:
+  /internal-tally-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
-  /openapi.yaml:
+  /internal-tally-openapi.yaml:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
 components:
   requestBodies:

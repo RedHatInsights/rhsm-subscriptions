@@ -18,11 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.resource.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,8 +29,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
-class OpenApiSpecControllerTest {
-  @Autowired OpenApiSpecController controller;
+class ApiSpecControllerTest {
+  @Autowired ApiSpecController controller;
 
   @Test
   void testOpenApiJson() {
@@ -48,17 +47,22 @@ class OpenApiSpecControllerTest {
   }
 
   @Test
-  @Disabled("Need to get generation working for InternalOpenApiJson")
   void testInternalOpenApiJson() {
     /* Tests that we receive a successful non-empty response */
-    String json = controller.getInternalSubSyncOpenApiJson();
+    String json = controller.getInternalSubSyncApiJson();
+    assertNotEquals(0, json.length());
+
+    json = controller.getInternalTallyApiJson();
     assertNotEquals(0, json.length());
   }
 
   @Test
   void testIntenralOpenApiYaml() {
     /* Tests that we receive a successful non-empty response */
-    String yaml = controller.getInternalSubSyncOpenApiYaml();
+    String yaml = controller.getInternalSubSyncApiYaml();
+    assertNotEquals(0, yaml.length());
+
+    yaml = controller.getInternalTallyApiYaml();
     assertNotEquals(0, yaml.length());
   }
 }
