@@ -190,6 +190,7 @@ public class HostsResource implements HostsApi {
               minSockets,
               month,
               referenceUom,
+              null,
               page);
       payload =
           ((Page<Host>) hosts)

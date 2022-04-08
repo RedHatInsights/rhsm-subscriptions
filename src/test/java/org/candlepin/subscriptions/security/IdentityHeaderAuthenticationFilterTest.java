@@ -21,9 +21,11 @@
 package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
+import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_PSK_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,30 +35,35 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
-public class IdentityHeaderAuthenticationFilterTest {
+@MockitoSettings(strictness = Strictness.LENIENT)
+class IdentityHeaderAuthenticationFilterTest {
 
   private ObjectMapper mapper = new ObjectMapper();
 
   @Mock private HttpServletRequest request;
 
   @Test
-  public void testEmptyHeaderReturnsNullPrincipal() {
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(null);
+  void testEmptyHeaderReturnsNullPrincipal() {
+    doReturn(null).when(request).getHeader(RH_IDENTITY_HEADER);
+
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     assertNull(filter.getPreAuthenticatedPrincipal(request));
   }
 
   @Test
-  public void defaultEmptyPrincipalReturnedWhenExceptionOccursWhileProcessingHeader() {
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn("arandomheadervalue");
+  void defaultEmptyPrincipalReturnedWhenExceptionOccursWhileProcessingHeader() {
+    doReturn("arandomheadervalue").when(request).getHeader(RH_IDENTITY_HEADER);
+
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     assertPrincipal(filter.getPreAuthenticatedPrincipal(request), null, null);
   }
 
   @Test
-  public void missingIdentityResultsInNullOrgAndAccount() {
+  void missingIdentityResultsInNullOrgAndAccount() {
     // {}
     String emptyJson = Base64.getEncoder().encodeToString("{}".getBytes());
     when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(emptyJson);
@@ -65,11 +72,11 @@ public class IdentityHeaderAuthenticationFilterTest {
   }
 
   @Test
-  public void testMissingInternalProperty() {
+  void testMissingInternalProperty() {
     String missingInternal =
         Base64.getEncoder()
             .encodeToString("{\"identity\":{\"account_number\":\"myaccount\"}}".getBytes());
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingInternal);
+    doReturn(missingInternal).when(request).getHeader(RH_IDENTITY_HEADER);
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", null);
   }
@@ -80,7 +87,7 @@ public class IdentityHeaderAuthenticationFilterTest {
         Base64.getEncoder()
             .encodeToString(
                 "{\"identity\":{\"account_number\":\"myaccount\", \"internal\":{}}}".getBytes());
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingOrgId);
+    doReturn(missingOrgId).when(request).getHeader(RH_IDENTITY_HEADER);
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     assertPrincipal(filter.getPreAuthenticatedPrincipal(request), "myaccount", null);
   }
@@ -91,7 +98,7 @@ public class IdentityHeaderAuthenticationFilterTest {
     String missingAccount =
         Base64.getEncoder()
             .encodeToString("{\"identity\":{\"internal\":{\"org_id\":\"myorg\"}}}".getBytes());
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(missingAccount);
+    doReturn(missingAccount).when(request).getHeader(RH_IDENTITY_HEADER);
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     assertPrincipal(filter.getPreAuthenticatedPrincipal(request), null, "myorg");
   }
@@ -104,7 +111,7 @@ public class IdentityHeaderAuthenticationFilterTest {
                 ("{\"identity\":{\"associate\":{\"email\":\"test@example.com\"},"
                         + "\"auth_type\":\"saml-auth\",\"type\": \"Associate\"}}")
                     .getBytes());
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(associate);
+    doReturn(associate).when(request).getHeader(RH_IDENTITY_HEADER);
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     Object principal = filter.getPreAuthenticatedPrincipal(request);
     assertTrue(principal instanceof RhAssociatePrincipal);
@@ -119,11 +126,29 @@ public class IdentityHeaderAuthenticationFilterTest {
                 ("{\"identity\":{\"auth_type\":\"x509\",\"type\":\"X509\",\"x509\":{\"subject_dn\":"
                         + "\"CN=test.example.com\"}}}")
                     .getBytes());
-    when(request.getHeader(RH_IDENTITY_HEADER)).thenReturn(associate);
+    doReturn(associate).when(request).getHeader(RH_IDENTITY_HEADER);
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     Object principal = filter.getPreAuthenticatedPrincipal(request);
     assertTrue(principal instanceof X509Principal);
     assertEquals("CN=test.example.com", ((X509Principal) principal).getSubjectDn());
+  }
+
+  @Test
+  void testEmptyPskHeaderReturnsNullPrincipal() {
+    doReturn(null).when(request).getHeader(RH_PSK_HEADER);
+    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+    assertNull(filter.getPreAuthenticatedPrincipal(request));
+  }
+
+  @Test
+  void testPskHeader() {
+    String psk = "c9a98753-2092-4617-b226-5c2653330b3d";
+    doReturn(psk).when(request).getHeader(RH_PSK_HEADER);
+    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+    Object principal = filter.getPreAuthenticatedPrincipal(request);
+    assertTrue(principal instanceof PskClientPrincipal);
+    assertEquals(
+        "c9a98753-2092-4617-b226-5c2653330b3d", ((PskClientPrincipal) principal).getPreSharedKey());
   }
 
   private void assertPrincipal(Object preAuthPrincipal, String expAccountNumber, String expOrgId) {

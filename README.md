@@ -288,6 +288,8 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `CLOUDIGRADE_INTERNAL_PORT`: cloudigrade internal services port
 * `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
 * `CLOUDIGRADE_PSK`: pre-shared key for cloudigrade authentication
+* `SWATCH_*_PSK`: pre-shared keys for internal service-to-service authentication
+  where the `*` represents the name of an authorized service
 
 </details>
 

@@ -28,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.Random;
 import java.util.Set;
 import javax.transaction.Transactional;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -205,7 +206,7 @@ class SubscriptionRepositoryTest {
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);
     subscription.setSubscriptionNumber(subId + "1");
-    subscription.setBillingProvider("Test_Marketplace");
+    subscription.setBillingProvider(BillingProvider.RED_HAT);
 
     return subscription;
   }

@@ -29,11 +29,11 @@ import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
-public class InternalResource implements InternalApi {
+public class InternalTallyResource implements InternalApi {
 
   private final MarketplaceResendTallyController resendTallyController;
 
-  public InternalResource(MarketplaceResendTallyController resendTallyController) {
+  public InternalTallyResource(MarketplaceResendTallyController resendTallyController) {
     this.resendTallyController = resendTallyController;
   }
 

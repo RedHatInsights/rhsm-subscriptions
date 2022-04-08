@@ -18,31 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package com.redhat.swatch.exception;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@ActiveProfiles({"api", "test"})
-class OpenApiSpecControllerTest {
-  @Autowired OpenApiSpecController controller;
-
-  @Test
-  void testOpenApiJson() {
-    /* Tests that we receive a successful non-empty response */
-    String json = controller.getOpenApiJson();
-    assertNotEquals(0, json.length());
-  }
-
-  @Test
-  void testOpenApiYaml() {
-    /* Tests that we receive a successful non-empty response */
-    String yaml = controller.getOpenApiYaml();
-    assertNotEquals(0, yaml.length());
+public class AwsMissingCredentialsException extends AwsProducerException {
+  public AwsMissingCredentialsException(String sellerAccount) {
+    super(
+        ErrorCode.AWS_MISSING_CREDENTIALS_ERROR, String.format("sellerAccount=%s", sellerAccount));
   }
 }

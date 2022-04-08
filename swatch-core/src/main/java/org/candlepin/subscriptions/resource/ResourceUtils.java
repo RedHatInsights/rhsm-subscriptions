@@ -149,7 +149,7 @@ public class ResourceUtils {
    * Uses BillingProvider.ANY for a null value, otherwise returns db model equivalent of
    * BillingProviderType generated enum
    *
-   * @param billingProvider string form of sla
+   * @param billingProvider string form of billing provider
    * @return BilligProvider enum
    */
   public static BillingProvider sanitizeBillingProvider(BillingProviderType billingProvider) {

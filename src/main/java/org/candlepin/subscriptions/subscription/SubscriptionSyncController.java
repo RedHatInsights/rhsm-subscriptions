@@ -143,7 +143,7 @@ public class SubscriptionSyncController {
                   .quantity(subscription.getQuantity())
                   .startDate(OffsetDateTime.now())
                   .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-                  .billingProviderId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
+                  .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
                   .subscriptionNumber(subscription.getSubscriptionNumber())
                   .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
                   .build();
@@ -267,7 +267,7 @@ public class SubscriptionSyncController {
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-        .billingProviderId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
+        .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
         .build();
   }
@@ -314,5 +314,11 @@ public class SubscriptionSyncController {
 
   public void deleteSubscription(String subscriptionId) {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
+  }
+
+  @Transactional
+  public void forceSyncSubscriptionsForOrg(String orgId) {
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
+    subscriptions.forEach(this::syncSubscription);
   }
 }

@@ -25,13 +25,14 @@ import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 
+/** Billing provider associated with a host. */
 public enum BillingProvider implements StringValueEnum<BillingProviderType> {
   EMPTY("", BillingProviderType.EMPTY),
-  RED_HAT("Red hat", BillingProviderType.RED_HAT),
-  AWS("Aws", BillingProviderType.AWS),
-  GCP("Gcp", BillingProviderType.GCP),
-  AZURE("Azure", BillingProviderType.AZURE),
-  ORACLE("Oracle", BillingProviderType.ORACLE),
+  RED_HAT("red hat", BillingProviderType.RED_HAT),
+  AWS("aws", BillingProviderType.AWS),
+  GCP("gcp", BillingProviderType.GCP),
+  AZURE("azure", BillingProviderType.AZURE),
+  ORACLE("oracle", BillingProviderType.ORACLE),
   _ANY("_ANY", BillingProviderType._ANY); // NOSONAR
 
   private static final Map<String, BillingProvider> VALUE_ENUM_MAP =
@@ -55,6 +56,7 @@ public enum BillingProvider implements StringValueEnum<BillingProviderType> {
     return StringValueEnum.getValueOf(BillingProvider.class, VALUE_ENUM_MAP, value, EMPTY);
   }
 
+  @Override
   public String getValue() {
     return value;
   }

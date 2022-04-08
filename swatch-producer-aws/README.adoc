@@ -87,7 +87,7 @@ oc port-forward $(oc -n ephemeral-itjulc get -o name pod | grep fruit) 8000
 [source,bash]
 ----
 curl --request POST \
-  --url http://localhost:8000/tally-summary \
+  --url http://localhost:8000/tally_summary \
   --header 'content-type: application/json' \
   --data '{
   "account_number": "string",

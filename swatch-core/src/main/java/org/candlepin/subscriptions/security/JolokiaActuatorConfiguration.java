@@ -59,10 +59,21 @@ public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
+  AuthProperties conduitAuthProperties() {
+    return new AuthProperties();
+  }
+
+  @Bean
+  public IdentityHeaderAuthoritiesMapper conduitIdentityHeaderAuthoritiesMapper() {
+    return new IdentityHeaderAuthoritiesMapper();
+  }
+
+  @Bean
   public AuthenticationProvider jolokiaIdentityHeaderAuthenticationProvider(
       @Qualifier("jolokiaIdentityHeaderAuthenticationDetailsService")
           IdentityHeaderAuthenticationDetailsService detailsService) {
-    return new IdentityHeaderAuthenticationProvider(detailsService);
+    return new IdentityHeaderAuthenticationProvider(
+        detailsService, conduitIdentityHeaderAuthoritiesMapper(), conduitAuthProperties());
   }
 
   @Bean

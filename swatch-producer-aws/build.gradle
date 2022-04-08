@@ -1,3 +1,5 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
 plugins {
     id 'swatch.java-conventions'
     id 'io.quarkus'
@@ -6,6 +8,7 @@ plugins {
 
 dependencies {
     implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation platform(libraries["awssdk-bom"])
     implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-resteasy'
@@ -16,11 +19,14 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging'
     implementation 'io.quarkus:quarkus-quartz'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-jacoco'
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
-    implementation 'io.quarkus:quarkus-resteasy-jackson'
+    implementation 'io.quarkus:quarkus-resteasy-jsonb'
     implementation 'io.quarkus:quarkus-liquibase'
     implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
+    implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
@@ -35,11 +41,14 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-rest-client-jackson'
     implementation 'io.quarkus:quarkus-rest-client'
+    implementation 'io.quarkus:quarkus-resteasy-jsonb'
     implementation libraries["quarkus-logging-logback"]
     implementation libraries["splunk-library-javalogging"]
+    implementation 'software.amazon.awssdk:marketplacemetering'
     testImplementation 'io.quarkus:quarkus-junit5'
     compileOnly libraries["lombok"]
     testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["wiremock-jre8"]
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
@@ -53,9 +62,9 @@ description = 'swatch-producer-aws'
 compileJava.dependsOn tasks.openApiGenerate
 
 openApiGenerate {
-    generatorName = "jaxrs-spec"
-    inputSpec = "${projectDir}/src/main/resources/openapi.yaml".toString()
-    outputDir = "${buildDir}/generated".toString()
+    generatorName = "java"
+    inputSpec = "${projectDir}/src/main/resources/openapi.yaml"
+    outputDir = "${buildDir}/generated"
     apiPackage = "com.redhat.swatch.openapi.resource"
     modelPackage = "com.redhat.swatch.openapi.model"
     invokerPackage = "com.redhat.swatch.openapi"
@@ -63,9 +72,44 @@ openApiGenerate {
     configOptions = [
             sourceFolder         : "src/gen/java",
             interfaceOnly        : "true",
-            useSwaggerAnnotations: "false"
+            library: "microprofile",
+            java8: "true",
+            dateLibrary: "java8",
+    ]
+    additionalProperties = [
+            disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
     ]
 }
+
+task generateSwatchInternalSubscriptionClient(type: GenerateTask) {
+    inputSpec = "${rootDir}/api/internal-subscription-service-api-spec.yaml"
+    outputDir = "${buildDir}/generated-internal-subscription-client"
+    generatorName = "java"
+    modelPackage = "com.swatch.internal.subscription.api.model"
+    apiPackage = "com.swatch.internal.subscription.api.resources"
+    invokerPackage = "com.swatch.internal.subscription"
+    configOptions = [
+            generatePom: "false",
+            library: "microprofile",
+            java8: "true",
+            dateLibrary: "java8",
+    ]
+    additionalProperties = [
+            disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+}
+sourceSets.main.java.srcDirs += "${buildDir}/generated-internal-subscription-client/src/main/java"
+tasks.compileJava.dependsOn(generateSwatchInternalSubscriptionClient)
+
+processResources {
+    // copy tag profile into the project
+    from("../swatch-core/src/main/resources") {
+        include "tag_profile.yaml"
+    }
+}
+
+// Let gradle know that if tally_summary.yaml changes, openApiGenerate should run
+tasks.openApiGenerate.inputs.file("../swatch-core/schemas/tally_summary.yaml")
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 
@@ -73,6 +117,16 @@ tasks.register('configureQuarkusBuild') {
   doLast {
     System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
   }
+}
+
+task wiremock(type: JavaExec) {
+    description = "Run mock REST services for this service"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.redhat.swatch.wiremock.WiremockRunner"
+    jvmArgs = ['-Djava.util.logging.manager=org.jboss.logmanager.LogManager', '-Dorg.slf4j.simpleLogger.defaultLogLevel=debug', '-Dlogging.configuration=file:///home/khowell/logging.properties']
+    systemProperties = [
+        'java.util.logging.manager': 'org.jboss.logmanager.LogManager'
+    ]
 }
 
 quarkusDev.dependsOn(configureQuarkusBuild)

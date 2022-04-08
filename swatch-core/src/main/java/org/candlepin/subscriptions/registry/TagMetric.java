@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 public class TagMetric {
   private String tag;
   private String metricId;
+  private String awsDimension;
   private Uom uom;
   @Default private String queryKey = "default";
   @Default private String accountQueryKey = "default";

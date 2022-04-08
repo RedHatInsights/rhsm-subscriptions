@@ -18,19 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package com.redhat.swatch.files;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import lombok.Data;
 
-/** Serves the OpenAPI spec as /openapi.yaml. */
-@Component
-public class OpenApiYamlResource implements OpenapiYamlApi {
-  @Autowired OpenApiSpecController controller;
-
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getOpenApiYaml();
-  }
+/** Tag metric fields needed by swatch-producer-aws. */
+@Data
+public class TagMetricYaml {
+  private String tag;
+  private String uom; // NOTE: we plan to rename uom to metricId in ENT-4336
+  private String awsDimension;
 }

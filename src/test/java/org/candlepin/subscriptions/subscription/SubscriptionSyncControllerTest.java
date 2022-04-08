@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -288,6 +289,16 @@ class SubscriptionSyncControllerTest {
     verifyNoInteractions(capacityReconciliationController);
   }
 
+  @Test
+  void shouldForceSubscriptionSyncForOrg() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("345", 3);
+    var subList = Arrays.asList(dto1, dto2);
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
+    verify(subscriptionService).getSubscriptionsByOrgId("123");
+  }
+
   private Subscription createSubscription(String orgId, String sku, String subId) {
     final Subscription subscription = new Subscription();
     subscription.setSubscriptionId(subId);
@@ -334,7 +345,7 @@ class SubscriptionSyncControllerTest {
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-        .billingProviderId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
+        .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
         .build();
   }
