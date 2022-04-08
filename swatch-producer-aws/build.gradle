@@ -81,7 +81,7 @@ openApiGenerate {
     ]
 }
 
-task generateSwatchInternalSubscriptionClient(type: GenerateTask) {
+tasks.register("generateSwatchInternalSubscriptionClient", GenerateTask) {
     inputSpec = "${rootDir}/api/internal-subscription-service-api-spec.yaml"
     outputDir = "${buildDir}/generated-internal-subscription-client"
     generatorName = "java"
@@ -119,7 +119,7 @@ tasks.register('configureQuarkusBuild') {
   }
 }
 
-task wiremock(type: JavaExec) {
+tasks.register("wiremock", JavaExec) {
     description = "Run mock REST services for this service"
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.redhat.swatch.wiremock.WiremockRunner"

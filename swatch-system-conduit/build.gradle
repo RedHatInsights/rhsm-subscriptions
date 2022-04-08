@@ -1,3 +1,6 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
+
 plugins {
     id "swatch.spring-boot-conventions"
     id "org.openapi.generator"
@@ -9,7 +12,7 @@ ext {
     config_file = "${projectDir}/system-conduit-api-config.json"
 }
 
-openApiGenerate {
+tasks.register("apiGenerate", GenerateTask) {
     generatorName = "jaxrs-spec"
     inputSpec = api_spec_path
     configFile = config_file
@@ -21,12 +24,12 @@ openApiGenerate {
     ]
 }
 
-openApiValidate {
+tasks.register("apiValidate", ValidateTask) {
     inputSpec = api_spec_path
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-compileJava.dependsOn tasks.openApiGenerate
+compileJava.dependsOn tasks.apiGenerate
 
 dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
@@ -71,6 +74,6 @@ jacocoTestReport {
     }
 }
 
-bootJar {
+springBoot {
     mainClass = "org.candlepin.subscriptions.SystemConduitApplication"
 }

@@ -1,3 +1,6 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
+
 project(":clients:cloudigrade-client") {
     ext {
         api_spec_path = "${projectDir}/cloudigrade-api-spec.yaml"
@@ -104,22 +107,19 @@ configure(subprojects) {
     apply plugin: "swatch.java-conventions"
     apply plugin: "org.openapi.generator"
 
-    openApiValidate {
+    tasks.register("apiValidate", ValidateTask) {
         inputSpec = api_spec_path
     }
 
-    task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    tasks.register("generateApiDocs", GenerateTask) {
         generatorName = "html"
         inputSpec = api_spec_path
         outputDir = "$buildDir/docs"
-        generateApiDocumentation = true
-        generateModelDocumentation = true
         generateModelTests = false
         generateApiTests = false
-        withXml = false
     }
 
-    openApiGenerate {
+    tasks.register("apiGenerate", GenerateTask) {
         inputSpec = api_spec_path
         configFile = config_file
         outputDir = "${buildDir}/generated"
@@ -151,5 +151,5 @@ configure(subprojects) {
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
 
-    compileJava.dependsOn tasks.openApiGenerate
+    compileJava.dependsOn tasks.apiGenerate
 }
