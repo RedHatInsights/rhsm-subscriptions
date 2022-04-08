@@ -266,10 +266,6 @@ project(":api") {
     processResources {
         from tasks.generateOpenApiJson
         from api_spec_file
-        rename { String fileName ->
-            // rename yaml to openapi.yaml
-            api_spec_file.endsWith(fileName) ? 'openapi.yaml' : fileName
-        }
     }
 
     dependencies {
