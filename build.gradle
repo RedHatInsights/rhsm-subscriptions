@@ -14,7 +14,6 @@ plugins {
     id "nebula.release"
     id 'com.adarshr.test-logger'
     id 'jacoco'
-    id "org.openapi.generator"
 }
 
 group = "org.candlepin"
@@ -149,7 +148,7 @@ tasks.register("buildApiSubSync", GenerateTask) {
     ]
 }
 
-tasks.register("apiGenerate") {
+tasks.register("openApiGenerate") {
     dependsOn(provider {
         tasks.findAll { task -> task.name.startsWith('buildApi') }
     })
@@ -234,7 +233,7 @@ project(":api") {
         config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
     }
 
-    tasks.register("apiGenerate", GenerateTask) {
+    openApiGenerate {
         generatorName = "jaxrs-spec"
         inputSpec = api_spec_file
         configFile = config_file
@@ -282,7 +281,7 @@ project(":api") {
     }
 
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-    compileJava.dependsOn tasks.apiGenerate
+    compileJava.dependsOn tasks.openApiGenerate
 }
 
 project(":kafka-schema") {
