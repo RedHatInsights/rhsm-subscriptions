@@ -349,6 +349,18 @@ objects:
   - apiVersion: v1
     kind: Service
     metadata:
+      name: rhsm-subscriptions-worker
+    spec:
+      ports:
+        - port: 8000
+          protocol: TCP
+          targetPort: web
+      selector:
+        deploymentconfig: rhsm-subscriptions-worker
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
       name: rhsm-subscriptions-worker-monitoring
       labels:
         prometheus: rhsm

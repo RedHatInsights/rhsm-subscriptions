@@ -321,9 +321,9 @@ objects:
       name: rhsm-subscriptions-capacity-ingress
     spec:
       ports:
-        - port: 8443
+        - port: 8000
           protocol: TCP
-          targetPort: web-secure
+          targetPort: web
       selector:
         deploymentconfig: rhsm-subscriptions-capacity-ingress
 
