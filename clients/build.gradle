@@ -119,7 +119,7 @@ configure(subprojects) {
         generateApiTests = false
     }
 
-    tasks.register("apiGenerate", GenerateTask) {
+    openApiGenerate {
         inputSpec = api_spec_path
         configFile = config_file
         outputDir = "${buildDir}/generated"
@@ -151,5 +151,5 @@ configure(subprojects) {
 
     sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
 
-    compileJava.dependsOn tasks.apiGenerate
+    compileJava.dependsOn tasks.openApiGenerate
 }

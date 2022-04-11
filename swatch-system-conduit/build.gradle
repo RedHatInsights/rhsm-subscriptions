@@ -12,7 +12,7 @@ ext {
     config_file = "${projectDir}/system-conduit-api-config.json"
 }
 
-tasks.register("apiGenerate", GenerateTask) {
+openApiGenerate {
     generatorName = "jaxrs-spec"
     inputSpec = api_spec_path
     configFile = config_file
@@ -29,7 +29,7 @@ tasks.register("apiValidate", ValidateTask) {
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-compileJava.dependsOn tasks.apiGenerate
+compileJava.dependsOn tasks.openApiGenerate
 
 dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
