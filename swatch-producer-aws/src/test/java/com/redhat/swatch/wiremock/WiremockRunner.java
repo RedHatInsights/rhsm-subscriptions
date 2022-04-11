@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.swatch.internal.subscription.api.model.AwsUsageContext;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import javax.json.bind.Jsonb;

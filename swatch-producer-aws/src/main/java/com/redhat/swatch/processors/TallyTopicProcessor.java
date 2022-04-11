@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.processors;
 
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
@@ -31,9 +34,6 @@ import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.BillingProvide
 import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.GranularityEnum;
 import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.SlaEnum;
 import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.UsageEnum;
-import com.swatch.internal.subscription.api.model.AwsUsageContext;
-import com.swatch.internal.subscription.api.resources.ApiException;
-import com.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;

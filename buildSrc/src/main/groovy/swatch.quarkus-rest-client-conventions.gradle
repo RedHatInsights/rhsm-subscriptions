@@ -1,0 +1,52 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+plugins {
+    id "java-library"
+    id "org.kordamp.gradle.jandex"
+    id "org.openapi.generator"
+    id "swatch.java-conventions"
+}
+
+ext {
+    api_spec_path = "${projectDir}/${project.name.replace('-client', '-api-spec.yaml')}"
+    java_package = "com.redhat.swatch.clients.${project.name.replace('-client', '').replaceAll('-', '.')}"
+}
+
+task generateApiDocs(type: GenerateTask) {
+    generatorName = "html"
+    inputSpec = api_spec_path
+    outputDir = "$buildDir/docs"
+    generateApiDocumentation = true
+    generateModelDocumentation = true
+    generateModelTests = false
+    generateApiTests = false
+    withXml = false
+}
+
+openApiGenerate {
+    inputSpec = api_spec_path
+    outputDir = "${buildDir}/generated"
+    generatorName = "java"
+    modelPackage = "${java_package}.api.model"
+    apiPackage = "${java_package}.api.resources"
+    invokerPackage = java_package
+    configOptions = [
+            generatePom: "false",
+            library: "microprofile",
+            dateLibrary: "java8"
+    ]
+    additionalProperties = [
+            disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    api "io.quarkus:quarkus-rest-client"
+    api 'io.quarkus:quarkus-resteasy-jsonb'
+    testImplementation 'io.rest-assured:rest-assured'
+}
+
+sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
+
+compileJava.dependsOn tasks.openApiGenerate

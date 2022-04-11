@@ -1,155 +1,46 @@
 project(":clients:cloudigrade-client") {
-    ext {
-        api_spec_path = "${projectDir}/cloudigrade-api-spec.yaml"
-        config_file = "${projectDir}/cloudigrade-client-config.json"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:cloudigrade-internal-client") {
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/cloudigrade-internal-api-spec.yaml"
-        config_file = "${projectDir}/cloudigrade-internal-client-config.json"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:insights-inventory-client") {
-    apply plugin: "swatch.java-conventions"
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/api.spec.yaml"
-        config_file = "${projectDir}/insights-inventory-client-config.json"
-    }
-
-    dependencies {
-        compileOnly 'org.springframework.boot:spring-boot'
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:rh-marketplace-client") {
-    apply plugin: "swatch.java-conventions"
-
-    ext {
-        api_spec_path = "${projectDir}/rh-marketplace-api-spec.yaml"
-        config_file = "${projectDir}/rh-marketplace-client-config.json"
-    }
-
-    dependencies {
-        compileOnly "org.springframework:spring-web"
-        compileOnly "javax.servlet:javax.servlet-api"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:product-client") {
-    ext {
-        api_spec_path = "${projectDir}/product-api-spec.yaml"
-        config_file = "${projectDir}/product-client-config.json"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:prometheus-client") {
-    ext {
-        api_spec_path = "${projectDir}/prometheus-query-api-spec.yaml"
-        config_file = "${projectDir}/prometheus-client-config.json"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:rbac-client") {
-    apply plugin: "swatch.java-conventions"
-    apply plugin: "org.openapi.generator"
-
-    ext {
-        api_spec_path = "${projectDir}/openapi.json"
-        config_file = "${projectDir}/rbac-client-config.json"
-    }
-
-    dependencies {
-        compileOnly "org.springframework:spring-web"
-        compileOnly "javax.servlet:javax.servlet-api"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:rhsm-client") {
-    apply plugin: "swatch.java-conventions"
-
-    ext {
-        api_spec_path = "${projectDir}/rhsm-client-spec.yaml"
-        config_file = "${projectDir}/rhsm-client-config.json"
-    }
-
-    dependencies {
-        testImplementation libraries["wiremock-jre8"]
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:subscription-client") {
-    ext {
-        api_spec_path = "${projectDir}/subscription-api-spec.yaml"
-        config_file = "${projectDir}/subscription-client-config.json"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
 project(":clients:user-client") {
-    ext {
-        api_spec_path = "${projectDir}/user-api-spec.yaml"
-        config_file = "${projectDir}/user-client-config.json"
-    }
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
-configure(subprojects) {
-    apply plugin: "java-library"
-    apply plugin: "swatch.spring-boot-dependencies-conventions"
-    apply plugin: "swatch.java-conventions"
-    apply plugin: "org.openapi.generator"
-
-    openApiValidate {
-        inputSpec = api_spec_path
-    }
-
-    task generateApiDocs(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
-        generatorName = "html"
-        inputSpec = api_spec_path
-        outputDir = "$buildDir/docs"
-        generateApiDocumentation = true
-        generateModelDocumentation = true
-        generateModelTests = false
-        generateApiTests = false
-        withXml = false
-    }
-
+project(":clients:swatch-internal-subscription-client") {
+    apply plugin: "swatch.quarkus-rest-client-conventions"
     openApiGenerate {
-        inputSpec = api_spec_path
-        configFile = config_file
-        outputDir = "${buildDir}/generated"
-        generatorName = "java"
-        configOptions = [
-                generatePom: "false",
-                library: "resteasy",
-                java8: "true",
-                dateLibrary: "java8"
-        ]
+        inputSpec = "${rootDir}/src/main/spec/internal-subscriptions-sync-api-spec.yaml"
     }
-
-    dependencies {
-        api project(':clients-core')
-        api "javax.annotation:javax.annotation-api"
-        api "org.jboss.resteasy:resteasy-client"
-        api "org.jboss.resteasy:resteasy-multipart-provider"
-
-        api "com.fasterxml.jackson.core:jackson-annotations"
-        api "com.fasterxml.jackson.core:jackson-databind"
-        api "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
-
-        api "org.springframework:spring-context"
-        api "org.slf4j:slf4j-api"
-        api "io.swagger:swagger-annotations"
-        api libraries["jsr305"]
-        api libraries["jackson-databind-nullable"]
-    }
-
-    sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
-
-    compileJava.dependsOn tasks.openApiGenerate
 }
