@@ -12,9 +12,9 @@ ext {
     java_package = "com.redhat.swatch.clients.${project.name.replace('-client', '').replaceAll('-', '.')}"
 }
 
-task generateApiDocs(type: GenerateTask) {
+tasks.register("generateApiDocs", GenerateTask) {
     generatorName = "html"
-    inputSpec = api_spec_path
+    inputSpec = project.getExtensions().getByName("openApiGenerate").inputSpec
     outputDir = "$buildDir/docs"
     generateApiDocumentation = true
     generateModelDocumentation = true

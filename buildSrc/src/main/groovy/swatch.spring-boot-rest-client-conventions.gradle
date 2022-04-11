@@ -16,9 +16,9 @@ openApiValidate {
     inputSpec = api_spec_path
 }
 
-task generateApiDocs(type: GenerateTask) {
+tasks.register("generateApiDocs", GenerateTask) {
     generatorName = "html"
-    inputSpec = api_spec_path
+    inputSpec = project.getExtensions().getByName("openApiGenerate").inputSpec
     outputDir = "$buildDir/docs"
     generateApiDocumentation = true
     generateModelDocumentation = true
