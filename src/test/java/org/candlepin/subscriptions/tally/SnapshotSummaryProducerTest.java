@@ -54,6 +54,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.retry.support.RetryTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class SnapshotSummaryProducerTest {
@@ -70,8 +71,8 @@ class SnapshotSummaryProducerTest {
   void setup() {
     props = new TaskQueueProperties();
     props.setTopic("summary-topic");
-
-    this.producer = new SnapshotSummaryProducer(kafka, props);
+    RetryTemplate retryTemplate = new RetryTemplate();
+    this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props);
   }
 
   @Test
