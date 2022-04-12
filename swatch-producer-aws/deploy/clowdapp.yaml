@@ -15,12 +15,34 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: ENV_NAME # naming convention is env-$BONFIRE_APP_NAME (from bonfire config yaml file)
+  - name: ENV_NAME
     value: env-swatch-producer-aws
   - name: IMAGE
     value: quay.io/cloudservices/swatch-producer-aws
-  - name: IMAGE_TAG # bonfire takes precedence and pulls latest unless the bonfire -i flag is used
+  - name: IMAGE_TAG
     value: latest
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_SOURCE
+    value: 'swatch-producer-aws'
+  - name: SPLUNK_SOURCE_TYPE
+    value: 'quarkus_service'
+  - name: SPLUNK_HEC_BATCH_SIZE
+    value: '10'
+  - name: SPLUNK_HEC_BATCH_INTERVAL
+    value: '10S'
+  - name: SPLUNK_HEC_RETRY_COUNT
+    value: '3'
+  - name: SPLUNK_HEC_INCLUDE_EX
+    value: 'true'
+  - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
+    value: http://localhost:8101/subscriptions/
+  - name: AWS_CREDENTIALS_JSON
+    value: '[]'
+  - name: AWS_MARKETPLACE_ENDPOINT_URL
+    value: 'http://localhost:8101/aws-marketplace/'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -80,6 +102,44 @@ objects:
             limits:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
+          env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_BATCH_INTERVAL
+              value: ${SPLUNK_HEC_BATCH_INTERVAL}
+            - name: SPLUNK_HEC_RETRY_COUNT
+              value: ${SPLUNK_HEC_RETRY_COUNT}
+            - name: SPLUNK_HEC_INCLUDE_EX
+              value: ${SPLUNK_HEC_INCLUDE_EX}
+            - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
+              value: ${SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT}
+            - name: AWS_CREDENTIALS_JSON
+              value: ${AWS_CREDENTIALS_JSON}
+            - name: AWS_MARKETPLACE_ENDPOINT_URL
+              value: ${AWS_MARKETPLACE_ENDPOINT_URL}
           volumeMounts:
             - name: logs
               mountPath: /logs
