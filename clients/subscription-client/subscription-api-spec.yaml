@@ -156,3 +156,5 @@ components:
           type: string
         sellerAccount:
           type: string
+        customerAccountId:
+          type: string

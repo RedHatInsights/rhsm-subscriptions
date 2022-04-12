@@ -96,4 +96,12 @@ public class SubscriptionDtoUtil {
     }
     return null;
   }
+
+  public static String extractBillingAccountId(Subscription subscription) {
+    if (subscription.getExternalReferences() != null
+        && subscription.getExternalReferences().containsKey(AWS_MARKETPLACE)) {
+      return subscription.getExternalReferences().get(AWS_MARKETPLACE).getCustomerAccountId();
+    }
+    return null;
+  }
 }

@@ -66,6 +66,7 @@ public class StubSearchApi extends SearchApi {
     awsRef.setCustomerID("customer123");
     awsRef.setProductCode("testProductCode123");
     awsRef.setSellerAccount("testSellerAccount123");
+    awsRef.setCustomerAccountId("1234567891234");
     return new Subscription()
         .id(235252)
         .quantity(1)
