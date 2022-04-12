@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 /** Component that produces tally snapshot summary messages given a list of tally snapshots. */
@@ -44,12 +45,15 @@ public class SnapshotSummaryProducer {
 
   private final String tallySummaryTopic;
   private final KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate;
+  private final RetryTemplate kafkaRetryTemplate;
 
   @Autowired
   protected SnapshotSummaryProducer(
       KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
+      @Qualifier("tallySummaryKafkaRetryTemplate") RetryTemplate kafkaRetryTemplate,
       @Qualifier("rhMarketplaceTasks") TaskQueueProperties props) {
     this.tallySummaryTopic = props.getTopic();
+    this.kafkaRetryTemplate = kafkaRetryTemplate;
     this.tallySummaryKafkaTemplate = tallySummaryKafkaTemplate;
   }
 
@@ -62,7 +66,8 @@ public class SnapshotSummaryProducer {
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {
-                        tallySummaryKafkaTemplate.send(tallySummaryTopic, summary);
+                        kafkaRetryTemplate.execute(
+                            ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, summary));
                         totalTallies.getAndIncrement();
                       }
                     }));
