@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.processors;
 
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.files.AwsCredentialsLookup;
-import com.swatch.internal.subscription.api.model.AwsUsageContext;
 import java.net.URI;
 import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;

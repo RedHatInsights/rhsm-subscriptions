@@ -1,0 +1,65 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+plugins {
+    id "java-library"
+    id "swatch.spring-boot-dependencies-conventions"
+    id "swatch.java-conventions"
+    id "org.openapi.generator"
+}
+
+ext {
+    api_spec_path = "${projectDir}/${project.name.replace('-client', '-api-spec.yaml')}"
+    config_file = "${projectDir}/${project.name}-config.json"
+}
+
+openApiValidate {
+    inputSpec = api_spec_path
+}
+
+tasks.register("generateApiDocs", GenerateTask) {
+    generatorName = "html"
+    inputSpec = project.getExtensions().getByName("openApiGenerate").inputSpec
+    outputDir = "$buildDir/docs"
+    generateApiDocumentation = true
+    generateModelDocumentation = true
+    generateModelTests = false
+    generateApiTests = false
+    withXml = false
+}
+
+openApiGenerate {
+    inputSpec = api_spec_path
+    configFile = config_file
+    outputDir = "${buildDir}/generated"
+    generatorName = "java"
+    configOptions = [
+            generatePom: "false",
+            library: "resteasy",
+            java8: "true",
+            dateLibrary: "java8"
+    ]
+}
+
+dependencies {
+    api project(':clients-core')
+    api "javax.annotation:javax.annotation-api"
+    api "org.jboss.resteasy:resteasy-client"
+    api "org.jboss.resteasy:resteasy-multipart-provider"
+
+    api "com.fasterxml.jackson.core:jackson-annotations"
+    api "com.fasterxml.jackson.core:jackson-databind"
+    api "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+
+    api "org.springframework:spring-context"
+    api "org.slf4j:slf4j-api"
+    api "io.swagger:swagger-annotations"
+    api libraries["jsr305"]
+    api libraries["jackson-databind-nullable"]
+
+    compileOnly 'org.springframework.boot:spring-boot'
+    testImplementation libraries["wiremock-jre8"]
+}
+
+sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
+
+compileJava.dependsOn tasks.openApiGenerate

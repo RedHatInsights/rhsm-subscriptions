@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -31,19 +34,27 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
@@ -80,6 +91,11 @@ class SubscriptionSyncControllerTest {
   @MockBean SubscriptionService subscriptionService;
 
   @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
+
+  @MockBean private TagProfile mockProfile;
+
+  private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
+  private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
   @Autowired
   @Qualifier("syncSubscriptionTasks")
@@ -297,6 +313,83 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
     verify(subscriptionService).getSubscriptionsByOrgId("123");
+  }
+
+  @Test
+  void doesNotAllowReservedValuesInKey() {
+    UsageCalculation.Key key1 = new Key(String.valueOf(1), ServiceLevel._ANY, Usage.PRODUCTION);
+    UsageCalculation.Key key2 = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage._ANY);
+    Optional<String> orgId = Optional.of("org1000");
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+                "1000", orgId, key1, rangeStart, rangeEnd, BillingProvider.RED_HAT));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+                "1000", orgId, key2, rangeStart, rangeEnd, BillingProvider.RED_HAT));
+  }
+
+  @Test
+  void findsSubscriptionId() {
+    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("xyz");
+    List<Subscription> result = Collections.singletonList(s);
+
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
+    when(subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
+            eq("1000"),
+            eq(key),
+            eq(productNames),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class),
+            any(BillingProvider.class)))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
+
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, BillingProvider.RED_HAT);
+    assertEquals(1, actual.size());
+    assertEquals("xyz", actual.get(0).getBillingProviderId());
+  }
+
+  @Test
+  void memoizesSubscriptionId() {
+    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("abc");
+    List<Subscription> result = Collections.singletonList(s);
+
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(anyString())).thenReturn(productNames);
+    when(subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
+            eq("1000"),
+            eq(key),
+            eq(productNames),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class),
+            any(BillingProvider.class)))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
+
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, BillingProvider.RED_HAT);
+    assertEquals(1, actual.size());
+    assertEquals("abc", actual.get(0).getBillingProviderId());
+    verify(subscriptionService, times(1)).getSubscriptionsByOrgId("org1000");
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

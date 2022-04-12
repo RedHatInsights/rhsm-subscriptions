@@ -20,9 +20,9 @@
  */
 package com.redhat.swatch.resource;
 
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Error;
 import com.redhat.swatch.exception.AwsProducerException;
 import com.redhat.swatch.exception.ErrorCode;
-import com.swatch.internal.subscription.api.model.Error;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;

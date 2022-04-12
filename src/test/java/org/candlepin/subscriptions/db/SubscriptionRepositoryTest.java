@@ -91,7 +91,7 @@ class SubscriptionRepositoryTest {
     Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW);
+            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
     assertEquals(1, resultList.size());
 
     var result = resultList.get(0);
@@ -118,7 +118,7 @@ class SubscriptionRepositoryTest {
     Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
     var result =
         subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW);
+            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
     assertEquals(0, result.size());
   }
 
@@ -141,7 +141,7 @@ class SubscriptionRepositoryTest {
 
     var resultList =
         subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW);
+            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
 
     assertEquals(2, resultList.size());
 
