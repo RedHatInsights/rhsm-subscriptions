@@ -144,6 +144,7 @@ public class SubscriptionSyncController {
                   .startDate(OffsetDateTime.now())
                   .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
                   .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
+                  .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
                   .subscriptionNumber(subscription.getSubscriptionNumber())
                   .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
                   .build();
@@ -269,6 +270,7 @@ public class SubscriptionSyncController {
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
         .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
+        .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
         .build();
   }
 

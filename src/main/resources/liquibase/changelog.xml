@@ -56,5 +56,6 @@
     <include file="liquibase/202202211433-add-billing-provider-column-to-subscription-table.xml" />
     <include file="liquibase/202203161423-add-billing-provider-column-to-host-table.xml" />
     <include file="liquibase/202203241102-add-billing-provider-column-to-tally-snapshots.xml" />
+    <include file="liquibase/202204081020-add-billing-account-id-column-to-subscriptions.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
