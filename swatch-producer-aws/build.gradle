@@ -1,5 +1,3 @@
-import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
-
 plugins {
     id 'swatch.java-conventions'
     id 'io.quarkus'
@@ -89,7 +87,7 @@ tasks.register('configureQuarkusBuild') {
   }
 }
 
-task wiremock(type: JavaExec) {
+tasks.register("wiremock", JavaExec) {
     description = "Run mock REST services for this service"
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.redhat.swatch.wiremock.WiremockRunner"

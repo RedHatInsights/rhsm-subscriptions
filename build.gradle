@@ -1,4 +1,7 @@
+import com.github.davidmc24.gradle.plugin.avro.GenerateAvroJavaTask
 import groovy.json.JsonOutput
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+import org.openapitools.generator.gradle.plugin.tasks.ValidateTask
 
 buildscript {
     // dependabot will parse dependencies.gradle by detecting the `apply from` below
@@ -11,7 +14,6 @@ plugins {
     id "nebula.release"
     id 'com.adarshr.test-logger'
     id 'jacoco'
-    id "org.openapi.generator"
 }
 
 group = "org.candlepin"
@@ -122,7 +124,7 @@ ext {
     sub_sync_config_file = "${internal_spec_dir}/internal-subscriptions-sync-api-config.json"
 }
 
-tasks.register("buildApiTally", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("buildApiTally", GenerateTask) {
     generatorName = "jaxrs-spec"
     inputSpec = tally_api_spec_file
     configFile = tally_config_file
@@ -134,7 +136,7 @@ tasks.register("buildApiTally", org.openapitools.generator.gradle.plugin.tasks.G
     ]
 }
 
-tasks.register("buildApiSubSync", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("buildApiSubSync", GenerateTask) {
     generatorName = "jaxrs-spec"
     inputSpec = sub_sync_api_spec_file
     configFile = sub_sync_config_file
@@ -146,17 +148,17 @@ tasks.register("buildApiSubSync", org.openapitools.generator.gradle.plugin.tasks
     ]
 }
 
-tasks.register("apiGenerate") {
+tasks.register("openApiGenerate") {
     dependsOn(provider {
         tasks.findAll { task -> task.name.startsWith('buildApi') }
     })
 }
 
-tasks.register("validateApiTally", org.openapitools.generator.gradle.plugin.tasks.ValidateTask) {
+tasks.register("validateApiTally", ValidateTask) {
     inputSpec = tally_api_spec_file
 }
 
-tasks.register("validateApiSubSync", org.openapitools.generator.gradle.plugin.tasks.ValidateTask) {
+tasks.register("validateApiSubSync", ValidateTask) {
     inputSpec = sub_sync_api_spec_file
 }
 
@@ -166,7 +168,7 @@ tasks.register("apiValidate") {
     })
 }
 
-tasks.register("generateApiDocsTally", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("generateApiDocsTally", GenerateTask) {
     generatorName = "html"
     inputSpec = tally_api_spec_file
     outputDir = "$buildDir/internal-tally-docs"
@@ -174,7 +176,7 @@ tasks.register("generateApiDocsTally", org.openapitools.generator.gradle.plugin.
     generateApiTests = false
 }
 
-tasks.register("generateApiDocsSubSync", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("generateApiDocsSubSync", GenerateTask) {
     generatorName = "html"
     inputSpec = sub_sync_api_spec_file
     outputDir = "$buildDir/internal-subscription-sync-docs"
@@ -182,7 +184,7 @@ tasks.register("generateApiDocsSubSync", org.openapitools.generator.gradle.plugi
     generateApiTests = false
 }
 
-tasks.register("generateOpenApiJsonTally", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("generateOpenApiJsonTally", GenerateTask) {
     generatorName = "openapi"
     inputSpec = tally_api_spec_file
     outputDir = "$buildDir/openapijson"
@@ -193,7 +195,7 @@ tasks.register("generateOpenApiJsonTally", org.openapitools.generator.gradle.plu
     ]
 }
 
-tasks.register("generateOpenApiJsonSubSync", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+tasks.register("generateOpenApiJsonSubSync", GenerateTask) {
     generatorName = "openapi"
     inputSpec = sub_sync_api_spec_file
     outputDir = "$buildDir/openapijson"
@@ -231,7 +233,7 @@ project(":api") {
         config_file = "${projectDir}/rhsm-subscriptions-api-config.json"
     }
 
-    tasks.register("apiGenerate", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    openApiGenerate {
         generatorName = "jaxrs-spec"
         inputSpec = api_spec_file
         configFile = config_file
@@ -243,11 +245,11 @@ project(":api") {
         ]
     }
 
-    tasks.register("validateApiSpec", org.openapitools.generator.gradle.plugin.tasks.ValidateTask) {
+    tasks.register("validateApiSpec", ValidateTask) {
         inputSpec = api_spec_file
     }
 
-    tasks.register("generateApiDocs", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    tasks.register("generateApiDocs", GenerateTask) {
         generatorName = "html"
         inputSpec = api_spec_file
         outputDir = "$buildDir/docs"
@@ -255,7 +257,7 @@ project(":api") {
         generateApiTests = false
     }
 
-    tasks.register("generateOpenApiJson", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    tasks.register("generateOpenApiJson", GenerateTask) {
         generatorName = "openapi"
         inputSpec = api_spec_file
         outputDir = "$buildDir/openapijson"
@@ -266,10 +268,6 @@ project(":api") {
     processResources {
         from tasks.generateOpenApiJson
         from api_spec_file
-        rename { String fileName ->
-            // rename yaml to openapi.yaml
-            api_spec_file.endsWith(fileName) ? 'openapi.yaml' : fileName
-        }
     }
 
     dependencies {
@@ -283,7 +281,7 @@ project(":api") {
     }
 
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-    compileJava.dependsOn tasks.apiGenerate
+    compileJava.dependsOn tasks.openApiGenerate
 }
 
 project(":kafka-schema") {
@@ -295,7 +293,7 @@ project(":kafka-schema") {
         implementation "org.apache.avro:avro"
     }
 
-    task generateAvro(type: com.github.davidmc24.gradle.plugin.avro.GenerateAvroJavaTask) {
+    task generateAvro(type: GenerateAvroJavaTask) {
         // sub dir needed so that the plugin does not traverse into the build dir (if it exists).
         source("${projectDir}/avro")
         outputDir = file("${buildDir}/generated/avro/src/main/java")
