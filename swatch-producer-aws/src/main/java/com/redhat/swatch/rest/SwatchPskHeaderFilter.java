@@ -18,20 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.user;
+package com.redhat.swatch.rest;
 
-import org.candlepin.subscriptions.user.api.model.Account;
-import org.candlepin.subscriptions.user.api.model.AccountSearch;
-import org.candlepin.subscriptions.user.api.resources.AccountApi;
+import io.quarkus.arc.Unremovable;
+import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.client.ClientRequestContext;
+import javax.ws.rs.client.ClientRequestFilter;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-/** Stub implementation of the Account API that returns a canned response. */
-public class StubAccountApi extends AccountApi {
+@Slf4j
+// NOTE: without @Unremovable quarkus attempts to optimize this bean out because it's only
+// referenced in application.properties
+@Unremovable
+@ApplicationScoped
+public class SwatchPskHeaderFilter implements ClientRequestFilter {
+
+  @ConfigProperty(name = "SWATCH_SELF_PSK")
+  String psk;
 
   @Override
-  public Account findAccount(AccountSearch accountSearch) throws ApiException {
-    if ("123".equals(accountSearch.getBy().getId())) {
-      return new Account().ebsAccountNumber("123").id("123");
-    }
-    return new Account().ebsAccountNumber("account123").id("org123");
+  public void filter(ClientRequestContext requestContext) {
+    requestContext.getHeaders().add("x-rh-swatch-psk", psk);
   }
 }

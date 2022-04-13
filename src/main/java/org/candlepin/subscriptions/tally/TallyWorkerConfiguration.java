@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -54,6 +55,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 
 /**
  * Configuration for the "worker" profile.
@@ -98,6 +100,23 @@ public class TallyWorkerConfiguration {
     retryTemplate.setRetryPolicy(retryPolicy);
     retryTemplate.setBackOffPolicy(backOffPolicy);
     return retryTemplate;
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.tally-summary-producer")
+  public TallySummaryProperties tallySummaryProperties() {
+    return new TallySummaryProperties();
+  }
+
+  @Bean(name = "tallySummaryKafkaRetryTemplate")
+  public RetryTemplate tallySummaryKafkaRetryTemplate(TallySummaryProperties properties) {
+    return new RetryTemplateBuilder()
+        .maxAttempts(properties.getMaxAttempts())
+        .exponentialBackoff(
+            properties.getBackOffInitialInterval().toMillis(),
+            properties.getBackOffMultiplier(),
+            properties.getBackOffMaxInterval().toMillis())
+        .build();
   }
 
   @Bean(name = "cloudigradeRetryTemplate")

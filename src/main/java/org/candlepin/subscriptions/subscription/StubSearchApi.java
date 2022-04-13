@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.subscription;
 
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
@@ -42,19 +41,22 @@ public class StubSearchApi extends SearchApi {
   @Override
   public List<Subscription> searchSubscriptionsByAccountNumber(
       String accountNumber, Integer index, Integer pageSize) throws ApiException {
-    return Collections.singletonList(createData());
+    return List.of(createData(), createAwsBillingProviderData());
   }
 
   @Override
   public List<Subscription> searchSubscriptionsByOrgId(
       String orgId, Integer index, Integer pageSize) throws ApiException {
-    return Collections.singletonList(createData());
+    return List.of(createData(), createAwsBillingProviderData());
   }
 
   private Subscription createData() {
     var now = OffsetDateTime.now();
     return new Subscription()
         .subscriptionNumber("2253591")
+        .webCustomerId(123)
+        .oracleAccountNumber(123)
+        .quantity(1)
         .effectiveStartDate(now.minusYears(10).toEpochSecond() * 1000L)
         .effectiveEndDate(now.plusYears(10).toEpochSecond() * 1000L)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("sku")));
@@ -65,7 +67,8 @@ public class StubSearchApi extends SearchApi {
     ExternalReference awsRef = new ExternalReference();
     awsRef.setCustomerID("customer123");
     awsRef.setProductCode("testProductCode123");
-    awsRef.setSellerAccount("testSellerAccount123");
+    awsRef.setSellerAccount("awsSellerAccountId");
+    awsRef.setCustomerAccountId("1234567891234");
     return new Subscription()
         .id(235252)
         .quantity(1)
@@ -75,6 +78,6 @@ public class StubSearchApi extends SearchApi {
         .effectiveStartDate(now.minusYears(10).toEpochSecond() * 1000L)
         .effectiveEndDate(now.plusYears(10).toEpochSecond() * 1000L)
         .putExternalReferencesItem("aws", awsRef)
-        .subscriptionProducts(List.of(new SubscriptionProduct().sku("sku")));
+        .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01882")));
   }
 }

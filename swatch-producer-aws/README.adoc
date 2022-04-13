@@ -74,6 +74,26 @@ bonfire deploy -n $NAMESPACE \
 
 ----
 
+== deploy container with bonfire (using app-interface settings)
+[source, bash]
+----
+#!/bin/bash
+
+python3 -m venv .bonfire_venv
+source .bonfire_venv/bin/activate
+
+pip install --upgrade pip 'setuptools<58' wheel
+pip install --upgrade 'crc-bonfire>=4.0.0'
+
+export IMAGE_TAG=latest
+
+bonfire deploy \
+    rhsm \
+    -i quay.io/cloudservices/rhsm-subscriptions=${IMAGE_TAG} \
+    -i quay.io/cloudservices/swatch-producer-aws=${IMAGE_TAG} \
+    -i quay.io/cloudservices/swatch-system-conduit=${IMAGE_TAG}
+----
+
 == port-forward the deployed container
 note: i have the namespace hardcoded here...replace with the namespace you reserved
 [source,bash]
@@ -118,3 +138,4 @@ curl --request POST \
 systemctl --user enable --now podman.socket
 
 ----
+

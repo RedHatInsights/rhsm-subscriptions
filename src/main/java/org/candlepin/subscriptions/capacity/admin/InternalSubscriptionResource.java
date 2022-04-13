@@ -20,18 +20,38 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+import javax.ws.rs.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
+import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */
+@Slf4j
 @Component
 public class InternalSubscriptionResource implements InternalApi {
 
   private final SubscriptionSyncController subscriptionSyncController;
   private static final String SUCCESS_STATUS = "Success";
+  private final Counter missingSubscriptionCounter;
+  private final Counter ambiguousSubscriptionCounter;
 
-  public InternalSubscriptionResource(SubscriptionSyncController subscriptionSyncController) {
+  public InternalSubscriptionResource(
+      MeterRegistry meterRegistry, SubscriptionSyncController subscriptionSyncController) {
+    this.missingSubscriptionCounter = meterRegistry.counter("swatch_missing_aws_subscription");
+    this.ambiguousSubscriptionCounter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     this.subscriptionSyncController = subscriptionSyncController;
   }
 
@@ -39,5 +59,42 @@ public class InternalSubscriptionResource implements InternalApi {
   public String forceSyncSubscriptionsForOrg(String orgId) {
     subscriptionSyncController.forceSyncSubscriptionsForOrg(orgId);
     return SUCCESS_STATUS;
+  }
+
+  @Override
+  public AwsUsageContext getAwsUsageContext(
+      String accountNumber, OffsetDateTime date, String productId, String sla, String usage) {
+    UsageCalculation.Key usageKey =
+        new Key(productId, ServiceLevel.fromString(sla), Usage.fromString(usage));
+    List<Subscription> subscriptions =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            accountNumber, Optional.empty(), usageKey, date, date, BillingProvider.AWS);
+    if (subscriptions.isEmpty()) {
+      missingSubscriptionCounter.increment();
+      throw new NotFoundException();
+    }
+    if (subscriptions.size() > 1) {
+      ambiguousSubscriptionCounter.increment();
+      log.warn(
+          "Multiple subscriptions found for account {} with key {} and product tag {}."
+              + " Selecting first result",
+          accountNumber,
+          usageKey,
+          usageKey.getProductId());
+    }
+    return subscriptions.stream().findFirst().map(this::buildAwsUsageContext).orElseThrow();
+  }
+
+  private AwsUsageContext buildAwsUsageContext(Subscription subscription) {
+    String[] parts = subscription.getBillingProviderId().split(";");
+    String productCode = parts[0];
+    String customerId = parts[1];
+    String sellerAccount = parts[2];
+    return new AwsUsageContext()
+        .rhSubscriptionId(subscription.getSubscriptionId())
+        .subscriptionStartDate(subscription.getStartDate())
+        .productCode(productCode)
+        .customerId(customerId)
+        .awsSellerAccountId(sellerAccount);
   }
 }

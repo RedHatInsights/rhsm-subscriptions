@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.springframework.data.domain.Page;
@@ -49,6 +50,7 @@ public interface SubscriptionRepository
           + "s.sku in (SELECT DISTINCT o.sku FROM Offering o WHERE "
           + ":#{#key.sla} = o.serviceLevel AND "
           + "o.productName IN :#{#productNames}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND "
+          + "s.billingProvider = :billingProvider AND "
           + "s.billingProviderId IS NOT NULL AND s.billingProviderId <> '' "
           + "ORDER BY s.startDate DESC")
   List<Subscription> findByAccountAndProductNameAndServiceLevel(
@@ -56,7 +58,8 @@ public interface SubscriptionRepository
       @Param("key") UsageCalculation.Key usageKey,
       @Param("productNames") Set<String> productNames,
       @Param("rangeStart") OffsetDateTime rangeStart,
-      @Param("rangeEnd") OffsetDateTime rangeEnd);
+      @Param("rangeEnd") OffsetDateTime rangeEnd,
+      @Param("billingProvider") BillingProvider billingProvider);
 
   Stream<Subscription> findByOwnerId(String ownerId);
 

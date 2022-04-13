@@ -118,6 +118,14 @@ parameters:
     value: 1s
   - name: USER_BACK_OFF_MULTIPLIER
     value: '2'
+  - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
+    value: '5'
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: 1m
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
   - name: ENV_NAME
     value: env-rhsm
 
@@ -377,6 +385,14 @@ objects:
               value: ${USER_BACK_OFF_INITIAL_INTERVAL}
             - name: USER_BACK_OFF_MULTIPLIER
               value: ${USER_BACK_OFF_MULTIPLIER}
+            - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
+              value: ${TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS}
+            - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER}
             - name: RHSM_KEYSTORE_PASSWORD
               valueFrom:
                 secretKeyRef:

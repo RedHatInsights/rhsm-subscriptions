@@ -26,6 +26,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.TallySummary;
@@ -36,9 +39,6 @@ import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.BillingProvide
 import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.GranularityEnum;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
 import com.redhat.swatch.processors.TallyTopicProcessor;
-import com.swatch.internal.subscription.api.model.AwsUsageContext;
-import com.swatch.internal.subscription.api.resources.ApiException;
-import com.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
