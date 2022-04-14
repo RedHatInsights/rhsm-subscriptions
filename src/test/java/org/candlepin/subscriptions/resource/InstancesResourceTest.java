@@ -74,7 +74,8 @@ class InstancesResourceTest {
 
     Mockito.when(
             repository.findAllBy(
-                any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any()))
+                any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any(), any(), any(),
+                any()))
         .thenReturn(new PageImpl<>(List.of(host)));
 
     var expectUom = List.of("Instance-hours", "Storage-gibibytes", "Transfer-gibibytes");
@@ -110,6 +111,7 @@ class InstancesResourceTest {
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
             expectedBillingProvider.asOpenApiEnum(),
+            null,
             null,
             null,
             null,

@@ -706,6 +706,7 @@ class HostRepositoryTest {
             "2021-01",
             referenceUom,
             null,
+            null,
             page);
 
     assertEquals(2, results.getTotalElements());
@@ -920,6 +921,7 @@ class HostRepositoryTest {
             null,
             null,
             BillingProvider.AWS,
+            null,
             page);
     assertEquals(1L, results.getTotalElements());
     assertEquals(BillingProvider.AWS, results.getContent().get(0).getBillingProvider());
@@ -933,6 +935,7 @@ class HostRepositoryTest {
             "",
             0,
             0,
+            null,
             null,
             null,
             null,
@@ -983,6 +986,7 @@ class HostRepositoryTest {
             "",
             0,
             0,
+            null,
             null,
             null,
             null,

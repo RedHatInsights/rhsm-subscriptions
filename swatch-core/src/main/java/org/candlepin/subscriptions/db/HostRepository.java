@@ -131,6 +131,7 @@ public interface HostRepository
       String month,
       Uom referenceUom,
       BillingProvider billingProvider,
+      String billingAccountId,
       Pageable pageable) {
 
     HostSpecification searchCriteria = new HostSpecification();
@@ -164,6 +165,11 @@ public interface HostRepository
     if (Objects.nonNull(billingProvider)) {
       searchCriteria.add(
           new SearchCriteria(Host_.BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
+    }
+
+    if (Objects.nonNull(billingAccountId)) {
+      searchCriteria.add(
+          new SearchCriteria(Host_.BILLING_ACCOUNT_ID, billingAccountId, SearchOperation.EQUAL));
     }
 
     return findAll(searchCriteria, pageable);

@@ -191,6 +191,7 @@ public class HostsResource implements HostsApi {
               month,
               referenceUom,
               null,
+              null,
               page);
       payload =
           ((Page<Host>) hosts)

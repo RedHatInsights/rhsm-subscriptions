@@ -697,6 +697,11 @@ paths:
           schema:
             $ref: '#/components/schemas/BillingProviderType'
           description: "Include only hosts for the specified billing provider."
+        - name: billing_account_id
+          description: Include only hosts containing the specified billing account ID.
+          schema:
+            type: string
+          in: query
         - name: display_name_contains
           description: Include only hosts containing the specified display name. Passing an empty string behaves the same way as passing null
           schema:
@@ -1521,6 +1526,8 @@ components:
           type: string
         billing_provider:
           $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
         measurements:
           description: >-
             Must be in the same order as "measurements" in the meta. (i.e. in the example
