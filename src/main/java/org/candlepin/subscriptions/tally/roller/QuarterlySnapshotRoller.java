@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
-import static org.candlepin.subscriptions.db.model.Granularity.*;
+import static org.candlepin.subscriptions.db.model.Granularity.QUARTERLY;
 
 import java.util.Collection;
 import java.util.List;
@@ -55,16 +55,18 @@ public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
   @Override
   @Transactional
   public Collection<TallySnapshot> rollSnapshots(
-      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
-    log.debug("Producing quarterly snapshots for {} account(s).", accounts.size());
+      String account, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing quarterly snapshots for account {}.", account);
 
     Map<String, List<TallySnapshot>> currentQuarterlySnaps =
-        getCurrentSnapshotsByAccount(
-            accounts,
-            getApplicableProducts(accountCalcs, QUARTERLY),
-            QUARTERLY,
-            clock.startOfCurrentQuarter(),
-            clock.endOfCurrentQuarter());
+        Map.of(
+            account,
+            getCurrentSnapshotsByAccount(
+                account,
+                getApplicableProducts(accountCalcs, QUARTERLY),
+                QUARTERLY,
+                clock.startOfCurrentQuarter(),
+                clock.endOfCurrentQuarter()));
 
     return updateSnapshots(accountCalcs, currentQuarterlySnaps, QUARTERLY);
   }

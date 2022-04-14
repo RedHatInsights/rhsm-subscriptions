@@ -153,7 +153,7 @@ public class CombiningRollupSnapshotStrategy {
 
     summaryProducer.produceTallySummaryMessages(totalSnapshots);
 
-    log.info("Finished producing finestGranularitySnapshots for all accounts.");
+    log.info("Finished producing finestGranularitySnapshots for account {}.", accountNumber);
   }
 
   private void catalogExistingSnapshots(
@@ -186,11 +186,7 @@ public class CombiningRollupSnapshotStrategy {
 
       var snapMap =
           getCurrentSnapshotsByAccount(
-              List.of(accountNumber),
-              swatchProductIds,
-              granularity,
-              effectiveStartTime,
-              effectiveEndTime);
+              accountNumber, swatchProductIds, granularity, effectiveStartTime, effectiveEndTime);
 
       List<TallySnapshot> existingSnapshots =
           snapMap.getOrDefault(accountNumber, Collections.emptyList());
@@ -214,14 +210,14 @@ public class CombiningRollupSnapshotStrategy {
 
   @SuppressWarnings("indentation")
   protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(
-      Collection<String> accounts,
+      String account,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
     try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-            accounts, products, granularity, begin, end)) {
+        tallyRepo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            account, products, granularity, begin, end)) {
       return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
     }
   }

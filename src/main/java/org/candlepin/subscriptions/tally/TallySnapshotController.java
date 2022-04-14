@@ -22,9 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -86,40 +84,21 @@ public class TallySnapshotController {
 
   @Timed("rhsm-subscriptions.snapshots.single")
   public void produceSnapshotsForAccount(String account) {
-    produceSnapshotsForAccounts(Collections.singletonList(account));
-  }
-
-  @Timed("rhsm-subscriptions.snapshots.collection")
-  public void produceSnapshotsForAccounts(List<String> accounts) {
-    if (accounts.size() > props.getAccountBatchSize()) {
-      log.info(
-          "Skipping message w/ {} accounts: count is greater than configured batch size: {}",
-          accounts.size(),
-          props.getAccountBatchSize());
-      return;
-    }
-    log.info("Producing snapshots for {} accounts.", accounts.size());
-    // Account list could be large. Only print them when debugging.
-    if (log.isDebugEnabled()) {
-      log.debug("Producing snapshots for accounts: {}", String.join(",", accounts));
-    }
-
+    log.info("Producing snapshots for account {}.", account);
     Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
     try {
-      for (String account : accounts) {
-        accountCalcs.putAll(
-            retryTemplate.execute(
-                context -> usageCollector.collect(this.applicableProducts, account)));
-      }
+      accountCalcs.putAll(
+          retryTemplate.execute(
+              context -> usageCollector.collect(this.applicableProducts, account)));
       if (props.isCloudigradeEnabled()) {
-        attemptCloudigradeEnrichment(accounts, accountCalcs);
+        attemptCloudigradeEnrichment(account, accountCalcs);
       }
     } catch (Exception e) {
-      log.error("Could not collect existing usage snapshots for accounts {}", accounts, e);
+      log.error("Could not collect existing usage snapshots for account {}", account, e);
       return;
     }
 
-    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accounts, accountCalcs.values());
+    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(account, accountCalcs.values());
   }
 
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
@@ -168,13 +147,13 @@ public class TallySnapshotController {
   }
 
   private void attemptCloudigradeEnrichment(
-      List<String> accounts, Map<String, AccountUsageCalculation> accountCalcs) {
+      String account, Map<String, AccountUsageCalculation> accountCalcs) {
     log.info("Adding cloudigrade reports to calculations.");
     try {
       cloudigradeRetryTemplate.execute(
           context -> {
             try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, accounts);
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account);
             } catch (Exception e) {
               throw new ExternalServiceException(
                   ErrorCode.REQUEST_PROCESSING_ERROR,
