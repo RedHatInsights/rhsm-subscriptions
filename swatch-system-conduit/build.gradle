@@ -71,6 +71,6 @@ jacocoTestReport {
     }
 }
 
-bootJar {
+springBoot {
     mainClass = "org.candlepin.subscriptions.SystemConduitApplication"
 }

@@ -38,7 +38,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ApiSpecController {
-  @Value("classpath:openapi.yaml")
+  // The name these files are served as is controlled by the corresponding Resource
+  // implementation (and ultimately in the openAPI spec itself)
+  @Value("classpath:rhsm-subscriptions-api-spec.yaml")
   private Resource openApiYaml;
 
   @Value("classpath:openapi.json")
