@@ -70,6 +70,7 @@ public class Subscription {
   @Column(name = "account_number")
   private String accountNumber;
 
+  @Builder.Default
   @Column(name = "billing_provider")
   private BillingProvider billingProvider = BillingProvider.EMPTY;
 
