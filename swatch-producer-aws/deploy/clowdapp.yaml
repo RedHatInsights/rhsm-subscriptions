@@ -39,8 +39,6 @@ parameters:
     value: 'true'
   - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
     value: http://localhost:8101/subscriptions/
-  - name: AWS_CREDENTIALS_JSON
-    value: '[]'
   - name: AWS_MARKETPLACE_ENDPOINT_URL
     value: 'http://localhost:8101/aws-marketplace/'
 
@@ -137,7 +135,10 @@ objects:
             - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
               value: ${SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT}
             - name: AWS_CREDENTIALS_JSON
-              value: ${AWS_CREDENTIALS_JSON}
+              valueFrom:
+                secretKeyRef:
+                  name: aws-marketplace-credentials
+                  key: credentials
             - name: AWS_MARKETPLACE_ENDPOINT_URL
               value: ${AWS_MARKETPLACE_ENDPOINT_URL}
           volumeMounts:
