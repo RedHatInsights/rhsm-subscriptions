@@ -96,6 +96,7 @@ public class InstancesResource implements InstancesApi {
       ServiceLevelType sla,
       UsageType usage,
       BillingProviderType billingProviderType,
+      String billingAccountId,
       String displayNameContains,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -161,6 +162,7 @@ public class InstancesResource implements InstancesApi {
             month,
             referenceUom,
             billingProvider,
+            billingAccountId,
             page);
     payload =
         hosts.getContent().stream()
@@ -210,6 +212,7 @@ public class InstancesResource implements InstancesApi {
     for (String uom : measurements) {
       measurementList.add(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)));
     }
+    instance.setBillingAccountId(host.getBillingAccountId());
     instance.setMeasurements(measurementList);
     instance.setLastSeen(host.getLastSeen());
 
