@@ -57,6 +57,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** Instance API implementation. */
 @Component
@@ -113,7 +114,14 @@ public class InstancesResource implements InstancesApi {
     String accountNumber = ResourceUtils.getAccountNumber();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-    BillingProvider sanitizedBilling = ResourceUtils.sanitizeBillingProvider(billingProviderType);
+
+    // Must allow null for billing provider when looking up instances because
+    // the DB record does not have a default and can be null.
+    BillingProvider billingProvider = null;
+    if (Objects.nonNull(billingProviderType)
+        && StringUtils.hasText(billingProviderType.toString())) {
+      billingProvider = BillingProvider.fromString(billingProviderType.toString());
+    }
 
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
@@ -152,7 +160,7 @@ public class InstancesResource implements InstancesApi {
             minSockets,
             month,
             referenceUom,
-            sanitizedBilling,
+            billingProvider,
             page);
     payload =
         hosts.getContent().stream()
