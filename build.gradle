@@ -10,7 +10,6 @@ buildscript {
 
 plugins {
     id "swatch.spring-boot-conventions"
-    id "org.sonarqube"
     id "nebula.release"
     id 'com.adarshr.test-logger'
     id 'jacoco'

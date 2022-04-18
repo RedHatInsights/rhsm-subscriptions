@@ -1,6 +1,7 @@
 // gradle config common to all swatch java projects
 plugins {
     id "java"
+    id "org.sonarqube"
     id "com.diffplug.spotless"
 }
 
