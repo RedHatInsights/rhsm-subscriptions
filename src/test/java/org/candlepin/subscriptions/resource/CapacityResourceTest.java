@@ -315,4 +315,48 @@ class CapacityResourceTest {
     CapacitySnapshot capacitySnapshot = report.getData().get(0);
     assertTrue(capacitySnapshot.getHasInfiniteQuantity());
   }
+
+  @Test
+  void testShouldCalculateCapacityHavingUnlimitedUsageSeenFirst() {
+    SubscriptionCapacity limited = new SubscriptionCapacity();
+    limited.setHasUnlimitedUsage(false);
+    limited.setPhysicalCores(4);
+    limited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    limited.setEndDate(max);
+    SubscriptionCapacity unlimited = new SubscriptionCapacity();
+    unlimited.setHasUnlimitedUsage(true);
+    unlimited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    unlimited.setEndDate(max);
+
+    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+        .thenReturn(Arrays.asList(unlimited, limited));
+
+    CapacityReport report =
+        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
+
+  @Test
+  void testShouldCalculateCapacityHavingUnlimitedUsageSeenLast() {
+    SubscriptionCapacity limited = new SubscriptionCapacity();
+    limited.setHasUnlimitedUsage(false);
+    limited.setPhysicalCores(4);
+    limited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    limited.setEndDate(max);
+    SubscriptionCapacity unlimited = new SubscriptionCapacity();
+    unlimited.setHasUnlimitedUsage(true);
+    unlimited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    unlimited.setEndDate(max);
+
+    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+        .thenReturn(Arrays.asList(limited, unlimited));
+
+    CapacityReport report =
+        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
 }
