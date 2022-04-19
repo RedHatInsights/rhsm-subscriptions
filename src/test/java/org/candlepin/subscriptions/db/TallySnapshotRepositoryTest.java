@@ -29,7 +29,13 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
 @ActiveProfiles("test")
-public class TallySnapshotRepositoryTest {
+class TallySnapshotRepositoryTest {
   private static final OffsetDateTime LONG_AGO =
       OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
   private static final OffsetDateTime NOWISH =
@@ -53,7 +59,7 @@ public class TallySnapshotRepositoryTest {
   @Autowired private TallySnapshotRepository repository;
 
   @Test
-  public void testSave() {
+  void testSave() {
     TallySnapshot t =
         createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, OffsetDateTime.now());
     TallySnapshot saved = repository.saveAndFlush(t);
@@ -62,7 +68,7 @@ public class TallySnapshotRepositoryTest {
 
   @SuppressWarnings("linelength")
   @Test
-  public void findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsage() {
+  void findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsage() {
     TallySnapshot t1 = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
     TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
     TallySnapshot t3 =
@@ -109,7 +115,7 @@ public class TallySnapshotRepositoryTest {
 
   @SuppressWarnings("linelength")
   @Test
-  public void testFindByEmptyServiceLevelAndUsage() {
+  void testFindByEmptyServiceLevelAndUsage() {
     TallySnapshot t1 =
         createUnpersisted(
             "A1",
@@ -152,7 +158,7 @@ public class TallySnapshotRepositoryTest {
   }
 
   @Test
-  public void testFindByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween() {
+  void testFindByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween() {
     String product1 = "Product1";
     String product2 = "Product2";
     // Will not be found - out of date range.
@@ -202,7 +208,7 @@ public class TallySnapshotRepositoryTest {
   }
 
   @Test
-  public void testPersistsHardwareMeasurements() {
+  void testPersistsHardwareMeasurements() {
     TallySnapshot snap =
         createUnpersisted("Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
 

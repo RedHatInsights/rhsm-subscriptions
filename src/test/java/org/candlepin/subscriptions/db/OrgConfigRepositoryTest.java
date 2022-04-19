@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-public class OrgConfigRepositoryTest {
+class OrgConfigRepositoryTest {
 
   @Autowired private OrgConfigRepository repository;
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
@@ -55,7 +55,7 @@ public class OrgConfigRepositoryTest {
   }
 
   @Test
-  public void saveAndUpdate() {
+  void saveAndUpdate() {
     OffsetDateTime creation = clock.now();
     OffsetDateTime expectedUpdate = creation.plusDays(1);
 
@@ -83,7 +83,7 @@ public class OrgConfigRepositoryTest {
   }
 
   @Test
-  public void testDelete() {
+  void testDelete() {
     OrgConfig config = createConfig("an-org", true);
     repository.saveAndFlush(config);
 
@@ -96,7 +96,7 @@ public class OrgConfigRepositoryTest {
   }
 
   @Test
-  public void testFindOrgsWithEnabledSync() {
+  void testFindOrgsWithEnabledSync() {
     repository.saveAll(
         Arrays.asList(
             createConfig("A1", true),

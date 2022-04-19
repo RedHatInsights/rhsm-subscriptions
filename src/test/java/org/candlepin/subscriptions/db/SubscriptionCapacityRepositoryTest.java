@@ -83,7 +83,7 @@ class SubscriptionCapacityRepositoryTest {
   }
 
   @Test
-  public void testShouldFindGivenSubscriptionStartingBeforeRangeAndEndingAfterRange() {
+  void testShouldFindGivenSubscriptionStartingBeforeRangeAndEndingAfterRange() {
     SubscriptionCapacity c = createUnpersisted(NOWISH.minusDays(1), FAR_FUTURE.plusDays(1));
 
     repository.save(c);

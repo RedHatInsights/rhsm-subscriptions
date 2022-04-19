@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
-public class QuarterlySnapshotRollerTest {
+class QuarterlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
@@ -51,7 +51,7 @@ public class QuarterlySnapshotRollerTest {
   private SnapshotRollerTester<QuarterlySnapshotRoller> tester;
 
   @BeforeEach
-  public void setupTest() throws IOException {
+  void setupTest() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
@@ -59,19 +59,19 @@ public class QuarterlySnapshotRollerTest {
   }
 
   @Test
-  public void testQuarterlySnapshotProduction() {
+  void testQuarterlySnapshotProduction() {
     this.tester.performBasicSnapshotRollerTest(
         Granularity.QUARTERLY, clock.startOfCurrentQuarter(), clock.endOfCurrentQuarter());
   }
 
   @Test
-  public void testQuarterlySnapIsUpdatedWhenItAlreadyExists() {
+  void testQuarterlySnapIsUpdatedWhenItAlreadyExists() {
     this.tester.performSnapshotUpdateTest(
         Granularity.QUARTERLY, clock.startOfCurrentQuarter(), clock.endOfCurrentQuarter());
   }
 
   @Test
-  public void ensureCurrentQuarterlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+  void ensureCurrentQuarterlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
     this.tester.performUpdateWithLesserValueTest(
         Granularity.QUARTERLY, clock.startOfCurrentQuarter(), clock.endOfCurrentQuarter(), true);
   }

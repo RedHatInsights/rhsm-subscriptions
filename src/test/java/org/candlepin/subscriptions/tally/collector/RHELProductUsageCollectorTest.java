@@ -20,8 +20,15 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import static org.candlepin.subscriptions.tally.collector.Assertions.*;
-import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardwareMeasurementTotals;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertHypervisorTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.cloudMachineFacts;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.guestFacts;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.hypervisorFacts;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.physicalNonHypervisor;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.LinkedList;
@@ -35,7 +42,7 @@ import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
 
-public class RHELProductUsageCollectorTest {
+class RHELProductUsageCollectorTest {
 
   private RHELProductUsageCollector collector;
 

@@ -75,7 +75,7 @@ class HourlySnapshotRollerTest {
   }
 
   @BeforeEach
-  public void setupAllTests() throws Exception {
+  void setupAllTests() throws Exception {
     this.tester =
         new SnapshotRollerTester<>(
             repository, new HourlySnapshotRoller(repository, clock, testProfile));
