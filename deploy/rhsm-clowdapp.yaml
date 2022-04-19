@@ -2369,3 +2369,10 @@ objects:
             - name: capacity-allowlist
               configMap:
                 name: capacity-allowlist
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: swatch-psks
+  data:
+    self: ZHVtbXk=
