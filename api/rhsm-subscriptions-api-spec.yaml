@@ -931,7 +931,7 @@ components:
       enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
     BillingProviderType:
       type: string
-      enum: [ "", Red Hat, Aws, Gcp, Azure, Oracle, _ANY ]
+      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
     ProductId:
       type: string
       enum:
