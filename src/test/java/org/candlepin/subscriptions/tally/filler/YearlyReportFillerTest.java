@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import static org.candlepin.subscriptions.tally.filler.Assertions.assertSnapshot;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 
-public class YearlyReportFillerTest {
+class YearlyReportFillerTest {
 
   private ApplicationClock clock;
   private ReportFiller filler;
@@ -44,7 +44,7 @@ public class YearlyReportFillerTest {
   }
 
   @Test
-  public void noExistingSnapsShouldFillWithYearlyGranularity() {
+  void noExistingSnapsShouldFillWithYearlyGranularity() {
     OffsetDateTime start = clock.startOfCurrentYear();
     OffsetDateTime end = start.plusYears(3);
     TallyReport report = new TallyReport();
@@ -59,7 +59,7 @@ public class YearlyReportFillerTest {
   }
 
   @Test
-  public void startAndEndDatesForYearlyAreResetWhenDateIsMidYear() {
+  void startAndEndDatesForYearlyAreResetWhenDateIsMidYear() {
     // Mid year start
     OffsetDateTime start = clock.now();
     // Mid year end
@@ -79,7 +79,7 @@ public class YearlyReportFillerTest {
   }
 
   @Test
-  public void testSnapshotsIgnoredWhenNoDatesSet() {
+  void testSnapshotsIgnoredWhenNoDatesSet() {
     OffsetDateTime start = clock.startOfCurrentYear();
     OffsetDateTime end = start.plusYears(3);
 
@@ -99,7 +99,7 @@ public class YearlyReportFillerTest {
   }
 
   @Test
-  public void shouldFillGapsBasedOnExistingSnapshotsForYearlyGranularity() {
+  void shouldFillGapsBasedOnExistingSnapshotsForYearlyGranularity() {
     OffsetDateTime start = clock.startOfCurrentYear();
     OffsetDateTime snap1Date = start.plusYears(1);
     OffsetDateTime end = start.plusYears(3);

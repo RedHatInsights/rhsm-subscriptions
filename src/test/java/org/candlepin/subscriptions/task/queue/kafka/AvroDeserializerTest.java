@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
 import org.apache.kafka.common.errors.SerializationException;
@@ -35,7 +34,7 @@ import org.junit.jupiter.api.Test;
  * AvroMessageSerializationTest} since both the serialization and deserialization will be tested
  * together.
  */
-public class AvroDeserializerTest {
+class AvroDeserializerTest {
 
   private AvroDeserializer<TaskMessage> deserializer;
 
@@ -45,7 +44,7 @@ public class AvroDeserializerTest {
   }
 
   @Test
-  public void testThrowsSerializationExceptionOnError() {
+  void testThrowsSerializationExceptionOnError() {
     HashMap<String, Object> configs = new HashMap<>();
     configs.put(AvroDeserializer.TARGET_TYPE_CLASS, TaskMessage.class);
     deserializer.configure(configs, false);
@@ -60,7 +59,7 @@ public class AvroDeserializerTest {
   }
 
   @Test
-  public void canConfigureTargetClassWithStringOrClassObject() {
+  void canConfigureTargetClassWithStringOrClassObject() {
     // Will throw an exception if invalid.
     HashMap<String, Object> configs = new HashMap<>();
 
@@ -78,7 +77,7 @@ public class AvroDeserializerTest {
   }
 
   @Test
-  public void throwsExceptionOnDeserializationWhenNotConfigured() {
+  void throwsExceptionOnDeserializationWhenNotConfigured() {
     assertThrows(
         IllegalStateException.class,
         () -> {
@@ -87,7 +86,7 @@ public class AvroDeserializerTest {
   }
 
   @Test
-  public void testMissingTargetClassConfiguration() {
+  void testMissingTargetClassConfiguration() {
     assertThrows(
         IllegalStateException.class,
         () -> {
@@ -96,7 +95,7 @@ public class AvroDeserializerTest {
   }
 
   @Test
-  public void testTargetClassNotFound() {
+  void testTargetClassNotFound() {
     HashMap<String, Object> configs = new HashMap<>();
     configs.put(AvroDeserializer.TARGET_TYPE_CLASS, "not.found.Message");
 

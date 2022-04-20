@@ -21,8 +21,7 @@
 package org.candlepin.subscriptions.task;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,10 +29,10 @@ import java.util.Map;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-public class TaskDescriptorTest {
+class TaskDescriptorTest {
 
   @Test
-  public void testCreation() {
+  void testCreation() {
     String expectedGroupId = "my-group";
     TaskType expectedTaskType = TaskType.UPDATE_SNAPSHOTS;
     String expectedArgKey = "arg1";
@@ -54,7 +53,7 @@ public class TaskDescriptorTest {
   }
 
   @Test
-  public void testEquality() {
+  void testEquality() {
     TaskDescriptor d1 =
         TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group1")
             .setSingleValuedArg("a1", "a1v")

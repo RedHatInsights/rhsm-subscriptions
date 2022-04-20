@@ -20,8 +20,7 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,10 +28,10 @@ import java.util.List;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.junit.jupiter.api.Test;
 
-public class AvroMessageSerializationTest {
+class AvroMessageSerializationTest {
 
   @Test
-  public void testMessageCanBeSerializedAndThenDeserialized() {
+  void testMessageCanBeSerializedAndThenDeserialized() {
     AvroSerializer<TaskMessage> serializer = new AvroSerializer<>();
     AvroDeserializer<TaskMessage> deserializer = new AvroDeserializer<>();
 

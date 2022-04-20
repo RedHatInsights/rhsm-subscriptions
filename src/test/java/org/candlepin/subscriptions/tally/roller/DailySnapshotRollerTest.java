@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
-public class DailySnapshotRollerTest {
+class DailySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
@@ -51,7 +51,7 @@ public class DailySnapshotRollerTest {
   private SnapshotRollerTester<DailySnapshotRoller> tester;
 
   @BeforeAll
-  public void setupAllTests() throws IOException {
+  void setupAllTests() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
@@ -60,28 +60,27 @@ public class DailySnapshotRollerTest {
 
   @SuppressWarnings("indentation")
   @Test
-  public void testDailySnapshotProducer() {
+  void testDailySnapshotProducer() {
     this.tester.performBasicSnapshotRollerTest(
         Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
   }
 
   @SuppressWarnings("indentation")
   @Test
-  public void testDailySnapIsUpdatedWhenItAlreadyExists() {
+  void testDailySnapIsUpdatedWhenItAlreadyExists() {
     this.tester.performSnapshotUpdateTest(
         Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
   }
 
   @Test
-  public void
-      ensureCurrentDailyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
+  void ensureCurrentDailyUpdatedRegardlessOfWhetherIncomingCalculationsAreLessThanTheExisting() {
     tester.performUpdateWithLesserValueTest(
         Granularity.DAILY, clock.startOfToday(), clock.endOfToday(), false);
   }
 
   @Test
   @SuppressWarnings("java:S2699") /* NOTE(khowell): have no idea why sonar thinks no assertions */
-  public void testEmptySnapshotsNotPersisted() {
+  void testEmptySnapshotsNotPersisted() {
     tester.performDoesNotPersistEmptySnapshots(
         Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
   }

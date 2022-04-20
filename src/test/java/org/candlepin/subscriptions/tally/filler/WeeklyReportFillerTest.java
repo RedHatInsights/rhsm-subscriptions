@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import static org.candlepin.subscriptions.tally.filler.Assertions.assertSnapshot;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 
-public class WeeklyReportFillerTest {
+class WeeklyReportFillerTest {
 
   private ApplicationClock clock;
   private ReportFiller filler;
@@ -44,7 +44,7 @@ public class WeeklyReportFillerTest {
   }
 
   @Test
-  public void noExistingSnapsShouldFillWithWeeklyGranularity() {
+  void noExistingSnapsShouldFillWithWeeklyGranularity() {
     OffsetDateTime start = clock.startOfCurrentWeek();
     OffsetDateTime end = start.plusWeeks(3);
 
@@ -60,7 +60,7 @@ public class WeeklyReportFillerTest {
   }
 
   @Test
-  public void startAndEndDatesForWeeklyAreResetWhenDateIsMidWeek() {
+  void startAndEndDatesForWeeklyAreResetWhenDateIsMidWeek() {
     // Mid week start
     OffsetDateTime start = clock.now();
     // Mid week end
@@ -81,7 +81,7 @@ public class WeeklyReportFillerTest {
   }
 
   @Test
-  public void testSnapshotsIgnoredWhenNoDatesSet() {
+  void testSnapshotsIgnoredWhenNoDatesSet() {
     OffsetDateTime start = clock.startOfCurrentWeek();
     OffsetDateTime end = start.plusWeeks(3);
 
@@ -101,7 +101,7 @@ public class WeeklyReportFillerTest {
   }
 
   @Test
-  public void shouldFillGapsBasedOnExistingSnapshotsForWeeklyGranularity() {
+  void shouldFillGapsBasedOnExistingSnapshotsForWeeklyGranularity() {
     OffsetDateTime start = clock.startOfCurrentWeek();
     OffsetDateTime snap1Date = start.plusWeeks(1);
     OffsetDateTime end = start.plusWeeks(3);
