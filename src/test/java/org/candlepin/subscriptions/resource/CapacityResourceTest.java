@@ -20,8 +20,9 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
@@ -29,6 +30,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
@@ -47,6 +49,9 @@ import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -58,8 +63,8 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"api", "test"})
 class CapacityResourceTest {
 
-  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+  private static final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
+  private static final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
   @MockBean SubscriptionCapacityRepository repository;
 
@@ -252,7 +257,7 @@ class CapacityResourceTest {
 
   @Test
   @WithMockRedHatPrincipal("1111")
-  public void testAccessDeniedWhenAccountIsNotWhitelisted() {
+  void testAccessDeniedWhenAccountIsNotWhitelisted() {
     assertThrows(
         AccessDeniedException.class,
         () -> {
@@ -264,7 +269,7 @@ class CapacityResourceTest {
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
-  public void testAccessDeniedWhenUserIsNotAnAdmin() {
+  void testAccessDeniedWhenUserIsNotAnAdmin() {
     assertThrows(
         AccessDeniedException.class,
         () -> {
@@ -308,6 +313,34 @@ class CapacityResourceTest {
 
     when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
         .thenReturn(Arrays.asList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
+
+  static Stream<Arguments> usageLists() {
+    SubscriptionCapacity limited = new SubscriptionCapacity();
+    limited.setHasUnlimitedUsage(false);
+    limited.setPhysicalCores(4);
+    limited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    limited.setEndDate(max);
+    SubscriptionCapacity unlimited = new SubscriptionCapacity();
+    unlimited.setHasUnlimitedUsage(true);
+    unlimited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    unlimited.setEndDate(max);
+
+    return Stream.of(
+        arguments(Arrays.asList(unlimited, limited)), arguments(Arrays.asList(limited, unlimited)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("usageLists")
+  void testShouldCalculateCapacityRegardlessOfUsageSeenFirst(List<SubscriptionCapacity> usages) {
+    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+        .thenReturn(usages);
 
     CapacityReport report =
         resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);

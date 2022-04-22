@@ -9,6 +9,8 @@ metadata:
   name: rhsm-subscriptions-capacity-ingress
 
 parameters:
+  - name: CAPACITY_INGRESS_HAWTIO_BASE_PATH
+    value: /app/rhsm-capacity-ingress/hawtio
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
@@ -130,6 +132,8 @@ objects:
                 # turn off built-in jolokia, so that the spring boot jolokia actuator will work
                 - name: AB_JOLOKIA_OFF
                   value: 'true'
+                - name: HAWTIO_BASE_PATH
+                  value: ${CAPACITY_INGRESS_HAWTIO_BASE_PATH}
                 - name: LOG_FILE
                   value: /logs/server.log
                 - name: SPRING_PROFILES_ACTIVE

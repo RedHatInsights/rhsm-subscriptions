@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import static org.candlepin.subscriptions.tally.filler.Assertions.assertSnapshot;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 
-public class MonthlyReportFillerTest {
+class MonthlyReportFillerTest {
 
   private ApplicationClock clock;
   private ReportFiller filler;
@@ -44,7 +44,7 @@ public class MonthlyReportFillerTest {
   }
 
   @Test
-  public void noExistingSnapsShouldFillWithMonthlyGranularity() {
+  void noExistingSnapsShouldFillWithMonthlyGranularity() {
     OffsetDateTime start = clock.startOfCurrentMonth();
     OffsetDateTime end = start.plusMonths(3);
 
@@ -60,7 +60,7 @@ public class MonthlyReportFillerTest {
   }
 
   @Test
-  public void startAndEndDatesForMonthlyAreResetWhenDateIsMidMonth() {
+  void startAndEndDatesForMonthlyAreResetWhenDateIsMidMonth() {
     // Mid month start
     OffsetDateTime start = clock.now();
     // Mid month end
@@ -81,7 +81,7 @@ public class MonthlyReportFillerTest {
   }
 
   @Test
-  public void testSnapshotsIgnoredWhenNoDatesSet() {
+  void testSnapshotsIgnoredWhenNoDatesSet() {
     OffsetDateTime start = clock.startOfCurrentMonth();
     OffsetDateTime end = start.plusMonths(3);
 
@@ -101,7 +101,7 @@ public class MonthlyReportFillerTest {
   }
 
   @Test
-  public void shouldFillGapsBasedOnExistingSnapshotsForMonthlyGranularity() {
+  void shouldFillGapsBasedOnExistingSnapshotsForMonthlyGranularity() {
     OffsetDateTime start = clock.startOfCurrentMonth();
     OffsetDateTime snap1Date = start.plusMonths(1);
     OffsetDateTime end = start.plusMonths(3);

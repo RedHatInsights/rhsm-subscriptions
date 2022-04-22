@@ -44,7 +44,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
-public class OptInResourceTest {
+class OptInResourceTest {
 
   private ApplicationClock clock;
 
@@ -61,19 +61,19 @@ public class OptInResourceTest {
   }
 
   @Test
-  public void testDeleteOptInConfig() {
+  void testDeleteOptInConfig() {
     resource.deleteOptInConfig();
     Mockito.verify(controller).optOut(eq("account123456"), eq("owner123456"));
   }
 
   @Test
-  public void testGet() {
+  void testGet() {
     resource.getOptInConfig();
     Mockito.verify(controller).getOptInConfig(eq("account123456"), eq("owner123456"));
   }
 
   @Test
-  public void testPut() {
+  void testPut() {
     resource.putOptInConfig(false, false, false);
     Mockito.verify(controller)
         .optIn(
@@ -86,7 +86,7 @@ public class OptInResourceTest {
   }
 
   @Test
-  public void testPutDefaultsToTrue() {
+  void testPutDefaultsToTrue() {
     resource.putOptInConfig(null, null, null);
     Mockito.verify(controller)
         .optIn(
@@ -100,13 +100,13 @@ public class OptInResourceTest {
 
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
-  public void testMissingOrgOnDelete() {
+  void testMissingOrgOnDelete() {
     assertThrows(BadRequestException.class, () -> resource.deleteOptInConfig());
   }
 
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyAccount = true)
-  public void testMissingAccountOnDelete() {
+  void testMissingAccountOnDelete() {
     assertThrows(BadRequestException.class, () -> resource.deleteOptInConfig());
   }
 
@@ -114,19 +114,19 @@ public class OptInResourceTest {
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
-  public void testAccessDeniedForDeleteAccountConfigWhenUserIsNotAnAdmin() {
+  void testAccessDeniedForDeleteAccountConfigWhenUserIsNotAnAdmin() {
     assertThrows(AccessDeniedException.class, () -> resource.deleteOptInConfig());
   }
 
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
-  public void testMissingOrgOnGet() {
+  void testMissingOrgOnGet() {
     assertThrows(BadRequestException.class, () -> resource.getOptInConfig());
   }
 
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyAccount = true)
-  public void testMissingAccountOnGet() {
+  void testMissingAccountOnGet() {
     assertThrows(BadRequestException.class, () -> resource.getOptInConfig());
   }
 
@@ -134,19 +134,19 @@ public class OptInResourceTest {
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
-  public void testAccessDeniedForGetAccountConfigWhenUserIsNotAnAdmin() {
+  void testAccessDeniedForGetAccountConfigWhenUserIsNotAnAdmin() {
     assertThrows(AccessDeniedException.class, () -> resource.getOptInConfig());
   }
 
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
-  public void testMissingOrgOnPut() {
+  void testMissingOrgOnPut() {
     assertThrows(BadRequestException.class, () -> resource.putOptInConfig(true, true, true));
   }
 
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyAccount = true)
-  public void testMissingAccountOnPut() {
+  void testMissingAccountOnPut() {
     assertThrows(BadRequestException.class, () -> resource.putOptInConfig(true, true, true));
   }
 
@@ -154,7 +154,7 @@ public class OptInResourceTest {
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
-  public void testAccessDeniedForOptInWhenUserIsNotAnAdmin() {
+  void testAccessDeniedForOptInWhenUserIsNotAnAdmin() {
     assertThrows(AccessDeniedException.class, () -> resource.putOptInConfig(true, true, true));
   }
 }

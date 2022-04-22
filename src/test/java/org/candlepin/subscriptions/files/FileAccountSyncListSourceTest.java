@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
@@ -31,10 +31,10 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-public class FileAccountSyncListSourceTest {
+class FileAccountSyncListSourceTest {
 
   @Test
-  public void ensureResourcePathComesFromApplicationProperty() throws Exception {
+  void ensureResourcePathComesFromApplicationProperty() throws Exception {
     ApplicationProperties props = new ApplicationProperties();
     props.setAccountListResourceLocation("classpath:account_list.txt");
 

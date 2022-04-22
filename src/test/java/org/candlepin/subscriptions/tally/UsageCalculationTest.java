@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.tally.collector.Assertions.*;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardwareMeasurementTotals;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.stream.IntStream;
@@ -29,10 +30,10 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.junit.jupiter.api.Test;
 
-public class UsageCalculationTest {
+class UsageCalculationTest {
 
   @Test
-  public void testDefaults() {
+  void testDefaults() {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Test Product"));
     assertEquals("Test Product", calculation.getProductId());
 
@@ -42,7 +43,7 @@ public class UsageCalculationTest {
   }
 
   @Test
-  public void testAddToTotal() {
+  void testAddToTotal() {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
     IntStream.rangeClosed(0, 4).forEach(i -> calculation.addToTotal(i + 2, i + 1, i));
 
@@ -51,7 +52,7 @@ public class UsageCalculationTest {
   }
 
   @Test
-  public void testPhysicalSystemTotal() {
+  void testPhysicalSystemTotal() {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
     IntStream.rangeClosed(0, 4).forEach(i -> calculation.addPhysical(i + 2, i + 1, i));
 
@@ -65,7 +66,7 @@ public class UsageCalculationTest {
   }
 
   @Test
-  public void testHypervisorTotal() {
+  void testHypervisorTotal() {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
     IntStream.rangeClosed(0, 4).forEach(i -> calculation.addHypervisor(i + 2, i + 1, i));
 
@@ -75,22 +76,22 @@ public class UsageCalculationTest {
   }
 
   @Test
-  public void testAWSTotal() {
+  void testAWSTotal() {
     checkCloudProvider(HardwareMeasurementType.AWS);
   }
 
   @Test
-  public void testAlibabaTotal() {
+  void testAlibabaTotal() {
     checkCloudProvider(HardwareMeasurementType.ALIBABA);
   }
 
   @Test
-  public void testGoogleTotal() {
+  void testGoogleTotal() {
     checkCloudProvider(HardwareMeasurementType.GOOGLE);
   }
 
   @Test
-  public void testAzureTotal() {
+  void testAzureTotal() {
     checkCloudProvider(HardwareMeasurementType.AZURE);
   }
 
@@ -128,7 +129,7 @@ public class UsageCalculationTest {
   }
 
   @Test
-  public void invalidCloudTypeThrowsExcpection() {
+  void invalidCloudTypeThrowsExcpection() {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
     assertThrows(
         IllegalArgumentException.class,

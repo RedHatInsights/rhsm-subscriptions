@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import static org.candlepin.subscriptions.tally.filler.Assertions.assertSnapshot;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 
-public class DailyReportFillerTest {
+class DailyReportFillerTest {
 
   private ApplicationClock clock;
   private ReportFiller filler;
@@ -44,7 +44,7 @@ public class DailyReportFillerTest {
   }
 
   @Test
-  public void noExistingSnapsShouldfillWithDailyGranularity() {
+  void noExistingSnapsShouldfillWithDailyGranularity() {
     OffsetDateTime start = clock.now();
     OffsetDateTime end = start.plusDays(3);
 
@@ -60,7 +60,7 @@ public class DailyReportFillerTest {
   }
 
   @Test
-  public void shouldFillGapsBasedOnExistingSnapshotsForDailyGranularity() {
+  void shouldFillGapsBasedOnExistingSnapshotsForDailyGranularity() {
     OffsetDateTime start = clock.now();
     OffsetDateTime snap1Date = start.plusDays(1);
     OffsetDateTime end = start.plusDays(3);
@@ -95,7 +95,7 @@ public class DailyReportFillerTest {
   }
 
   @Test
-  public void testSnapshotsIgnoredWhenNoDatesSet() {
+  void testSnapshotsIgnoredWhenNoDatesSet() {
     OffsetDateTime start = clock.startOfToday();
     OffsetDateTime end = start.plusDays(3);
 

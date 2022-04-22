@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -28,10 +28,10 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-public class AccountUsageCalculationTest {
+class AccountUsageCalculationTest {
 
   @Test
-  public void testGetCalculation() {
+  void testGetCalculation() {
     String p1 = "Product1";
     AccountUsageCalculation calc = new AccountUsageCalculation("Account1");
     UsageCalculation prodCalc = new UsageCalculation(createUsageKey(p1));
@@ -42,7 +42,7 @@ public class AccountUsageCalculationTest {
   }
 
   @Test
-  public void testContainsCalculation() {
+  void testContainsCalculation() {
     String p1 = "Product1";
     AccountUsageCalculation calc = new AccountUsageCalculation("Account1");
     UsageCalculation prodCalc = new UsageCalculation(createUsageKey(p1));
@@ -54,7 +54,7 @@ public class AccountUsageCalculationTest {
   }
 
   @Test
-  public void testGetProducts() {
+  void testGetProducts() {
     String p1 = "Product1";
     String p2 = "Product2";
     String p3 = "Product3";

@@ -592,6 +592,93 @@ class SubscriptionTableControllerTest {
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
   }
 
+  @Test
+  void testShouldSortUnlimitedLastAscending() {
+    // Given an org with two active subs with different quantities for different SKUs,
+    // and the subs have an eng product with a socket capacity of 2,
+    // and the subs have different ending dates,
+    ProductId productId = RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(
+            Org.STANDARD,
+            productId,
+            RH0180191.withSub(expectedNewerSub),
+            RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub));
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product, sorted by quantity
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, SkuCapacityReportSort.QUANTITY, null);
+
+    // Then the report contains two inventory items containing a sub with appropriate
+    // quantity and capacities, and RH00604F5 is listed first.
+    assertEquals(
+        2,
+        actual.getData().size(),
+        "Both subs are for different SKUs so should collect into two capacity items.");
+
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
+
+    actualItem = actual.getData().get(1);
+    assertEquals(
+        RH0180195_UNLIMITED_USAGE.sku,
+        actualItem.getSku(),
+        "Wrong SKU. (Incorrect ordering of SKUs?)");
+  }
+
+  @Test
+  void testShouldSortUnlimitedFirstDescending() {
+    // Given an org with two active subs with different quantities for different SKUs,
+    // and the subs have an eng product with a socket capacity of 2,
+    // and the subs have different ending dates,
+    ProductId productId = RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(
+            Org.STANDARD,
+            productId,
+            RH0180191.withSub(expectedNewerSub),
+            RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub));
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product, sorted by quantity
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.QUANTITY,
+            SortDirection.DESC);
+
+    // Then the report contains two inventory items containing a sub with appropriate
+    // quantity and capacities, and RH0180195 is listed first.
+    assertEquals(
+        2,
+        actual.getData().size(),
+        "Both subs are for different SKUs so should collect into two capacity items.");
+
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(
+        RH0180195_UNLIMITED_USAGE.sku,
+        actualItem.getSku(),
+        "Wrong SKU. (Incorrect ordering of SKUs?)");
+
+    actualItem = actual.getData().get(1);
+    assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
+  }
+
   private static void assertCapacities(
       int expectedPhysCap, int expectedVirtCap, Uom expectedUom, SkuCapacity actual) {
     assertEquals(expectedUom, actual.getUom(), "Wrong UOM");

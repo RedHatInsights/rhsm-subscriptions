@@ -153,6 +153,9 @@ public class Host implements Serializable {
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
+  @Column(name = "billing_account_id")
+  private String billingAccountId;
+
   public Host() {}
 
   public Host(
@@ -317,7 +320,8 @@ public class Host implements Serializable {
         && Objects.equals(lastSeen, host.lastSeen)
         && Objects.equals(buckets, host.buckets)
         && Objects.equals(cloudProvider, host.cloudProvider)
-        && Objects.equals(instanceId, host.instanceId);
+        && Objects.equals(instanceId, host.instanceId)
+        && Objects.equals(billingAccountId, host.billingAccountId);
   }
 
   @Override
@@ -342,7 +346,8 @@ public class Host implements Serializable {
         isHypervisor,
         cloudProvider,
         instanceId,
-        instanceType);
+        instanceType,
+        billingAccountId);
   }
 
   public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost(
