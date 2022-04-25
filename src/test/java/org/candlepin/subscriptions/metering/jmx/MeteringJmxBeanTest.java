@@ -109,7 +109,7 @@ class MeteringJmxBeanTest {
 
     jmx.performMetering(PRODUCT_PROFILE_ID);
 
-    verify(tasks).updateMetricsForAllAccounts(PRODUCT_PROFILE_ID, startDate, endDate);
+    verify(tasks).updateMetricsForAllAccounts(PRODUCT_PROFILE_ID, 60);
   }
 
   @Test

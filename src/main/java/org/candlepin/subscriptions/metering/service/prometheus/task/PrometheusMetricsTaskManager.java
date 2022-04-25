@@ -21,8 +21,10 @@
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -31,6 +33,7 @@ import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -51,16 +54,24 @@ public class PrometheusMetricsTaskManager {
 
   private TagProfile tagProfile;
 
+  private ApplicationClock clock;
+
+  private ApplicationProperties appProps;
+
   public PrometheusMetricsTaskManager(
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
-      TagProfile tagProfile) {
+      TagProfile tagProfile,
+      ApplicationClock clock,
+      ApplicationProperties appProps) {
     log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
     this.queue = queue;
     this.topic = queueProps.getTopic();
     this.accountSource = accountSource;
     this.tagProfile = tagProfile;
+    this.clock = clock;
+    this.appProps = appProps;
   }
 
   public void updateMetricsForAccount(
@@ -95,8 +106,30 @@ public class PrometheusMetricsTaskManager {
   }
 
   @Transactional
+  public void updateMetricsForAllAccounts(String productTag, int rangeInMinutes) {
+    updateMetricsForAllAccounts(
+        productTag, rangeInMinutes, RetryTemplate.builder().maxAttempts(1).build());
+  }
+
+  @Transactional
   public void updateMetricsForAllAccounts(
+      String productTag, int rangeInMinutes, RetryTemplate retry) {
+    OffsetDateTime start =
+        clock.startOfHour(clock.now().minus(appProps.getPrometheusLatencyDuration()));
+    // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
+    // time is 6:00:00, taking the last of that hour would give the range an extra hour
+    // (6:59:59.999999) which is not what we want. We subtract to break the even boundary before
+    // finding the last minute. We need to do this because our queries are date inclusive
+    // (greater/less than OR equal to).
+    OffsetDateTime end =
+        clock.endOfHour(
+            start.plusMinutes(rangeInMinutes).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
+    updateMetricsForAllAccounts(productTag, start, end, retry);
+  }
+
+  private void updateMetricsForAllAccounts(
       String productTag, OffsetDateTime start, OffsetDateTime end, RetryTemplate retry) {
+    log.info("Queuing {} metric updates for range: {} -> {}", productTag, start, end);
     tagProfile
         .getSupportedMetricsForProduct(productTag)
         .forEach(
