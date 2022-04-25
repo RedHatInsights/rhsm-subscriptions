@@ -52,7 +52,7 @@ parameters:
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
   - name: SUBSCRIPTION_PAGE_SIZE
-    value: '500
+    value: '500'
   - name: DEVTEST_SUBSCRIPTION_EDITING_ENABLED
     value: 'false'
   - name: SUBSCRIPTION_URL
