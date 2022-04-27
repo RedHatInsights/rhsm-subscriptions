@@ -29,7 +29,7 @@ ext.plugins = [
         "org.kordamp.gradle:jandex-gradle-plugin:0.11.0",
         "org.openapitools:openapi-generator-gradle-plugin:5.4.0",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3",
-        "org.springframework.boot:spring-boot-gradle-plugin:2.6.6",
+        "org.springframework.boot:spring-boot-gradle-plugin:2.6.7",
 ]
 
 libraries["annotation-api"] = "javax.annotation:javax.annotation-api:1.3.2"
