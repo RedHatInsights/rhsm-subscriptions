@@ -108,11 +108,8 @@ public class MeteringJmxBean {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Metering for all accounts triggered via JMX by {}", principal);
 
-    OffsetDateTime end = getDate(null);
-    OffsetDateTime start = getStartDate(end, metricProperties.getRangeInMinutes());
-
     try {
-      tasks.updateMetricsForAllAccounts(productTag, start, end);
+      tasks.updateMetricsForAllAccounts(productTag, metricProperties.getRangeInMinutes());
     } catch (Exception e) {
       log.error("Error triggering {} metering for all accounts via JMX.", productTag, e);
     }

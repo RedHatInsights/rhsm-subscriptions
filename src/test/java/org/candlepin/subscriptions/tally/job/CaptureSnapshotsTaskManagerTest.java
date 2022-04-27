@@ -173,11 +173,9 @@ class CaptureSnapshotsTaskManagerTest {
                   TaskDescriptor.builder(
                           TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
                       .setSingleValuedArg("accountNumber", accountNumber)
-                      // 2019-05-24T12:35Z truncated to top of the hour - 4 hours prometheus latency
-                      // - 1 hour
-                      // tally latency - 1 hour metric range
-                      .setSingleValuedArg("startDateTime", "2019-05-24T05:00:00Z")
-                      .setSingleValuedArg("endDateTime", "2019-05-24T06:00:00Z")
+                      // 2019-05-24T12:35Z truncated to top of the hour - 1 hour tally range
+                      .setSingleValuedArg("startDateTime", "2019-05-24T10:00:00Z")
+                      .setSingleValuedArg("endDateTime", "2019-05-24T11:00:00Z")
                       .build());
         });
   }
