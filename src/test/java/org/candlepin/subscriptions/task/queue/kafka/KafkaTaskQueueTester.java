@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +54,7 @@ public class KafkaTaskQueueTester {
     CountDownLatch latch = new CountDownLatch(1);
     CountDownTask cdt = new CountDownTask(latch);
 
-    when(factory.build(eq(taskDescriptor))).thenReturn(cdt);
+    when(factory.build(taskDescriptor)).thenReturn(cdt);
 
     manager.updateAccountSnapshots(account);
 

@@ -43,7 +43,7 @@ public class PageLinkCreator {
    * @param page Spring Data JPA page object
    * @return a populate PageLinks object
    */
-  public PageLinks getPaginationLinks(UriInfo uriInfo, Page page) {
+  public PageLinks getPaginationLinks(UriInfo uriInfo, Page<?> page) {
     PageLinks links = new PageLinks();
     if (page.previousPageable() != Pageable.unpaged()) {
       links.setPrevious(formatUri(uriWithOffset(uriInfo, page.previousPageable().getOffset())));

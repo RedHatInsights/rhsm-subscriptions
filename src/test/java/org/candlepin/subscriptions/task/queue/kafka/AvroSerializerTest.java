@@ -20,9 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
@@ -34,17 +33,17 @@ import org.junit.jupiter.api.Test;
  * AvroMessageSerializationTest} since both the serialization and deserialization will be tested
  * together.
  */
-public class AvroSerializerTest {
+class AvroSerializerTest {
 
   private AvroSerializer<TaskMessage> serializer;
 
   @BeforeEach
-  public void setupTest() {
+  void setupTest() {
     serializer = new AvroSerializer<TaskMessage>();
   }
 
   @Test
-  public void testThrowsSerializationException() {
+  void testThrowsSerializationException() {
     TaskMessage mockMessage = mock(TaskMessage.class);
     when(mockMessage.getSchema()).thenThrow(new RuntimeException("forced"));
     assertThrows(

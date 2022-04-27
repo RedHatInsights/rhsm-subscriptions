@@ -34,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
-public class VersionResourceTest {
+class VersionResourceTest {
   @MockBean BuildProperties buildProperties;
 
   @Autowired VersionResource versionResource;

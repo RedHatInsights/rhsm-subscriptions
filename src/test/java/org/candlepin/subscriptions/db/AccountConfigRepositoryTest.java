@@ -43,13 +43,13 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-public class AccountConfigRepositoryTest {
+class AccountConfigRepositoryTest {
 
   @Autowired private AccountConfigRepository repository;
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
   @Test
-  public void saveAndUpdate() {
+  void saveAndUpdate() {
     OffsetDateTime creation = clock.now();
     OffsetDateTime expectedUpdate = creation.plusDays(1);
 
@@ -80,7 +80,7 @@ public class AccountConfigRepositoryTest {
   }
 
   @Test
-  public void testDelete() {
+  void testDelete() {
     AccountConfig config = createConfig("an-account", true, true);
     repository.saveAndFlush(config);
 
@@ -93,7 +93,7 @@ public class AccountConfigRepositoryTest {
   }
 
   @Test
-  public void testFindAccountsWithEnabledSync() {
+  void testFindAccountsWithEnabledSync() {
     repository.saveAll(
         Arrays.asList(
             createConfig("A1", true, true),
@@ -109,7 +109,7 @@ public class AccountConfigRepositoryTest {
   }
 
   @Test
-  public void testIsReportingEnabled() {
+  void testIsReportingEnabled() {
     repository.saveAll(
         Arrays.asList(
             createConfig("A1", true, true),

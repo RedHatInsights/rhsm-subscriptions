@@ -395,6 +395,7 @@ class HostsResourceTest {
             june2019,
             null,
             null,
+            null,
             PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER))))
         .thenReturn(page);
 

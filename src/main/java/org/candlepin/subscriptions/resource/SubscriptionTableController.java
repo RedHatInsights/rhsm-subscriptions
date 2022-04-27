@@ -265,7 +265,7 @@ public class SubscriptionTableController {
               diff = left.getUsage().compareTo(right.getUsage());
               break;
             case QUANTITY:
-              diff = left.getQuantity().compareTo(right.getQuantity());
+              diff = compareQuantity(left, right);
               break;
             case NEXT_EVENT_DATE:
               diff = left.getNextEventDate().compareTo(right.getNextEventDate());
@@ -288,5 +288,18 @@ public class SubscriptionTableController {
 
           return diff * sortDir;
         });
+  }
+
+  private static int compareQuantity(SkuCapacity left, SkuCapacity right) {
+    // unlimited quantity subscriptions are greater than non-unlimited
+    if (!Objects.equals(left.getHasInfiniteQuantity(), right.getHasInfiniteQuantity())) {
+      if (Boolean.TRUE.equals(left.getHasInfiniteQuantity())) {
+        return 1;
+      }
+      if (Boolean.TRUE.equals(right.getHasInfiniteQuantity())) {
+        return -1;
+      }
+    }
+    return left.getQuantity().compareTo(right.getQuantity());
   }
 }

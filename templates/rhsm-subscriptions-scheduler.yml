@@ -24,7 +24,7 @@ parameters:
   - name: SUBSCRIPTION_SYNC_SCHEDULE
     value: 0 10 * * *
   - name: METERING_SCHEDULE
-    value: 0 * * * *
+    value: 30 * * * *
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
   - name: EVENT_RECORD_RETENTION
@@ -56,7 +56,7 @@ parameters:
   - name: SPLUNK_FORWARDER_CPU_LIMIT
     value: 100m
   - name: HOURLY_TALLY_OFFSET
-    value: 120m
+    value: 60m
   - name: TOKEN_REFRESHER_IMAGE
     value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
   - name: TOKEN_REFRESHER_CPU_REQUEST

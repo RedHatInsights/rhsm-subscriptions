@@ -48,7 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 // The transactional annotation will rollback the transaction at the end of every test.
 @Transactional
 @ActiveProfiles("test")
-public class TallySnapshotRepositoryTest {
+class TallySnapshotRepositoryTest {
   private static final OffsetDateTime LONG_AGO =
       OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
   private static final OffsetDateTime NOWISH =
@@ -59,7 +59,7 @@ public class TallySnapshotRepositoryTest {
   @Autowired private TallySnapshotRepository repository;
 
   @Test
-  public void testSave() {
+  void testSave() {
     TallySnapshot t =
         createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, OffsetDateTime.now());
     TallySnapshot saved = repository.saveAndFlush(t);
@@ -68,7 +68,7 @@ public class TallySnapshotRepositoryTest {
 
   @SuppressWarnings("linelength")
   @Test
-  public void findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsage() {
+  void findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsage() {
     TallySnapshot t1 = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
     TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
     TallySnapshot t3 =
@@ -115,7 +115,7 @@ public class TallySnapshotRepositoryTest {
 
   @SuppressWarnings("linelength")
   @Test
-  public void testFindByEmptyServiceLevelAndUsage() {
+  void testFindByEmptyServiceLevelAndUsage() {
     TallySnapshot t1 =
         createUnpersisted(
             "A1",
@@ -158,7 +158,7 @@ public class TallySnapshotRepositoryTest {
   }
 
   @Test
-  public void testFindByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween() {
+  void testFindByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween() {
     String product1 = "Product1";
     String product2 = "Product2";
     // Will not be found - out of date range.
@@ -203,7 +203,7 @@ public class TallySnapshotRepositoryTest {
   }
 
   @Test
-  public void testPersistsHardwareMeasurements() {
+  void testPersistsHardwareMeasurements() {
     TallySnapshot snap =
         createUnpersisted("Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
 

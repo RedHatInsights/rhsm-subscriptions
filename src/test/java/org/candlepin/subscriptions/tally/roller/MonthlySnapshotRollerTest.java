@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
-public class MonthlySnapshotRollerTest {
+class MonthlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
@@ -51,7 +51,7 @@ public class MonthlySnapshotRollerTest {
   private SnapshotRollerTester<MonthlySnapshotRoller> tester;
 
   @BeforeAll
-  public void setupAllTests() throws IOException {
+  void setupAllTests() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
@@ -60,20 +60,20 @@ public class MonthlySnapshotRollerTest {
 
   @SuppressWarnings("indentation")
   @Test
-  public void testMonthlySnapshotProducer() {
+  void testMonthlySnapshotProducer() {
     tester.performBasicSnapshotRollerTest(
         Granularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
   }
 
   @SuppressWarnings("indentation")
   @Test
-  public void testMonthlySnapIsUpdatedWhenItAlreadyExists() {
+  void testMonthlySnapIsUpdatedWhenItAlreadyExists() {
     tester.performSnapshotUpdateTest(
         Granularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth());
   }
 
   @Test
-  public void ensureCurrentMonthlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+  void ensureCurrentMonthlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
     tester.performUpdateWithLesserValueTest(
         Granularity.MONTHLY, clock.startOfCurrentMonth(), clock.endOfCurrentMonth(), true);
   }

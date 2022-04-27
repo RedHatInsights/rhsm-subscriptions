@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
@@ -28,10 +28,10 @@ import java.util.Set;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-public class NormalizedFactsTest {
+class NormalizedFactsTest {
 
   @Test
-  public void testToInventoryPayload() {
+  void testToInventoryPayload() {
     NormalizedFacts facts = new NormalizedFacts();
     facts.addProduct("RHEL");
     facts.setCores(12);
@@ -47,7 +47,7 @@ public class NormalizedFactsTest {
   }
 
   @Test
-  public void testEmptyInventoryPayload() {
+  void testEmptyInventoryPayload() {
     NormalizedFacts facts = new NormalizedFacts();
 
     Map<String, Object> payload = facts.toInventoryPayload();

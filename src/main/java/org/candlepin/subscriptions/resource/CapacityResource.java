@@ -222,7 +222,7 @@ public class CapacityResource implements CapacityApi {
         cores += capacityVirtCores;
         hypervisorCores += capacityVirtCores;
 
-        hasInfiniteQuantity = Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
+        hasInfiniteQuantity |= Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
       }
     }
 

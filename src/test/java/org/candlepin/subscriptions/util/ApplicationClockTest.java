@@ -20,7 +20,14 @@
  */
 package org.candlepin.subscriptions.util;
 
-import static org.candlepin.subscriptions.FixedClockConfiguration.*;
+import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_EPOCH_EDT;
+import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_EPOCH_UTC;
+import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_TIME_EDT;
+import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_TIME_UTC;
+import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_EPOCH_EST;
+import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_EPOCH_UTC;
+import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_TIME_EST;
+import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_TIME_UTC;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDateTime;
@@ -87,104 +94,104 @@ class ApplicationClockTest {
   }
 
   @Test
-  public void testNow() {
+  void testNow() {
     assertDate(2019, 5, 24, 12, 35, 0, 0, clock.now());
   }
 
   @Test
-  public void testStartOfToday() {
+  void testStartOfToday() {
     assertStartOfDay(2019, 5, 24, clock.startOfToday());
   }
 
   @Test
-  public void testStartOfDay() {
+  void testStartOfDay() {
     assertStartOfDay(2019, 5, 25, clock.startOfDay(clock.now().plusDays(1)));
   }
 
   @Test
-  public void testEndOfToday() {
+  void testEndOfToday() {
     assertEndOfDay(2019, 5, 24, clock.endOfToday());
   }
 
   @Test
-  public void testEndOfDay() {
+  void testEndOfDay() {
     assertEndOfDay(2019, 5, 25, clock.endOfDay(clock.now().plusDays(1)));
   }
 
   @Test
-  public void testStartOfCurrentWeek() {
+  void testStartOfCurrentWeek() {
     assertStartOfDay(2019, 5, 19, clock.startOfCurrentWeek());
   }
 
   @Test
-  public void testStartOfWeek() {
+  void testStartOfWeek() {
     assertStartOfDay(2019, 4, 28, clock.startOfWeek(clock.now().minusWeeks(3)));
   }
 
   @Test
-  public void testStartOfWeekWhenDateIsTheStartOfTheWeek() {
+  void testStartOfWeekWhenDateIsTheStartOfTheWeek() {
     OffsetDateTime startOfWeek = clock.now().withYear(2019).withMonth(5).withDayOfMonth(12);
     assertStartOfDay(2019, 5, 12, clock.startOfWeek(startOfWeek));
   }
 
   @Test
-  public void testEndOfCurrentWeek() {
+  void testEndOfCurrentWeek() {
     assertEndOfDay(2019, 5, 25, clock.endOfCurrentWeek());
   }
 
   @Test
-  public void testEndOfWeek() {
+  void testEndOfWeek() {
     assertEndOfDay(2019, 5, 4, clock.endOfWeek(clock.now().minusWeeks(3)));
   }
 
   @Test
-  public void testEndOfWeekWhenDateIsTheEndOfTheWeek() {
+  void testEndOfWeekWhenDateIsTheEndOfTheWeek() {
     OffsetDateTime endOfWeek = clock.now().withYear(2019).withMonth(5).withDayOfMonth(18);
     assertEndOfDay(2019, 5, 18, clock.endOfWeek(endOfWeek));
   }
 
   @Test
-  public void testStartOfCurrentMonth() {
+  void testStartOfCurrentMonth() {
     assertStartOfDay(2019, 5, 1, clock.startOfCurrentMonth());
   }
 
   @Test
-  public void testStartOfMonth() {
+  void testStartOfMonth() {
     assertStartOfDay(2019, 4, 1, clock.startOfMonth(clock.now().minusMonths(1)));
   }
 
   @Test
-  public void testEndOfCurrentMonth() {
+  void testEndOfCurrentMonth() {
     assertEndOfDay(2019, 5, 31, clock.endOfCurrentMonth());
   }
 
   @Test
-  public void testEndOfMonth() {
+  void testEndOfMonth() {
     assertEndOfDay(2019, 2, 28, clock.endOfMonth(clock.now().minusMonths(3)));
   }
 
   @Test
-  public void testStartOfCurrentYear() {
+  void testStartOfCurrentYear() {
     assertStartOfDay(2019, 1, 1, clock.startOfCurrentYear());
   }
 
   @Test
-  public void testStartOfYear() {
+  void testStartOfYear() {
     assertStartOfDay(2018, 1, 1, clock.startOfYear(clock.now().minusYears(1)));
   }
 
   @Test
-  public void testEndOfCurrentYear() {
+  void testEndOfCurrentYear() {
     assertEndOfDay(2019, 12, 31, clock.endOfCurrentYear());
   }
 
   @Test
-  public void testEndOfYear() {
+  void testEndOfYear() {
     assertEndOfDay(2018, 12, 31, clock.endOfYear(clock.now().minusYears(1)));
   }
 
   @Test
-  public void startOfQuarter() {
+  void startOfQuarter() {
     assertStartOfDay(2019, 1, 1, clock.startOfQuarter(clock.startOfCurrentYear()));
     assertStartOfDay(2019, 4, 1, clock.startOfQuarter(clock.startOfCurrentYear().plusMonths(3)));
     assertStartOfDay(2019, 7, 1, clock.startOfQuarter(clock.startOfCurrentYear().plusMonths(6)));
@@ -192,7 +199,7 @@ class ApplicationClockTest {
   }
 
   @Test
-  public void endOfQuarter() {
+  void endOfQuarter() {
     assertEndOfDay(2019, 3, 31, clock.endOfQuarter(clock.startOfCurrentYear()));
     assertEndOfDay(2019, 6, 30, clock.endOfQuarter(clock.startOfCurrentYear().plusMonths(3)));
     assertEndOfDay(2019, 9, 30, clock.endOfQuarter(clock.startOfCurrentYear().plusMonths(6)));
@@ -200,12 +207,12 @@ class ApplicationClockTest {
   }
 
   @Test
-  public void testStartCurrentQuarter() {
+  void testStartCurrentQuarter() {
     assertStartOfDay(2019, 4, 1, clock.startOfCurrentQuarter());
   }
 
   @Test
-  public void testEndOfCurrentQuarter() {
+  void testEndOfCurrentQuarter() {
     assertEndOfDay(2019, 6, 30, clock.endOfCurrentQuarter());
   }
 
