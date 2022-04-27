@@ -117,7 +117,7 @@ public class SubscriptionSyncController {
     String sku = sku(subscription);
 
     if (!productWhitelist.productIdMatches(sku)) {
-      log.info(
+      log.debug(
           "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
           sku,
           subscription.getId(),
@@ -126,7 +126,7 @@ public class SubscriptionSyncController {
     }
 
     if (!offeringRepository.existsById(sku)) {
-      log.info(
+      log.debug(
           "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
           sku,
           subscription.getId(),
