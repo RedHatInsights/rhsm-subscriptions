@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -62,6 +63,7 @@ class MeteringEventFactoryTest {
             expiry,
             serviceType,
             billingProvider,
+            null,
             uom,
             measuredValue);
 
@@ -95,6 +97,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getSla());
@@ -114,6 +117,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            "null",
             Uom.CORES,
             12.5);
     assertEquals(Sla.__EMPTY__, event.getSla());
@@ -133,6 +137,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getSla());
@@ -152,6 +157,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getUsage());
@@ -171,6 +177,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getUsage());
@@ -190,6 +197,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getRole());
@@ -209,13 +217,14 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getRole());
   }
 
   @Test
-  void testOpenShiftClusterCoresHandlesValidBillingProvider() throws Exception {
+  void testHandlesValidBillingData() throws Exception {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
@@ -228,13 +237,16 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "aws",
+            "aws_account_123",
             Uom.CORES,
             12.5);
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
+    assertTrue(event.getBillingAccountId().isPresent());
+    assertEquals("aws_account_123", event.getBillingAccountId().get());
   }
 
   @Test
-  void testOpenShiftClusterCoresHandlesNullBillingProvider() throws Exception {
+  void testHandlesNullBillingData() throws Exception {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
@@ -247,14 +259,15 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             null,
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getBillingProvider());
+    assertTrue(event.getBillingAccountId().isEmpty());
   }
 
   @Test
-  void testOpenShiftClusterCoresBillingProviderSetToEmptyForBillingProviderValueNone()
-      throws Exception {
+  void testBillingProviderSetToEmptyForBillingProviderValueNone() throws Exception {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
@@ -267,13 +280,14 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "",
+            null,
             Uom.CORES,
             12.5);
     assertEquals(BillingProvider.__EMPTY__, event.getBillingProvider());
   }
 
   @Test
-  void testOpenShiftClusterCoresInvalidBillingProviderWillNotBeSetOnEvent() throws Exception {
+  void testInvalidBillingProviderWillNotBeSetOnEvent() throws Exception {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
@@ -286,6 +300,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "invalid provider",
+            null,
             Uom.CORES,
             12.5);
     assertNull(event.getBillingProvider());
@@ -305,6 +320,7 @@ class MeteringEventFactoryTest {
             OffsetDateTime.now(),
             "service_type",
             "red hat",
+            null,
             Uom.CORES,
             12.5);
     assertEquals("snapshot_metric-id", event.getEventType());
