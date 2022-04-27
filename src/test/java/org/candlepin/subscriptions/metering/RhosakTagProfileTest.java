@@ -20,8 +20,7 @@
  */
 package org.candlepin.subscriptions.metering;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
 import java.util.Optional;
@@ -131,6 +130,7 @@ class RhosakTagProfileTest {
                 .serviceType("Kafka Cluster")
                 .defaultUsage(Usage.PRODUCTION)
                 .tags(Set.of("rhosak"))
+                .billingModel("PAYG")
                 .build()));
   }
 
