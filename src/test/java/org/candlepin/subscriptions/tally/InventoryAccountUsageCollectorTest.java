@@ -798,6 +798,6 @@ class InventoryAccountUsageCollectorTest {
     for (Entry<String, String> entry : expectedHypervisorMap.entrySet()) {
       streamBuilder.accept(new Object[] {entry.getKey(), entry.getValue()});
     }
-    when(inventoryRepo.getReportedHypervisors(eq(accounts))).thenReturn(streamBuilder.build());
+    when(inventoryRepo.getReportedHypervisors(accounts)).thenReturn(streamBuilder.build());
   }
 }

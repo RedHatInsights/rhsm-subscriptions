@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -45,11 +46,12 @@ class PerLineFileResourceTest {
 
   @Test
   void ensureExceptionWhenResourceNotFound() {
+    var expectedLines = Collections.<String>emptyList();
     RuntimeException rte =
         assertThrows(
             RuntimeException.class,
             () -> {
-              assertListFile("bogus", Arrays.asList());
+              assertListFile("bogus", expectedLines);
             });
     assertEquals("Resource not found: class path resource [bogus]", rte.getMessage());
   }

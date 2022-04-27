@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.resource;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
@@ -57,19 +56,19 @@ class OptInResourceTest {
   @BeforeEach
   public void setupTests() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
-    when(accountWhitelist.hasAccount(eq("account123456"))).thenReturn(true);
+    when(accountWhitelist.hasAccount("account123456")).thenReturn(true);
   }
 
   @Test
   void testDeleteOptInConfig() {
     resource.deleteOptInConfig();
-    Mockito.verify(controller).optOut(eq("account123456"), eq("owner123456"));
+    Mockito.verify(controller).optOut("account123456", "owner123456");
   }
 
   @Test
   void testGet() {
     resource.getOptInConfig();
-    Mockito.verify(controller).getOptInConfig(eq("account123456"), eq("owner123456"));
+    Mockito.verify(controller).getOptInConfig("account123456", "owner123456");
   }
 
   @Test
@@ -77,12 +76,12 @@ class OptInResourceTest {
     resource.putOptInConfig(false, false, false);
     Mockito.verify(controller)
         .optIn(
-            eq("account123456"),
-            eq("owner123456"),
-            eq(OptInType.API),
-            eq(Boolean.FALSE),
-            eq(Boolean.FALSE),
-            eq(Boolean.FALSE));
+            "account123456",
+            "owner123456",
+            OptInType.API,
+            Boolean.FALSE,
+            Boolean.FALSE,
+            Boolean.FALSE);
   }
 
   @Test
@@ -90,12 +89,12 @@ class OptInResourceTest {
     resource.putOptInConfig(null, null, null);
     Mockito.verify(controller)
         .optIn(
-            eq("account123456"),
-            eq("owner123456"),
-            eq(OptInType.API),
-            eq(Boolean.TRUE),
-            eq(Boolean.TRUE),
-            eq(Boolean.TRUE));
+            "account123456",
+            "owner123456",
+            OptInType.API,
+            Boolean.TRUE,
+            Boolean.TRUE,
+            Boolean.TRUE);
   }
 
   @Test

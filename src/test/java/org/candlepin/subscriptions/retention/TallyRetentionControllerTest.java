@@ -60,7 +60,7 @@ class TallyRetentionControllerTest {
     controller.cleanStaleSnapshotsForAccount("123456");
     verify(repository)
         .deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-            eq("123456"), eq(Granularity.DAILY), eq(cutoff));
+            "123456", Granularity.DAILY, cutoff);
     verifyNoMoreInteractions(repository);
   }
 
