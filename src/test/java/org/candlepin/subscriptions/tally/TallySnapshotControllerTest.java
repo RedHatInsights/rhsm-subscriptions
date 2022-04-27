@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,13 +85,5 @@ class TallySnapshotControllerTest {
     props.setCloudigradeEnabled(false);
     controller.produceSnapshotsForAccount(ACCOUNT);
     verifyNoInteractions(cloudigradeCollector);
-  }
-
-  @Test
-  void testBatchesLargerThanConfigIgnored() {
-    controller.produceSnapshotsForAccounts(
-        Collections.nCopies(props.getAccountBatchSize() + 1, "foo"));
-    verifyNoInteractions(cloudigradeCollector);
-    verifyNoInteractions(inventoryCollector);
   }
 }

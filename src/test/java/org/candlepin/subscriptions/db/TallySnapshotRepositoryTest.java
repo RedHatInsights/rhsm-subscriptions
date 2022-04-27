@@ -166,39 +166,34 @@ class TallySnapshotRepositoryTest {
         createUnpersisted("Account1", product1, Granularity.DAILY, 2, 3, 4, LONG_AGO);
     // Will be found.
     TallySnapshot t2 =
-        createUnpersisted("Account2", product1, Granularity.DAILY, 9, 10, 11, NOWISH);
-    // Will be found.
-    TallySnapshot t3 =
-        createUnpersisted("Account2", product2, Granularity.DAILY, 19, 20, 21, NOWISH);
+        createUnpersisted("Account1", product1, Granularity.DAILY, 9, 10, 11, NOWISH);
     // Will not be found, incorrect granularity
-    TallySnapshot t4 =
-        createUnpersisted("Account2", product2, Granularity.WEEKLY, 19, 20, 21, NOWISH);
+    TallySnapshot t3 =
+        createUnpersisted("Account1", product2, Granularity.WEEKLY, 19, 20, 21, NOWISH);
     // Will not be in result - Account not in query
-    TallySnapshot t5 =
-        createUnpersisted("Account3", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
+    TallySnapshot t4 =
+        createUnpersisted("Account2", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
     // Will not be found - incorrect granularity
-    TallySnapshot t6 =
-        createUnpersisted("Account2", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
+    TallySnapshot t5 =
+        createUnpersisted("Account1", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
 
-    repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5, t6));
+    repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5));
     repository.flush();
 
     OffsetDateTime min = OffsetDateTime.of(2019, 05, 23, 00, 00, 00, 00, ZoneOffset.UTC);
     OffsetDateTime max = OffsetDateTime.of(2019, 07, 23, 00, 00, 00, 00, ZoneOffset.UTC);
 
-    List<String> accounts = Arrays.asList("Account1", "Account2");
     List<String> products = Arrays.asList(product1, product2);
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-                accounts, products, Granularity.DAILY, min, max)
+            .findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+                "Account1", products, Granularity.DAILY, min, max)
             .collect(Collectors.toList());
-    // TODO Expect this to fail. Need to rebuild test result checking.
-    assertEquals(2, found.size());
+    assertEquals(1, found.size());
 
     TallySnapshot result = found.get(0);
 
-    assertEquals("Account2", result.getAccountNumber());
+    assertEquals("Account1", result.getAccountNumber());
     assertEquals(product1, result.getProductId());
 
     HardwareMeasurement total = result.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
@@ -223,8 +218,8 @@ class TallySnapshotRepositoryTest {
 
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-                Arrays.asList("Acme Inc."),
+            .findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+                "Acme Inc.",
                 Arrays.asList("rocket-skates"),
                 Granularity.DAILY,
                 LONG_AGO,

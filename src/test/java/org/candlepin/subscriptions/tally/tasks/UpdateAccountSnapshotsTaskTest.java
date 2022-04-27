@@ -36,9 +36,9 @@ class UpdateAccountSnapshotsTaskTest {
 
   @Test
   void testExecute() {
-    List<String> accounts = Arrays.asList("a1", "a2");
+    List<String> accounts = Arrays.asList("a1");
     UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
     task.execute();
-    Mockito.verify(snapshotController).produceSnapshotsForAccounts(accounts);
+    Mockito.verify(snapshotController).produceSnapshotsForAccount("a1");
   }
 }

@@ -20,21 +20,19 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -44,7 +42,6 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.TagProfile;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -69,7 +66,7 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testConsecutiveHoursAddedTogether() {
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.empty());
     UsageCalculation.Key usageKey =
@@ -118,7 +115,7 @@ class CombiningRollupSnapshotStrategyTest {
     OffsetDateTime hourlyTimestamp2 = OffsetDateTime.parse("2021-02-26T11:00:00Z");
     OffsetDateTime dailyTimestamp1 = OffsetDateTime.parse("2021-02-25T00:00:00Z");
     OffsetDateTime dailyTimestamp2 = OffsetDateTime.parse("2021-02-26T00:00:00Z");
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.empty());
     UsageCalculation.Key usageKey =
@@ -178,10 +175,10 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
     noonSnapshot.setId(UUID.randomUUID());
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
         .thenReturn(Stream.of(noonSnapshot));
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.empty());
     UsageCalculation.Key usageKey =
@@ -225,10 +222,10 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
     dailySnapshot.setId(UUID.randomUUID());
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
         .thenReturn(Stream.empty());
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.of(dailySnapshot));
     UsageCalculation.Key usageKey =
@@ -271,8 +268,6 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testFinestGranularitySnapsZeroOutOldMeasurementsWhenDataNoLongerFound() {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
-
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
     TallySnapshot afternoonSnapshot =
@@ -280,13 +275,13 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
 
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Arrays.asList(noonSnapshot, afternoonSnapshot).stream());
+        .thenReturn(Stream.of(noonSnapshot, afternoonSnapshot));
 
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Arrays.asList(dailySnapshot).stream());
+        .thenReturn(Stream.of(dailySnapshot));
 
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
