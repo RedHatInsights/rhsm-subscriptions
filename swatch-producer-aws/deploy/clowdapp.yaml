@@ -55,10 +55,6 @@ objects:
         partitions: 1
         topicName: platform.rhsm-subscriptions.tally
 
-    database:
-      name: db
-      version: 12
-
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
 
