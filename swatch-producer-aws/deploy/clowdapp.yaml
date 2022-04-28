@@ -75,7 +75,7 @@ objects:
               path: /q/health/live
               port: 8000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 20
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -85,7 +85,7 @@ objects:
               path: /q/health/ready
               port: 8000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 20
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -137,6 +137,11 @@ objects:
                   key: credentials
             - name: AWS_MARKETPLACE_ENDPOINT_URL
               value: ${AWS_MARKETPLACE_ENDPOINT_URL}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           volumeMounts:
             - name: logs
               mountPath: /logs
@@ -148,3 +153,10 @@ objects:
             - name: pinhead
               secret:
                 secretName: pinhead
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: swatch-psks
+  data:
+    self: ZHVtbXk=

@@ -17,7 +17,7 @@
   bonfire config write-default
 
   cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
-  - name: rhsm-subscriptions
+  - name: rhsm
     components:
       - name: capacity-allowlist
         host: gitlab
@@ -33,6 +33,12 @@
             RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
             DEV_MODE: 'true'
             ENABLE_ACCOUNT_RESET: 'true'
+      - name: swatch-producer-aws
+        host: local
+        repo: $(pwd)
+        path: swatch-producer-aws/deploy/clowdapp.yaml
+        parameters:
+          AWS_MANUAL_SUBMISSION_ENABLED: 'true'
 
   BONFIRE
   ```
