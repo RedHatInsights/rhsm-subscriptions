@@ -75,7 +75,7 @@ objects:
               path: /q/health/live
               port: 8000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 20
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -85,7 +85,7 @@ objects:
               path: /q/health/ready
               port: 8000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 20
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
