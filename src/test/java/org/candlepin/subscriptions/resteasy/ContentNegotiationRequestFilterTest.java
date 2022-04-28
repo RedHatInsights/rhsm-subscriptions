@@ -20,11 +20,8 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +46,7 @@ class ContentNegotiationRequestFilterTest {
     headers.put("content-type", Collections.emptyList());
 
     ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
+    when(requestContext.getHeaderString("Accept")).thenReturn(types.get(0).toString());
     when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
     when(requestContext.getHeaders()).thenReturn(headers);
 
@@ -66,7 +63,7 @@ class ContentNegotiationRequestFilterTest {
     headers.put("content-type", Collections.emptyList());
 
     ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
+    when(requestContext.getHeaderString("Accept")).thenReturn(types.get(0).toString());
     when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
     when(requestContext.getHeaders()).thenReturn(headers);
 
@@ -89,7 +86,7 @@ class ContentNegotiationRequestFilterTest {
     headers.put("content-type", Collections.emptyList());
 
     ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(types.get(0).toString());
+    when(requestContext.getHeaderString("Accept")).thenReturn(types.get(0).toString());
     when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
     when(requestContext.getHeaders()).thenReturn(headers);
 
@@ -107,7 +104,7 @@ class ContentNegotiationRequestFilterTest {
         "content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
 
     ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(null);
+    when(requestContext.getHeaderString("Accept")).thenReturn(null);
     when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
     when(requestContext.getHeaders()).thenReturn(headers);
 
@@ -130,7 +127,7 @@ class ContentNegotiationRequestFilterTest {
         "content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
 
     ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString(eq("Accept"))).thenReturn(null);
+    when(requestContext.getHeaderString("Accept")).thenReturn(null);
     when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
     when(requestContext.getHeaders()).thenReturn(headers);
 

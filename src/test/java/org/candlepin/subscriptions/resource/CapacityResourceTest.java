@@ -76,7 +76,7 @@ class CapacityResourceTest {
 
   @BeforeEach
   public void setupTests() throws AccountListSourceException {
-    when(accountListSource.containsReportingAccount(eq("account123456"))).thenReturn(true);
+    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
   }
 
   @Test
@@ -86,12 +86,7 @@ class CapacityResourceTest {
     capacity.setEndDate(max);
 
     when(repository.findByOwnerAndProductId(
-            eq("owner123456"),
-            eq(RHEL.toString()),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            eq(min),
-            eq(max)))
+            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
     CapacityReport report =
@@ -107,12 +102,7 @@ class CapacityResourceTest {
     capacity.setEndDate(max);
 
     when(repository.findByOwnerAndProductId(
-            eq("owner123456"),
-            eq(RHEL.toString()),
-            eq(ServiceLevel.PREMIUM),
-            eq(Usage._ANY),
-            eq(min),
-            eq(max)))
+            "owner123456", RHEL.toString(), ServiceLevel.PREMIUM, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
     CapacityReport report =
@@ -129,12 +119,7 @@ class CapacityResourceTest {
     capacity.setEndDate(max);
 
     when(repository.findByOwnerAndProductId(
-            eq("owner123456"),
-            eq(RHEL.toString()),
-            eq(ServiceLevel._ANY),
-            eq(Usage.PRODUCTION),
-            eq(min),
-            eq(max)))
+            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
     CapacityReport report =
@@ -151,12 +136,7 @@ class CapacityResourceTest {
     capacity.setEndDate(max);
 
     when(repository.findByOwnerAndProductId(
-            eq("owner123456"),
-            eq(RHEL.toString()),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            eq(min),
-            eq(max)))
+            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
     CapacityReport report =
@@ -173,12 +153,7 @@ class CapacityResourceTest {
     capacity.setEndDate(max);
 
     when(repository.findByOwnerAndProductId(
-            eq("owner123456"),
-            eq(RHEL.toString()),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            eq(min),
-            eq(max)))
+            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
     CapacityReport report =
@@ -206,8 +181,7 @@ class CapacityResourceTest {
     capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity2.setEndDate(max);
 
-    when(repository.findByOwnerAndProductId(
-            eq("owner123456"), eq(RHEL.toString()), eq(null), eq(null), eq(min), eq(max)))
+    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
         .thenReturn(Arrays.asList(capacity, capacity2));
 
     CapacityReport report =
@@ -238,12 +212,7 @@ class CapacityResourceTest {
     capacity.setEndDate(max);
 
     when(repository.findByOwnerAndProductId(
-            eq("owner123456"),
-            eq(RHEL.toString()),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            eq(min),
-            eq(max)))
+            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
     CapacityReport report =

@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -58,25 +57,18 @@ public class CloudigradeAccountUsageCollector {
    * Add measurements from cloudigrade to usage calculations
    *
    * @param accountCalcs map of existing account to usage calculations
-   * @param accounts list of accounts to enrich calculations for
+   * @param account account to enrich calculations for
    * @throws ApiException if the cloudigrade service errs
    */
   @Timed("rhsm-subscriptions.snapshots.cloudigrade")
   public void enrichUsageWithCloudigradeData(
-      Map<String, AccountUsageCalculation> accountCalcs, Collection<String> accounts)
+      Map<String, AccountUsageCalculation> accountCalcs, String account)
       throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-
-    for (String account : accounts) {
-      log.trace("Cloudigrade checking for user {}", account);
-      if (cloudigradeService.cloudigradeUserExists(account)) {
-        log.trace("Cloudigrade found user {}", account);
-        enrichUsageWithCloudigradeData(accountCalcs, account);
-      }
+    log.trace("Cloudigrade checking for user {}", account);
+    if (!cloudigradeService.cloudigradeUserExists(account)) {
+      log.trace("Cloudigrade could not find user {}", account);
+      return;
     }
-  }
-
-  private void enrichUsageWithCloudigradeData(
-      Map<String, AccountUsageCalculation> accountCalcs, String account) throws ApiException {
     log.trace("Fetching cloudigrade data for {}", account);
     ConcurrencyReport cloudigradeUsage =
         cloudigradeService.listDailyConcurrentUsages(account, null, null, null, null);
