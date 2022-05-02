@@ -160,3 +160,9 @@ objects:
     name: swatch-psks
   data:
     self: ZHVtbXk=
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloudigrade-psk
+  data:
+    psk: ZHVtbXk=
