@@ -196,8 +196,6 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
         .antMatchers("/metrics")
         .permitAll()
-        .antMatchers("/**/internal/**")
-        .access("hasRole('ROLE_INTERNAL')")
         .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
         .access("@optInChecker.checkAccess(authentication)")
         .anyRequest()
