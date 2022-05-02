@@ -78,6 +78,10 @@ public class TallyTopicProcessor {
     if (log.isDebugEnabled()) {
       log.debug("Picked up tally message {} to process", tallySummary);
     }
+    if (tallySummary == null) {
+      log.warn("Skipping null tally summary: deserialization failure?");
+      return;
+    }
     for (TallySummaryTallySnapshots tallySnapshot : tallySummary.getTallySnapshots()) {
       if (!isSnapshotApplicable(tallySnapshot)) {
         continue;

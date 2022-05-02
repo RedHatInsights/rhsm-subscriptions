@@ -613,7 +613,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, SkuCapacityReportSort.QUANTITY, null);
+            productId, null, null, null, null, null, SkuCapacityReportSort.TOTAL_CAPACITY, null);
 
     // Then the report contains two inventory items containing a sub with appropriate
     // quantity and capacities, and RH00604F5 is listed first.
@@ -659,7 +659,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
-            SkuCapacityReportSort.QUANTITY,
+            SkuCapacityReportSort.TOTAL_CAPACITY,
             SortDirection.DESC);
 
     // Then the report contains two inventory items containing a sub with appropriate
