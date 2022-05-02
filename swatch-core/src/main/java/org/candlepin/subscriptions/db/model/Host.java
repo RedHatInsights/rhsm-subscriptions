@@ -92,11 +92,15 @@ public class Host implements Serializable {
   @Column(name = "subscription_manager_id")
   private String subscriptionManagerId;
 
-  /** @deprecated use measurements instead */
+  /**
+   * @deprecated use measurements instead
+   */
   @Deprecated(forRemoval = true)
   private Integer cores;
 
-  /** @deprecated use measurements instead */
+  /**
+   * @deprecated use measurements instead
+   */
   @Deprecated(forRemoval = true)
   private Integer sockets;
 
@@ -180,7 +184,9 @@ public class Host implements Serializable {
         .orElse(cores);
   }
 
-  /** @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead */
+  /**
+   * @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead
+   */
   @Deprecated(forRemoval = true)
   public void setCores(Integer cores) {
     this.cores = cores;
@@ -197,7 +203,9 @@ public class Host implements Serializable {
         .orElse(sockets);
   }
 
-  /** @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead */
+  /**
+   * @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead
+   */
   @Deprecated(forRemoval = true)
   public void setSockets(Integer sockets) {
     this.sockets = sockets;
