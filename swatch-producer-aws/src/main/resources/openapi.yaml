@@ -7,7 +7,7 @@ info:
   contact:
     url: https://github.com/RedHatInsights/rhsm-subscriptions
 paths:
-  /internal/aws/tally_summary:
+  /api/swatch-producer-aws/internal/aws/tally_summary:
     post:
       summary: Send `TallySummary` usage data to AWS.
       requestBody:
