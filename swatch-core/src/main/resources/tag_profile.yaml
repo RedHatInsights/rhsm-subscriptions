@@ -253,9 +253,11 @@ tagMetaData:
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
+    billingModel: PAYG
   - tags:
       - rhosak
     serviceType: Kafka Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
+    billingModel: PAYG
