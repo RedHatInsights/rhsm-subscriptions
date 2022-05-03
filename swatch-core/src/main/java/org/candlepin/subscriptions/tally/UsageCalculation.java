@@ -98,15 +98,21 @@ public class UsageCalculation {
 
   /** Provides metric totals associated with each hardware type associated with a calculation. */
   public static class Totals {
-    /** @deprecated use measurements instead */
+    /**
+     * @deprecated use measurements instead
+     */
     @Deprecated(forRemoval = true)
     private int cores;
 
-    /** @deprecated use measurements instead */
+    /**
+     * @deprecated use measurements instead
+     */
     @Deprecated(forRemoval = true)
     private int sockets;
 
-    /** @deprecated use measurements instead */
+    /**
+     * @deprecated use measurements instead
+     */
     @Deprecated(forRemoval = true)
     private int instances;
 
@@ -200,21 +206,27 @@ public class UsageCalculation {
     addToTotal(uom, value);
   }
 
-  /** @deprecated use add instead */
+  /**
+   * @deprecated use add instead
+   */
   @Deprecated(forRemoval = true)
   public void addPhysical(int cores, int sockets, int instances) {
     increment(HardwareMeasurementType.PHYSICAL, cores, sockets, instances);
     addToTotal(cores, sockets, instances);
   }
 
-  /** @deprecated use add instead */
+  /**
+   * @deprecated use add instead
+   */
   @Deprecated(forRemoval = true)
   public void addHypervisor(int cores, int sockets, int instances) {
     increment(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
     addToTotal(cores, sockets, instances);
   }
 
-  /** @deprecated use addToTotal(Measurement.Uom, Double value) instead */
+  /**
+   * @deprecated use addToTotal(Measurement.Uom, Double value) instead
+   */
   @Deprecated(forRemoval = true)
   public void addToTotal(int cores, int sockets, int instances) {
     increment(HardwareMeasurementType.TOTAL, cores, sockets, instances);
@@ -224,7 +236,9 @@ public class UsageCalculation {
     increment(HardwareMeasurementType.TOTAL, uom, value);
   }
 
-  /** @deprecated use add instead */
+  /**
+   * @deprecated use add instead
+   */
   @Deprecated(forRemoval = true)
   public void addCloudProvider(
       HardwareMeasurementType cloudType, int cores, int sockets, int instances) {
@@ -237,7 +251,9 @@ public class UsageCalculation {
     addToTotal(cores, sockets, instances);
   }
 
-  /** @deprecated use add instead */
+  /**
+   * @deprecated use add instead
+   */
   @Deprecated(forRemoval = true)
   public void addCloudigrade(HardwareMeasurementType cloudType, int count) {
     increment(cloudType, 0, count, count);
@@ -255,7 +271,9 @@ public class UsageCalculation {
     addToTotal(0, count, count);
   }
 
-  /** @deprecated use increment(HardwareMeasurementType, Measurement.Uom, Double) instead */
+  /**
+   * @deprecated use increment(HardwareMeasurementType, Measurement.Uom, Double) instead
+   */
   @Deprecated(forRemoval = true)
   private void increment(HardwareMeasurementType type, int cores, int sockets, int instances) {
     Totals total = getOrDefault(type);
