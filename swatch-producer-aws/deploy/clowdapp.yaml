@@ -59,7 +59,7 @@ objects:
       name: ${IMAGE_PULL_SECRET}
 
     deployments:
-      - name: swatch-producer-aws
+      - name: service
         minReplicas: 1
         webServices:
           public:
