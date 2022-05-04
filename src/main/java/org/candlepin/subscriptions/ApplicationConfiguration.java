@@ -107,6 +107,13 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
+  @Qualifier("tallyPaygTasks")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.internal-payg.tasks")
+  TaskQueueProperties tallyPaygQueueProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
   @Qualifier("syncSubscriptionTasks")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription.tasks")
   TaskQueueProperties syncSubscriptionQueueProperties() {

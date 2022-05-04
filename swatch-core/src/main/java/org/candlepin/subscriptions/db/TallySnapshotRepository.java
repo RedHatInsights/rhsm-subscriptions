@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -65,4 +66,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       OffsetDateTime ending);
 
   void deleteByAccountNumber(String accountNumber);
+
+  Stream<TallySnapshot> findByProductIdInAndSnapshotDateBetween(
+      Set<String> productIds, OffsetDateTime start, OffsetDateTime end);
 }

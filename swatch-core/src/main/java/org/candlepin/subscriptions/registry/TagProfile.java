@@ -255,6 +255,18 @@ public class TagProfile {
     return tags;
   }
 
+  public Set<String> getTagsForBillingModel(String billingModel) {
+    if (!StringUtils.hasText(billingModel)) {
+      return Collections.emptySet();
+    }
+    Set<String> tags = new HashSet<>();
+    getTagMetaData().stream()
+        .filter(meta -> billingModel.equals(meta.getBillingModel()))
+        .map(TagMetaData::getTags)
+        .forEach(tags::addAll);
+    return tags;
+  }
+
   public Set<String> getOfferingProductNamesForTag(String productTag) {
     return tagToOfferingProductNamesLookup.getOrDefault(productTag, Collections.emptySet());
   }

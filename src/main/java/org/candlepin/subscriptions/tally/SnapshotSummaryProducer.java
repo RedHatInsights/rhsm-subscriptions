@@ -39,7 +39,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 /** Component that produces tally snapshot summary messages given a list of tally snapshots. */
-@Service
+@Service("summaryProducer")
 public class SnapshotSummaryProducer {
   private static final Logger log = LoggerFactory.getLogger(SnapshotSummaryProducer.class);
 

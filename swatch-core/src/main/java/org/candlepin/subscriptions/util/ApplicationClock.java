@@ -24,9 +24,11 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
@@ -75,12 +77,20 @@ public class ApplicationClock {
     return OffsetDateTime.from(anyDay.with(LocalTime.MIDNIGHT));
   }
 
+  public OffsetDateTime startOfDayUTC(LocalDate date) {
+    return startOfDay(OffsetDateTime.of(date, LocalTime.MIN, ZoneOffset.UTC));
+  }
+
   public OffsetDateTime endOfToday() {
     return endOfDay(now());
   }
 
   public OffsetDateTime endOfDay(OffsetDateTime anyDay) {
     return OffsetDateTime.from(anyDay.with(LocalTime.MAX));
+  }
+
+  public OffsetDateTime endOfDayUTC(LocalDate date) {
+    return endOfDay(OffsetDateTime.of(date, LocalTime.MAX, ZoneOffset.UTC));
   }
 
   public OffsetDateTime endOfCurrentWeek() {

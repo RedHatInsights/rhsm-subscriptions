@@ -96,6 +96,10 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.capacity-reconcile
       kafka-group-id: capacity-reconciliation-worker
+  internal-payg:
+    tasks:
+      topic: platform.rhsm-subscriptions.tally-payg-daily
+      kafka-group-id: internal-payg-worker
   user-service:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}

@@ -20,29 +20,47 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.rhmarketplace.RhMarketplacePayloadMapper;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.validator.Uuid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 @Component
 @Validated
-public class MarketplaceResendTallyController {
-  private static final Logger log = LoggerFactory.getLogger(MarketplaceResendTallyController.class);
+public class InternalTallyController {
+  private static final Logger log = LoggerFactory.getLogger(InternalTallyController.class);
   private final SnapshotSummaryProducer summaryProducer;
+  private final SnapshotSummaryProducer paygSummaryProducer;
   private final TallySnapshotRepository snapshotRepository;
+  private final TagProfile tagProfile;
+  private final ApplicationClock clock;
 
-  public MarketplaceResendTallyController(
-      SnapshotSummaryProducer summaryProducer, TallySnapshotRepository snapshotRepository) {
+  public InternalTallyController(
+      @Qualifier("summaryProducer") SnapshotSummaryProducer summaryProducer,
+      @Qualifier("paygSnapshotSummaryProducer") SnapshotSummaryProducer paygSummaryProducer,
+      TallySnapshotRepository snapshotRepository,
+      TagProfile tagProfile,
+      ApplicationClock clock) {
     this.summaryProducer = summaryProducer;
+    this.paygSummaryProducer = paygSummaryProducer;
     this.snapshotRepository = snapshotRepository;
+    this.tagProfile = tagProfile;
+    this.clock = clock;
   }
 
   /* Ideally we would have the Bean Validator annotation @Valid at the REST endpoint that calls this
@@ -64,5 +82,25 @@ public class MarketplaceResendTallyController {
         snapshots.stream().collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
     summaryProducer.produceTallySummaryMessages(totalSnapshots);
     return snapshots.size();
+  }
+
+  @Transactional
+  public int emitPaygRollups(LocalDate date) {
+    var paygProducts = tagProfile.getTagsForBillingModel(RhMarketplacePayloadMapper.PAYG_BILLING);
+    var start = clock.startOfDayUTC(date);
+    var end = clock.endOfDayUTC(date);
+
+    // Streams from Spring Data sources need to be read with try-with-resources statements
+    try (Stream<TallySnapshot> snapshots =
+        snapshotRepository.findByProductIdInAndSnapshotDateBetween(paygProducts, start, end)) {
+      Map<String, List<TallySnapshot>> mappedSnapshots =
+          snapshots.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+
+      paygSummaryProducer.produceTallySummaryMessages(mappedSnapshots);
+
+      return mappedSnapshots.entrySet().stream()
+          .flatMapToInt(x -> IntStream.of(x.getValue().size()))
+          .sum();
+    }
   }
 }

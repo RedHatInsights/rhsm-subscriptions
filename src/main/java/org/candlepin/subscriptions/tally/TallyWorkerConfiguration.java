@@ -148,7 +148,15 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
-  @Qualifier("tallyTaskConsumer")
+  public SnapshotSummaryProducer paygSnapshotSummaryProducer(
+      KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
+      @Qualifier("tallySummaryKafkaRetryTemplate") RetryTemplate kafkaRetryTemplate,
+      @Qualifier("tallyPaygTasks") TaskQueueProperties paygQueueProperties) {
+    return new SnapshotSummaryProducer(
+        tallySummaryKafkaTemplate, kafkaRetryTemplate, paygQueueProperties);
+  }
+
+  @Bean(name = "tallyTaskConsumer")
   public TaskConsumer tallyTaskProcessor(
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties,
       TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,

@@ -20,8 +20,11 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
-import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
+import java.time.LocalDate;
+import org.candlepin.subscriptions.tally.InternalTallyController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
+import org.candlepin.subscriptions.tally.admin.api.model.RollupsEmitted;
+import org.candlepin.subscriptions.tally.admin.api.model.RollupsEmittedData;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResend;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResendData;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
@@ -31,15 +34,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class InternalTallyResource implements InternalApi {
 
-  private final MarketplaceResendTallyController resendTallyController;
+  private final InternalTallyController tallyController;
 
-  public InternalTallyResource(MarketplaceResendTallyController resendTallyController) {
-    this.resendTallyController = resendTallyController;
+  public InternalTallyResource(InternalTallyController tallyController) {
+    this.tallyController = tallyController;
+  }
+
+  @Override
+  public RollupsEmitted emitPaygRollups(LocalDate date) {
+    var rollups = tallyController.emitPaygRollups(date);
+    return new RollupsEmitted().data(new RollupsEmittedData().rollupsEmitted(rollups));
   }
 
   @Override
   public TallyResend resendTally(UuidList uuidList) {
-    var tallies = resendTallyController.resendTallySnapshots(uuidList.getUuids());
+    var tallies = tallyController.resendTallySnapshots(uuidList.getUuids());
     return new TallyResend().data(new TallyResendData().talliesResent(tallies));
   }
 }

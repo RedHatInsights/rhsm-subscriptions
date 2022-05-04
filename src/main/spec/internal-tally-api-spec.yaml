@@ -4,6 +4,41 @@ info:
   version: 1.0.0
 
 paths:
+  /internal/tally/emit-payg-rollups:
+    description: "Operations to gather finalized daily rollups for PAYG and emit them to Kafka"
+    post:
+      operationId: emitPaygRollups
+      summary: "Send daily PAYG rollups to Kafka"
+      parameters:
+        - name: date
+          description: "This unlocalized date will be interpreted as the span of time between 00:00 
+          UTC and 23:59:59.999999999 UTC on the date in question. This means that users will need to
+          be cognizant of any differences between their mental model of their localized day 
+          versus the day in UTC.  For example, a user could enter a date and expect records to
+          be gathered according to their resident timezone.  This assumption is incorrect.  Or, if a
+          user enters the day 2022-03-13 (when EST switched to EDT for 2022) they may anticipate no
+          record being gathered from 2:00AM to 3:00AM when the clocks move forward.  That assumption
+          would also be incorrect."
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: "The request for sending the PAYG rollups was accepted"
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/RollupsEmitted"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internal
   /internal/tally/resend:
     description: 'Operations to resend specific tally snapshots to marketplaces'
     post:
@@ -55,4 +90,13 @@ components:
             - tallies_resent
           properties:
             tallies_resent:
+              type: integer
+    RollupsEmitted:
+      properties:
+        data:
+          type: object
+          required:
+            - rollups_emitted
+          properties:
+            rollups_emitted:
               type: integer
