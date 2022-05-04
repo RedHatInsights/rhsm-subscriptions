@@ -21,8 +21,6 @@
 package org.candlepin.subscriptions.rhmarketplace;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -57,8 +55,6 @@ public class RhMarketplaceProperties extends HttpClientProperties {
 
   /** Verify that batches were accepted by Marketplace. */
   private boolean verifyBatches = true;
-
-  private List<String> eligibleSwatchProductIds = new ArrayList<>();
 
   /** Allows manually submitting marketplace tally summary. */
   private boolean isManualMarketplaceSubmissionEnabled;

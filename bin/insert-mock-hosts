@@ -227,7 +227,7 @@ for i in range(args.num_accounts):
     product = args.product or "RHEL"
 
     for i in range(args.num_aws):
-        generate_host(account_number=account, hardware_type='VIRTUAL', measurement_type='CLOUD',
+        generate_host(account_number=account, hardware_type='VIRTUALIZED', measurement_type='AWS',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi,
                       cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type)
