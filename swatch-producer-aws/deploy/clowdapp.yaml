@@ -43,6 +43,8 @@ parameters:
     value: 'http://localhost:8101/aws-marketplace/'
   - name: AWS_MANUAL_SUBMISSION_ENABLED
     value: 'false'
+  - name: TALLY_IN_FAIL_ON_DESER_FAILURE
+    value: 'true'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -61,7 +63,7 @@ objects:
       name: ${IMAGE_PULL_SECRET}
 
     deployments:
-      - name: swatch-producer-aws
+      - name: service
         minReplicas: 1
         webServices:
           public:
@@ -146,6 +148,8 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
+            - name: TALLY_IN_FAIL_ON_DESER_FAILURE
+              value: ${TALLY_IN_FAIL_ON_DESER_FAILURE}
           volumeMounts:
             - name: logs
               mountPath: /logs

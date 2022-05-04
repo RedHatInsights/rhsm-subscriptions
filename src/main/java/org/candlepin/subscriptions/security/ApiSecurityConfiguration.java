@@ -148,6 +148,10 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
     return new MdcFilter();
   }
 
+  public LogPrincipalFilter logPrincipalFilter() {
+    return new LogPrincipalFilter();
+  }
+
   @Override
   protected void configure(HttpSecurity http) throws Exception {
     String apiPath =
@@ -155,6 +159,7 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
             "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions.resteasy");
     http.addFilter(identityHeaderAuthenticationFilter())
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
+        .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
         .addFilterAt(antiCsrfFilter(secProps, env), CsrfFilter.class)
         .csrf()
         .disable()

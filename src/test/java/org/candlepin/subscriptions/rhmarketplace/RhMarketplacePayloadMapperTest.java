@@ -20,14 +20,14 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.*;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.DAILY;
+import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.HOURLY;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_DEDICATED_METRICS;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_METRICS;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
 import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -43,6 +43,7 @@ import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
@@ -74,15 +75,21 @@ class RhMarketplacePayloadMapperTest {
   void init() {
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
-        .when(rhMarketplaceProperties.getEligibleSwatchProductIds())
-        .thenReturn(List.of(OPENSHIFT_METRICS.toString(), OPENSHIFT_DEDICATED_METRICS.toString()));
-    lenient()
         .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_METRICS.toString(), Uom.CORES))
         .thenReturn("redhat.com:openshift:cpu_hour");
 
     lenient()
         .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
         .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
+
+    TagMetaData meta = new TagMetaData();
+    meta.setBillingModel(RhMarketplacePayloadMapper.PAYG_BILLING);
+    lenient()
+        .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_DEDICATED_METRICS.toString()))
+        .thenReturn(Optional.of(meta));
+    lenient()
+        .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_METRICS.toString()))
+        .thenReturn(Optional.of(meta));
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
