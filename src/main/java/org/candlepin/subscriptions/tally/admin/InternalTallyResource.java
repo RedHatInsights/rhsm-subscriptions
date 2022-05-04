@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
-import org.candlepin.subscriptions.security.auth.InternalRoleRequired;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResend;
@@ -38,7 +37,6 @@ public class InternalTallyResource implements InternalApi {
     this.resendTallyController = resendTallyController;
   }
 
-  @InternalRoleRequired
   @Override
   public TallyResend resendTally(UuidList uuidList) {
     var tallies = resendTallyController.resendTallySnapshots(uuidList.getUuids());

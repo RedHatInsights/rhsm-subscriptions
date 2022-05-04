@@ -31,7 +31,6 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.security.auth.InternalRoleRequired;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
@@ -56,14 +55,12 @@ public class InternalSubscriptionResource implements InternalApi {
     this.subscriptionSyncController = subscriptionSyncController;
   }
 
-  @InternalRoleRequired
   @Override
   public String forceSyncSubscriptionsForOrg(String orgId) {
     subscriptionSyncController.forceSyncSubscriptionsForOrg(orgId);
     return SUCCESS_STATUS;
   }
 
-  @InternalRoleRequired
   @Override
   public AwsUsageContext getAwsUsageContext(
       String accountNumber, OffsetDateTime date, String productId, String sla, String usage) {
