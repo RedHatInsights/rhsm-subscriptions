@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.exception.UnretryableExternalServiceException;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 import org.springframework.retry.support.RetryTemplate;
@@ -119,6 +120,15 @@ public class SubscriptionService {
           try {
             return searchApi.searchSubscriptionsByAccountNumber(accountNumber, index, pageSize);
           } catch (ApiException e) {
+            log.error("Api exception from subscription service: {}", e.getResponseBody());
+
+            if (e.getResponseBody().contains("NumberFormatException")) {
+              throw new UnretryableExternalServiceException(
+                  ErrorCode.REQUEST_PROCESSING_ERROR,
+                  ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+                  e);
+            }
+
             throw new ExternalServiceException(
                 ErrorCode.REQUEST_PROCESSING_ERROR,
                 ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
@@ -161,6 +171,15 @@ public class SubscriptionService {
           try {
             return searchApi.searchSubscriptionsByOrgId(orgId, index, pageSize);
           } catch (ApiException e) {
+            log.error("Api exception from subscription service: {}", e.getResponseBody());
+
+            if (e.getResponseBody().contains("NumberFormatException")) {
+              throw new UnretryableExternalServiceException(
+                  ErrorCode.REQUEST_PROCESSING_ERROR,
+                  ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+                  e);
+            }
+
             throw new ExternalServiceException(
                 ErrorCode.REQUEST_PROCESSING_ERROR,
                 ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
