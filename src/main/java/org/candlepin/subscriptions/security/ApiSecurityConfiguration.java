@@ -153,6 +153,7 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
   }
 
   @Override
+  @SuppressWarnings("java:S1872")
   protected void configure(HttpSecurity http) throws Exception {
     String apiPath =
         env.getRequiredProperty(
@@ -183,7 +184,13 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
         // Allow access to the Spring Actuator "root" which displays the available endpoints
         .requestMatchers(
             request ->
-                request.getServerPort() == actuatorProps.getPort()
+                // Need to check for DummmyRequest in case of below issue forwarding to /error:
+                // https://stackoverflow.com/questions/45910725/unsupportedoperationexception-javax-servlet-servletrequest-getservername-is-no/71695378#71695378
+                !request
+                        .getClass()
+                        .getName()
+                        .equals("org.springframework.security.web.FilterInvocation$DummyRequest")
+                    && request.getServerPort() == actuatorProps.getPort()
                     && request.getContextPath().equals(actuatorProps.getBasePath()))
         .permitAll()
         .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
