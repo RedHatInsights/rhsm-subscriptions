@@ -396,7 +396,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -406,7 +406,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -607,7 +607,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -617,7 +617,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -822,7 +822,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -832,7 +832,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1026,7 +1026,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1036,7 +1036,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1200,7 +1200,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1210,7 +1210,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1400,13 +1400,18 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
+            - name: CLOUDIGRADE_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: cloudigrade-psk
+                  key: psk
           livenessProbe:
             failureThreshold: 3
             httpGet:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1416,7 +1421,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1574,7 +1579,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1584,7 +1589,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1725,7 +1730,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1735,7 +1740,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1873,7 +1878,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -1883,7 +1888,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2023,7 +2028,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2033,7 +2038,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2173,7 +2178,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2183,7 +2188,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2323,7 +2328,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2333,7 +2338,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -2362,3 +2367,10 @@ objects:
     name: swatch-psks
   data:
     self: ZHVtbXk=
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloudigrade-psk
+  data:
+    psk: ZHVtbXk=
