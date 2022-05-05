@@ -90,10 +90,16 @@ public class MeteringJmxBean {
       String accountNumber, String productTag, String endDate, Integer rangeInMinutes)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("{} metering for {} triggered via JMX by {}", productTag, accountNumber, principal);
 
     OffsetDateTime end = getDate(endDate);
     OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    log.info(
+        "{} metering for {} against range [{}, {}) triggered via JMX by {}",
+        productTag,
+        accountNumber,
+        start,
+        end,
+        principal);
 
     try {
       tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
@@ -128,10 +134,14 @@ public class MeteringJmxBean {
   public void performCustomMetering(String productTag, String endDate, Integer rangeInMinutes)
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Metering for all accounts triggered via JMX by {}", principal);
 
     OffsetDateTime end = getDate(endDate);
     OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    log.info(
+        "Metering for all accounts against range [{}, {}) triggered via JMX by {}",
+        start,
+        end,
+        principal);
 
     try {
       tasks.updateMetricsForAllAccounts(productTag, start, end);
@@ -168,6 +178,13 @@ public class MeteringJmxBean {
       throw new IllegalArgumentException("Invalid value specified (Must be >= 0): rangeInMinutes");
     }
 
-    return endDate.minusMinutes(rangeInMinutes);
+    OffsetDateTime result = endDate.minusMinutes(rangeInMinutes);
+    if (!result.isEqual(clock.startOfHour(result))) {
+      throw new IllegalArgumentException(
+          String.format(
+              "endDate %s - range %s produces time not at top of the hour: %s",
+              endDate, rangeInMinutes, result));
+    }
+    return result;
   }
 }

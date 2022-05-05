@@ -167,15 +167,15 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            clock.startOfHour(start),
-            clock.endOfHour(end),
+            clock.startOfHour(start).plusHours(1),
+            end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
   }
 
   @Test
   void accountGetsOptedInWhenReportingMetrics() {
-    OffsetDateTime start = clock.now();
+    OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(4);
     QueryResult data =
         buildOpenShiftClusterQueryResult(
@@ -192,8 +192,8 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            clock.startOfHour(start),
-            clock.endOfHour(end),
+            start.plusHours(1),
+            end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
     verify(optInController)
@@ -226,7 +226,7 @@ class PrometheusMeteringControllerTest {
         .thenReturn(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+    OffsetDateTime end = start.plusDays(1);
 
     List<Event> expectedEvents =
         List.of(
@@ -267,7 +267,7 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            start,
+            start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
@@ -305,7 +305,7 @@ class PrometheusMeteringControllerTest {
         .thenReturn(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+    OffsetDateTime end = start.plusDays(1);
 
     Event updatedEvent =
         MeteringEventFactory.createMetricEvent(
@@ -380,8 +380,8 @@ class PrometheusMeteringControllerTest {
             expectedAccount,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
-            start.minusSeconds(metricProperties.getStep()),
-            end.minusSeconds(metricProperties.getStep())))
+            start,
+            end))
         .thenReturn(
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
@@ -397,7 +397,7 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            start,
+            start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
@@ -494,8 +494,8 @@ class PrometheusMeteringControllerTest {
             expectedAccount,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
-            start.minusSeconds(metricProperties.getStep()),
-            end.minusSeconds(metricProperties.getStep())))
+            start,
+            end))
         .thenReturn(
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
@@ -508,7 +508,7 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            start,
+            start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
