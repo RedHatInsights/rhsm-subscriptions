@@ -187,20 +187,6 @@ parameters:
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdJobInvocation
-  metadata:
-    name: rhsm-jobs
-  spec:
-    appName: rhsm
-    jobs:
-      - metrics-cron
-      - cron-tally
-      - hourly-tally
-      - cron-purge
-      - subscription-sync
-      - offering-sync
-
-- apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
     name: rhsm
