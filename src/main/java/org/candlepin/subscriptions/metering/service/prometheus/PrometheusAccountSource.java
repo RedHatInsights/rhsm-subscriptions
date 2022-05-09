@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
@@ -33,6 +34,7 @@ import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.util.StringUtils;
 
 /** Provides account lists from Prometheus metrics. */
+@Slf4j
 public class PrometheusAccountSource {
 
   private PrometheusService service;
@@ -51,10 +53,16 @@ public class PrometheusAccountSource {
     this.tagProfile = tagProfile;
   }
 
-  public Set<String> getMarketplaceAccounts(String productTag, Uom metric, OffsetDateTime time) {
+  public Set<String> getMarketplaceAccounts(
+      String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+    log.debug("Querying for active accounts for range [{}, {})", start, end);
     QueryResult result =
-        service.runQuery(buildQuery(productTag, metric), time, metricProperties.getQueryTimeout());
-
+        service.runRangeQuery(
+            buildQuery(productTag, metric),
+            start.plusHours(1),
+            end,
+            metricProperties.getStep(),
+            metricProperties.getQueryTimeout());
     return result.getData().getResult().stream()
         .map(r -> r.getMetric().getOrDefault("ebs_account", ""))
         .filter(StringUtils::hasText)
