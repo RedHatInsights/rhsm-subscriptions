@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity;
+package org.candlepin.subscriptions.tally.admin;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,12 +27,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
 import org.candlepin.subscriptions.security.WithMockPskPrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,11 +40,10 @@ import org.springframework.web.context.WebApplicationContext;
 
 @SpringBootTest
 @WebAppConfiguration
-@ActiveProfiles({"capacity-ingress", "test"})
-class InternalSubscriptionResourceTest {
+@ActiveProfiles({"worker", "test"})
+class InternalTallyResourceTest {
 
-  public static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
-  @MockBean SubscriptionSyncController controller;
+  public static final String PAYG_ROLLUPS = "/internal/tally/emit-payg-rollups";
   @Autowired WebApplicationContext context;
 
   private MockMvc mvc;
@@ -61,18 +59,37 @@ class InternalSubscriptionResourceTest {
 
   @Test
   @WithMockPskPrincipal
-  void forceSyncForOrgWorksWithPsk() throws Exception {
-    mvc.perform(post(SYNC_ORG_123)).andExpect(status().isNotFound());
-  }
-
-  @Test
-  void forceSyncForOrgWorksFailsWithNoPrincipal() throws Exception {
-    mvc.perform(post(SYNC_ORG_123)).andExpect(status().isUnauthorized());
+  void testEmitPaygRollupsWithPsk() throws Exception {
+    /* Why does this test expect isNotFound()?  Because we are using JAX-RS for our request
+     * mapping. MockMvc only works with Spring's custom RestController standard, but it's really
+     * handy to use for setting up the Spring Security filter chain.  It's a dirty hack, but we
+     * can use MockMvc to test authentication and authorization by looking for a 403 response and
+     * if we get a 404 response, it means everything passed security-wise and we just couldn't
+     * find the matching resource (because there are no matching RestControllers!).
+     */
+    mvc.perform(
+            post(PAYG_ROLLUPS)
+                .contentType(MediaType.APPLICATION_JSON)
+                .queryParam("date", "2022-05-01"))
+        .andExpect(status().isNotFound());
   }
 
   @Test
   @WithMockRedHatPrincipal("123")
-  void forceSyncForOrgWorksFailsWithRhPrincipal() throws Exception {
-    mvc.perform(post(SYNC_ORG_123)).andExpect(status().isForbidden());
+  void testEmitPaygRollupsWithRedhatPrincipal() throws Exception {
+    mvc.perform(
+            post("/internal/tally/emit-payg-rollups")
+                .contentType(MediaType.APPLICATION_JSON)
+                .queryParam("date", "2022-05-01"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void testEmitPaygRollupsNoAuth() throws Exception {
+    mvc.perform(
+            post("/internal/tally/emit-payg-rollups")
+                .contentType(MediaType.APPLICATION_JSON)
+                .queryParam("date", "2022-05-01"))
+        .andExpect(status().isUnauthorized());
   }
 }
