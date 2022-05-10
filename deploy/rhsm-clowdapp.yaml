@@ -99,10 +99,14 @@ parameters:
     value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
   - name: SUBSCRIPTION_MAX_CONNECTIONS
     value: '100'
-  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
-    value: 1s
   - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
     value: '4'
+  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+    value: 1s
+  - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+    value: '2'
   - name: SUBSCRIPTION_PAGE_SIZE
     value: '500'
   - name: USER_HOST
@@ -791,6 +795,10 @@ objects:
               value: ${SUBSCRIPTION_MAX_CONNECTIONS}
             - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
               value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
+            - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+              value: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL}
+            - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+              value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
             - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
               value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
             - name: SUBSCRIPTION_PAGE_SIZE

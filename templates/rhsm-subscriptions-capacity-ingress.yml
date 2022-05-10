@@ -63,6 +63,16 @@ parameters:
     value: 2m
   - name: PRODUCT_URL
     value: https://product.qa.api.redhat.com/svcrest/product/v3
+  - name: SUBSCRIPTION_MAX_CONNECTIONS
+    value: '100'
+  - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+    value: '4'
+  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+    value: 1s
+  - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+    value: '2'
 
 objects:
   - apiVersion: v1
@@ -218,6 +228,16 @@ objects:
                   value: /service-certs/keystore.jks
                 - name: SUBSCRIPTION_URL
                   value: ${SUBSCRIPTION_URL}
+                - name: SUBSCRIPTION_MAX_CONNECTIONS
+                  value: ${SUBSCRIPTION_MAX_CONNECTIONS}
+                - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+                  value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
+                - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+                  value: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL}
+                - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+                  value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
+                - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+                  value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
                 - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
                   value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
                 - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN

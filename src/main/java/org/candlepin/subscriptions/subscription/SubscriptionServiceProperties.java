@@ -38,6 +38,18 @@ public class SubscriptionServiceProperties extends HttpClientProperties {
    */
   private int maxRetryAttempts = 4;
 
+  /**
+   * The initial sleep interval between retries when retrying fetching info from the Subscription
+   * Service
+   */
+  private Duration backOffInitialInterval = Duration.ofSeconds(1L);
+
+  /** Retry backoff interval. */
+  private Duration backOffMaxInterval;
+
+  /** Retry exponential backoff multiplier. */
+  private Double backOffMultiplier;
+
   /** Page size for subscription queries */
   private int pageSize = 1000;
 
@@ -46,10 +58,4 @@ public class SubscriptionServiceProperties extends HttpClientProperties {
 
   /** Do not sync any subs starting later than this much in the future from now. */
   private Period ignoreStartingLaterThan = Period.ofMonths(2);
-
-  /**
-   * The initial sleep interval between retries when retrying fetching info from the Subscription
-   * Service
-   */
-  private Duration backOffInitialInterval = Duration.ofSeconds(1L);
 }
