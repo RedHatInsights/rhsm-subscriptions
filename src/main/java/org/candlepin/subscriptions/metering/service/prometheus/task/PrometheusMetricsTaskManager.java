@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -89,7 +88,7 @@ public class PrometheusMetricsTaskManager {
   private void queueMetricUpdateForAccount(
       String account, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
     log.info(
-        "Queuing {} {} metric update for account {} between {} and {}",
+        "Queuing {} {} metric update for account {} for range [{}, {})",
         productTag,
         metric,
         account,
@@ -114,22 +113,16 @@ public class PrometheusMetricsTaskManager {
   @Transactional
   public void updateMetricsForAllAccounts(
       String productTag, int rangeInMinutes, RetryTemplate retry) {
-    OffsetDateTime start =
-        clock.startOfHour(clock.now().minus(appProps.getPrometheusLatencyDuration()));
-    // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
-    // time is 6:00:00, taking the last of that hour would give the range an extra hour
-    // (6:59:59.999999) which is not what we want. We subtract to break the even boundary before
-    // finding the last minute. We need to do this because our queries are date inclusive
-    // (greater/less than OR equal to).
     OffsetDateTime end =
-        clock.endOfHour(
-            start.plusMinutes(rangeInMinutes).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
+        clock.startOfHour(clock.now().minus(appProps.getPrometheusLatencyDuration()));
+    OffsetDateTime start = end.minusMinutes(rangeInMinutes);
+    log.debug("range [{}, {})", start, end);
     updateMetricsForAllAccounts(productTag, start, end, retry);
   }
 
   private void updateMetricsForAllAccounts(
       String productTag, OffsetDateTime start, OffsetDateTime end, RetryTemplate retry) {
-    log.info("Queuing {} metric updates for range: {} -> {}", productTag, start, end);
+    log.info("Queuing {} metric updates for range: [{}, {})", productTag, start, end);
     tagProfile
         .getSupportedMetricsForProduct(productTag)
         .forEach(
@@ -144,7 +137,7 @@ public class PrometheusMetricsTaskManager {
   private void queueMetricUpdateForAllAccounts(
       String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
     try (Stream<String> accountStream =
-        accountSource.getMarketplaceAccounts(productTag, metric, end).stream()) {
+        accountSource.getMarketplaceAccounts(productTag, metric, start, end).stream()) {
       log.info("Queuing {} {} metric updates for all configured accounts.", productTag, metric);
       accountStream.forEach(
           account -> queueMetricUpdateForAccount(account, productTag, metric, start, end));

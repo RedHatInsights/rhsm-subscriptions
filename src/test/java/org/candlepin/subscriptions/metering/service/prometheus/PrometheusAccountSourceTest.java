@@ -85,17 +85,22 @@ class PrometheusAccountSourceTest {
   @Test
   void buildsPromQLByAccountLookupTemplateKey() {
     OffsetDateTime expectedDate = OffsetDateTime.now();
-    when(service.runQuery(
+    when(service.runRangeQuery(
             queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
+            expectedDate,
+            3600,
             metricProperties.getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(List.of("A1")));
 
-    accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
+    accountSource.getMarketplaceAccounts(
+        TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
     verify(service)
-        .runQuery(
+        .runRangeQuery(
             queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
+            expectedDate,
+            3600,
             metricProperties.getQueryTimeout());
   }
 
@@ -110,14 +115,17 @@ class PrometheusAccountSourceTest {
     accountList.add("");
     accountList.add(expectedAccount);
 
-    when(service.runQuery(
+    when(service.runRangeQuery(
             queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
+            expectedDate,
+            3600,
             metricProperties.getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(accountList));
 
     Set<String> accounts =
-        accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
+        accountSource.getMarketplaceAccounts(
+            TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
     assertEquals(1, accounts.size());
     assertTrue(accounts.contains(expectedAccount));
   }
@@ -127,14 +135,17 @@ class PrometheusAccountSourceTest {
     List<String> expectedAccounts = List.of("A1", "A2");
     OffsetDateTime expectedDate = OffsetDateTime.now();
 
-    when(service.runQuery(
+    when(service.runRangeQuery(
             queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
             expectedDate,
+            expectedDate,
+            3600,
             metricProperties.getQueryTimeout()))
         .thenReturn(buildAccountQueryResult(expectedAccounts));
 
     Set<String> accounts =
-        accountSource.getMarketplaceAccounts(TEST_PROD_TAG, Uom.CORES, expectedDate);
+        accountSource.getMarketplaceAccounts(
+            TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
     assertEquals(2, accounts.size());
     assertTrue(accounts.containsAll(expectedAccounts));
   }
