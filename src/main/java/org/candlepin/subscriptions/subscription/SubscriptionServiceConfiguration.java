@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.subscription;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
-import org.candlepin.subscriptions.exception.UnretryableExternalServiceException;
+import org.candlepin.subscriptions.exception.UnretryableException;
 import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -75,7 +75,7 @@ public class SubscriptionServiceConfiguration {
             applicationProperties.getSubscription().getBackOffInitialInterval().toMillis(),
             applicationProperties.getSubscription().getBackOffMultiplier(),
             applicationProperties.getSubscription().getBackOffMaxInterval().toMillis())
-        .notRetryOn(UnretryableExternalServiceException.class)
+        .notRetryOn(UnretryableException.class)
         .build();
   }
 }

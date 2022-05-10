@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.exception;
 
-public class UnretryableExternalServiceException extends ExternalServiceException {
+import javax.ws.rs.core.Response.Status;
 
-  public UnretryableExternalServiceException(ErrorCode code, String message, Throwable e) {
-    super(code, message, e);
+public class UnretryableException extends SubscriptionsException {
+
+  public UnretryableException(ErrorCode code, Status status, String message, Throwable e) {
+    super(code, status, message, e);
   }
 }
