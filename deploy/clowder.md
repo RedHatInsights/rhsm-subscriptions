@@ -188,9 +188,6 @@ but here are some essentials:
   image tag.  Note that currently Clowder has an enforced image pull policy of
   "IfNotPresent" so using a static tag (even "latest") is not a workable option.
 
-* In order to turn on sidecar support in an ephemeral environment:
-  `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
-
 * When you deploy with bonfire during development, you'll want to specify the
   image and image tag you want to use like so:
 
@@ -231,7 +228,7 @@ but here are some essentials:
 
 * Here's a one-liner to see who has what ephemeral environment reserved
 
-  ```
+  ```shell
   oc get project -l ephemeral-ns-reserved -L ephemeral-ns-requester-name,ephemeral-ns-reserved
   ```
 
@@ -243,7 +240,7 @@ manually add it via command line.  Make sure you're in the appropriate namespace
 using the `oc project` command, and then you can deploy the ConfigMap to that
 namespace using the following command:
 
-```
+```shell
 curl https://gitlab.cee.redhat.com/rhsm/swatch-product-allowlist/-/raw/main/templates/capacity-allowlist.yml | oc process -f - | oc apply -f -
 ```
 ## bonfire "deploy" command and namespace reservation
@@ -256,6 +253,5 @@ pass `-n <NAMESPACE>` as an argument when running `bonfire deploy`.
 # TL;DR Quickstart Steps
 1. Start bonfire virtual environment
 2. Reserve a namespace
-3. Create the sidecar enabled ClowdEnv with `bonfire deploy-env -f deploy/rhsm-eph-clowdenv.yaml -n NAMESPACE`
-4. Apply the `capacity-allowlist` configmap
-5. Deploy rhsm with `bonfire deploy -n NAMESPACE`
+3. Apply the `capacity-allowlist` configmap
+4. Deploy rhsm with `bonfire deploy -n NAMESPACE`
