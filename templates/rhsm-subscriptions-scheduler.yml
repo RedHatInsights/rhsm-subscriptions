@@ -27,6 +27,8 @@ parameters:
     value: 30 * * * *
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
+  - name: PAYG_DAILY_SCHEDULE
+    value: 0 6 * * *
   - name: EVENT_RECORD_RETENTION
     value: 90d
   - name: OPENSHIFT_METERING_RANGE
@@ -57,6 +59,18 @@ parameters:
     value: 100m
   - name: HOURLY_TALLY_OFFSET
     value: 60m
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
   - name: TOKEN_REFRESHER_IMAGE
     value: quay.io/observatorium/token-refresher:master-2021-02-05-5da9663
   - name: TOKEN_REFRESHER_CPU_REQUEST
@@ -825,3 +839,41 @@ objects:
                 - name: capacity-allowlist
                   configMap:
                     name: capacity-allowlist
+  - apiVersion: batch/v1beta1
+    kind: CronJob
+    metadata:
+      name: rhsm-payg-daily-cron
+    spec:
+      schedule: ${PAYG_DAILY_SCHEDULE}
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 1800
+          template:
+            spec:
+              activeDeadlineSeconds: 1800
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: ${IMAGE_PULL_SECRET}
+                - name: quay-cloudservices-pull
+              containers:
+                - image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+                  name: payg-daily-cron
+                  command:
+                    - /usr/bin/bash
+                    - -c
+                    - >
+                      /usr/bin/curl --fail -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST
+                      "http://rhsm-subscriptions-worker:8000/api/rhsm-subscriptions/v1/internal/tally/emit-payg-rollups?date=$(date +%Y-%m-%d)"
+                  env:
+                    - name: SWATCH_SELF_PSK
+                      valueFrom:
+                        secretKeyRef:
+                          name: swatch-psks
+                          key: self
+                  resources:
+                    requests:
+                      cpu: ${CURL_CRON_CPU_REQUEST}
+                      memory: ${CURL_CRON_MEMORY_REQUEST}
+                    limits:
+                      cpu: ${CURL_CRON_CPU_LIMIT}
+                      memory: ${CURL_CRON_MEMORY_LIMIT}

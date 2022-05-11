@@ -34,6 +34,10 @@ parameters:
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: CONDUIT_IMAGE
     value: quay.io/cloudservices/swatch-system-conduit
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
   - name: IMAGE_TAG
     value: latest
   - name: IMAGE_PULL_SECRET
@@ -46,6 +50,14 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
   - name: CLOUDIGRADE_ENABLED
     value: 'false'
   - name: RHSM_URL
@@ -141,6 +153,8 @@ parameters:
     value: '@hourly'
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
+  - name: PAYG_DAILY_SCHEDULE
+    value: 0 6 * * *
 
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
@@ -1450,6 +1464,50 @@ objects:
                 secretName: pinhead
 
     jobs:
+      - name: payg-daily-cron
+        schedule: ${PAYG_DAILY_SCHEDULE}
+        activeDeadlineSeconds: 4200
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >                                                                                  
+              /usr/bin/curl --fail -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST
+              "http://rhsm-subscriptions-worker:8000/api/rhsm-subscriptions/v1/internal/tally/emit-payg-rollups?date=$(date +%Y-%m-%d)"
+          env:
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+        livenessProbe:
+          failureThreshold: 3
+          exec:
+            command:
+              - /usr/bin/uptime
+          initialDelaySeconds: 150
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 3
+          exec:
+            command:
+              - /usr/bin/date
+          initialDelaySeconds: 150
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: ${CURL_CRON_CPU_REQUEST}
+            memory: ${CURL_CRON_MEMORY_REQUEST}
+          limits:
+            cpu: ${CURL_CRON_CPU_LIMIT}
+            memory: ${CURL_CRON_MEMORY_LIMIT}
       - name: metrics-cron
         schedule: ${METERING_SCHEDULE}
         activeDeadlineSeconds: 4200
