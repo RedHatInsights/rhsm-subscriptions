@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -343,7 +344,7 @@ public class SubscriptionSyncController {
   public void forceSyncSubscriptionsForOrg(String orgId) {
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
     var subscriptionMap =
-        subscriptionRepository.findActiveByOwnerId(orgId).stream()
+        getActiveSubscriptionsForOrg(orgId)
             .collect(
                 Collectors.toMap(
                     org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
@@ -354,6 +355,13 @@ public class SubscriptionSyncController {
             syncSubscription(
                 subscription,
                 Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+  }
+
+  private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
+      String orgId) {
+    return subscriptionRepository
+        .findByOwnerIdAndEndDateAfter(orgId, OffsetDateTime.now())
+        .stream();
   }
 
   @Transactional

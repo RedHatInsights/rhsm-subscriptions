@@ -63,10 +63,7 @@ public interface SubscriptionRepository
 
   Stream<Subscription> findByOwnerId(String ownerId);
 
-  @Query(
-      "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
-          + "AND s.ownerId = :ownerId")
-  List<Subscription> findActiveByOwnerId(String ownerId);
+  List<Subscription> findByOwnerIdAndEndDateAfter(String ownerId, OffsetDateTime date);
 
   void deleteBySubscriptionId(String subscriptionId);
 
