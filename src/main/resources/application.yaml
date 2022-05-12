@@ -113,3 +113,10 @@ rhsm-subscriptions:
     kafka-group-id: rh-marketplace-worker
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  billing-producer:
+    messaging:
+      billable-usage:
+        topic: platform.rhsm-subscriptions.billable-usage
+        kafka-group-id: billable-usage-consumer
+        seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+        seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

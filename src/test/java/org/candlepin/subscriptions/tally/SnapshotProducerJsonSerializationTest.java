@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -37,7 +38,9 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"worker", "kafka-queue", "test"})
 class SnapshotProducerJsonSerializationTest {
-  @Autowired KafkaTemplate<String, TallySummary> kafkaTemplate;
+  @Autowired
+  @Qualifier("tallySummaryKafkaTemplate")
+  KafkaTemplate<String, TallySummary> kafkaTemplate;
 
   @Test
   void testSerializesDatesToIso8601Format() {
