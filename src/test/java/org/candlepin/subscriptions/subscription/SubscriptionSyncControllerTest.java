@@ -377,7 +377,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void memorizesSubscriptionId() {
+  void memoizesSubscriptionId() {
     UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
     Subscription s = new Subscription();
     s.setStartDate(OffsetDateTime.now().minusDays(7));
