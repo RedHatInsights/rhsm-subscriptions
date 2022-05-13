@@ -361,7 +361,7 @@ public class SubscriptionSyncController {
           boolean doesContain = knownOfferings.contains(sku);
 
           if (!doesContain) {
-            continue;
+            return;
           }
 
           syncSubscription(
