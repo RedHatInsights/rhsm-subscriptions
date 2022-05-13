@@ -53,7 +53,6 @@ import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -358,17 +357,17 @@ public class SubscriptionSyncController {
     var knownOfferings = offeringRepository.findAllKnownOfferingSkus();
     subscriptions.forEach(
         subscription -> {
-
           var sku = sku(subscription);
           boolean doesContain = knownOfferings.contains(sku);
 
-          if(!doesContain){
+          if (!doesContain) {
             continue;
           }
 
           syncSubscription(
               subscription,
-              Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId()))));});
+              Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId()))));
+        });
 
     log.info("Finished force sync for orgId: {}", orgId);
   }
