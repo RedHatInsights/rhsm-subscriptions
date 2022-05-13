@@ -311,7 +311,7 @@ class SubscriptionSyncControllerTest {
     var dto1 = createDto("234", 3);
     var dto2 = createDto("345", 3);
     var subList = Arrays.asList(dto1, dto2);
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
     verify(subscriptionService).getSubscriptionsByOrgId("123");
   }
@@ -322,8 +322,8 @@ class SubscriptionSyncControllerTest {
     var dto2 = createDto("345", 3);
     var subList = Arrays.asList(dto1, dto2);
     var subDaoList = Arrays.asList(convertDto(dto1), convertDto(dto2));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    Mockito.when(subscriptionRepository.findByOwnerIdAndEndDateAfter(eq("123"), any()))
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    when(subscriptionRepository.findByOwnerIdAndEndDateAfter(eq("123"), any()))
         .thenReturn(subDaoList);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
     verify(subscriptionRepository).findByOwnerIdAndEndDateAfter(eq("123"), any());
