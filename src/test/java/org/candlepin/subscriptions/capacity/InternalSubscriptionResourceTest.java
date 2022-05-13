@@ -42,6 +42,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void forceSyncForOrgShouldReturnSuccess() {
-    assertEquals("Success", resource.forceSyncSubscriptionsForOrg("123"));
+    assertEquals("Sync started.", resource.forceSyncSubscriptionsForOrg("123"));
   }
 }
