@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.exception;
 
 import javax.ws.rs.core.Response.Status;
+import lombok.Getter;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 
 /**
@@ -29,8 +30,8 @@ import org.candlepin.subscriptions.utilization.api.model.Error;
  */
 public class SubscriptionsException extends RuntimeException {
 
-  private final Status status;
-  private final String detail;
+  @Getter private final Status status;
+  @Getter private final String detail;
   private final ErrorCode code;
 
   public SubscriptionsException(ErrorCode code, Status status, String message, String detail) {
@@ -47,14 +48,6 @@ public class SubscriptionsException extends RuntimeException {
     this.code = code;
     this.status = status;
     this.detail = detail;
-  }
-
-  public ErrorCode getCode() {
-    return this.code;
-  }
-
-  public Status getStatus() {
-    return this.status;
   }
 
   public Error error() {
