@@ -57,7 +57,9 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public String forceSyncSubscriptionsForOrg(String orgId) {
+    log.info("Starting force sync for orgId: {}", orgId);
     subscriptionSyncController.forceSyncSubscriptionsForOrg(orgId);
+    log.info("Finished force sync for orgId: {}", orgId);
     return SUCCESS_STATUS;
   }
 

@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -158,7 +159,7 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
-    verifyNoInteractions(subscriptionRepository);
+    verify(subscriptionRepository, never()).save(any());
   }
 
   @Test
@@ -167,7 +168,7 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
-    verifyNoInteractions(subscriptionRepository);
+    verify(subscriptionRepository, never()).save(any());
   }
 
   @Test
@@ -313,6 +314,20 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
     verify(subscriptionService).getSubscriptionsByOrgId("123");
+  }
+
+  @Test
+  void shouldForceSubscriptionSyncForOrgWithExistingSubs() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("345", 3);
+    var subList = Arrays.asList(dto1, dto2);
+    var subDaoList = Arrays.asList(convertDto(dto1), convertDto(dto2));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    Mockito.when(subscriptionRepository.findByOwnerIdAndEndDateAfter(eq("123"), any()))
+        .thenReturn(subDaoList);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
+    verify(subscriptionRepository).findByOwnerIdAndEndDateAfter(eq("123"), any());
+    verify(subscriptionRepository, never()).findActiveSubscription(any());
   }
 
   @Test

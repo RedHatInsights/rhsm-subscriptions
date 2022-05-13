@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -114,6 +115,15 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
+    syncSubscription(
+        subscription,
+        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId())));
+  }
+
+  @Transactional
+  public void syncSubscription(
+      Subscription subscription,
+      Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
     String sku = sku(subscription);
 
     if (!productWhitelist.productIdMatches(sku)) {
@@ -135,10 +145,6 @@ public class SubscriptionSyncController {
     }
 
     log.debug("Syncing subscription from external service={}", subscription);
-    // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
-    final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
-        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
-
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
@@ -337,7 +343,25 @@ public class SubscriptionSyncController {
   @Transactional
   public void forceSyncSubscriptionsForOrg(String orgId) {
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
-    subscriptions.forEach(this::syncSubscription);
+    var subscriptionMap =
+        getActiveSubscriptionsForOrg(orgId)
+            .collect(
+                Collectors.toMap(
+                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
+                    sub -> sub));
+
+    subscriptions.forEach(
+        subscription ->
+            syncSubscription(
+                subscription,
+                Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+  }
+
+  private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
+      String orgId) {
+    return subscriptionRepository
+        .findByOwnerIdAndEndDateAfter(orgId, OffsetDateTime.now())
+        .stream();
   }
 
   @Transactional

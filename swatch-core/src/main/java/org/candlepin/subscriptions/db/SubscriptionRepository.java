@@ -63,6 +63,8 @@ public interface SubscriptionRepository
 
   Stream<Subscription> findByOwnerId(String ownerId);
 
+  List<Subscription> findByOwnerIdAndEndDateAfter(String ownerId, OffsetDateTime date);
+
   void deleteBySubscriptionId(String subscriptionId);
 
   void deleteByAccountNumber(String accountNumber);
