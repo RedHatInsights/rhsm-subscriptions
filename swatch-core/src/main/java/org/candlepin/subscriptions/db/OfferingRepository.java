@@ -21,18 +21,12 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
-import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.Offering;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 /** Repository interface for the Offering entity */
 public interface OfferingRepository extends JpaRepository<Offering, String> {
-  @Query(
-      "select distinct o.sku from Offering o")
+  @Query("select distinct o.sku from Offering o")
   List<String> findAllKnownOfferingSkus();
 }
