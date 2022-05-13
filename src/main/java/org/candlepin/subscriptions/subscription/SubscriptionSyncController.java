@@ -53,6 +53,7 @@ import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -129,15 +130,6 @@ public class SubscriptionSyncController {
     if (!productWhitelist.productIdMatches(sku)) {
       log.debug(
           "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
-          sku,
-          subscription.getId(),
-          subscription.getWebCustomerId());
-      return;
-    }
-
-    if (!offeringRepository.existsById(sku)) {
-      log.debug(
-          "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
           sku,
           subscription.getId(),
           subscription.getWebCustomerId());
@@ -343,18 +335,47 @@ public class SubscriptionSyncController {
   @Transactional
   public void forceSyncSubscriptionsForOrg(String orgId) {
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
+
+    log.info("Start getting active subscriptions for org");
     var subscriptionMap =
         getActiveSubscriptionsForOrg(orgId)
             .collect(
                 Collectors.toMap(
                     org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
                     sub -> sub));
+    log.info("Stop getting active subscriptions for org");
 
-    subscriptions.forEach(
-        subscription ->
-            syncSubscription(
-                subscription,
-                Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+    log.info("Start syncing subscriptions", subscriptionMap);
+    subscriptions.stream()
+        .filter(this::shouldSyncSub)
+        .filter(
+            sub -> doesSkuMatchKnownOffering(sub, offeringRepository.findAllKnownOfferingSkus()))
+        .forEach(
+            subscription ->
+                syncSubscription(
+                    subscription,
+                    Optional.ofNullable(
+                        subscriptionMap.get(String.valueOf(subscription.getId())))));
+    log.info("Stop syncing subscriptions", subscriptionMap);
+  }
+
+  @NotNull
+  private boolean doesSkuMatchKnownOffering(
+      Subscription subscription, List<String> knownOfferings) {
+
+    var sku = sku(subscription);
+
+    boolean doesContain = knownOfferings.contains(sku);
+
+    if (!doesContain) {
+      log.debug(
+          "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
+          sku,
+          subscription.getId(),
+          subscription.getWebCustomerId());
+    }
+
+    return doesContain;
   }
 
   private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
