@@ -26,6 +26,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * Configuration for the "capacity-ingress" profile.
@@ -34,6 +35,7 @@ import org.springframework.context.annotation.Profile;
  */
 @Configuration
 @Profile("capacity-ingress")
+@EnableAsync
 @Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
 @ComponentScan(
     basePackages = {"org.candlepin.subscriptions.capacity", "org.candlepin.subscriptions.product"})

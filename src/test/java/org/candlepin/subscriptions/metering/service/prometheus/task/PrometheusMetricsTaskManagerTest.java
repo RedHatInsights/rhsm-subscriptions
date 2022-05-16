@@ -93,7 +93,7 @@ class PrometheusMetricsTaskManagerTest {
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(1);
 
-    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any()))
+    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any(), any()))
         .thenReturn(Set.of("a1", "a2"));
     TaskDescriptor account1Task =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)

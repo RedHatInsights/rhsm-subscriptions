@@ -1,0 +1,35 @@
+@startuml
+
+title "Red Hat SaaS Offering Onboarding - AWS"
+
+actor "Red Hat Customer" as customer
+participant "AWS Marketplace" as aws
+participant "Red Hat SaaS\nOnboarding" as onboarding
+participant "Red Hat\nIT Subscription" as rhit
+participant "Red Hat SaaS\nControl Plane" as control_plane
+
+customer -> aws: Subscribe to SaaS offering
+return Redirect to Onboarding Page
+
+customer -> onboarding:  x-amzn-marketplace-token
+onboarding -> aws: AWS ResolveCustomer
+return {\n\
+  awsCustomerAccountId,\n\
+  awsCustomerId,\n\
+  awsProductCode\n\
+}
+
+onboarding -> rhit: {\n\
+  awsCustomerAccountId,\n\
+  awsCustomerId,\n\
+  awsProductCode,\n\
+  webCustomerId,\n\
+  sku,\n\
+  start,\n\
+  end\n\
+}
+
+control_plane -> rhit: sync subscriptions
+return
+
+@enduml
