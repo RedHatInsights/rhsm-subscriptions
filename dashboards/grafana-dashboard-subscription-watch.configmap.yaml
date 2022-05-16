@@ -2993,3 +2993,7 @@ kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: grafana-dashboard-subscription-watch
+  annotations:
+    grafana-folder: /grafana-dashboard-definitions/Insights
+  labels:
+    grafana_dashboard: "true"
