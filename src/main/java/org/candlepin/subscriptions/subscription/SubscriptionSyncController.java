@@ -56,6 +56,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -340,8 +341,15 @@ public class SubscriptionSyncController {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
   }
 
+  @Async
+  @Transactional
+  public void forceSyncSubscriptionsForOrgAsync(String orgId) {
+    forceSyncSubscriptionsForOrg(orgId);
+  }
+
   @Transactional
   public void forceSyncSubscriptionsForOrg(String orgId) {
+    log.info("Starting force sync for orgId: {}", orgId);
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
     var subscriptionMap =
         getActiveSubscriptionsForOrg(orgId)
@@ -355,6 +363,8 @@ public class SubscriptionSyncController {
             syncSubscription(
                 subscription,
                 Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+
+    log.info("Finished force sync for orgId: {}", orgId);
   }
 
   private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
