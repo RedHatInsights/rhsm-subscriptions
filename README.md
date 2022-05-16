@@ -66,7 +66,7 @@ Networking diagrams show how requests are routed:
 
 ## Deployment
 
-There are currently 3 different ways to deploy the components, with running them locally as the 
+There are currently 3 different ways to deploy the components, with running them locally as the
 preferred development workflow.
 
 <details>
@@ -92,7 +92,7 @@ git submodule update --init --recursive
 
 NOTE: in order to deploy insights-inventory (not always useful), you'll need to login to quay.io first.
 
-*NOTE*: To run any of the following commands using docker, 
+*NOTE*: To run any of the following commands using docker,
 
 replace podman-compose with
 
@@ -296,7 +296,7 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 <details>
 <summary>Clowder</summary>
 
-Clowder exposes the services it provides in an Openshift config map.  This config map appears 
+Clowder exposes the services it provides in an Openshift config map.  This config map appears
 in the container as a JSON file located by default at the path defined by `ACG_CONFIG` environment
 variable (typically `/cdapp/cdappconfig.json`).  The `ClowderJsonEnvironmentPostProcessor` takes
 this JSON file and flattens it into Java style properties (with the namespace `clowder` prefixed).
@@ -310,17 +310,17 @@ For example,
 }}
 ```
 
-Becomes `clowder.kafka.brokers[0].hostname`.  These properties are then passed into the Spring 
-Environment and may be used elsewhere (the `ClowderJsonEnvironmentPostProcessor` runs *before* 
+Becomes `clowder.kafka.brokers[0].hostname`.  These properties are then passed into the Spring
+Environment and may be used elsewhere (the `ClowderJsonEnvironmentPostProcessor` runs *before*
 most other environment processing classes).
 
-The pattern we follow is to assign the Clowder style properties to an **intermediate** property 
+The pattern we follow is to assign the Clowder style properties to an **intermediate** property
 that follows Spring Boot's environment variable
 [binding conventions](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config.typesafe-configuration-properties.relaxed-binding.environment-variables)
 
 It is important to note, this intermediate property ***must*** be given a default via the `$
-{value:default}` syntax.  If a default is not provided *and* the Clowder JSON is not available 
-(such as in development runs), Spring will fail to start because the `clowder.` property will 
+{value:default}` syntax.  If a default is not provided *and* the Clowder JSON is not available
+(such as in development runs), Spring will fail to start because the `clowder.` property will
 not resolve to anything.
 
 An example of an intermediate property would be
@@ -329,14 +329,14 @@ An example of an intermediate property would be
 KAFKA_BOOTSTRAP_HOST=${clowder.kafka.brokers[0].hostname:localhost}
 ```
 
-This pattern has the useful property of allowing us to override any Clowder settings (in 
-development, for example) with environment variables since a value specified in the environment 
+This pattern has the useful property of allowing us to override any Clowder settings (in
+development, for example) with environment variables since a value specified in the environment
 has a higher [precedence](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config)
 than values defined in config data files (e.g. `application.properties`).
 
-The intermediate property is then assigned to any actual property that we wish to use, e.g. 
-`spring.kafka.bootstrap-servers`.  Thus, it is trivial to either allow a value to be specified 
-by Clowder, overridden from Clowder via environment variable, or not given by Clowder at all and 
+The intermediate property is then assigned to any actual property that we wish to use, e.g.
+`spring.kafka.bootstrap-servers`.  Thus, it is trivial to either allow a value to be specified
+by Clowder, overridden from Clowder via environment variable, or not given by Clowder at all and
 instead based on a default.
 
 A Clowder environment can be simulated in development by pointing the `ACG_CONFIG` environment var
@@ -407,31 +407,7 @@ push with `git push --follow-tags origin develop main`.
 
 ## Grafana Dashboards
 
-See App-SRE documentation on updating dashboards for more info.
-
-Essentially:
-
-1. Edit the dashboard on the stage grafana instance.
-2. Export the dashboard, choosing to "export for sharing externally", save JSON to a file.
-3. Rename the file to `subscription-watch-dashboard.json`.
-
-Use the following command to update the configmap YAML:
-
-```
-oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run > dashboards/grafana-dashboard-subscription-watch.configmap.yaml
-cat << EOF >> dashboards/grafana-dashboard-subscription-watch.configmap.yaml
-  annotations:
-    grafana-folder: /grafana-dashboard-definitions/Insights
-  labels:
-    grafana_dashboard: "true"
-EOF
-```
-
-Possibly useful, to extract the JSON from the k8s configmap file:
-
-```
-oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --confirm
-```
+See [Grafana Dashboards](dashboards/README.adoc)
 
 ## License
 
