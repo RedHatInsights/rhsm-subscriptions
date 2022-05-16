@@ -20,10 +20,12 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.candlepin.subscriptions.capacity.admin.InternalSubscriptionResource;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
 import org.candlepin.subscriptions.security.WithMockPskPrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -47,6 +49,7 @@ class InternalSubscriptionResourceTest {
   public static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
   @MockBean SubscriptionSyncController controller;
   @Autowired WebApplicationContext context;
+  @Autowired InternalSubscriptionResource resource;
 
   private MockMvc mvc;
 
@@ -74,5 +77,10 @@ class InternalSubscriptionResourceTest {
   @WithMockRedHatPrincipal("123")
   void forceSyncForOrgWorksFailsWithRhPrincipal() throws Exception {
     mvc.perform(post(SYNC_ORG_123)).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void forceSyncForOrgShouldReturnSuccess() {
+    assertEquals("Sync started.", resource.forceSyncSubscriptionsForOrg("123"));
   }
 }

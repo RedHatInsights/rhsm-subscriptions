@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -55,6 +56,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -114,6 +116,15 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
+    syncSubscription(
+        subscription,
+        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId())));
+  }
+
+  @Transactional
+  public void syncSubscription(
+      Subscription subscription,
+      Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
     String sku = sku(subscription);
 
     if (!productWhitelist.productIdMatches(sku)) {
@@ -135,10 +146,6 @@ public class SubscriptionSyncController {
     }
 
     log.debug("Syncing subscription from external service={}", subscription);
-    // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
-    final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
-        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
-
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
@@ -334,10 +341,37 @@ public class SubscriptionSyncController {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
   }
 
+  @Async
+  @Transactional
+  public void forceSyncSubscriptionsForOrgAsync(String orgId) {
+    forceSyncSubscriptionsForOrg(orgId);
+  }
+
   @Transactional
   public void forceSyncSubscriptionsForOrg(String orgId) {
+    log.info("Starting force sync for orgId: {}", orgId);
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
-    subscriptions.forEach(this::syncSubscription);
+    var subscriptionMap =
+        getActiveSubscriptionsForOrg(orgId)
+            .collect(
+                Collectors.toMap(
+                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
+                    sub -> sub));
+
+    subscriptions.forEach(
+        subscription ->
+            syncSubscription(
+                subscription,
+                Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+
+    log.info("Finished force sync for orgId: {}", orgId);
+  }
+
+  private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
+      String orgId) {
+    return subscriptionRepository
+        .findByOwnerIdAndEndDateAfter(orgId, OffsetDateTime.now())
+        .stream();
   }
 
   @Transactional

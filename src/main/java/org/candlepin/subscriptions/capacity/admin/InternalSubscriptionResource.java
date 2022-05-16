@@ -44,7 +44,6 @@ import org.springframework.stereotype.Component;
 public class InternalSubscriptionResource implements InternalApi {
 
   private final SubscriptionSyncController subscriptionSyncController;
-  private static final String SUCCESS_STATUS = "Success";
   private final Counter missingSubscriptionCounter;
   private final Counter ambiguousSubscriptionCounter;
 
@@ -57,8 +56,8 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public String forceSyncSubscriptionsForOrg(String orgId) {
-    subscriptionSyncController.forceSyncSubscriptionsForOrg(orgId);
-    return SUCCESS_STATUS;
+    subscriptionSyncController.forceSyncSubscriptionsForOrgAsync(orgId);
+    return "Sync started.";
   }
 
   @Override
