@@ -1,8 +1,9 @@
 apiVersion: v1
 data:
-  subscription-watch.json: |
+  subscription-watch.json: |-
     {
       "__inputs": [],
+      "__elements": [],
       "__requires": [
         {
           "type": "datasource",
@@ -14,12 +15,12 @@ data:
           "type": "grafana",
           "id": "grafana",
           "name": "Grafana",
-          "version": "7.2.1"
+          "version": "8.4.1"
         },
         {
           "type": "panel",
           "id": "graph",
-          "name": "Graph",
+          "name": "Graph (old)",
           "version": ""
         },
         {
@@ -44,20 +45,26 @@ data:
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
             "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
             "type": "dashboard"
           }
         ]
       },
       "editable": true,
-      "gnetId": null,
+      "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
       "id": null,
-      "iteration": 1619445658659,
+      "iteration": 1652708932734,
       "links": [],
+      "liveNow": false,
       "panels": [
         {
           "collapsed": true,
-          "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -71,7 +78,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$rdsdatasource",
+              "datasource": {
+                "uid": "$rdsdatasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -110,7 +119,6 @@ data:
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
-              "repeat": null,
               "seriesOverrides": [],
               "spaceLength": 10,
               "stack": false,
@@ -124,14 +132,14 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "CPUUtilization",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "A",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage",
@@ -141,20 +149,18 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "CPUUtilization",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "B",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "DB CPU usage",
               "tooltip": {
                 "shared": true,
@@ -163,9 +169,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -173,25 +177,19 @@ data:
                 {
                   "$$hashKey": "object:419",
                   "format": "percent",
-                  "label": null,
                   "logBase": 1,
                   "max": "100",
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:420",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -199,7 +197,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$rdsdatasource",
+              "datasource": {
+                "uid": "$rdsdatasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -208,8 +208,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   },
@@ -262,14 +261,14 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "FreeStorageSpace",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "A",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage",
@@ -279,20 +278,18 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "FreeStorageSpace",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "B",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "DB Free Space",
               "tooltip": {
                 "shared": true,
@@ -301,9 +298,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -311,25 +306,18 @@ data:
                 {
                   "$$hashKey": "object:893",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:894",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -337,7 +325,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$rdsdatasource",
+              "datasource": {
+                "uid": "$rdsdatasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -389,14 +379,14 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "ReadIOPS",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "A",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-prod write iops avg",
@@ -406,14 +396,14 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "WriteIOPS",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "B",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage read iops avg",
@@ -423,14 +413,14 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "ReadIOPS",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "C",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage write iops avg",
@@ -440,20 +430,18 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "WriteIOPS",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "D",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "DB IOPs",
               "tooltip": {
                 "shared": true,
@@ -462,9 +450,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -472,25 +458,19 @@ data:
                 {
                   "$$hashKey": "object:834",
                   "format": "iops",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
                   "min": "0",
                   "show": true
                 },
                 {
                   "$$hashKey": "object:835",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -498,7 +478,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$rdsdatasource",
+              "datasource": {
+                "uid": "$rdsdatasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -550,14 +532,14 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "FreeableMemory",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "A",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage",
@@ -567,20 +549,18 @@ data:
                   "expression": "",
                   "id": "",
                   "matchExact": true,
+                  "metricEditorMode": 0,
                   "metricName": "FreeableMemory",
+                  "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
                   "refId": "B",
                   "region": "default",
-                  "statistics": [
-                    "Average"
-                  ]
+                  "statistic": "Average"
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "DB Freeable Memory",
               "tooltip": {
                 "shared": true,
@@ -589,9 +569,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -599,25 +577,18 @@ data:
                 {
                   "$$hashKey": "object:559",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:560",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             }
           ],
@@ -626,7 +597,6 @@ data:
         },
         {
           "collapsed": true,
-          "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -636,7 +606,9 @@ data:
           "id": 12,
           "panels": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -645,8 +617,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -690,8 +661,6 @@ data:
                   "refId": "B"
                 }
               ],
-              "timeFrom": null,
-              "timeShift": null,
               "title": "HBI Host Create/Update Stats",
               "type": "stat"
             },
@@ -700,7 +669,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "decimals": 3,
               "fieldConfig": {
                 "defaults": {
@@ -787,9 +758,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "rhsm-conduit consumer group lag",
               "tooltip": {
                 "shared": true,
@@ -798,36 +767,27 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
               "yaxes": [
                 {
                   "$$hashKey": "object:1564",
-                  "decimals": null,
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
                   "min": "0",
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1565",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -835,7 +795,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "description": "",
               "fieldConfig": {
                 "defaults": {
@@ -890,9 +852,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "HBI host production rate",
               "tooltip": {
                 "shared": true,
@@ -901,9 +861,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -913,23 +871,18 @@ data:
                   "format": "short",
                   "label": "message/sec",
                   "logBase": 1,
-                  "max": null,
                   "min": "0",
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1809",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -937,7 +890,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -991,9 +946,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "rhsm-conduit max sync duration",
               "tooltip": {
                 "shared": true,
@@ -1002,9 +955,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -1012,25 +963,18 @@ data:
                 {
                   "$$hashKey": "object:1663",
                   "format": "s",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1664",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1038,7 +982,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -1124,9 +1070,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "rhsm-conduit topic consumption rate (orgs/second)",
               "tooltip": {
                 "shared": true,
@@ -1135,9 +1079,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -1147,23 +1089,18 @@ data:
                   "format": "none",
                   "label": "orgs/sec",
                   "logBase": 1,
-                  "max": null,
                   "min": "0",
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1751",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1171,7 +1108,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -1225,9 +1164,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "rhsm-conduit CPU",
               "tooltip": {
                 "shared": true,
@@ -1236,9 +1173,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -1246,25 +1181,18 @@ data:
                 {
                   "$$hashKey": "object:1692",
                   "format": "percentunit",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1693",
                   "format": "percent",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1272,7 +1200,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -1326,9 +1256,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "JVM Memory Used",
               "tooltip": {
                 "shared": true,
@@ -1337,9 +1265,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -1347,25 +1273,18 @@ data:
                 {
                   "$$hashKey": "object:1721",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1722",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             }
           ],
@@ -1374,7 +1293,6 @@ data:
         },
         {
           "collapsed": true,
-          "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1388,7 +1306,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "decimals": 3,
               "fieldConfig": {
                 "defaults": {
@@ -1475,9 +1395,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "subscriptions-jobs consumer group lag",
               "tooltip": {
                 "shared": true,
@@ -1486,36 +1404,27 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
               "yaxes": [
                 {
                   "$$hashKey": "object:276",
-                  "decimals": null,
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
                   "min": "0",
                   "show": true
                 },
                 {
                   "$$hashKey": "object:277",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1523,7 +1432,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "decimals": 3,
               "fieldConfig": {
                 "defaults": {
@@ -1610,9 +1521,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "subscriptions-jobs org rate (orgs/sec)",
               "tooltip": {
                 "shared": true,
@@ -1621,36 +1530,27 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
               "yaxes": [
                 {
                   "$$hashKey": "object:363",
-                  "decimals": null,
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
                   "min": "0",
                   "show": true
                 },
                 {
                   "$$hashKey": "object:364",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1658,7 +1558,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -1718,9 +1620,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "rhsm-subscriptions worker CPU",
               "tooltip": {
                 "shared": true,
@@ -1729,9 +1629,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -1739,25 +1637,18 @@ data:
                 {
                   "$$hashKey": "object:247",
                   "format": "percentunit",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:248",
                   "format": "percent",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1765,7 +1656,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -1819,9 +1712,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "worker JVM Memory Used",
               "tooltip": {
                 "shared": true,
@@ -1830,9 +1721,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -1840,25 +1729,18 @@ data:
                 {
                   "$$hashKey": "object:218",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:219",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             }
           ],
@@ -1867,7 +1749,6 @@ data:
         },
         {
           "collapsed": true,
-          "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1881,7 +1762,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -1935,9 +1818,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "API request rate",
               "tooltip": {
                 "shared": true,
@@ -1946,36 +1827,27 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
               "yaxes": [
                 {
                   "$$hashKey": "object:1218",
-                  "decimals": null,
                   "format": "reqps",
                   "label": "",
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1219",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -1983,7 +1855,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2036,9 +1910,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "request latency",
               "tooltip": {
                 "shared": true,
@@ -2047,9 +1919,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -2058,22 +1928,16 @@ data:
                   "format": "s",
                   "label": "time per batch",
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -2081,7 +1945,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2135,9 +2001,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "Error Rate",
               "tooltip": {
                 "shared": true,
@@ -2146,9 +2010,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -2156,25 +2018,18 @@ data:
                 {
                   "$$hashKey": "object:1073",
                   "format": "reqps",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1074",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -2182,7 +2037,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2236,9 +2093,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "CPU",
               "tooltip": {
                 "shared": true,
@@ -2247,9 +2102,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -2257,25 +2110,18 @@ data:
                 {
                   "$$hashKey": "object:1158",
                   "format": "percentunit",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1159",
                   "format": "percent",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -2283,7 +2129,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2337,9 +2185,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "JVM Memory Used",
               "tooltip": {
                 "shared": true,
@@ -2348,9 +2194,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -2358,25 +2202,18 @@ data:
                 {
                   "$$hashKey": "object:1102",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:1103",
                   "format": "bytes",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             }
           ],
@@ -2385,7 +2222,6 @@ data:
         },
         {
           "collapsed": true,
-          "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -2399,7 +2235,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2453,9 +2291,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "subscription-ingress batch rate",
               "tooltip": {
                 "shared": true,
@@ -2464,36 +2300,27 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
               "yaxes": [
                 {
                   "$$hashKey": "object:2120",
-                  "decimals": null,
                   "format": "short",
                   "label": "Batches / Second",
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:2121",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -2501,7 +2328,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2555,9 +2384,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "subscription-ingress latency",
               "tooltip": {
                 "shared": true,
@@ -2566,9 +2393,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -2578,23 +2403,17 @@ data:
                   "format": "s",
                   "label": "time per batch",
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:2183",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             },
             {
@@ -2602,7 +2421,9 @@ data:
               "bars": false,
               "dashLength": 10,
               "dashes": false,
-              "datasource": "$datasource",
+              "datasource": {
+                "uid": "$datasource"
+              },
               "fieldConfig": {
                 "defaults": {
                   "custom": {},
@@ -2656,9 +2477,7 @@ data:
                 }
               ],
               "thresholds": [],
-              "timeFrom": null,
               "timeRegions": [],
-              "timeShift": null,
               "title": "Error Rate",
               "tooltip": {
                 "shared": true,
@@ -2667,9 +2486,7 @@ data:
               },
               "type": "graph",
               "xaxis": {
-                "buckets": null,
                 "mode": "time",
-                "name": null,
                 "show": true,
                 "values": []
               },
@@ -2677,35 +2494,26 @@ data:
                 {
                   "$$hashKey": "object:2238",
                   "format": "reqps",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 },
                 {
                   "$$hashKey": "object:2239",
                   "format": "short",
-                  "label": null,
                   "logBase": 1,
-                  "max": null,
-                  "min": null,
                   "show": true
                 }
               ],
               "yaxis": {
-                "align": false,
-                "alignLevel": null
+                "align": false
               }
             }
           ],
-          "repeat": null,
           "title": "Capacity Ingress",
           "type": "row"
         },
         {
           "collapsed": false,
-          "datasource": null,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -2722,14 +2530,10 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
-          "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
+          "datasource": {
+            "uid": "$datasource"
           },
+          "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -2758,11 +2562,10 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
-          "repeat": null,
           "repeatDirection": "v",
           "seriesOverrides": [],
           "spaceLength": 10,
@@ -2780,9 +2583,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "OpenShift Metering Task Lag",
           "tooltip": {
             "shared": true,
@@ -2791,9 +2592,7 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
@@ -2801,25 +2600,20 @@ data:
             {
               "$$hashKey": "object:361",
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
               "min": "0",
               "show": true
             },
             {
               "$$hashKey": "object:362",
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
               "min": "0",
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -2827,14 +2621,10 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
-          "description": "⬇️ Sampled metrics stored in DB are \"collapsed\" into summary metrics ⬇️\n\n(TIP: Summary metrics are displayed in web UI)",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
+          "datasource": {
+            "uid": "$datasource"
           },
+          "description": "⬇️ Sampled metrics stored in DB are \"collapsed\" into summary metrics ⬇️\n\n(TIP: Summary metrics are displayed in web UI)",
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -2863,11 +2653,10 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
-          "repeat": null,
           "repeatDirection": "v",
           "seriesOverrides": [],
           "spaceLength": 10,
@@ -2885,9 +2674,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Tally Task Lag",
           "tooltip": {
             "shared": true,
@@ -2896,9 +2683,7 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
@@ -2906,25 +2691,20 @@ data:
             {
               "$$hashKey": "object:390",
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
               "min": "0",
               "show": true
             },
             {
               "$$hashKey": "object:391",
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
               "min": "0",
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -2932,11 +2712,12 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "⬇️ SWatch pushes usage info into RH Marketplace ⬇️ \n\n(TIP: if this isn't working, the \"pending bill\" will never be updated on customer accounts)",
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "unit": "none"
             },
             "overrides": []
@@ -2968,11 +2749,10 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
-          "repeat": null,
           "repeatDirection": "h",
           "seriesOverrides": [],
           "spaceLength": 10,
@@ -2990,9 +2770,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "RH Marketplace Task Lag",
           "tooltip": {
             "shared": true,
@@ -3001,9 +2779,7 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
@@ -3011,43 +2787,39 @@ data:
             {
               "$$hashKey": "object:332",
               "format": "none",
-              "label": null,
               "logBase": 1,
-              "max": null,
               "min": "0",
               "show": true
             },
             {
               "$$hashKey": "object:333",
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
               "min": "0",
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
-              "custom": {},
               "mappings": [
                 {
-                  "id": 0,
-                  "op": "=",
-                  "text": "N/A",
-                  "type": 1,
-                  "value": "null"
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
                 }
               ],
-              "nullValueMode": "connected",
               "thresholds": {
                 "mode": "absolute",
                 "steps": [
@@ -3093,7 +2865,6 @@ data:
             "y": 6
           },
           "id": 82,
-          "interval": null,
           "links": [],
           "maxDataPoints": 100,
           "options": {
@@ -3110,7 +2881,7 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "7.2.1",
+          "pluginVersion": "8.4.1",
           "targets": [
             {
               "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_accepted_total[$__range]))",
@@ -3140,20 +2911,19 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 26,
+      "schemaVersion": 35,
       "style": "dark",
       "tags": [],
       "templating": {
         "list": [
           {
             "current": {
-              "selected": false,
+              "selected": true,
               "text": "crcp01ue1-prometheus",
               "value": "crcp01ue1-prometheus"
             },
             "hide": 0,
             "includeAll": false,
-            "label": null,
             "multi": false,
             "name": "datasource",
             "options": [],
@@ -3166,13 +2936,12 @@ data:
           },
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "AWS insights-prod",
               "value": "AWS insights-prod"
             },
             "hide": 0,
             "includeAll": false,
-            "label": null,
             "multi": false,
             "name": "rdsdatasource",
             "options": [],
@@ -3216,14 +2985,11 @@ data:
       },
       "timezone": "utc",
       "title": "Subscription Watch",
-      "uid": "MMzCEd9Mk",
-      "version": 2
+      "uid": "lkPhH-1Zk",
+      "version": 286089,
+      "weekStart": ""
     }
 kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: grafana-dashboard-subscription-watch
-  annotations:
-    grafana-folder: /grafana-dashboard-definitions/Insights
-  labels:
-    grafana_dashboard: "true"
