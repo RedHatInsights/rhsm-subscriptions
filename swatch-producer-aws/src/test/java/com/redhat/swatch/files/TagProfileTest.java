@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
-import com.redhat.swatch.openapi.model.TallySummaryTallyMeasurements.UomEnum;
+import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements.UomEnum;
 import org.junit.jupiter.api.Test;
 
 class TagProfileTest {
