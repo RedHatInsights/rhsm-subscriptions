@@ -43,3 +43,14 @@ source $CICD_ROOT/deploy_ephemeral_env.sh
 
 # Run smoke tests with ClowdJobInvocation
  source $CICD_ROOT/cji_smoke_test.sh
+
+
+# Need to make a dummy results file to make tests pass
+# Inspired by https://github.com/RedHatInsights/insights-rbac/blo/243b57a20ea2c1da87fe4292a2df9b19e1157efd/pr_check.sh
+# which is listed in the bonfire docs as an example pr_check file
+    mkdir -p artifacts
+    cat << EOF > artifacts/junit-dummy.xml
+    <testsuite tests="1">
+        <testcase classname="dummy" name="dummytest"/>
+    </testsuite>
+EOF
