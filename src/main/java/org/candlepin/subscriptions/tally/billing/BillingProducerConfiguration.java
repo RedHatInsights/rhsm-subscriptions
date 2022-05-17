@@ -24,6 +24,7 @@ import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConf
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -109,9 +110,9 @@ public class BillingProducerConfiguration {
   }
 
   @Bean
-  public ProducerFactory<String, TallySummary> billableUsageProducerFactory(
+  public ProducerFactory<String, BillableUsage> billableUsageProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
-    DefaultKafkaProducerFactory<String, TallySummary> factory =
+    DefaultKafkaProducerFactory<String, BillableUsage> factory =
         new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
     /*
     Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
@@ -122,9 +123,9 @@ public class BillingProducerConfiguration {
   }
 
   @Bean
-  public KafkaTemplate<String, TallySummary> billableUsageKafkaTemplate(
+  public KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate(
       @Qualifier("billableUsageProducerFactory")
-          ProducerFactory<String, TallySummary> billableUsageProducerFactory) {
+          ProducerFactory<String, BillableUsage> billableUsageProducerFactory) {
     return new KafkaTemplate<>(billableUsageProducerFactory);
   }
 }

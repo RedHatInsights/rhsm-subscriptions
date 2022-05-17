@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,19 +38,19 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class BillingProducer {
 
-  private KafkaTemplate<String, TallySummary> billableUsageKafkaTemplate;
+  private KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate;
   private String billableUsageTopic;
 
   @Autowired
   public BillingProducer(
       @Qualifier("billableUsageTopicProperties") TaskQueueProperties billableUsageTopicProperties,
       @Qualifier("billableUsageKafkaTemplate")
-          KafkaTemplate<String, TallySummary> billableUsageKafkaTemplate) {
+          KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate) {
     this.billableUsageKafkaTemplate = billableUsageKafkaTemplate;
     this.billableUsageTopic = billableUsageTopicProperties.getTopic();
   }
 
-  public void produce(TallySummary tallySummary) {
+  public void produce(BillableUsage tallySummary) {
     log.debug(
         "Forwarding summary {} to topic {}",
         tallySummary.getAccountNumber(),

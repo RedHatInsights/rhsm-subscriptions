@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.billing;
 
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -57,6 +58,10 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       containerFactory = "billingProducerKafkaTallySummaryListenerContainerFactory")
   public void receive(TallySummary tallySummary) {
     log.debug("Tally Summary recieved. Producing billable usage.}");
-    this.billingProducer.produce(tallySummary);
+    BillableUsage usage =
+        new BillableUsage()
+            .withAccountNumber(tallySummary.getAccountNumber())
+            .withBillableTallySnapshots(tallySummary.getTallySnapshots());
+    this.billingProducer.produce(usage);
   }
 }

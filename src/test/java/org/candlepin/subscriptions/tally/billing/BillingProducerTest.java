@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.tally.billing;
 
 import static org.mockito.Mockito.verify;
 
-import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 @ExtendWith(MockitoExtension.class)
 class BillingProducerTest {
 
-  @Mock private KafkaTemplate<String, TallySummary> kafka;
+  @Mock private KafkaTemplate<String, BillableUsage> kafka;
 
   private TaskQueueProperties billableUsageTopicProps;
   private BillingProducer producer;
@@ -49,8 +49,8 @@ class BillingProducerTest {
 
   @Test
   void testTallySummaryPassThrough() {
-    TallySummary summary = new TallySummary();
-    producer.produce(summary);
-    verify(kafka).send(billableUsageTopicProps.getTopic(), summary);
+    BillableUsage usage = new BillableUsage();
+    producer.produce(usage);
+    verify(kafka).send(billableUsageTopicProps.getTopic(), usage);
   }
 }
