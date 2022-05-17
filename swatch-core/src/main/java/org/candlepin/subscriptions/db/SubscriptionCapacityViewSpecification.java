@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import javax.persistence.criteria.*;
@@ -36,7 +35,7 @@ import org.springframework.data.jpa.domain.Specification;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
-public class SubscriptionCapacityViewSpecification
+public class SubscriptionCapacityViewSpecification extends BaseSpecification
     implements Specification<SubscriptionCapacityView> {
 
   private final transient List<SearchCriteria> criteria;
@@ -73,24 +72,8 @@ public class SubscriptionCapacityViewSpecification
           builder.isNotNull(expression.get(SubscriptionCapacityView_.VIRTUAL_CORES)),
           builder.isNotNull(expression.get(SubscriptionCapacityView_.PHYSICAL_CORES)),
           builder.isTrue(expression.get(SubscriptionCapacityView_.HAS_UNLIMITED_USAGE)));
-    } else if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
-      return builder.greaterThanOrEqualTo(
-          expression.get(criteria.getKey()), criteria.getValue().toString());
-    } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {
-      return builder.lessThanOrEqualTo(
-          expression.get(criteria.getKey()), criteria.getValue().toString());
-    } else if (criteria.getOperation().equals(SearchOperation.AFTER_OR_ON)) {
-      return builder.greaterThanOrEqualTo(
-          expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
-    } else if (criteria.getOperation().equals(SearchOperation.BEFORE_OR_ON)) {
-      return builder.lessThanOrEqualTo(
-          expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
-    } else if (criteria.getOperation().equals(SearchOperation.IN)) {
-      return builder.in(expression.get(criteria.getKey())).value(criteria.getValue());
-    } else if (criteria.getOperation().equals(SearchOperation.NOT_IN)) {
-      return builder.in(expression.get(criteria.getKey())).value(criteria.getValue()).not();
     } else {
-      return builder.equal(expression.get(criteria.getKey()), criteria.getValue());
+      return mapCriteriaToPredicate(expression, criteria, builder);
     }
   }
 }
