@@ -20,11 +20,15 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -34,7 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class RhMarketplaceWorkerTest {
+class RhMarketplaceBillableUsageWorkerTest {
 
   @Test
   void testWorkerCallsProduceForNonEmptyPayload() {
@@ -43,12 +47,13 @@ class RhMarketplaceWorkerTest {
     RhMarketplacePayloadMapper payloadMapper = mock(RhMarketplacePayloadMapper.class);
     KafkaConsumerRegistry kafkaConsumerRegistry = new KafkaConsumerRegistry();
     var worker =
-        new RhMarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
+        new RhMarketplaceBillableUsageWorker(
+            properties, producer, payloadMapper, kafkaConsumerRegistry);
 
     UsageRequest usageRequest = new UsageRequest().data(List.of(new UsageEvent()));
-    when(payloadMapper.createUsageRequest(any(TallySummary.class))).thenReturn(usageRequest);
+    when(payloadMapper.createUsageRequest(any(BillableUsage.class))).thenReturn(usageRequest);
 
-    worker.receive(new TallySummary());
+    worker.receive(new BillableUsage());
 
     verify(producer, times(1)).submitUsageRequest(usageRequest);
   }
@@ -60,12 +65,13 @@ class RhMarketplaceWorkerTest {
     RhMarketplacePayloadMapper payloadMapper = mock(RhMarketplacePayloadMapper.class);
     KafkaConsumerRegistry kafkaConsumerRegistry = mock(KafkaConsumerRegistry.class);
     var worker =
-        new RhMarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
+        new RhMarketplaceBillableUsageWorker(
+            properties, producer, payloadMapper, kafkaConsumerRegistry);
 
     UsageRequest usageRequest = new UsageRequest().data(Collections.emptyList());
-    when(payloadMapper.createUsageRequest(any(TallySummary.class))).thenReturn(usageRequest);
+    when(payloadMapper.createUsageRequest(any(BillableUsage.class))).thenReturn(usageRequest);
 
-    worker.receive(new TallySummary());
+    worker.receive(new BillableUsage());
 
     verify(producer, times(0)).submitUsageRequest(any());
   }
@@ -77,11 +83,12 @@ class RhMarketplaceWorkerTest {
     RhMarketplacePayloadMapper payloadMapper = mock(RhMarketplacePayloadMapper.class);
     KafkaConsumerRegistry kafkaConsumerRegistry = mock(KafkaConsumerRegistry.class);
     var worker =
-        new RhMarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
+        new RhMarketplaceBillableUsageWorker(
+            properties, producer, payloadMapper, kafkaConsumerRegistry);
 
-    when(payloadMapper.createUsageRequest(any(TallySummary.class))).thenReturn(null);
+    when(payloadMapper.createUsageRequest(any(BillableUsage.class))).thenReturn(null);
 
-    worker.receive(new TallySummary());
+    worker.receive(new BillableUsage());
 
     verify(producer, times(0)).submitUsageRequest(any());
   }
