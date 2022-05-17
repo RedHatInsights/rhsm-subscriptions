@@ -31,12 +31,12 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiE
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
+import com.redhat.swatch.openapi.model.TallySnapshot;
+import com.redhat.swatch.openapi.model.TallySnapshot.BillingProviderEnum;
+import com.redhat.swatch.openapi.model.TallySnapshot.GranularityEnum;
+import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements;
+import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements.UomEnum;
 import com.redhat.swatch.openapi.model.TallySummary;
-import com.redhat.swatch.openapi.model.TallySummaryTallyMeasurements;
-import com.redhat.swatch.openapi.model.TallySummaryTallyMeasurements.UomEnum;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.BillingProviderEnum;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.GranularityEnum;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
 import com.redhat.swatch.processors.TallyTopicProcessor;
 import io.micrometer.core.instrument.Counter;
@@ -65,14 +65,14 @@ class TallyTopicProcessorTest {
       new TallySummary()
           .tallySnapshots(
               List.of(
-                  new TallySummaryTallySnapshots()
+                  new TallySnapshot()
                       .productId("rhosak")
                       .granularity(GranularityEnum.DAILY)
                       .snapshotDate(OffsetDateTime.MAX)
                       .billingProvider(BillingProviderEnum.AWS)
                       .tallyMeasurements(
                           List.of(
-                              new TallySummaryTallyMeasurements()
+                              new TallySnapshotTallyMeasurements()
                                   .uom(UomEnum.INSTANCE_HOURS)
                                   .value(new BigDecimal("42.0"))))));
 
@@ -118,8 +118,7 @@ class TallyTopicProcessorTest {
   void shouldSkipNonDailySnapshots() {
     TallySummary summary =
         new TallySummary()
-            .tallySnapshots(
-                List.of(new TallySummaryTallySnapshots().granularity(GranularityEnum.YEARLY)));
+            .tallySnapshots(List.of(new TallySnapshot().granularity(GranularityEnum.YEARLY)));
     processor.process(summary);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
@@ -129,8 +128,7 @@ class TallyTopicProcessorTest {
     TallySummary summary =
         new TallySummary()
             .tallySnapshots(
-                List.of(
-                    new TallySummaryTallySnapshots().billingProvider(BillingProviderEnum.RED_HAT)));
+                List.of(new TallySnapshot().billingProvider(BillingProviderEnum.RED_HAT)));
     processor.process(summary);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
@@ -158,7 +156,7 @@ class TallyTopicProcessorTest {
         new TallySummary()
             .tallySnapshots(
                 List.of(
-                    new TallySummaryTallySnapshots()
+                    new TallySnapshot()
                         .granularity(GranularityEnum.DAILY)
                         .billingProvider(BillingProviderEnum.AWS)));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))

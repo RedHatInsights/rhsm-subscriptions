@@ -1,0 +1,71 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: TallySnapshot
+properties:
+  id:
+    type: string
+    format: uuid
+  billing_provider:
+    type: string
+    enum:
+      - ''
+      - red hat
+      - aws
+      - gcp
+      - azure
+      - oracle
+      - _ANY
+  snapshot_date:
+    type: string
+    format: date-time
+  product_id:
+    type: string
+  sla:
+    description: Service level for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Premium
+      - Standard
+      - Self-Support
+      - _ANY
+  usage:
+    description: Intended usage for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Production
+      - Development/Test
+      - Disaster Recovery
+      - _ANY
+  granularity:
+    type: string
+    enum:
+      - Hourly
+      - Daily
+      - Weekly
+      - Monthly
+      - Quarterly
+      - Yearly
+  tally_measurements:
+    type: array
+    items:
+      type: object
+      required:
+        - hardware_measurement_type
+        - value
+      properties:
+        hardware_measurement_type:
+          type: string
+        uom:
+          description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+          type: string
+          enum:
+            - ''  # UNSPECIFIED
+            - Cores
+            - Sockets
+            - Instance-hours
+            - Storage-gibibytes
+            - Transfer-gibibytes
+        value:
+          description: Measurement value.
+          type: number
