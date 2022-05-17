@@ -29,32 +29,32 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Component that produces billing usage messages based on TallySnapshots.
+ * Component that produces BillableUsage messages based on TallySnapshots.
  *
  * <p>NOTE: We are currently just forwarding TallySummary messages, but will transition to sending
- * BillingUsage.
+ * BillableUsage.
  */
 @Service
 @Slf4j
 public class BillingProducer {
 
-  private KafkaTemplate<String, TallySummary> billingUsageKafkaTemplate;
-  private String billingUsageTopic;
+  private KafkaTemplate<String, TallySummary> billableUsageKafkaTemplate;
+  private String billableUsageTopic;
 
   @Autowired
   public BillingProducer(
-      @Qualifier("billingUsageTopicProperties") TaskQueueProperties billingUsageTopicProperties,
-      @Qualifier("billingUsageKafkaTemplate")
-          KafkaTemplate<String, TallySummary> billingUsageKafkaTemplate) {
-    this.billingUsageKafkaTemplate = billingUsageKafkaTemplate;
-    this.billingUsageTopic = billingUsageTopicProperties.getTopic();
+      @Qualifier("billableUsageTopicProperties") TaskQueueProperties billableUsageTopicProperties,
+      @Qualifier("billableUsageKafkaTemplate")
+          KafkaTemplate<String, TallySummary> billableUsageKafkaTemplate) {
+    this.billableUsageKafkaTemplate = billableUsageKafkaTemplate;
+    this.billableUsageTopic = billableUsageTopicProperties.getTopic();
   }
 
   public void produce(TallySummary tallySummary) {
     log.debug(
         "Forwarding summary {} to topic {}",
         tallySummary.getAccountNumber(),
-        this.billingUsageTopic);
-    billingUsageKafkaTemplate.send(this.billingUsageTopic, tallySummary);
+        this.billableUsageTopic);
+    billableUsageKafkaTemplate.send(this.billableUsageTopic, tallySummary);
   }
 }

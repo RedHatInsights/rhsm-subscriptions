@@ -104,12 +104,12 @@ public class BillingProducerConfiguration {
 
   @Bean
   @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.messaging.billable-usage")
-  public TaskQueueProperties billingUsageTopicProperties() {
+  public TaskQueueProperties billableUsageTopicProperties() {
     return new TaskQueueProperties();
   }
 
   @Bean
-  public ProducerFactory<String, TallySummary> billingUsageProducerFactory(
+  public ProducerFactory<String, TallySummary> billableUsageProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
     DefaultKafkaProducerFactory<String, TallySummary> factory =
         new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
@@ -122,9 +122,9 @@ public class BillingProducerConfiguration {
   }
 
   @Bean
-  public KafkaTemplate<String, TallySummary> billingUsageKafkaTemplate(
-      @Qualifier("billingUsageProducerFactory")
-          ProducerFactory<String, TallySummary> billingUsageProducerFactory) {
-    return new KafkaTemplate<>(billingUsageProducerFactory);
+  public KafkaTemplate<String, TallySummary> billableUsageKafkaTemplate(
+      @Qualifier("billableUsageProducerFactory")
+          ProducerFactory<String, TallySummary> billableUsageProducerFactory) {
+    return new KafkaTemplate<>(billableUsageProducerFactory);
   }
 }
