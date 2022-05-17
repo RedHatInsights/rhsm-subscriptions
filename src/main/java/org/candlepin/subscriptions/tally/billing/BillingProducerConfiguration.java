@@ -54,7 +54,7 @@ public class BillingProducerConfiguration {
 
   @Bean
   @Qualifier("billingProducerTallySummaryTopicProperties")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.messaging.tally-summary")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.incoming")
   public TaskQueueProperties billingProducerTallySummaryTopicProperties() {
     return new TaskQueueProperties();
   }
@@ -103,7 +103,7 @@ public class BillingProducerConfiguration {
   }
 
   @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.messaging.billable-usage")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.outgoing")
   public TaskQueueProperties billableUsageTopicProperties() {
     return new TaskQueueProperties();
   }
