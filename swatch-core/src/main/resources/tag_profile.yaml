@@ -222,6 +222,17 @@ tagMetrics:
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
       prometheusMetadataMetric: subscription_labels
 
+  # ODF metrics
+  - tag: Data-Foundation-metrics
+    metricId: redhat.com:openshift_container_platform:cpu_hour
+    uom: CORES
+    queryKey: 5mSamples
+    queryParams:
+      product: ocp
+      # This promQL will list cpu cores (as counted by OCP) for clusters that have the ocs-operator installed (part of ODF)
+      prometheusMetric: (subscription_sync_total{name="ocs-operator"})*0+ on(_id) group_left(value)(max by (_id) (cluster:usage:workload:capacity_physical_cpu_cores:max:5m))
+      prometheusMetadataMetric: subscription_labels
+
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata
