@@ -113,3 +113,4 @@ rhsm-subscriptions:
     kafka-group-id: rh-marketplace-worker
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+    enabled: ${ENABLE_TALLY_SUMMARY_LISTENER:true}
