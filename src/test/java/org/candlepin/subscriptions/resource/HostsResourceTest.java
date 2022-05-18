@@ -80,7 +80,8 @@ class HostsResourceTest {
   @BeforeEach
   public void setup() throws AccountListSourceException {
     PageImpl<TallyHostView> mockPage = new PageImpl<>(Collections.emptyList());
-    when(repository.getTallyHostViews(any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
+    when(repository.getTallyHostViews(
+            any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(mockPage);
     when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
   }
@@ -107,6 +108,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -140,6 +143,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -172,6 +177,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -205,6 +212,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -238,6 +247,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -271,6 +282,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -298,6 +311,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -330,6 +345,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             1,
             0,
@@ -357,6 +374,8 @@ class HostsResourceTest {
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
+            null,
+            null,
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             1,

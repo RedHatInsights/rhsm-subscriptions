@@ -80,6 +80,8 @@ public abstract class BaseSnapshotRoller {
     snapshot.setProductId(productCalc.getProductId());
     snapshot.setServiceLevel(productCalc.getSla());
     snapshot.setUsage(productCalc.getUsage());
+    snapshot.setBillingProvider(productCalc.getBillingProvider());
+    snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setGranularity(granularity);
     snapshot.setOwnerId(owner);
     snapshot.setAccountNumber(account);

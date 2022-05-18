@@ -97,6 +97,7 @@ public class TallyResource implements TallyApi {
       ServiceLevelType sla,
       UsageType usageType,
       BillingProviderType billingProviderType,
+      String billingAcctId,
       Integer offset,
       Integer limit) {
     ReportCriteria reportCriteria =
@@ -110,21 +111,22 @@ public class TallyResource implements TallyApi {
             sla,
             usageType,
             billingProviderType,
+            billingAcctId,
             offset,
             limit);
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
-                reportCriteria.getAccountNumber(),
-                reportCriteria.getProductId(),
-                reportCriteria.getGranularity(),
-                reportCriteria.getServiceLevel(),
-                reportCriteria.getUsage(),
-                reportCriteria.getBillingProvider(),
-                reportCriteria.getBeginning(),
-                reportCriteria.getEnding(),
-                reportCriteria.getPageable());
+        repository.findSnapshot(
+            reportCriteria.getAccountNumber(),
+            reportCriteria.getProductId(),
+            reportCriteria.getGranularity(),
+            reportCriteria.getServiceLevel(),
+            reportCriteria.getUsage(),
+            reportCriteria.getBillingProvider(),
+            reportCriteria.getBillingAccountId(),
+            reportCriteria.getBeginning(),
+            reportCriteria.getEnding(),
+            reportCriteria.getPageable());
 
     Uom uom = Uom.fromValue(metricId.toString());
 
@@ -145,6 +147,7 @@ public class TallyResource implements TallyApi {
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
     report.getMeta().setBillingProvider(billingProviderType);
+    report.getMeta().setBillingAcountId(billingAcctId);
 
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
     // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
@@ -261,6 +264,7 @@ public class TallyResource implements TallyApi {
       ServiceLevelType sla,
       UsageType usageType,
       BillingProviderType billingProviderType,
+      String billingAccountId,
       Integer offset,
       Integer limit) {
     // When limit and offset are not specified, we will fill the report with dummy
@@ -295,6 +299,7 @@ public class TallyResource implements TallyApi {
         .serviceLevel(serviceLevel)
         .usage(effectiveUsage)
         .billingProvider(providerType)
+        .billingAccountId(billingAccountId)
         .pageable(pageable)
         .beginning(beginning)
         .ending(ending)
@@ -383,21 +388,22 @@ public class TallyResource implements TallyApi {
             sla,
             usageType,
             null,
+            null,
             offset,
             limit);
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndBillingProviderAndSnapshotDateBetweenOrderBySnapshotDate(
-                reportCriteria.getAccountNumber(),
-                reportCriteria.getProductId(),
-                reportCriteria.getGranularity(),
-                reportCriteria.getServiceLevel(),
-                reportCriteria.getUsage(),
-                reportCriteria.getBillingProvider(),
-                reportCriteria.getBeginning(),
-                reportCriteria.getEnding(),
-                reportCriteria.getPageable());
+        repository.findSnapshot(
+            reportCriteria.getAccountNumber(),
+            reportCriteria.getProductId(),
+            reportCriteria.getGranularity(),
+            reportCriteria.getServiceLevel(),
+            reportCriteria.getUsage(),
+            reportCriteria.getBillingProvider(),
+            reportCriteria.getBillingAccountId(),
+            reportCriteria.getBeginning(),
+            reportCriteria.getEnding(),
+            reportCriteria.getPageable());
 
     List<TallySnapshot> snaps =
         snapshotPage.stream()

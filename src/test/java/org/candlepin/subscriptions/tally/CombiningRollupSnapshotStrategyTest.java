@@ -34,12 +34,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
-import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
@@ -70,7 +65,8 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.empty());
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, null);
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
@@ -119,7 +115,8 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.empty());
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, null);
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation day1Usage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation day2Usage = createAccountUsageCalculation(usageKey, 3.0);
@@ -182,7 +179,12 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.empty());
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            null);
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
@@ -229,7 +231,12 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.of(dailySnapshot));
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            null);
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
@@ -286,7 +293,12 @@ class CombiningRollupSnapshotStrategyTest {
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            null);
 
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
 
@@ -349,6 +361,7 @@ class CombiningRollupSnapshotStrategyTest {
         .granularity(granularity)
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
+        .billingProvider(BillingProvider._ANY)
         .build();
   }
 }

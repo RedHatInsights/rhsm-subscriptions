@@ -187,8 +187,8 @@ public class MeteringEventFactory {
 
   private static BillingProvider getBillingProvider(
       String billingProvider, String account, String clusterId) {
-    if (billingProvider == null) {
-      return null;
+    if (billingProvider == null || billingProvider.equals(BillingProvider.__EMPTY__.value())) {
+      return BillingProvider.RED_HAT;
     }
 
     try {

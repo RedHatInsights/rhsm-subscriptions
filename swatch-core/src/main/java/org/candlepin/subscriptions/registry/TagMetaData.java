@@ -28,6 +28,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -46,5 +47,6 @@ public class TagMetaData {
   private Granularity finestGranularity;
   private ServiceLevel defaultSla;
   private Usage defaultUsage;
+  private BillingProvider defaultProvider;
   private String billingModel;
 }

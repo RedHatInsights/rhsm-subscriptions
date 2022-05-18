@@ -65,12 +65,16 @@ public class HostTallyBucket implements Serializable {
       String productId,
       ServiceLevel sla,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       Boolean asHypervisor,
       int cores,
       int sockets,
       HardwareMeasurementType type) {
     this.host = host;
-    setKey(new HostBucketKey(host, productId, sla, usage, asHypervisor));
+    setKey(
+        new HostBucketKey(
+            host, productId, sla, usage, billingProvider, billingAccountId, asHypervisor));
     this.cores = cores;
     this.sockets = sockets;
     this.measurementType = type;
