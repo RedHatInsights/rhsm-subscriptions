@@ -18,34 +18,50 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rhmarketplace;
+package org.candlepin.subscriptions.tally.billing;
 
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
-/** Configuration for the Marketplace integration worker. */
-@Profile("rh-marketplace")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.rhmarketplace")
-@Import(SubscriptionServiceConfiguration.class)
-public class RhMarketplaceWorkerConfiguration {
+@Configuration
+public class BillingProducerConfiguration {
+
   @Bean
-  @Qualifier("rhMarketplaceRetryTemplate")
-  public RetryTemplate marketplaceRetryTemplate(RhMarketplaceProperties properties) {
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer")
+  public BillingProducerProperties billingProducerProperties() {
+    return new BillingProducerProperties();
+  }
+
+  @Bean
+  @Qualifier("billingProducerTallySummaryTopicProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.incoming")
+  public TaskQueueProperties billingProducerTallySummaryTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean(name = "billingProducerKafkaRetryTemplate")
+  public RetryTemplate billingProducerKafkaRetryTemplate(BillingProducerProperties properties) {
     return new RetryTemplateBuilder()
         .maxAttempts(properties.getMaxAttempts())
         .exponentialBackoff(
@@ -56,8 +72,8 @@ public class RhMarketplaceWorkerConfiguration {
   }
 
   @Bean
-  @Qualifier("rhMarketplaceTallySummaryConsumerFactory")
-  ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(
+  @Qualifier("billingProducerTallySummaryConsumerFactory")
+  ConsumerFactory<String, TallySummary> billingProducerTallySummaryConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
         kafkaProperties.buildConsumerProperties(),
@@ -66,15 +82,9 @@ public class RhMarketplaceWorkerConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean
-  KafkaConsumerRegistry kafkaConsumerRegistry() {
-    return new KafkaConsumerRegistry();
-  }
-
-  @Bean
   ConcurrentKafkaListenerContainerFactory<String, TallySummary>
-      kafkaTallySummaryListenerContainerFactory(
-          @Qualifier("rhMarketplaceTallySummaryConsumerFactory")
+      billingProducerKafkaTallySummaryListenerContainerFactory(
+          @Qualifier("billingProducerTallySummaryConsumerFactory")
               ConsumerFactory<String, TallySummary> consumerFactory,
           KafkaProperties kafkaProperties,
           KafkaConsumerRegistry registry) {
@@ -93,15 +103,29 @@ public class RhMarketplaceWorkerConfiguration {
     return factory;
   }
 
-  /**
-   * Build the BeanFactory implementation ourselves since the docs say "Implementations are not
-   * supposed to rely on annotation-driven injection or other reflective facilities."
-   *
-   * @param properties containing the RhMarketplaceProperties needed by the factory
-   * @return a configured RhMarketplaceApiFactory
-   */
   @Bean
-  public RhMarketplaceApiFactory marketplaceApiFactory(RhMarketplaceProperties properties) {
-    return new RhMarketplaceApiFactory(properties);
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.outgoing")
+  public TaskQueueProperties billableUsageTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  public ProducerFactory<String, BillableUsage> billableUsageProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    DefaultKafkaProducerFactory<String, BillableUsage> factory =
+        new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+    /*
+    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    timestamps, which produces messages not compatible with JSON-B deserialization.
+     */
+    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate(
+      @Qualifier("billableUsageProducerFactory")
+          ProducerFactory<String, BillableUsage> billableUsageProducerFactory) {
+    return new KafkaTemplate<>(billableUsageProducerFactory);
   }
 }
