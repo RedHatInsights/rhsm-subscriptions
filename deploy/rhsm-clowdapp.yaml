@@ -20,6 +20,8 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: METRICS_CRON_LOGGING_LEVEL
+    value: INFO
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -1548,7 +1550,7 @@ objects:
             - name: LOGGING_LEVEL_ROOT
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
+              value: ${METRICS_CRON_LOGGING_LEVEL}
             - name: OPENSHIFT_METERING_RANGE
               value: ${OPENSHIFT_METERING_RANGE}
             - name: HOURLY_TALLY_OFFSET
