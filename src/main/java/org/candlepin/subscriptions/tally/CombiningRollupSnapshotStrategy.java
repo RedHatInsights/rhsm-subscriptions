@@ -235,6 +235,7 @@ public class CombiningRollupSnapshotStrategy {
     snapshot.setOwnerId(owner);
     snapshot.setAccountNumber(account);
     snapshot.setBillingAccountId(productCalc.getBillingAccountId());
+    snapshot.setBillingProvider(productCalc.getBillingProvider());
 
     // Copy the calculated hardware measurements to the snapshots
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
@@ -429,6 +430,7 @@ public class CombiningRollupSnapshotStrategy {
           snapshot.setServiceLevel(usageKey.getSla());
           snapshot.setUsage(usageKey.getUsage());
           snapshot.setBillingAccountId(usageKey.getBillingAccountId());
+          snapshot.setBillingProvider(usageKey.getBillingProvider());
           measurements.forEach(
               (measurementKey, value) ->
                   snapshot.setMeasurement(
