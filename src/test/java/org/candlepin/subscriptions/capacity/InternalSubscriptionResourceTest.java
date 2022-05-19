@@ -65,6 +65,12 @@ class InternalSubscriptionResourceTest {
   @Test
   @WithMockPskPrincipal
   void forceSyncForOrgWorksWithPsk() throws Exception {
+    /* Why does this test expect isNotFound()?  Because we are using JAX-RS for our request
+     * mapping. MockMvc only works with Spring's custom RestController standard, but it's really
+     * handy to use for setting up the Spring Security filter chain.  It's a dirty hack, but we
+     * can use MockMvc to test authentication and authorization by looking for a 403 response and
+     * if we get a 404 response, it means everything passed security-wise and we just couldn't
+     * find the matching resource (because there are no matching RestControllers!). */
     mvc.perform(post(SYNC_ORG_123)).andExpect(status().isNotFound());
   }
 
