@@ -1,0 +1,13 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: BillableUsage
+required:
+  - account_number
+properties:
+  account_number:
+    description: Account identifier for the relevant account.
+    type: string
+  billable_tally_snapshots:
+    description: List of tally snapshots produced in the range.
+    type: array
+    items:
+      $ref: tally_snapshot.yaml

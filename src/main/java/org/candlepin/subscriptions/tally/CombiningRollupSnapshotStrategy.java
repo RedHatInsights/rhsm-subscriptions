@@ -361,7 +361,11 @@ public class CombiningRollupSnapshotStrategy {
         snapshot -> {
           var identifier =
               new UsageCalculation.Key(
-                  snapshot.getProductId(), snapshot.getServiceLevel(), snapshot.getUsage());
+                  snapshot.getProductId(),
+                  snapshot.getServiceLevel(),
+                  snapshot.getUsage(),
+                  snapshot.getBillingProvider(),
+                  snapshot.getBillingAccountId());
           reducedMeasurements.computeIfAbsent(identifier, i -> new HashMap<>());
           Map<TallyMeasurementKey, Double> measurements = reducedMeasurements.get(identifier);
 

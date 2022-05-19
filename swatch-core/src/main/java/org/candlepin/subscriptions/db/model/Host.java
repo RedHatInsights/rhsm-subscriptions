@@ -219,10 +219,12 @@ public class Host implements Serializable {
     measurements.put(uom, value);
   }
 
-  public HostTallyBucket addBucket(
+  public HostTallyBucket addBucket( // NOSONAR
       String productId,
       ServiceLevel sla,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       Boolean asHypervisor,
       int sockets,
       int cores,
@@ -230,7 +232,16 @@ public class Host implements Serializable {
 
     HostTallyBucket bucket =
         new HostTallyBucket(
-            this, productId, sla, usage, asHypervisor, cores, sockets, measurementType);
+            this,
+            productId,
+            sla,
+            usage,
+            billingProvider,
+            billingAccountId,
+            asHypervisor,
+            cores,
+            sockets,
+            measurementType);
     addBucket(bucket);
     return bucket;
   }

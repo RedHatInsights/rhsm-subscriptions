@@ -19,7 +19,7 @@ class Measurement:
 
 
 class Event:
-    def __init__(self, event_type, account, instance, timestamp, expiration, role, sla, uom, value, service_type):
+    def __init__(self, event_type, account, instance, timestamp, expiration, role, sla, uom, value, service_type, billing_provider, billing_account_id):
         self.event_source = "prometheus"
         self.event_type = "snapshot_" + event_type
         self.account_number = account
@@ -31,6 +31,8 @@ class Event:
         self.role = role
         self.sla = sla
         self.service_type = service_type
+        self.billing_provider = billing_provider
+        self.billing_account_id = billing_account_id
 
 
 def import_events(url, csv_path, dry_run):

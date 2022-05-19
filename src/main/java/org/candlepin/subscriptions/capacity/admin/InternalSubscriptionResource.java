@@ -64,7 +64,12 @@ public class InternalSubscriptionResource implements InternalApi {
   public AwsUsageContext getAwsUsageContext(
       String accountNumber, OffsetDateTime date, String productId, String sla, String usage) {
     UsageCalculation.Key usageKey =
-        new Key(productId, ServiceLevel.fromString(sla), Usage.fromString(usage));
+        new Key(
+            productId,
+            ServiceLevel.fromString(sla),
+            Usage.fromString(usage),
+            BillingProvider.AWS,
+            null);
     List<Subscription> subscriptions =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
             accountNumber, Optional.empty(), usageKey, date, date, BillingProvider.AWS);

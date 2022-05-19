@@ -27,13 +27,13 @@ import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
+import com.redhat.swatch.openapi.model.TallySnapshot;
+import com.redhat.swatch.openapi.model.TallySnapshot.BillingProviderEnum;
+import com.redhat.swatch.openapi.model.TallySnapshot.GranularityEnum;
+import com.redhat.swatch.openapi.model.TallySnapshot.SlaEnum;
+import com.redhat.swatch.openapi.model.TallySnapshot.UsageEnum;
+import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements;
 import com.redhat.swatch.openapi.model.TallySummary;
-import com.redhat.swatch.openapi.model.TallySummaryTallyMeasurements;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.BillingProviderEnum;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.GranularityEnum;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.SlaEnum;
-import com.redhat.swatch.openapi.model.TallySummaryTallySnapshots.UsageEnum;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -82,7 +82,7 @@ public class TallyTopicProcessor {
       log.warn("Skipping null tally summary: deserialization failure?");
       return;
     }
-    for (TallySummaryTallySnapshots tallySnapshot : tallySummary.getTallySnapshots()) {
+    for (TallySnapshot tallySnapshot : tallySummary.getTallySnapshots()) {
       if (!isSnapshotApplicable(tallySnapshot)) {
         continue;
       }
@@ -115,7 +115,7 @@ public class TallyTopicProcessor {
     }
   }
 
-  private boolean isSnapshotApplicable(TallySummaryTallySnapshots tallySnapshot) {
+  private boolean isSnapshotApplicable(TallySnapshot tallySnapshot) {
     boolean applicable = true;
     if (tallySnapshot.getGranularity() != GranularityEnum.DAILY) {
       log.debug("Snapshot not applicable because granularity is not Daily");
@@ -130,7 +130,7 @@ public class TallyTopicProcessor {
 
   @Retry
   public AwsUsageContext lookupAwsUsageContext(
-      TallySummary tallySummary, TallySummaryTallySnapshots tallySnapshot)
+      TallySummary tallySummary, TallySnapshot tallySnapshot)
       throws AwsUsageContextLookupException {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
@@ -145,9 +145,7 @@ public class TallyTopicProcessor {
   }
 
   private void transformAndSend(
-      AwsUsageContext context,
-      TallySummaryTallySnapshots tallySnapshot,
-      TallySummaryTallyMeasurements m)
+      AwsUsageContext context, TallySnapshot tallySnapshot, TallySnapshotTallyMeasurements m)
       throws AwsUnprocessedRecordsException, AwsDimensionNotConfiguredException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
@@ -192,8 +190,8 @@ public class TallyTopicProcessor {
 
   private UsageRecord transformToAwsUsage(
       AwsUsageContext context,
-      TallySummaryTallySnapshots tallySnapshot,
-      TallySummaryTallyMeasurements measurement)
+      TallySnapshot tallySnapshot,
+      TallySnapshotTallyMeasurements measurement)
       throws AwsDimensionNotConfiguredException {
     OffsetDateTime effectiveTimestamp = tallySnapshot.getSnapshotDate();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {

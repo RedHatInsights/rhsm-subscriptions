@@ -34,12 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
@@ -156,11 +151,14 @@ public class InventoryAccountUsageCollector {
           Usage[] usages = new Usage[] {facts.getUsage(), Usage._ANY};
 
           // Calculate for each UsageKey
+          // review current implementation of default values, and determine if factnormalizer needs
+          // to handle billingAcctId & BillingProvider
           products.forEach(
               product -> {
                 for (ServiceLevel sla : slas) {
                   for (Usage usage : usages) {
-                    UsageCalculation.Key key = new UsageCalculation.Key(product, sla, usage);
+                    UsageCalculation.Key key =
+                        new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, null);
                     UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
                     if (facts.getProducts().contains(product)) {
                       try {

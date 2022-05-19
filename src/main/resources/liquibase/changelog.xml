@@ -58,5 +58,9 @@
     <include file="liquibase/202203241102-add-billing-provider-column-to-tally-snapshots.xml" />
     <include file="liquibase/202204081020-add-billing-account-id-column-to-subscriptions.xml" />
     <include file="liquibase/202204131346-add-billing-account-id-column-to-hosts.xml" />
+    <include file="liquibase/202204041547-add-billing-account-id-column-to-snapshot-table.xml" />
+    <include file="liquibase/202205021439-add-billingProvider-and-billingAccountId-columns-to-host-tally-buckets.xml" />
+    <include file="liquibase/202205161446-update-index-on-host-tally-bucket.xml"/>
+    <include file="liquibase/202205171157-update-billing-account-and-billing-provider-columns-in-snapshot-and-host-tally-bucket-tables.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

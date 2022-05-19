@@ -210,6 +210,8 @@ public class HostsResource implements HostsApi {
               productId.toString(),
               sanitizedSla,
               sanitizedUsage,
+              null,
+              null,
               sanitizedDisplayNameSubstring,
               minCores,
               minSockets,

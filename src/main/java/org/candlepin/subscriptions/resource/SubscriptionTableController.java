@@ -24,10 +24,15 @@ import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -42,15 +47,21 @@ import org.springframework.stereotype.Service;
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
 
   @Autowired
   SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
+      SubscriptionRepository subscriptionRepository,
+      OfferingRepository offeringRepository,
       TagProfile tagProfile,
       ApplicationClock clock) {
     this.subscriptionCapacityViewRepository = subscriptionCapacityViewRepository;
+    this.subscriptionRepository = subscriptionRepository;
+    this.offeringRepository = offeringRepository;
     this.tagProfile = tagProfile;
     this.clock = clock;
   }
@@ -115,6 +126,17 @@ public class SubscriptionTableController {
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
+
+    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
+    SubscriptionType subscriptionType =
+        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
+
+    if (isOnDemand && reportItems.isEmpty()) {
+      reportItems.addAll(
+          getOnDemandSkuCapacities(
+              productId, sanitizedServiceLevel, sanitizedUsage, reportStart, reportEnd));
+    }
+
     int reportItemCount = reportItems.size();
     // The pagination and sorting of capacities is done in memory and can cause performance
     // issues
@@ -122,10 +144,6 @@ public class SubscriptionTableController {
     Pageable pageable = ResourceUtils.getPageable(offset, limit);
     reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);
-
-    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
-    SubscriptionType subscriptionType =
-        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
 
     return new SkuCapacityReport()
         .data(reportItems)
@@ -146,6 +164,45 @@ public class SubscriptionTableController {
     int offset = pageable.getPageNumber() * pageable.getPageSize();
     int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
     return capacities.subList(offset, lastIndex);
+  }
+
+  private Collection<SkuCapacity> getOnDemandSkuCapacities(
+      ProductId productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      OffsetDateTime reportStart,
+      OffsetDateTime reportEnd) {
+    var productNames = tagProfile.getOfferingProductNamesForTag(productId.toString());
+    var productName = productNames.stream().findFirst();
+    var subscriptions = new ArrayList<Subscription>();
+    Map<String, SkuCapacity> inventories = new HashMap<>();
+    productName.ifPresent(
+        name -> {
+          List<Offering> offerings = offeringRepository.findByProductName(name);
+          var skuOfferings =
+              offerings.stream().collect(Collectors.toMap(Offering::getSku, offering -> offering));
+
+          subscriptions.addAll(
+              subscriptionRepository.findOnDemandBy(
+                  getOwnerId(),
+                  skuOfferings.keySet(),
+                  serviceLevel,
+                  usage,
+                  reportStart,
+                  reportEnd));
+
+          subscriptions.stream()
+              .forEach(
+                  sub -> {
+                    final SkuCapacity inventory =
+                        inventories.computeIfAbsent(
+                            sub.getSku(),
+                            key ->
+                                initializeOnDemandSkuCapacity(sub, skuOfferings.get(sub.getSku())));
+                    addOnDemandSubscriptionInformation(sub, inventory);
+                  });
+        });
+    return inventories.values();
   }
 
   public SkuCapacity initializeDefaultSkuCapacity(
@@ -178,6 +235,18 @@ public class SubscriptionTableController {
     return inv;
   }
 
+  public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription, Offering offering) {
+    var inv = new SkuCapacity();
+    inv.setSku(subscription.getSku());
+    inv.setProductName(offering.getProductName());
+    inv.setServiceLevel(
+        Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
+    inv.setUsage(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
+    inv.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
+    inv.setQuantity(0);
+    return inv;
+  }
+
   public void calculateNextEvent(
       SubscriptionCapacityView subscriptionCapacityView,
       SkuCapacity skuCapacity,
@@ -192,6 +261,15 @@ public class SubscriptionTableController {
       skuCapacity.setNextEventDate(nearestEventDate);
       skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
+  }
+
+  public void addOnDemandSubscriptionInformation(
+      Subscription subscription, SkuCapacity skuCapacity) {
+    var invSub = new SkuCapacitySubscription();
+    invSub.setId(subscription.getSubscriptionId());
+    Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
+    skuCapacity.getSubscriptions().add(invSub);
+    skuCapacity.setQuantity(skuCapacity.getQuantity() + (int) subscription.getQuantity());
   }
 
   public void addSubscriptionInformation(
