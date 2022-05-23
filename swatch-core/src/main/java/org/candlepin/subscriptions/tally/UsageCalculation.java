@@ -38,7 +38,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//TODO comment updates
+// TODO comment updates
 /** The calculated usage for a key where key is (productId, sla). */
 public class UsageCalculation {
   private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
@@ -55,16 +55,11 @@ public class UsageCalculation {
   @AllArgsConstructor
   @ToString
   public static class Key {
-    @NonNull
-    private final String productId;
-    @NonNull
-    private final ServiceLevel sla;
-    @NonNull
-    private final Usage usage;
-    @NonNull
-    private final BillingProvider billingProvider;
-    @NonNull
-    private final String billingAccountId;
+    @NonNull private final String productId;
+    @NonNull private final ServiceLevel sla;
+    @NonNull private final Usage usage;
+    @NonNull private final BillingProvider billingProvider;
+    @NonNull private final String billingAccountId;
 
     public static Key fromTallySnapshot(TallySnapshot snapshot) {
       return new Key(
@@ -74,7 +69,6 @@ public class UsageCalculation {
           snapshot.getBillingProvider(),
           snapshot.getBillingAccountId());
     }
-
   }
 
   /** Provides metric totals associated with each hardware type associated with a calculation. */
