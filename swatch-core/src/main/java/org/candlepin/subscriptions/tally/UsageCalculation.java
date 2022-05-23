@@ -25,11 +25,18 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+//TODO comment updates
 /** The calculated usage for a key where key is (productId, sla). */
 public class UsageCalculation {
   private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
@@ -41,66 +48,21 @@ public class UsageCalculation {
    *
    * <p>Note that already data is scoped to an account, so account is not included in the key.
    */
+  @Getter
+  @EqualsAndHashCode
+  @AllArgsConstructor
+  @ToString
   public static class Key {
+    @NotNull
     private final String productId;
+    @NotNull
     private final ServiceLevel sla;
+    @NotNull
     private final Usage usage;
+    @NotNull
     private final BillingProvider billingProvider;
+    @NotNull
     private final String billingAccountId;
-
-    public Key(
-        String productId,
-        ServiceLevel sla,
-        Usage usage,
-        BillingProvider billingProvider,
-        String billingAccountId) {
-      this.productId = productId;
-      this.sla = sla;
-      this.usage = usage;
-      this.billingProvider = billingProvider;
-      this.billingAccountId = billingAccountId;
-    }
-
-    public String getProductId() {
-      return productId;
-    }
-
-    public ServiceLevel getSla() {
-      return sla;
-    }
-
-    public Usage getUsage() {
-      return usage;
-    }
-
-    public BillingProvider getBillingProvider() {
-      return billingProvider;
-    }
-
-    public String getBillingAccountId() {
-      return billingAccountId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Key that = (Key) o;
-      return Objects.equals(productId, that.productId)
-          && Objects.equals(sla, that.sla)
-          && Objects.equals(usage, that.usage)
-          && Objects.equals(billingProvider, that.billingProvider)
-          && Objects.equals(billingAccountId, that.billingAccountId);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(productId, sla, usage);
-    }
 
     public static Key fromTallySnapshot(TallySnapshot snapshot) {
       return new Key(
@@ -111,22 +73,6 @@ public class UsageCalculation {
           snapshot.getBillingAccountId());
     }
 
-    @Override
-    public String toString() {
-      return "Key{"
-          + "productId='"
-          + productId
-          + '\''
-          + ", sla="
-          + sla
-          + ", usage="
-          + usage
-          + ", billingProvider="
-          + billingProvider
-          + ", billingAccountId="
-          + billingAccountId
-          + '}';
-    }
   }
 
   /** Provides metric totals associated with each hardware type associated with a calculation. */
