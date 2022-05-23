@@ -71,6 +71,6 @@ class AccountUsageCalculationTest {
 
   private UsageCalculation.Key createUsageKey(String productId) {
     return new UsageCalculation.Key(
-        productId, ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, null);
+        productId, ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 }

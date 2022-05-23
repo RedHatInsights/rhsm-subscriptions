@@ -69,7 +69,7 @@ public class InternalSubscriptionResource implements InternalApi {
             ServiceLevel.fromString(sla),
             Usage.fromString(usage),
             BillingProvider.AWS,
-            null);
+            "_ANY");
     List<Subscription> subscriptions =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
             accountNumber, Optional.empty(), usageKey, date, date, BillingProvider.AWS);
