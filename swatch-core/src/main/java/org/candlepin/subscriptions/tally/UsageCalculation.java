@@ -23,18 +23,20 @@ package org.candlepin.subscriptions.tally;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.ToString;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 //TODO comment updates
 /** The calculated usage for a key where key is (productId, sla). */
@@ -53,15 +55,15 @@ public class UsageCalculation {
   @AllArgsConstructor
   @ToString
   public static class Key {
-    @NotNull
+    @NonNull
     private final String productId;
-    @NotNull
+    @NonNull
     private final ServiceLevel sla;
-    @NotNull
+    @NonNull
     private final Usage usage;
-    @NotNull
+    @NonNull
     private final BillingProvider billingProvider;
-    @NotNull
+    @NonNull
     private final String billingAccountId;
 
     public static Key fromTallySnapshot(TallySnapshot snapshot) {
