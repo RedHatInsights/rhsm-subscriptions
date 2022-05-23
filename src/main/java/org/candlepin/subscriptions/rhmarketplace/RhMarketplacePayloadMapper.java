@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -166,7 +167,7 @@ public class RhMarketplacePayloadMapper {
     for (TallySnapshot snapshot : eligibleSnapshots) {
       String productId = snapshot.getProductId();
       // billingAcctID is a temp is _ANY for now, as HostTallyBucket doesn't accept null.
-      String billingAcctId = "_ANY";
+      String billingAcctId = Optional.ofNullable(snapshot.getBillingAccountId()).orElse("_ANY");
 
       // call MarketplaceIdProvider.findSubscriptionId once available
       UsageCalculation.Key usageKey =

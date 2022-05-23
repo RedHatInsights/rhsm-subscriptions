@@ -290,6 +290,7 @@ class RhMarketplacePayloadMapperTest {
             .withTallyMeasurements(List.of(physicalCoreMeasurement))
             .withSla(Sla.PREMIUM)
             .withBillingProvider(BillingProvider.RED_HAT)
+            .withBillingAccountId("sellerAccountId")
             .withGranularity(HOURLY);
 
     String account = "test123";

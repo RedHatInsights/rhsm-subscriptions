@@ -51,7 +51,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void canInsertAndRetrieveSubscriptions() {
-    Subscription subscription = createSubscription("1", "1000", "testsku", "123");
+    Subscription subscription = createSubscription("1", "1000", "testsku", "123", "sellerAcctId");
     subscriptionRepo.saveAndFlush(subscription);
 
     Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
@@ -74,7 +74,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void canMatchOfferings() {
-    Subscription subscription = createSubscription("1", "1000", "testSku1", "123");
+    Subscription subscription = createSubscription("1", "1000", "testSku1", "123", "sellerAcctId");
     subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
@@ -105,7 +105,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void doesNotMatchMismatchedSkusOfferings() {
-    Subscription subscription = createSubscription("1", "1000", "testSku", "123");
+    Subscription subscription = createSubscription("1", "1000", "testSku", "123", "sellerAcctId");
     subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
@@ -133,12 +133,41 @@ class SubscriptionRepositoryTest {
 
   @Transactional
   @Test
+  void doesNotMatchMismatchedBillingAccountId() {
+    Subscription subscription = createSubscription("1", "1000", "testSku1", "123", "sellerAcctId");
+    subscriptionRepo.saveAndFlush(subscription);
+
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.save(o1);
+    Offering o2 =
+        createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    offeringRepo.saveAndFlush(o2);
+
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "wrongSellerAccount");
+    Set<String> productNames = Set.of("Test SKU 1");
+    var resultList =
+        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
+            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
+
+    assertEquals(0, resultList.size());
+  }
+
+  @Transactional
+  @Test
   void removeAllButMostRecentMarketplaceSubscriptions() {
     Subscription subscription1 =
-        createSubscription("1", "1000", "testSku1", "123", NOW.minusDays(30), NOW.plusDays(10));
+        createSubscription(
+            "1", "1000", "testSku1", "123", "sellerAcctId", NOW.minusDays(30), NOW.plusDays(10));
     subscriptionRepo.saveAndFlush(subscription1);
     Subscription subscription2 =
-        createSubscription("1", "1000", "testSku1", "234", NOW, NOW.plusDays(30));
+        createSubscription("1", "1000", "testSku1", "234", "sellerAcctId", NOW, NOW.plusDays(30));
     subscriptionRepo.saveAndFlush(subscription2);
 
     Offering offering =
@@ -172,13 +201,16 @@ class SubscriptionRepositoryTest {
 
     for (int i = 0; i < 5; i++) {
       Subscription subscription1 =
-          createSubscription("1", "1001", "MCT3718", String.valueOf(new Random().nextInt()));
+          createSubscription(
+              "1", "1001", "MCT3718", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscriptionRepo.saveAndFlush(subscription1);
       Subscription subscription2 =
-          createSubscription("1", "1001", "RH00798", String.valueOf(new Random().nextInt()));
+          createSubscription(
+              "1", "1001", "RH00798", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscriptionRepo.saveAndFlush(subscription2);
       Subscription subscription3 =
-          createSubscription("2", "1002", "MCT3718", String.valueOf(new Random().nextInt()));
+          createSubscription(
+              "2", "1002", "MCT3718", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscriptionRepo.saveAndFlush(subscription3);
     }
 
@@ -199,8 +231,9 @@ class SubscriptionRepositoryTest {
   }
 
   private Subscription createSubscription(
-      String orgId, String accountNumber, String sku, String subId) {
-    return createSubscription(orgId, accountNumber, sku, subId, NOW, NOW.plusDays(30));
+      String orgId, String accountNumber, String sku, String subId, String billingAccountId) {
+    return createSubscription(
+        orgId, accountNumber, sku, subId, billingAccountId, NOW, NOW.plusDays(30));
   }
 
   private Subscription createSubscription(
@@ -208,6 +241,7 @@ class SubscriptionRepositoryTest {
       String accountNumber,
       String sku,
       String subId,
+      String billingAccountId,
       OffsetDateTime startDate,
       OffsetDateTime endDate) {
 
@@ -222,6 +256,7 @@ class SubscriptionRepositoryTest {
     subscription.setEndDate(endDate);
     subscription.setSubscriptionNumber(subId + "1");
     subscription.setBillingProvider(BillingProvider.RED_HAT);
+    subscription.setBillingAccountId(billingAccountId);
 
     return subscription;
   }

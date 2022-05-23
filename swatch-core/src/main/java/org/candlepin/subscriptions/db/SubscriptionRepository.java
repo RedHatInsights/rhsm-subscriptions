@@ -57,6 +57,7 @@ public interface SubscriptionRepository
       "SELECT s FROM Subscription s WHERE s.accountNumber = :accountNumber AND "
           + "s.sku in (SELECT DISTINCT o.sku FROM Offering o WHERE "
           + ":#{#key.sla} = o.serviceLevel AND "
+          + ":#{#key.billingAccountId} = s.billingAccountId AND "
           + "o.productName IN :#{#productNames}) AND s.startDate <= :rangeStart AND s.endDate >= :rangeEnd AND "
           + "s.billingProvider = :billingProvider AND "
           + "s.billingProviderId IS NOT NULL AND s.billingProviderId <> '' "

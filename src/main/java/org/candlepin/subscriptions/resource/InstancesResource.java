@@ -185,6 +185,7 @@ public class InstancesResource implements InstancesApi {
                 .serviceLevel(sla)
                 .usage(usage)
                 .billingProvider(billingProviderType)
+                .billingAccountId(billingAccountId)
                 .measurements(measurements))
         .data(payload);
   }
