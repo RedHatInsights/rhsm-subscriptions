@@ -158,7 +158,7 @@ public class InventoryAccountUsageCollector {
                 for (ServiceLevel sla : slas) {
                   for (Usage usage : usages) {
                     UsageCalculation.Key key =
-                        new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, null);
+                        new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
                     UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
                     if (facts.getProducts().contains(product)) {
                       try {

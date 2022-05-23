@@ -154,6 +154,6 @@ class RHELProductUsageCollectorTest {
 
   private UsageCalculation.Key createUsageKey() {
     return new UsageCalculation.Key(
-        "RHEL", ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, null);
+        "RHEL", ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 }
