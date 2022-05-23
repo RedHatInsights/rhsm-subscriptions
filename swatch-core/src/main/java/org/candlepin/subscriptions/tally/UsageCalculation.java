@@ -38,8 +38,10 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO comment updates
-/** The calculated usage for a key where key is (productId, sla). */
+/**
+ * The calculated usage for a key where key is (productId, sla, usage, billingProvider, and
+ * billingAccountId).
+ */
 public class UsageCalculation {
   private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
 
