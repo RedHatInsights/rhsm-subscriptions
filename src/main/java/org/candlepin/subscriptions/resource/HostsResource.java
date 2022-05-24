@@ -34,6 +34,7 @@ import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -86,6 +87,7 @@ public class HostsResource implements HostsApi {
 
   public static final Map<HostReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
       ImmutableMap.copyOf(getSortToUomMap());
+  public static final String BILLING_ACCOUNT_ID = "_ANY";
 
   private static Map<HostReportSort, Measurement.Uom> getSortToUomMap() {
     return Arrays.stream(Measurement.Uom.values())
@@ -153,13 +155,15 @@ public class HostsResource implements HostsApi {
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
 
-    boolean isSpecial =
+    // TODO add isPAYG flag to the tag profile
+    boolean isPAYG =
         Objects.equals(productId, ProductId.OPENSHIFT_DEDICATED_METRICS)
-            || Objects.equals(productId, ProductId.OPENSHIFT_METRICS);
+            || Objects.equals(productId, ProductId.OPENSHIFT_METRICS)
+            || Objects.equals(productId, ProductId.RHOSAK);
 
     List<org.candlepin.subscriptions.utilization.api.model.Host> payload;
     Page<?> hosts;
-    if (isSpecial) {
+    if (isPAYG) {
       if (sort != null) {
         Sort.Order userDefinedOrder =
             new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));
@@ -190,8 +194,8 @@ public class HostsResource implements HostsApi {
               minSockets,
               month,
               referenceUom,
-              null,
-              null,
+              BillingProvider._ANY,
+              BILLING_ACCOUNT_ID,
               page);
       payload =
           ((Page<Host>) hosts)
@@ -210,8 +214,8 @@ public class HostsResource implements HostsApi {
               productId.toString(),
               sanitizedSla,
               sanitizedUsage,
-              null,
-              null,
+              BillingProvider._ANY,
+              BILLING_ACCOUNT_ID,
               sanitizedDisplayNameSubstring,
               minCores,
               minSockets,

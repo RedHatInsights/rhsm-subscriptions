@@ -154,6 +154,9 @@ public class Host implements Serializable {
   @Column(name = "instance_type")
   private String instanceType;
 
+  // TODO does billing provider info belong on the host table? we put it there in anticipation of
+  // having to display a hosts's billing provider when the billing provider filter is set to
+  // _ANY
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 

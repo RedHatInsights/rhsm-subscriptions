@@ -69,6 +69,8 @@ public class HostSpecification implements Specification<Host> {
             HostBucketKey_.PRODUCT_ID, bucketListJoin.get(HostTallyBucket_.KEY),
             HostBucketKey_.SLA, bucketListJoin.get(HostTallyBucket_.KEY),
             HostBucketKey_.USAGE, bucketListJoin.get(HostTallyBucket_.KEY),
+            HostBucketKey_.BILLING_ACCOUNT_ID, bucketListJoin.get(HostTallyBucket_.KEY),
+            HostBucketKey_.BILLING_PROVIDER, bucketListJoin.get(HostTallyBucket_.KEY),
             HostTallyBucket_.CORES, bucketListJoin,
             HostTallyBucket_.SOCKETS, bucketListJoin,
             HostTallyBucket_.MEASUREMENT_TYPE, bucketListJoin,
