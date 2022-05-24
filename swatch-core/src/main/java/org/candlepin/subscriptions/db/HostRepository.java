@@ -138,8 +138,8 @@ public interface HostRepository
       @Param("minSockets") int minSockets,
       String month,
       Uom referenceUom,
-       BillingProvider billingProvider,
-       String billingAccountId,
+      BillingProvider billingProvider,
+      String billingAccountId,
       Pageable pageable) {
 
     HostSpecification searchCriteria = new HostSpecification();
@@ -151,13 +151,12 @@ public interface HostRepository
     searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));
     searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, usage, SearchOperation.EQUAL));
 
-    //TODO
-    // need to filter by HostBucketKey because it's special
-      searchCriteria.add(
-          new SearchCriteria(HostBucketKey_.BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
-      searchCriteria.add(
-          new SearchCriteria(HostBucketKey_.BILLING_ACCOUNT_ID, billingAccountId, SearchOperation.EQUAL));
-
+    searchCriteria.add(
+        new SearchCriteria(
+            HostBucketKey_.BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(
+            HostBucketKey_.BILLING_ACCOUNT_ID, billingAccountId, SearchOperation.EQUAL));
 
     searchCriteria.add(
         new SearchCriteria(Host_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
@@ -178,8 +177,6 @@ public interface HostRepository
                 SearchOperation.EQUAL));
       }
     }
-
-
 
     return findAll(searchCriteria, pageable);
   }

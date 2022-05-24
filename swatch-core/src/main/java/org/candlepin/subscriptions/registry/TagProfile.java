@@ -293,8 +293,8 @@ public class TagProfile {
   }
 
   /**
-   * Determine if a given product Id is PAYG Eligible based on the billing model from the tag profile
-   * registry
+   * Determine if a given product Id is PAYG Eligible based on the billing model from the tag
+   * profile registry
    *
    * @param productId
    * @return boolean
