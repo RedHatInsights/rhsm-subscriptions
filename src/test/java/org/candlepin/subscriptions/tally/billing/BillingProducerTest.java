@@ -38,6 +38,7 @@ class BillingProducerTest {
 
   private TaskQueueProperties billableUsageTopicProps;
   private BillingProducer producer;
+  private BillableUsageController billableUsageEvaluator;
 
   @BeforeEach
   void setupTest() {

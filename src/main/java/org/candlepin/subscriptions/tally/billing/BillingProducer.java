@@ -50,11 +50,8 @@ public class BillingProducer {
     this.billableUsageTopic = billableUsageTopicProperties.getTopic();
   }
 
-  public void produce(BillableUsage tallySummary) {
-    log.debug(
-        "Forwarding summary {} to topic {}",
-        tallySummary.getAccountNumber(),
-        this.billableUsageTopic);
-    billableUsageKafkaTemplate.send(this.billableUsageTopic, tallySummary);
+  public void produce(BillableUsage usage) {
+    log.debug("Sending billable usage {} to topic {}", usage, billableUsageTopic);
+    billableUsageKafkaTemplate.send(billableUsageTopic, usage);
   }
 }

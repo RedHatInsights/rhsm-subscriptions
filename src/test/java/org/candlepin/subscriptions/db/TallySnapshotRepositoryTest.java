@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,9 +35,11 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -297,5 +300,150 @@ class TallySnapshotRepositoryTest {
 
     tally.setHardwareMeasurement(HardwareMeasurementType.TOTAL, total);
     return tally;
+  }
+
+  @Test
+  void testFindMontlyTotal() {
+    //    List<TallySnapshot> tallySnapshots = new ArrayList<>();
+    String expectedAccountNumber = "Acme Inc.";
+    String expectedProduct = "rocket-skates";
+    Granularity expectedGranularity = Granularity.HOURLY;
+    ServiceLevel expectedServiceLevel = ServiceLevel.PREMIUM;
+    Usage expectedUsage = Usage.PRODUCTION;
+    BillingProvider expectedBillingProvider = BillingProvider._ANY;
+    String expectedBillingAccountId = "sellerAcct";
+    HardwareMeasurementType expectedMeasurementType = HardwareMeasurementType.AWS;
+    Uom expectedUom = Uom.STORAGE_GIBIBYTES;
+
+    loadIgnoredSequencedSnapshots();
+
+    double testMeasurementValue = 2.0;
+    List<TallySnapshot> snapshots =
+        createSequencedSnapshots(
+            NOWISH,
+            5,
+            expectedAccountNumber,
+            expectedProduct,
+            expectedGranularity,
+            expectedMeasurementType,
+            expectedUom,
+            testMeasurementValue);
+
+    OffsetDateTime beginning = NOWISH;
+    OffsetDateTime ending = NOWISH.plusHours(snapshots.size());
+    TallyMeasurementKey key = new TallyMeasurementKey(expectedMeasurementType, expectedUom);
+    Double monthlyTotal =
+        repository.sumMeasurementValueForPeriod(
+            expectedAccountNumber,
+            expectedProduct,
+            expectedGranularity,
+            expectedServiceLevel,
+            expectedUsage,
+            expectedBillingProvider,
+            expectedBillingAccountId,
+            beginning,
+            ending,
+            key);
+    assertEquals(snapshots.size() * testMeasurementValue, monthlyTotal);
+  }
+
+  @Test
+  void testFindMontlyTotalForDateRange() {
+    String expectedAccountNumber = "Acme Inc.";
+    String expectedProduct = "rocket-skates";
+    Granularity expectedGranularity = Granularity.HOURLY;
+    ServiceLevel expectedServiceLevel = ServiceLevel.PREMIUM;
+    Usage expectedUsage = Usage.PRODUCTION;
+    BillingProvider expectedBillingProvider = BillingProvider._ANY;
+    String expectedBillingAccountId = "sellerAcct";
+    HardwareMeasurementType expectedMeasurementType = HardwareMeasurementType.AWS;
+    Uom expectedUom = Uom.STORAGE_GIBIBYTES;
+
+    loadIgnoredSequencedSnapshots();
+
+    double testMeasurementValue = 2.0;
+    List<TallySnapshot> snapshots =
+        createSequencedSnapshots(
+            NOWISH,
+            5,
+            expectedAccountNumber,
+            expectedProduct,
+            expectedGranularity,
+            expectedMeasurementType,
+            expectedUom,
+            testMeasurementValue);
+
+    OffsetDateTime beginning = NOWISH;
+    // Don't include the last snapshot.
+    OffsetDateTime ending = NOWISH.plusHours(snapshots.size() - 2);
+    TallyMeasurementKey key =
+        new TallyMeasurementKey(HardwareMeasurementType.AWS, Uom.STORAGE_GIBIBYTES);
+    Double monthlyTotal =
+        repository.sumMeasurementValueForPeriod(
+            expectedAccountNumber,
+            expectedProduct,
+            expectedGranularity,
+            expectedServiceLevel,
+            expectedUsage,
+            expectedBillingProvider,
+            expectedBillingAccountId,
+            beginning,
+            ending,
+            key);
+    assertEquals((snapshots.size() - 1) * testMeasurementValue, monthlyTotal);
+  }
+
+  @Test
+  void testFindMonthlyTotalReturnsZeroWhenNothingFound() {
+    TallyMeasurementKey key =
+        new TallyMeasurementKey(HardwareMeasurementType.ALIBABA, Uom.STORAGE_GIBIBYTES);
+    assertEquals(
+        0.0,
+        repository.sumMeasurementValueForPeriod(
+            "account1",
+            "p1",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.DEVELOPMENT_TEST,
+            BillingProvider.AWS,
+            "sa",
+            NOWISH,
+            NOWISH.plusHours(1),
+            key));
+  }
+
+  private List<TallySnapshot> createSequencedSnapshots(
+      OffsetDateTime start,
+      int numOfSnaps,
+      String accoutNumber,
+      String product,
+      Granularity granularity,
+      HardwareMeasurementType measurementType,
+      Uom measurementUom,
+      Double measurementValue) {
+    List<TallySnapshot> snaps = new ArrayList<>();
+    OffsetDateTime next = start;
+    for (int i = 1; i <= numOfSnaps; i++) {
+      TallySnapshot snap = createUnpersisted(accoutNumber, product, granularity, 1, 2, 3, next);
+      snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES, 1.0);
+      snap.setMeasurement(measurementType, measurementUom, measurementValue);
+      snaps.add(snap);
+      next = next.plusHours(1);
+    }
+    repository.saveAll(snaps);
+    repository.flush();
+    return snaps;
+  }
+
+  private void loadIgnoredSequencedSnapshots() {
+    createSequencedSnapshots(
+        NOWISH,
+        5,
+        "account1",
+        "product1",
+        Granularity.HOURLY,
+        HardwareMeasurementType.AWS,
+        Uom.CORES,
+        2.0);
   }
 }

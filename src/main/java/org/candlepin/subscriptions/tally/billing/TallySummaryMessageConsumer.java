@@ -21,8 +21,12 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import io.micrometer.core.annotation.Timed;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -30,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /*
  * Processes messages on the TallySummary topic and delegates to the BillingProducer for processing.
@@ -38,19 +43,22 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
 
-  private final BillableUsageMapper billableUsageMapper;
-  private BillingProducer billingProducer;
+  private TagProfile tagProfile;
+  private BillableUsageMapper billableUsageMapper;
+  private BillableUsageController billableUsageController;
 
   @Autowired
   public TallySummaryMessageConsumer(
-      BillingProducer billingProducer,
+      TagProfile tagProfile,
       @Qualifier("billingProducerTallySummaryTopicProperties")
           TaskQueueProperties tallySummaryTopicProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
-      BillableUsageMapper billableUsageMapper) {
+      BillableUsageMapper billableUsageMapper,
+      BillableUsageController billableUsageController) {
     super(tallySummaryTopicProperties, kafkaConsumerRegistry);
-    this.billingProducer = billingProducer;
+    this.tagProfile = tagProfile;
     this.billableUsageMapper = billableUsageMapper;
+    this.billableUsageController = billableUsageController;
   }
 
   @Timed("rhsm-subscriptions.billing-producer.tally-summary")
@@ -58,8 +66,25 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "billingProducerKafkaTallySummaryListenerContainerFactory")
+  @Transactional
   public void receive(TallySummary tallySummary) {
-    log.debug("Tally Summary received. Producing billable usage.");
-    billableUsageMapper.fromTallySummary(tallySummary).forEach(billingProducer::produce);
+    log.debug("Tally Summary received. Producing billable usage.}");
+
+    billableUsageMapper
+        .fromTallySummary(tallySummary)
+        .forEach(
+            usage -> {
+              Measurement.Uom uom = Measurement.Uom.fromValue(usage.getUom().toString());
+              Optional<TagMetric> tagMetric = tagProfile.getTagMetric(usage.getProductId(), uom);
+              if (tagMetric.isEmpty()) {
+                throw new UnsupportedOperationException(
+                    String.format(
+                        "Unable to find TagMetric for snapshot measurement with product %s and UOM %s!",
+                        usage.getProductId(), uom));
+              }
+
+              billableUsageController.submitBillableUsage(
+                  tagMetric.get().getBillingWindow(), usage);
+            });
   }
 }
