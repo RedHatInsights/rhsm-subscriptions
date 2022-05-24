@@ -43,7 +43,6 @@ import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
@@ -82,14 +81,10 @@ class RhMarketplacePayloadMapperTest {
         .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
         .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
-    TagMetaData meta = new TagMetaData();
-    meta.setBillingModel("PAYG");
     lenient()
-        .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_DEDICATED_METRICS.toString()))
-        .thenReturn(Optional.of(meta));
-    lenient()
-        .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_METRICS.toString()))
-        .thenReturn(Optional.of(meta));
+        .when(tagProfile.isProductPAYGEligible(OPENSHIFT_DEDICATED_METRICS.toString()))
+        .thenReturn(true);
+    lenient().when(tagProfile.isProductPAYGEligible(OPENSHIFT_METRICS.toString())).thenReturn(true);
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
