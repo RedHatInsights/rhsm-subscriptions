@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
@@ -110,11 +111,14 @@ public class HostsResource implements HostsApi {
 
   private final HostRepository repository;
   private final PageLinkCreator pageLinkCreator;
+  private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
-  public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
+  public HostsResource(
+      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
+    this.tagProfile = tagProfile;
   }
 
   @SuppressWarnings("java:S3776")
@@ -155,15 +159,9 @@ public class HostsResource implements HostsApi {
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
 
-    // TODO add isPAYG flag to the tag profile
-    boolean isPAYG =
-        Objects.equals(productId, ProductId.OPENSHIFT_DEDICATED_METRICS)
-            || Objects.equals(productId, ProductId.OPENSHIFT_METRICS)
-            || Objects.equals(productId, ProductId.RHOSAK);
-
     List<org.candlepin.subscriptions.utilization.api.model.Host> payload;
     Page<?> hosts;
-    if (isPAYG) {
+    if (tagProfile.isProductPAYGEligible(productId.toString())) {
       if (sort != null) {
         Sort.Order userDefinedOrder =
             new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));

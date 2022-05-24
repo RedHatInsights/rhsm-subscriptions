@@ -118,7 +118,6 @@ class MetricUsageCollectorTest {
                         .serviceType(SERVICE_TYPE)
                         .defaultUsage(Usage.PRODUCTION)
                         .defaultSla(ServiceLevel.PREMIUM)
-                        .defaultProvider(BillingProvider.EMPTY)
                         .build()))
             .tagMetrics(
                 List.of(

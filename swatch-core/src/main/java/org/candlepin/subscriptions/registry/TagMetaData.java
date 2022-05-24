@@ -47,6 +47,5 @@ public class TagMetaData {
   private Granularity finestGranularity;
   private ServiceLevel defaultSla;
   private Usage defaultUsage;
-  private BillingProvider defaultProvider;
   private String billingModel;
 }
