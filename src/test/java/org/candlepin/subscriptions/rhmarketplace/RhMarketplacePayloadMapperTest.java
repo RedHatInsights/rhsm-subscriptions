@@ -83,7 +83,7 @@ class RhMarketplacePayloadMapperTest {
         .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
     TagMetaData meta = new TagMetaData();
-    meta.setBillingModel(RhMarketplacePayloadMapper.PAYG_BILLING);
+    meta.setBillingModel("PAYG");
     lenient()
         .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_DEDICATED_METRICS.toString()))
         .thenReturn(Optional.of(meta));
