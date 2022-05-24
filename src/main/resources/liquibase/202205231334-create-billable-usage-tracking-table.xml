@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202205231334" author="lburnett">
+    <comment>Create billable_usage_remittance tracking table</comment>
+
+
+<!--    account-->
+<!--    productId-->
+<!--    metricId-->
+<!--    month	2022-03	add month varchar(255) not null;-->
+<!--    remitted_usage-->
+<!--    latest_remittance-->
+
+    <createTable tableName="billable_usage">
+      <column name="account_number"></column>
+      <column name="account"></column>
+    </createTable>
+
+  </changeSet>
+</databaseChangeLog>
