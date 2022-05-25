@@ -1,4 +1,4 @@
-package org.candlepin.subscriptions.rhmarketplace.billable_usage;
+package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
