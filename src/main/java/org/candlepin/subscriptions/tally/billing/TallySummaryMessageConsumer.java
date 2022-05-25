@@ -40,15 +40,18 @@ import org.springframework.stereotype.Service;
 public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
 
   private BillingProducer billingProducer;
+  private BillableUsageEvaluator billableUsageEvaluator;
 
   @Autowired
   public TallySummaryMessageConsumer(
       BillingProducer billingProducer,
       @Qualifier("billingProducerTallySummaryTopicProperties")
           TaskQueueProperties tallySummaryTopicProperties,
-      KafkaConsumerRegistry kafkaConsumerRegistry) {
+      KafkaConsumerRegistry kafkaConsumerRegistry,
+      BillableUsageEvaluator billableUsageEvaluator) {
     super(tallySummaryTopicProperties, kafkaConsumerRegistry);
     this.billingProducer = billingProducer;
+    this.billableUsageEvaluator = billableUsageEvaluator;
   }
 
   @Timed("rhsm-subscriptions.billing-producer.tally-summary")
@@ -57,11 +60,10 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "billingProducerKafkaTallySummaryListenerContainerFactory")
   public void receive(TallySummary tallySummary) {
-    log.debug("Tally Summary recieved. Producing billable usage.}");
-    BillableUsage usage =
-        new BillableUsage()
-            .withAccountNumber(tallySummary.getAccountNumber())
-            .withBillableTallySnapshots(tallySummary.getTallySnapshots());
+    log.debug("Tally Summary received. Producing billable usage.}");
+
+    var usage = billableUsageEvaluator.evaluateMe(tallySummary);
+
     this.billingProducer.produce(usage);
   }
 }
