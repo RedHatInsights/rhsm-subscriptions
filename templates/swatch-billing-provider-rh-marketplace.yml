@@ -273,6 +273,11 @@ objects:
                   value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
                 - name: SUBSCRIPTION_PAGE_SIZE
                   value: ${SUBSCRIPTION_PAGE_SIZE}
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
                 - name: USER_HOST
                   value: ${USER_HOST}
                 - name: USER_MAX_CONNECTIONS

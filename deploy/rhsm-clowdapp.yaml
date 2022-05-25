@@ -408,6 +408,11 @@ objects:
               value: ${RHSM_RBAC_USE_STUB}
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -590,6 +595,11 @@ objects:
                 secretKeyRef:
                   name: cloudigrade-psk
                   key: psk
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -817,6 +827,11 @@ objects:
               value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
             - name: SUBSCRIPTION_PAGE_SIZE
               value: ${SUBSCRIPTION_PAGE_SIZE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
             - name: USER_HOST
               value: ${USER_HOST}
             - name: USER_MAX_CONNECTIONS
@@ -1052,6 +1067,11 @@ objects:
               value: /pinhead/keystore.jks
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1226,6 +1246,11 @@ objects:
                   key: keystore_password
             - name: RHSM_TRUSTSTORE
               value: /pinhead/truststore.jks
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1437,6 +1462,11 @@ objects:
                 secretKeyRef:
                   name: cloudigrade-psk
                   key: psk
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
