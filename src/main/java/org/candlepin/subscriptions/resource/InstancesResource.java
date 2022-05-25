@@ -57,7 +57,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /** Instance API implementation. */
 @Component
@@ -115,7 +114,8 @@ public class InstancesResource implements InstancesApi {
     String accountNumber = ResourceUtils.getAccountNumber();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-    BillingProvider sanitizedBillingProvider = ResourceUtils.sanitizeBillingProvider(billingProviderType);
+    BillingProvider sanitizedBillingProvider =
+        ResourceUtils.sanitizeBillingProvider(billingProviderType);
     String sanitizedBillingAccountId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
     String sanitizedDisplayNameSubstring =
