@@ -188,6 +188,11 @@ objects:
                     secretKeyRef:
                       name: host-inventory-db-readonly
                       key: db.password
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
               livenessProbe:
                 failureThreshold: 3
                 httpGet:

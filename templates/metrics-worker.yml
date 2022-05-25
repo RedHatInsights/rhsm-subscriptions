@@ -262,6 +262,11 @@ objects:
                   value: ${PROM_URL}
                 - name: OPENSHIFT_BILLING_MODEL_FILTER
                   value: ${OPENSHIFT_BILLING_MODEL_FILTER}
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
                 - name: USER_HOST
                   value: ${USER_HOST}
                 - name: USER_MAX_CONNECTIONS

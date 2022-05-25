@@ -205,6 +205,11 @@ objects:
                     key: keystore_password
               - name: RHSM_TRUSTSTORE
                 value: /pinhead/truststore.jks
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
             livenessProbe:
               failureThreshold: 3
               httpGet:
