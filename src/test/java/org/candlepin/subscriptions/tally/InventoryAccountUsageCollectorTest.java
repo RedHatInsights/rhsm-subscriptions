@@ -33,7 +33,6 @@ import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,19 +49,13 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
@@ -78,8 +71,8 @@ class InventoryAccountUsageCollectorTest {
 
   public static final Set<String> RHEL_PRODUCTS = new HashSet<>(Arrays.asList(TEST_PRODUCT));
   public static final Set<String> NON_RHEL_PRODUCTS = new HashSet<>(Arrays.asList(NON_RHEL));
+  private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
 
-  @MockBean private BuildProperties buildProperties;
   @MockBean private InventoryRepository inventoryRepo;
   @MockBean private HostRepository hostRepo;
   @MockBean private AccountServiceInventoryRepository accountServiceInventoryRepository;
@@ -333,11 +326,42 @@ class InventoryAccountUsageCollectorTest {
     AccountUsageCalculation a1Calc = calcs.get("A1");
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage._ANY, 16, 16, 2);
     checkTotalsCalculation(
-        a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage.DEVELOPMENT_TEST, 6, 6, 1);
+        a1Calc,
+        "A1",
+        "O1",
+        "RHEL",
+        ServiceLevel.EMPTY,
+        Usage._ANY,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        16,
+        16,
+        2);
     checkTotalsCalculation(
-        a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage.PRODUCTION, 10, 10, 1);
+        a1Calc,
+        "A1",
+        "O1",
+        "RHEL",
+        ServiceLevel.EMPTY,
+        Usage.DEVELOPMENT_TEST,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        6,
+        6,
+        1);
+    checkTotalsCalculation(
+        a1Calc,
+        "A1",
+        "O1",
+        "RHEL",
+        ServiceLevel.EMPTY,
+        Usage.PRODUCTION,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        10,
+        10,
+        1);
   }
 
   @Test
@@ -374,7 +398,7 @@ class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
+  void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() {
     String account = "A1";
 
     InventoryHostFacts h1 =
@@ -402,8 +426,7 @@ class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount()
-      throws IOException {
+  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount() {
     String account = "A1";
 
     InventoryHostFacts h1 =
@@ -718,7 +741,17 @@ class InventoryAccountUsageCollectorTest {
       int instances) {
 
     checkTotalsCalculation(
-        calc, account, owner, product, serviceLevel, Usage._ANY, cores, sockets, instances);
+        calc,
+        account,
+        owner,
+        product,
+        serviceLevel,
+        Usage._ANY,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        cores,
+        sockets,
+        instances);
   }
 
   private void checkTotalsCalculation(
@@ -728,17 +761,25 @@ class InventoryAccountUsageCollectorTest {
       String product,
       ServiceLevel serviceLevel,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       int cores,
       int sockets,
       int instances) {
     assertEquals(account, calc.getAccount());
     assertEquals(owner, calc.getOwner());
-    assertTrue(calc.containsCalculation(createUsageKey(product, serviceLevel, usage)));
+    assertTrue(
+        calc.containsCalculation(
+            createUsageKey(product, serviceLevel, usage, billingProvider, billingAccountId)));
 
-    UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product, serviceLevel, usage));
+    UsageCalculation prodCalc =
+        calc.getCalculation(
+            createUsageKey(product, serviceLevel, usage, billingProvider, billingAccountId));
 
     assertEquals(product, prodCalc.getProductId());
     assertEquals(serviceLevel, prodCalc.getSla());
+    assertEquals(billingProvider, prodCalc.getBillingProvider());
+    assertEquals(billingAccountId, prodCalc.getBillingAccountId());
     assertTotalsCalculation(prodCalc, sockets, cores, instances);
   }
 
@@ -781,11 +822,17 @@ class InventoryAccountUsageCollectorTest {
   }
 
   private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla) {
-    return new UsageCalculation.Key(product, sla, Usage._ANY);
+    return new UsageCalculation.Key(
+        product, sla, Usage._ANY, BillingProvider._ANY, BILLING_ACCOUNT_ID_ANY);
   }
 
-  private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla, Usage usage) {
-    return new UsageCalculation.Key(product, sla, usage);
+  private UsageCalculation.Key createUsageKey(
+      String product,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAcctId) {
+    return new UsageCalculation.Key(product, sla, usage, billingProvider, billingAcctId);
   }
 
   private void mockReportedHypervisors(String account, Map<String, String> expectedHypervisorMap) {

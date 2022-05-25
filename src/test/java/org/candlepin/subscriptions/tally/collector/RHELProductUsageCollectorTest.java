@@ -34,10 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
@@ -156,6 +153,7 @@ class RHELProductUsageCollectorTest {
   }
 
   private UsageCalculation.Key createUsageKey() {
-    return new UsageCalculation.Key("RHEL", ServiceLevel.EMPTY, Usage.EMPTY);
+    return new UsageCalculation.Key(
+        "RHEL", ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 }

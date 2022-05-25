@@ -49,7 +49,8 @@ public class SnapshotSummaryProducer {
 
   @Autowired
   protected SnapshotSummaryProducer(
-      KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
+      @Qualifier("tallySummaryKafkaTemplate")
+          KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
       @Qualifier("tallySummaryKafkaRetryTemplate") RetryTemplate kafkaRetryTemplate,
       @Qualifier("rhMarketplaceTasks") TaskQueueProperties props) {
     this.tallySummaryTopic = props.getTopic();

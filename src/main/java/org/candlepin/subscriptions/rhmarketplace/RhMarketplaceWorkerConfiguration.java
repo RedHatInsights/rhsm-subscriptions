@@ -56,6 +56,7 @@ public class RhMarketplaceWorkerConfiguration {
   }
 
   @Bean
+  @Qualifier("rhMarketplaceTallySummaryConsumerFactory")
   ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
@@ -73,7 +74,8 @@ public class RhMarketplaceWorkerConfiguration {
   @Bean
   ConcurrentKafkaListenerContainerFactory<String, TallySummary>
       kafkaTallySummaryListenerContainerFactory(
-          ConsumerFactory<String, TallySummary> consumerFactory,
+          @Qualifier("rhMarketplaceTallySummaryConsumerFactory")
+              ConsumerFactory<String, TallySummary> consumerFactory,
           KafkaProperties kafkaProperties,
           KafkaConsumerRegistry registry) {
 

@@ -234,6 +234,8 @@ public class CombiningRollupSnapshotStrategy {
     snapshot.setGranularity(granularity);
     snapshot.setOwnerId(owner);
     snapshot.setAccountNumber(account);
+    snapshot.setBillingAccountId(productCalc.getBillingAccountId());
+    snapshot.setBillingProvider(productCalc.getBillingProvider());
 
     // Copy the calculated hardware measurements to the snapshots
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
@@ -361,7 +363,11 @@ public class CombiningRollupSnapshotStrategy {
         snapshot -> {
           var identifier =
               new UsageCalculation.Key(
-                  snapshot.getProductId(), snapshot.getServiceLevel(), snapshot.getUsage());
+                  snapshot.getProductId(),
+                  snapshot.getServiceLevel(),
+                  snapshot.getUsage(),
+                  snapshot.getBillingProvider(),
+                  snapshot.getBillingAccountId());
           reducedMeasurements.computeIfAbsent(identifier, i -> new HashMap<>());
           Map<TallyMeasurementKey, Double> measurements = reducedMeasurements.get(identifier);
 
@@ -423,6 +429,8 @@ public class CombiningRollupSnapshotStrategy {
           snapshot.setGranularity(granularity);
           snapshot.setServiceLevel(usageKey.getSla());
           snapshot.setUsage(usageKey.getUsage());
+          snapshot.setBillingAccountId(usageKey.getBillingAccountId());
+          snapshot.setBillingProvider(usageKey.getBillingProvider());
           measurements.forEach(
               (measurementKey, value) ->
                   snapshot.setMeasurement(

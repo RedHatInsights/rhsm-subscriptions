@@ -194,6 +194,11 @@ paths:
         schema:
           $ref: '#/components/schemas/BillingProviderType'
         description: "Include only report data matching the specified billing provider"
+      - name:  billing_account_id
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingAccountId'
+        description: "Include only report data matching the specified billing account"
       - name: beginning
         in: query
         required: true
@@ -971,6 +976,8 @@ components:
         - physical
         - virtual
         - cloud
+    BillingAccountId:
+      type: string
     Uom:
       description: "The unit-of-measure for the capacity."
       type: string
@@ -1115,6 +1122,8 @@ components:
               $ref: '#/components/schemas/GranularityType'
             billing_provider:
               $ref: '#/components/schemas/BillingProviderType'
+            billing_acount_id:
+              type: string
           required:
             - count
             - product

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.hamcrest.Matchers;
@@ -69,6 +70,7 @@ class AccountUsageCalculationTest {
   }
 
   private UsageCalculation.Key createUsageKey(String productId) {
-    return new UsageCalculation.Key(productId, ServiceLevel.EMPTY, Usage.EMPTY);
+    return new UsageCalculation.Key(
+        productId, ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 }

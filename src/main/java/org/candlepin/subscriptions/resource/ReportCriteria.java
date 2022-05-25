@@ -41,6 +41,7 @@ public class ReportCriteria {
   private ServiceLevel serviceLevel;
   private Usage usage;
   private BillingProvider billingProvider;
+  private String billingAccountId;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private Pageable pageable;

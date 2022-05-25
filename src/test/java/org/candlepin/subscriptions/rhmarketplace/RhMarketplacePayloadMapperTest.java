@@ -43,7 +43,6 @@ import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
@@ -82,14 +81,10 @@ class RhMarketplacePayloadMapperTest {
         .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
         .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
-    TagMetaData meta = new TagMetaData();
-    meta.setBillingModel(RhMarketplacePayloadMapper.PAYG_BILLING);
     lenient()
-        .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_DEDICATED_METRICS.toString()))
-        .thenReturn(Optional.of(meta));
-    lenient()
-        .when(tagProfile.getTagMetaDataByTag(OPENSHIFT_METRICS.toString()))
-        .thenReturn(Optional.of(meta));
+        .when(tagProfile.isProductPAYGEligible(OPENSHIFT_DEDICATED_METRICS.toString()))
+        .thenReturn(true);
+    lenient().when(tagProfile.isProductPAYGEligible(OPENSHIFT_METRICS.toString())).thenReturn(true);
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
@@ -107,6 +102,7 @@ class RhMarketplacePayloadMapperTest {
             .withUsage(Usage.PRODUCTION)
             .withTallyMeasurements(tallyMeasurements)
             .withSla(Sla.PREMIUM)
+            .withBillingProvider(TallySnapshot.BillingProvider.RED_HAT)
             .withGranularity(HOURLY);
 
     var actual =
@@ -197,6 +193,7 @@ class RhMarketplacePayloadMapperTest {
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
+                .withBillingProvider(BillingProvider.RED_HAT)
                 .withGranularity(HOURLY),
             true);
 
@@ -206,6 +203,7 @@ class RhMarketplacePayloadMapperTest {
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.ANY)
+                .withBillingProvider(BillingProvider.ANY)
                 .withGranularity(HOURLY),
             false);
 
@@ -215,6 +213,7 @@ class RhMarketplacePayloadMapperTest {
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
+                .withBillingProvider(BillingProvider.ANY)
                 .withGranularity(DAILY),
             false);
 
@@ -224,6 +223,7 @@ class RhMarketplacePayloadMapperTest {
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.ANY)
                 .withSla(Sla.PREMIUM)
+                .withBillingProvider(BillingProvider.ANY)
                 .withGranularity(HOURLY),
             false);
 
@@ -233,6 +233,7 @@ class RhMarketplacePayloadMapperTest {
                 .withProductId("OpenShift-dedicated-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
+                .withBillingProvider(BillingProvider.RED_HAT)
                 .withGranularity(HOURLY),
             true);
 
@@ -242,6 +243,7 @@ class RhMarketplacePayloadMapperTest {
                 .withProductId("RHEL")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
+                .withBillingProvider(BillingProvider.RED_HAT)
                 .withGranularity(HOURLY),
             false);
 
@@ -311,6 +313,62 @@ class RhMarketplacePayloadMapperTest {
     assertEquals(expected.get(0).getEnd(), actual.get(0).getEnd());
   }
 
+  @Test
+  void testProduceUsageEventsWithNullBillingProvider() {
+    TallyMeasurement physicalCoreMeasurement =
+        new TallyMeasurement()
+            .withHardwareMeasurementType("PHYSICAL")
+            .withUom(Uom.CORES)
+            .withValue(36.0);
+
+    when(mockProvider.findSubscriptionId(
+            any(String.class),
+            any(String.class),
+            any(UsageCalculation.Key.class),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class)))
+        .thenReturn(Optional.of("DUMMY"));
+
+    var snapshotDateLong = 1616100754L;
+
+    OffsetDateTime snapshotDate =
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(snapshotDateLong), ZoneId.of("UTC"));
+    var snapshot =
+        new TallySnapshot()
+            .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
+            .withProductId("OpenShift-metrics")
+            .withSnapshotDate(snapshotDate)
+            .withUsage(Usage.PRODUCTION)
+            .withTallyMeasurements(List.of(physicalCoreMeasurement))
+            .withSla(Sla.PREMIUM)
+            .withGranularity(HOURLY);
+
+    String account = "test123";
+    String orgId = "org123";
+    var summary =
+        new TallySummary().withTallySnapshots(List.of(snapshot)).withAccountNumber(account);
+
+    when(accountService.lookupOrgId(account)).thenReturn(orgId);
+
+    var usageMeasurement =
+        new UsageMeasurement().value(36.0).metricId("redhat.com:openshift:cpu_hour");
+    var expected =
+        List.of(
+            new UsageEvent()
+                .start(snapshotDateLong)
+                .end(1619700754L)
+                .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
+                .measuredUsage(List.of(usageMeasurement)));
+
+    List<UsageEvent> actual = rhMarketplacePayloadMapper.produceUsageEvents(summary);
+
+    assertEquals(1, actual.size());
+    assertEquals(expected.get(0).getEventId(), actual.get(0).getEventId());
+    assertEquals(expected.get(0).getMeasuredUsage(), actual.get(0).getMeasuredUsage());
+    assertEquals(expected.get(0).getStart(), actual.get(0).getStart());
+    assertEquals(expected.get(0).getEnd(), actual.get(0).getEnd());
+  }
+
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
   @MethodSource("generateIsSnapshotRHMarketplaceEligibleData")
   void testIsSnapshotRHMarketplaceEligible(TallySnapshot snapshot, boolean isEligible) {
@@ -340,7 +398,7 @@ class RhMarketplacePayloadMapperTest {
                 .withBillingProvider(BillingProvider.__EMPTY__),
             true);
 
-    Arguments eligibleAnyBillingProvider =
+    Arguments notEligibleAnyBillingProvider =
         Arguments.of(
             new TallySnapshot()
                 .withProductId("OpenShift-metrics")
@@ -348,7 +406,7 @@ class RhMarketplacePayloadMapperTest {
                 .withSla(Sla.PREMIUM)
                 .withGranularity(HOURLY)
                 .withBillingProvider(BillingProvider.ANY),
-            true);
+            false);
 
     Arguments eligibleNullBillingProvider =
         Arguments.of(
@@ -402,8 +460,8 @@ class RhMarketplacePayloadMapperTest {
     return Stream.of(
         eligibleRedHatBillingProvider,
         eligibleEmptyBillingProvider,
-        eligibleAnyBillingProvider,
         eligibleNullBillingProvider,
+        notEligibleAnyBillingProvider,
         notEligibleAWSBillingProvider,
         notEligibleAzureBillingProvider,
         notEligibleOracleBillingProvider,

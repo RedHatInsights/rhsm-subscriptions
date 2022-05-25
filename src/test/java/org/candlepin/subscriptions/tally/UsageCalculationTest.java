@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullE
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.stream.IntStream;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -62,7 +63,8 @@ class UsageCalculationTest {
   }
 
   private UsageCalculation.Key createUsageKey(String product) {
-    return new UsageCalculation.Key(product, ServiceLevel.EMPTY, Usage.EMPTY);
+    return new UsageCalculation.Key(
+        product, ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 
   @Test

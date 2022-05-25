@@ -20,6 +20,8 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: METRICS_CRON_LOGGING_LEVEL
+    value: INFO
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -202,6 +204,16 @@ parameters:
     value: '1'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
+  - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: 1m
+  - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: BILLING_PRODUCER_MAX_ATTEMPTS
+    value: '1'
+  - name: ENABLE_TALLY_SUMMARY_LISTENER
+    value: 'true'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -229,7 +241,9 @@ objects:
       - replicas: 3
         partitions: 3
         topicName: platform.rhsm-subscriptions.subscription-sync
-
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.billable-usage
     # Creates a database if local mode, or uses RDS in production
     database:
       # Must specify both a name and a major postgres version
@@ -408,6 +422,11 @@ objects:
               value: ${RHSM_RBAC_USE_STUB}
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -590,6 +609,11 @@ objects:
                 secretKeyRef:
                   name: cloudigrade-psk
                   key: psk
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -817,6 +841,11 @@ objects:
               value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
             - name: SUBSCRIPTION_PAGE_SIZE
               value: ${SUBSCRIPTION_PAGE_SIZE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
             - name: USER_HOST
               value: ${USER_HOST}
             - name: USER_MAX_CONNECTIONS
@@ -838,6 +867,16 @@ objects:
               value: /pinhead/keystore.jks
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
+            - name: BILLING_PRODUCER_MAX_ATTEMPTS
+              value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
+            - name: ENABLE_TALLY_SUMMARY_LISTENER
+              value: ${ENABLE_TALLY_SUMMARY_LISTENER}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1042,6 +1081,11 @@ objects:
               value: /pinhead/keystore.jks
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1216,6 +1260,11 @@ objects:
                   key: keystore_password
             - name: RHSM_TRUSTSTORE
               value: /pinhead/truststore.jks
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1427,6 +1476,11 @@ objects:
                 secretKeyRef:
                   name: cloudigrade-psk
                   key: psk
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -1584,7 +1638,7 @@ objects:
             - name: LOGGING_LEVEL_ROOT
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
+              value: ${METRICS_CRON_LOGGING_LEVEL}
             - name: OPENSHIFT_METERING_RANGE
               value: ${OPENSHIFT_METERING_RANGE}
             - name: HOURLY_TALLY_OFFSET

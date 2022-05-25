@@ -13,6 +13,8 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: METRICS_CRON_LOGGING_LEVEL
+    value: INFO
   - name: KAFKA_BOOTSTRAP_HOST
     required: true
   - name: PURGE_SNAPSHOT_SCHEDULE
@@ -119,7 +121,7 @@ objects:
                     - name: LOGGING_LEVEL_ROOT
                       value: ${LOGGING_LEVEL_ROOT}
                     - name: LOGGING_LEVEL_ORG_CANDLEPIN
-                      value: ${LOGGING_LEVEL}
+                      value: ${METRICS_CRON_LOGGING_LEVEL}
                     - name: KAFKA_BOOTSTRAP_HOST
                       value: ${KAFKA_BOOTSTRAP_HOST}
                     - name: OPENSHIFT_METERING_RANGE

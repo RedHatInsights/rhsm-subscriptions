@@ -59,7 +59,7 @@ data:
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
       "id": null,
-      "iteration": 1652708932734,
+      "iteration": 1652723048193,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -2760,7 +2760,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.tally\"}) by (group, partition)",
+              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.tally\", group=\"rh-marketplace-worker\"}) by (group, partition)",
               "format": "time_series",
               "instant": false,
               "interval": "",

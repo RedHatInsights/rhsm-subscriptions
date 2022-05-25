@@ -33,15 +33,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
-import org.candlepin.subscriptions.db.model.HostHardwareType;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.registry.TagMetaData;
@@ -215,7 +207,9 @@ public class MetricUsageCollector {
                               new UsageCalculation.Key(
                                   bucket.getKey().getProductId(),
                                   bucket.getKey().getSla(),
-                                  bucket.getKey().getUsage());
+                                  bucket.getKey().getUsage(),
+                                  bucket.getKey().getBillingProvider(),
+                                  bucket.getKey().getBillingAccountId());
                           instance
                               .getMeasurements()
                               .forEach(
@@ -234,6 +228,12 @@ public class MetricUsageCollector {
     instance.setAccountNumber(event.getAccountNumber());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
+    Optional.ofNullable(event.getBillingAccountId())
+        .map(Optional::get)
+        .ifPresent(instance::setBillingAccountId);
+    Optional.ofNullable(event.getBillingProvider())
+        .map(this::getBillingProvider)
+        .ifPresent(instance::setBillingProvider);
     Optional.ofNullable(event.getCloudProvider())
         .map(this::getCloudProvider)
         .map(HardwareMeasurementType::toString)
@@ -325,6 +325,26 @@ public class MetricUsageCollector {
     }
   }
 
+  private BillingProvider getBillingProvider(Event.BillingProvider billingProvider) {
+    switch (billingProvider) {
+      case __EMPTY__:
+        return null;
+      case AWS:
+        return BillingProvider.AWS;
+      case AZURE:
+        return BillingProvider.AZURE;
+      case ORACLE:
+        return BillingProvider.ORACLE;
+      case GCP:
+        return BillingProvider.GCP;
+      case RED_HAT:
+        return BillingProvider.RED_HAT;
+      default:
+        throw new IllegalArgumentException(
+            String.format("Unsupported value for billing provider: %s", billingProvider.value()));
+    }
+  }
+
   private void addBucketsFromEvent(Host host, Event event, Optional<TagMetaData> serviceTypeMeta) {
     ServiceLevel effectiveSla =
         Optional.ofNullable(event.getSla())
@@ -336,14 +356,25 @@ public class MetricUsageCollector {
             .map(Event.Usage::toString)
             .map(Usage::fromString)
             .orElse(serviceTypeMeta.map(TagMetaData::getDefaultUsage).orElse(Usage.EMPTY));
+    BillingProvider effectiveProvider =
+        Optional.ofNullable(event.getBillingProvider())
+            .map(Event.BillingProvider::toString)
+            .map(BillingProvider::fromString)
+            .orElse(BillingProvider.RED_HAT);
+    String billingAcctId =
+        Optional.ofNullable(event.getBillingAccountId()).map(Optional::get).orElse("_ANY");
     Set<String> productIds = getProductIds(event);
 
     for (String productId : productIds) {
       for (ServiceLevel sla : Set.of(effectiveSla, ServiceLevel._ANY)) {
         for (Usage usage : Set.of(effectiveUsage, Usage._ANY)) {
-          HostTallyBucket bucket = new HostTallyBucket();
-          bucket.setKey(new HostBucketKey(host, productId, sla, usage, false));
-          host.addBucket(bucket);
+          for (BillingProvider billingProvider : Set.of(effectiveProvider, BillingProvider._ANY)) {
+            HostTallyBucket bucket = new HostTallyBucket();
+            bucket.setKey(
+                new HostBucketKey(
+                    host, productId, sla, usage, billingProvider, billingAcctId, false));
+            host.addBucket(bucket);
+          }
         }
       }
     }

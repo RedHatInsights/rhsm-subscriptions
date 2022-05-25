@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.tally.billing.BillingProducerConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
@@ -71,6 +72,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 @Import({
   TallyTaskQueueConfiguration.class,
   TaskConsumerConfiguration.class,
+  BillingProducerConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
   CloudigradeClientConfiguration.class,

@@ -62,4 +62,6 @@ test {
     environment "TESTCONTAINERS_RYUK_DISABLED", "true"
     environment "TESTCONTAINERS_CHECKS_DISABLE", "true"
 
+    maxHeapSize = "1024m"
+
 }

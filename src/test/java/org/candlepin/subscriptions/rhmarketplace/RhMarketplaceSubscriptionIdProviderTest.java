@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -58,7 +59,8 @@ class RhMarketplaceSubscriptionIdProviderTest {
         idProvider.findSubscriptionId(
             "account123",
             "org123",
-            new Key("productId", ServiceLevel.PREMIUM, Usage.PRODUCTION),
+            new Key(
+                "productId", ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, "_ANY"),
             OffsetDateTime.MIN,
             OffsetDateTime.MAX);
     Counter counter = meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
@@ -81,7 +83,8 @@ class RhMarketplaceSubscriptionIdProviderTest {
         idProvider.findSubscriptionId(
             "account123",
             "org123",
-            new Key("productId", ServiceLevel.PREMIUM, Usage.PRODUCTION),
+            new Key(
+                "productId", ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, "_ANY"),
             OffsetDateTime.MIN,
             OffsetDateTime.MAX);
     Counter counter =

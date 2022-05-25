@@ -23,8 +23,13 @@ package org.candlepin.subscriptions.tally;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.ToString;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -33,7 +38,10 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** The calculated usage for a key where key is (productId, sla). */
+/**
+ * The calculated usage for a key where key is (productId, sla, usage, billingProvider, and
+ * billingAccountId).
+ */
 public class UsageCalculation {
   private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
 
@@ -44,55 +52,24 @@ public class UsageCalculation {
    *
    * <p>Note that already data is scoped to an account, so account is not included in the key.
    */
+  @Getter
+  @EqualsAndHashCode
+  @AllArgsConstructor
+  @ToString
   public static class Key {
-    private final String productId;
-    private final ServiceLevel sla;
-    private final Usage usage;
-
-    public Key(String productId, ServiceLevel sla, Usage usage) {
-      this.productId = productId;
-      this.sla = sla;
-      this.usage = usage;
-    }
-
-    public String getProductId() {
-      return productId;
-    }
-
-    public ServiceLevel getSla() {
-      return sla;
-    }
-
-    public Usage getUsage() {
-      return usage;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Key that = (Key) o;
-      return Objects.equals(productId, that.productId)
-          && Objects.equals(sla, that.sla)
-          && Objects.equals(usage, that.usage);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(productId, sla, usage);
-    }
+    @NonNull private final String productId;
+    @NonNull private final ServiceLevel sla;
+    @NonNull private final Usage usage;
+    @NonNull private final BillingProvider billingProvider;
+    @NonNull private final String billingAccountId;
 
     public static Key fromTallySnapshot(TallySnapshot snapshot) {
-      return new Key(snapshot.getProductId(), snapshot.getServiceLevel(), snapshot.getUsage());
-    }
-
-    @Override
-    public String toString() {
-      return "Key{" + "productId='" + productId + '\'' + ", sla=" + sla + ", usage=" + usage + '}';
+      return new Key(
+          snapshot.getProductId(),
+          snapshot.getServiceLevel(),
+          snapshot.getUsage(),
+          snapshot.getBillingProvider(),
+          snapshot.getBillingAccountId());
     }
   }
 
@@ -195,6 +172,14 @@ public class UsageCalculation {
 
   public Usage getUsage() {
     return key.usage;
+  }
+
+  public BillingProvider getBillingProvider() {
+    return key.billingProvider;
+  }
+
+  public String getBillingAccountId() {
+    return key.billingAccountId;
   }
 
   public Totals getTotals(HardwareMeasurementType type) {
@@ -300,7 +285,9 @@ public class UsageCalculation {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(
-        String.format("[Product: %s, sla: %s, usage: %s", key.productId, key.sla, key.usage));
+        String.format(
+            "[Product: %s, sla: %s, usage: %s, billingProvider: %s, billingAccountId: %s",
+            key.productId, key.sla, key.usage, key.billingProvider, key.billingAccountId));
     for (Entry<HardwareMeasurementType, Totals> entry : mappedTotals.entrySet()) {
       builder.append(String.format(", %s: %s", entry.getKey(), entry.getValue()));
     }

@@ -154,6 +154,10 @@ public class Host implements Serializable {
   @Column(name = "instance_type")
   private String instanceType;
 
+  /*
+   * We have billingProvider and  billingAccountId redundantly here, anticipating that we will want
+   * to display a host's billing provider when the billing provider filter is set to _ANY
+   */
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
@@ -219,10 +223,12 @@ public class Host implements Serializable {
     measurements.put(uom, value);
   }
 
-  public HostTallyBucket addBucket(
+  public HostTallyBucket addBucket( // NOSONAR
       String productId,
       ServiceLevel sla,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       Boolean asHypervisor,
       int sockets,
       int cores,
@@ -230,7 +236,16 @@ public class Host implements Serializable {
 
     HostTallyBucket bucket =
         new HostTallyBucket(
-            this, productId, sla, usage, asHypervisor, cores, sockets, measurementType);
+            this,
+            productId,
+            sla,
+            usage,
+            billingProvider,
+            billingAccountId,
+            asHypervisor,
+            cores,
+            sockets,
+            measurementType);
     addBucket(bucket);
     return bucket;
   }

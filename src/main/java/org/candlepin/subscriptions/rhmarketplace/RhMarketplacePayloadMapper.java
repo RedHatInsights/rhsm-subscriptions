@@ -27,13 +27,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
-import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /** Maps TallySummary to payload contents to be sent to RHM apis */
 @Service
@@ -54,7 +53,6 @@ public class RhMarketplacePayloadMapper {
 
   public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR =
       "redhat.com:openshift_dedicated:4cpu_hour";
-  public static final String PAYG_BILLING = "PAYG";
 
   private final AccountService accountService;
   private final RhMarketplaceSubscriptionIdProvider idProvider;
@@ -100,13 +98,7 @@ public class RhMarketplacePayloadMapper {
   protected boolean isSnapshotPAYGEligible(TallySnapshot snapshot) {
     String productId = snapshot.getProductId();
 
-    boolean isApplicableProduct = false;
-    var tagMeta = tagProfile.getTagMetaDataByTag(productId);
-    if (tagMeta.isPresent()) {
-      var billingModel = tagMeta.get().getBillingModel();
-      isApplicableProduct =
-          StringUtils.hasText(billingModel) && PAYG_BILLING.equalsIgnoreCase(billingModel);
-    }
+    boolean isApplicableProduct = tagProfile.isProductPAYGEligible(productId);
 
     boolean isHourlyGranularity =
         Objects.equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
@@ -118,8 +110,16 @@ public class RhMarketplacePayloadMapper {
     boolean isSpecificServiceLevel =
         !List.of(TallySnapshot.Sla.ANY, TallySnapshot.Sla.__EMPTY__).contains(snapshot.getSla());
 
+    boolean isSpecificBillingProvider =
+        !List.of(TallySnapshot.BillingProvider.ANY, TallySnapshot.BillingProvider.__EMPTY__)
+            .contains(snapshot.getBillingProvider());
+
     boolean isSnapshotPAYGEligible =
-        isHourlyGranularity && isApplicableProduct && isSpecificUsage && isSpecificServiceLevel;
+        isHourlyGranularity
+            && isApplicableProduct
+            && isSpecificUsage
+            && isSpecificServiceLevel
+            && isSpecificBillingProvider;
 
     if (!isSnapshotPAYGEligible) {
       log.debug("Snapshot not eligible for sending to RHM {}", snapshot);
@@ -129,9 +129,8 @@ public class RhMarketplacePayloadMapper {
 
   protected boolean isSnapshotRHMarketplaceEligible(TallySnapshot snapshot) {
     return snapshot.getBillingProvider() == null
-        || snapshot.getBillingProvider().equals(BillingProvider.RED_HAT)
-        || snapshot.getBillingProvider().equals(BillingProvider.ANY)
-        || snapshot.getBillingProvider().equals(BillingProvider.__EMPTY__);
+        || snapshot.getBillingProvider().equals(TallySnapshot.BillingProvider.RED_HAT)
+        || snapshot.getBillingProvider().equals(TallySnapshot.BillingProvider.__EMPTY__);
   }
 
   /**
@@ -150,6 +149,7 @@ public class RhMarketplacePayloadMapper {
 
     var eligibleSnapshots =
         tallySummary.getTallySnapshots().stream()
+            .map(this::defaultNullBillingProvider)
             .filter(this::isSnapshotRHMarketplaceEligible)
             .filter(this::isSnapshotPAYGEligible)
             .collect(Collectors.toList());
@@ -157,13 +157,17 @@ public class RhMarketplacePayloadMapper {
     List<UsageEvent> events = new ArrayList<>();
     for (TallySnapshot snapshot : eligibleSnapshots) {
       String productId = snapshot.getProductId();
+      // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
+      String billingAcctId = "_ANY";
 
       // call MarketplaceIdProvider.findSubscriptionId once available
       UsageCalculation.Key usageKey =
           new UsageCalculation.Key(
               productId,
               ServiceLevel.fromString(snapshot.getSla().toString()),
-              Usage.fromString(snapshot.getUsage().toString()));
+              Usage.fromString(snapshot.getUsage().toString()),
+              BillingProvider.fromString(snapshot.getBillingProvider().toString()),
+              billingAcctId);
 
       OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
       String eventId = snapshot.getId().toString();
@@ -197,6 +201,13 @@ public class RhMarketplacePayloadMapper {
       events.add(event);
     }
     return events;
+  }
+
+  private TallySnapshot defaultNullBillingProvider(TallySnapshot tallySnapshot) {
+    if (tallySnapshot.getBillingProvider() == null) {
+      tallySnapshot.setBillingProvider(TallySnapshot.BillingProvider.RED_HAT);
+    }
+    return tallySnapshot;
   }
 
   /**

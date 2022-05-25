@@ -64,6 +64,8 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
             prodCalc.getProductId(),
             prodCalc.getSla(),
             prodCalc.getUsage(),
+            prodCalc.getBillingProvider(),
+            prodCalc.getBillingAccountId(),
             true,
             appliedCores,
             appliedSockets,

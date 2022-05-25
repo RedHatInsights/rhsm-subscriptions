@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202205171157-1" author="ksynvrit">
+        <comment>Update billing provider in host buckets.</comment>
+        <addDefaultValue tableName="host_tally_buckets" columnName="billing_provider" defaultValue="_ANY"/>
+        <addNotNullConstraint tableName="host_tally_buckets" columnName="billing_provider"/>
+    </changeSet>
+
+    <changeSet id="202205171157-2" author="ksynvrit">
+        <comment>Update billing_account_id to host buckets.</comment>
+        <addDefaultValue tableName="host_tally_buckets" columnName="billing_account_id" defaultValue="_ANY"/>
+        <addNotNullConstraint tableName="host_tally_buckets" columnName="billing_account_id"/>
+    </changeSet>
+
+    <changeSet id="202205171157-3" author="ksynvrit">
+        <comment>Update billing_account_id in snapshot table.</comment>
+        <addDefaultValue tableName="tally_snapshots" columnName="billing_account_id" defaultValue="_ANY"/>
+        <addNotNullConstraint tableName="tally_snapshots" columnName="billing_account_id"/>
+    </changeSet>
+
+</databaseChangeLog>

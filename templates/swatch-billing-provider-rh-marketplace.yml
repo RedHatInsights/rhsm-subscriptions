@@ -95,7 +95,16 @@ parameters:
     value: 1s
   - name: USER_BACK_OFF_MULTIPLIER
     value: '2'
-
+  - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: 1m
+  - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: BILLING_PRODUCER_MAX_ATTEMPTS
+    value: '1'
+  - name: ENABLE_TALLY_SUMMARY_LISTENER
+    value: 'true'
 objects:
   - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
@@ -264,6 +273,11 @@ objects:
                   value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
                 - name: SUBSCRIPTION_PAGE_SIZE
                   value: ${SUBSCRIPTION_PAGE_SIZE}
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
                 - name: USER_HOST
                   value: ${USER_HOST}
                 - name: USER_MAX_CONNECTIONS
@@ -283,6 +297,16 @@ objects:
                       key: keystore_password
                 - name: RHSM_KEYSTORE
                   value: /pinhead/keystore.jks
+                - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+                  value: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+                - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+                  value: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL}
+                - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+                  value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
+                - name: BILLING_PRODUCER_MAX_ATTEMPTS
+                  value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
+                - name: ENABLE_TALLY_SUMMARY_LISTENER
+                  value: ${ENABLE_TALLY_SUMMARY_LISTENER}
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
