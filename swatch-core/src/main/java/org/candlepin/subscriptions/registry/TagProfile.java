@@ -291,4 +291,22 @@ public class TagProfile {
     }
     return engProductIdToSwatchProductIdsMap;
   }
+
+  /**
+   * Determine if a given product Id is PAYG Eligible based on the billing model from the tag
+   * profile registry
+   *
+   * @param productId
+   * @return boolean
+   */
+  public boolean isProductPAYGEligible(String productId) {
+
+    var tagMeta = this.getTagMetaDataByTag(productId);
+    if (tagMeta.isPresent()) {
+      var billingModel = tagMeta.get().getBillingModel();
+      return StringUtils.hasText(billingModel) && "PAYG".equalsIgnoreCase(billingModel);
+    }
+
+    return false;
+  }
 }

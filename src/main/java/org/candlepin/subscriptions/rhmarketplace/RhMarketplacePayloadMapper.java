@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /** Maps TallySummary to payload contents to be sent to RHM apis */
 @Service
@@ -54,7 +53,6 @@ public class RhMarketplacePayloadMapper {
 
   public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR =
       "redhat.com:openshift_dedicated:4cpu_hour";
-  public static final String PAYG_BILLING = "PAYG";
 
   private final AccountService accountService;
   private final RhMarketplaceSubscriptionIdProvider idProvider;
@@ -100,13 +98,7 @@ public class RhMarketplacePayloadMapper {
   protected boolean isSnapshotPAYGEligible(TallySnapshot snapshot) {
     String productId = snapshot.getProductId();
 
-    boolean isApplicableProduct = false;
-    var tagMeta = tagProfile.getTagMetaDataByTag(productId);
-    if (tagMeta.isPresent()) {
-      var billingModel = tagMeta.get().getBillingModel();
-      isApplicableProduct =
-          StringUtils.hasText(billingModel) && PAYG_BILLING.equalsIgnoreCase(billingModel);
-    }
+    boolean isApplicableProduct = tagProfile.isProductPAYGEligible(productId);
 
     boolean isHourlyGranularity =
         Objects.equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
@@ -165,7 +157,7 @@ public class RhMarketplacePayloadMapper {
     List<UsageEvent> events = new ArrayList<>();
     for (TallySnapshot snapshot : eligibleSnapshots) {
       String productId = snapshot.getProductId();
-      // billingAcctID is a temp is _ANY for now, as HostTallyBucket doesn't accept null.
+      // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
       String billingAcctId = "_ANY";
 
       // call MarketplaceIdProvider.findSubscriptionId once available
