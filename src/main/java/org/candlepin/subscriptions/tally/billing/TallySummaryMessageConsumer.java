@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally.billing;
 
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
