@@ -293,6 +293,8 @@ public class CombiningRollupSnapshotStrategy {
                     granularity,
                     usageKey.getSla(),
                     usageKey.getUsage(),
+                    usageKey.getBillingProvider(),
+                    usageKey.getBillingAccountId(),
                     offset);
 
             TallySnapshot existing = affectedSnaps.remove(snapshotKey);
@@ -417,6 +419,8 @@ public class CombiningRollupSnapshotStrategy {
                   granularity,
                   usageKey.getSla(),
                   usageKey.getUsage(),
+                  usageKey.getBillingProvider(),
+                  usageKey.getBillingAccountId(),
                   snapshotDate);
           TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
           TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
