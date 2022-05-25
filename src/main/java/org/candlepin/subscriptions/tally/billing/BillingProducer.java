@@ -40,17 +40,14 @@ public class BillingProducer {
 
   private KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate;
   private String billableUsageTopic;
-  private BillableUsageEvaluator billableUsageEvaluator;
 
   @Autowired
   public BillingProducer(
       @Qualifier("billableUsageTopicProperties") TaskQueueProperties billableUsageTopicProperties,
       @Qualifier("billableUsageKafkaTemplate")
-          KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate,
-      BillableUsageEvaluator billableUsageEvaluator) {
+          KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate) {
     this.billableUsageKafkaTemplate = billableUsageKafkaTemplate;
     this.billableUsageTopic = billableUsageTopicProperties.getTopic();
-    this.billableUsageEvaluator = billableUsageEvaluator;
   }
 
   public void produce(BillableUsage tallySummary) {

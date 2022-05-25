@@ -38,6 +38,7 @@ class BillingProducerTest {
 
   private TaskQueueProperties billableUsageTopicProps;
   private BillingProducer producer;
+  private BillableUsageEvaluator billableUsageEvaluator;
 
   @BeforeEach
   void setupTest() {
@@ -45,7 +46,7 @@ class BillingProducerTest {
     billableUsageTopicProps.setTopic("billable-usage");
 
     this.producer =
-        new BillingProducer(billableUsageTopicProps, kafka, billableUsageRemittanceRepository);
+        new BillingProducer(billableUsageTopicProps, kafka);
   }
 
   @Test
@@ -54,4 +55,5 @@ class BillingProducerTest {
     producer.produce(usage);
     verify(kafka).send(billableUsageTopicProps.getTopic(), usage);
   }
+
 }

@@ -61,8 +61,16 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
   public void receive(TallySummary tallySummary) {
     log.debug("Tally Summary received. Producing billable usage.}");
 
-    var usage = billableUsageEvaluator.evaluateMe(tallySummary);
+    billableUsageEvaluator.expandIntoBillingUsageRemittanceEntities(tallySummary).stream()
+        .forEach(
+            thing -> {
 
-    this.billingProducer.produce(usage);
+              // TODO how do we want to update the embedded (Tally Summary -> Tally Measurement ->
+              // value) if we performed some magic on it
+              this.billingProducer.produce(
+                  billableUsageEvaluator.transformMeToBillableUsage(tallySummary));
+
+              billableUsageEvaluator.saveATrackingTableThing(thing);
+            });
   }
 }

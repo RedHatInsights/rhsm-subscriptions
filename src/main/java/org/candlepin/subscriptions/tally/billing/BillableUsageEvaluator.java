@@ -29,6 +29,7 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySnapshot;
+import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.springframework.stereotype.Service;
 
@@ -43,47 +44,89 @@ public class BillableUsageEvaluator {
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
   }
 
-  public BillableUsage evaluateMe(TallySummary tallySummary) {
+  public BillableUsage transformMeToBillableUsage(TallySummary tallySummary) {
 
-    var trackingTableRecords = saveThisPuppyToTheTrackingTable(tallySummary);
 
-    log.info("Tracking Table Records: {}", trackingTableRecords);
+
 
     return new BillableUsage()
         .withAccountNumber(tallySummary.getAccountNumber())
         .withBillableTallySnapshots(tallySummary.getTallySnapshots());
   }
 
-  private List<BillableUsageRemittanceEntity> saveThisPuppyToTheTrackingTable(
+  List<BillableUsageRemittanceEntity> expandIntoBillingUsageRemittanceEntities(
       TallySummary tallySummary) {
 
-    var saved = new ArrayList<BillableUsageRemittanceEntity>();
-
-    var accountNumber = tallySummary.getAccountNumber();
+    var unsavedBillableUsageRemittanceEntities = new ArrayList<BillableUsageRemittanceEntity>();
 
     for (TallySnapshot tallySnapshot : tallySummary.getTallySnapshots()) {
 
       for (TallyMeasurement tallyMeasurement : tallySnapshot.getTallyMeasurements()) {
+
         BillableUsageRemittanceEntity record =
             BillableUsageRemittanceEntity.builder()
-                .usage(tallySnapshot.getUsage().toString())
-                .accountNumber(accountNumber)
-                .billingProvider(tallySnapshot.getProductId())
+                .usage(tallySnapshot.getUsage().value())
+                .accountNumber(tallySummary.getAccountNumber())
+                .billingProvider(tallySnapshot.getBillingProvider().value())
                 .billingAccountId(tallySnapshot.getBillingAccountId())
-                .granularity(tallySnapshot.getGranularity().toString())
+                .granularity(tallySnapshot.getGranularity().value())
                 .productId(tallySnapshot.getProductId())
-                .sla(tallySnapshot.getSla().toString())
+                .sla(tallySnapshot.getSla().value())
                 .snapshotDate(tallySnapshot.getSnapshotDate())
-                .metricId(tallyMeasurement.getUom().toString())
-                .month("2022-05") // TODO
+                .metricId(tallyMeasurement.getUom().value())
+                .month(determineMonth())
                 .remittanceDate(OffsetDateTime.now())
-                .remittedValue(tallyMeasurement.getValue())
+                .remittedValue(
+                    decideWhatValueToSend(tallySnapshot.getBillingProvider(), tallyMeasurement))
                 .build();
 
-        saved.add(billableUsageRemittanceRepository.save(record));
+        unsavedBillableUsageRemittanceEntities.add(record);
       }
     }
 
-    return saved;
+    return unsavedBillableUsageRemittanceEntities;
+  }
+
+  // TODO
+  private String determineMonth() {
+
+    return "2022-05";
+  }
+
+  private Double decideWhatValueToSend(
+      BillingProvider billingProvider, TallyMeasurement tallyMeasurement) {
+
+    switch (billingProvider) {
+      case AWS:
+        return performSomeMagic(tallyMeasurement);
+      default:
+        break;
+    }
+
+    return tallyMeasurement.getValue();
+  }
+
+  /**
+   * @param tallyMeasurement
+   * @return Double
+   */
+  private Double performSomeMagic(TallyMeasurement tallyMeasurement) {
+    /* for AWS this means:
+
+    - get the value of the measurement
+    - look up instance monthly value
+    - if(tallyMeasurement.getValue() - instance_monthly_value) >= 1, return ceil(tallyMeasurement.getValue())
+
+    we're going to ship it to swatch-producer-aws
+    and update the billable_usage_remittance tracking table
+
+    */
+    return tallyMeasurement.getValue();
+  }
+
+  public BillableUsageRemittanceEntity saveATrackingTableThing(
+      BillableUsageRemittanceEntity billableUsage) {
+
+    return billableUsageRemittanceRepository.save(billableUsage);
   }
 }
