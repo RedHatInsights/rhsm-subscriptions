@@ -9,18 +9,30 @@
   <changeSet id="202205231334" author="lburnett">
     <comment>Create billable_usage_remittance tracking table</comment>
 
+    <sql>
+        create table if not exists billable_usage_remittance
+        (
+        account_number     varchar(32)              not null,
+        product_id         varchar(32)              not null,
+        metric_id          varchar(32)              not null,
+        month              varchar(255)             not null,
+        remitted_value     double precision         not null,
+        remittance_date    timestamp with time zone not null,
+        granularity        varchar(32)              not null,
+        snapshot_date      timestamp with time zone not null,
+        sla                varchar(32)              not null,
+        usage              varchar(32)              not null,
+        billing_provider   varchar(32)              not null,
+        billing_account_id varchar(255)             not null,
+        primary key (account_number, product_id, metric_id, month, granularity, snapshot_date, sla, usage, billing_provider,
+        billing_account_id)
+        );
 
-<!--    account-->
-<!--    productId-->
-<!--    metricId-->
-<!--    month	2022-03	add month varchar(255) not null;-->
-<!--    remitted_usage-->
-<!--    latest_remittance-->
+        comment on constraint billable_usage_remittance_pkey on billable_usage_remittance is 'loosely based on tally snapshot natural key';
 
-    <createTable tableName="billable_usage">
-      <column name="account_number"></column>
-      <column name="account"></column>
-    </createTable>
+        alter table billable_usage_remittance
+        owner to "rhsm-subscriptions";
+    </sql>
 
   </changeSet>
 </databaseChangeLog>
