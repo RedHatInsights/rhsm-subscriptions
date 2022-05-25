@@ -38,6 +38,7 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
@@ -45,16 +46,7 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
-import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.TallyReport;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -121,7 +113,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel._ANY),
                 Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -149,7 +141,7 @@ class TallyResourceTest {
             ServiceLevel._ANY,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -193,7 +185,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel.PREMIUM),
                 Mockito.eq(Usage._ANY),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -220,7 +212,7 @@ class TallyResourceTest {
             ServiceLevel.PREMIUM,
             Usage._ANY,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -248,7 +240,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel.EMPTY),
                 Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -276,7 +268,7 @@ class TallyResourceTest {
             ServiceLevel.EMPTY,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -303,7 +295,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel.PREMIUM),
                 Mockito.eq(Usage.EMPTY),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -331,7 +323,7 @@ class TallyResourceTest {
             ServiceLevel.PREMIUM,
             Usage.EMPTY,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -358,7 +350,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel.PREMIUM),
                 Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -386,7 +378,7 @@ class TallyResourceTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -424,7 +416,7 @@ class TallyResourceTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
-                null,
+                "_ANY",
                 OffsetDateTime.parse("2019-05-01T00:00Z"),
                 OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
                 null))
@@ -470,7 +462,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel.PREMIUM),
                 Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -498,7 +490,7 @@ class TallyResourceTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -517,7 +509,7 @@ class TallyResourceTest {
                 Mockito.eq(ServiceLevel.PREMIUM),
                 Mockito.eq(Usage.PRODUCTION),
                 Mockito.eq(BillingProvider._ANY),
-                Mockito.eq(null),
+                Mockito.eq("_ANY"),
                 Mockito.eq(min),
                 Mockito.eq(max),
                 Mockito.any(Pageable.class)))
@@ -546,7 +538,7 @@ class TallyResourceTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            null,
+            "_ANY",
             min,
             max,
             expectedPageable);
@@ -581,7 +573,7 @@ class TallyResourceTest {
                 ServiceLevel._ANY,
                 Usage._ANY,
                 BillingProvider._ANY,
-                null,
+                "_ANY",
                 min,
                 max,
                 null))
@@ -627,7 +619,7 @@ class TallyResourceTest {
                 ServiceLevel._ANY,
                 Usage._ANY,
                 BillingProvider._ANY,
-                null,
+                "_ANY",
                 min,
                 max,
                 null))
@@ -1058,5 +1050,43 @@ class TallyResourceTest {
             .value(7.0)
             .hasData(true);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+  }
+
+  @Test
+  void testTallyReportTotalMonthlyPopulatedWithBillingProvider() {
+    TallySnapshot snapshot1 = new TallySnapshot();
+    snapshot1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
+    snapshot1.setGranularity(Granularity.DAILY);
+    snapshot1.setBillingProvider(BillingProvider.RED_HAT);
+    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    TallySnapshot snapshot2 = new TallySnapshot();
+    snapshot2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
+    snapshot2.setGranularity(Granularity.DAILY);
+    snapshot2.setBillingProvider(BillingProvider.RED_HAT);
+    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 3.0);
+    when(repository.findSnapshot(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2021-11-01T00:00Z"),
+            OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+            null,
+            null,
+            null,
+            BillingProviderType.RED_HAT,
+            null,
+            null,
+            null);
+    TallyReportDataPoint expectedTotalMonthly =
+        new TallyReportDataPoint()
+            .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
+            .value(7.0)
+            .hasData(true);
+    assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+    assertEquals(BillingProviderType.RED_HAT, response.getMeta().getBillingProvider());
   }
 }

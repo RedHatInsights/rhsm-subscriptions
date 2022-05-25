@@ -361,19 +361,22 @@ public class MetricUsageCollector {
             .map(Event.BillingProvider::toString)
             .map(BillingProvider::fromString)
             .orElse(BillingProvider.RED_HAT);
-    String billingAcctId =
+    String effectiveBillingAcctId =
         Optional.ofNullable(event.getBillingAccountId()).map(Optional::get).orElse("_ANY");
     Set<String> productIds = getProductIds(event);
+    Set<String> billingAcctIds = getBillingAccountIds(effectiveBillingAcctId);
 
     for (String productId : productIds) {
       for (ServiceLevel sla : Set.of(effectiveSla, ServiceLevel._ANY)) {
         for (Usage usage : Set.of(effectiveUsage, Usage._ANY)) {
           for (BillingProvider billingProvider : Set.of(effectiveProvider, BillingProvider._ANY)) {
-            HostTallyBucket bucket = new HostTallyBucket();
-            bucket.setKey(
-                new HostBucketKey(
-                    host, productId, sla, usage, billingProvider, billingAcctId, false));
-            host.addBucket(bucket);
+            for (String billingAccountId : billingAcctIds) {
+              HostTallyBucket bucket = new HostTallyBucket();
+              bucket.setKey(
+                  new HostBucketKey(
+                      host, productId, sla, usage, billingProvider, billingAccountId, false));
+              host.addBucket(bucket);
+            }
           }
         }
       }
@@ -390,6 +393,15 @@ public class MetricUsageCollector {
         .forEach(productIds::addAll);
 
     return productIds;
+  }
+
+  private Set<String> getBillingAccountIds(String billingAcctId) {
+    Set<String> billingAcctIds = new HashSet<>();
+    billingAcctIds.add("_ANY");
+    if (billingAcctId != null) {
+      billingAcctIds.add(billingAcctId);
+    }
+    return billingAcctIds;
   }
 
   @AllArgsConstructor

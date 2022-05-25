@@ -110,6 +110,7 @@ public class SnapshotSummaryProducer {
         .withSla(sla)
         .withUsage(usage)
         .withBillingProvider(billingProvider)
+        .withBillingAccountId(tallySnapshot.getBillingAccountId())
         .withTallyMeasurements(mapMeasurements(tallySnapshot.getTallyMeasurements()));
   }
 
