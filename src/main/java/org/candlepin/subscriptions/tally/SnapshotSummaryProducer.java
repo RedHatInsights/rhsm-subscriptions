@@ -102,7 +102,7 @@ public class SnapshotSummaryProducer {
         org.candlepin.subscriptions.json.TallySnapshot.BillingProvider.fromValue(
             tallySnapshot.getBillingProvider().getValue());
 
-    //TODO default values?
+    // TODO default values?
     var billingAccountId = tallySnapshot.getBillingAccountId();
 
     return new org.candlepin.subscriptions.json.TallySnapshot()
