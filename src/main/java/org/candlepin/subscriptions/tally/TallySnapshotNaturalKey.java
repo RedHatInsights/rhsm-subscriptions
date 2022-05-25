@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -38,6 +39,8 @@ public class TallySnapshotNaturalKey {
   private Granularity granularity;
   private ServiceLevel serviceLevel;
   private Usage usage;
+  private BillingProvider billingProvider;
+  private String billingAccountId;
   private OffsetDateTime referenceDate;
 
   public TallySnapshotNaturalKey(TallySnapshot snapshot) {
@@ -46,6 +49,8 @@ public class TallySnapshotNaturalKey {
     this.granularity = snapshot.getGranularity();
     this.serviceLevel = snapshot.getServiceLevel();
     this.usage = snapshot.getUsage();
+    this.billingProvider = snapshot.getBillingProvider();
     this.referenceDate = snapshot.getSnapshotDate();
+    this.billingAccountId = snapshot.getBillingAccountId();
   }
 }
