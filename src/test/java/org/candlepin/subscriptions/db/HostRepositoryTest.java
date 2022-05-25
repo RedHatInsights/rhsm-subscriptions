@@ -174,7 +174,7 @@ class HostRepositoryTest {
 
     Host host = new Host(expInventoryId, expInsightsId, expAccount, expOrg, expSubId);
     host.setBillingProvider(BillingProvider.RED_HAT);
-    host.setBillingAccountId("sellerAcctId");
+    host.setBillingAccountId("_ANY");
     host.setNumOfGuests(expGuests);
     host.setDisplayName(expDisplayName);
     host.setLastSeen(expLastSeen);
@@ -190,7 +190,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         false,
         expSockets,
         expCores,
@@ -205,7 +205,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -241,7 +241,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         false,
         4,
         2,
@@ -277,7 +277,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         false,
         4,
         2,
@@ -287,7 +287,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         4,
         2,
@@ -344,7 +344,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -365,7 +365,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -386,7 +386,7 @@ class HostRepositoryTest {
             ServiceLevel.SELF_SUPPORT,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -407,7 +407,7 @@ class HostRepositoryTest {
             ServiceLevel.SELF_SUPPORT,
             Usage.DISASTER_RECOVERY,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -472,7 +472,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -493,7 +493,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -518,7 +518,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -543,7 +543,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -568,7 +568,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -593,7 +593,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -618,7 +618,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -646,7 +646,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         4,
         2,
@@ -656,7 +656,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         false,
         10,
         5,
@@ -666,7 +666,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         4,
         2,
@@ -688,7 +688,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -739,8 +739,8 @@ class HostRepositoryTest {
             0,
             "2021-01",
             referenceUom,
-            null,
-            null,
+            BillingProvider._ANY,
+            "_ANY",
             page);
 
     assertEquals(2, results.getTotalElements());
@@ -779,7 +779,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider._ANY,
-        "sellerAcctId",
+        "_ANY",
         true,
         4,
         2,
@@ -795,7 +795,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
@@ -827,7 +827,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         0,
         1,
@@ -842,7 +842,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         1,
         0,
@@ -858,7 +858,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             1,
@@ -889,7 +889,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         0,
         1,
@@ -904,7 +904,7 @@ class HostRepositoryTest {
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider.RED_HAT,
-        "sellerAcctId",
+        "_ANY",
         true,
         1,
         0,
@@ -920,7 +920,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
-            "sellerAcctId",
+            "_ANY",
             SANITIZED_MISSING_DISPLAY_NAME,
             1,
             0,
@@ -944,14 +944,53 @@ class HostRepositoryTest {
   void testFilterByBillingModel() {
     Host host1 = createHost("i1", "a1");
     host1.setBillingProvider(BillingProvider.RED_HAT);
-    addBucketToHost(host1, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.RED_HAT);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     Host host2 = createHost("i2", "a1");
     host2.setBillingProvider(BillingProvider.AWS);
-    addBucketToHost(host2, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.AWS);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     Host host3 = createHost("i3", "a1");
-    addBucketToHost(host3, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.EMPTY);
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     persistHosts(host1, host2, host3);
 
@@ -971,7 +1010,7 @@ class HostRepositoryTest {
             null,
             null,
             BillingProvider.AWS,
-            null,
+            "_ANY",
             page);
     assertEquals(1L, results.getTotalElements());
     assertEquals(BillingProvider.AWS, results.getContent().get(0).getBillingProvider());
@@ -987,8 +1026,8 @@ class HostRepositoryTest {
             0,
             null,
             null,
-            null,
-            null,
+            BillingProvider._ANY,
+            "_ANY",
             page);
     assertEquals(3L, allResults.getTotalElements());
     Map<String, Host> hostToBill =
@@ -1006,18 +1045,70 @@ class HostRepositoryTest {
   void testSortByBillingProvider() {
     Host host1 = createHost("i1", "a1");
     host1.setBillingProvider(BillingProvider.RED_HAT);
-    addBucketToHost(host1, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.RED_HAT);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     Host host2 = createHost("i2", "a1");
     host2.setBillingProvider(BillingProvider.AWS);
-    addBucketToHost(host2, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.AWS);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     Host host3 = createHost("i3", "a1");
-    addBucketToHost(host3, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.EMPTY);
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     Host host4 = createHost("i4", "a1");
     host4.setBillingProvider(BillingProvider.ORACLE);
-    addBucketToHost(host4, COOL_PROD, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    addBucketToHost(
+        host4,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.ORACLE);
+    addBucketToHost(
+        host4,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
 
     persistHosts(host1, host2, host3, host4);
 
@@ -1038,8 +1129,8 @@ class HostRepositoryTest {
             0,
             null,
             null,
-            null,
-            null,
+            BillingProvider._ANY,
+            "_ANY",
             page);
     assertEquals(4L, results.getTotalElements());
     assertNull(results.getContent().get(0).getBillingProvider());
@@ -1081,7 +1172,7 @@ class HostRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider._ANY,
-            "sellerAcctId",
+            "_ANY",
             displayNameSubstring,
             cores,
             sockets,
@@ -1117,8 +1208,30 @@ class HostRepositoryTest {
       ServiceLevel sla,
       Usage usage,
       HardwareMeasurementType measurementType) {
+    return addBucketToHost(
+        host, productId, sla, usage, measurementType, BillingProvider._ANY, "_ANY");
+  }
+
+  private HostTallyBucket addBucketToHost(
+      Host host,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      HardwareMeasurementType measurementType,
+      BillingProvider billingProvider) {
+    return addBucketToHost(host, productId, sla, usage, measurementType, billingProvider, "_ANY");
+  }
+
+  private HostTallyBucket addBucketToHost(
+      Host host,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      HardwareMeasurementType measurementType,
+      BillingProvider billingProvider,
+      String billingAccountId) {
     return host.addBucket(
-        productId, sla, usage, BillingProvider._ANY, "sellerAcctId", true, 4, 2, measurementType);
+        productId, sla, usage, billingProvider, billingAccountId, true, 4, 2, measurementType);
   }
 
   private void assertTallyHostView(TallyHostView host, String inventoryId) {

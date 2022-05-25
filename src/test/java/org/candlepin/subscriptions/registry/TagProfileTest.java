@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,9 +51,11 @@ class TagProfileTest {
   private static final String RHEL_x86 = "RHEL for x86";
   private static final String OPENSHIFT_DEDICATED_TAG = "OpenShift-dedicated-metrics";
   public static final String OPENSHIFT_TAG = "OpenShift-metrics";
+  public static final String RHOSAK_TAG = "rhosak";
 
   private static final String OPENSHIFT_CLUSTER_ST = "OpenShift Cluster";
   private static final String KAFKA_CLUSTER_ST = "Kafka Cluster";
+  public static final String BILLING_MODEL_PAYG = "PAYG";
 
   private TagProfile tagProfile;
 
@@ -108,15 +111,17 @@ class TagProfileTest {
             .finestGranularity(Granularity.HOURLY)
             .defaultSla(ServiceLevel.PREMIUM)
             .defaultUsage(Usage.PRODUCTION)
+            .billingModel(BILLING_MODEL_PAYG)
             .build();
 
     TagMetaData kafkaClusterMetaData =
         TagMetaData.builder()
-            .tags(Set.of("kafka"))
+            .tags(Set.of(RHOSAK_TAG))
             .serviceType(KAFKA_CLUSTER_ST)
             .finestGranularity(Granularity.HOURLY)
             .defaultSla(ServiceLevel.PREMIUM)
             .defaultUsage(Usage.PRODUCTION)
+            .billingModel(BILLING_MODEL_PAYG)
             .build();
 
     tagProfile =
@@ -241,5 +246,15 @@ class TagProfileTest {
     Set<String> products = tagProfile.getOfferingProductNamesForTag(RHEL_DESKTOP_TAG);
     assertEquals(1, products.size());
     assertTrue(products.contains("RHEL Desktop"));
+  }
+
+  @Test
+  void testIsProductPAYGEligibleTrue() {
+    assertTrue(tagProfile.isProductPAYGEligible(ProductId.RHOSAK.toString()));
+  }
+
+  @Test
+  void testIsProductPAYGEligibleFalse() {
+    assertFalse(tagProfile.isProductPAYGEligible(ProductId.RHEL.toString()));
   }
 }

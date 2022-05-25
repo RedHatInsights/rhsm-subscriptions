@@ -360,10 +360,7 @@ public class MetricUsageCollector {
         Optional.ofNullable(event.getBillingProvider())
             .map(Event.BillingProvider::toString)
             .map(BillingProvider::fromString)
-            .orElse(
-                serviceTypeMeta
-                    .map(TagMetaData::getDefaultProvider)
-                    .orElse(BillingProvider.RED_HAT));
+            .orElse(BillingProvider.RED_HAT);
     String billingAcctId =
         Optional.ofNullable(event.getBillingAccountId()).map(Optional::get).orElse("_ANY");
     Set<String> productIds = getProductIds(event);
