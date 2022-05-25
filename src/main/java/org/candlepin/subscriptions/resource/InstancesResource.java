@@ -115,14 +115,8 @@ public class InstancesResource implements InstancesApi {
     String accountNumber = ResourceUtils.getAccountNumber();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-
-    // Must allow null for billing provider when looking up instances because
-    // the DB record does not have a default and can be null.
-    BillingProvider billingProvider = null;
-    if (Objects.nonNull(billingProviderType)
-        && StringUtils.hasText(billingProviderType.toString())) {
-      billingProvider = BillingProvider.fromString(billingProviderType.toString());
-    }
+    BillingProvider sanitizedBillingProvider = ResourceUtils.sanitizeBillingProvider(billingProviderType);
+    String sanitizedBillingAccountId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
@@ -161,8 +155,8 @@ public class InstancesResource implements InstancesApi {
             minSockets,
             month,
             referenceUom,
-            billingProvider,
-            billingAccountId,
+            sanitizedBillingProvider,
+            sanitizedBillingAccountId,
             page);
     payload =
         hosts.getContent().stream()

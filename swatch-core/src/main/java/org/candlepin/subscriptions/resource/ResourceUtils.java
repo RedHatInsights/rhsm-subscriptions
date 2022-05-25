@@ -157,4 +157,11 @@ public class ResourceUtils {
         ? BillingProvider._ANY
         : BillingProvider.fromString(billingProvider.toString());
   }
+
+  public static String sanitizeBillingAccountId(String billingAccountId) {
+
+    return Objects.isNull(billingAccountId) || billingAccountId.isBlank()
+        ? "_ANY"
+        : billingAccountId;
+  }
 }
