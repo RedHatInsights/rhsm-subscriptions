@@ -54,6 +54,8 @@ import org.springframework.util.StringUtils;
 @NoArgsConstructor
 @ToString
 public class TagProfile {
+
+  public static final String PAYG_BILLING = "PAYG";
   @Getter @Setter private List<TagMapping> tagMappings;
   @Getter @Setter private List<TagMetric> tagMetrics;
   @Getter @Setter private List<TagMetaData> tagMetaData;
@@ -316,7 +318,7 @@ public class TagProfile {
     var tagMeta = this.getTagMetaDataByTag(productId);
     if (tagMeta.isPresent()) {
       var billingModel = tagMeta.get().getBillingModel();
-      return StringUtils.hasText(billingModel) && "PAYG".equalsIgnoreCase(billingModel);
+      return StringUtils.hasText(billingModel) && PAYG_BILLING.equalsIgnoreCase(billingModel);
     }
 
     return false;

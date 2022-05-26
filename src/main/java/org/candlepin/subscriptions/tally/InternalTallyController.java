@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.registry.TagProfile;
-import org.candlepin.subscriptions.rhmarketplace.RhMarketplacePayloadMapper;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.validator.Uuid;
 import org.slf4j.Logger;
@@ -86,7 +85,7 @@ public class InternalTallyController {
 
   @Transactional
   public int emitPaygRollups(LocalDate date) {
-    var paygProducts = tagProfile.getTagsForBillingModel(RhMarketplacePayloadMapper.PAYG_BILLING);
+    var paygProducts = tagProfile.getTagsForBillingModel(TagProfile.PAYG_BILLING);
     var start = clock.startOfDayUTC(date);
     var end = clock.endOfDayUTC(date);
 
