@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.kafka;
 
-import com.redhat.swatch.openapi.model.TallySummary;
+import com.redhat.swatch.openapi.model.BillableUsage;
 import io.quarkus.kafka.client.serialization.JsonbSerializer;
 
-/** Provides quarkus a hint that we want to use JSON-B to serialize TallySummary objects */
-public class TallySummarySerializer extends JsonbSerializer<TallySummary> {}
+/** Provides quarkus a hint that we want to use JSON-B to serialize BillableUsage objects */
+public class BillableUsageSerializer extends JsonbSerializer<BillableUsage> {}

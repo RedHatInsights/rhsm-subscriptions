@@ -18,27 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.processors;
+package com.redhat.swatch.kafka;
 
-import com.redhat.swatch.openapi.model.TallySummary;
-import javax.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
+import com.redhat.swatch.openapi.model.BillableUsage;
+import io.quarkus.kafka.client.serialization.JsonbDeserializer;
 
-@Slf4j
-@ApplicationScoped
-public class TallySummaryProducer {
+/** Provides quarkus a hint that we want to use JSON-B to deserialize BillableUsage objects */
+public class BillableUsageDeserializer extends JsonbDeserializer<BillableUsage> {
 
-  private final Emitter<TallySummary> emitter;
-
-  public TallySummaryProducer(@Channel("tally-out") Emitter<TallySummary> emitter) {
-    this.emitter = emitter;
-  }
-
-  public void queueTallySummary(TallySummary tallySummary) {
-    emitter.send(tallySummary);
-
-    log.info("Queued up a TallySummary object to the tally topic");
+  public BillableUsageDeserializer() {
+    super(BillableUsage.class);
   }
 }

@@ -21,31 +21,31 @@
 package com.redhat.swatch.resource;
 
 import com.redhat.swatch.exception.AwsManualSubmissionDisabledException;
-import com.redhat.swatch.openapi.model.TallySummary;
+import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.resource.DefaultApi;
-import com.redhat.swatch.processors.TallySummaryProducer;
+import com.redhat.swatch.processors.BillableUsageProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
-public class TallySummaryResource implements DefaultApi {
-  private final TallySummaryProducer tallySummaryProducer;
+public class BillableUsageResource implements DefaultApi {
+  private final BillableUsageProducer tallySummaryProducer;
   private final boolean manualSubmissionEnabled;
 
-  TallySummaryResource(
-      TallySummaryProducer tallySummaryProducer,
+  BillableUsageResource(
+      BillableUsageProducer tallySummaryProducer,
       @ConfigProperty(name = "AWS_MANUAL_SUBMISSION_ENABLED") boolean manualSubmissionEnabled) {
     this.tallySummaryProducer = tallySummaryProducer;
     this.manualSubmissionEnabled = manualSubmissionEnabled;
   }
 
   @Override
-  public void submitTallySummary(TallySummary tallySummary) {
+  public void submitBillableUsage(BillableUsage billableUsage) {
     if (!manualSubmissionEnabled) {
       throw new AwsManualSubmissionDisabledException();
     }
-    log.info("{}", tallySummary);
+    log.info("{}", billableUsage);
 
-    tallySummaryProducer.queueTallySummary(tallySummary);
+    tallySummaryProducer.queueBillableUsage(billableUsage);
   }
 }
