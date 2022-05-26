@@ -46,9 +46,6 @@ public class BillableUsageEvaluator {
 
   public BillableUsage transformMeToBillableUsage(TallySummary tallySummary) {
 
-
-
-
     return new BillableUsage()
         .withAccountNumber(tallySummary.getAccountNumber())
         .withBillableTallySnapshots(tallySummary.getTallySnapshots());
@@ -114,11 +111,9 @@ public class BillableUsageEvaluator {
     /* for AWS this means:
 
     - get the value of the measurement
-    - look up instance monthly value
+    - look up instance monthly value - best way to do this?  do we want to query the instance_monthly_totals table now,
+    or maybe we want to update the tallySummary event we pull from the topic to include it?
     - if(tallyMeasurement.getValue() - instance_monthly_value) >= 1, return ceil(tallyMeasurement.getValue())
-
-    we're going to ship it to swatch-producer-aws
-    and update the billable_usage_remittance tracking table
 
     */
     return tallyMeasurement.getValue();
