@@ -170,6 +170,7 @@ tagMetrics:
   # OCP metrics
   - tag: OpenShift-metrics
     metricId: redhat.com:openshift_container_platform:cpu_hour
+    rhmMetricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
     queryKey: 5mSamples
     queryParams:
@@ -180,6 +181,7 @@ tagMetrics:
   # OSD metrics
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
+    rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
     queryKey: 5mSamples
     queryParams:
@@ -188,6 +190,7 @@ tagMetrics:
       prometheusMetadataMetric: subscription_labels
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
+    rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
     queryKey: 5mSamples
     queryParams:
@@ -198,6 +201,7 @@ tagMetrics:
   # RHOSAK metrics
   - tag: rhosak
     metricId: redhat.com:rhosak:storage_gb
+    rhmMetricId: redhat.com:rhosak:storage_gb
     awsDimension: redhat.com:rhosak:storage_gb
     uom: STORAGE_GIBIBYTES
     queryParams:
@@ -207,6 +211,7 @@ tagMetrics:
   - tag: rhosak
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
     metricId: redhat.com:rhosak:transfer_gb
+    rhmMetricId: redhat.com:rhosak:transfer_gb
     awsDimension: redhat.com:rhosak:transfer_gb
     uom: TRANSFER_GIBIBYTES
     queryParams:
@@ -215,6 +220,7 @@ tagMetrics:
       prometheusMetadataMetric: subscription_labels
   - tag: rhosak
     metricId: redhat.com:rhosak:cluster_hour
+    rhmMetricId: redhat.com:rhosak:cluster_hour
     awsDimension: redhat.com:rhosak:cluster_hour
     uom: INSTANCE_HOURS
     queryParams:

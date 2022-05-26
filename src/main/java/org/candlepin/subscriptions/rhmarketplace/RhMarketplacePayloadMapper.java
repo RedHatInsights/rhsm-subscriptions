@@ -236,7 +236,8 @@ public class RhMarketplacePayloadMapper {
                     measurement.getHardwareMeasurementType()))
         .forEach(
             measurement -> {
-              String metricId = tagProfile.metricIdForTagAndUom(productId, measurement.getUom());
+              String rhmMarketplaceMetricId =
+                  tagProfile.rhmMetricIdForTagAndUom(productId, measurement.getUom());
               Double value = measurement.getValue();
 
               // RHM is expecting counts of 4 vCPU-hour blocks, but currently does not have a way
@@ -246,7 +247,7 @@ public class RhMarketplacePayloadMapper {
               // definition
               // itself so that we are not hard coding this type of value in our code. This will do
               // for now.
-              if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(metricId)
+              if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(rhmMarketplaceMetricId)
                   && !Objects.isNull(value)
                   && Uom.CORES.equals(measurement.getUom())) {
                 value = value / 4;
@@ -258,7 +259,7 @@ public class RhMarketplacePayloadMapper {
 
               UsageMeasurement usageMeasurement = new UsageMeasurement();
               usageMeasurement.setValue(value);
-              usageMeasurement.setMetricId(metricId);
+              usageMeasurement.setMetricId(rhmMarketplaceMetricId);
               usageMeasurements.add(usageMeasurement);
             });
     return usageMeasurements;

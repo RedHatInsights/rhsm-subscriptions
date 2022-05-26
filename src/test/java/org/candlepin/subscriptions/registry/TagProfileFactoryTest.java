@@ -70,7 +70,7 @@ class TagProfileFactoryTest {
   @Test
   void testCanLookupMetricIdByTagAndUom() {
     assertNotNull(
-        tagProfile.metricIdForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
+        tagProfile.rhmMetricIdForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
   }
 
   @Test
