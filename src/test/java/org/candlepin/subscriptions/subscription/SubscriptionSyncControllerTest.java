@@ -20,17 +20,12 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +70,7 @@ class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
   public static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
+  public static final String PAYG_PRODUCT_NAME = "OpenShift Dedicated";
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
@@ -418,6 +414,76 @@ class SubscriptionSyncControllerTest {
     assertEquals(1, actual.size());
     assertEquals("abc", actual.get(0).getBillingProviderId());
     verify(subscriptionService, times(1)).getSubscriptionsByOrgId("org1000");
+  }
+
+  @Test
+  void terminateActivePAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName(PAYG_PRODUCT_NAME);
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(mockProfile.isProductPAYGEligible("testsku")).thenReturn(true);
+
+    var termination = OffsetDateTime.now();
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void lateTerminateActivePAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName(PAYG_PRODUCT_NAME);
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))
+        .thenReturn("OpenShift-dedicated-metrics");
+    when(mockProfile.isProductPAYGEligible("OpenShift-dedicated-metrics")).thenReturn(true);
+
+    var termination = OffsetDateTime.now().minusDays(1);
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(
+        result,
+        matchesPattern("Subscription 456 terminated at .* with out of range termination date .*"));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void terminateInTheFutureActivePAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName(PAYG_PRODUCT_NAME);
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+
+    when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))
+        .thenReturn("OpenShift-dedicated-metrics");
+    when(mockProfile.isProductPAYGEligible("OpenShift-dedicated-metrics")).thenReturn(true);
+
+    var termination = OffsetDateTime.now().plusDays(1);
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(
+        result,
+        matchesPattern("Subscription 456 terminated at .* with out of range termination date .*"));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void terminateActiveNonPAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName("Random Product");
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(mockProfile.tagForOfferingProductName("Random Product")).thenReturn("random");
+    when(mockProfile.isProductPAYGEligible("random")).thenReturn(false);
+
+    var termination = OffsetDateTime.now();
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
+    assertEquals(termination, s.getEndDate());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {
