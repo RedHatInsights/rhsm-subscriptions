@@ -786,6 +786,16 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
         - name: beginning
           in: query
           schema:

@@ -80,7 +80,7 @@ class InternalSubscriptionResourceTest {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(meterRegistry, syncController);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
@@ -100,7 +100,7 @@ class InternalSubscriptionResourceTest {
     sub1.setBillingProviderId("foo1;foo2;foo3");
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
-    when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(

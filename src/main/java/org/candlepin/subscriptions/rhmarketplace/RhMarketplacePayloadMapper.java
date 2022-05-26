@@ -166,7 +166,7 @@ public class RhMarketplacePayloadMapper {
               productId,
               ServiceLevel.fromString(snapshot.getSla().toString()),
               Usage.fromString(snapshot.getUsage().toString()),
-              BillingProvider.fromString(snapshot.getBillingProvider().toString()),
+              BillingProvider.RED_HAT,
               billingAcctId);
 
       OffsetDateTime snapshotDate = snapshot.getSnapshotDate();

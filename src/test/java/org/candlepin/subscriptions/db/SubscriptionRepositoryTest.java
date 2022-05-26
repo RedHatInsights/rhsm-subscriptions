@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -93,8 +94,18 @@ class SubscriptionRepositoryTest {
             "sellerAcctId");
     Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
     assertEquals(1, resultList.size());
 
     var result = resultList.get(0);
@@ -126,8 +137,18 @@ class SubscriptionRepositoryTest {
             "sellerAcctId");
     Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
     var result =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
     assertEquals(0, result.size());
   }
 
@@ -153,8 +174,18 @@ class SubscriptionRepositoryTest {
             "wrongSellerAccount");
     Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
 
     assertEquals(0, resultList.size());
   }
@@ -184,8 +215,18 @@ class SubscriptionRepositoryTest {
     Set<String> productNames = Set.of("Test SKU 1");
 
     var resultList =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW, BillingProvider.RED_HAT);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
 
     assertEquals(2, resultList.size());
 

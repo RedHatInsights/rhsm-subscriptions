@@ -72,7 +72,7 @@ public class InternalSubscriptionResource implements InternalApi {
             "_ANY");
     List<Subscription> subscriptions =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber, Optional.empty(), usageKey, date, date, BillingProvider.AWS);
+            accountNumber, Optional.empty(), usageKey, date, date);
     if (subscriptions.isEmpty()) {
       missingSubscriptionCounter.increment();
       throw new NotFoundException();

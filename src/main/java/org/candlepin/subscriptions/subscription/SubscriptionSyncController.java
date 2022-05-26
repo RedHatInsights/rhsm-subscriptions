@@ -40,9 +40,10 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
@@ -55,6 +56,7 @@ import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -380,8 +382,7 @@ public class SubscriptionSyncController {
       Optional<String> orgId,
       Key usageKey,
       OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd,
-      BillingProvider billingProvider) {
+      OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -392,9 +393,21 @@ public class SubscriptionSyncController {
       return Collections.emptyList();
     }
 
+    ReportCriteria subscriptionCriteria =
+        ReportCriteria.builder()
+            .accountNumber(accountNumber)
+            .productNames(productNames)
+            .serviceLevel(usageKey.getSla())
+            .usage(usageKey.getUsage())
+            .billingProvider(usageKey.getBillingProvider())
+            .billingAccountId(usageKey.getBillingAccountId())
+            .payg(true)
+            .beginning(rangeStart)
+            .ending(rangeEnd)
+            .build();
     List<org.candlepin.subscriptions.db.model.Subscription> result =
-        subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
-            accountNumber, usageKey, productNames, rangeStart, rangeEnd, billingProvider);
+        subscriptionRepository.findByCriteria(
+            subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
 
     if (result.isEmpty()) {
       /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
@@ -405,16 +418,15 @@ public class SubscriptionSyncController {
       log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
       forceSyncSubscriptionsForOrg(orgId.get());
       result =
-          subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
-              accountNumber, usageKey, productNames, rangeStart, rangeEnd, billingProvider);
+          subscriptionRepository.findByCriteria(
+              subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
     }
 
     if (result.isEmpty()) {
       log.error(
-          "No subscription found for account {} with key {} and product names {}",
+          "No subscription found for account {} with criteria {}",
           accountNumber,
-          usageKey,
-          productNames);
+          subscriptionCriteria);
     }
 
     return result;
