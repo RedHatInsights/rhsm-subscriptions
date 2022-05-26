@@ -74,6 +74,7 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
+  public static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
@@ -333,9 +334,19 @@ class SubscriptionSyncControllerTest {
   @Test
   void doesNotAllowReservedValuesInKey() {
     UsageCalculation.Key key1 =
-        new Key(String.valueOf(1), ServiceLevel._ANY, Usage.PRODUCTION, BillingProvider._ANY, null);
+        new Key(
+            String.valueOf(1),
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            BILLING_ACCOUNT_ID_ANY);
     UsageCalculation.Key key2 =
-        new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage._ANY, BillingProvider._ANY, null);
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage._ANY,
+            BillingProvider._ANY,
+            BILLING_ACCOUNT_ID_ANY);
     Optional<String> orgId = Optional.of("org1000");
 
     assertThrows(

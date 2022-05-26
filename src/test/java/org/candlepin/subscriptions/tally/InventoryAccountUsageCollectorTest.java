@@ -33,7 +33,6 @@ import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,7 +56,6 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
@@ -73,8 +71,8 @@ class InventoryAccountUsageCollectorTest {
 
   public static final Set<String> RHEL_PRODUCTS = new HashSet<>(Arrays.asList(TEST_PRODUCT));
   public static final Set<String> NON_RHEL_PRODUCTS = new HashSet<>(Arrays.asList(NON_RHEL));
+  private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
 
-  @MockBean private BuildProperties buildProperties;
   @MockBean private InventoryRepository inventoryRepo;
   @MockBean private HostRepository hostRepo;
   @MockBean private AccountServiceInventoryRepository accountServiceInventoryRepository;
@@ -336,7 +334,7 @@ class InventoryAccountUsageCollectorTest {
         ServiceLevel.EMPTY,
         Usage._ANY,
         BillingProvider._ANY,
-        null,
+        BILLING_ACCOUNT_ID_ANY,
         16,
         16,
         2);
@@ -348,7 +346,7 @@ class InventoryAccountUsageCollectorTest {
         ServiceLevel.EMPTY,
         Usage.DEVELOPMENT_TEST,
         BillingProvider._ANY,
-        null,
+        BILLING_ACCOUNT_ID_ANY,
         6,
         6,
         1);
@@ -360,7 +358,7 @@ class InventoryAccountUsageCollectorTest {
         ServiceLevel.EMPTY,
         Usage.PRODUCTION,
         BillingProvider._ANY,
-        null,
+        BILLING_ACCOUNT_ID_ANY,
         10,
         10,
         1);
@@ -400,7 +398,7 @@ class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
+  void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() {
     String account = "A1";
 
     InventoryHostFacts h1 =
@@ -428,8 +426,7 @@ class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount()
-      throws IOException {
+  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount() {
     String account = "A1";
 
     InventoryHostFacts h1 =
@@ -751,7 +748,7 @@ class InventoryAccountUsageCollectorTest {
         serviceLevel,
         Usage._ANY,
         BillingProvider._ANY,
-        null,
+        BILLING_ACCOUNT_ID_ANY,
         cores,
         sockets,
         instances);
@@ -825,7 +822,8 @@ class InventoryAccountUsageCollectorTest {
   }
 
   private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla) {
-    return new UsageCalculation.Key(product, sla, Usage._ANY, BillingProvider._ANY, null);
+    return new UsageCalculation.Key(
+        product, sla, Usage._ANY, BillingProvider._ANY, BILLING_ACCOUNT_ID_ANY);
   }
 
   private UsageCalculation.Key createUsageKey(

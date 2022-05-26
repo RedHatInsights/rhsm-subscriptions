@@ -113,7 +113,8 @@ public class CloudigradeAccountUsageCollector {
     if (usageCount.getUsage() == null) {
       usage = Usage._ANY;
     }
-    return new UsageCalculation.Key(productId, sla, usage, BillingProvider._ANY, null);
+
+    return new UsageCalculation.Key(productId, sla, usage, BillingProvider._ANY, "_ANY");
   }
 
   private String extractProductId(

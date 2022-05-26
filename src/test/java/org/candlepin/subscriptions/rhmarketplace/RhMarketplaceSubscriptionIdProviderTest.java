@@ -60,7 +60,7 @@ class RhMarketplaceSubscriptionIdProviderTest {
             "account123",
             "org123",
             new Key(
-                "productId", ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, null),
+                "productId", ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, "_ANY"),
             OffsetDateTime.MIN,
             OffsetDateTime.MAX);
     Counter counter = meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
@@ -84,7 +84,7 @@ class RhMarketplaceSubscriptionIdProviderTest {
             "account123",
             "org123",
             new Key(
-                "productId", ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, null),
+                "productId", ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, "_ANY"),
             OffsetDateTime.MIN,
             OffsetDateTime.MAX);
     Counter counter =
