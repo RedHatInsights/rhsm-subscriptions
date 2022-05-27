@@ -61,12 +61,50 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
   public void receive(TallySummary tallySummary) {
     log.debug("Tally Summary received. Producing billable usage.}");
 
+    /*
+            {
+              "account_number": "account123",
+              "tally_snapshots": [
+                {
+                  "id": "2b1ca6a5-2afe-4d84-9379-8a6d28a4b781",
+                  "billing_provider": "red hat",
+                  "billing_account_id": "456",
+                  "snapshot_date": 1652911085.53094,
+                  "product_id": "rhosak",
+                  "sla": "Premium",
+                  "usage": "Production",
+                  "granularity": "Hourly",
+                  "tally_measurements": [{ "uom": "Cores", "value": 1.0 }]
+                }
+              ]
+        }
+    */
+
+    // Do i process this message?  We only want to process hourly granularity, and we don't want to
+    // process roll ups
+
+    // Prereq: This is a concrete piece of hourly usage
+
+    // Check tag profile flag from 5011, when we're not tracking monthly (false):
+    // forward tally summary to billable usage to the new topic
+
+    // if we ARE tracking monthly (true)
+
+    // Load from the tracking table by key
+
+    // we need two pieces of information: what have we emitted thus far (from tracking table)?
+    // single record that gets updated (double), and the cumulative usage since hte beginning of hte
+    // month
+
+    // Do we have to do some new calculation? if AWS, yes.  if RHM, no.
+
     billableUsageEvaluator.expandIntoBillingUsageRemittanceEntities(tallySummary).stream()
         .forEach(
             thing -> {
 
-              // TODO how do we want to update the embedded (Tally Summary -> Tally Measurement ->
-              // value) if we performed some magic on it
+              // always emit billableusage, even if amount is zero.  the consumers of these messages
+              // will decide if they want to process zeroes.
+
               this.billingProducer.produce(
                   billableUsageEvaluator.transformMeToBillableUsage(tallySummary));
 
@@ -74,3 +112,23 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
             });
   }
 }
+
+// TODO:
+
+// - update BillableUsageRemittance entity to use org_id instead of account_id.  update queries
+// accordingly and accept both account_number and org_id - prefer org_id first.  Add another db
+// column for org_id
+
+// - keep granularity in the key so we can support other (non-monthly) windows.  "month" column
+// should be renamed to like ?accumulation_period?...when/if we do weekly, we would come up with
+// some kind of identifier instead of YYYY-MM
+
+// - BillableUsage message to be updated to basically mirror the BillableUsageRemittance entity
+// rather than shoving it back into a List<TallySummary> -> List<Measurements> model like it came in
+// as being a Tally Summary.  BillableUsageEvaluator.transformMeToBillableUsage is where this
+// transformation should happen
+
+// TODO how to handle retally...pass through tally snapshot id
+
+// TODO how to recover from if we logged to the tracking table a remittance value, but the call to
+// the billing provider failed downstream.  how much do we bill for the next time around?

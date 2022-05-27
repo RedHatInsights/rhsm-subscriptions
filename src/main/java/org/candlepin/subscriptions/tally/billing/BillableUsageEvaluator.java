@@ -47,6 +47,9 @@ public class BillableUsageEvaluator {
 
   public BillableUsage transformMeToBillableUsage(TallySummary tallySummary) {
 
+    // Make billable usage include "raw" (fractional from tallySummary) as well as a "rounded
+    // integer" field
+
     return new BillableUsage()
         .withAccountNumber(tallySummary.getAccountNumber())
         .withBillableTallySnapshots(tallySummary.getTallySnapshots());
@@ -103,6 +106,7 @@ public class BillableUsageEvaluator {
       case AWS:
         return performSomeMagic(tallyMeasurement);
       default:
+        // passthrough
         break;
     }
 

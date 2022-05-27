@@ -205,6 +205,7 @@ public class BillableUsageProcessor {
         .customerIdentifier(context.getCustomerId())
         .dimension(
             tagProfile.getAwsDimension(tallySnapshot.getProductId(), measurement.getUom().name()))
+        //TODO update this to throw an error instead if the value isn't a whole number
         .quantity(measurement.getValue().intValue())
         .timestamp(effectiveTimestamp.toInstant())
         .build();
