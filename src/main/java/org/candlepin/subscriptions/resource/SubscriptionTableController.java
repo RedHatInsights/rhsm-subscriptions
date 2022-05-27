@@ -286,6 +286,13 @@ public class SubscriptionTableController {
     Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
     skuCapacity.getSubscriptions().add(invSub);
     skuCapacity.setQuantity(skuCapacity.getQuantity() + (int) subscription.getQuantity());
+    OffsetDateTime subEnd = subscription.getEndDate();
+    OffsetDateTime nearestEventDate = skuCapacity.getNextEventDate();
+    if (subEnd != null && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
+      nearestEventDate = subEnd;
+      skuCapacity.setNextEventDate(nearestEventDate);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
+    }
   }
 
   public void addSubscriptionInformation(
