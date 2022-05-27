@@ -23,10 +23,12 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import javax.persistence.Column;
+import javax.persistence.Embeddable;
 import javax.persistence.Id;
 import lombok.Data;
 
 @Data
+@Embeddable
 public class BillableUsageRemittanceEntityPK implements Serializable {
 
   @Column(name = "account_number", nullable = false, length = 32)
