@@ -660,4 +660,29 @@ class MetricUsageCollectorTest {
             clock.startOfCurrentHour().minusHours(1), clock.startOfCurrentHour().plusHours(1)));
     Mockito.verifyNoInteractions(accountRepo);
   }
+
+  @Test
+  void testEventWithNullFieldsProcessed() {
+    // NOTE: null in the JSON gets represented as Optional.empty()
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(UUID.randomUUID().toString())
+            .withBillingAccountId(Optional.empty())
+            .withDisplayName(Optional.empty())
+            .withHypervisorUuid(Optional.empty())
+            .withInsightsId(Optional.empty())
+            .withInventoryId(Optional.empty())
+            .withSubscriptionManagerId(Optional.empty());
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
+
+    metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+    Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
+    assertNotNull(instance);
+  }
 }
