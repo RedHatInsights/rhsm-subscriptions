@@ -64,6 +64,7 @@ class RhosakTagProfileTest {
             TagMetric.builder()
                 .tag("rhosak")
                 .metricId("redhat.com:rhosak:storage_gb")
+                .rhmMetricId("redhat.com:rhosak:storage_gb")
                 .awsDimension("redhat.com:rhosak:storage_gb")
                 .uom(Uom.STORAGE_GIBIBYTES)
                 .queryKey("default")
@@ -81,6 +82,7 @@ class RhosakTagProfileTest {
             TagMetric.builder()
                 .tag("rhosak")
                 .metricId("redhat.com:rhosak:transfer_gb")
+                .rhmMetricId("redhat.com:rhosak:transfer_gb")
                 .awsDimension("redhat.com:rhosak:transfer_gb")
                 .uom(Uom.TRANSFER_GIBIBYTES)
                 .queryKey("default")
@@ -100,6 +102,7 @@ class RhosakTagProfileTest {
             TagMetric.builder()
                 .tag("rhosak")
                 .metricId("redhat.com:rhosak:cluster_hour")
+                .rhmMetricId("redhat.com:rhosak:cluster_hour")
                 .awsDimension("redhat.com:rhosak:cluster_hour")
                 .uom(Uom.INSTANCE_HOURS)
                 .queryKey("default")
@@ -138,7 +141,7 @@ class RhosakTagProfileTest {
   @MethodSource("promethuesEnabledLookupArgs")
   void testPrometueusEnabledMeasurements(String tag, TallyMeasurement.Uom uom, String exMetricId) {
     assertTrue(tagProfile.getTagsWithPrometheusEnabledLookup().contains(tag));
-    assertEquals(exMetricId, tagProfile.metricIdForTagAndUom(tag, uom));
+    assertEquals(exMetricId, tagProfile.rhmMetricIdForTagAndUom(tag, uom));
   }
 
   static Stream<Arguments> promethuesEnabledLookupArgs() {

@@ -74,11 +74,11 @@ class RhMarketplacePayloadMapperTest {
   void init() {
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
-        .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_METRICS.toString(), Uom.CORES))
+        .when(tagProfile.rhmMetricIdForTagAndUom(OPENSHIFT_METRICS.toString(), Uom.CORES))
         .thenReturn("redhat.com:openshift:cpu_hour");
 
     lenient()
-        .when(tagProfile.metricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
+        .when(tagProfile.rhmMetricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
         .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
     lenient()
