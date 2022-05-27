@@ -353,12 +353,12 @@ class SubscriptionSyncControllerTest {
         IllegalArgumentException.class,
         () ->
             subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-                "1000", orgId, key1, rangeStart, rangeEnd, BillingProvider.RED_HAT));
+                "1000", orgId, key1, rangeStart, rangeEnd));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-                "1000", orgId, key2, rangeStart, rangeEnd, BillingProvider.RED_HAT));
+                "1000", orgId, key2, rangeStart, rangeEnd));
   }
 
   @Test
@@ -379,19 +379,13 @@ class SubscriptionSyncControllerTest {
 
     Set<String> productNames = Set.of("OpenShift Container Platform");
     when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
-    when(subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
-            eq("1000"),
-            eq(key),
-            eq(productNames),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class),
-            any(BillingProvider.class)))
+    when(subscriptionRepository.findByCriteria(any(), any()))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
 
     List<Subscription> actual =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, BillingProvider.RED_HAT);
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -414,19 +408,13 @@ class SubscriptionSyncControllerTest {
 
     Set<String> productNames = Set.of("OpenShift Container Platform");
     when(mockProfile.getOfferingProductNamesForTag(anyString())).thenReturn(productNames);
-    when(subscriptionRepository.findByAccountAndProductNameAndServiceLevel(
-            eq("1000"),
-            eq(key),
-            eq(productNames),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class),
-            any(BillingProvider.class)))
+    when(subscriptionRepository.findByCriteria(any(), any()))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
 
     List<Subscription> actual =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, BillingProvider.RED_HAT);
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("abc", actual.get(0).getBillingProviderId());
     verify(subscriptionService, times(1)).getSubscriptionsByOrgId("org1000");

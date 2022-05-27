@@ -45,6 +45,8 @@ public class SubscriptionResource implements SubscriptionsApi {
       @Min(1) Integer limit,
       ServiceLevelType sla,
       UsageType usage,
+      BillingProviderType billingProvider,
+      String billingAccountId,
       OffsetDateTime beginning,
       OffsetDateTime ending,
       Uom uom,
@@ -52,6 +54,6 @@ public class SubscriptionResource implements SubscriptionsApi {
       SortDirection dir) {
 
     return subscriptionTableController.capacityReportBySku(
-        productId, offset, limit, sla, usage, uom, sort, dir);
+        productId, offset, limit, sla, usage, billingProvider, billingAccountId, uom, sort, dir);
   }
 }

@@ -76,6 +76,8 @@ public class OnDemandSubscriptionSpecification extends BaseSpecification
       return builder.equal(offeringRoot.get(Offering_.USAGE), criteria.getValue());
     } else if (Offering_.SERVICE_LEVEL.equals(criteria.getKey())) {
       return builder.equal(offeringRoot.get(Offering_.SERVICE_LEVEL), criteria.getValue());
+    } else if (Offering_.PRODUCT_NAME.equals(criteria.getKey())) {
+      return builder.in(offeringRoot.get(Offering_.PRODUCT_NAME)).value(criteria.getValue());
     } else {
       return super.mapCriteriaToPredicate(expression, criteria, builder);
     }

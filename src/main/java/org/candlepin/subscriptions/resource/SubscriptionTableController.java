@@ -30,7 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
@@ -40,6 +42,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -72,6 +75,8 @@ public class SubscriptionTableController {
       @Min(1) Integer limit,
       ServiceLevelType serviceLevel,
       UsageType usage,
+      BillingProviderType billingProviderType,
+      String billingAccountId,
       Uom uom,
       SkuCapacityReportSort sort,
       SortDirection dir) {
@@ -88,6 +93,8 @@ public class SubscriptionTableController {
     OffsetDateTime reportStart = clock.now();
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
+    BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
+    String sanitiziedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
 
     log.info(
         "Finding all subscription capacities for "
@@ -134,7 +141,13 @@ public class SubscriptionTableController {
     if (isOnDemand && reportItems.isEmpty()) {
       reportItems.addAll(
           getOnDemandSkuCapacities(
-              productId, sanitizedServiceLevel, sanitizedUsage, reportStart, reportEnd));
+              productId,
+              sanitizedServiceLevel,
+              sanitizedUsage,
+              sanitizedBillingProvider,
+              sanitiziedBillingAccountId,
+              reportStart,
+              reportEnd));
     }
 
     int reportItemCount = reportItems.size();
@@ -170,37 +183,40 @@ public class SubscriptionTableController {
       ProductId productId,
       ServiceLevel serviceLevel,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
     var productNames = tagProfile.getOfferingProductNamesForTag(productId.toString());
-    var productName = productNames.stream().findFirst();
-    var subscriptions = new ArrayList<Subscription>();
     Map<String, SkuCapacity> inventories = new HashMap<>();
-    productName.ifPresent(
-        name -> {
-          List<Offering> offerings = offeringRepository.findByProductName(name);
-          var skuOfferings =
-              offerings.stream().collect(Collectors.toMap(Offering::getSku, offering -> offering));
+    Map<String, Offering> skuOfferings =
+        productNames.stream()
+            .map(offeringRepository::findByProductName)
+            .flatMap(List::stream)
+            .collect(Collectors.toMap(Offering::getSku, offering -> offering));
 
-          subscriptions.addAll(
-              subscriptionRepository.findOnDemandBy(
-                  getOwnerId(),
-                  skuOfferings.keySet(),
-                  serviceLevel,
-                  usage,
-                  reportStart,
-                  reportEnd));
+    var subscriptions =
+        subscriptionRepository.findByCriteria(
+            ReportCriteria.builder()
+                .orgId(getOwnerId())
+                .productNames(productNames)
+                .serviceLevel(serviceLevel)
+                .usage(usage)
+                .billingProvider(billingProvider)
+                .billingAccountId(billingAccountId)
+                .beginning(reportStart)
+                .ending(reportEnd)
+                .payg(true)
+                .build(),
+            Sort.unsorted());
 
-          subscriptions.stream()
-              .forEach(
-                  sub -> {
-                    final SkuCapacity inventory =
-                        inventories.computeIfAbsent(
-                            sub.getSku(),
-                            key ->
-                                initializeOnDemandSkuCapacity(sub, skuOfferings.get(sub.getSku())));
-                    addOnDemandSubscriptionInformation(sub, inventory);
-                  });
+    subscriptions.forEach(
+        sub -> {
+          final SkuCapacity inventory =
+              inventories.computeIfAbsent(
+                  sub.getSku(),
+                  key -> initializeOnDemandSkuCapacity(sub, skuOfferings.get(sub.getSku())));
+          addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
   }
