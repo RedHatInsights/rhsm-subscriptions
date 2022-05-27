@@ -25,7 +25,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
@@ -65,12 +64,7 @@ public class RhMarketplaceSubscriptionIdProvider {
       OffsetDateTime rangeEnd) {
     List<Subscription> results =
         syncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber,
-            Optional.of(orgId),
-            usageKey,
-            rangeStart,
-            rangeEnd,
-            BillingProvider.RED_HAT);
+            accountNumber, Optional.of(orgId), usageKey, rangeStart, rangeEnd);
     if (results.isEmpty()) {
       missingSubscriptionCounter.increment();
     }

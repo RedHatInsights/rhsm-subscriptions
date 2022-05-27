@@ -786,6 +786,16 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
         - name: beginning
           in: query
           schema:
@@ -1454,6 +1464,10 @@ components:
         cloud_provider:
           description: If applicable, the cloud provider for this host.
           type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
     InstanceMeta:
       title: Root Type for InstanceMeta
       description: The details of the entire list of InstanceData
@@ -1470,6 +1484,8 @@ components:
           $ref: '#/components/schemas/UsageType'
         billing_provider:
           $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
         measurements:
           type: array
           items:

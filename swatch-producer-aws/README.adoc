@@ -107,11 +107,11 @@ oc port-forward $(oc -n ephemeral-itjulc get -o name pod | grep fruit) 8000
 [source,bash]
 ----
 curl --request POST \
-  --url http://localhost:8000/tally_summary \
+  --url http://localhost:8000/api/swatch-producer-aws/internal/aws/billable_usage \
   --header 'content-type: application/json' \
   --data '{
   "account_number": "string",
-  "tally_snapshots": [
+  "billable_tally_snapshots": [
     {
       "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "snapshot_date": "2022-02-16T15:44:16.793Z",

@@ -24,7 +24,6 @@ import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHOSAK
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
@@ -161,13 +160,12 @@ class SubscriptionTableControllerOnDemandTest {
     List<Subscription> givenSubs =
         givenSubscriptions(Org.STANDARD, productId, MW01882.withSub(expectedSub));
 
-    when(subscriptionRepository.findOnDemandBy(any(), any(), any(), any(), any(), any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -199,13 +197,12 @@ class SubscriptionTableControllerOnDemandTest {
             MW01882.withSub(expectedNewerSub),
             MW01882.withSub(expectedOlderSub));
 
-    when(subscriptionRepository.findOnDemandBy(any(), any(), any(), any(), any(), any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -241,13 +238,12 @@ class SubscriptionTableControllerOnDemandTest {
             MW01882.withSub(expectedNewerSub),
             MW01882RN.withSub(expectedOlderSub));
 
-    when(subscriptionRepository.findOnDemandBy(any(), any(), any(), any(), any(), any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            productId, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
 
     // Then the report contains two inventory items containing a sub with appropriate
     // quantity and capacities, and RH00604F5 is listed first.
@@ -277,13 +273,13 @@ class SubscriptionTableControllerOnDemandTest {
   void testGetSkuCapacityReportNoSub() {
     // Given an org with no active subs,
     ProductId productId = RHOSAK;
-    when(subscriptionRepository.findOnDemandBy(any(), any(), any(), any(), any(), any()))
-        .thenReturn(Collections.emptyList());
+
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
 
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -302,20 +298,11 @@ class SubscriptionTableControllerOnDemandTest {
             MW01882.withSub(expectedNewerSub),
             MW01882.withSub(expectedOlderSub));
 
-    when(subscriptionRepository.findOnDemandBy(
-            eq("owner123456"),
-            eq(
-                Arrays.asList(MW01882.sku, MW01882S.sku, MW01882RN.sku).stream()
-                    .collect(Collectors.toSet())),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(),
-            any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            RHOSAK, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(1, report.getData().size());
   }
 
@@ -332,16 +319,7 @@ class SubscriptionTableControllerOnDemandTest {
             MW01882.withSub(expectedNewerSub),
             MW01882.withSub(expectedOlderSub));
 
-    when(subscriptionRepository.findOnDemandBy(
-            eq("owner123456"),
-            eq(
-                Arrays.asList(MW01882.sku, MW01882S.sku, MW01882RN.sku).stream()
-                    .collect(Collectors.toSet())),
-            eq(ServiceLevel.STANDARD),
-            any(),
-            any(),
-            any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     SkuCapacityReport reportForMatchingSLA =
         subscriptionTableController.capacityReportBySku(
@@ -349,6 +327,8 @@ class SubscriptionTableControllerOnDemandTest {
             null,
             null,
             ServiceLevelType.STANDARD,
+            null,
+            null,
             null,
             null,
             SkuCapacityReportSort.SKU,
@@ -370,20 +350,20 @@ class SubscriptionTableControllerOnDemandTest {
             MW01882.withSub(expectedNewerSub),
             MW01882.withSub(expectedOlderSub));
 
-    when(subscriptionRepository.findOnDemandBy(
-            eq("owner123456"),
-            eq(
-                Arrays.asList(MW01882.sku, MW01882S.sku, MW01882RN.sku).stream()
-                    .collect(Collectors.toSet())),
-            any(),
-            eq(Usage.PRODUCTION),
-            any(),
-            any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     SkuCapacityReport reportForMatchingUsage =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, UsageType.PRODUCTION, null, SkuCapacityReportSort.SKU, null);
+            RHOSAK,
+            null,
+            null,
+            null,
+            UsageType.PRODUCTION,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
     assertEquals(1, reportForMatchingUsage.getData().size());
   }
 
@@ -397,21 +377,12 @@ class SubscriptionTableControllerOnDemandTest {
     List<Subscription> givenSubs =
         givenSubscriptions(Org.STANDARD, productId, MW01882RN.withSub(expectedSub));
 
-    when(subscriptionRepository.findOnDemandBy(
-            eq("owner123456"),
-            eq(
-                Arrays.asList(MW01882.sku, MW01882S.sku, MW01882RN.sku).stream()
-                    .collect(Collectors.toSet())),
-            any(),
-            any(),
-            any(),
-            any()))
-        .thenReturn(givenSubs);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.

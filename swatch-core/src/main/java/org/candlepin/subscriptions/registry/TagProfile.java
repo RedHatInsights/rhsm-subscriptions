@@ -60,7 +60,7 @@ public class TagProfile {
   @Getter private Set<String> serviceTypes;
 
   private Map<String, Set<String>> tagToEngProductsLookup;
-  private Map<ProductUom, String> productUomToMetricIdLookup;
+  private Map<ProductUom, String> productUomToRhmMetricIdLookup;
   @Getter private Set<String> tagsWithPrometheusEnabledLookup;
   private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
@@ -75,7 +75,7 @@ public class TagProfile {
   @PostConstruct
   public void initLookups() {
     tagToEngProductsLookup = new HashMap<>();
-    productUomToMetricIdLookup = new HashMap<>();
+    productUomToRhmMetricIdLookup = new HashMap<>();
     tagsWithPrometheusEnabledLookup = new HashSet<>();
     measurementsByTagLookup = new HashMap<>();
     offeringProductNameToTagLookup = new HashMap<>();
@@ -123,8 +123,8 @@ public class TagProfile {
 
   private void handleTagMetric(TagMetric tagMetric) {
     tagsWithPrometheusEnabledLookup.add(tagMetric.getTag());
-    productUomToMetricIdLookup.put(
-        new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getMetricId());
+    productUomToRhmMetricIdLookup.put(
+        new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getRhmMetricId());
     measurementsByTagLookup
         .computeIfAbsent(tagMetric.getTag(), k -> new HashSet<>())
         .add(tagMetric.getUom());
@@ -157,8 +157,8 @@ public class TagProfile {
     return granularity.compareTo(finestGranularityLookup.get(tag)) < 1;
   }
 
-  public String metricIdForTagAndUom(String tag, TallyMeasurement.Uom uom) {
-    return productUomToMetricIdLookup.get(new ProductUom(tag, uom.value()));
+  public String rhmMetricIdForTagAndUom(String tag, TallyMeasurement.Uom uom) {
+    return productUomToRhmMetricIdLookup.get(new ProductUom(tag, uom.value()));
   }
 
   public String tagForOfferingProductName(String offeringProductName) {

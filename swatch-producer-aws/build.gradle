@@ -70,8 +70,8 @@ processResources {
     }
 }
 
-// Let gradle know that if tally_summary.yaml changes, openApiGenerate should run
-tasks.openApiGenerate.inputs.file("../swatch-core/schemas/tally_summary.yaml")
+// Let gradle know that if billable_usage.yaml changes, openApiGenerate should run
+tasks.openApiGenerate.inputs.file("../swatch-core/schemas/billable_usage.yaml")
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 

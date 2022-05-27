@@ -30,24 +30,31 @@ public abstract class BaseSpecification {
   protected Predicate mapCriteriaToPredicate(
       Path<?> expression, SearchCriteria criteria, CriteriaBuilder builder) {
 
-    if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
-      return builder.greaterThanOrEqualTo(
-          expression.get(criteria.getKey()), criteria.getValue().toString());
-    } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {
-      return builder.lessThanOrEqualTo(
-          expression.get(criteria.getKey()), criteria.getValue().toString());
-    } else if (criteria.getOperation().equals(SearchOperation.AFTER_OR_ON)) {
-      return builder.greaterThanOrEqualTo(
-          expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
-    } else if (criteria.getOperation().equals(SearchOperation.BEFORE_OR_ON)) {
-      return builder.lessThanOrEqualTo(
-          expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
-    } else if (criteria.getOperation().equals(SearchOperation.IN)) {
-      return builder.in(expression.get(criteria.getKey())).value(criteria.getValue());
-    } else if (criteria.getOperation().equals(SearchOperation.NOT_IN)) {
-      return builder.in(expression.get(criteria.getKey())).value(criteria.getValue()).not();
-    } else {
-      return builder.equal(expression.get(criteria.getKey()), criteria.getValue());
+    switch (criteria.getOperation()) {
+      case GREATER_THAN_EQUAL:
+        return builder.greaterThanOrEqualTo(
+            expression.get(criteria.getKey()), criteria.getValue().toString());
+      case LESS_THAN_EQUAL:
+        return builder.lessThanOrEqualTo(
+            expression.get(criteria.getKey()), criteria.getValue().toString());
+      case AFTER_OR_ON:
+        return builder.greaterThanOrEqualTo(
+            expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
+      case BEFORE_OR_ON:
+        return builder.lessThanOrEqualTo(
+            expression.get(criteria.getKey()), (OffsetDateTime) criteria.getValue());
+      case IN:
+        return builder.in(expression.get(criteria.getKey())).value(criteria.getValue());
+      case NOT_IN:
+        return builder.in(expression.get(criteria.getKey())).value(criteria.getValue()).not();
+      case IS_NOT_NULL:
+        return builder.isNotNull(expression.get(criteria.getKey()));
+      case NOT_EQUAL:
+        return builder.notEqual(expression.get(criteria.getKey()), criteria.getValue());
+      case EQUAL:
+        return builder.equal(expression.get(criteria.getKey()), criteria.getValue());
+      default:
+        throw new UnsupportedOperationException(criteria.getOperation() + " not yet supported");
     }
   }
 }

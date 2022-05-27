@@ -31,14 +31,14 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiE
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
+import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.TallySnapshot;
 import com.redhat.swatch.openapi.model.TallySnapshot.BillingProviderEnum;
 import com.redhat.swatch.openapi.model.TallySnapshot.GranularityEnum;
 import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements;
 import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements.UomEnum;
-import com.redhat.swatch.openapi.model.TallySummary;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
-import com.redhat.swatch.processors.TallyTopicProcessor;
+import com.redhat.swatch.processors.BillableUsageProcessor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -59,11 +59,11 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
 @ExtendWith(MockitoExtension.class)
-class TallyTopicProcessorTest {
+class BillableUsageProcessorTest {
 
-  private static final TallySummary RHOSAK_INSTANCE_HOURS_RECORD =
-      new TallySummary()
-          .tallySnapshots(
+  private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
+      new BillableUsage()
+          .billableTallySnapshots(
               List.of(
                   new TallySnapshot()
                       .productId("rhosak")
@@ -102,7 +102,7 @@ class TallyTopicProcessorTest {
   MeterRegistry meterRegistry;
   Counter acceptedCounter;
   Counter rejectedCounter;
-  TallyTopicProcessor processor;
+  BillableUsageProcessor processor;
 
   @BeforeEach
   void setup() {
@@ -110,26 +110,27 @@ class TallyTopicProcessorTest {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     processor =
-        new TallyTopicProcessor(
+        new BillableUsageProcessor(
             meterRegistry, new TagProfile(), internalSubscriptionsApi, clientFactory);
   }
 
   @Test
   void shouldSkipNonDailySnapshots() {
-    TallySummary summary =
-        new TallySummary()
-            .tallySnapshots(List.of(new TallySnapshot().granularity(GranularityEnum.YEARLY)));
-    processor.process(summary);
+    BillableUsage usage =
+        new BillableUsage()
+            .billableTallySnapshots(
+                List.of(new TallySnapshot().granularity(GranularityEnum.YEARLY)));
+    processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
 
   @Test
   void shouldSkipNonAwsSnapshots() {
-    TallySummary summary =
-        new TallySummary()
-            .tallySnapshots(
+    BillableUsage usage =
+        new BillableUsage()
+            .billableTallySnapshots(
                 List.of(new TallySnapshot().billingProvider(BillingProviderEnum.RED_HAT)));
-    processor.process(summary);
+    processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
 
@@ -152,16 +153,16 @@ class TallyTopicProcessorTest {
 
   @Test
   void shouldSkipMessageIfAwsContextCannotBeLookedUp() throws ApiException {
-    TallySummary summary =
-        new TallySummary()
-            .tallySnapshots(
+    BillableUsage usage =
+        new BillableUsage()
+            .billableTallySnapshots(
                 List.of(
                     new TallySnapshot()
                         .granularity(GranularityEnum.DAILY)
                         .billingProvider(BillingProviderEnum.AWS)));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
-    processor.process(summary);
+    processor.process(usage);
     verifyNoInteractions(meteringClient);
   }
 

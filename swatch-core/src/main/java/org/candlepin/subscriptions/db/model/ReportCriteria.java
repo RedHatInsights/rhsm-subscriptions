@@ -18,10 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.kafka;
+package org.candlepin.subscriptions.db.model;
 
-import com.redhat.swatch.openapi.model.TallySummary;
-import io.quarkus.kafka.client.serialization.JsonbSerializer;
+import java.time.OffsetDateTime;
+import java.util.Set;
+import lombok.Builder;
+import lombok.Data;
 
-/** Provides quarkus a hint that we want to use JSON-B to serialize TallySummary objects */
-public class TallySummarySerializer extends JsonbSerializer<TallySummary> {}
+/** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
+@Data
+@Builder
+public class ReportCriteria {
+  private String accountNumber;
+  private String orgId;
+  private String productTag;
+  // TODO: ENT-5042 should move away from using product name values here //NOSONAR
+  private Set<String> productNames;
+  private ServiceLevel serviceLevel;
+  private Usage usage;
+  private BillingProvider billingProvider;
+  private String billingAccountId;
+  private boolean payg;
+  private OffsetDateTime beginning;
+  private OffsetDateTime ending;
+}

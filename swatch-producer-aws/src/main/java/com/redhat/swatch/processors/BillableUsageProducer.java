@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.processors;
 
-import com.redhat.swatch.openapi.model.TallySummary;
+import com.redhat.swatch.openapi.model.BillableUsage;
 import javax.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -28,17 +28,17 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 @Slf4j
 @ApplicationScoped
-public class TallySummaryProducer {
+public class BillableUsageProducer {
 
-  private final Emitter<TallySummary> emitter;
+  private final Emitter<BillableUsage> emitter;
 
-  public TallySummaryProducer(@Channel("tally-out") Emitter<TallySummary> emitter) {
+  public BillableUsageProducer(@Channel("tally-out") Emitter<BillableUsage> emitter) {
     this.emitter = emitter;
   }
 
-  public void queueTallySummary(TallySummary tallySummary) {
-    emitter.send(tallySummary);
+  public void queueBillableUsage(BillableUsage billableUsage) {
+    emitter.send(billableUsage);
 
-    log.info("Queued up a TallySummary object to the tally topic");
+    log.info("Queued up a BillableUsage object to the billable-usage topic");
   }
 }
