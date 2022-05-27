@@ -9,30 +9,25 @@
   <changeSet id="202205231334" author="lburnett">
     <comment>Create billable_usage_remittance tracking table</comment>
 
-    <sql>
-        create table if not exists billable_usage_remittance
-        (
-        account_number     varchar(32)              not null,
-        product_id         varchar(32)              not null,
-        metric_id          varchar(32)              not null,
-        month              varchar(255)             not null,
-        remitted_value     double precision         not null,
-        remittance_date    timestamp with time zone not null,
-        granularity        varchar(32)              not null,
-        snapshot_date      timestamp with time zone not null,
-        sla                varchar(32)              not null,
-        usage              varchar(32)              not null,
-        billing_provider   varchar(32)              not null,
-        billing_account_id varchar(255)             not null,
-        primary key (account_number, product_id, metric_id, month, granularity, snapshot_date, sla, usage, billing_provider,
-        billing_account_id)
-        );
+    <createTable tableName="billable_usage_remittance">
+      <column name="account_number" type="VARCHAR(32)"/><!--      or 255? -->
+      <column name="product_id" type="VARCHAR(32)"/>  <!--      or 255? -->
+      <column name="metric_id" type="VARCHAR(32)"/>
+      <column name="month" type="VARCHAR(255)"/>
+      <column name="granularity" type="VARCHAR(32)"/>
+      <column name="snapshot_date" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sla" type="VARCHAR(255)"/>
+      <column name="usage" type="VARCHAR(255)"/>
+      <column name="billing_provider" type="VARCHAR(255)"/>
+      <column name="billing_account_id" type="VARCHAR(255)"/>
+      <column name="remitted_value" type="double precision"/>
+      <column name="remittance_date" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
 
-        comment on constraint billable_usage_remittance_pkey on billable_usage_remittance is 'loosely based on tally snapshot natural key';
-
-        alter table billable_usage_remittance
-        owner to "rhsm-subscriptions";
-    </sql>
+    <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+      tableName="billable_usage_remittance"
+      columnNames="account_number, product_id, metric_id, month, granularity, snapshot_date, sla, usage, billing_provider,
+        billing_account_id"/>
 
   </changeSet>
 </databaseChangeLog>
