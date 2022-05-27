@@ -23,12 +23,12 @@ package org.candlepin.subscriptions.security;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithSecurityContextFactory;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 
 public class WithMockPskClientSecurityContextFactory
     implements WithSecurityContextFactory<WithMockPskPrincipal> {
@@ -44,7 +44,7 @@ public class WithMockPskClientSecurityContextFactory
             .map(SimpleGrantedAuthority::new)
             .collect(Collectors.toList());
 
-    Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+    Authentication auth = new PreAuthenticatedAuthenticationToken(principal, "N/A", authorities);
     context.setAuthentication(auth);
 
     return context;
