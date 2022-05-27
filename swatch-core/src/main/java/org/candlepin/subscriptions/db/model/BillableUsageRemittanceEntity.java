@@ -25,7 +25,6 @@ import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.IdClass;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,7 +37,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @Entity
 @Table(name = "billable_usage_remittance")
-@IdClass(BillableUsageRemittanceEntityPK.class)
 public class BillableUsageRemittanceEntity {
 
   @EmbeddedId private BillableUsageRemittanceEntityPK key;

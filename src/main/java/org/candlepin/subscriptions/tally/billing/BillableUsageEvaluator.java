@@ -26,6 +26,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
+import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySnapshot;
@@ -60,8 +61,8 @@ public class BillableUsageEvaluator {
 
       for (TallyMeasurement tallyMeasurement : tallySnapshot.getTallyMeasurements()) {
 
-        BillableUsageRemittanceEntity record =
-            BillableUsageRemittanceEntity.builder()
+        var key =
+            BillableUsageRemittanceEntityPK.builder()
                 .usage(tallySnapshot.getUsage().value())
                 .accountNumber(tallySummary.getAccountNumber())
                 .billingProvider(tallySnapshot.getBillingProvider().value())
@@ -72,6 +73,11 @@ public class BillableUsageEvaluator {
                 .snapshotDate(tallySnapshot.getSnapshotDate())
                 .metricId(tallyMeasurement.getUom().value())
                 .month(determineMonth())
+                .build();
+
+        BillableUsageRemittanceEntity record =
+            BillableUsageRemittanceEntity.builder()
+                .key(key)
                 .remittanceDate(OffsetDateTime.now())
                 .remittedValue(
                     decideWhatValueToSend(tallySnapshot.getBillingProvider(), tallyMeasurement))
