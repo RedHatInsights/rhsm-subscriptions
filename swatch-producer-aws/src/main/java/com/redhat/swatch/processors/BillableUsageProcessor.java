@@ -27,13 +27,13 @@ import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
+import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.TallySnapshot;
 import com.redhat.swatch.openapi.model.TallySnapshot.BillingProviderEnum;
 import com.redhat.swatch.openapi.model.TallySnapshot.GranularityEnum;
 import com.redhat.swatch.openapi.model.TallySnapshot.SlaEnum;
 import com.redhat.swatch.openapi.model.TallySnapshot.UsageEnum;
 import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements;
-import com.redhat.swatch.openapi.model.TallySummary;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -53,14 +53,14 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 
 @Slf4j
 @ApplicationScoped
-public class TallyTopicProcessor {
+public class BillableUsageProcessor {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final TagProfile tagProfile;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
 
-  public TallyTopicProcessor(
+  public BillableUsageProcessor(
       MeterRegistry meterRegistry,
       TagProfile tagProfile,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
@@ -74,26 +74,26 @@ public class TallyTopicProcessor {
 
   @Incoming("tally-in")
   @Blocking
-  public void process(TallySummary tallySummary) {
+  public void process(BillableUsage billableUsage) {
     if (log.isDebugEnabled()) {
-      log.debug("Picked up tally message {} to process", tallySummary);
+      log.debug("Picked up billable usage message {} to process", billableUsage);
     }
-    if (tallySummary == null) {
-      log.warn("Skipping null tally summary: deserialization failure?");
+    if (billableUsage == null) {
+      log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
-    for (TallySnapshot tallySnapshot : tallySummary.getTallySnapshots()) {
+    for (TallySnapshot tallySnapshot : billableUsage.getBillableTallySnapshots()) {
       if (!isSnapshotApplicable(tallySnapshot)) {
         continue;
       }
 
       AwsUsageContext context;
       try {
-        context = lookupAwsUsageContext(tallySummary, tallySnapshot);
+        context = lookupAwsUsageContext(billableUsage, tallySnapshot);
       } catch (AwsUsageContextLookupException e) {
         log.error(
             "Error looking up usage context for account={} tallySnapshotId={}",
-            tallySummary.getAccountNumber(),
+            billableUsage.getAccountNumber(),
             tallySnapshot.getId(),
             e);
         return;
@@ -105,7 +105,7 @@ public class TallyTopicProcessor {
       } catch (Exception e) {
         log.error(
             "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={}",
-            tallySummary.getAccountNumber(),
+            billableUsage.getAccountNumber(),
             context.getRhSubscriptionId(),
             tallySnapshot.getId(),
             context.getCustomerId(),
@@ -130,11 +130,11 @@ public class TallyTopicProcessor {
 
   @Retry
   public AwsUsageContext lookupAwsUsageContext(
-      TallySummary tallySummary, TallySnapshot tallySnapshot)
+      BillableUsage billableUsage, TallySnapshot tallySnapshot)
       throws AwsUsageContextLookupException {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
-          tallySummary.getAccountNumber(),
+          billableUsage.getAccountNumber(),
           tallySnapshot.getSnapshotDate(),
           tallySnapshot.getProductId(),
           Optional.ofNullable(tallySnapshot.getSla()).map(SlaEnum::value).orElse(null),
