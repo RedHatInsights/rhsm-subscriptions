@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.registry;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.junit.jupiter.api.Test;
@@ -106,5 +108,12 @@ class TagProfileFactoryTest {
   @Test
   void lookupMetaDataByTagWhenNotFound() {
     assertTrue(tagProfile.getTagMetaDataByTag("UNKNOWN").isEmpty());
+  }
+
+  @Test
+  void billingFrequencyIsSet() {
+    Optional<TagMetric> metric =
+        tagProfile.getTagMetric(ProductId.OPENSHIFT_METRICS.toString(), Measurement.Uom.CORES);
+    assertEquals(BillingWindow.HOURLY, metric.get().getBillingWindow());
   }
 }

@@ -32,6 +32,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -67,6 +68,7 @@ class RhosakTagProfileTest {
                 .rhmMetricId("redhat.com:rhosak:storage_gb")
                 .awsDimension("redhat.com:rhosak:storage_gb")
                 .uom(Uom.STORAGE_GIBIBYTES)
+                .billingWindow(BillingWindow.HOURLY)
                 .queryKey("default")
                 .accountQueryKey("default")
                 .queryParams(
@@ -85,6 +87,7 @@ class RhosakTagProfileTest {
                 .rhmMetricId("redhat.com:rhosak:transfer_gb")
                 .awsDimension("redhat.com:rhosak:transfer_gb")
                 .uom(Uom.TRANSFER_GIBIBYTES)
+                .billingWindow(BillingWindow.HOURLY)
                 .queryKey("default")
                 .accountQueryKey("default")
                 .queryParams(
@@ -106,6 +109,7 @@ class RhosakTagProfileTest {
                 .awsDimension("redhat.com:rhosak:cluster_hour")
                 .uom(Uom.INSTANCE_HOURS)
                 .queryKey("default")
+                .billingWindow(BillingWindow.HOURLY)
                 .accountQueryKey("default")
                 .queryParams(
                     Map.of(
