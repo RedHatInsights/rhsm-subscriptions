@@ -119,7 +119,14 @@ class BillableUsageProcessorTest {
     BillableUsage usage =
         new BillableUsage()
             .billableTallySnapshots(
-                List.of(new TallySnapshot().granularity(GranularityEnum.YEARLY)));
+                List.of(
+                    new TallySnapshot()
+                        .granularity(GranularityEnum.YEARLY)
+                        .tallyMeasurements(
+                            List.of(
+                                new TallySnapshotTallyMeasurements()
+                                    .uom(UomEnum.INSTANCE_HOURS)
+                                    .value(new BigDecimal("42.0"))))));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
@@ -129,7 +136,14 @@ class BillableUsageProcessorTest {
     BillableUsage usage =
         new BillableUsage()
             .billableTallySnapshots(
-                List.of(new TallySnapshot().billingProvider(BillingProviderEnum.RED_HAT)));
+                List.of(
+                    new TallySnapshot()
+                        .billingProvider(BillingProviderEnum.RED_HAT)
+                        .tallyMeasurements(
+                            List.of(
+                                new TallySnapshotTallyMeasurements()
+                                    .uom(UomEnum.INSTANCE_HOURS)
+                                    .value(new BigDecimal("42.0"))))));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
@@ -158,12 +172,37 @@ class BillableUsageProcessorTest {
             .billableTallySnapshots(
                 List.of(
                     new TallySnapshot()
+                        .productId("rhosak")
                         .granularity(GranularityEnum.DAILY)
-                        .billingProvider(BillingProviderEnum.AWS)));
+                        .billingProvider(BillingProviderEnum.AWS)
+                        .tallyMeasurements(
+                            List.of(
+                                new TallySnapshotTallyMeasurements()
+                                    .uom(UomEnum.INSTANCE_HOURS)
+                                    .value(new BigDecimal("42.0"))))));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
     processor.process(usage);
     verifyNoInteractions(meteringClient);
+  }
+
+  @Test
+  void shouldSkipMessageIfUnknownAwsDimensionCannotBeLookedUp() {
+    BillableUsage usage =
+        new BillableUsage()
+            .billableTallySnapshots(
+                List.of(
+                    new TallySnapshot()
+                        .productId("OpenShift-dedicated-metrics")
+                        .granularity(GranularityEnum.DAILY)
+                        .billingProvider(BillingProviderEnum.AWS)
+                        .tallyMeasurements(
+                            List.of(
+                                new TallySnapshotTallyMeasurements()
+                                    .uom(UomEnum.INSTANCE_HOURS)
+                                    .value(new BigDecimal("42.0"))))));
+    processor.process(usage);
+    verifyNoInteractions(internalSubscriptionsApi, meteringClient);
   }
 
   @Test
