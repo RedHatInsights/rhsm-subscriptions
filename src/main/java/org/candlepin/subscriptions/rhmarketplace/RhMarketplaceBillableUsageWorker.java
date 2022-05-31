@@ -22,9 +22,8 @@ package org.candlepin.subscriptions.rhmarketplace;
 
 import io.micrometer.core.annotation.Timed;
 import java.util.Optional;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -33,36 +32,36 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-/** Worker that maps tally summaries and submits them to Marketplace. */
-@Slf4j
+/*
+ * A Kafka message consumer that consumes messages from the billable-usage topic and sends
+ * the usage data to Red Hat Marketplace.
+ */
 @Service
-public class RhMarketplaceWorker extends SeekableKafkaConsumer {
+@Slf4j
+public class RhMarketplaceBillableUsageWorker extends SeekableKafkaConsumer {
 
-  private final RhMarketplaceProducer producer;
-  private final RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
-  @Getter private final boolean enabled;
+  private RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
+  private RhMarketplaceProducer producer;
 
   @Autowired
-  public RhMarketplaceWorker(
-      @Qualifier("rhMarketplaceTasks") TaskQueueProperties taskQueueProperties,
+  RhMarketplaceBillableUsageWorker(
+      @Qualifier("rhmBillableUsageTopicProperties") TaskQueueProperties taskQueueProperties,
       RhMarketplaceProducer producer,
       RhMarketplacePayloadMapper rhMarketplacePayloadMapper,
       KafkaConsumerRegistry kafkaConsumerRegistry) {
     super(taskQueueProperties, kafkaConsumerRegistry);
-    this.producer = producer;
     this.rhMarketplacePayloadMapper = rhMarketplacePayloadMapper;
-    this.enabled = taskQueueProperties.isEnabled();
+    this.producer = producer;
   }
 
-  @Timed("rhsm-subscriptions.marketplace.tally-summary")
+  @Timed("rhsm-subscriptions.marketplace.billable-usage")
   @KafkaListener(
       id = "#{__listener.groupId}",
-      autoStartup = "#{__listener.enabled}",
       topics = "#{__listener.topic}",
-      containerFactory = "kafkaTallySummaryListenerContainerFactory")
-  public void receive(TallySummary tallySummary) {
-    log.debug("Tally Summary received by RHM for account {}!", tallySummary.getAccountNumber());
-    Optional.ofNullable(rhMarketplacePayloadMapper.createUsageRequest(tallySummary))
+      containerFactory = "kafkaBillableUsageListenerContainerFactory")
+  public void receive(BillableUsage usage) {
+    log.debug("Billable Usage received by RHM for account {}!", usage.getAccountNumber());
+    Optional.ofNullable(rhMarketplacePayloadMapper.createUsageRequest(usage))
         .filter(s -> !s.getData().isEmpty())
         .ifPresent(producer::submitUsageRequest);
   }

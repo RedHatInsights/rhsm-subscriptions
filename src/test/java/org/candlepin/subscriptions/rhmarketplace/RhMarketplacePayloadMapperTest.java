@@ -36,13 +36,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
-import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
@@ -314,8 +314,10 @@ class RhMarketplacePayloadMapperTest {
 
     String account = "test123";
     String orgId = "org123";
-    var summary =
-        new TallySummary().withTallySnapshots(List.of(snapshot)).withAccountNumber(account);
+    var usage =
+        new BillableUsage()
+            .withBillableTallySnapshots(List.of(snapshot))
+            .withAccountNumber(account);
 
     when(accountService.lookupOrgId(account)).thenReturn(orgId);
 
@@ -329,7 +331,7 @@ class RhMarketplacePayloadMapperTest {
                 .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
                 .measuredUsage(List.of(usageMeasurement)));
 
-    List<UsageEvent> actual = rhMarketplacePayloadMapper.produceUsageEvents(summary);
+    List<UsageEvent> actual = rhMarketplacePayloadMapper.produceUsageEvents(usage);
 
     assertEquals(1, actual.size());
     assertEquals(expected.get(0).getEventId(), actual.get(0).getEventId());
@@ -370,8 +372,10 @@ class RhMarketplacePayloadMapperTest {
 
     String account = "test123";
     String orgId = "org123";
-    var summary =
-        new TallySummary().withTallySnapshots(List.of(snapshot)).withAccountNumber(account);
+    var usage =
+        new BillableUsage()
+            .withBillableTallySnapshots(List.of(snapshot))
+            .withAccountNumber(account);
 
     when(accountService.lookupOrgId(account)).thenReturn(orgId);
 
@@ -385,7 +389,7 @@ class RhMarketplacePayloadMapperTest {
                 .eventId("c204074d-626f-4272-aa05-b6d69d6de16a")
                 .measuredUsage(List.of(usageMeasurement)));
 
-    List<UsageEvent> actual = rhMarketplacePayloadMapper.produceUsageEvents(summary);
+    List<UsageEvent> actual = rhMarketplacePayloadMapper.produceUsageEvents(usage);
 
     assertEquals(1, actual.size());
     assertEquals(expected.get(0).getEventId(), actual.get(0).getEventId());

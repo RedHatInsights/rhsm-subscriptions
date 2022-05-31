@@ -32,6 +32,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-/** Maps TallySummary to payload contents to be sent to RHM apis */
+/** Maps BillableUsage to payload contents to be sent to RHM apis */
 @Service
 public class RhMarketplacePayloadMapper {
   private static final Logger log = LoggerFactory.getLogger(RhMarketplacePayloadMapper.class);
@@ -76,10 +77,24 @@ public class RhMarketplacePayloadMapper {
    * @return UsageRequest
    */
   public UsageRequest createUsageRequest(TallySummary tallySummary) {
+    BillableUsage usage =
+        new BillableUsage()
+            .withAccountNumber(tallySummary.getAccountNumber())
+            .withBillableTallySnapshots(tallySummary.getTallySnapshots());
+    return createUsageRequest(usage);
+  }
+
+  /**
+   * Create UsageRequest pojo to send to Marketplace
+   *
+   * @param billableUsage BillableUsage
+   * @return UsageRequest
+   */
+  public UsageRequest createUsageRequest(BillableUsage billableUsage) {
 
     UsageRequest usageRequest = new UsageRequest();
 
-    var usageEvents = produceUsageEvents(tallySummary);
+    var usageEvents = produceUsageEvents(billableUsage);
     usageEvents.forEach(usageRequest::addDataItem);
 
     log.debug("UsageRequest {}", usageRequest);
@@ -136,19 +151,19 @@ public class RhMarketplacePayloadMapper {
   /**
    * UsageRequest objects are made up of a list of UsageEvents.
    *
-   * @param tallySummary TallySummary
+   * @param billableUsage BillableUsage
    * @return List&lt;UsageEvent&gt;
    */
-  protected List<UsageEvent> produceUsageEvents(TallySummary tallySummary) {
-    if (Objects.isNull(tallySummary.getTallySnapshots())) {
-      tallySummary.setTallySnapshots(new ArrayList<>());
+  protected List<UsageEvent> produceUsageEvents(BillableUsage billableUsage) {
+    if (Objects.isNull(billableUsage.getBillableTallySnapshots())) {
+      billableUsage.setBillableTallySnapshots(new ArrayList<>());
     }
 
-    String accountNumber = tallySummary.getAccountNumber();
+    String accountNumber = billableUsage.getAccountNumber();
     String orgId = accountService.lookupOrgId(accountNumber);
 
     var eligibleSnapshots =
-        tallySummary.getTallySnapshots().stream()
+        billableUsage.getBillableTallySnapshots().stream()
             .map(this::defaultNullBillingProvider)
             .filter(this::isSnapshotRHMarketplaceEligible)
             .filter(this::isSnapshotPAYGEligible)
@@ -160,7 +175,6 @@ public class RhMarketplacePayloadMapper {
       // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
       String billingAcctId = "_ANY";
 
-      // call MarketplaceIdProvider.findSubscriptionId once available
       UsageCalculation.Key usageKey =
           new UsageCalculation.Key(
               productId,
