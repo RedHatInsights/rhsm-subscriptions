@@ -421,7 +421,7 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
             .putMetricItem("ebs_account", expectedAccount)
-            .putMetricItem("billing_provider", "red hat")
+            .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
     QueryResultDataResult premiumResultItem =
@@ -431,7 +431,7 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
             .putMetricItem("ebs_account", expectedAccount)
-            .putMetricItem("billing_provider", "red hat")
+            .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
     QueryResultData queryResultData =
@@ -534,7 +534,7 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("support", sla)
             .putMetricItem("usage", usage)
             .putMetricItem("ebs_account", account)
-            .putMetricItem("billing_provider", billingProvider)
+            .putMetricItem("billing_marketplace", billingProvider)
             .putMetricItem("billing_marketplace_account", billingAccountId);
 
     // NOTE: A tuple is [unix_time,value]

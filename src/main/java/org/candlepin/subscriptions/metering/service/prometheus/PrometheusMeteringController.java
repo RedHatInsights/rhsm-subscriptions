@@ -164,7 +164,7 @@ public class PrometheusMeteringController {
               //       are NOT engineering or swatch product IDs. They map to the roles in the
               //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
               String role = labels.get("product");
-              String billingProvider = labels.get("billing_provider");
+              String billingProvider = labels.get("billing_marketplace");
               String billingAccountId = labels.get("billing_marketplace_account");
 
               // For the openshift metrics, we expect our results to be a 'matrix'
