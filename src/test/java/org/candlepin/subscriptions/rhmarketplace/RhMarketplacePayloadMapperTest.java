@@ -111,6 +111,30 @@ class RhMarketplacePayloadMapperTest {
     assertEquals(expected, actual);
   }
 
+  @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+  @MethodSource("generateHardwareMeasurementPermutations")
+  void testProductUnconfiguredUsageMeasurements(
+      ProductId productId,
+      List<TallyMeasurement> tallyMeasurements,
+      List<UsageMeasurement> expected) {
+
+    var snapshot =
+        new TallySnapshot()
+            .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
+            .withProductId(productId.toString())
+            .withSnapshotDate(OffsetDateTime.now())
+            .withUsage(Usage.PRODUCTION)
+            .withTallyMeasurements(tallyMeasurements)
+            .withSla(Sla.PREMIUM)
+            .withBillingProvider(TallySnapshot.BillingProvider.RED_HAT)
+            .withGranularity(HOURLY);
+
+    var actual = rhMarketplacePayloadMapper.produceUsageMeasurements(snapshot, "Unknown");
+
+    assertNotEquals(expected, actual);
+    assertEquals(0, actual.size());
+  }
+
   @SuppressWarnings("linelength")
   static Stream<Arguments> generateHardwareMeasurementPermutations() {
     double value = 36.0;

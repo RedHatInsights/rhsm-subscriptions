@@ -212,7 +212,7 @@ public class RhMarketplacePayloadMapper {
 
   /**
    * UsageEvents include a list of usage measurements. This data includes unit of measure (UOM), the
-   * value for the uom, and the metricId (RHM terminology) which is a configuration value of the
+   * value for the uom, and the rhmMetricId (RHM terminology) which is a configuration value of the
    * product the uom is for.
    *
    * @param snapshot TallySnapshot
@@ -257,10 +257,12 @@ public class RhMarketplacePayloadMapper {
                     value);
               }
 
-              UsageMeasurement usageMeasurement = new UsageMeasurement();
-              usageMeasurement.setValue(value);
-              usageMeasurement.setMetricId(rhmMarketplaceMetricId);
-              usageMeasurements.add(usageMeasurement);
+              if (rhmMarketplaceMetricId != null) {
+                UsageMeasurement usageMeasurement = new UsageMeasurement();
+                usageMeasurement.setValue(value);
+                usageMeasurement.setMetricId(rhmMarketplaceMetricId);
+                usageMeasurements.add(usageMeasurement);
+              }
             });
     return usageMeasurements;
   }
