@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.task;
 
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
@@ -44,11 +44,11 @@ class MetricsTaskTest {
     OffsetDateTime expEnd = clock.now();
     OffsetDateTime expStart = expEnd.minusDays(1);
     String expAccount = "test-account";
-    String expProductProfileId = "OpenShift";
+    String expProductTag = "OpenShift";
     Uom expMetric = Uom.CORES;
 
     MetricsTask task =
-        new MetricsTask(controller, expAccount, expProductProfileId, expMetric, expStart, expEnd);
+        new MetricsTask(controller, expAccount, expProductTag, expMetric, expStart, expEnd);
     task.execute();
     verify(controller).collectMetrics("OpenShift", Uom.CORES, expAccount, expStart, expEnd);
   }
