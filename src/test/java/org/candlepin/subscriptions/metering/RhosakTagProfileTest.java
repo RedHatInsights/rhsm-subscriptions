@@ -116,6 +116,26 @@ class RhosakTagProfileTest {
                         "product", "rhosak",
                         "prometheusMetric", "kafka_id:strimzi_resource_state:max_over_time1h",
                         "prometheusMetadataMetric", "subscription_labels"))
+                .build()),
+        Arguments.of(
+            "rhosak",
+            Uom.STORAGE_GIBIBYTE_MONTHS,
+            TagMetric.builder()
+                .tag("rhosak")
+                .metricId("redhat.com:rhosak:storage_gib_months")
+                .awsDimension("storage_gb")
+                .uom(Uom.STORAGE_GIBIBYTE_MONTHS)
+                .billingWindow(BillingWindow.MONTHLY)
+                .queryKey("default")
+                .accountQueryKey("default")
+                .queryParams(
+                    Map.of(
+                        "product",
+                        "rhosak",
+                        "prometheusMetric",
+                        "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months",
+                        "prometheusMetadataMetric",
+                        "subscription_labels"))
                 .build()));
   }
 

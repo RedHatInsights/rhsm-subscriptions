@@ -78,7 +78,9 @@ class InstancesResourceTest {
                 any()))
         .thenReturn(new PageImpl<>(List.of(host)));
 
-    var expectUom = List.of("Instance-hours", "Storage-gibibytes", "Transfer-gibibytes");
+    var expectUom =
+        List.of(
+            "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
     List<Double> expectedMeasurement = new ArrayList<>();
     String month = InstanceMonthlyTotalKey.formatMonthId(host.getLastSeen());
     for (String uom : expectUom) {
