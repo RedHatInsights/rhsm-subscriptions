@@ -685,4 +685,25 @@ class MetricUsageCollectorTest {
     Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
     assertNotNull(instance);
   }
+
+  @Test
+  void testCreateInstanceDefaultBillingProvider() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(UUID.randomUUID().toString())
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingAccountId(Optional.of("sellerAcct"));
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
+
+    metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+    Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
+    assertNotNull(instance);
+    assertEquals(BillingProvider.RED_HAT, instance.getBillingProvider());
+  }
 }

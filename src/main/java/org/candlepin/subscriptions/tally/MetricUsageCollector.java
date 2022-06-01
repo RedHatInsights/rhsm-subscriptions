@@ -238,7 +238,9 @@ public class MetricUsageCollector {
     // fields that are optional, see update/updateWithTransform method javadocs
     update(instance::setBillingAccountId, event.getBillingAccountId());
     updateWithTransform(
-        instance::setBillingProvider, event.getBillingProvider(), this::getBillingProvider);
+        instance::setBillingProvider,
+        Optional.ofNullable(event.getBillingProvider()).orElse(Event.BillingProvider.RED_HAT),
+        this::getBillingProvider);
     updateWithTransform(
         instance::setCloudProvider, event.getCloudProvider(), this::getCloudProviderAsString);
     updateWithTransform(
