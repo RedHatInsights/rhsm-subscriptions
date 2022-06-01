@@ -125,6 +125,12 @@ public class BillableUsageProcessor {
       log.debug("Snapshot not applicable because billingProvider is not AWS");
       applicable = false;
     }
+    if (!tagProfile.isAwsConfigured(
+        tallySnapshot.getProductId(),
+        tallySnapshot.getTallyMeasurements().get(0).getUom().name())) {
+      log.debug("Snapshot not applicable because productId and/or uom is not configured for AWS");
+      applicable = false;
+    }
     return applicable;
   }
 
