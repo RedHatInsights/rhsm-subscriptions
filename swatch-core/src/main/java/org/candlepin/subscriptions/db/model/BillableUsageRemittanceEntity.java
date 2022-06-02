@@ -26,6 +26,7 @@ import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -54,4 +55,9 @@ public class BillableUsageRemittanceEntity {
   @Basic
   @Column(name = "org_id", nullable = true)
   private String orgId;
+
+  // Version to enable optimistic locking
+  @Version
+  @Column
+  private Integer version;
 }
