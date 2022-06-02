@@ -45,8 +45,16 @@ properties:
       - Development/Test
       - Disaster Recovery
   uom:
-    description: Identifier for the measurement.
-    $ref: tally_snapshot.yaml#/properties/tally_measurements/items/properties/uom
+    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Cores
+      - Sockets
+      - Instance-hours
+      - Storage-gibibytes
+      - Transfer-gibibytes
+      - Storage-gibibyte-months
   value:
     description: Measurement value.
     type: number
