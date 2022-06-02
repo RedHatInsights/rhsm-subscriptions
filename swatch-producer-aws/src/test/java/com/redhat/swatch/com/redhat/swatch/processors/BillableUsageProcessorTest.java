@@ -65,6 +65,14 @@ class BillableUsageProcessorTest {
           .uom(Uom.INSTANCE_HOURS)
           .value(new BigDecimal("42.0"));
 
+  private static final BillableUsage RHOSAK_STORAGE_GIB_MONTHS_RECORD =
+      new BillableUsage()
+          .productId("rhosak")
+          .snapshotDate(OffsetDateTime.MAX)
+          .billingProvider(BillingProviderEnum.AWS)
+          .uom(Uom.STORAGE_GIBIBYTE_MONTHS)
+          .value(new BigDecimal("42.0"));
+
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
       new AwsUsageContext()
           .rhSubscriptionId("id")
@@ -151,6 +159,14 @@ class BillableUsageProcessorTest {
             .value(new BigDecimal("42.0"));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);
+  }
+
+  @Test
+  void shouldFindStorageAwsDimension() throws ApiException {
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
+        .thenReturn(new AwsUsageContext());
+    processor.process(RHOSAK_STORAGE_GIB_MONTHS_RECORD);
+    verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any());
   }
 
   @Test

@@ -233,6 +233,15 @@ tagMetrics:
       product: rhosak
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
       prometheusMetadataMetric: subscription_labels
+  - tag: rhosak
+    metricId: redhat.com:rhosak:storage_gib_months
+    awsDimension: storage_gb
+    uom: STORAGE_GIBIBYTE_MONTHS
+    billingWindow: MONTHLY
+    queryParams:
+      product: rhosak
+      prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
+      prometheusMetadataMetric: subscription_labels
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A

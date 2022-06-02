@@ -205,7 +205,9 @@ public class InstancesResource implements InstancesApi {
     }
 
     for (String uom : measurements) {
-      measurementList.add(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)));
+      measurementList.add(
+          Optional.ofNullable(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
     }
     instance.setBillingAccountId(host.getBillingAccountId());
     instance.setMeasurements(measurementList);

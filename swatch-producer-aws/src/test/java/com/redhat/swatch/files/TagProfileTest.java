@@ -52,4 +52,11 @@ class TagProfileTest {
     assertThat(exception.getMessage(), containsString("rhosak"));
     assertThat(exception.getMessage(), containsString("dummy-uom"));
   }
+
+  @Test
+  void testCanLoadRhosakStorageGibMonthsDimension() {
+    TagProfile tagProfile = new TagProfile();
+    assertEquals(
+        "storage_gb", tagProfile.getAwsDimension("rhosak", Uom.STORAGE_GIBIBYTE_MONTHS.name()));
+  }
 }
