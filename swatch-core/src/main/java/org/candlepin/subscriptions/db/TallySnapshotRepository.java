@@ -52,7 +52,8 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
           + "t.usage = :usage and "
           + "t.billingProvider = :billingProvider and "
           + "t.billingAccountId = :billingAcctId and "
-          + "t.snapshotDate between :beginning and :ending")
+          + "t.snapshotDate between :beginning and :ending "
+          + "order by t.snapshotDate")
   Page<TallySnapshot> findSnapshot( // NOSONAR
       @Param("accountNumber") String accountNumber,
       @Param("productId") String productId,
