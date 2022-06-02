@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202205231334" author="lburnett">
+    <comment>Create billable_usage_remittance tracking table</comment>
+
+    <createTable tableName="billable_usage_remittance">
+      <column name="account_number" type="VARCHAR(32)"/>
+      <column name="org_id" type="VARCHAR(32)"/>
+      <column name="product_id" type="VARCHAR(32)"/>
+      <column name="metric_id" type="VARCHAR(255)"/>
+      <column name="accumulation_period" type="VARCHAR(255)"/>
+      <column name="sla" type="VARCHAR(255)"/>
+      <column name="usage" type="VARCHAR(255)"/>
+      <column name="billing_provider" type="VARCHAR(255)"/>
+      <column name="billing_account_id" type="VARCHAR(255)"/>
+      <column name="remitted_value" type="double precision"/>
+      <column name="remittance_date" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+
+    <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+      tableName="billable_usage_remittance"
+      columnNames="account_number, product_id, metric_id, accumulation_period, sla, usage, billing_provider,
+        billing_account_id"/>
+
+  </changeSet>
+</databaseChangeLog>

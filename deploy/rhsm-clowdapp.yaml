@@ -200,6 +200,10 @@ parameters:
     value: '1'
   - name: ENABLE_TALLY_SUMMARY_LISTENER
     value: 'true'
+  - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -806,6 +810,10 @@ objects:
               value: ${RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
             - name: RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
               value: ${RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER}
+            - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END
+              value: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END}
+            - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
             - name: SUBSCRIPTION_KEYSTORE_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -62,6 +62,10 @@ public class TagProfile {
     return awsDimension;
   }
 
+  public boolean isAwsConfigured(String product, String metric) {
+    return awsDimensionLookup.containsKey(new AwsDimensionLookupKey(product, metric));
+  }
+
   @Data
   @AllArgsConstructor
   private static class AwsDimensionLookupKey {

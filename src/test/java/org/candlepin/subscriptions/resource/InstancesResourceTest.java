@@ -78,11 +78,15 @@ class InstancesResourceTest {
                 any()))
         .thenReturn(new PageImpl<>(List.of(host)));
 
-    var expectUom = List.of("Instance-hours", "Storage-gibibytes", "Transfer-gibibytes");
+    var expectUom =
+        List.of(
+            "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
     List<Double> expectedMeasurement = new ArrayList<>();
     String month = InstanceMonthlyTotalKey.formatMonthId(host.getLastSeen());
     for (String uom : expectUom) {
-      expectedMeasurement.add(host.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)));
+      expectedMeasurement.add(
+          Optional.ofNullable(host.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
     }
     var data = new InstanceData();
     data.setId(host.getInstanceId());

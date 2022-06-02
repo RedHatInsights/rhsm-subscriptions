@@ -38,6 +38,7 @@ class BillingProducerTest {
 
   private TaskQueueProperties billableUsageTopicProps;
   private BillingProducer producer;
+  private BillableUsageController billableUsageEvaluator;
 
   @BeforeEach
   void setupTest() {
@@ -48,7 +49,7 @@ class BillingProducerTest {
   }
 
   @Test
-  void testTallySummaryPassThrough() {
+  void testBillableUsageIsSentToTopic() {
     BillableUsage usage = new BillableUsage();
     producer.produce(usage);
     verify(kafka).send(billableUsageTopicProps.getTopic(), usage);

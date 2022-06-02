@@ -20,33 +20,7 @@
  */
 package org.candlepin.subscriptions.registry;
 
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-
-/** A composite class for tag profiles. Describes tag metric information. */
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@Getter
-@NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
-  private String tag;
-  private String metricId;
-  private String rhmMetricId;
-  private String awsDimension;
-  private Uom uom;
-  @Default private BillingWindow billingWindow = BillingWindow.MONTHLY;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
+public enum BillingWindow {
+  HOURLY,
+  MONTHLY
 }

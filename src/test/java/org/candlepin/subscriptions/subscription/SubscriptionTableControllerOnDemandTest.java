@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -389,6 +390,30 @@ class SubscriptionTableControllerOnDemandTest {
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+  }
+
+  @Test
+  void testOnDemandSkuPopulatesNextEvent() {
+    // Given an org with one active sub with a quantity of 1 and has an eng product with unlimited
+    // usage.
+    ProductId productId = RHOSAK;
+    Sub expectedSub = Sub.sub("1234", MW01882RN.sku, "1235", 1);
+
+    List<Subscription> givenSubs =
+        givenSubscriptions(Org.STANDARD, productId, MW01882RN.withSub(expectedSub));
+
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null, null, null);
+    SkuCapacity actualItem = actual.getData().get(0);
+
+    // Then the report should contain end date of the contributing subscription
+    assertEquals(
+        SubscriptionEventType.END, actualItem.getNextEventType(), "Wrong upcoming event type");
+    assertEquals(expectedSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 
   private static void assertSubscription(Sub expectedSub, SkuCapacitySubscription actual) {

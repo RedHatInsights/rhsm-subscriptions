@@ -28,12 +28,9 @@ import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
-import com.redhat.swatch.openapi.model.TallySnapshot;
-import com.redhat.swatch.openapi.model.TallySnapshot.BillingProviderEnum;
-import com.redhat.swatch.openapi.model.TallySnapshot.GranularityEnum;
-import com.redhat.swatch.openapi.model.TallySnapshot.SlaEnum;
-import com.redhat.swatch.openapi.model.TallySnapshot.UsageEnum;
-import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements;
+import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.openapi.model.BillableUsage.SlaEnum;
+import com.redhat.swatch.openapi.model.BillableUsage.UsageEnum;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
@@ -82,75 +79,72 @@ public class BillableUsageProcessor {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
-    for (TallySnapshot tallySnapshot : billableUsage.getBillableTallySnapshots()) {
-      if (!isSnapshotApplicable(tallySnapshot)) {
-        continue;
-      }
+    if (!isApplicable(billableUsage)) {
+      log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
+      return;
+    }
 
-      AwsUsageContext context;
-      try {
-        context = lookupAwsUsageContext(billableUsage, tallySnapshot);
-      } catch (AwsUsageContextLookupException e) {
-        log.error(
-            "Error looking up usage context for account={} tallySnapshotId={}",
-            billableUsage.getAccountNumber(),
-            tallySnapshot.getId(),
-            e);
-        return;
-      }
-      try {
-        for (var measurement : tallySnapshot.getTallyMeasurements()) {
-          transformAndSend(context, tallySnapshot, measurement);
-        }
-      } catch (Exception e) {
-        log.error(
-            "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={}",
-            billableUsage.getAccountNumber(),
-            context.getRhSubscriptionId(),
-            tallySnapshot.getId(),
-            context.getCustomerId(),
-            context.getProductCode(),
-            e);
-      }
+    AwsUsageContext context;
+    try {
+      context = lookupAwsUsageContext(billableUsage);
+    } catch (AwsUsageContextLookupException e) {
+      log.error(
+          "Error looking up usage context for account={} tallySnapshotId={}",
+          billableUsage.getAccountNumber(),
+          billableUsage.getId(),
+          e);
+      return;
+    }
+    try {
+      transformAndSend(context, billableUsage);
+    } catch (Exception e) {
+      log.error(
+          "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={}",
+          billableUsage.getAccountNumber(),
+          context.getRhSubscriptionId(),
+          billableUsage.getId(),
+          context.getCustomerId(),
+          context.getProductCode(),
+          e);
     }
   }
 
-  private boolean isSnapshotApplicable(TallySnapshot tallySnapshot) {
+  private boolean isApplicable(BillableUsage billableUsage) {
     boolean applicable = true;
-    if (tallySnapshot.getGranularity() != GranularityEnum.DAILY) {
-      log.debug("Snapshot not applicable because granularity is not Daily");
+    if (billableUsage.getBillingProvider() != BillingProviderEnum.AWS) {
+      log.debug("Snapshot not applicable because billingProvider is not AWS");
       applicable = false;
     }
-    if (tallySnapshot.getBillingProvider() != BillingProviderEnum.AWS) {
-      log.debug("Snapshot not applicable because billingProvider is not AWS");
+    if (!tagProfile.isAwsConfigured(
+        billableUsage.getProductId(),
+        Optional.ofNullable(billableUsage.getUom()).map(Enum::name).orElse(null))) {
+      log.debug("Snapshot not applicable because productId and/or uom is not configured for AWS");
       applicable = false;
     }
     return applicable;
   }
 
   @Retry
-  public AwsUsageContext lookupAwsUsageContext(
-      BillableUsage billableUsage, TallySnapshot tallySnapshot)
+  public AwsUsageContext lookupAwsUsageContext(BillableUsage billableUsage)
       throws AwsUsageContextLookupException {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
           billableUsage.getAccountNumber(),
-          tallySnapshot.getSnapshotDate(),
-          tallySnapshot.getProductId(),
-          Optional.ofNullable(tallySnapshot.getSla()).map(SlaEnum::value).orElse(null),
-          Optional.ofNullable(tallySnapshot.getUsage()).map(UsageEnum::value).orElse(null));
+          billableUsage.getSnapshotDate(),
+          billableUsage.getProductId(),
+          Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
+          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null));
     } catch (ApiException e) {
       throw new AwsUsageContextLookupException(e);
     }
   }
 
-  private void transformAndSend(
-      AwsUsageContext context, TallySnapshot tallySnapshot, TallySnapshotTallyMeasurements m)
+  private void transformAndSend(AwsUsageContext context, BillableUsage billableUsage)
       throws AwsUnprocessedRecordsException, AwsDimensionNotConfiguredException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
-            .usageRecords(transformToAwsUsage(context, tallySnapshot, m))
+            .usageRecords(transformToAwsUsage(context, billableUsage))
             .build();
     try {
       MarketplaceMeteringClient marketplaceMeteringClient =
@@ -188,12 +182,9 @@ public class BillableUsageProcessor {
     return client.batchMeterUsage(request);
   }
 
-  private UsageRecord transformToAwsUsage(
-      AwsUsageContext context,
-      TallySnapshot tallySnapshot,
-      TallySnapshotTallyMeasurements measurement)
+  private UsageRecord transformToAwsUsage(AwsUsageContext context, BillableUsage billableUsage)
       throws AwsDimensionNotConfiguredException {
-    OffsetDateTime effectiveTimestamp = tallySnapshot.getSnapshotDate();
+    OffsetDateTime effectiveTimestamp = billableUsage.getSnapshotDate();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {
       // NOTE: AWS requires that the timestamp "is not before the start of the software usage."
       // https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html
@@ -204,8 +195,8 @@ public class BillableUsageProcessor {
     return UsageRecord.builder()
         .customerIdentifier(context.getCustomerId())
         .dimension(
-            tagProfile.getAwsDimension(tallySnapshot.getProductId(), measurement.getUom().name()))
-        .quantity(measurement.getValue().intValue())
+            tagProfile.getAwsDimension(billableUsage.getProductId(), billableUsage.getUom().name()))
+        .quantity(billableUsage.getValue().intValueExact())
         .timestamp(effectiveTimestamp.toInstant())
         .build();
   }

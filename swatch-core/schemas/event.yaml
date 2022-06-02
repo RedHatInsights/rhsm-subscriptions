@@ -85,6 +85,7 @@ properties:
             - Instance-hours
             - Storage-gibibytes
             - Transfer-gibibytes
+            - Storage-gibibyte-months
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.

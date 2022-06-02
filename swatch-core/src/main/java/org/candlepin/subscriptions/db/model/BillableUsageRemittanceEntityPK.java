@@ -18,35 +18,44 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package org.candlepin.subscriptions.db.model;
 
-import java.util.Map;
+import java.io.Serializable;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
-/** A composite class for tag profiles. Describes tag metric information. */
+@Data
+@Embeddable
 @AllArgsConstructor
-@Builder
-@EqualsAndHashCode
-@Getter
 @NoArgsConstructor
-@Setter
-@ToString
-public class TagMetric {
-  private String tag;
+@Builder
+public class BillableUsageRemittanceEntityPK implements Serializable {
+
+  @Column(name = "account_number", nullable = false, length = 32)
+  private String accountNumber;
+
+  @Column(name = "product_id", nullable = false, length = 32)
+  private String productId;
+
+  @Column(name = "metric_id", nullable = false, length = 32)
   private String metricId;
-  private String rhmMetricId;
-  private String awsDimension;
-  private Uom uom;
-  @Default private BillingWindow billingWindow = BillingWindow.MONTHLY;
-  @Default private String queryKey = "default";
-  @Default private String accountQueryKey = "default";
-  private Map<String, String> queryParams;
+
+  @Column(name = "accumulation_period", nullable = false, length = 255)
+  private String accumulationPeriod;
+
+  @Column(name = "sla", nullable = false, length = 32)
+  private String sla;
+
+  @Column(name = "usage", nullable = false, length = 32)
+  private String usage;
+
+  @Column(name = "billing_provider", nullable = false, length = 32)
+  private String billingProvider;
+
+  @Column(name = "billing_account_id", nullable = false, length = 255)
+  private String billingAccountId;
 }

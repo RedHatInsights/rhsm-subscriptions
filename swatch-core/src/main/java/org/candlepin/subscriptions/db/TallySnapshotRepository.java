@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
@@ -52,7 +53,8 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
           + "t.usage = :usage and "
           + "t.billingProvider = :billingProvider and "
           + "t.billingAccountId = :billingAcctId and "
-          + "t.snapshotDate between :beginning and :ending")
+          + "t.snapshotDate between :beginning and :ending "
+          + "order by t.snapshotDate")
   Page<TallySnapshot> findSnapshot( // NOSONAR
       @Param("accountNumber") String accountNumber,
       @Param("productId") String productId,
@@ -77,4 +79,28 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       OffsetDateTime ending);
 
   void deleteByAccountNumber(String accountNumber);
+
+  @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
+  @Query(
+      "select coalesce(sum(VALUE(m)), 0.0) from TallySnapshot s "
+          + "left join s.tallyMeasurements m on key(m) = :measurementKey "
+          + "where s.accountNumber = :accountNumber and "
+          + "s.productId = :productId and "
+          + "s.granularity = :granularity and "
+          + "s.serviceLevel = :serviceLevel and "
+          + "s.usage = :usage and "
+          + "s.billingProvider = :billingProvider and "
+          + "s.billingAccountId = :billingAcctId and "
+          + "s.snapshotDate >= :beginning and s.snapshotDate <= :ending")
+  Double sumMeasurementValueForPeriod(
+      @Param("accountNumber") String accountNumber,
+      @Param("productId") String productId,
+      @Param("granularity") Granularity granularity,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("measurementKey") TallyMeasurementKey measurementKey);
 }

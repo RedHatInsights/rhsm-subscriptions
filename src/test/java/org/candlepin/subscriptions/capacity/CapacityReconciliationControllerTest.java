@@ -20,11 +20,16 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
@@ -93,7 +98,7 @@ class CapacityReconciliationControllerTest {
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
-    when(offeringRepository.getById("MCT3718")).thenReturn(offering);
+    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(Collections.emptyList());
@@ -150,7 +155,7 @@ class CapacityReconciliationControllerTest {
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
-    when(offeringRepository.getById("MCT3718")).thenReturn(updatedOffering);
+    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(updatedOffering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(existingCapacities);
@@ -193,7 +198,7 @@ class CapacityReconciliationControllerTest {
     when(whitelist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering))
         .thenReturn(Set.of("RHEL", "RHEL Workstation"));
-    when(offeringRepository.getById("MCT3718")).thenReturn(offering);
+    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(existingCapacities);
@@ -213,7 +218,7 @@ class CapacityReconciliationControllerTest {
 
     when(whitelist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(Set.of("RHEL1", "RHEL2"));
-    when(offeringRepository.getById("MCT3718")).thenReturn(offering);
+    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(Collections.emptyList());
@@ -257,7 +262,7 @@ class CapacityReconciliationControllerTest {
 
     when(whitelist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
-    when(offeringRepository.getById("MCT3718")).thenReturn(offering);
+    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(staleCapacities);

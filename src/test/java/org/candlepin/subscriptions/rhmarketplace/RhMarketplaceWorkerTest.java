@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.rhmarketplace;
 
 import static org.mockito.Mockito.*;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
@@ -46,43 +46,11 @@ class RhMarketplaceWorkerTest {
         new RhMarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
 
     UsageRequest usageRequest = new UsageRequest().data(List.of(new UsageEvent()));
-    when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
+    when(payloadMapper.createUsageRequests(any(TallySummary.class)))
+        .thenReturn(Stream.of(usageRequest));
 
     worker.receive(new TallySummary());
 
     verify(producer, times(1)).submitUsageRequest(usageRequest);
-  }
-
-  @Test
-  void testWorkerSkipsEmptyPayloads() {
-    TaskQueueProperties properties = new TaskQueueProperties();
-    RhMarketplaceProducer producer = mock(RhMarketplaceProducer.class);
-    RhMarketplacePayloadMapper payloadMapper = mock(RhMarketplacePayloadMapper.class);
-    KafkaConsumerRegistry kafkaConsumerRegistry = mock(KafkaConsumerRegistry.class);
-    var worker =
-        new RhMarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
-
-    UsageRequest usageRequest = new UsageRequest().data(Collections.emptyList());
-    when(payloadMapper.createUsageRequest(any())).thenReturn(usageRequest);
-
-    worker.receive(new TallySummary());
-
-    verify(producer, times(0)).submitUsageRequest(any());
-  }
-
-  @Test
-  void testWorkerSkipsNullPayloads() {
-    TaskQueueProperties properties = new TaskQueueProperties();
-    RhMarketplaceProducer producer = mock(RhMarketplaceProducer.class);
-    RhMarketplacePayloadMapper payloadMapper = mock(RhMarketplacePayloadMapper.class);
-    KafkaConsumerRegistry kafkaConsumerRegistry = mock(KafkaConsumerRegistry.class);
-    var worker =
-        new RhMarketplaceWorker(properties, producer, payloadMapper, kafkaConsumerRegistry);
-
-    when(payloadMapper.createUsageRequest(any())).thenReturn(null);
-
-    worker.receive(new TallySummary());
-
-    verify(producer, times(0)).submitUsageRequest(any());
   }
 }

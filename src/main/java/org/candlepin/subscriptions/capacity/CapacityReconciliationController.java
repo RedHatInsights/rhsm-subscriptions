@@ -37,7 +37,6 @@ import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
@@ -123,8 +122,12 @@ public class CapacityReconciliationController {
   }
 
   private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription) {
+    var optionalOffering = offeringRepository.findById(subscription.getSku());
+    if (optionalOffering.isEmpty()) {
+      return Collections.emptyList();
+    }
 
-    Offering offering = offeringRepository.getById(subscription.getSku());
+    var offering = optionalOffering.get();
     Set<String> products = productExtractor.getProducts(offering);
     return products.stream()
         .map(product -> from(subscription, offering, product))
