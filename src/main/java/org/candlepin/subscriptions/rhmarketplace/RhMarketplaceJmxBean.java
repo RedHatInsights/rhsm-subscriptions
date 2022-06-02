@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.rhmarketplace;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
@@ -91,15 +93,17 @@ public class RhMarketplaceJmxBean {
     }
 
     TallySummary tallySummary = mapper.readValue(tallySummaryJson, TallySummary.class);
-    UsageRequest usageRequest = rhMarketplacePayloadMapper.createUsageRequest(tallySummary);
+    List<UsageRequest> usageRequests =
+        rhMarketplacePayloadMapper.createUsageRequests(tallySummary).collect(Collectors.toList());
+    for (UsageRequest usageRequest : usageRequests) {
+      log.info("usageRequest to be sent: {}", usageRequest);
 
-    log.info("usageRequest to be sent: {}", usageRequest);
-
-    try {
-      rhMarketplaceProducer.submitUsageRequest(usageRequest);
-    } catch (Exception e) {
-      log.error(USAGE_SUBMISSION_ERROR_MESSAGE, e);
-      throw new JmxException(USAGE_SUBMISSION_ERROR_MESSAGE, e);
+      try {
+        rhMarketplaceProducer.submitUsageRequest(usageRequest);
+      } catch (Exception e) {
+        log.error(USAGE_SUBMISSION_ERROR_MESSAGE, e);
+        throw new JmxException(USAGE_SUBMISSION_ERROR_MESSAGE, e);
+      }
     }
   }
 

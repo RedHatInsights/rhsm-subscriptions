@@ -32,11 +32,8 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
-import com.redhat.swatch.openapi.model.TallySnapshot;
-import com.redhat.swatch.openapi.model.TallySnapshot.BillingProviderEnum;
-import com.redhat.swatch.openapi.model.TallySnapshot.GranularityEnum;
-import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements;
-import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements.UomEnum;
+import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.openapi.model.Uom;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
 import com.redhat.swatch.processors.BillableUsageProcessor;
 import io.micrometer.core.instrument.Counter;
@@ -44,7 +41,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,18 +59,11 @@ class BillableUsageProcessorTest {
 
   private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
-          .billableTallySnapshots(
-              List.of(
-                  new TallySnapshot()
-                      .productId("rhosak")
-                      .granularity(GranularityEnum.DAILY)
-                      .snapshotDate(OffsetDateTime.MAX)
-                      .billingProvider(BillingProviderEnum.AWS)
-                      .tallyMeasurements(
-                          List.of(
-                              new TallySnapshotTallyMeasurements()
-                                  .uom(UomEnum.INSTANCE_HOURS)
-                                  .value(new BigDecimal("42.0"))))));
+          .productId("rhosak")
+          .snapshotDate(OffsetDateTime.MAX)
+          .billingProvider(BillingProviderEnum.AWS)
+          .uom(Uom.INSTANCE_HOURS)
+          .value(new BigDecimal("42.0"));
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
       new AwsUsageContext()
@@ -115,35 +104,8 @@ class BillableUsageProcessorTest {
   }
 
   @Test
-  void shouldSkipNonDailySnapshots() {
-    BillableUsage usage =
-        new BillableUsage()
-            .billableTallySnapshots(
-                List.of(
-                    new TallySnapshot()
-                        .granularity(GranularityEnum.YEARLY)
-                        .tallyMeasurements(
-                            List.of(
-                                new TallySnapshotTallyMeasurements()
-                                    .uom(UomEnum.INSTANCE_HOURS)
-                                    .value(new BigDecimal("42.0"))))));
-    processor.process(usage);
-    verifyNoInteractions(internalSubscriptionsApi, clientFactory);
-  }
-
-  @Test
   void shouldSkipNonAwsSnapshots() {
-    BillableUsage usage =
-        new BillableUsage()
-            .billableTallySnapshots(
-                List.of(
-                    new TallySnapshot()
-                        .billingProvider(BillingProviderEnum.RED_HAT)
-                        .tallyMeasurements(
-                            List.of(
-                                new TallySnapshotTallyMeasurements()
-                                    .uom(UomEnum.INSTANCE_HOURS)
-                                    .value(new BigDecimal("42.0"))))));
+    BillableUsage usage = new BillableUsage().billingProvider(BillingProviderEnum.RED_HAT);
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
@@ -169,17 +131,10 @@ class BillableUsageProcessorTest {
   void shouldSkipMessageIfAwsContextCannotBeLookedUp() throws ApiException {
     BillableUsage usage =
         new BillableUsage()
-            .billableTallySnapshots(
-                List.of(
-                    new TallySnapshot()
-                        .productId("rhosak")
-                        .granularity(GranularityEnum.DAILY)
-                        .billingProvider(BillingProviderEnum.AWS)
-                        .tallyMeasurements(
-                            List.of(
-                                new TallySnapshotTallyMeasurements()
-                                    .uom(UomEnum.INSTANCE_HOURS)
-                                    .value(new BigDecimal("42.0"))))));
+            .productId("rhosak")
+            .billingProvider(BillingProviderEnum.AWS)
+            .uom(Uom.INSTANCE_HOURS)
+            .value(new BigDecimal("42.0"));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
     processor.process(usage);
@@ -190,17 +145,10 @@ class BillableUsageProcessorTest {
   void shouldSkipMessageIfUnknownAwsDimensionCannotBeLookedUp() {
     BillableUsage usage =
         new BillableUsage()
-            .billableTallySnapshots(
-                List.of(
-                    new TallySnapshot()
-                        .productId("OpenShift-dedicated-metrics")
-                        .granularity(GranularityEnum.DAILY)
-                        .billingProvider(BillingProviderEnum.AWS)
-                        .tallyMeasurements(
-                            List.of(
-                                new TallySnapshotTallyMeasurements()
-                                    .uom(UomEnum.INSTANCE_HOURS)
-                                    .value(new BigDecimal("42.0"))))));
+            .productId("foobar")
+            .billingProvider(BillingProviderEnum.AWS)
+            .uom(Uom.INSTANCE_HOURS)
+            .value(new BigDecimal("42.0"));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);
   }

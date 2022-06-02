@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.rhmarketplace;
 
 import io.micrometer.core.annotation.Timed;
-import java.util.Optional;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -62,8 +61,8 @@ public class RhMarketplaceWorker extends SeekableKafkaConsumer {
       containerFactory = "kafkaTallySummaryListenerContainerFactory")
   public void receive(TallySummary tallySummary) {
     log.debug("Tally Summary received by RHM for account {}!", tallySummary.getAccountNumber());
-    Optional.ofNullable(rhMarketplacePayloadMapper.createUsageRequest(tallySummary))
-        .filter(s -> !s.getData().isEmpty())
-        .ifPresent(producer::submitUsageRequest);
+    rhMarketplacePayloadMapper
+        .createUsageRequests(tallySummary)
+        .forEach(producer::submitUsageRequest);
   }
 }

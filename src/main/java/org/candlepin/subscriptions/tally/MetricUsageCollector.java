@@ -398,7 +398,7 @@ public class MetricUsageCollector {
             .map(BillingProvider::fromString)
             .orElse(BillingProvider.RED_HAT);
     String effectiveBillingAcctId =
-        Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("_ANY");
+        Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("");
     Set<String> productIds = getProductIds(event);
     Set<String> billingAcctIds = getBillingAccountIds(effectiveBillingAcctId);
 

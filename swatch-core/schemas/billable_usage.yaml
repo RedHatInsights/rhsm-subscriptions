@@ -6,8 +6,47 @@ properties:
   account_number:
     description: Account identifier for the relevant account.
     type: string
-  billable_tally_snapshots:
-    description: List of tally snapshots produced in the range.
-    type: array
-    items:
-      $ref: tally_snapshot.yaml
+  org_id:
+    description: Preferred identifier for the relevant account (if present).
+    type: string
+  id:
+    description: Tally snapshot ID that resulted in this billable usage (for tracking).
+    type: string
+    format: uuid
+  billing_provider:
+    type: string
+    enum:
+      - red hat
+      - aws
+      - gcp
+      - azure
+      - oracle
+  billing_account_id:
+    type: string
+  snapshot_date:
+    type: string
+    format: date-time
+  product_id:
+    type: string
+  sla:
+    description: Service level for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Premium
+      - Standard
+      - Self-Support
+  usage:
+    description: Intended usage for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Production
+      - Development/Test
+      - Disaster Recovery
+  uom:
+    description: Identifier for the measurement.
+    $ref: tally_snapshot.yaml#/properties/tally_measurements/items/properties/uom
+  value:
+    description: Measurement value.
+    type: number

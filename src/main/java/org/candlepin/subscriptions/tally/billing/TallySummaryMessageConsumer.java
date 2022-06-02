@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally.billing;
 
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -39,6 +38,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
 
+  private final BillableUsageMapper billableUsageMapper;
   private BillingProducer billingProducer;
 
   @Autowired
@@ -46,9 +46,11 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       BillingProducer billingProducer,
       @Qualifier("billingProducerTallySummaryTopicProperties")
           TaskQueueProperties tallySummaryTopicProperties,
-      KafkaConsumerRegistry kafkaConsumerRegistry) {
+      KafkaConsumerRegistry kafkaConsumerRegistry,
+      BillableUsageMapper billableUsageMapper) {
     super(tallySummaryTopicProperties, kafkaConsumerRegistry);
     this.billingProducer = billingProducer;
+    this.billableUsageMapper = billableUsageMapper;
   }
 
   @Timed("rhsm-subscriptions.billing-producer.tally-summary")
@@ -57,11 +59,7 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "billingProducerKafkaTallySummaryListenerContainerFactory")
   public void receive(TallySummary tallySummary) {
-    log.debug("Tally Summary recieved. Producing billable usage.}");
-    BillableUsage usage =
-        new BillableUsage()
-            .withAccountNumber(tallySummary.getAccountNumber())
-            .withBillableTallySnapshots(tallySummary.getTallySnapshots());
-    this.billingProducer.produce(usage);
+    log.debug("Tally Summary received. Producing billable usage.");
+    billableUsageMapper.fromTallySummary(tallySummary).forEach(billingProducer::produce);
   }
 }

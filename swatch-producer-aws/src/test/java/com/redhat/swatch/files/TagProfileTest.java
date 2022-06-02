@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
-import com.redhat.swatch.openapi.model.TallySnapshotTallyMeasurements.UomEnum;
+import com.redhat.swatch.openapi.model.Uom;
 import org.junit.jupiter.api.Test;
 
 class TagProfileTest {
@@ -35,7 +35,7 @@ class TagProfileTest {
     TagProfile tagProfile = new TagProfile();
     assertEquals(
         "redhat.com:rhosak:cluster_hour",
-        tagProfile.getAwsDimension("rhosak", UomEnum.INSTANCE_HOURS.name()));
+        tagProfile.getAwsDimension("rhosak", Uom.INSTANCE_HOURS.name()));
   }
 
   @Test

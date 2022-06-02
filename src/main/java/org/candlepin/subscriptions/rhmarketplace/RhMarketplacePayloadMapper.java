@@ -22,13 +22,12 @@ package org.candlepin.subscriptions.rhmarketplace;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
@@ -41,6 +40,7 @@ import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.billing.BillableUsageMapper;
 import org.candlepin.subscriptions.user.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,31 +57,20 @@ public class RhMarketplacePayloadMapper {
 
   private final AccountService accountService;
   private final RhMarketplaceSubscriptionIdProvider idProvider;
+  private final BillableUsageMapper billableUsageMapper;
   private final TagProfile tagProfile;
 
   @Autowired
   public RhMarketplacePayloadMapper(
       TagProfile tagProfile,
       AccountService accountService,
-      RhMarketplaceSubscriptionIdProvider idProvider,
-      RhMarketplaceProperties rhMarketplaceProperties) {
+      RhMarketplaceSubscriptionIdProvider idProvider) {
     this.tagProfile = tagProfile;
     this.accountService = accountService;
     this.idProvider = idProvider;
-  }
-
-  /**
-   * Create UsageRequest pojo to send to Marketplace
-   *
-   * @param tallySummary TallySummary
-   * @return UsageRequest
-   */
-  public UsageRequest createUsageRequest(TallySummary tallySummary) {
-    BillableUsage usage =
-        new BillableUsage()
-            .withAccountNumber(tallySummary.getAccountNumber())
-            .withBillableTallySnapshots(tallySummary.getTallySnapshots());
-    return createUsageRequest(usage);
+    // NOTE(khowell) this dependency is temporary, and instantiating here was easier than
+    // refactoring profiles.
+    this.billableUsageMapper = new BillableUsageMapper(tagProfile);
   }
 
   /**
@@ -93,53 +82,12 @@ public class RhMarketplacePayloadMapper {
   public UsageRequest createUsageRequest(BillableUsage billableUsage) {
 
     UsageRequest usageRequest = new UsageRequest();
-
-    var usageEvents = produceUsageEvents(billableUsage);
-    usageEvents.forEach(usageRequest::addDataItem);
+    usageRequest.setData(
+        Optional.ofNullable(produceUsageEvent(billableUsage)).map(List::of).orElse(List.of()));
 
     log.debug("UsageRequest {}", usageRequest);
 
     return usageRequest;
-  }
-
-  /**
-   * We only want to send snapshot information for PAYG product ids. To prevent duplicate data, we
-   * don't want to send snapshots with the Usage or ServiceLevel of "_ANY". We only want to report
-   * on hourly metrics, so the Granularity should be HOURLY.
-   *
-   * @param snapshot tally snapshot
-   * @return eligibility status
-   */
-  protected boolean isSnapshotPAYGEligible(TallySnapshot snapshot) {
-    String productId = snapshot.getProductId();
-
-    boolean isApplicableProduct = tagProfile.isProductPAYGEligible(productId);
-
-    boolean isHourlyGranularity =
-        Objects.equals(TallySnapshot.Granularity.HOURLY, snapshot.getGranularity());
-
-    boolean isSpecificUsage =
-        !List.of(TallySnapshot.Usage.ANY, TallySnapshot.Usage.__EMPTY__)
-            .contains(snapshot.getUsage());
-
-    boolean isSpecificServiceLevel =
-        !List.of(TallySnapshot.Sla.ANY, TallySnapshot.Sla.__EMPTY__).contains(snapshot.getSla());
-
-    boolean isSpecificBillingProvider =
-        !List.of(TallySnapshot.BillingProvider.ANY, TallySnapshot.BillingProvider.__EMPTY__)
-            .contains(snapshot.getBillingProvider());
-
-    boolean isSnapshotPAYGEligible =
-        isHourlyGranularity
-            && isApplicableProduct
-            && isSpecificUsage
-            && isSpecificServiceLevel
-            && isSpecificBillingProvider;
-
-    if (!isSnapshotPAYGEligible) {
-      log.debug("Snapshot not eligible for sending to RHM {}", snapshot);
-    }
-    return isSnapshotPAYGEligible;
   }
 
   protected boolean isSnapshotRHMarketplaceEligible(TallySnapshot snapshot) {
@@ -154,74 +102,52 @@ public class RhMarketplacePayloadMapper {
    * @param billableUsage BillableUsage
    * @return List&lt;UsageEvent&gt;
    */
-  protected List<UsageEvent> produceUsageEvents(BillableUsage billableUsage) {
-    if (Objects.isNull(billableUsage.getBillableTallySnapshots())) {
-      billableUsage.setBillableTallySnapshots(new ArrayList<>());
-    }
-
+  protected UsageEvent produceUsageEvent(BillableUsage billableUsage) {
     String accountNumber = billableUsage.getAccountNumber();
-    String orgId = accountService.lookupOrgId(accountNumber);
-
-    var eligibleSnapshots =
-        billableUsage.getBillableTallySnapshots().stream()
-            .map(this::defaultNullBillingProvider)
-            .filter(this::isSnapshotRHMarketplaceEligible)
-            .filter(this::isSnapshotPAYGEligible)
-            .collect(Collectors.toList());
-
-    List<UsageEvent> events = new ArrayList<>();
-    for (TallySnapshot snapshot : eligibleSnapshots) {
-      String productId = snapshot.getProductId();
-      // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
-      String billingAcctId = "_ANY";
-
-      UsageCalculation.Key usageKey =
-          new UsageCalculation.Key(
-              productId,
-              ServiceLevel.fromString(snapshot.getSla().toString()),
-              Usage.fromString(snapshot.getUsage().toString()),
-              BillingProvider.RED_HAT,
-              billingAcctId);
-
-      OffsetDateTime snapshotDate = snapshot.getSnapshotDate();
-      String eventId = snapshot.getId().toString();
-
-      /*
-      This will need to be updated if we expand the criteria defined in the
-      isSnapshotPAYGEligible method to allow for Granularities other than HOURLY
-       */
-      long start = snapshotDate.toInstant().toEpochMilli();
-      long end = snapshotDate.plus(Duration.ofHours(1L)).toInstant().toEpochMilli();
-
-      var subscriptionIdOpt =
-          idProvider.findSubscriptionId(accountNumber, orgId, usageKey, snapshotDate, snapshotDate);
-
-      if (subscriptionIdOpt.isEmpty()) {
-        log.error("{}", ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR);
-        continue;
-      }
-
-      var usageMeasurements = produceUsageMeasurements(snapshot, productId);
-
-      UsageEvent event =
-          new UsageEvent()
-              .measuredUsage(usageMeasurements)
-              .end(end)
-              .start(start)
-              .subscriptionId(subscriptionIdOpt.get())
-              .eventId(eventId)
-              .additionalAttributes(Collections.emptyMap());
-
-      events.add(event);
+    String orgId = billableUsage.getOrgId();
+    if (orgId == null) {
+      orgId = accountService.lookupOrgId(accountNumber);
     }
-    return events;
-  }
 
-  private TallySnapshot defaultNullBillingProvider(TallySnapshot tallySnapshot) {
-    if (tallySnapshot.getBillingProvider() == null) {
-      tallySnapshot.setBillingProvider(TallySnapshot.BillingProvider.RED_HAT);
+    String productId = billableUsage.getProductId();
+    // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
+    String billingAcctId = "_ANY";
+
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            productId,
+            ServiceLevel.fromString(billableUsage.getSla().toString()),
+            Usage.fromString(billableUsage.getUsage().toString()),
+            BillingProvider.fromString(billableUsage.getBillingProvider().toString()),
+            billingAcctId);
+
+    OffsetDateTime snapshotDate = billableUsage.getSnapshotDate();
+    String eventId = billableUsage.getId().toString();
+
+    /*
+    This will need to be updated if we expand the criteria defined in the
+    isSnapshotPAYGEligible method to allow for Granularities other than HOURLY
+     */
+    long start = snapshotDate.toInstant().toEpochMilli();
+    long end = snapshotDate.plus(Duration.ofHours(1L)).toInstant().toEpochMilli();
+
+    var subscriptionIdOpt =
+        idProvider.findSubscriptionId(accountNumber, orgId, usageKey, snapshotDate, snapshotDate);
+
+    if (subscriptionIdOpt.isEmpty()) {
+      log.error("{}", ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR);
+      return null;
     }
-    return tallySnapshot;
+
+    var usageMeasurement = produceUsageMeasurement(billableUsage);
+
+    return new UsageEvent()
+        .measuredUsage(List.of(usageMeasurement))
+        .end(end)
+        .start(start)
+        .subscriptionId(subscriptionIdOpt.get())
+        .eventId(eventId)
+        .additionalAttributes(Collections.emptyMap());
   }
 
   /**
@@ -229,55 +155,39 @@ public class RhMarketplacePayloadMapper {
    * value for the uom, and the rhmMetricId (RHM terminology) which is a configuration value of the
    * product the uom is for.
    *
-   * @param snapshot TallySnapshot
-   * @param productId swatch product id
+   * @param billableUsage billable usage to transform
    * @return List&lt;UsageMeasurement%gt;
    */
-  protected List<UsageMeasurement> produceUsageMeasurements(
-      TallySnapshot snapshot, String productId) {
-    List<UsageMeasurement> usageMeasurements = new ArrayList<>();
+  protected UsageMeasurement produceUsageMeasurement(BillableUsage billableUsage) {
+    Uom uom = Uom.fromValue(billableUsage.getUom().value());
+    String rhmMarketplaceMetricId =
+        tagProfile.rhmMetricIdForTagAndUom(billableUsage.getProductId(), uom);
+    Double value = billableUsage.getValue();
 
-    if (Objects.isNull(snapshot.getTallyMeasurements())) {
-      snapshot.setTallyMeasurements(new ArrayList<>());
+    // RHM is expecting counts of 4 vCPU-hour blocks, but currently does not have a way
+    // to do this automatically. If we detect this case, divide the cores value by 4.
+    //
+    // We need a longer term process to get that information onto the SKU/product
+    // definition
+    // itself so that we are not hard coding this type of value in our code. This will do
+    // for now.
+    if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(rhmMarketplaceMetricId)
+        && !Objects.isNull(value)
+        && Uom.CORES.equals(uom)) {
+      value = value / 4;
+      log.debug(
+          "Found cores measurement for metric ID {}. Dividing cores by 4: {}",
+          OPENSHIFT_DEDICATED_4_CPU_HOUR,
+          value);
     }
 
-    // Filter out any HardwareMeasurementType.TOTAL measurments to prevent duplicates
-    snapshot.getTallyMeasurements().stream()
-        .filter(
-            measurement ->
-                !Objects.equals(
-                    HardwareMeasurementType.TOTAL.toString(),
-                    measurement.getHardwareMeasurementType()))
-        .forEach(
-            measurement -> {
-              String rhmMarketplaceMetricId =
-                  tagProfile.rhmMetricIdForTagAndUom(productId, measurement.getUom());
-              Double value = measurement.getValue();
+    UsageMeasurement usageMeasurement = new UsageMeasurement();
+    usageMeasurement.setValue(value);
+    usageMeasurement.setMetricId(rhmMarketplaceMetricId);
+    return usageMeasurement;
+  }
 
-              // RHM is expecting counts of 4 vCPU-hour blocks, but currently does not have a way
-              // to do this automatically. If we detect this case, divide the cores value by 4.
-              //
-              // We need a longer term process to get that information onto the SKU/product
-              // definition
-              // itself so that we are not hard coding this type of value in our code. This will do
-              // for now.
-              if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(rhmMarketplaceMetricId)
-                  && !Objects.isNull(value)
-                  && Uom.CORES.equals(measurement.getUom())) {
-                value = value / 4;
-                log.debug(
-                    "Found cores measurement for metric ID {}. Dividing cores by 4: {}",
-                    OPENSHIFT_DEDICATED_4_CPU_HOUR,
-                    value);
-              }
-
-              if (rhmMarketplaceMetricId != null) {
-                UsageMeasurement usageMeasurement = new UsageMeasurement();
-                usageMeasurement.setValue(value);
-                usageMeasurement.setMetricId(rhmMarketplaceMetricId);
-                usageMeasurements.add(usageMeasurement);
-              }
-            });
-    return usageMeasurements;
+  public Stream<UsageRequest> createUsageRequests(TallySummary tallySummary) {
+    return billableUsageMapper.fromTallySummary(tallySummary).map(this::createUsageRequest);
   }
 }
