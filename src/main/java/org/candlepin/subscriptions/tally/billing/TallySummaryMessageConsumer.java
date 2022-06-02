@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,7 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
   private TagProfile tagProfile;
   private BillableUsageMapper billableUsageMapper;
   private BillableUsageController billableUsageController;
+  private RetryTemplate retry;
 
   @Autowired
   public TallySummaryMessageConsumer(
@@ -54,11 +56,13 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
           TaskQueueProperties tallySummaryTopicProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       BillableUsageMapper billableUsageMapper,
-      BillableUsageController billableUsageController) {
+      BillableUsageController billableUsageController,
+      @Qualifier("billingProducerKafkaRetryTemplate") RetryTemplate retry) {
     super(tallySummaryTopicProperties, kafkaConsumerRegistry);
     this.tagProfile = tagProfile;
     this.billableUsageMapper = billableUsageMapper;
     this.billableUsageController = billableUsageController;
+    this.retry = retry;
   }
 
   @Timed("rhsm-subscriptions.billing-producer.tally-summary")
@@ -83,8 +87,10 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
                         usage.getProductId(), uom));
               }
 
-              billableUsageController.submitBillableUsage(
-                  tagMetric.get().getBillingWindow(), usage);
+              retry.execute(context -> {
+                billableUsageController.submitBillableUsage(tagMetric.get().getBillingWindow(), usage);
+                return null;
+              });
             });
   }
 }
