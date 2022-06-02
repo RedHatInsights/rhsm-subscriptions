@@ -79,6 +79,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
 
   void deleteByAccountNumber(String accountNumber);
 
+  @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
   @Query(
       "select coalesce(sum(VALUE(m)), 0.0) from TallySnapshot s "
           + "left join s.tallyMeasurements m on key(m) = :measurementKey "
