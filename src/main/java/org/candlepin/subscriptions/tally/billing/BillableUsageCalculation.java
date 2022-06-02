@@ -18,44 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.tally.billing;
 
 import java.time.OffsetDateTime;
-import javax.persistence.Basic;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.persistence.Version;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-@Entity
-@Table(name = "billable_usage_remittance")
-public class BillableUsageRemittanceEntity {
-
-  @EmbeddedId private BillableUsageRemittanceEntityPK key;
-
-  @Basic
-  @Column(name = "remitted_value", nullable = false, precision = 0)
-  private Double remittedValue;
-
-  @Basic
-  @Column(name = "remittance_date", nullable = false)
+class BillableUsageCalculation {
+  private double remittedValue;
+  private double billableValue;
   private OffsetDateTime remittanceDate;
-
-  // NOTE: For now we will only set the org if we happen to have it
-  //       and will avoid looking it up via the service.
-  @Basic
-  @Column(name = "org_id", nullable = true)
-  private String orgId;
-
-  // Version to enable optimistic locking
-  @Version @Column private Integer version;
 }
