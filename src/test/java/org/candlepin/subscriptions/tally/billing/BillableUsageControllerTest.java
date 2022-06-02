@@ -25,7 +25,7 @@ import lombok.Data;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.junit.jupiter.api.Test;
 
-public class BillableUsageControllerTest {
+class BillableUsageControllerTest {
 
   private static final String ACCOUNT_NUMBER = "acct123";
 
