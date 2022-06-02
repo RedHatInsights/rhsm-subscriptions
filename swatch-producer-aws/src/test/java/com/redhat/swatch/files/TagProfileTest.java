@@ -26,14 +26,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
-import com.redhat.swatch.openapi.model.Uom;
+import com.redhat.swatch.openapi.model.BillableUsage.UomEnum;
 import org.junit.jupiter.api.Test;
 
 class TagProfileTest {
   @Test
   void testCanLoadRhosakInstanceHoursDimension() {
     TagProfile tagProfile = new TagProfile();
-    assertEquals("cluster_hour", tagProfile.getAwsDimension("rhosak", Uom.INSTANCE_HOURS.name()));
+    assertEquals(
+        "cluster_hour", tagProfile.getAwsDimension("rhosak", UomEnum.INSTANCE_HOURS.name()));
   }
 
   @Test
@@ -55,6 +56,6 @@ class TagProfileTest {
   void testCanLoadRhosakStorageGibMonthsDimension() {
     TagProfile tagProfile = new TagProfile();
     assertEquals(
-        "storage_gb", tagProfile.getAwsDimension("rhosak", Uom.STORAGE_GIBIBYTE_MONTHS.name()));
+        "storage_gb", tagProfile.getAwsDimension("rhosak", UomEnum.STORAGE_GIBIBYTE_MONTHS.name()));
   }
 }

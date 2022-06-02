@@ -33,7 +33,7 @@ import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.openapi.model.Uom;
+import com.redhat.swatch.openapi.model.BillableUsage.UomEnum;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
 import com.redhat.swatch.processors.BillableUsageProcessor;
 import io.micrometer.core.instrument.Counter;
@@ -62,7 +62,7 @@ class BillableUsageProcessorTest {
           .productId("rhosak")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
-          .uom(Uom.INSTANCE_HOURS)
+          .uom(UomEnum.INSTANCE_HOURS)
           .value(new BigDecimal("42.0"));
 
   private static final BillableUsage RHOSAK_STORAGE_GIB_MONTHS_RECORD =
@@ -70,7 +70,7 @@ class BillableUsageProcessorTest {
           .productId("rhosak")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
-          .uom(Uom.STORAGE_GIBIBYTE_MONTHS)
+          .uom(UomEnum.STORAGE_GIBIBYTE_MONTHS)
           .value(new BigDecimal("42.0"));
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
@@ -141,7 +141,7 @@ class BillableUsageProcessorTest {
         new BillableUsage()
             .productId("rhosak")
             .billingProvider(BillingProviderEnum.AWS)
-            .uom(Uom.INSTANCE_HOURS)
+            .uom(UomEnum.INSTANCE_HOURS)
             .value(new BigDecimal("42.0"));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
@@ -155,7 +155,7 @@ class BillableUsageProcessorTest {
         new BillableUsage()
             .productId("foobar")
             .billingProvider(BillingProviderEnum.AWS)
-            .uom(Uom.INSTANCE_HOURS)
+            .uom(UomEnum.INSTANCE_HOURS)
             .value(new BigDecimal("42.0"));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);
