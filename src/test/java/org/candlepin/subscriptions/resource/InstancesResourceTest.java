@@ -84,7 +84,9 @@ class InstancesResourceTest {
     List<Double> expectedMeasurement = new ArrayList<>();
     String month = InstanceMonthlyTotalKey.formatMonthId(host.getLastSeen());
     for (String uom : expectUom) {
-      expectedMeasurement.add(host.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)));
+      expectedMeasurement.add(
+          Optional.ofNullable(host.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
     }
     var data = new InstanceData();
     data.setId(host.getInstanceId());
