@@ -33,9 +33,7 @@ class TagProfileTest {
   @Test
   void testCanLoadRhosakInstanceHoursDimension() {
     TagProfile tagProfile = new TagProfile();
-    assertEquals(
-        "redhat.com:rhosak:cluster_hour",
-        tagProfile.getAwsDimension("rhosak", Uom.INSTANCE_HOURS.name()));
+    assertEquals("cluster_hour", tagProfile.getAwsDimension("rhosak", Uom.INSTANCE_HOURS.name()));
   }
 
   @Test
