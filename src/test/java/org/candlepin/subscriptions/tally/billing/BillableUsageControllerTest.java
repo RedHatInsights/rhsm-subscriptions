@@ -20,69 +20,160 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
-import java.util.List;
-import lombok.Data;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.UUID;
+import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
+import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
+import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
+import org.candlepin.subscriptions.json.BillableUsage.Sla;
+import org.candlepin.subscriptions.json.BillableUsage.Uom;
+import org.candlepin.subscriptions.json.BillableUsage.Usage;
+import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.registry.BillingWindow;
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
 class BillableUsageControllerTest {
 
-  private static final String ACCOUNT_NUMBER = "acct123";
+  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
-  BillableUsageRemittanceEntity createBillableUsageRemittanceEntity() {
-    //    return BillableUsageRemittanceEntity.builder()
-    //        .usage(Usage.ANY.value())
-    //        .accountNumber(ACCOUNT_NUMBER)
-    //        .billingProvider(BillingProvider.ANY.value())
-    //        .billingAccountId(tallySnapshot.getBillingAccountId())
-    //        .granularity(tallySnapshot.getGranularity().toString())
-    //        .productId(tallySnapshot.getProductId())
-    //        .sla(tallySnapshot.getSla().toString())
-    //        .snapshotDate(tallySnapshot.getSnapshotDate())
-    //        .metricId(tallyMeasurement.getUom().toString())
-    //        .month("2022-05") // TODO
-    //        .remittanceDate(OffsetDateTime.now())
-    //        .remittedValue(tallyMeasurement.getValue())
-    //        .build();
-    return null;
+  @Mock BillingProducer producer;
+  @Mock BillableUsageRemittanceRepository remittanceRepo;
+  @Mock TallySnapshotRepository snapshotRepo;
+
+  BillableUsageController controller;
+
+  @BeforeEach
+  void setup() {
+    controller = new BillableUsageController(clock, producer, remittanceRepo, snapshotRepo);
   }
-
-  void testBillingProviderEmpty() {}
-
-  void testBillingProviderRedHat() {
-    /*
-    If the Billing Provider is Red Hat, we create BillableUsage with all the same values
-    as they were sent to us in TallySummary
-     */
-
-  }
-
-  void testBillingProviderAWS() {
-
-    /*
-    If the BillingProvider is AWS, we need to find the monthly total usage
-     */
-
-  }
-
-  void testBillingProviderGCP() {}
-
-  void testBillingProviderAzure() {}
-
-  void testBillingProviderOracle() {}
 
   @Test
-  void testBillingProvider_ANY() {
-
-    List<Person> people = List.of(new Person("John", "male"), new Person("Lindsey", "female"));
-
-    // Declarative/Functional Programming
-
+  void usageIsSentAsIsWhenBillingWindowIsHourly() {
+    BillableUsage usage = new BillableUsage();
+    controller.submitBillableUsage(BillingWindow.HOURLY, usage);
+    verify(producer).produce(usage);
+    verifyNoInteractions(snapshotRepo, remittanceRepo);
   }
 
-  @Data
-  class Person {
-    private final String name;
-    private final String gender;
+  @Test
+  void monthlyWindowNoCurrentRemittance() {
+    BillableUsage usage = billable(clock.startOfCurrentMonth(), 0.0003);
+    when(remittanceRepo.findById(keyFrom(usage))).thenReturn(Optional.empty());
+    mockCurrentSnapshotMeasurementTotal(usage, 0.0003); // from single snapshot
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsageRemittanceEntity expectedRemittance = remittance(usage, clock.now(), 1.0);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 1.0);
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    verify(remittanceRepo).save(expectedRemittance);
+    verify(producer).produce(expectedUsage);
+  }
+
+  @Test
+  void monthlyWindowWithRemittanceUpdate() {
+    BillableUsage usage = billable(clock.startOfCurrentMonth(), 2.3);
+    BillableUsageRemittanceEntity currentRemittance = remittance(usage, clock.now(), 3.0);
+    when(remittanceRepo.findById(keyFrom(usage))).thenReturn(Optional.of(currentRemittance));
+    mockCurrentSnapshotMeasurementTotal(usage, 4.4); // from multiple snapshots (2.1, 2.3)
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsageRemittanceEntity expectedRemittance = remittance(usage, clock.now(), 5.0);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 2.0);
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    verify(remittanceRepo).save(expectedRemittance);
+    verify(producer).produce(expectedUsage);
+  }
+
+  @Test
+  void monthlyWindowWithNoRemittanceUpdate() {
+    BillableUsage usage = billable(clock.startOfCurrentMonth(), 0.03);
+    BillableUsageRemittanceEntity currentRemittance = remittance(usage, clock.now(), 1.0);
+    when(remittanceRepo.findById(keyFrom(usage))).thenReturn(Optional.of(currentRemittance));
+    mockCurrentSnapshotMeasurementTotal(usage, 0.05); // from multiple snapshots (0.02, 0.03)
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 0.0); // Nothing billed
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    verify(producer).produce(expectedUsage);
+    verifyNoMoreInteractions(remittanceRepo);
+  }
+
+  private BillableUsage billable(OffsetDateTime date, Double value) {
+    return new BillableUsage()
+        .withAccountNumber("account123")
+        .withUsage(Usage.PRODUCTION)
+        .withId(UUID.randomUUID())
+        .withBillingAccountId("aws-account1")
+        .withBillingProvider(BillingProvider.AWS)
+        .withOrgId("org123")
+        .withProductId("rhosak")
+        .withSla(Sla.STANDARD)
+        .withUom(Uom.STORAGE_GIBIBYTES)
+        .withSnapshotDate(date)
+        .withValue(value);
+  }
+
+  private BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
+    return BillableUsageRemittanceEntityPK.builder()
+        .usage(billableUsage.getUsage().value())
+        .accountNumber(billableUsage.getAccountNumber())
+        .billingProvider(billableUsage.getBillingProvider().value())
+        .billingAccountId(billableUsage.getBillingAccountId())
+        .productId(billableUsage.getProductId())
+        .sla(billableUsage.getSla().value())
+        .metricId(billableUsage.getUom().value())
+        .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(billableUsage.getSnapshotDate()))
+        .build();
+  }
+
+  private void mockCurrentSnapshotMeasurementTotal(BillableUsage usage, Double sum) {
+    TallyMeasurementKey measurementKey =
+        new TallyMeasurementKey(
+            HardwareMeasurementType.PHYSICAL, Measurement.Uom.fromValue(usage.getUom().value()));
+    when(snapshotRepo.sumMeasurementValueForPeriod(
+            usage.getAccountNumber(),
+            usage.getProductId(),
+            Granularity.HOURLY,
+            ServiceLevel.fromString(usage.getSla().value()),
+            org.candlepin.subscriptions.db.model.Usage.fromString(usage.getUsage().value()),
+            org.candlepin.subscriptions.db.model.BillingProvider.fromString(
+                usage.getBillingProvider().value()),
+            usage.getBillingAccountId(),
+            clock.startOfMonth(usage.getSnapshotDate()),
+            usage.getSnapshotDate(),
+            measurementKey))
+        .thenReturn(sum);
+  }
+
+  private BillableUsageRemittanceEntity remittance(
+      BillableUsage usage, OffsetDateTime remittedDate, Double value) {
+    BillableUsageRemittanceEntityPK remKey = keyFrom(usage);
+    return BillableUsageRemittanceEntity.builder()
+        .key(remKey)
+        .orgId(usage.getOrgId())
+        .remittanceDate(remittedDate)
+        .remittedValue(value)
+        .build();
   }
 }

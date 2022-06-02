@@ -49,7 +49,7 @@ class BillingProducerTest {
   }
 
   @Test
-  void testTallySummaryPassThrough() {
+  void testBillableUsageIsSentToTopic() {
     BillableUsage usage = new BillableUsage();
     producer.produce(usage);
     verify(kafka).send(billableUsageTopicProps.getTopic(), usage);
