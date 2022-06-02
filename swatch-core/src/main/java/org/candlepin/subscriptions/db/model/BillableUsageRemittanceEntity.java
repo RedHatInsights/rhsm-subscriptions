@@ -57,7 +57,5 @@ public class BillableUsageRemittanceEntity {
   private String orgId;
 
   // Version to enable optimistic locking
-  @Version
-  @Column
-  private Integer version;
+  @Version @Column private Integer version;
 }

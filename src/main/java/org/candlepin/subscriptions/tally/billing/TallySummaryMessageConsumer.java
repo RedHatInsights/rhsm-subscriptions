@@ -87,10 +87,12 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
                         usage.getProductId(), uom));
               }
 
-              retry.execute(context -> {
-                billableUsageController.submitBillableUsage(tagMetric.get().getBillingWindow(), usage);
-                return null;
-              });
+              retry.execute(
+                  context -> {
+                    billableUsageController.submitBillableUsage(
+                        tagMetric.get().getBillingWindow(), usage);
+                    return null;
+                  });
             });
   }
 }
