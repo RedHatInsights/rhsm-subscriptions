@@ -205,7 +205,6 @@ tagMetrics:
   - tag: rhosak
     metricId: redhat.com:rhosak:storage_gb
     rhmMetricId: redhat.com:rhosak:storage_gb
-    awsDimension: redhat.com:rhosak:storage_gb
     uom: STORAGE_GIBIBYTES
     billingWindow: HOURLY
     queryParams:
@@ -216,7 +215,7 @@ tagMetrics:
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
     metricId: redhat.com:rhosak:transfer_gb
     rhmMetricId: redhat.com:rhosak:transfer_gb
-    awsDimension: redhat.com:rhosak:transfer_gb
+    awsDimension: transfer_gb
     uom: TRANSFER_GIBIBYTES
     billingWindow: HOURLY
     queryParams:
@@ -226,7 +225,7 @@ tagMetrics:
   - tag: rhosak
     metricId: redhat.com:rhosak:cluster_hour
     rhmMetricId: redhat.com:rhosak:cluster_hour
-    awsDimension: redhat.com:rhosak:cluster_hour
+    awsDimension: cluster_hour
     uom: INSTANCE_HOURS
     billingWindow: HOURLY
     queryParams:
