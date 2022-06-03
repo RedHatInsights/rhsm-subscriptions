@@ -25,7 +25,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
-        - internal
+        - internalTally
   /internal-tally-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-tally-openapi.yaml:

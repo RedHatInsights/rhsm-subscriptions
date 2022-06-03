@@ -40,7 +40,6 @@ paths:
       operationId: forceSyncSubscriptionsForOrg
       tags:
         - internalSubscriptions
-        - internal
       responses:
         '202':
           description: "The request for syncing organization's subscription is processing."
@@ -105,7 +104,6 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
-        - internal
   /internal/subscriptions/terminate/{subscription_id}:
     description: "Terminate a subscription with a given end date."
     parameters:
@@ -142,7 +140,6 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
-        - internal
         - internalSubscriptions
   /internal-subscription-sync-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
