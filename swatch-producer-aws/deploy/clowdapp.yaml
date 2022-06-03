@@ -45,6 +45,10 @@ parameters:
     value: 'false'
   - name: TALLY_IN_FAIL_ON_DESER_FAILURE
     value: 'true'
+  - name: LOGGING_LEVEL_ROOT
+    value: 'INFO'
+  - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+    value: 'INFO'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -101,6 +105,10 @@ objects:
               cpu: ${CPU_LIMIT}
               memory: ${MEMORY_LIMIT}
           env:
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
