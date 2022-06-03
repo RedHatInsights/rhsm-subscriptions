@@ -103,6 +103,10 @@ public class RhMarketplacePayloadMapper {
    * @return List&lt;UsageEvent&gt;
    */
   protected UsageEvent produceUsageEvent(BillableUsage billableUsage) {
+    if (!isValid(billableUsage)) {
+      log.warn("Skipping invalid billable usage {}", billableUsage);
+      return null;
+    }
     String accountNumber = billableUsage.getAccountNumber();
     String orgId = billableUsage.getOrgId();
     if (orgId == null) {
@@ -185,6 +189,17 @@ public class RhMarketplacePayloadMapper {
     usageMeasurement.setValue(value);
     usageMeasurement.setMetricId(rhmMarketplaceMetricId);
     return usageMeasurement;
+  }
+
+  private boolean isValid(BillableUsage billableUsage) {
+    return billableUsage.getProductId() != null
+        && billableUsage.getSla() != null
+        && billableUsage.getUsage() != null
+        && billableUsage.getUom() != null
+        && billableUsage.getBillingProvider() != null
+        && billableUsage.getBillingAccountId() != null
+        && billableUsage.getSnapshotDate() != null
+        && billableUsage.getId() != null;
   }
 
   public Stream<UsageRequest> createUsageRequests(TallySummary tallySummary) {
