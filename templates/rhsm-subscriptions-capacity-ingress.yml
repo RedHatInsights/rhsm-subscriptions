@@ -288,7 +288,7 @@ objects:
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /health
+                  path: /health/liveness
                   port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90
