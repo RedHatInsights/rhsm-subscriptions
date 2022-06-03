@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.DAILY;
-import static org.candlepin.subscriptions.json.TallySnapshot.Granularity.HOURLY;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_DEDICATED_METRICS;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_METRICS;
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,11 +35,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
-import org.candlepin.subscriptions.json.TallySnapshot;
-import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
-import org.candlepin.subscriptions.json.TallySnapshot.Sla;
-import org.candlepin.subscriptions.json.TallySnapshot.Usage;
+import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
+import org.candlepin.subscriptions.json.BillableUsage.Sla;
+import org.candlepin.subscriptions.json.BillableUsage.Uom;
+import org.candlepin.subscriptions.json.BillableUsage.Usage;
+import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
@@ -71,11 +69,15 @@ class RhMarketplacePayloadMapperTest {
   void init() {
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
-        .when(tagProfile.rhmMetricIdForTagAndUom(OPENSHIFT_METRICS.toString(), Uom.CORES))
+        .when(
+            tagProfile.rhmMetricIdForTagAndUom(
+                OPENSHIFT_METRICS.toString(), TallyMeasurement.Uom.CORES))
         .thenReturn("redhat.com:openshift:cpu_hour");
 
     lenient()
-        .when(tagProfile.rhmMetricIdForTagAndUom(OPENSHIFT_DEDICATED_METRICS.toString(), Uom.CORES))
+        .when(
+            tagProfile.rhmMetricIdForTagAndUom(
+                OPENSHIFT_DEDICATED_METRICS.toString(), TallyMeasurement.Uom.CORES))
         .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
 
     lenient()
@@ -107,11 +109,11 @@ class RhMarketplacePayloadMapperTest {
             .withAccountNumber(account)
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
-            .withUsage(BillableUsage.Usage.PRODUCTION)
-            .withUom(BillableUsage.Uom.CORES)
+            .withUsage(Usage.PRODUCTION)
+            .withUom(Uom.CORES)
             .withValue(36.0)
-            .withSla(BillableUsage.Sla.PREMIUM)
-            .withBillingProvider(BillableUsage.BillingProvider.RED_HAT)
+            .withSla(Sla.PREMIUM)
+            .withBillingProvider(BillingProvider.RED_HAT)
             .withBillingAccountId("sellerAccountId");
 
     when(accountService.lookupOrgId(account)).thenReturn(orgId);
@@ -156,11 +158,11 @@ class RhMarketplacePayloadMapperTest {
             .withAccountNumber(account)
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
-            .withUsage(BillableUsage.Usage.PRODUCTION)
-            .withUom(BillableUsage.Uom.CORES)
+            .withUsage(Usage.PRODUCTION)
+            .withUom(Uom.CORES)
             .withValue(36.0)
-            .withSla(BillableUsage.Sla.PREMIUM)
-            .withBillingProvider(BillableUsage.BillingProvider.RED_HAT)
+            .withSla(Sla.PREMIUM)
+            .withBillingProvider(BillingProvider.RED_HAT)
             .withBillingAccountId("sellerAccountId");
 
     when(accountService.lookupOrgId(account)).thenReturn(orgId);
@@ -170,101 +172,77 @@ class RhMarketplacePayloadMapperTest {
   }
 
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
-  @MethodSource("generateIsSnapshotRHMarketplaceEligibleData")
-  void testIsSnapshotRHMarketplaceEligible(TallySnapshot snapshot, boolean isEligible) {
-    boolean actual = rhMarketplacePayloadMapper.isSnapshotRHMarketplaceEligible(snapshot);
+  @MethodSource("generateIsUsageRHMarketplaceEligibleData")
+  void testIsUsageRHMarketplaceEligible(BillableUsage usage, boolean isEligible) {
+    boolean actual = rhMarketplacePayloadMapper.isUsageRHMarketplaceEligible(usage);
     assertEquals(isEligible, actual);
   }
 
-  static Stream<Arguments> generateIsSnapshotRHMarketplaceEligibleData() {
+  static Stream<Arguments> generateIsUsageRHMarketplaceEligibleData() {
 
     Arguments eligibleRedHatBillingProvider =
         Arguments.of(
-            new TallySnapshot()
+            new BillableUsage()
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
-                .withGranularity(HOURLY)
                 .withBillingProvider(BillingProvider.RED_HAT),
             true);
 
-    Arguments eligibleEmptyBillingProvider =
+    Arguments notEligibleNullBillingProvider =
         Arguments.of(
-            new TallySnapshot()
+            new BillableUsage()
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
-                .withGranularity(HOURLY)
-                .withBillingProvider(BillingProvider.__EMPTY__),
-            true);
-
-    Arguments notEligibleAnyBillingProvider =
-        Arguments.of(
-            new TallySnapshot()
-                .withProductId("OpenShift-metrics")
-                .withUsage(Usage.PRODUCTION)
-                .withSla(Sla.PREMIUM)
-                .withGranularity(HOURLY)
-                .withBillingProvider(BillingProvider.ANY),
+                .withBillingProvider(null),
             false);
-
-    Arguments eligibleNullBillingProvider =
-        Arguments.of(
-            new TallySnapshot()
-                .withProductId("OpenShift-metrics")
-                .withUsage(Usage.PRODUCTION)
-                .withSla(Sla.PREMIUM)
-                .withGranularity(HOURLY),
-            true);
 
     Arguments notEligibleAWSBillingProvider =
         Arguments.of(
-            new TallySnapshot()
+            new BillableUsage()
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
-                .withSla(Sla.ANY)
-                .withGranularity(HOURLY)
+                .withSla(Sla.PREMIUM)
                 .withBillingProvider(BillingProvider.AWS),
             false);
 
     Arguments notEligibleAzureBillingProvider =
         Arguments.of(
-            new TallySnapshot()
+            new BillableUsage()
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
-                .withGranularity(DAILY)
                 .withBillingProvider(BillingProvider.AZURE),
             false);
 
     Arguments notEligibleOracleBillingProvider =
         Arguments.of(
-            new TallySnapshot()
+            new BillableUsage()
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
-                .withGranularity(DAILY)
                 .withBillingProvider(BillingProvider.ORACLE),
             false);
 
     Arguments notEligibleGcpBillingProvider =
         Arguments.of(
-            new TallySnapshot()
+            new BillableUsage()
                 .withProductId("OpenShift-metrics")
                 .withUsage(Usage.PRODUCTION)
                 .withSla(Sla.PREMIUM)
-                .withGranularity(DAILY)
                 .withBillingProvider(BillingProvider.GCP),
             false);
 
+    Arguments notEligableDefaultBillableUsage = Arguments.of(new BillableUsage(), false);
+
     return Stream.of(
         eligibleRedHatBillingProvider,
-        eligibleEmptyBillingProvider,
-        eligibleNullBillingProvider,
-        notEligibleAnyBillingProvider,
+        notEligibleNullBillingProvider,
         notEligibleAWSBillingProvider,
         notEligibleAzureBillingProvider,
         notEligibleOracleBillingProvider,
-        notEligibleGcpBillingProvider);
+        notEligibleGcpBillingProvider,
+        notEligableDefaultBillableUsage);
   }
 }
