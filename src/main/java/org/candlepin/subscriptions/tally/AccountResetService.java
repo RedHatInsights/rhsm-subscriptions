@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
@@ -39,6 +40,7 @@ public class AccountResetService {
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final SubscriptionCapacityRepository subscriptionCapacityRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final BillableUsageRemittanceRepository remittanceRepository;
 
   @Autowired
   public AccountResetService(
@@ -47,13 +49,15 @@ public class AccountResetService {
       TallySnapshotRepository tallySnapshotRepository,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       SubscriptionCapacityRepository subscriptionCapacityRepository,
-      SubscriptionRepository subscriptionRepository) {
+      SubscriptionRepository subscriptionRepository,
+      BillableUsageRemittanceRepository remittanceRepository) {
     this.eventRecordRepo = eventRecordRepo;
     this.hostRepo = hostRepo;
     this.tallySnapshotRepository = tallySnapshotRepository;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.subscriptionRepository = subscriptionRepository;
+    this.remittanceRepository = remittanceRepository;
   }
 
   @Transactional
@@ -65,5 +69,6 @@ public class AccountResetService {
     tallySnapshotRepository.deleteByAccountNumber(accountNumber);
     subscriptionRepository.deleteByAccountNumber(accountNumber);
     subscriptionCapacityRepository.deleteByAccountNumber(accountNumber);
+    remittanceRepository.deleteByKeyAccountNumber(accountNumber);
   }
 }
