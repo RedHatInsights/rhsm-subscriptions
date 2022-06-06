@@ -33,7 +33,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
-import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
@@ -90,10 +89,10 @@ public class RhMarketplacePayloadMapper {
     return usageRequest;
   }
 
-  protected boolean isSnapshotRHMarketplaceEligible(TallySnapshot snapshot) {
-    return snapshot.getBillingProvider() == null
-        || snapshot.getBillingProvider().equals(TallySnapshot.BillingProvider.RED_HAT)
-        || snapshot.getBillingProvider().equals(TallySnapshot.BillingProvider.__EMPTY__);
+  protected boolean isUsageRHMarketplaceEligible(BillableUsage usage) {
+    // ANY, __EMPTY__ are already filtered, will check null just to be safe.
+    return Objects.nonNull(usage.getBillingProvider())
+        && usage.getBillingProvider().equals(BillableUsage.BillingProvider.RED_HAT);
   }
 
   /**
@@ -199,7 +198,8 @@ public class RhMarketplacePayloadMapper {
         && billableUsage.getBillingProvider() != null
         && billableUsage.getBillingAccountId() != null
         && billableUsage.getSnapshotDate() != null
-        && billableUsage.getId() != null;
+        && billableUsage.getId() != null
+        && isUsageRHMarketplaceEligible(billableUsage);
   }
 
   public Stream<UsageRequest> createUsageRequests(TallySummary tallySummary) {
