@@ -51,19 +51,17 @@ public class StubSearchApi extends SearchApi {
   }
 
   private Subscription createData() {
-    var now = OffsetDateTime.now();
     return new Subscription()
         .subscriptionNumber("2253591")
         .webCustomerId(123)
         .oracleAccountNumber(123)
         .quantity(1)
-        .effectiveStartDate(now.minusYears(10).toEpochSecond() * 1000L)
-        .effectiveEndDate(now.plusYears(10).toEpochSecond() * 1000L)
+        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("sku")));
   }
 
   private Subscription createAwsBillingProviderData() {
-    var now = OffsetDateTime.now();
     ExternalReference awsRef = new ExternalReference();
     awsRef.setCustomerID("customer123");
     awsRef.setProductCode("testProductCode123");
@@ -75,8 +73,8 @@ public class StubSearchApi extends SearchApi {
         .webCustomerId(123)
         .oracleAccountNumber(123)
         .subscriptionNumber("4243626")
-        .effectiveStartDate(now.minusYears(10).toEpochSecond() * 1000L)
-        .effectiveEndDate(now.plusYears(10).toEpochSecond() * 1000L)
+        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
         .putExternalReferencesItem("aws", awsRef)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01882")));
   }
