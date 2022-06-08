@@ -28,4 +28,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface OfferingRepository extends JpaRepository<Offering, String> {
 
   List<Offering> findByProductName(String productName);
+
+  Offering findBySku(String sku);
 }
