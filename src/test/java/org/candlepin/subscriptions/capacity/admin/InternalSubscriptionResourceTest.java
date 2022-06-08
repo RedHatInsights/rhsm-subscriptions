@@ -35,6 +35,7 @@ import java.util.List;
 import javax.ws.rs.NotFoundException;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.security.WithMockPskPrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
@@ -55,6 +56,7 @@ import org.springframework.web.context.WebApplicationContext;
 @ActiveProfiles({"capacity-ingress", "test"})
 class InternalSubscriptionResourceTest {
   @MockBean SubscriptionSyncController syncController;
+  @Autowired SecurityProperties properties;
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
 
@@ -79,7 +81,7 @@ class InternalSubscriptionResourceTest {
   void incrementsMissingCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController);
+        new InternalSubscriptionResource(meterRegistry, syncController, properties);
     when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -95,7 +97,7 @@ class InternalSubscriptionResourceTest {
   void incrementsAmbiguousCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController);
+        new InternalSubscriptionResource(meterRegistry, syncController, properties);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     Subscription sub2 = new Subscription();

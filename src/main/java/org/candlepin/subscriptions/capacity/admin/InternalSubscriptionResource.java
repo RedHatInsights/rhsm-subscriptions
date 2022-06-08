@@ -25,17 +25,21 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import javax.persistence.EntityNotFoundException;
 import javax.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
+import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */
@@ -46,12 +50,16 @@ public class InternalSubscriptionResource implements InternalApi {
   private final SubscriptionSyncController subscriptionSyncController;
   private final Counter missingSubscriptionCounter;
   private final Counter ambiguousSubscriptionCounter;
+  private final SecurityProperties properties;
 
   public InternalSubscriptionResource(
-      MeterRegistry meterRegistry, SubscriptionSyncController subscriptionSyncController) {
+      MeterRegistry meterRegistry,
+      SubscriptionSyncController subscriptionSyncController,
+      SecurityProperties properties) {
     this.missingSubscriptionCounter = meterRegistry.counter("swatch_missing_aws_subscription");
     this.ambiguousSubscriptionCounter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     this.subscriptionSyncController = subscriptionSyncController;
+    this.properties = properties;
   }
 
   @Override
@@ -100,5 +108,20 @@ public class InternalSubscriptionResource implements InternalApi {
         .productCode(productCode)
         .customerId(customerId)
         .awsSellerAccountId(sellerAccount);
+  }
+
+  @Override
+  public TerminationRequest terminateSubscription(String subscriptionId, OffsetDateTime timestamp) {
+    if (!properties.isManualEventEditingEnabled()) {
+      throw new UnsupportedOperationException("Manual event editing is disabled");
+    }
+
+    try {
+      var msg = subscriptionSyncController.terminateSubscription(subscriptionId, timestamp);
+      return new TerminationRequest().data(new TerminationRequestData().terminationMessage(msg));
+    } catch (EntityNotFoundException e) {
+      throw new NotFoundException(
+          "Subscription " + subscriptionId + " either does not exist or is already terminated");
+    }
   }
 }
