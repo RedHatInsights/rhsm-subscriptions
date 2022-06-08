@@ -140,7 +140,9 @@ public class SubscriptionSyncController {
       return;
     }
 
-    if (!offeringRepository.existsById(sku)) {
+    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
+    // the subscription that uses that offering
+    if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
       log.debug(
           "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
           sku,
@@ -157,31 +159,32 @@ public class SubscriptionSyncController {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
       log.debug("Existing subscription in DB={}", existingSubscription);
-      if (!existingSubscription.equals(newOrUpdated)) {
-        if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
-          existingSubscription.endSubscription();
-          subscriptionRepository.save(existingSubscription);
-          final org.candlepin.subscriptions.db.model.Subscription newSub =
-              org.candlepin.subscriptions.db.model.Subscription.builder()
-                  .subscriptionId(existingSubscription.getSubscriptionId())
-                  .sku(existingSubscription.getSku())
-                  .ownerId(existingSubscription.getOwnerId())
-                  .accountNumber(existingSubscription.getAccountNumber())
-                  .quantity(subscription.getQuantity())
-                  .startDate(OffsetDateTime.now())
-                  .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-                  .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
-                  .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
-                  .subscriptionNumber(subscription.getSubscriptionNumber())
-                  .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
-                  .build();
-          subscriptionRepository.save(newSub);
-        } else {
-          updateSubscription(subscription, existingSubscription);
-          subscriptionRepository.save(existingSubscription);
-        }
-        capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
+      if (existingSubscription.equals(newOrUpdated)) {
+        return; // we have nothing to do as the DB and the subs service have the same info
       }
+      if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
+        existingSubscription.endSubscription();
+        subscriptionRepository.save(existingSubscription);
+        final org.candlepin.subscriptions.db.model.Subscription newSub =
+            org.candlepin.subscriptions.db.model.Subscription.builder()
+                .subscriptionId(existingSubscription.getSubscriptionId())
+                .sku(existingSubscription.getSku())
+                .ownerId(existingSubscription.getOwnerId())
+                .accountNumber(existingSubscription.getAccountNumber())
+                .quantity(subscription.getQuantity())
+                .startDate(OffsetDateTime.now())
+                .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
+                .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
+                .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
+                .subscriptionNumber(subscription.getSubscriptionNumber())
+                .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
+                .build();
+        subscriptionRepository.save(newSub);
+      } else {
+        updateSubscription(subscription, existingSubscription);
+        subscriptionRepository.save(existingSubscription);
+      }
+      capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     } else {
       subscriptionRepository.save(newOrUpdated);
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
