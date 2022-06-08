@@ -104,6 +104,43 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
+  /internal/subscriptions/terminate/{subscription_id}:
+    description: "Terminate a subscription with a given end date."
+    parameters:
+      - name: subscription_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "Subscription ID to terminate."
+    post:
+      operationId: terminateSubscription
+      summary: "Terminate a subscription."
+      parameters:
+        - name: timestamp
+          description: "The termination timestamp to use."
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: "The termination request was successful"
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TerminationRequest"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
   /internal-subscription-sync-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-subscription-sync-openapi.yaml:
@@ -125,6 +162,13 @@ components:
         subscriptionStartDate:
           type: string
           format: date-time
+    TerminationRequest:
+      properties:
+        data:
+          type: object
+          properties:
+            termination_message:
+              type: string
   securitySchemes:
     PskIdentity:
       type: apiKey

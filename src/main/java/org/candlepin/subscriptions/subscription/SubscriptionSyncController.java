@@ -26,6 +26,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -341,6 +343,39 @@ public class SubscriptionSyncController {
 
   public void deleteSubscription(String subscriptionId) {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
+  }
+
+  @Transactional
+  public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
+    var subscription =
+        subscriptionRepository
+            .findActiveSubscription(subscriptionId)
+            .orElseThrow(EntityNotFoundException::new);
+
+    var offering =
+        offeringRepository
+            .findById(subscription.getSku())
+            .orElseThrow(EntityNotFoundException::new);
+
+    // Wait until after we are sure there's an offering for this subscription before setting the
+    // end date.  We want validation to occur before we start mutating data.
+    subscription.setEndDate(terminationDate);
+
+    OffsetDateTime now = OffsetDateTime.now();
+    // The calculation returns a whole number, representing the number of complete units
+    // between the two temporals. For example, the amount in hours between the times 11:30 and
+    // 12:29 will zero hours as it is one minute short of an hour.
+    var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
+    var productTag = tagProfile.tagForOfferingProductName(offering.getProductName());
+    if (tagProfile.isProductPAYGEligible(productTag) && delta > 0) {
+      var msg =
+          String.format(
+              "Subscription %s terminated at %s with out of range termination date %s.",
+              subscriptionId, now, terminationDate);
+      log.warn(msg);
+      return msg;
+    }
+    return String.format("Subscription %s terminated at %s.", subscriptionId, terminationDate);
   }
 
   @Async

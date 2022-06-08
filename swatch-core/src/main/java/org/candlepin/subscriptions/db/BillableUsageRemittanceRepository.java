@@ -23,6 +23,11 @@ package org.candlepin.subscriptions.db;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface BillableUsageRemittanceRepository
-    extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK> {}
+    extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK> {
+
+  @Query
+  void deleteByKeyAccountNumber(String accountNumber);
+}
