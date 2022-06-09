@@ -219,7 +219,7 @@ class BillableUsageProcessorTest {
             internalSubscriptionsApi,
             clientFactory,
             Optional.of(true));
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(clientFactory, meteringClient);
