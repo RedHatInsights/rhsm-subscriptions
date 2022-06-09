@@ -397,13 +397,25 @@ public class SubscriptionSyncController {
   @Async
   @Transactional
   public void forceSyncSubscriptionsForOrgAsync(String orgId) {
-    forceSyncSubscriptionsForOrg(orgId);
+    forceSyncSubscriptionsForOrg(orgId, false);
   }
 
   @Transactional
-  public void forceSyncSubscriptionsForOrg(String orgId) {
+  public void forceSyncSubscriptionsForOrg(String orgId, boolean paygOnly) {
     log.info("Starting force sync for orgId: {}", orgId);
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
+
+    // Filter out non PAYG subscriptions for faster processing when they are not needed.
+    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
+    if (paygOnly) {
+      subscriptions =
+          subscriptions.stream()
+              .filter(
+                  subscription ->
+                      SubscriptionDtoUtil.extractBillingProviderId(subscription) != null)
+              .collect(Collectors.toList());
+    }
+
     var subscriptionMap =
         getActiveSubscriptionsForOrg(orgId)
             .collect(
@@ -433,7 +445,8 @@ public class SubscriptionSyncController {
       Optional<String> orgId,
       Key usageKey,
       OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd) {
+      OffsetDateTime rangeEnd,
+      boolean paygOnly) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -467,7 +480,7 @@ public class SubscriptionSyncController {
         orgId = Optional.of(accountService.lookupOrgId(accountNumber));
       }
       log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
-      forceSyncSubscriptionsForOrg(orgId.get());
+      forceSyncSubscriptionsForOrg(orgId.get(), paygOnly);
       result =
           subscriptionRepository.findByCriteria(
               subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());

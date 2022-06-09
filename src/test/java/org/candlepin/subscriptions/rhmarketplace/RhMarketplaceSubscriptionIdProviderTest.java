@@ -53,7 +53,8 @@ class RhMarketplaceSubscriptionIdProviderTest {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     RhMarketplaceSubscriptionIdProvider idProvider =
         new RhMarketplaceSubscriptionIdProvider(syncController, meterRegistry);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptionsAndSyncIfNeeded(
+            any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
     Optional<String> subscriptionId =
         idProvider.findSubscriptionId(
@@ -77,7 +78,8 @@ class RhMarketplaceSubscriptionIdProviderTest {
     sub1.setBillingProviderId("foo");
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar");
-    when(syncController.findSubscriptionsAndSyncIfNeeded(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptionsAndSyncIfNeeded(
+            any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(List.of(sub1, sub2));
     Optional<String> subscriptionId =
         idProvider.findSubscriptionId(
