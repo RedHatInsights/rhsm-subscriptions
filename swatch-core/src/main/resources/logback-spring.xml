@@ -10,6 +10,7 @@
         <mdcKey>INVALID_GRANULARITY</mdcKey>
         <mdcKey>INVALID_USAGETYPE</mdcKey>
         <mdcKey>INVALID_SERVICELEVELTYPE</mdcKey>
+        <mdcKey>ACCOUNT_LOOKUP_FAILED</mdcKey>
     </evaluator>
 
     <appender name="ConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
