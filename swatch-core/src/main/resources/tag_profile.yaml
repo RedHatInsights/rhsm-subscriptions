@@ -217,7 +217,7 @@ tagMetrics:
     rhmMetricId: redhat.com:rhosak:transfer_gb
     awsDimension: transfer_gb
     uom: TRANSFER_GIBIBYTES
-    billingWindow: HOURLY
+    billingWindow: MONTHLY
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
@@ -227,7 +227,7 @@ tagMetrics:
     rhmMetricId: redhat.com:rhosak:cluster_hour
     awsDimension: cluster_hour
     uom: INSTANCE_HOURS
-    billingWindow: HOURLY
+    billingWindow: MONTHLY
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
