@@ -38,6 +38,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -56,17 +57,20 @@ public class BillableUsageProcessor {
   private final TagProfile tagProfile;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
+  private final Optional<Boolean> isDryRun;
 
   public BillableUsageProcessor(
       MeterRegistry meterRegistry,
       TagProfile tagProfile,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
-      AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory) {
+      AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
+      @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     this.tagProfile = tagProfile;
     this.internalSubscriptionsApi = internalSubscriptionsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
+    this.isDryRun = isDryRun;
   }
 
   @Incoming("tally-in")
@@ -146,6 +150,12 @@ public class BillableUsageProcessor {
             .productCode(context.getProductCode())
             .usageRecords(transformToAwsUsage(context, billableUsage))
             .build();
+
+    if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
+      log.info("[DRY RUN] Sending usage request to AWS: {}", request);
+      return;
+    }
+
     try {
       MarketplaceMeteringClient marketplaceMeteringClient =
           awsMarketplaceMeteringClientFactory.buildMarketplaceMeteringClient(context);
