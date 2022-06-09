@@ -64,7 +64,7 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
   @Override
   public void onPartitionsRevoked(Consumer<?, ?> consumer, Collection<TopicPartition> partitions) {
     performUpdate(consumer);
-    KafkaConsumerRebalanceListener.super.onPartitionsAssigned(consumer, partitions);
+    KafkaConsumerRebalanceListener.super.onPartitionsRevoked(consumer, partitions);
   }
 
   @Override
