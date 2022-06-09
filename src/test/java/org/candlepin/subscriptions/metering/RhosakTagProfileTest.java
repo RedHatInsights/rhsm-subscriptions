@@ -86,7 +86,7 @@ class RhosakTagProfileTest {
                 .rhmMetricId("redhat.com:rhosak:transfer_gb")
                 .awsDimension("transfer_gb")
                 .uom(Uom.TRANSFER_GIBIBYTES)
-                .billingWindow(BillingWindow.HOURLY)
+                .billingWindow(BillingWindow.MONTHLY)
                 .queryKey("default")
                 .accountQueryKey("default")
                 .queryParams(
@@ -108,7 +108,7 @@ class RhosakTagProfileTest {
                 .awsDimension("cluster_hour")
                 .uom(Uom.INSTANCE_HOURS)
                 .queryKey("default")
-                .billingWindow(BillingWindow.HOURLY)
+                .billingWindow(BillingWindow.MONTHLY)
                 .accountQueryKey("default")
                 .queryParams(
                     Map.of(
