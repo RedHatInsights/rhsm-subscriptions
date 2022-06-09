@@ -89,7 +89,7 @@ class InternalSubscriptionResourceTest {
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production"));
+                "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production", "123"));
     Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
   }
@@ -108,7 +108,7 @@ class InternalSubscriptionResourceTest {
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
-            "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production");
+            "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production", "123");
     Counter counter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     assertEquals(1.0, counter.count());
     assertEquals("foo1", awsUsageContext.getProductCode());
