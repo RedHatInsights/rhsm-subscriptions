@@ -53,6 +53,8 @@ parameters:
     value: 'false'
   - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
     value: ''
+  - name: ENABLE_AWS_DRY_RUN
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -166,6 +168,8 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_END}
             - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: ENABLE_AWS_DRY_RUN
+              value: ${ENABLE_AWS_DRY_RUN}
           volumeMounts:
             - name: logs
               mountPath: /logs

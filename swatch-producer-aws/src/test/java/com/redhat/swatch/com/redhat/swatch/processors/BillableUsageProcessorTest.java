@@ -41,6 +41,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -108,7 +109,11 @@ class BillableUsageProcessorTest {
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     processor =
         new BillableUsageProcessor(
-            meterRegistry, new TagProfile(), internalSubscriptionsApi, clientFactory);
+            meterRegistry,
+            new TagProfile(),
+            internalSubscriptionsApi,
+            clientFactory,
+            Optional.of(false));
   }
 
   @Test
@@ -203,5 +208,20 @@ class BillableUsageProcessorTest {
         .thenThrow(MarketplaceMeteringException.class);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
     assertEquals(1.0, rejectedCounter.count());
+  }
+
+  @Test
+  void shouldNotMakeAwsUsageRequestWhenDryRunEnabled() throws ApiException {
+    BillableUsageProcessor processor =
+        new BillableUsageProcessor(
+            meterRegistry,
+            new TagProfile(),
+            internalSubscriptionsApi,
+            clientFactory,
+            Optional.of(true));
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    verifyNoInteractions(clientFactory, meteringClient);
   }
 }
