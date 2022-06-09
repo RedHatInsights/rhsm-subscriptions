@@ -49,6 +49,10 @@ parameters:
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -158,6 +162,10 @@ objects:
                   key: self
             - name: TALLY_IN_FAIL_ON_DESER_FAILURE
               value: ${TALLY_IN_FAIL_ON_DESER_FAILURE}
+            - name: KAFKA_SEEK_OVERRIDE_END
+              value: ${KAFKA_SEEK_OVERRIDE_END}
+            - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
           volumeMounts:
             - name: logs
               mountPath: /logs

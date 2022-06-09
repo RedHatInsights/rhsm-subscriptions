@@ -29,7 +29,9 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
@@ -39,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
 @Default
@@ -47,12 +50,20 @@ import org.apache.kafka.common.TopicPartition;
 public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
 
   private final KafkaClientService kafkaClientService;
+  private Optional<Boolean> kafkaSeekOverrideEnd;
+  private Optional<OffsetDateTime> kafkaSeekOverrideTimestamp;
   private final Queue<Map<TopicPartition, OffsetAndMetadata>> offsetUpdateQueue =
       new ArrayDeque<>();
 
   @Inject
-  public KafkaSeekHelper(KafkaClientService kafkaClientService) {
+  public KafkaSeekHelper(
+      KafkaClientService kafkaClientService,
+      @ConfigProperty(name = "KAFKA_SEEK_OVERRIDE_END") Optional<Boolean> kafkaSeekOverrideEnd,
+      @ConfigProperty(name = "KAFKA_SEEK_OVERRIDE_TIMESTAMP")
+          Optional<OffsetDateTime> kafkaSeekOverrideTimestamp) {
     this.kafkaClientService = kafkaClientService;
+    this.kafkaSeekOverrideEnd = kafkaSeekOverrideEnd;
+    this.kafkaSeekOverrideTimestamp = kafkaSeekOverrideTimestamp;
   }
 
   @Override
@@ -76,6 +87,22 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
   }
 
   private void performUpdate(Consumer<?, ?> consumer) {
+    if (kafkaSeekOverrideEnd.isPresent() && Boolean.TRUE.equals(kafkaSeekOverrideEnd.get())) {
+      Map<TopicPartition, OffsetAndMetadata> endOffsets =
+          offsetWithMetadata(consumer.endOffsets(consumer.assignment()));
+      endOffsets.forEach(consumer::seek);
+      consumer.commitSync(endOffsets);
+      log.info("Overrode initial offset to end");
+      kafkaSeekOverrideEnd = Optional.empty();
+    }
+    if (kafkaSeekOverrideTimestamp.isPresent()) {
+      Map<TopicPartition, OffsetAndMetadata> offsets =
+          getOffsetsForTimestamp(consumer, kafkaSeekOverrideTimestamp.get());
+      offsets.forEach(consumer::seek);
+      consumer.commitSync(offsets);
+      log.info("Overrode initial offset to {}", kafkaSeekOverrideTimestamp);
+      kafkaSeekOverrideTimestamp = Optional.empty();
+    }
     while (!offsetUpdateQueue.isEmpty()) {
       Map<TopicPartition, OffsetAndMetadata> pendingUpdate = offsetUpdateQueue.poll();
       consumer.commitSync(pendingUpdate);
@@ -83,14 +110,39 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
     }
   }
 
-  private void seekAndCommit(Consumer<Object, Object> consumer, Map<TopicPartition, Long> offsets) {
+  private static Map<TopicPartition, OffsetAndMetadata> getOffsetsForTimestamp(
+      Consumer<?, ?> consumer, OffsetDateTime timestamp) {
+    long unixTimestampMs = timestamp.toEpochSecond() * 1000;
+    Set<TopicPartition> topicPartitions = consumer.assignment();
+    Map<TopicPartition, OffsetAndMetadata> offsets =
+        consumer
+            .offsetsForTimes(
+                topicPartitions.stream()
+                    .collect(
+                        Collectors.toMap(Function.identity(), topicPartition -> unixTimestampMs)))
+            .entrySet()
+            .stream()
+            .filter(entry -> entry.getValue() != null)
+            .collect(
+                Collectors.toMap(
+                    Entry::getKey, entry -> new OffsetAndMetadata(entry.getValue().offset())));
+    for (TopicPartition topicPartition : topicPartitions) {
+      if (!offsets.containsKey(topicPartition)) {
+        log.warn(
+            "No message having a timestamp >= {} exists on Topic {} Partition {}",
+            timestamp,
+            topicPartition.topic(),
+            topicPartition.partition());
+      }
+    }
+    return offsets;
+  }
+
+  private void seekAndCommit(
+      Consumer<Object, Object> consumer, Map<TopicPartition, OffsetAndMetadata> offsets) {
     // forcing a rebalance causes quarkus to flush its offset store
     consumer.enforceRebalance();
-    Map<TopicPartition, OffsetAndMetadata> offsetUpdates =
-        offsets.entrySet().stream()
-            .collect(
-                Collectors.toMap(Entry::getKey, entry -> new OffsetAndMetadata(entry.getValue())));
-    offsetUpdateQueue.offer(offsetUpdates);
+    offsetUpdateQueue.offer(offsets);
     // forcing a rebalance performs the queued updates
     consumer.enforceRebalance();
   }
@@ -104,13 +156,14 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
                     .runOnPollingThread(
                         consumer -> {
                           if (position == KafkaSeekPosition.BEGINNING) {
-                            Map<TopicPartition, Long> beginningOffsets =
-                                consumer.beginningOffsets(consumer.assignment());
+                            Map<TopicPartition, OffsetAndMetadata> beginningOffsets =
+                                offsetWithMetadata(
+                                    consumer.beginningOffsets(consumer.assignment()));
                             seekAndCommit(consumer, beginningOffsets);
                             log.info("Kafka consumer seeked to beginning");
                           } else {
-                            Map<TopicPartition, Long> endOffsets =
-                                consumer.endOffsets(consumer.assignment());
+                            Map<TopicPartition, OffsetAndMetadata> endOffsets =
+                                offsetWithMetadata(consumer.endOffsets(consumer.assignment()));
                             seekAndCommit(consumer, endOffsets);
                             log.info("Kafka consumer seeked to end");
                           }
@@ -119,8 +172,13 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
                     .asCompletionStage());
   }
 
+  private static Map<TopicPartition, OffsetAndMetadata> offsetWithMetadata(
+      Map<TopicPartition, Long> offsets) {
+    return offsets.entrySet().stream()
+        .collect(Collectors.toMap(Entry::getKey, entry -> new OffsetAndMetadata(entry.getValue())));
+  }
+
   public void seekToTimestamp(OffsetDateTime timestamp) {
-    long unixTimestamp = timestamp.toEpochSecond();
     kafkaClientService.getConsumerChannels().stream()
         .map(kafkaClientService::getConsumer)
         .forEach(
@@ -128,11 +186,8 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
                 asyncConsumer
                     .runOnPollingThread(
                         consumer -> {
-                          Map<TopicPartition, Long> desiredOffsets =
-                              consumer.assignment().stream()
-                                  .collect(
-                                      Collectors.toMap(
-                                          Function.identity(), topicPartition -> unixTimestamp));
+                          Map<TopicPartition, OffsetAndMetadata> desiredOffsets =
+                              getOffsetsForTimestamp(consumer, timestamp);
                           seekAndCommit(consumer, desiredOffsets);
                           log.info("Kafka consumer seeked to {}", timestamp);
                         })
