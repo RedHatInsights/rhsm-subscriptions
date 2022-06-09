@@ -45,6 +45,10 @@ dependencies {
     implementation "org.springframework.kafka:spring-kafka"
     // the following dep is necessary to avoid jackson kotlin warnings
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
+    // used to deserialize subscription/product messages from UMB
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
+    // used to connect to umb
+    implementation "org.springframework.boot:spring-boot-starter-activemq"
 
     implementation "org.liquibase:liquibase-core"
     implementation "org.postgresql:postgresql"

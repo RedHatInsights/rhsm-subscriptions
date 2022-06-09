@@ -28,6 +28,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subscription"
+  /search/criteria;subscription_number={subscriptionNumber}/options;products=ALL;showExternalReferences=true:
+    description: "Find a subscription by subscription number"
+    parameters:
+      - name: subscriptionNumber
+        required: true
+        in: path
+        description: "The ID of the subscription entity"
+        schema:
+          type: string
+    get:
+      summary: "Get a single subscription"
+      operationId: "getSubscriptionBySubscriptionNumber"
+      tags:
+        - search
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
   /search/criteria;oracle_account_number={accountNumber}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}:
     description: "Search subscriptions on owner, index, and pageSize"
     parameters:

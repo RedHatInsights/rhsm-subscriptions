@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -514,6 +515,69 @@ class SubscriptionSyncControllerTest {
     var result = subscriptionSyncController.terminateSubscription("456", termination);
     assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
     assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void testSubscriptionEnrichedFromSubscriptionServiceWhenDbRecordAbsentAndSubscriptionIdMissing() {
+    Subscription incoming = createSubscription("123", "testsku", null);
+    incoming.setSubscriptionNumber("subnum");
+    var serviceResponse = createDto("456", 1);
+    serviceResponse.setExternalReferences(
+        Map.of(
+            SubscriptionDtoUtil.AWS_MARKETPLACE,
+            new ExternalReference()
+                .customerAccountId("billingAccountId")
+                .productCode("p")
+                .customerID("c")
+                .sellerAccount("s")));
+
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById("testsku")).thenReturn(true);
+    when(subscriptionService.getSubscriptionBySubscriptionNumber("subnum"))
+        .thenReturn(serviceResponse);
+
+    subscriptionSyncController.syncSubscription(incoming, Optional.empty());
+    verify(subscriptionService).getSubscriptionBySubscriptionNumber("subnum");
+    assertEquals("billingAccountId", incoming.getBillingAccountId());
+    assertEquals(BillingProvider.AWS, incoming.getBillingProvider());
+    assertEquals("p;c;s", incoming.getBillingProviderId());
+    assertEquals("456", incoming.getSubscriptionId());
+  }
+
+  @Test
+  void testSubscriptionEnrichedFromDbWhenSubscriptionIdMissing() {
+    Subscription incoming = createSubscription("123", "testsku", null);
+    Subscription existing = createSubscription("123", "testsku", "456");
+    existing.setBillingAccountId("billingAccountId");
+    existing.setBillingProvider(BillingProvider.RED_HAT);
+    existing.setBillingProviderId("billingProviderId");
+
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById("testsku")).thenReturn(true);
+
+    subscriptionSyncController.syncSubscription(incoming, Optional.of(existing));
+
+    verifyNoInteractions(subscriptionService);
+    assertEquals("billingAccountId", incoming.getBillingAccountId());
+    assertEquals(BillingProvider.RED_HAT, incoming.getBillingProvider());
+    assertEquals("billingProviderId", incoming.getBillingProviderId());
+    assertEquals("456", incoming.getSubscriptionId());
+  }
+
+  @Test
+  void testSubscriptionNotEnrichedWhenSubscriptionIdPresent() {
+    Subscription incoming = createSubscription("123", "testsku", "456");
+    Subscription existing = createSubscription("123", "testsku", "456");
+    existing.setBillingAccountId("billingAccountId");
+
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById("testsku")).thenReturn(true);
+
+    subscriptionSyncController.syncSubscription(incoming, Optional.of(existing));
+
+    verifyNoInteractions(subscriptionService);
+    verify(subscriptionRepository).save(any());
+    assertNull(incoming.getBillingAccountId());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {
