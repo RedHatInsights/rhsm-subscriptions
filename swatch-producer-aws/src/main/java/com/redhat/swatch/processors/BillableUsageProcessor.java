@@ -133,7 +133,8 @@ public class BillableUsageProcessor {
           billableUsage.getSnapshotDate(),
           billableUsage.getProductId(),
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
-          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null));
+          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
+          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
     } catch (ApiException e) {
       throw new AwsUsageContextLookupException(e);
     }

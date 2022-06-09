@@ -84,6 +84,10 @@ paths:
         in: query
         schema:
           type: string
+      - name: awsAccountId
+        in: query
+        schema:
+          type: string
     get:
       summary: "Lookup necessary info to submit a usage record to AWS"
       operationId: getAwsUsageContext
