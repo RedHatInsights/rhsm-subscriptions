@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +50,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
@@ -317,8 +319,27 @@ class SubscriptionSyncControllerTest {
     var dto2 = createDto("345", 3);
     var subList = Arrays.asList(dto1, dto2);
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
-    verify(subscriptionService).getSubscriptionsByOrgId("123");
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById(any())).thenReturn(true);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
+    verify(subscriptionRepository, times(2)).save(any());
+  }
+
+  @Test
+  void shouldForcePAYGSubscriptionsOnlySyncForOrg() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("345", 3);
+    var externalReferences = new HashMap<String, ExternalReference>();
+    var externalReference = new ExternalReference();
+    externalReference.setSubscriptionID("testBillingProvider");
+    externalReferences.put(SubscriptionDtoUtil.IBMMARKETPLACE, externalReference);
+    dto2.setExternalReferences(externalReferences);
+    var subList = Arrays.asList(dto1, dto2);
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById(any())).thenReturn(true);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", true);
+    verify(subscriptionRepository, times(1)).save(any());
   }
 
   @Test
@@ -330,7 +351,7 @@ class SubscriptionSyncControllerTest {
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
     when(subscriptionRepository.findByOwnerIdAndEndDateAfter(eq("123"), any()))
         .thenReturn(subDaoList);
-    subscriptionSyncController.forceSyncSubscriptionsForOrg("123");
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
     verify(subscriptionRepository).findByOwnerIdAndEndDateAfter(eq("123"), any());
     verify(subscriptionRepository, never()).findActiveSubscription(any());
   }
@@ -357,12 +378,12 @@ class SubscriptionSyncControllerTest {
         IllegalArgumentException.class,
         () ->
             subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-                "1000", orgId, key1, rangeStart, rangeEnd));
+                "1000", orgId, key1, rangeStart, rangeEnd, false));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-                "1000", orgId, key2, rangeStart, rangeEnd));
+                "1000", orgId, key2, rangeStart, rangeEnd, false));
   }
 
   @Test
@@ -389,7 +410,7 @@ class SubscriptionSyncControllerTest {
 
     List<Subscription> actual =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd);
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -418,7 +439,7 @@ class SubscriptionSyncControllerTest {
 
     List<Subscription> actual =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd);
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
     assertEquals(1, actual.size());
     assertEquals("abc", actual.get(0).getBillingProviderId());
     verify(subscriptionService, times(1)).getSubscriptionsByOrgId("org1000");

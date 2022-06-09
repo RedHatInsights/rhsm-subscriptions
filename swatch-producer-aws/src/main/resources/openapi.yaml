@@ -30,6 +30,56 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: submitBillableUsage
       description: Only available when `AWS_MANUAL_SUBMISSION_ENABLED=true`
+  /api/swatch-producer-aws/internal/kafka_seek_position:
+    post:
+      summary:  Seek Kafka consumer to a relative position
+      tags:
+        - kafka
+      parameters:
+        - name: position
+          in: query
+          schema:
+            $ref: '#/components/schemas/KafkaSeekPosition'
+      responses:
+        '202':
+          description: "Kafka queue seeked successfully for all partitions."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: kakfaSeekPosition
+      description: >
+        Seek the kafka consumer manually to the specified position (for
+        debugging/support purposes)
+  /api/swatch-producer-aws/internal/kafka_seek_timestamp:
+    post:
+      summary: Seek Kafka consumer to a specific timestamp
+      tags:
+        - kafka
+      parameters:
+        - name: timestamp
+          in: query
+          schema:
+            type: string
+      responses:
+        '202':
+          description: "Kafka queue seeked successfully for all partitions."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: kakfaSeekTimestamp
+      description: >
+        Seek the kafka consumer manually to the specified timestamp (for
+        debugging/support purposes).
 components:
   responses:
     InternalServerError:
@@ -85,3 +135,7 @@ components:
           type: string
         detail:
           type: string
+    KafkaSeekPosition:
+      enum:
+        - beginning
+        - end

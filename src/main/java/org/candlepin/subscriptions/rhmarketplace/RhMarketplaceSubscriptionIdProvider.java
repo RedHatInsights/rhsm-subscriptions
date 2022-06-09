@@ -64,7 +64,7 @@ public class RhMarketplaceSubscriptionIdProvider {
       OffsetDateTime rangeEnd) {
     List<Subscription> results =
         syncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber, Optional.of(orgId), usageKey, rangeStart, rangeEnd);
+            accountNumber, Optional.of(orgId), usageKey, rangeStart, rangeEnd, false);
     if (results.isEmpty()) {
       missingSubscriptionCounter.increment();
     }
