@@ -62,7 +62,7 @@ public class WiremockRunner {
         Optional.ofNullable(System.getenv("WIREMOCK_AWS_PRODUCT_CODE")).orElse("productCode");
     Jsonb jsonb = JsonbBuilder.create();
     wireMockServer.stubFor(
-        any(urlMatching("/subscriptions/?.*"))
+        any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withQueryParam("accountNumber", equalTo("account123"))
             .willReturn(
                 aResponse()
@@ -76,7 +76,7 @@ public class WiremockRunner {
                                 .rhSubscriptionId("rhSubscriptionId")
                                 .subscriptionStartDate(OffsetDateTime.now().minusDays(1))))));
     wireMockServer.stubFor(
-        any(urlMatching("/subscriptions/?.*"))
+        any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withQueryParam("accountNumber", equalTo("unconfigured"))
             .willReturn(
                 aResponse()
@@ -92,7 +92,7 @@ public class WiremockRunner {
     // last stub has highest prio, so this effectively short-circuits any request without the header
     // at 401
     wireMockServer.stubFor(
-        any(urlMatching("/subscriptions/?.*"))
+        any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withHeader("x-rh-swatch-psk", notMatching("dummy"))
             .willReturn(aResponse().withStatus(401)));
   }
