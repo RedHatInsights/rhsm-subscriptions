@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -154,6 +155,18 @@ public class SubscriptionSyncController {
     log.debug("Syncing subscription from external service={}", subscription);
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
+
+    if (newOrUpdated.getBillingProvider() == null
+        || newOrUpdated.getBillingProvider().equals(BillingProvider.EMPTY)) {
+      var isPAYGEligible =
+          offeringRepository.findBySku(newOrUpdated.getSku()).getProductIds().stream()
+              .anyMatch(id -> tagProfile.isProductPAYGEligible(id.toString()));
+      if (isPAYGEligible) {
+        log.warn(
+            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+            newOrUpdated.getSubscriptionId());
+      }
+    }
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =

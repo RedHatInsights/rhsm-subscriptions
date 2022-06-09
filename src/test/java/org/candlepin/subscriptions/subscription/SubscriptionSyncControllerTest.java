@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,6 +54,7 @@ import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,6 +100,12 @@ class SubscriptionSyncControllerTest {
   @Autowired
   @Qualifier("syncSubscriptionTasks")
   private TaskQueueProperties taskQueueProperties;
+
+  @BeforeEach
+  void setUp() {
+    Mockito.when(offeringRepository.findBySku(Mockito.anyString()))
+        .thenReturn(Offering.builder().productIds(new HashSet<>(Arrays.asList(68))).build());
+  }
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
