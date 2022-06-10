@@ -22,9 +22,13 @@ package org.candlepin.subscriptions.user;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.classify.Classifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.RetryPolicy;
+import org.springframework.retry.policy.ExceptionClassifierRetryPolicy;
+import org.springframework.retry.policy.MaxAttemptsRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
@@ -45,14 +49,39 @@ public class UserServiceClientConfiguration {
   }
 
   @Bean
+  public RetryPolicy defaultUserServicePolicy(UserServiceProperties properties) {
+    return new MaxAttemptsRetryPolicy(properties.getMaxAttempts());
+  }
+
+  @Bean
+  public Classifier<Throwable, RetryPolicy> notFoundClassifier(
+      RetryPolicy defaultUserServicePolicy) {
+    return new NotFoundSubscriptionsExceptionClassifier(defaultUserServicePolicy);
+  }
+
+  @Bean
+  public RetryPolicy composedRetryPolicy(Classifier<Throwable, RetryPolicy> notFoundClassifier) {
+    /* The ExceptionClassifierRetryPolicy is built around a Classifier object that takes
+     * Throwables and returns RetryPolicies based on the Throwable.  I think the naming is a
+     * little confusing, but the important thing to remember is that the critical logic is
+     * located in the Classifer.
+     */
+    ExceptionClassifierRetryPolicy exceptionClassifierRetryPolicy =
+        new ExceptionClassifierRetryPolicy();
+    exceptionClassifierRetryPolicy.setExceptionClassifier(notFoundClassifier);
+    return exceptionClassifierRetryPolicy;
+  }
+
+  @Bean
   @Qualifier("userServiceRetry")
-  public RetryTemplate userServiceRetry(UserServiceProperties properties) {
+  public RetryTemplate userServiceRetry(
+      UserServiceProperties properties, RetryPolicy composedRetryPolicy) {
     return new RetryTemplateBuilder()
-        .maxAttempts(properties.getMaxAttempts())
         .exponentialBackoff(
             properties.getBackOffInitialInterval().toMillis(),
             properties.getBackOffMultiplier(),
             properties.getBackOffMaxInterval().toMillis())
+        .customPolicy(composedRetryPolicy)
         .build();
   }
 

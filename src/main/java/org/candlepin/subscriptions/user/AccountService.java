@@ -65,7 +65,7 @@ public class AccountService {
         MDC.put("ACCOUNT_LOOKUP_FAILED", Boolean.TRUE.toString());
         throw new SubscriptionsException(
             ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
-            Status.NOT_FOUND,
+            Status.NO_CONTENT,
             String.format("Account number %s not found", accountNumber),
             (String) null);
       }
@@ -94,7 +94,7 @@ public class AccountService {
         MDC.put("ACCOUNT_LOOKUP_FAILED", Boolean.TRUE.toString());
         throw new SubscriptionsException(
             ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
-            Status.NOT_FOUND,
+            Status.NO_CONTENT,
             String.format("Account w/ orgId %s not found", orgId),
             (String) null);
       }
