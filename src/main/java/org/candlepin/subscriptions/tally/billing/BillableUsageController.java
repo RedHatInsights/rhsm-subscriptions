@@ -126,9 +126,12 @@ public class BillableUsageController {
     BillableUsageCalculation usageCalc =
         calculateBillableUsage(currentMontlyTotal, remittance.getRemittedValue());
 
-    log.debug("Current montly total: {}", currentMontlyTotal);
-    log.debug("Current remittance: {}", remittance);
-    log.debug("New billable usage calculation: {}", usageCalc);
+    log.debug(
+        "Processing monthly billable usage: Usage: {}, Current total: {}, Current remittance: {}, New billable: {}",
+        usage,
+        currentMontlyTotal,
+        remittance,
+        usageCalc);
 
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
