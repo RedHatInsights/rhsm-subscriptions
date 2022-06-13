@@ -119,16 +119,19 @@ public class BillableUsageController {
 
   private void produceMonthlyBillable(BillableUsage usage) {
     log.debug("Processing monthly billable usage {}", usage);
-    Double currentMontlyTotal =
+    Double currentMonthlyTotal =
         getCurrentlyMeasuredTotal(
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
     BillableUsageRemittanceEntity remittance = getLatestRemittance(usage);
     BillableUsageCalculation usageCalc =
-        calculateBillableUsage(currentMontlyTotal, remittance.getRemittedValue());
+        calculateBillableUsage(currentMonthlyTotal, remittance.getRemittedValue());
 
-    log.debug("Current montly total: {}", currentMontlyTotal);
-    log.debug("Current remittance: {}", remittance);
-    log.debug("New billable usage calculation: {}", usageCalc);
+    log.debug(
+        "Processing monthly billable usage: Usage: {}, Current total: {}, Current remittance: {}, New billable: {}",
+        usage,
+        currentMonthlyTotal,
+        remittance,
+        usageCalc);
 
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
