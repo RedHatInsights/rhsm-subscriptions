@@ -1542,6 +1542,7 @@ components:
         - Storage-gibibyte-months
         - Transfer-gibibytes
         - billing_provider
+        - Storage-gibibyte-months
     InstanceData:
       title: Root Type for Instance
       description: The representation of a product cluster data
