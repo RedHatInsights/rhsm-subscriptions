@@ -41,6 +41,11 @@ import org.springframework.util.backoff.FixedBackOff;
 public class KafkaTransientDataAccessErrorHandler extends DefaultErrorHandler {
 
   public KafkaTransientDataAccessErrorHandler() {
+    /*
+    NOTE: Spring doesn't provide a randomized exponential backoff, but if we port this component
+    to quarkus, we could make use of "jitter" to reduce the likelihood of repeated optimistic
+    lock errors.
+     */
     super(new FixedBackOff());
   }
 
