@@ -23,22 +23,28 @@ package org.candlepin.subscriptions.tally.billing;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import org.candlepin.subscriptions.util.KafkaTransientDataAccessErrorHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.CommonDelegatingErrorHandler;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.support.RetryTemplate;
@@ -86,6 +92,7 @@ public class BillingProducerConfiguration {
       billingProducerKafkaTallySummaryListenerContainerFactory(
           @Qualifier("billingProducerTallySummaryConsumerFactory")
               ConsumerFactory<String, TallySummary> consumerFactory,
+          CommonErrorHandler errorHandler,
           KafkaProperties kafkaProperties,
           KafkaConsumerRegistry registry) {
 
@@ -93,6 +100,7 @@ public class BillingProducerConfiguration {
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    factory.setCommonErrorHandler(errorHandler);
     if (kafkaProperties.getListener().getIdleEventInterval() != null) {
       factory
           .getContainerProperties()
@@ -101,6 +109,15 @@ public class BillingProducerConfiguration {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
+  }
+
+  @Bean
+  CommonErrorHandler errorHandler() {
+    CommonDelegatingErrorHandler errorHandler =
+        new CommonDelegatingErrorHandler(new DefaultErrorHandler());
+    errorHandler.setErrorHandlers(
+        Map.of(TransientDataAccessException.class, new KafkaTransientDataAccessErrorHandler()));
+    return errorHandler;
   }
 
   @Bean
